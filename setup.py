@@ -5,9 +5,10 @@ setup(
     packages=['quilt_server'],
     include_package_data=True,
     install_requires=[
-        'flask',
-        'flask-json',
-        'flask-migrate',
-        'pymysql',
+        'Flask',
+        'Flask-JSON',
+        'Flask-Migrate',
+        'Flask-OAuthlib',
+        'PyMySQL',
     ],
 )
