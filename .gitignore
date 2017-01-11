@@ -1,0 +1,6 @@
+*.py[cod]
+__pycache__
+.cache
+
+# Visual Studio Code
+.vscode
