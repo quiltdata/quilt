@@ -1,10 +1,10 @@
 """
 Config object for the Flask app.
 
-See `app.config.from_object('config')` in app.py.
+See `app.config.from_object('...')` in __init__.py.
 """
 
-from const import PRODUCTION
+from .const import PRODUCTION
 
 if PRODUCTION:
     assert False
