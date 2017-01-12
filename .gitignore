@@ -1,6 +1,7 @@
 *.py[cod]
 __pycache__
 .cache
+*.egg-info
 
 # Visual Studio Code
 .vscode

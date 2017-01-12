@@ -3,28 +3,31 @@
 ## Install
 * Install and start MySQL
 * Create a `quilt` database:
-  ```
-  $ mysql -u root  # No password needed - yay MySQL.
-  > create database quilt;
-  ```
+
+        $ mysql -u root  # No password needed - yay MySQL.
+        > create database quilt;
+
 * Create a virtual env
-* `pip install -r requirements.txt`
+* Install the server package and its dependencies:
+
+        $ pip install -e .
+
 * Add these to the env's `postactivate` script:
-  ```
-  export FLASK_APP=app.py
-  export FLASK_DEBUG=1
-  ```
+
+        export FLASK_APP=quilt_server
+        export FLASK_DEBUG=1
+
 * Activate the environment again - make sure the variables got set
-* `flask db upgrade`
+* Initialize the database tables:
+
+        flask db upgrade
 
 ## Run
-```
-flask run
-```
+
+    flask run
 
 ## DB Migrations
 (Not actually tested yet...)
-```
-flask db migrate
-flask db upgrade
-```
+
+    flask db migrate
+    flask db upgrade
