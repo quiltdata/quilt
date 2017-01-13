@@ -22,3 +22,7 @@ Migrate(app, db)
 
 # Need to import views.py in order for the routes to get set up.
 from . import views
+
+# Need tables to run migrations.
+# Should already be imported by `views` above, but just to be safe...
+from . import models

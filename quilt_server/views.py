@@ -2,13 +2,18 @@
 API routes.
 """
 
+from functools import wraps
+
+import boto3
 from flask import abort, redirect, render_template, request, url_for
 from flask_json import as_json
-
 from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
 
-from . import app
+import requests
+
+from . import app, db
+from .models import Package, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -17,6 +22,15 @@ OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
 ACCESS_TOKEN_URL = '/o/token/'
 AUTHORIZE_URL = '/o/authorize/'
 
+
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=app.config['AWS_ACCESS_KEY'],
+    aws_secret_access_key=app.config['AWS_SECRET_KEY']
+)
+
+
+### Web routes ###
 
 def _create_session():
     return OAuth2Session(
@@ -78,3 +92,114 @@ def token():
         access_token=resp['access_token'],
         expires_at=resp['expires_at']
     )
+
+
+### API routes ###
+
+def api(require_login=True):
+    """
+    Decorator for API requests.
+    Handles auth and adds the username as the first argument.
+    """
+    def innerdec(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            auth = request.headers.get('Authorization')
+            user = None
+
+            if auth is None:
+                if require_login:
+                    abort(401)
+            else:
+                headers = {
+                    'Authorization': auth
+                }
+                resp = requests.get(OAUTH_BASE_URL + '/api-root', headers=headers)
+                if resp.status_code == requests.codes.ok:
+                    data = resp.json()
+                    user = data['current_user']
+                elif resp.status_code == requests.codes.unauthorized:
+                    abort(401)
+                else:
+                    abort(500)
+            return f(user, *args, **kwargs)
+        return wrapper
+    return innerdec
+
+@app.route('/qpm/datasets/<user>/<package_name>/', methods=['GET', 'PUT'])
+@api()
+@as_json
+def dataset(auth_user, user, package_name):
+    if auth_user != user:
+        # TODO: Use the `Access` table.
+        abort(403)
+
+    if request.method == 'PUT':
+        data = request.get_json()
+        try:
+            package_hash = data['hash']
+        except (TypeError, KeyError):
+            abort(400)
+        if not isinstance(package_hash, str):
+            abort(400)
+
+        # Insert a package if it doesn't already exist.
+        # TODO: Separate endpoint for just creating a package with no versions?
+        package = (
+            Package.query
+            .with_for_update()
+            .filter_by(owner=user, name=package_name)
+            .one_or_none()
+        )
+        if package is None:
+            package = Package(owner=user, name=package_name)
+            db.session.add(package)
+
+        version = Version(
+            package=package,
+            author=user,
+            hash=package_hash,
+            s3_bucket=app.config['PACKAGE_BUCKET_NAME'],
+            s3_path='%s/%s.h5' % (user, package)
+        )
+        db.session.add(version)
+
+        upload_url = s3_client.generate_presigned_url(
+            'put_object',
+            Params=dict(
+                Bucket=version.s3_bucket,
+                Key=version.s3_path
+            ),
+            ExpiresIn=600  # 10min
+        )
+
+        db.session.commit()
+
+        return dict(
+            upload_url=upload_url
+        )
+    else:
+        version = (
+            db.session.query(Version)
+            .join(Version.package)
+            .filter_by(owner=user, name=package_name)
+            .order_by(Version.id.desc())
+            .first()
+        )
+
+        if version is None:
+            abort(404)
+
+        url = s3_client.generate_presigned_url(
+            'get_object',
+            Params=dict(
+                Bucket=version.s3_bucket,
+                Key=version.s3_path
+            ),
+            ExpiresIn=600  # 10min
+        )
+
+        return dict(
+            url=url,
+            hash=version.hash
+        )
