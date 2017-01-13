@@ -11,7 +11,7 @@ from flask_json import FlaskJSON
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
+app = Flask(__name__.split('.')[0])
 app.config.from_object('quilt_server.config')
 
 db = SQLAlchemy(app)
