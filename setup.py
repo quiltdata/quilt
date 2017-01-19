@@ -8,7 +8,7 @@ setup(
         'Flask',
         'Flask-JSON',
         'Flask-Migrate',
-        'Flask-OAuthlib',
         'PyMySQL',
+        'requests-oauthlib',
     ],
 )

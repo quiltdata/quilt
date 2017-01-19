@@ -16,6 +16,7 @@
 
         export FLASK_APP=quilt_server
         export FLASK_DEBUG=1
+        export QUILT_SERVER_CONFIG=dev_config.py
 
 * Activate the environment again - make sure the variables got set
 * Initialize the database tables:
