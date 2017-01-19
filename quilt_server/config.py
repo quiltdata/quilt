@@ -1,15 +1,9 @@
 """
-Config object for the Flask app.
+Default config values the Flask app.
+Shared between dev, stage, and production.
 
 See `app.config.from_object('...')` in __init__.py.
 """
-
-from .const import PRODUCTION
-
-if PRODUCTION:
-    assert False
-else:
-    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/quilt'
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.

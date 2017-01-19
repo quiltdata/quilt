@@ -2,8 +2,6 @@
 API routes.
 """
 
-import os
-
 from flask import abort, redirect, render_template, request, url_for
 from flask_json import as_json
 
@@ -12,10 +10,9 @@ from requests_oauthlib import OAuth2Session
 
 from . import app
 
-
-OAUTH_BASE_URL = os.getenv('OAUTH_BASE_URL')
-OAUTH_CLIENT_ID = os.getenv('OAUTH_CLIENT_ID')
-OAUTH_CLIENT_SECRET = os.getenv('OAUTH_CLIENT_SECRET')
+OAUTH_BASE_URL = app.config['OAUTH']['base_url']
+OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
+OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
 
 ACCESS_TOKEN_URL = '/o/token/'
 AUTHORIZE_URL = '/o/authorize/'

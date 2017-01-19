@@ -13,6 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__.split('.')[0])
 app.config.from_object('quilt_server.config')
+app.config.from_envvar('QUILT_SERVER_CONFIG')
 
 db = SQLAlchemy(app)
 

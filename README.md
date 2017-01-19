@@ -16,10 +16,7 @@
 
         export FLASK_APP=quilt_server
         export FLASK_DEBUG=1
-        export OAUTH_BASE_URL='https://quilt-heroku.herokuapp.com'
-        export OAUTH_CLIENT_ID='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3'
-        export OAUTH_CLIENT_SECRET='ihhjjcPioqbdsNyo6xfjMmTALqsJzSLgVWd5SgPfAJ5gxRBUCjZR7jT8Yy2IJrVpNbd0UHaKJHoBlFgjwwokTiaOEnmjGtS6KwaPDaXRb1jbrHkvpX82CNNAtwV44Nt3'
-
+        export QUILT_SERVER_CONFIG=dev_config.py
 
 * Activate the environment again - make sure the variables got set
 * Initialize the database tables:
