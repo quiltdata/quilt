@@ -20,7 +20,6 @@ ENV FLASK_APP=quilt_server
 RUN rm /etc/nginx/sites-enabled/default
 COPY quilt-nginx /etc/nginx/sites-enabled/quilt
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf
-RUN ln -s /var/www/quilt/quilt.conf /
 
 # Create Quilt user
 RUN useradd -s /bin/bash -d /var/www/quilt quilt
