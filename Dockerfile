@@ -15,7 +15,6 @@ RUN pip3 install -e /var/www/quilt
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 ENV FLASK_APP=quilt_server
-ENV FLASK_DEBUG=1
 
 # Setup Nginx
 RUN rm /etc/nginx/sites-enabled/default
