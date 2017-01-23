@@ -25,6 +25,9 @@ RUN chown quilt:quilt /var/log/uwsgi/
 
 # Setup Nginx
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-quilt.conf /etc/nginx/sites-available/quilt
+RUN rm /etc/nginx/sites-enabled/default
+RUN ln -s /etc/nginx/sites-available/quilt /etc/nginx/sites-enabled/quilt
 
 # Flask app config; needs a mounted /config/ directory.
 ENV QUILT_SERVER_CONFIG=/config/quilt_config.py
