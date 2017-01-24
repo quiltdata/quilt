@@ -12,6 +12,7 @@ RUN pip3 install uwsgi
 
 # Install the Flask app
 COPY quilt_server /usr/src/quilt-server/quilt_server
+COPY migrations /usr/src/quilt-server/migrations
 COPY setup.py MANIFEST.in /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
@@ -31,6 +32,9 @@ RUN ln -s /etc/nginx/sites-available/quilt /etc/nginx/sites-enabled/quilt
 
 # Flask app config; needs a mounted /config/ directory.
 ENV QUILT_SERVER_CONFIG=/config/quilt_config.py
+
+# Needed to run `flask db ...`
+ENV FLASK_APP=quilt_server
 
 # Setup Supervisor
 RUN mkdir -p /var/log/supervisor
