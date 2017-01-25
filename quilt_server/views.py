@@ -143,9 +143,9 @@ def dataset(auth_user, user, package_name):
         try:
             package_hash = data['hash']
         except (TypeError, KeyError):
-            abort(400)
+            abort(400, "Missing 'hash'.")
         if not isinstance(package_hash, str):
-            abort(400)
+            abort(400, "'hash' is not a string.")
 
         # Insert a package if it doesn't already exist.
         # TODO: Separate endpoint for just creating a package with no versions?
