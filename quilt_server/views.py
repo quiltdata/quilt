@@ -13,7 +13,7 @@ from requests_oauthlib import OAuth2Session
 import requests
 
 from . import app, db
-from .models import Package, Version
+from .models import Package, Tag, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -159,16 +159,22 @@ def dataset(auth_user, user, package_name):
             package=package,
             author=user,
             hash=package_hash,
-            s3_bucket=app.config['PACKAGE_BUCKET_NAME'],
-            s3_path='%s/%s.h5' % (user, package)
         )
         db.session.add(version)
+
+        Tag.query.filter_by(package=package, tag=Tag.LATEST).delete()
+        tag = Tag(
+            package=package,
+            tag=Tag.LATEST,
+            version=version
+        )
+        db.session.add(tag)
 
         upload_url = s3_client.generate_presigned_url(
             'put_object',
             Params=dict(
-                Bucket=version.s3_bucket,
-                Key=version.s3_path
+                Bucket=app.config['PACKAGE_BUCKET_NAME'],
+                Key='%s/%s/%s' % (user, package_name, package_hash)
             ),
             ExpiresIn=600  # 10min
         )
@@ -183,8 +189,9 @@ def dataset(auth_user, user, package_name):
             db.session.query(Version)
             .join(Version.package)
             .filter_by(owner=user, name=package_name)
-            .order_by(Version.id.desc())
-            .first()
+            .join(Version.tag)
+            .filter_by(tag=Tag.LATEST)
+            .one_or_none()
         )
 
         if version is None:
@@ -193,8 +200,8 @@ def dataset(auth_user, user, package_name):
         url = s3_client.generate_presigned_url(
             'get_object',
             Params=dict(
-                Bucket=version.s3_bucket,
-                Key=version.s3_path
+                Bucket=app.config['PACKAGE_BUCKET_NAME'],
+                Key='%s/%s/%s' % (user, package_name, version.hash)
             ),
             ExpiresIn=600  # 10min
         )
