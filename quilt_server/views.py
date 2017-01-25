@@ -22,6 +22,10 @@ OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
 ACCESS_TOKEN_URL = '/o/token/'
 AUTHORIZE_URL = '/o/authorize/'
 
+AUTHORIZATION_HEADER = 'Authorization'
+
+S3_GET_OBJECT = 'get_object'
+S3_PUT_OBJECT = 'put_object'
 
 s3_client = boto3.client(
     's3',
@@ -104,7 +108,7 @@ def api(require_login=True):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            auth = request.headers.get('Authorization')
+            auth = request.headers.get(AUTHORIZATION_HEADER)
             user = None
 
             if auth is None:
@@ -112,7 +116,7 @@ def api(require_login=True):
                     abort(401)
             else:
                 headers = {
-                    'Authorization': auth
+                    AUTHORIZATION_HEADER: auth
                 }
                 resp = requests.get(OAUTH_BASE_URL + '/api-root', headers=headers)
                 if resp.status_code == requests.codes.ok:
@@ -171,7 +175,7 @@ def dataset(auth_user, user, package_name):
         db.session.add(tag)
 
         upload_url = s3_client.generate_presigned_url(
-            'put_object',
+            S3_PUT_OBJECT,
             Params=dict(
                 Bucket=app.config['PACKAGE_BUCKET_NAME'],
                 Key='%s/%s/%s' % (user, package_name, package_hash)
@@ -198,7 +202,7 @@ def dataset(auth_user, user, package_name):
             abort(404)
 
         url = s3_client.generate_presigned_url(
-            'get_object',
+            S3_GET_OBJECT,
             Params=dict(
                 Bucket=app.config['PACKAGE_BUCKET_NAME'],
                 Key='%s/%s/%s' % (user, package_name, version.hash)
