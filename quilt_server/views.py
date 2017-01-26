@@ -24,6 +24,9 @@ AUTHORIZE_URL = '/o/authorize/'
 
 AUTHORIZATION_HEADER = 'Authorization'
 
+PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
+PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
+
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
@@ -189,10 +192,10 @@ def dataset(auth_user, user, package_name):
         upload_url = s3_client.generate_presigned_url(
             S3_PUT_OBJECT,
             Params=dict(
-                Bucket=app.config['PACKAGE_BUCKET_NAME'],
+                Bucket=PACKAGE_BUCKET_NAME,
                 Key='%s/%s/%s' % (user, package_name, package_hash)
             ),
-            ExpiresIn=app.config['PACKAGE_URL_EXPIRATION']
+            ExpiresIn=PACKAGE_URL_EXPIRATION
         )
 
         db.session.commit()
@@ -216,10 +219,10 @@ def dataset(auth_user, user, package_name):
         url = s3_client.generate_presigned_url(
             S3_GET_OBJECT,
             Params=dict(
-                Bucket=app.config['PACKAGE_BUCKET_NAME'],
+                Bucket=PACKAGE_BUCKET_NAME,
                 Key='%s/%s/%s' % (user, package_name, version.hash)
             ),
-            ExpiresIn=app.config['PACKAGE_URL_EXPIRATION']
+            ExpiresIn=PACKAGE_URL_EXPIRATION
         )
 
         return dict(
