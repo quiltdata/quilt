@@ -159,6 +159,7 @@ def dataset(auth_user, user, package_name):
             package = Package(owner=user, name=package_name)
             db.session.add(package)
 
+        # Insert the version.
         version = Version(
             package=package,
             author=user,
@@ -166,13 +167,24 @@ def dataset(auth_user, user, package_name):
         )
         db.session.add(version)
 
-        Tag.query.filter_by(package=package, tag=Tag.LATEST).delete()
-        tag = Tag(
-            package=package,
-            tag=Tag.LATEST,
-            version=version
+        # Look up an existing "latest" tag.
+        # Update it if it exists, otherwise create a new one.
+        # TODO: Do something clever with `merge`?
+        tag = (
+            Tag.query
+            .with_for_update()
+            .filter_by(package=package, tag=Tag.LATEST)
+            .one_or_none()
         )
-        db.session.add(tag)
+        if tag is None:
+            tag = Tag(
+                package=package,
+                tag=Tag.LATEST,
+                version=version
+            )
+            db.session.add(tag)
+        else:
+            tag.version = version
 
         upload_url = s3_client.generate_presigned_url(
             S3_PUT_OBJECT,
