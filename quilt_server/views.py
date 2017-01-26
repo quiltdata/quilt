@@ -192,7 +192,7 @@ def dataset(auth_user, user, package_name):
                 Bucket=app.config['PACKAGE_BUCKET_NAME'],
                 Key='%s/%s/%s' % (user, package_name, package_hash)
             ),
-            ExpiresIn=600  # 10min
+            ExpiresIn=app.config['PACKAGE_URL_EXPIRATION']
         )
 
         db.session.commit()
@@ -219,7 +219,7 @@ def dataset(auth_user, user, package_name):
                 Bucket=app.config['PACKAGE_BUCKET_NAME'],
                 Key='%s/%s/%s' % (user, package_name, version.hash)
             ),
-            ExpiresIn=600  # 10min
+            ExpiresIn=app.config['PACKAGE_URL_EXPIRATION']
         )
 
         return dict(
