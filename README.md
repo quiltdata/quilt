@@ -18,6 +18,10 @@
         export FLASK_DEBUG=1
         export QUILT_SERVER_CONFIG=dev_config.py
 
+        # Get these from the old server:
+        export AWS_ACCESS_KEY=...
+        export AWS_SECRET_KEY=...
+
 * Activate the environment again - make sure the variables got set
 * Initialize the database tables:
 
@@ -28,7 +32,14 @@
     flask run
 
 ## DB Migrations
-(Not actually tested yet...)
+Create a new migrations file:
 
     flask db migrate
+
+Apply the migration:
+
     flask db upgrade
+
+Don't forget to add it to the repo:
+
+    git add migrations/versions/[whatever].py

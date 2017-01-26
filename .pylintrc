@@ -1,0 +1,3 @@
+[TYPECHECK]
+generated-members=requests.codes.*,query
+ignored-classes=SQLAlchemy,scoped_session

@@ -5,6 +5,7 @@ setup(
     packages=['quilt_server'],
     include_package_data=True,
     install_requires=[
+        'boto3',
         'Flask',
         'Flask-JSON',
         'Flask-Migrate',
