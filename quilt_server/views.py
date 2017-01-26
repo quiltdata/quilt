@@ -59,7 +59,7 @@ def oauth_callback():
 
     code = request.args.get('code')
     if code is None:
-        abort(400)
+        abort(requests.codes.bad_request)
 
     session = _create_session()
     try:
@@ -77,7 +77,7 @@ def oauth_callback():
 def token():
     refresh_token = request.values.get('refresh_token')
     if refresh_token is None:
-        abort(400)
+        abort(requests.codes.bad_request)
 
     session = _create_session()
 
@@ -113,7 +113,7 @@ def api(require_login=True):
 
             if auth is None:
                 if require_login:
-                    abort(401)
+                    abort(requests.codes.unauthorized)
             else:
                 headers = {
                     AUTHORIZATION_HEADER: auth
@@ -123,9 +123,9 @@ def api(require_login=True):
                     data = resp.json()
                     user = data['current_user']
                 elif resp.status_code == requests.codes.unauthorized:
-                    abort(401)
+                    abort(requests.codes.unauthorized)
                 else:
-                    abort(500)
+                    abort(requests.codes.server_error)
             return f(user, *args, **kwargs)
         return wrapper
     return innerdec
@@ -143,9 +143,9 @@ def dataset(auth_user, user, package_name):
         try:
             package_hash = data['hash']
         except (TypeError, KeyError):
-            abort(400, "Missing 'hash'.")
+            abort(requests.codes.bad_request, "Missing 'hash'.")
         if not isinstance(package_hash, str):
-            abort(400, "'hash' is not a string.")
+            abort(requests.codes.bad_request, "'hash' is not a string.")
 
         # Insert a package if it doesn't already exist.
         # TODO: Separate endpoint for just creating a package with no versions?
@@ -211,7 +211,7 @@ def dataset(auth_user, user, package_name):
         )
 
         if version is None:
-            abort(404)
+            abort(requests.codes.not_found)
 
         url = s3_client.generate_presigned_url(
             S3_GET_OBJECT,
