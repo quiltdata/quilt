@@ -22,6 +22,10 @@
         export AWS_ACCESS_KEY=...
         export AWS_SECRET_KEY=...
 
+        # Get this one from the stage API app
+        # (https://quilt-heroku.herokuapp.com/admin/oauth2_provider/application/3/)
+        export OAUTH_CLIENT_SECRET=...
+
 * Activate the environment again - make sure the variables got set
 * Initialize the database tables:
 
