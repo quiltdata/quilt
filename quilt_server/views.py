@@ -5,7 +5,7 @@ API routes.
 from functools import wraps
 
 import boto3
-from flask import abort, redirect, render_template, request, url_for
+from flask import abort, redirect, render_template, request, Response, url_for
 from flask_json import as_json
 from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
@@ -18,6 +18,7 @@ from .models import Package, Tag, Version
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
 OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
+OAUTH_REDIRECT_URI = app.config['OAUTH']['redirect_uri']
 
 ACCESS_TOKEN_URL = '/o/token/'
 AUTHORIZE_URL = '/o/authorize/'
@@ -42,8 +43,13 @@ s3_client = boto3.client(
 def _create_session():
     return OAuth2Session(
         client_id=OAUTH_CLIENT_ID,
-        redirect_uri=url_for('oauth_callback', _external=True)
+        redirect_uri=OAUTH_REDIRECT_URI
     )
+
+@app.route('/healthcheck')
+def healthcheck():
+    """ELB health check; just needs to return a 200 status code."""
+    return Response("ok", content_type='text/plain')
 
 @app.route('/login')
 def login():
