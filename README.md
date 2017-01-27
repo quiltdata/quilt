@@ -31,9 +31,22 @@
 
         flask db upgrade
 
-## Run
+## Run Flask directly
 
     flask run
+
+## Run the Docker container
+
+    docker build -t quiltdata/server .
+
+    # Needs the dev config and the environment variables.
+    docker run -p 5000:80 \
+      -v $PWD/quilt_server/dev_config.py:/home/quilt/dev_config.py \
+      -e QUILT_SERVER_CONFIG=/home/quilt/dev_config.py \
+      -e AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \
+      -e AWS_SECRET_KEY="$AWS_SECRET_KEY" \
+      -e OAUTH_CLIENT_SECRET="$OAUTH_CLIENT_SECRET" \
+      quiltdata/server
 
 ## DB Migrations
 Create a new migrations file:
