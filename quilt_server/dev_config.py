@@ -11,6 +11,7 @@ OAUTH = dict(
     client_secret=os.getenv('OAUTH_CLIENT_SECRET')
 )
 
-PACKAGE_BUCKET_NAME = 'quilt-dpm-test'
+S3_ENDPOINT = 'http://localhost:5001'
+PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
