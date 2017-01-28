@@ -31,11 +31,7 @@ PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
-s3_client = boto3.client(
-    's3',
-    aws_access_key_id=app.config['AWS_ACCESS_KEY'],
-    aws_secret_access_key=app.config['AWS_SECRET_KEY']
-)
+s3_client = boto3.client('s3')
 
 
 ### Web routes ###
