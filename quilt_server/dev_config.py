@@ -11,8 +11,6 @@ OAUTH = dict(
     client_secret=os.getenv('OAUTH_CLIENT_SECRET')
 )
 
-AWS_ACCESS_KEY = os.getenv('AWS_ACCESS_KEY')
-AWS_SECRET_KEY = os.getenv('AWS_SECRET_KEY')
 PACKAGE_BUCKET_NAME = 'quilt-dpm-test'
 
 SQLALCHEMY_ECHO = True
