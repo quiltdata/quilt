@@ -31,7 +31,7 @@ PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
-s3_client = boto3.client('s3')
+s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
 
 
 ### Web routes ###
