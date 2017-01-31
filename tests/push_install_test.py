@@ -23,7 +23,7 @@ class PushInstallTestCase(QuiltTestCase):
         Push a package, then install it.
         """
         # Push a package.
-        resp = self.app.post(
+        resp = self.app.put(
             '/api/package/test_user/foo/',
             data=json.dumps(dict(
                 hash='123'
@@ -55,7 +55,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert url.path == '/%s/test_user/foo/123' % app.config['PACKAGE_BUCKET_NAME']
 
     def testNotLoggedIn(self):
-        resp = self.app.post(
+        resp = self.app.put(
             '/api/package/test_user/foo/',
             data=json.dumps(dict(
                 hash='123'
@@ -70,7 +70,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == 401
 
     def testWrongUser(self):
-        resp = self.app.post(
+        resp = self.app.put(
             '/api/package/test_user/foo/',
             data=json.dumps(dict(
                 hash='123'
@@ -91,7 +91,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == 403
 
     def testInvalidRequest(self):
-        resp = self.app.post(
+        resp = self.app.put(
             '/api/package/test_user/foo/',
             data='hello',
             headers={
@@ -100,7 +100,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == 400
 
-        resp = self.app.post(
+        resp = self.app.put(
             '/api/package/test_user/foo/',
             data=json.dumps(dict(
             )),

@@ -135,7 +135,7 @@ def api(require_login=True):
         return wrapper
     return innerdec
 
-@app.route('/api/package/<owner>/<package_name>/', methods=['GET', 'POST'])
+@app.route('/api/package/<owner>/<package_name>/', methods=['GET', 'PUT'])
 @api()
 @as_json
 def package(auth_user, owner, package_name):
@@ -143,7 +143,7 @@ def package(auth_user, owner, package_name):
         # TODO: Use the `Access` table.
         abort(403)
 
-    if request.method == 'POST':
+    if request.method == 'PUT':
         data = request.get_json()
         try:
             package_hash = data['hash']
