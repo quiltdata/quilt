@@ -18,6 +18,7 @@ app.config.from_envvar('QUILT_SERVER_CONFIG')
 db = SQLAlchemy(app)
 
 FlaskJSON(app)
+
 Migrate(app, db)
 
 # Need to import views.py in order for the routes to get set up.
