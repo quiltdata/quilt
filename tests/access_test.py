@@ -29,15 +29,15 @@ class AccessTestCase(QuiltTestCase):
         user = "test_user"
         sharewith = "anotheruser"
         pkg = "pkgtoshare"
-        hash = '123'
-        bucket=app.config['PACKAGE_BUCKET_NAME']
-        pkgurl =  '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkghash = '123'
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
         
         # Push a package.
         resp = self.app.put(
             pkgurl,
             data=json.dumps(dict(
-                hash=hash
+                hash=pkghash
             )),
             content_type='application/json',
             headers={
@@ -49,18 +49,19 @@ class AccessTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'))
         url = urllib.parse.urlparse(data['upload_url'])
-        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user, pkg=pkg, hash=hash, bucket=bucket)
+        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user,
+                                                         pkg=pkg,
+                                                         hash=pkghash,
+                                                         bucket=bucket)
         assert url.path == expected, "Got: %s\nExpected: %s" % (url.path, expected)
 
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            data=json.dumps(dict(
-            user=sharewith
-            )),
+            data=json.dumps(dict(user=sharewith)),
             content_type='application/json',
             headers={
-            'Authorization': user
+                'Authorization': user
             }
         )
 
@@ -84,15 +85,15 @@ class AccessTestCase(QuiltTestCase):
         user = "test_user"
         sharewith = "anotheruser"
         pkg = "pkgtoshare"
-        hash = '123'
-        bucket=app.config['PACKAGE_BUCKET_NAME']
-        pkgurl =  '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkghash = '123'
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
         
         # Push a package.
         resp = self.app.put(
             pkgurl,
             data=json.dumps(dict(
-                hash=hash
+                hash=pkghash
             )),
             content_type='application/json',
             headers={
@@ -103,18 +104,21 @@ class AccessTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
         url = urllib.parse.urlparse(data['upload_url'])
-        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user, pkg=pkg, hash=hash, bucket=bucket)
+        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user,
+                                                         pkg=pkg,
+                                                         hash=pkghash,
+                                                         bucket=bucket)
         assert url.path == expected, "Got: %s\nExpected: %s" % (url.path, expected)
 
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
             data=json.dumps(dict(
-            user=sharewith
+                user=sharewith
             )),
             content_type='application/json',
             headers={
-            'Authorization': user
+                'Authorization': user
             }
         )
 
@@ -138,16 +142,16 @@ class AccessTestCase(QuiltTestCase):
         user = "test_user"
         sharewith = "anotheruser"
         pkg = "pkgtoshare"
-        hash = '123'
+        pkghash = '123'
         newhash = '234'
-        bucket=app.config['PACKAGE_BUCKET_NAME']
-        pkgurl =  '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
         
         # Push a package.
         resp = self.app.put(
             pkgurl,
             data=json.dumps(dict(
-                hash=hash
+                hash=pkghash
             )),
             content_type='application/json',
             headers={
@@ -159,18 +163,21 @@ class AccessTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'))
         url = urllib.parse.urlparse(data['upload_url'])
-        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user, pkg=pkg, hash=hash, bucket=bucket)
+        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user,
+                                                         pkg=pkg,
+                                                         hash=pkghash,
+                                                         bucket=bucket)
         assert url.path == expected, "Got: %s\nExpected: %s" % (url.path, expected)
 
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
             data=json.dumps(dict(
-            user=sharewith
+                user=sharewith
             )),
             content_type='application/json',
             headers={
-            'Authorization': user
+                'Authorization': user
             }
         )
 
@@ -181,11 +188,11 @@ class AccessTestCase(QuiltTestCase):
         resp = self.app.put(
             pkgurl,
             data=json.dumps(dict(
-            hash=newhash
+                hash=newhash
             )),
             content_type='application/json',
             headers={
-            'Authorization': sharewith
+                'Authorization': sharewith
             }
             )
 

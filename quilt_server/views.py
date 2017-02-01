@@ -139,9 +139,9 @@ def api(require_login=True):
 @api()
 @as_json
 def package(auth_user, owner, package_name):
-    
+
     if request.method == 'PUT':
-        
+
         data = request.get_json()
         try:
             package_hash = data['hash']
@@ -160,12 +160,12 @@ def package(auth_user, owner, package_name):
         )
 
         if package is None:
-            if auth_user != owner:                
+            if auth_user != owner:
                 abort(requests.codes.not_allowed, "Only the owner can create a package.")
 
             package = Package(owner=owner, name=package_name)
             db.session.add(package)
-            
+
             owner_access = Access(package=package, user=owner)
             db.session.add(owner_access)
         else:
@@ -222,7 +222,7 @@ def package(auth_user, owner, package_name):
             db.session.query(Version)
             .join(Version.package)
             .filter_by(owner=owner, name=package_name)
-            .join(Access, Version.package_id==Access.package_id)
+            .join(Access, Version.package_id == Access.package_id)
             .filter_by(user=auth_user)
             .join(Version.tag)
             .filter_by(tag=Tag.LATEST)
@@ -252,16 +252,23 @@ def package(auth_user, owner, package_name):
 def access(auth_user, owner, package_name, user):
 
     if request.method == 'PUT':
-        package = Package.query.with_for_update().filter_by(owner=owner, name=package_name).one_or_none()
+        if auth_user != owner:
+            abort(requests.codes.not_allowed,
+                  "Only the package owner can grant access.")
+
+        package = (Package.query
+                   .with_for_update()
+                   .filter_by(owner=owner, name=package_name)
+                   .one_or_none())
         if not package:
             abort(requests.codes.not_found)
 
         if not user:
             abort(requests.codes.bad_request, "A valid user is required.")
-            
+
         access = Access(package=package, user=user)
         db.session.add(access)
-        db.session.commit()        
+        db.session.commit()
         return dict(
             package=access.package.id,
             user=user
@@ -276,8 +283,8 @@ def access(auth_user, owner, package_name, user):
             )
         if access:
             return dict(
-                package = access.package_id,
-                user = access.user
+                package=access.package_id,
+                user=access.user
                 )
         else:
             abort(request.codes.not_found)
