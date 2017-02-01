@@ -135,13 +135,13 @@ def api(require_login=True):
         return wrapper
     return innerdec
 
-@app.route('/qpm/datasets/<user>/<package_name>/', methods=['GET', 'PUT'])
+@app.route('/api/package/<owner>/<package_name>/', methods=['GET', 'PUT'])
 @api()
 @as_json
-def dataset(auth_user, user, package_name):
-    if auth_user != user:
+def package(auth_user, owner, package_name):
+    if auth_user != owner:
         # TODO: Use the `Access` table.
-        abort(403)
+        abort(requests.codes.not_allowed)
 
     if request.method == 'PUT':
         data = request.get_json()
@@ -157,17 +157,17 @@ def dataset(auth_user, user, package_name):
         package = (
             Package.query
             .with_for_update()
-            .filter_by(owner=user, name=package_name)
+            .filter_by(owner=owner, name=package_name)
             .one_or_none()
         )
         if package is None:
-            package = Package(owner=user, name=package_name)
+            package = Package(owner=owner, name=package_name)
             db.session.add(package)
 
         # Insert the version.
         version = Version(
             package=package,
-            author=user,
+            author=owner,
             hash=package_hash,
         )
         db.session.add(version)
@@ -195,7 +195,7 @@ def dataset(auth_user, user, package_name):
             S3_PUT_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (user, package_name, package_hash)
+                Key='%s/%s/%s' % (owner, package_name, package_hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
@@ -209,7 +209,7 @@ def dataset(auth_user, user, package_name):
         version = (
             db.session.query(Version)
             .join(Version.package)
-            .filter_by(owner=user, name=package_name)
+            .filter_by(owner=owner, name=package_name)
             .join(Version.tag)
             .filter_by(tag=Tag.LATEST)
             .one_or_none()
@@ -222,7 +222,7 @@ def dataset(auth_user, user, package_name):
             S3_GET_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (user, package_name, version.hash)
+                Key='%s/%s/%s' % (owner, package_name, version.hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
