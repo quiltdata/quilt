@@ -5,6 +5,8 @@ Test push and install endpoints.
 import json
 import urllib
 
+import requests
+
 from quilt_server import app
 
 from .utils import QuiltTestCase
@@ -34,7 +36,7 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
         url = urllib.parse.urlparse(data['upload_url'])
@@ -48,7 +50,7 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
 
-        assert resp.status_code == 200
+        assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
         url = urllib.parse.urlparse(data['url'])
@@ -62,12 +64,12 @@ class PushInstallTestCase(QuiltTestCase):
             )),
             content_type='application/json'
         )
-        assert resp.status_code == 401
+        assert resp.status_code == requests.codes.unauthorized
 
         resp = self.app.get(
             '/api/package/test_user/foo/'
         )
-        assert resp.status_code == 401
+        assert resp.status_code == requests.codes.unauthorized
 
     def testWrongUser(self):
         resp = self.app.put(
@@ -80,7 +82,7 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'blah'
             }
         )
-        assert resp.status_code == 403
+        assert resp.status_code == requests.codes.not_allowed
 
         resp = self.app.get(
             '/api/package/test_user/foo/',
@@ -88,7 +90,7 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'blah'
             }
         )
-        assert resp.status_code == 403
+        assert resp.status_code == requests.codes.not_allowed
 
     def testInvalidRequest(self):
         resp = self.app.put(
@@ -98,7 +100,7 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'test_user'
             }
         )
-        assert resp.status_code == 400
+        assert resp.status_code == requests.codes.bad_request
 
         resp = self.app.put(
             '/api/package/test_user/foo/',
@@ -109,4 +111,4 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'test_user'
             }
         )
-        assert resp.status_code == 400
+        assert resp.status_code == requests.codes.bad_request

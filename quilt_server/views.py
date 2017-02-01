@@ -141,7 +141,7 @@ def api(require_login=True):
 def package(auth_user, owner, package_name):
     if auth_user != owner:
         # TODO: Use the `Access` table.
-        abort(403)
+        abort(requests.codes.not_allowed)
 
     if request.method == 'PUT':
         data = request.get_json()
