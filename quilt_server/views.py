@@ -231,3 +231,38 @@ def dataset(auth_user, user, package_name):
             url=url,
             hash=version.hash
         )
+
+@app.route('/qpm/access/<owner>/<package_name>/<user>', methods=['GET', 'PUT', 'DELETE'])
+@api()
+@as_json
+def access(auth_user, owner, package_name, user):
+
+    if request.method == 'PUT':
+        package = Package.query.with_for_update().filter_by(owner=owner, name=package_name).one_or_none()
+        if not package:
+            abort(requests.codes.not_found)
+
+        if not user:
+            abort(requests.codes.bad_request, "A valid user is required.")
+            
+        access = Access(package=package, user=user)
+        db.session.add(access)
+    elif request.method == 'GET':
+        access = (
+            db.session.query(Access)
+            .join(Access.package)
+            .filter_by(owner=owner, name=package_name)
+            .filter_by(user=user)
+            .one_or_none()
+            )
+        if access:
+            return dict(
+                package = access.package_id,
+                user = access.user
+                )
+        else:
+            abort(request.codes.not_found)
+    elif request.method == 'DELETE':
+        pass
+    else:
+        abort(request.codes.bad_request)
