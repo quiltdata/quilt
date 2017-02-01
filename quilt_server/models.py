@@ -14,6 +14,7 @@ class Package(db.Model):
 
     versions = db.relationship('Version', back_populates='package')
     tags = db.relationship('Tag', back_populates='package')
+    access = db.relationship('Access', back_populates='package')
 
 db.Index('idx_package', Package.owner, Package.name, unique=True)
 
@@ -44,4 +45,5 @@ class Tag(db.Model):
 class Access(db.Model):
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), primary_key=True)
     user = db.Column(USERNAME_TYPE, primary_key=True)
-    
+
+    package = db.relationship('Package', back_populates='access')

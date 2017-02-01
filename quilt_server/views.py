@@ -13,7 +13,7 @@ from requests_oauthlib import OAuth2Session
 import requests
 
 from . import app, db
-from .models import Package, Tag, Version
+from .models import Package, Tag, Version, Access
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -139,11 +139,9 @@ def api(require_login=True):
 @api()
 @as_json
 def package(auth_user, owner, package_name):
-    if auth_user != owner:
-        # TODO: Use the `Access` table.
-        abort(requests.codes.not_allowed)
-
+    
     if request.method == 'PUT':
+        
         data = request.get_json()
         try:
             package_hash = data['hash']
@@ -160,9 +158,23 @@ def package(auth_user, owner, package_name):
             .filter_by(owner=owner, name=package_name)
             .one_or_none()
         )
+
         if package is None:
+            if auth_user != owner:                
+                abort(requests.codes.not_allowed, "Only the owner can create a package.")
+
             package = Package(owner=owner, name=package_name)
             db.session.add(package)
+            
+            owner_access = Access(package=package, user=owner)
+            db.session.add(owner_access)
+        else:
+            # Check if the user has access to this package
+            access = (Access.query
+                      .filter_by(user=auth_user, package=package)
+                      .one_or_none())
+            if not access:
+                abort(requests.codes.not_allowed)
 
         # Insert the version.
         version = Version(
@@ -210,6 +222,8 @@ def package(auth_user, owner, package_name):
             db.session.query(Version)
             .join(Version.package)
             .filter_by(owner=owner, name=package_name)
+            .join(Access, Version.package_id==Access.package_id)
+            .filter_by(user=auth_user)
             .join(Version.tag)
             .filter_by(tag=Tag.LATEST)
             .one_or_none()
@@ -232,7 +246,7 @@ def package(auth_user, owner, package_name):
             hash=version.hash
         )
 
-@app.route('/qpm/access/<owner>/<package_name>/<user>', methods=['GET', 'PUT', 'DELETE'])
+@app.route('/api/access/<owner>/<package_name>/<user>', methods=['GET', 'PUT', 'DELETE'])
 @api()
 @as_json
 def access(auth_user, owner, package_name, user):
@@ -247,6 +261,11 @@ def access(auth_user, owner, package_name, user):
             
         access = Access(package=package, user=user)
         db.session.add(access)
+        db.session.commit()        
+        return dict(
+            package=access.package.id,
+            user=user
+            )
     elif request.method == 'GET':
         access = (
             db.session.query(Access)
