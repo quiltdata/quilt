@@ -11,9 +11,6 @@ from quilt_server import app
 
 from .utils import QuiltTestCase
 
-MOCK_AUTH_HEADERS = {
-    'Authorization': 'blah'
-}
 
 class PushInstallTestCase(QuiltTestCase):
     """
