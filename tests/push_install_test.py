@@ -23,7 +23,7 @@ class PushInstallTestCase(QuiltTestCase):
         """
         # Push a package.
         resp = self.app.put(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             data=json.dumps(dict(
                 hash='123'
             )),
@@ -41,7 +41,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         # Install the package.
         resp = self.app.get(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             headers={
                 'Authorization': 'test_user'
             }
@@ -55,7 +55,7 @@ class PushInstallTestCase(QuiltTestCase):
 
     def testNotLoggedIn(self):
         resp = self.app.put(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             data=json.dumps(dict(
                 hash='123'
             )),
@@ -64,13 +64,13 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.unauthorized
 
         resp = self.app.get(
-            '/api/package/test_user/foo/'
+            '/api/package/test_user/foo'
         )
         assert resp.status_code == requests.codes.unauthorized
 
     def testCreateWrongUser(self):
         resp = self.app.put(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             data=json.dumps(dict(
                 hash='123'
             )),
@@ -79,11 +79,11 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'blah'
             }
         )
-        assert resp.status_code == requests.codes.not_allowed        
+        assert resp.status_code == requests.codes.forbidden
 
     def testInvalidRequest(self):
         resp = self.app.put(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             data='hello',
             headers={
                 'Authorization': 'test_user'
@@ -92,7 +92,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.bad_request
 
         resp = self.app.put(
-            '/api/package/test_user/foo/',
+            '/api/package/test_user/foo',
             data=json.dumps(dict(
             )),
             content_type='application/json',

@@ -27,7 +27,7 @@ class AccessTestCase(QuiltTestCase):
         pkg = "pkgtoshare"
         pkghash = '123'
         bucket = app.config['PACKAGE_BUCKET_NAME']
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -82,7 +82,7 @@ class AccessTestCase(QuiltTestCase):
         sharewith = "anotheruser"
         pkg = "pkgtoshare"
         pkghash = '123'
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -136,7 +136,7 @@ class AccessTestCase(QuiltTestCase):
         user = "test_user"
         pkg = "pkg"
         pkghash = '123'
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -173,7 +173,7 @@ class AccessTestCase(QuiltTestCase):
         pkg = "pkgtoshare"
         pkghash = '123'
         bucket = app.config['PACKAGE_BUCKET_NAME']
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -227,7 +227,7 @@ class AccessTestCase(QuiltTestCase):
         pkghash = '123'
         newhash = '234'
         bucket = app.config['PACKAGE_BUCKET_NAME']
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -286,7 +286,7 @@ class AccessTestCase(QuiltTestCase):
         sharewith = "anotheruser"
         pkg = "pkgtoshare"
         pkghash = '123'
-        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
 
         # Push a package.
         resp = self.app.put(
@@ -314,7 +314,7 @@ class AccessTestCase(QuiltTestCase):
 
         # List the access for the package
         resp = self.app.get(
-            '/api/access/{owner}/{pkg}'.format(owner=user, pkg=pkg),
+            '/api/access/{owner}/{pkg}/'.format(owner=user, pkg=pkg),
             headers={
                 'Authorization': sharewith
             }
