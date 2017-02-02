@@ -173,7 +173,7 @@ def package(auth_user, owner, package_name):
             access = (Access.query
                       .filter_by(user=auth_user, package=package)
                       .one_or_none())
-            if not access:
+            if access is None:
                 abort(requests.codes.not_allowed)
 
         # Insert the version.
@@ -250,12 +250,12 @@ def package(auth_user, owner, package_name):
 @api()
 @as_json
 def access(auth_user, owner, package_name, user):
+    if auth_user != owner:
+        abort(requests.codes.not_allowed,
+              "Only the package owner can grant/view access.")
 
     if request.method == 'PUT':
-        if auth_user != owner:
-            abort(requests.codes.not_allowed,
-                  "Only the package owner can grant access.")
-
+        assert owner == auth_user
         package = (Package.query
                    .with_for_update()
                    .filter_by(owner=owner, name=package_name)
@@ -274,11 +274,11 @@ def access(auth_user, owner, package_name, user):
             user=user
             )
     elif request.method == 'GET':
+        assert owner == auth_user
         access = (
             db.session.query(Access)
             .join(Access.package)
-            .filter_by(owner=owner, name=package_name)
-            .filter_by(user=user)
+            .filter_by(owner=owner, name=package_name, user=user)
             .one_or_none()
             )
         if access:

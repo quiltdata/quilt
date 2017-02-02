@@ -4,16 +4,12 @@ Test push and install endpoints.
 
 import json
 import urllib
-
 import requests
 
 from quilt_server import app
 
 from .utils import QuiltTestCase
 
-MOCK_AUTH_HEADERS = {
-    'Authorization': 'blah'
-}
 
 class AccessTestCase(QuiltTestCase):
     """
@@ -58,7 +54,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            data=json.dumps(dict(user=sharewith)),
             content_type='application/json',
             headers={
                 'Authorization': user
@@ -172,9 +167,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            data=json.dumps(dict(
-                user=sharewith
-            )),
             content_type='application/json',
             headers={
                 'Authorization': user
