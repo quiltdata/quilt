@@ -277,8 +277,9 @@ def access(auth_user, owner, package_name, user):
         assert owner == auth_user
         access = (
             db.session.query(Access)
+            .filter_by(user=user)
             .join(Access.package)
-            .filter_by(owner=owner, name=package_name, user=user)
+            .filter_by(owner=owner, name=package_name)
             .one_or_none()
             )
         if access:
@@ -289,6 +290,20 @@ def access(auth_user, owner, package_name, user):
         else:
             abort(request.codes.not_found)
     elif request.method == 'DELETE':
-        pass
+        assert owner == auth_user
+        if user == owner:
+            abort(requests.codes.forbidden)
+        access = (
+            db.session.query(Access)
+            .filter_by(user=user)
+            .join(Access.package)
+            .filter_by(owner=owner, name=package_name)
+            .one_or_none()
+            )
+        if access is None:
+            abort(requests.codes.not_found)
+        else:
+            db.session.delete(access)
+        db.session.commit()
     else:
         abort(request.codes.bad_request)

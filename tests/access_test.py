@@ -72,6 +72,101 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+    def testRevokeAccess(self):
+        """
+        Push a package, grant then revoke access
+        and test that the revoked recipient can't
+        access it.
+        """
+        user = "test_user"
+        sharewith = "anotheruser"
+        pkg = "pkgtoshare"
+        pkghash = '123'
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        
+        # Push a package.
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                hash=pkghash
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Share the package.
+        resp = self.app.put(
+            '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Revoke access (unshare the package)
+        resp = self.app.delete(
+            '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+        
+        assert resp.status_code == requests.codes.ok
+
+        # Test that the recipient can't read the package
+        resp = self.app.get(
+            pkgurl,
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.not_found
+
+    def testOwnerCantDeleteOwnAccess(self):
+        """
+        Push a package and test that the owner
+        can't remove his/her own access.
+        """
+        user = "test_user"
+        pkg = "pkg"
+        pkghash = '123'
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}/'.format(usr=user, pkg=pkg)
+        
+        # Push a package.
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                hash=pkghash
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Try to revoke owner's access
+        resp = self.app.delete(
+            '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=user, pkg=pkg),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.forbidden
+
     def testNoAccess(self):
         """
         Push a package and test that non-sharing users
