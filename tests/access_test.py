@@ -101,7 +101,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            content_type='application/json',
             headers={
                 'Authorization': user
             }
@@ -112,7 +111,6 @@ class AccessTestCase(QuiltTestCase):
         # Revoke access (unshare the package)
         resp = self.app.delete(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            content_type='application/json',
             headers={
                 'Authorization': user
             }
@@ -201,10 +199,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            data=json.dumps(dict(
-                user=sharewith
-            )),
-            content_type='application/json',
             headers={
                 'Authorization': user
             }
@@ -260,7 +254,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            content_type='application/json',
             headers={
                 'Authorization': user
             }
@@ -312,7 +305,6 @@ class AccessTestCase(QuiltTestCase):
         # Share the package.
         resp = self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=sharewith, pkg=pkg),
-            content_type='application/json',
             headers={
                 'Authorization': user
             }
