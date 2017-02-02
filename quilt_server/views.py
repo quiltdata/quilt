@@ -307,3 +307,19 @@ def access(auth_user, owner, package_name, user):
         db.session.commit()
     else:
         abort(request.codes.bad_request)
+
+@app.route('/api/access/<owner>/<package_name>', methods=['GET'])
+@api()
+@as_json
+def access_list(auth_user, owner, package_name):
+    accesses = (
+        Access.query
+        .join(Access.package)
+        .filter_by(owner=owner, name=package_name)
+        )
+
+    can_access = [access.user for access in accesses]
+    if not auth_user in can_access:
+        abort(404)
+
+    return dict(users=can_access)
