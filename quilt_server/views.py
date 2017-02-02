@@ -5,7 +5,7 @@ API routes.
 from functools import wraps
 
 import boto3
-from flask import abort, redirect, render_template, request, Response, url_for
+from flask import abort, redirect, render_template, request, Response
 from flask_json import as_json
 from oauthlib.oauth2 import OAuth2Error
 from requests_oauthlib import OAuth2Session
@@ -14,6 +14,7 @@ import requests
 
 from . import app, db
 from .models import Package, Tag, Version, Access
+from .const import PUBLIC
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -171,7 +172,7 @@ def package(auth_user, owner, package_name):
         else:
             # Check if the user has access to this package
             access = (Access.query
-                      .filter_by(user=auth_user, package=package)
+                      .filter_by(package=package, user=auth_user)
                       .one_or_none())
             if access is None:
                 abort(requests.codes.forbidden)
@@ -217,13 +218,14 @@ def package(auth_user, owner, package_name):
         return dict(
             upload_url=upload_url
         )
+    # End if PUT
     else:
         version = (
             db.session.query(Version)
             .join(Version.package)
             .filter_by(owner=owner, name=package_name)
             .join(Access, Version.package_id == Access.package_id)
-            .filter_by(user=auth_user)
+            .filter(Access.user.in_([auth_user, PUBLIC]))
             .join(Version.tag)
             .filter_by(tag=Tag.LATEST)
             .one_or_none()
@@ -319,7 +321,12 @@ def access_list(auth_user, owner, package_name):
         )
 
     can_access = [access.user for access in accesses]
-    if auth_user not in can_access:
+    is_collaborator = auth_user in can_access
+    is_public = PUBLIC in can_access
+
+    if is_public or is_collaborator:
+        return dict(users=can_access)
+    else:
         abort(404)
 
-    return dict(users=can_access)
+

@@ -7,6 +7,7 @@ import urllib
 import requests
 
 from quilt_server import app
+from quilt_server.const import PUBLIC
 
 from .utils import QuiltTestCase
 
@@ -276,6 +277,66 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+    def testNonSharerCantPushToPublicPkg(self):
+        """
+        Push a package, share it and test that the
+        recipient can add a new version.
+        """
+        user = "test_user"
+        otheruser = "anotheruser"
+        pkg = "pkgtoshare"
+        pkghash = '123'
+        newhash = '234'
+        bucket = app.config['PACKAGE_BUCKET_NAME']
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
+
+        # Push a package.
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                hash=pkghash
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        url = urllib.parse.urlparse(data['upload_url'])
+        expected = '/{bucket}/{usr}/{pkg}/{hash}'.format(usr=user,
+                                                         pkg=pkg,
+                                                         hash=pkghash,
+                                                         bucket=bucket)
+        assert url.path == expected, "Got: %s\nExpected: %s" % (url.path, expected)
+
+        # Share the package.
+        resp = self.app.put(
+            '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=PUBLIC, pkg=pkg),
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Test that the receiver can create a new version
+        # of the package
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                hash=newhash
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': otheruser
+            }
+            )
+
+        assert resp.status_code == requests.codes.forbidden
+
     def testListAccess(self):
         """
         Push a package, share it and test that
@@ -327,3 +388,56 @@ class AccessTestCase(QuiltTestCase):
         assert len(can_access) == 2
         assert user in can_access
         assert sharewith in can_access
+
+    def testCanListAccessPublicPkg(self):
+        """
+        Push a package, share it and test that
+        both the owner and recipient are included
+        in the access list
+        """
+        user = "test_user"
+        otheruser = "anotheruser"
+        pkg = "pkgtoshare"
+        pkghash = '123'
+        pkgurl = '/api/package/{usr}/{pkg}'.format(usr=user, pkg=pkg)
+
+        # Push a package.
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                hash=pkghash
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Publish the package.
+        resp = self.app.put(
+            '/api/access/{owner}/{pkg}/{usr}'.format(owner=user, usr=PUBLIC, pkg=pkg),
+            headers={
+                'Authorization': user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # List the access for the package
+        resp = self.app.get(
+            '/api/access/{owner}/{pkg}/'.format(owner=user, pkg=pkg),
+            headers={
+                'Authorization': otheruser
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        can_access = data.get('users')
+        assert len(can_access) == 2
+        assert user in can_access
+        assert PUBLIC in can_access
+        assert otheruser not in can_access
