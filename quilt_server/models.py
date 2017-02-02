@@ -14,8 +14,10 @@ class Package(db.Model):
 
     versions = db.relationship('Version', back_populates='package')
     tags = db.relationship('Tag', back_populates='package')
+    access = db.relationship('Access', back_populates='package')
 
 db.Index('idx_package', Package.owner, Package.name, unique=True)
+
 
 class Version(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
@@ -28,6 +30,7 @@ class Version(db.Model):
     package = db.relationship('Package', back_populates='versions')
     tag = db.relationship('Tag', back_populates='version')
 
+
 class Tag(db.Model):
     LATEST = "latest"
 
@@ -37,3 +40,10 @@ class Tag(db.Model):
 
     package = db.relationship('Package', back_populates='tags')
     version = db.relationship('Version', back_populates='tag')
+
+
+class Access(db.Model):
+    package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), primary_key=True)
+    user = db.Column(USERNAME_TYPE, primary_key=True)
+
+    package = db.relationship('Package', back_populates='access')
