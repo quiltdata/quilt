@@ -135,7 +135,7 @@ def api(require_login=True):
         return wrapper
     return innerdec
 
-@app.route('/api/package/<owner>/<package_name>/', methods=['GET', 'PUT'])
+@app.route('/api/package/<owner>/<package_name>', methods=['GET', 'PUT'])
 @api()
 @as_json
 def package(auth_user, owner, package_name):
@@ -161,7 +161,7 @@ def package(auth_user, owner, package_name):
 
         if package is None:
             if auth_user != owner:
-                abort(requests.codes.not_allowed, "Only the owner can create a package.")
+                abort(requests.codes.forbidden, "Only the owner can create a package.")
 
             package = Package(owner=owner, name=package_name)
             db.session.add(package)
@@ -174,7 +174,7 @@ def package(auth_user, owner, package_name):
                       .filter_by(user=auth_user, package=package)
                       .one_or_none())
             if access is None:
-                abort(requests.codes.not_allowed)
+                abort(requests.codes.forbidden)
 
         # Insert the version.
         version = Version(
@@ -251,7 +251,7 @@ def package(auth_user, owner, package_name):
 @as_json
 def access(auth_user, owner, package_name, user):
     if auth_user != owner:
-        abort(requests.codes.not_allowed,
+        abort(requests.codes.forbidden,
               "Only the package owner can grant/view access.")
 
     if request.method == 'PUT':
@@ -308,7 +308,7 @@ def access(auth_user, owner, package_name, user):
     else:
         abort(request.codes.bad_request)
 
-@app.route('/api/access/<owner>/<package_name>', methods=['GET'])
+@app.route('/api/access/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
 def access_list(auth_user, owner, package_name):
