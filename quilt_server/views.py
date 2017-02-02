@@ -319,7 +319,7 @@ def access_list(auth_user, owner, package_name):
         )
 
     can_access = [access.user for access in accesses]
-    if not auth_user in can_access:
+    if auth_user not in can_access:
         abort(404)
 
     return dict(users=can_access)
