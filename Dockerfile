@@ -40,10 +40,11 @@ COPY migrations /usr/src/quilt-server/migrations
 COPY setup.py MANIFEST.in /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
-# Flask app config; needs a mounted /config/ directory.
-ENV QUILT_SERVER_CONFIG=/config/quilt_config.py
-
 # Needed to run `flask db ...`
 ENV FLASK_APP=quilt_server
+
+# Download Flask app config
+COPY config-entrypoint.py /config-entrypoint.py
+ENTRYPOINT ["/config-entrypoint.py"]
 
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]
