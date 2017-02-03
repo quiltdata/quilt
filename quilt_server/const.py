@@ -1,0 +1,5 @@
+"""
+Constants
+"""
+
+PUBLIC = 'public'
