@@ -252,23 +252,35 @@ def package_get(auth_user, owner, package_name):
 @api()
 @as_json
 def access_put(auth_user, owner, package_name, user):
+    if not user:
+        abort(requests.codes.bad_request, "A valid user is required.")
+
     if auth_user != owner:
         abort(requests.codes.forbidden,
               "Only the package owner can grant access.")
 
-    package = (Package.query
-                .with_for_update()
-                .filter_by(owner=owner, name=package_name)
-                .one_or_none())
-    if not package:
+    package = (
+        Package.query
+        .with_for_update()
+        .filter_by(owner=owner, name=package_name)
+        .one_or_none()
+    )
+    if package is None:
         abort(requests.codes.not_found)
 
-    if not user:
-        abort(requests.codes.bad_request, "A valid user is required.")
+    access = (
+        Access.query
+        .with_for_update()
+        .filter_by(package=package, user=user)
+        .one_or_none()
+    )
+    if access is not None:
+        abort(requests.codes.conflict, "Duplicate user")
 
     access = Access(package=package, user=user)
     db.session.add(access)
     db.session.commit()
+
     return dict(
         package=access.package.id,
         user=user
@@ -289,7 +301,7 @@ def access_get(auth_user, owner, package_name, user):
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
-    if access:
+    if access is not None:
         return dict(
             package=access.package_id,
             user=access.user
@@ -307,6 +319,7 @@ def access_delete(auth_user, owner, package_name, user):
 
     if user == owner:
         abort(requests.codes.forbidden)
+
     access = (
         db.session.query(Access)
         .filter_by(user=user)
@@ -318,7 +331,8 @@ def access_delete(auth_user, owner, package_name, user):
         abort(requests.codes.not_found)
     else:
         db.session.delete(access)
-    db.session.commit()
+        db.session.commit()
+        return dict()
 
 @app.route('/api/access/<owner>/<package_name>/', methods=['GET'])
 @api()
