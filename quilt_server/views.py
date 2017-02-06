@@ -275,7 +275,7 @@ def access_put(auth_user, owner, package_name, user):
         .one_or_none()
     )
     if access is not None:
-        abort(requests.codes.conflict, "Duplicate user")
+        abort(requests.codes.conflict, "The user already has access")
 
     access = Access(package=package, user=user)
     db.session.add(access)
