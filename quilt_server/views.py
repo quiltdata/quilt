@@ -117,7 +117,7 @@ def api(require_login=True, schema=None):
         def wrapper(*args, **kwargs):
             if schema is not None:
                 try:
-                    validate(request.get_json(), schema)
+                    validate(request.get_json(cache=True), schema)
                 except ValidationError as ex:
                     abort(400, ex.message)
 
