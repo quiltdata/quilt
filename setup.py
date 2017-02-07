@@ -9,6 +9,7 @@ setup(
         'Flask',
         'Flask-JSON',
         'Flask-Migrate',
+        'jsonschema',
         'PyMySQL',
         'requests-oauthlib',
     ],
