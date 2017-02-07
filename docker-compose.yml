@@ -1,0 +1,16 @@
+version: '2'
+services:
+  db:
+    image: mysql
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=True
+  web:
+    image: quiltdata/server
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+  s3:
+    image: quiltdata/nginx-s3-proxy
+    ports:
+      - "5001:80"
