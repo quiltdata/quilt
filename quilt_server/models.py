@@ -6,8 +6,11 @@ from sqlalchemy.dialects import mysql
 
 from . import db
 
+UTF8_BIN = 'utf8_bin'
+UTF8_GENERAL_CI = 'utf8_general_ci'
+
 def CaseSensitiveString(length):
-    return mysql.VARCHAR(length, collation='utf8_bin')
+    return mysql.VARCHAR(length, collation=UTF8_BIN)
 
 USERNAME_TYPE = CaseSensitiveString(64)
 

@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 
 from . import app, db
 from .const import PUBLIC
-from .models import Access, Blob, Log, Package, Tag, Version
+from .models import Access, Blob, Log, Package, Tag, UTF8_GENERAL_CI, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -195,8 +195,8 @@ def package_put(auth_user, owner, package_name, package_hash):
             Package.query
             .filter(
                 sa.and_(
-                    sa.func.lower(Package.owner) == owner.lower(),
-                    sa.func.lower(Package.name) == package_name.lower()
+                    sa.sql.collate(Package.owner, UTF8_GENERAL_CI) == owner,
+                    sa.sql.collate(Package.name, UTF8_GENERAL_CI) == package_name
                 )
             )
             .one_or_none()
