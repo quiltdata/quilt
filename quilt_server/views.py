@@ -7,6 +7,7 @@ from functools import wraps
 import boto3
 from flask import abort, redirect, render_template, request, Response
 from flask_json import as_json
+from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
 import requests
 from requests_oauthlib import OAuth2Session
@@ -106,7 +107,7 @@ def token():
 
 ### API routes ###
 
-def api(require_login=True):
+def api(require_login=True, schema=None):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
@@ -114,6 +115,12 @@ def api(require_login=True):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            if schema is not None:
+                try:
+                    validate(request.get_json(), schema)
+                except ValidationError as ex:
+                    abort(400, ex.message)
+
             auth = request.headers.get(AUTHORIZATION_HEADER)
             user = None
 
@@ -136,17 +143,25 @@ def api(require_login=True):
         return wrapper
     return innerdec
 
+PACKAGE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'hash': {
+            'type': 'string'
+        },
+        'description': {
+            'type': 'string'
+        }
+    },
+    'required': ['hash', 'description']
+}
+
 @app.route('/api/package/<owner>/<package_name>', methods=['PUT'])
-@api()
+@api(schema=PACKAGE_SCHEMA)
 @as_json
 def package_put(auth_user, owner, package_name):
     data = request.get_json()
-    try:
-        package_hash = data['hash']
-    except (TypeError, KeyError):
-        abort(requests.codes.bad_request, "Missing 'hash'.")
-    if not isinstance(package_hash, str):
-        abort(requests.codes.bad_request, "'hash' is not a string.")
+    package_hash = data['hash']
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
