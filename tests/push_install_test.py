@@ -25,7 +25,8 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo',
             data=json.dumps(dict(
-                hash='123'
+                hash='123',
+                description=""
             )),
             content_type='application/json',
             headers={
@@ -57,7 +58,8 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo',
             data=json.dumps(dict(
-                hash='123'
+                hash='123',
+                description=""
             )),
             content_type='application/json'
         )
@@ -72,7 +74,8 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo',
             data=json.dumps(dict(
-                hash='123'
+                hash='123',
+                description=""
             )),
             content_type='application/json',
             headers={
