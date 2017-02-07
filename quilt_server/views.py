@@ -7,10 +7,11 @@ from functools import wraps
 import boto3
 from flask import abort, redirect, render_template, request, Response
 from flask_json import as_json
+from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
-from requests_oauthlib import OAuth2Session
-
 import requests
+from requests_oauthlib import OAuth2Session
+from sqlalchemy.exc import IntegrityError
 
 from . import app, db
 from .models import Package, Tag, Version, Access
@@ -106,7 +107,7 @@ def token():
 
 ### API routes ###
 
-def api(require_login=True):
+def api(require_login=True, schema=None):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
@@ -114,6 +115,12 @@ def api(require_login=True):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            if schema is not None:
+                try:
+                    validate(request.get_json(cache=True), schema)
+                except ValidationError as ex:
+                    abort(400, ex.message)
+
             auth = request.headers.get(AUTHORIZATION_HEADER)
             user = None
 
@@ -136,17 +143,25 @@ def api(require_login=True):
         return wrapper
     return innerdec
 
+PACKAGE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'hash': {
+            'type': 'string'
+        },
+        'description': {
+            'type': 'string'
+        }
+    },
+    'required': ['hash', 'description']
+}
+
 @app.route('/api/package/<owner>/<package_name>', methods=['PUT'])
-@api()
+@api(schema=PACKAGE_SCHEMA)
 @as_json
 def package_put(auth_user, owner, package_name):
     data = request.get_json()
-    try:
-        package_hash = data['hash']
-    except (TypeError, KeyError):
-        abort(requests.codes.bad_request, "Missing 'hash'.")
-    if not isinstance(package_hash, str):
-        abort(requests.codes.bad_request, "'hash' is not a string.")
+    package_hash = data['hash']
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
@@ -268,23 +283,14 @@ def access_put(auth_user, owner, package_name, user):
     if package is None:
         abort(requests.codes.not_found)
 
-    access = (
-        Access.query
-        .with_for_update()
-        .filter_by(package=package, user=user)
-        .one_or_none()
-    )
-    if access is not None:
-        abort(requests.codes.conflict, "Duplicate user")
+    try:
+        access = Access(package=package, user=user)
+        db.session.add(access)
+        db.session.commit()
+    except IntegrityError:
+        abort(requests.codes.conflict, "The user already has access")
 
-    access = Access(package=package, user=user)
-    db.session.add(access)
-    db.session.commit()
-
-    return dict(
-        package=access.package.id,
-        user=user
-    )
+    return dict()
 
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['GET'])
 @api()
@@ -301,13 +307,10 @@ def access_get(auth_user, owner, package_name, user):
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
-    if access is not None:
-        return dict(
-            package=access.package_id,
-            user=access.user
-        )
-    else:
+    if access is None:
         abort(request.codes.not_found)
+
+    return dict()
 
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['DELETE'])
 @api()
@@ -321,7 +324,8 @@ def access_delete(auth_user, owner, package_name, user):
         abort(requests.codes.forbidden)
 
     access = (
-        db.session.query(Access)
+        Access.query
+        .with_for_update()
         .filter_by(user=user)
         .join(Access.package)
         .filter_by(owner=owner, name=package_name)
@@ -329,10 +333,10 @@ def access_delete(auth_user, owner, package_name, user):
     )
     if access is None:
         abort(requests.codes.not_found)
-    else:
-        db.session.delete(access)
-        db.session.commit()
-        return dict()
+
+    db.session.delete(access)
+    db.session.commit()
+    return dict()
 
 @app.route('/api/access/<owner>/<package_name>/', methods=['GET'])
 @api()
@@ -351,6 +355,4 @@ def access_list(auth_user, owner, package_name):
     if is_public or is_collaborator:
         return dict(users=can_access)
     else:
-        abort(404)
-
-
+        abort(requests.codes.not_found)
