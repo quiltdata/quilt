@@ -1,12 +1,10 @@
 """
-Test push and install endpoints.
+Access tests
 """
 
 import json
-import urllib
 import requests
 
-from quilt_server import app
 from quilt_server.const import PUBLIC
 
 from .utils import QuiltTestCase
@@ -23,17 +21,16 @@ class AccessTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkgtoshare"
         self.pkghash = '123'
-        self.bucket = app.config['PACKAGE_BUCKET_NAME']
-        self.pkgurl = '/api/package/{usr}/{pkg}'.format(
+        self.pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
-            pkg=self.pkg
+            pkg=self.pkg,
+            hash=self.pkghash
         )
 
         # Push a package.
         resp = self.app.put(
             self.pkgurl,
             data=json.dumps(dict(
-                hash=self.pkghash,
                 description=""
             )),
             content_type='application/json',
@@ -145,13 +142,17 @@ class AccessTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         newhash = '456'
+        newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
+            usr=self.user,
+            pkg=self.pkg,
+            hash=newhash
+        )
 
         # Test that the receiver can create a new version
         # of the package
         resp = self.app.put(
-            self.pkgurl,
+            newpkgurl,
             data=json.dumps(dict(
-                hash=newhash,
                 description=""
             )),
             content_type='application/json',
@@ -172,13 +173,17 @@ class AccessTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         newhash = '456'
+        newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
+            usr=self.user,
+            pkg=self.pkg,
+            hash=newhash
+        )
 
         # Test that the receiver can't create a new version
         # of the package
         resp = self.app.put(
-            self.pkgurl,
+            newpkgurl,
             data=json.dumps(dict(
-                hash=newhash,
                 description=""
             )),
             content_type='application/json',
