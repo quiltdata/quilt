@@ -1,15 +1,19 @@
-version: '2'
+version: '2.1'
 services:
   db:
     image: mysql
     environment:
       - MYSQL_ALLOW_EMPTY_PASSWORD=True
+      - MYSQL_DATABASE=quilt
   web:
     image: quiltdata/server
+    environment:
+      - QUILT_SERVER_CONFIG=test_config.py
     ports:
       - "80:80"
     depends_on:
-      - db
+      db:
+        condition: service_started
   s3:
     image: quiltdata/nginx-s3-proxy
     ports:
