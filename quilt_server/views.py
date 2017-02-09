@@ -9,13 +9,15 @@ from flask import abort, redirect, render_template, request, Response
 from flask_json import as_json
 from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
+from packaging.version import Version as PackagingVersion
 import requests
 from requests_oauthlib import OAuth2Session
+import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
 from . import app, db
-from .models import Package, Tag, Version, Access
 from .const import PUBLIC
+from .models import Access, Blob, Log, Package, Tag, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -143,25 +145,37 @@ def api(require_login=True, schema=None):
         return wrapper
     return innerdec
 
+def _get_package(auth_user, owner, package_name):
+    """
+    Helper for looking up a package and checking permissions.
+    Only useful for *_list functions; all others should use more efficient queries.
+    """
+    package = (
+        Package.query
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+    if package is None:
+        abort(requests.codes.not_found, "Package doesn't exist")
+    return package
+
 PACKAGE_SCHEMA = {
     'type': 'object',
     'properties': {
-        'hash': {
-            'type': 'string'
-        },
         'description': {
             'type': 'string'
         }
     },
-    'required': ['hash', 'description']
+    'required': ['description']
 }
 
-@app.route('/api/package/<owner>/<package_name>', methods=['PUT'])
+@app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
-def package_put(auth_user, owner, package_name):
-    data = request.get_json()
-    package_hash = data['hash']
+def package_put(auth_user, owner, package_name, package_hash):
+    # TODO: Description, etc.
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
@@ -176,6 +190,24 @@ def package_put(auth_user, owner, package_name):
         if auth_user != owner:
             abort(requests.codes.forbidden, "Only the owner can create a package.")
 
+        # Check for case-insensitive matches, and reject the push.
+        package_ci = (
+            Package.query
+            .filter(
+                sa.and_(
+                    sa.func.lower(Package.owner) == owner.lower(),
+                    sa.func.lower(Package.name) == package_name.lower()
+                )
+            )
+            .one_or_none()
+        )
+
+        if package_ci is not None:
+            abort(
+                requests.codes.forbidden,
+                "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
+            )
+
         package = Package(owner=owner, name=package_name)
         db.session.add(package)
 
@@ -184,37 +216,30 @@ def package_put(auth_user, owner, package_name):
     else:
         # Check if the user has access to this package
         access = (Access.query
-                    .filter_by(package=package, user=auth_user)
-                    .one_or_none())
+                  .filter_by(package=package, user=auth_user)
+                  .one_or_none())
         if access is None:
             abort(requests.codes.forbidden)
 
-    # Insert the version.
-    version = Version(
-        package=package,
-        author=owner,
-        hash=package_hash,
-    )
-    db.session.add(version)
-
-    # Look up an existing "latest" tag.
-    # Update it if it exists, otherwise create a new one.
-    # TODO: Do something clever with `merge`?
-    tag = (
-        Tag.query
+    # Insert a blob if it doesn't already exist.
+    blob = (
+        Blob.query
         .with_for_update()
-        .filter_by(package=package, tag=Tag.LATEST)
+        .filter_by(package=package, hash=package_hash)
         .one_or_none()
     )
-    if tag is None:
-        tag = Tag(
-            package=package,
-            tag=Tag.LATEST,
-            version=version
-        )
-        db.session.add(tag)
-    else:
-        tag.version = version
+
+    if blob is None:
+        blob = Blob(package=package, hash=package_hash)
+        db.session.add(blob)
+
+    # Insert a log.
+    log = Log(
+        package=package,
+        blob=blob,
+        author=owner,
+    )
+    db.session.add(log)
 
     upload_url = s3_client.generate_presigned_url(
         S3_PUT_OBJECT,
@@ -231,36 +256,281 @@ def package_put(auth_user, owner, package_name):
         upload_url=upload_url
     )
 
-@app.route('/api/package/<owner>/<package_name>', methods=['GET'])
+@app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api()
 @as_json
-def package_get(auth_user, owner, package_name):
-    version = (
-        db.session.query(Version)
-        .join(Version.package)
+def package_get(auth_user, owner, package_name, package_hash):
+    blob = (
+        Blob.query
+        .filter_by(hash=package_hash)
+        .join(Blob.package)
         .filter_by(owner=owner, name=package_name)
-        .join(Access, Version.package_id == Access.package_id)
+        .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
-        .join(Version.tag)
-        .filter_by(tag=Tag.LATEST)
         .one_or_none()
     )
 
-    if version is None:
+    if blob is None:
         abort(requests.codes.not_found)
 
     url = s3_client.generate_presigned_url(
         S3_GET_OBJECT,
         Params=dict(
             Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (owner, package_name, version.hash)
+            Key='%s/%s/%s' % (owner, package_name, blob.hash)
         ),
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
 
     return dict(
         url=url,
-        hash=version.hash
+        hash=blob.hash,
+    )
+
+@app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
+@api()
+@as_json
+def package_list(auth_user, owner, package_name):
+    package = _get_package(auth_user, owner, package_name)
+    blobs = (
+        Blob.query
+        .filter_by(package=package)
+    )
+
+    return dict(
+        hashes=[blob.hash for blob in blobs]
+    )
+
+@app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
+@api()
+@as_json
+def logs_list(auth_user, owner, package_name):
+    package = _get_package(auth_user, owner, package_name)
+
+    logs = (
+        db.session.query(Log, Blob)
+        .filter_by(package=package)
+        .join(Log.blob)
+    )
+
+    return dict(
+        logs=[dict(
+            hash=blob.hash,
+            created=log.created,
+            author=log.author
+        ) for log, blob in logs]
+    )
+
+VERSION_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'hash': {
+            'type': 'string'
+        }
+    },
+    'required': ['hash']
+}
+
+@app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['PUT'])
+@api(schema=VERSION_SCHEMA)
+@as_json
+def version_put(auth_user, owner, package_name, package_version):
+    data = request.get_json()
+    package_hash = data['hash']
+
+    try:
+        PackagingVersion(package_version)
+    except ValueError:
+        abort(400, "Malformed version")
+
+    blob = (
+        Blob.query
+        .filter_by(hash=package_hash)
+        .join(Blob.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+
+    if blob is None:
+        abort(requests.codes.not_found, "Package hash does not exist")
+
+    version = Version(
+        package_id=blob.package_id,
+        version=package_version,
+        blob=blob
+    )
+
+    try:
+        db.session.add(version)
+        db.session.commit()
+    except IntegrityError:
+        abort(requests.codes.conflict, "Version already exists")
+
+    return dict()
+
+@app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['GET'])
+@api()
+@as_json
+def version_get(auth_user, owner, package_name, package_version):
+    blob = (
+        Blob.query
+        .join(Blob.versions)
+        .filter_by(version=package_version)
+        .join(Version.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+
+    if blob is None:
+        abort(requests.codes.not_found, "Version doesn't exist")
+
+    return dict(
+        hash=blob.hash
+    )
+
+@app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
+@api()
+@as_json
+def version_list(auth_user, owner, package_name):
+    package = _get_package(auth_user, owner, package_name)
+
+    versions = (
+        db.session.query(Version, Blob)
+        .filter_by(package=package)
+        .join(Version.blob)
+        .all()
+    )
+
+    sorted_versions = sorted(versions, key=lambda v: PackagingVersion(v[0].version))
+
+    return dict(
+        versions=[
+            dict(
+                version=version.version,
+                hash=blob.hash
+            ) for version, blob in sorted_versions
+        ]
+    )
+
+TAG_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'hash': {
+            'type': 'string'
+        }
+    },
+    'required': ['hash']
+}
+
+@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['PUT'])
+@api(schema=TAG_SCHEMA)
+@as_json
+def tag_put(auth_user, owner, package_name, package_tag):
+    data = request.get_json()
+    package_hash = data['hash']
+
+    blob = (
+        Blob.query
+        .filter_by(hash=package_hash)
+        .join(Blob.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+
+    if blob is None:
+        abort(requests.codes.not_found, "Package hash does not exist")
+
+    # Update an existing tag or create a new one.
+    tag = (
+        Tag.query
+        .with_for_update()
+        .filter_by(package_id=blob.package_id, tag=package_tag)
+        .one_or_none()
+    )
+    if tag is None:
+        tag = Tag(
+            package_id=blob.package_id,
+            tag=package_tag,
+            blob=blob
+        )
+        db.session.add(tag)
+    else:
+        tag.blob = blob
+
+    db.session.commit()
+
+    return dict()
+
+@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['GET'])
+@api()
+@as_json
+def tag_get(auth_user, owner, package_name, package_tag):
+    tag = (
+        Tag.query
+        .filter_by(tag=package_tag)
+        .join(Tag.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+
+    if tag is None:
+        abort(requests.codes.not_found, "Tag doesn't exist")
+
+    return dict(
+        hash=tag.blob.hash
+    )
+
+@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
+@api()
+@as_json
+def tag_delete(auth_user, owner, package_name, package_tag):
+    tag = (
+        Tag.query
+        .with_for_update()
+        .filter_by(tag=package_tag)
+        .join(Tag.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+    if tag is None:
+        abort(requests.codes.not_found, "Tag does not exist")
+
+    db.session.delete(tag)
+    db.session.commit()
+
+    return dict()
+
+@app.route('/api/tag/<owner>/<package_name>/', methods=['GET'])
+@api()
+@as_json
+def tag_list(auth_user, owner, package_name):
+    package = _get_package(auth_user, owner, package_name)
+
+    tags = (
+        db.session.query(Tag, Blob)
+        .filter_by(package=package)
+        .order_by(Tag.tag)
+        .join(Tag.blob)
+        .all()
+    )
+
+    return dict(
+        tags=[
+            dict(
+                tag=tag.tag,
+                hash=blob.hash
+            ) for tag, blob in tags
+        ]
     )
 
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['PUT'])
@@ -308,7 +578,7 @@ def access_get(auth_user, owner, package_name, user):
         .one_or_none()
     )
     if access is None:
-        abort(request.codes.not_found)
+        abort(requests.codes.not_found)
 
     return dict()
 
