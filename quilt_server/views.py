@@ -175,6 +175,11 @@ PACKAGE_SCHEMA = {
 @api(schema=PACKAGE_SCHEMA)
 @as_json
 def package_put(auth_user, owner, package_name, package_hash):
+    # TODO: Write access for collaborators.
+    if auth_user != owner:
+        abort(requests.codes.forbidden,
+              "Only the package owner can push packages.")
+
     # TODO: Description, etc.
 
     # Insert a package if it doesn't already exist.
@@ -187,9 +192,6 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
 
     if package is None:
-        if auth_user != owner:
-            abort(requests.codes.forbidden, "Only the owner can create a package.")
-
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -213,13 +215,6 @@ def package_put(auth_user, owner, package_name, package_hash):
 
         owner_access = Access(package=package, user=owner)
         db.session.add(owner_access)
-    else:
-        # Check if the user has access to this package
-        access = (Access.query
-                  .filter_by(package=package, user=auth_user)
-                  .one_or_none())
-        if access is None:
-            abort(requests.codes.forbidden)
 
     # Insert a blob if it doesn't already exist.
     blob = (
@@ -305,12 +300,17 @@ def package_list(auth_user, owner, package_name):
 @api()
 @as_json
 def logs_list(auth_user, owner, package_name):
+    if auth_user != owner:
+        abort(requests.codes.forbidden,
+              "Only the package owner can view logs.")
+
     package = _get_package(auth_user, owner, package_name)
 
     logs = (
         db.session.query(Log, Blob)
         .filter_by(package=package)
         .join(Log.blob)
+        .order_by(Tag.created)
     )
 
     return dict(
@@ -335,6 +335,11 @@ VERSION_SCHEMA = {
 @api(schema=VERSION_SCHEMA)
 @as_json
 def version_put(auth_user, owner, package_name, package_version):
+    # TODO: Write access for collaborators.
+    if auth_user != owner:
+        abort(requests.codes.forbidden,
+              "Only the package owner can create versions.")
+
     data = request.get_json()
     package_hash = data['hash']
 
@@ -348,8 +353,6 @@ def version_put(auth_user, owner, package_name, package_version):
         .filter_by(hash=package_hash)
         .join(Blob.package)
         .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
         .one_or_none()
     )
 
@@ -430,6 +433,11 @@ TAG_SCHEMA = {
 @api(schema=TAG_SCHEMA)
 @as_json
 def tag_put(auth_user, owner, package_name, package_tag):
+    # TODO: Write access for collaborators.
+    if auth_user != owner:
+        abort(requests.codes.forbidden,
+              "Only the package owner can modify tags.")
+
     data = request.get_json()
     package_hash = data['hash']
 
@@ -438,8 +446,6 @@ def tag_put(auth_user, owner, package_name, package_tag):
         .filter_by(hash=package_hash)
         .join(Blob.package)
         .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
         .one_or_none()
     )
 
@@ -492,14 +498,17 @@ def tag_get(auth_user, owner, package_name, package_tag):
 @api()
 @as_json
 def tag_delete(auth_user, owner, package_name, package_tag):
+    # TODO: Write access for collaborators.
+    if auth_user != owner:
+        abort(requests.codes.forbidden,
+              "Only the package owner can delete tags.")
+
     tag = (
         Tag.query
         .with_for_update()
         .filter_by(tag=package_tag)
         .join(Tag.package)
         .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
         .one_or_none()
     )
     if tag is None:

@@ -132,10 +132,10 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.not_found
 
-    def testSharerCanPushNewVersion(self):
+    def testSharerCantPushNewVersion(self):
         """
         Push a package, share it and test that the
-        recipient can add a new version.
+        recipient can't add a new version.
         """
         sharewith = "anotheruser"
         resp = self._sharePackage(sharewith)
@@ -148,7 +148,7 @@ class AccessTestCase(QuiltTestCase):
             hash=newhash
         )
 
-        # Test that the receiver can create a new version
+        # Test that the receiver can't create a new version
         # of the package
         resp = self.app.put(
             newpkgurl,
@@ -161,7 +161,7 @@ class AccessTestCase(QuiltTestCase):
             }
         )
 
-        assert resp.status_code == requests.codes.ok
+        assert resp.status_code == requests.codes.forbidden
 
     def testNonSharerCantPushToPublicPkg(self):
         """
