@@ -1,0 +1,8 @@
+build
+.cache
+dist
+*.egg-info
+*.py[cod]
+tmp_*
+
+quilt_packages
