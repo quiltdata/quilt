@@ -163,6 +163,9 @@ class VersionTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.method_not_allowed
 
     def testAccess(self):
+        resp = self._add_version('1.0', self.hashes[0])
+        assert resp.status_code == requests.codes.ok
+
         sharewith = "share_with"
 
         resp = self.app.put(
@@ -173,9 +176,22 @@ class VersionTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-
         assert resp.status_code == requests.codes.ok
 
+        # Can view
+        resp = self.app.get(
+            '/api/version/{usr}/{pkg}/{version}'.format(
+                usr=self.user,
+                pkg=self.pkg,
+                version='1.0'
+            ),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Can't modify
         resp = self.app.put(
             '/api/version/{usr}/{pkg}/{version}'.format(
                 usr=self.user,
@@ -190,5 +206,4 @@ class VersionTestCase(QuiltTestCase):
                 'Authorization': sharewith
             }
         )
-
-        assert resp.status_code == requests.codes.ok
+        assert resp.status_code == requests.codes.forbidden
