@@ -23,6 +23,9 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 * Publish data packages for the benefit of the community.
 * Satisfy your data dependencies with one command, `quilt install dependency`.
 
+# Known Issues
+* Installation under Python 3.6 tends to fail on missing HDF5 dependencies. Try Python 3.5. For example if you're using Anaconda, here's how you create a 3.5 environment: `conda create -n ENV python=3.5`.
+
 # Quick Start
 1. Open Terminal
 1. `$ pip install git+https://github.com/quiltdata/quilt.git` (install quilt)
