@@ -137,19 +137,18 @@ push it to a secure registry in the cloud.
 1. `quilt login`. Sign in or create an account, then paste your confirmation code into
 `quilt`.
 
-1. `quilt access add YOU/YOUR_PACKAGE FRIEND`. Now user `FRIEND` can
-`quilt install YOU/YOUR_PACKAGE`. In the near future
-the quilt registry at [beta.quiltdata.com](https://quiltdata.com) will offer
-a graphical user interface for easy access control.
-
-If you wish to make a package public, type `quilt access add YOU/YOUR_PACKAGE public`.
+1. `quilt push YOU/YOUR_PACKAGE` adds your package to the registry. By default all
+packages are private to the owner (you).
 
 **Note**: all packages are private by default, visible only to the owner. 
 
 ## Manage access
-- `quilt access list USER/PACKAGE` reveals who can view a package
-- `quilt access add USER/PACKAGE FRIEND` adds `FRIEND` as a viewer
-- `quilt access remove USER/PACKAGE ENEMY` removes `ENEMY` as a viewer
+- `quilt access add YOU/YOUR_PACKAGE FRIEND`. Now user `FRIEND` can
+`quilt install YOU/YOUR_PACKAGE`. In the near future
+the quilt registry at [beta.quiltdata.com](https://quiltdata.com) will offer
+a graphical user interface for easy access control.
+
+If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`.
 
 # Command summary
 * `quilt -h` for a list of commands
