@@ -23,10 +23,23 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 * Publish data packages for the benefit of the community.
 * Satisfy your data dependencies with one command, `quilt install dependency`.
 
-# Install `quilt`
+# Quick Start
+1. Open Terminal
+1. `$ pip install git+https://github.com/quiltdata/quilt.git` (install quilt)
+1. `$ quilt install akarve/wine` (install a sample package)
+1. `python` (fire up python)
+1. You've got data frames
+```
+>>> from quilt.data.akarve import wine
+>>> wine.quality.red # this is a pandas.DataFrame
+```
+
+# Tutorial
+
+## Install `quilt`
 - `pip install quilt`
 
-# Install a package
+## Install a package
 Let's install a public package containing wine quality data from the UCI Machine
 Learning Repository.
 - `quilt install akarve/wine`
@@ -72,13 +85,13 @@ dict_keys(['red', 'white'])
 ['red', 'white']
 ```
 
-## Traverse a package
+### Traverse a package
 
 `foo._keys()` enumerates all children of `foo`, whereas `foo._dfs()` and
 `foo._groups()` partition keys into data frames and groups, respectively.
 Groups are like folders for data frames.
 
-# Create your first package
+## Create your first package
 Create a `build.yml` file. Your file should look something like this:
 ```yaml
 ---
@@ -107,7 +120,7 @@ parser to read from a `.txt` file that, contrary to its extension, is actually
 in CSV format. The separation of `parser` and `file` allows you to change
 parsers without changing file names.
 
-## Supported parsers
+### Supported parsers
 - `xls` or `xlsx` for Excel
 - `csv` for comma-separated values
 - `tsv` for tab-separated values
@@ -115,7 +128,7 @@ parsers without changing file names.
 
 `quilt` can be extended to support more parsers. See `TARGET` in `quilt/data/tools/constants.py`.
 
-## Build the package
+### Build the package
 - `quilt build USER/PACKAGE build.yml`
 
 `build` parses the files referenced in `data.yml`, transforms them with specified
@@ -130,7 +143,7 @@ You can now use your package locally:
 ```
 Data packages deserialize 5x to 20x faster than text files.
 
-## Push the package
+### Push the package
 So far your package lives on your local machine. Now you can
 push it to a secure registry in the cloud.
 
@@ -142,7 +155,7 @@ packages are private to the owner (you).
 
 **Note**: all packages are private by default, visible only to the owner. 
 
-## Manage access
+### Manage access
 - `quilt access add YOU/YOUR_PACKAGE FRIEND`. Now user `FRIEND` can
 `quilt install YOU/YOUR_PACKAGE`. In the near future
 the quilt registry at [beta.quiltdata.com](https://quiltdata.com) will offer
