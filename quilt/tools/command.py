@@ -19,7 +19,6 @@ from .util import BASE_DIR
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 
-QUILT_AUTH_URL = os.environ.get('QUILT_AUTH_URL', 'https://quiltdata.com')
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', 'https://pkg.quiltdata.com')
 
 AUTH_FILE_NAME = "auth.json"
@@ -60,6 +59,10 @@ def _save_auth(auth):
         os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR)
         json.dump(auth, fd)
 
+def _handle_response(resp, **kwargs):
+    if resp.status_code == requests.codes.unauthorized:
+        raise CommandException("Failed to log in. Run `quilt login` again.")
+
 def _create_session():
     try:
         file_path = os.path.join(BASE_DIR, AUTH_FILE_NAME)
@@ -79,17 +82,14 @@ def _create_session():
         _save_auth(auth)
 
     session = requests.Session()
+    session.hooks.update(dict(
+        response=_handle_response
+    ))
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
         "Authorization": "Bearer %s" % auth['access_token']
     })
-
-    response = session.get("%s/api-root" % QUILT_AUTH_URL)
-    if response.status_code == requests.codes.unauthorized:
-        raise CommandException("Failed to log in. Run `quilt login` again.")
-    elif response.status_code != requests.codes.ok:
-        raise CommandException("Failed to access Quilt.")
 
     return session
 
