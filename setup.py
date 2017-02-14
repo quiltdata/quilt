@@ -29,7 +29,7 @@ setup(
     ],
     author='quiltdata',
     author_email='founders@quiltdata.io',
-    license='Apache License 2.0',
+    license='LICENSE',
     url='https://github.com/quiltdata/quilt',
     download_url='https://github.com/quiltdata/quilt/releases/tag/v2.0.0-alpha',
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
