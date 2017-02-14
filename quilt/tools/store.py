@@ -357,6 +357,10 @@ class SparkPackageStore(ParquetPackageStore):
     def __init__(self, user, package, mode):
         super(SparkPackageStore, self).__init__(user, package, mode)
 
+        if SparkSession is None:
+            raise StoreException("Module SparkSession from pyspark.sql is required for " +
+                                 "SparkPackageStore.")
+
 # Helper functions
 def get_store(user, package, format=None, mode='r'):
     """
