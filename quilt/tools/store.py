@@ -362,6 +362,9 @@ class SparkPackageStore(ParquetPackageStore):
                                  "SparkPackageStore.")
 
     def get(self, path):
+        """
+        Read a DataFrame to the store.
+        """
         pass
 
 # Helper functions
