@@ -365,7 +365,10 @@ class SparkPackageStore(ParquetPackageStore):
         """
         Read a DataFrame to the store.
         """
-        pass
+        spark = SparkSession.builder.getOrCreate()
+        fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
+        df = spark.read.parquet(fpath)
+        return df
 
 # Helper functions
 def get_store(user, package, format=None, mode='r'):
