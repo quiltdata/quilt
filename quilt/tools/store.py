@@ -21,7 +21,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ
+from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK
 from .hashing import digest_file
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
