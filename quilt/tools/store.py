@@ -16,6 +16,11 @@ try:
 except ImportError:
     fastparquet = None
 
+try:
+    from pyspark.sql import SparkSession
+except ImportError:
+    SparkSession = None
+
 from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ
 from .hashing import digest_file
 
