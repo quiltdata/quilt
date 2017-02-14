@@ -244,7 +244,10 @@ def install(package):
         raise CommandException("Lookup failed: error %s" % response.status_code)
     dataset = response.json()
 
-    store.install(dataset['url'], dataset['hash'])
+    try:
+        store.install(dataset['url'], dataset['hash'])
+    except StoreException as ex:
+        raise CommandException("Failed to install the package: %s" % ex)
 
 def access_list(package):
     """
