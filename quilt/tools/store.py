@@ -351,6 +351,9 @@ class ParquetPackageStore(PackageStore):
         return parq_packages
 
 class SparkPackageStore(ParquetPackageStore):
+    """
+    Spark Implementation of PackageStore.
+    """
     pass
 
 # Helper functions
