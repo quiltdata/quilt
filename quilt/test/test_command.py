@@ -2,7 +2,6 @@
 Tests for commands.
 """
 
-from argparse import Namespace
 from unittest import TestCase
 try:
     # Python3
@@ -27,31 +26,31 @@ class CommandTest(TestCase):
 
     def test_push_invalid_package(self):
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.push(Namespace(package="no_user"))
+            command.push(package="no_user")
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.push(Namespace(package="a/b/c"))
+            command.push(package="a/b/c")
 
     def test_install_invalid_package(self):
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.install(Namespace(package="no_user"))
+            command.install(package="no_user")
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.install(Namespace(package="a/b/c"))
+            command.install(package="a/b/c")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_invalid_package(self):
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.inspect(Namespace(package="no_user"))
+            command.inspect(package="no_user")
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.inspect(Namespace(package="a/b/c"))
+            command.inspect(package="a/b/c")
 
     def test_push_missing_package(self):
         with self.assertRaisesRegexp(command.CommandException, "not found"):
-            command.push(Namespace(package="owner/package"))
+            command.push(package="owner/package")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_missing_package(self):
         with self.assertRaisesRegexp(command.CommandException, "not found"):
-            command.inspect(Namespace(package="owner/package"))
+            command.inspect(package="owner/package")
 
     @responses.activate
     @patch('webbrowser.open')
@@ -71,7 +70,7 @@ class CommandTest(TestCase):
             )
         )
 
-        command.login(Namespace())
+        command.login()
 
         mock_open.assert_called_with('%s/login' % command.QUILT_PKG_URL)
 
@@ -97,7 +96,7 @@ class CommandTest(TestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login(Namespace())
+            command.login()
 
         mock_save.assert_not_called()
 
@@ -118,7 +117,7 @@ class CommandTest(TestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login(Namespace())
+            command.login()
 
         mock_save.assert_not_called()
 
