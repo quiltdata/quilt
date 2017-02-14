@@ -379,8 +379,11 @@ def get_store(user, package, format=None, mode='r'):
     pkg_format = format
     if not pkg_format:
         pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
+
     if pkg_format == FORMAT_PARQ:
         return ParquetPackageStore(user, package, mode)
+    elif pkg_format == FORMAT_SPARK:
+        return SparkPackageStore(user, package, mode)
     else:
         return HDF5PackageStore(user, package, mode)
 
