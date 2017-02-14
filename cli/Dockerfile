@@ -9,11 +9,13 @@ USER quilt
 WORKDIR /home/quilt
 
 # Install Quilt CLI
-ARG GITHUB_USER
-ARG GITHUB_PASSWORD
-
 RUN conda create -n quiltcli python=3.5 anaconda
 ENV PATH="/home/quilt/.conda/envs/quiltcli/bin/:${PATH}"
-RUN pip install git+https://$GITHUB_USER:$GITHUB_PASSWORD@github.com/quiltdata/quilt-cli.git@test-data
+RUN pip install quilt
 
-RUN python -m quilt.test.gen_data -n 5 testpkg
+# Copy dummy auth token
+RUN mkdir -p /home/quilt/.local/share/QuiltCli/
+COPY auth.json /home/quilt/.local/share/QuiltCli/
+COPY gen_data.py /home/quilt
+
+RUN python gen_data.py -n 5 testpkg

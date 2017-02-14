@@ -5,21 +5,48 @@ services:
     environment:
       - MYSQL_ALLOW_EMPTY_PASSWORD=True
       - MYSQL_DATABASE=quilt
+    healthcheck:
+      test: ["CMD", "echo", "select", "1", "|", "mysql", "-u", "root"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+  migration:
+    image: quiltdata/server
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=test_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+    ports:
+      - "5003:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      flask db upgrade
   pkg:
     image: quiltdata/server
     environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=test_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
     ports:
-      - "80:80"
+      - "5000:80"
     depends_on:
       db:
-        condition: service_started
+        condition: service_healthy
   s3:
     image: quiltdata/nginx-s3-proxy
     ports:
       - "5001:80"
+  auth:
+    image: quiltdata/auth
+    ports:
+      - "5002:5002"
   cli:
     image: quiltdata/cli
     environment:
       - QUILT_PKG_URL=http://pkg
-      - QUILT_AUTH_URL=https://quilt-heroku.herokuapp.com
+      - QUILT_AUTH_URL=http://auth:5002
+
