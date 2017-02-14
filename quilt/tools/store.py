@@ -350,6 +350,8 @@ class ParquetPackageStore(PackageStore):
             if os.path.isdir(pkg)]
         return parq_packages
 
+class SparkPackageStore(ParquetPackageStore):
+    pass
 
 # Helper functions
 def get_store(user, package, format=None, mode='r'):
