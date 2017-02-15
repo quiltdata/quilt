@@ -61,7 +61,7 @@ def _save_auth(auth):
 
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
-        raise CommandException("Failed to log in. Run `quilt login` again.")
+        raise CommandException("Authentication failed. Run `quilt login` again.")
 
 def _create_session():
     try:
