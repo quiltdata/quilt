@@ -1,0 +1,6 @@
+[MASTER]
+extension-pkg-whitelist=numpy
+
+[TYPECHECK]
+generated-members=requests.codes.*,responses.*
+ignored-modules=quilt.data
