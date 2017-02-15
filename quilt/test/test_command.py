@@ -49,16 +49,21 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
     def test_login(self, mock_save, mock_input, mock_open):
-        mock_input.return_value = "123"
+        old_refresh_token = "123"
+        refresh_token = "456"
+        access_token = "abc"
+        expires_at = 1000.0
+
+        mock_input.return_value = old_refresh_token
 
         self.requests_mock.add(
             responses.POST,
             '%s/api/token' % command.QUILT_PKG_URL,
             json=dict(
-                statuc=200,
-                refresh_token="456",
-                access_token="abc",
-                expires_at=1000.0
+                status=200,
+                refresh_token=refresh_token,
+                access_token=access_token,
+                expires_at=expires_at
             )
         )
 
@@ -66,12 +71,12 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.QUILT_PKG_URL)
 
-        assert self.requests_mock.calls[0].request.body == "refresh_token=123"
+        assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
         mock_save.assert_called_with(dict(
-            refresh_token="456",
-            access_token="abc",
-            expires_at=1000.0
+            refresh_token=refresh_token,
+            access_token=access_token,
+            expires_at=expires_at
         ))
 
     @patch('webbrowser.open')
