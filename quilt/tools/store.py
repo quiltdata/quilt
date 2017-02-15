@@ -16,7 +16,12 @@ try:
 except ImportError:
     fastparquet = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ
+try:
+    from pyspark.sql import SparkSession
+except ImportError:
+    SparkSession = None
+
+from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK
 from .hashing import digest_file
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -345,6 +350,25 @@ class ParquetPackageStore(PackageStore):
             if os.path.isdir(pkg)]
         return parq_packages
 
+class SparkPackageStore(ParquetPackageStore):
+    """
+    Spark Implementation of PackageStore.
+    """
+    def __init__(self, user, package, mode):
+        super(SparkPackageStore, self).__init__(user, package, mode)
+
+        if SparkSession is None:
+            raise StoreException("Module SparkSession from pyspark.sql is required for " +
+                                 "SparkPackageStore.")
+
+    def get(self, path):
+        """
+        Read a DataFrame to the store.
+        """
+        spark = SparkSession.builder.getOrCreate()
+        fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
+        df = spark.read.parquet(fpath)
+        return df
 
 # Helper functions
 def get_store(user, package, format=None, mode='r'):
@@ -355,8 +379,11 @@ def get_store(user, package, format=None, mode='r'):
     pkg_format = format
     if not pkg_format:
         pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
+
     if pkg_format == FORMAT_PARQ:
         return ParquetPackageStore(user, package, mode)
+    elif pkg_format == FORMAT_SPARK:
+        return SparkPackageStore(user, package, mode)
     else:
         return HDF5PackageStore(user, package, mode)
 

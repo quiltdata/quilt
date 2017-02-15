@@ -14,6 +14,7 @@ RSA_BITS = 2048
 
 FORMAT_HDF5 = 'HDF5'
 FORMAT_PARQ = 'Parquet'
+FORMAT_SPARK = 'Spark'
 
 # TODO nan probably not a safe choice and may pollute number cols with strs
 NA_VALS = ['nan']
