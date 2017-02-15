@@ -103,7 +103,7 @@ def _parse_package(name):
         raise CommandException("Specify package as owner/package_name.")
     return owner, pkg
 
-def login(args):
+def login():
     """
     Authenticate.
     """
@@ -128,22 +128,22 @@ def login(args):
 
     _save_auth(auth)
 
-def build(args):
+def build(package, path):
     """
     Compile a Quilt data package
     """
-    owner, pkg = _parse_package(args.package)
+    owner, pkg = _parse_package(package)
     try:
-        build_package(owner, pkg, args.path)
+        build_package(owner, pkg, path)
         print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-def push(args):
+def push(package):
     """
     Push a Quilt data package to the server
     """
-    owner, pkg = _parse_package(args.package)
+    owner, pkg = _parse_package(package)
 
     store = get_store(owner, pkg)
     if not store.exists():
@@ -200,11 +200,11 @@ def push(args):
     if not response.ok:
         raise CommandException("Failed to set the 'latest' tag: error %s" % response.status_code)
 
-def install(args):
+def install(package):
     """
     Download a Quilt data package from the server and install locally
     """
-    owner, pkg = _parse_package(args.package)
+    owner, pkg = _parse_package(package)
     store = get_store(owner, pkg, mode='w')
 
     if store.exists():
@@ -246,11 +246,11 @@ def install(args):
 
     store.install(dataset['url'], dataset['hash'])
 
-def access_list(args):
+def access_list(package):
     """
     Print list of users who can access a package.
     """
-    owner, pkg = _parse_package(args.package)
+    owner, pkg = _parse_package(package)
 
     session = _create_session()
 
@@ -267,9 +267,8 @@ def access_list(args):
 
     print('\n'.join(users))
 
-def access_add(args):
-    owner, pkg = _parse_package(args.package)
-    user = args.user
+def access_add(package, user):
+    owner, pkg = _parse_package(package)
 
     session = _create_session()
 
@@ -280,9 +279,8 @@ def access_add(args):
     elif not response.ok:
         raise CommandException("Failed to add access: %s" % response.status_code)
 
-def access_remove(args):
-    owner, pkg = _parse_package(args.package)
-    user = args.user
+def access_remove(package, user):
+    owner, pkg = _parse_package(package)
 
     session = _create_session()
 
@@ -293,7 +291,7 @@ def access_remove(args):
     elif not response.ok:
         raise CommandException("Failed to remove access: %s" % response.status_code)
 
-def ls(args):
+def ls():
     """
     List all installed Quilt data packages
     """
@@ -304,7 +302,7 @@ def ls(args):
             prefix = u"└── " if idx == len(packages) - 1 else u"├── "
             print("%s%s/%s" % (prefix, owner, pkg))
 
-def inspect(args):
+def inspect(package):
     """
     Inspect package details
     """
@@ -313,7 +311,7 @@ def inspect(args):
     except ImportError:
         raise CommandException("Please install 'h5py' to use 'quilt inspect'")
 
-    owner, pkg = _parse_package(args.package)
+    owner, pkg = _parse_package(package)
     store = get_store(owner, pkg)
     if not store.exists():
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
@@ -395,8 +393,16 @@ def main():
     inspect_p.set_defaults(func=inspect)
 
     args = parser.parse_args()
+    func = args.func
+
+    # Convert argparse.Namespace into dict and clean it up.
+    # We can then pass it directly to the helper function.
+    kwargs = vars(args)
+    del kwargs['func']
+    del kwargs['cmd']
+
     try:
-        args.func(args)
+        func(**kwargs)
         return 0
     except CommandException as ex:
         print(ex, file=sys.stderr)
