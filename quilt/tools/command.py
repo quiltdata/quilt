@@ -62,6 +62,12 @@ def _save_auth(auth):
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise CommandException("Authentication failed. Run `quilt login` again.")
+    elif not resp.ok:
+        try:
+            data = resp.json()
+            raise CommandException(data['message'])
+        except ValueError:
+            raise CommandException("Unexpected failure: error %s" % resp.status_code)
 
 def create_session():
     """
@@ -171,10 +177,6 @@ def push(session, package):
         ))
     )
 
-    if not response.ok:
-        # PUT Dataset failed
-        raise CommandException("Push failed: error %s" % response.status_code)
-
     dataset = response.json()
     upload_url = dataset['upload_url']
 
@@ -201,8 +203,6 @@ def push(session, package):
             hash=pkghash
         ))
     )
-    if not response.ok:
-        raise CommandException("Failed to set the 'latest' tag: error %s" % response.status_code)
 
 def install(session, package):
     """
@@ -226,11 +226,6 @@ def install(session, package):
             tag=LATEST_TAG
         )
     )
-    if response.status_code == requests.codes.not_found:
-        raise CommandException("Lookup failed: package {owner}/{pkg} not found.".format(
-            owner=owner, pkg=pkg))
-    elif not response.ok:
-        raise CommandException("Failed to get the 'latest' tag: error %s" % response.status_code)
 
     pkghash = response.json()['hash']
 
@@ -242,8 +237,6 @@ def install(session, package):
             hash=pkghash
         )
     )
-    if not response.ok:
-        raise CommandException("Lookup failed: error %s" % response.status_code)
     dataset = response.json()
 
     try:
@@ -259,11 +252,6 @@ def access_list(session, package):
 
     lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=QUILT_PKG_URL, owner=owner, pkg=pkg)
     response = session.get(lookup_url)
-    if response.status_code == requests.codes.not_found:
-        raise CommandException("Lookup failed: package {owner}/{pkg} not found.".format(
-            owner=owner, pkg=pkg))
-    elif not response.ok:
-        raise CommandException("Lookup failed: error %s" % response.status_code)
 
     data = response.json()
     users = data['users']
@@ -273,22 +261,12 @@ def access_list(session, package):
 def access_add(session, package, user):
     owner, pkg = _parse_package(package)
 
-    response = session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
-    if response.status_code == requests.codes.not_found:
-        raise CommandException("Failed to add access: package {owner}/{pkg} not found.".format(
-            owner=owner, pkg=pkg))
-    elif not response.ok:
-        raise CommandException("Failed to add access: %s" % response.status_code)
+    session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
 def access_remove(session, package, user):
     owner, pkg = _parse_package(package)
 
-    response = session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
-    if response.status_code == requests.codes.not_found:
-        raise CommandException("Failed to remove access: package {owner}/{pkg} not found.".format(
-            owner=owner, pkg=pkg))
-    elif not response.ok:
-        raise CommandException("Failed to remove access: %s" % response.status_code)
+    session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
 def ls():
     """
@@ -411,3 +389,5 @@ def main():
     except CommandException as ex:
         print(ex, file=sys.stderr)
         return 1
+    except requests.exceptions.ConnectionError as ex:
+        print("Failed to connect: %s" % ex, file=sys.stderr)
