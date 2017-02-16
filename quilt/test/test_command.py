@@ -3,6 +3,7 @@ Tests for commands.
 """
 
 import pytest
+import requests
 import responses
 
 try:
@@ -18,16 +19,20 @@ class CommandTest(QuiltTestCase):
     # the new one, `assertRaisesRegex`, is not present in Python2.
 
     def test_push_invalid_package(self):
+        session = requests.Session()
+
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.push(package="no_user")
+            command.push(session=session, package="no_user")
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.push(package="a/b/c")
+            command.push(session=session, package="a/b/c")
 
     def test_install_invalid_package(self):
+        session = requests.Session()
+
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.install(package="no_user")
+            command.install(session=session, package="no_user")
         with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
-            command.install(package="a/b/c")
+            command.install(session=session, package="a/b/c")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_invalid_package(self):
@@ -37,8 +42,10 @@ class CommandTest(QuiltTestCase):
             command.inspect(package="a/b/c")
 
     def test_push_missing_package(self):
+        session = requests.Session()
+
         with self.assertRaisesRegexp(command.CommandException, "not found"):
-            command.push(package="owner/package")
+            command.push(session=session, package="owner/package")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_missing_package(self):
