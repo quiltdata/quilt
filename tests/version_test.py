@@ -126,12 +126,21 @@ class VersionTestCase(QuiltTestCase):
         resp = self._add_version('foo', self.hashes[0])
         assert resp.status_code == requests.codes.bad_request
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
         resp = self._add_version('1x', self.hashes[0])
         assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testInvalidHash(self):
         resp = self._add_version('1.0', '000')
         assert resp.status_code == requests.codes.not_found
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testDuplicateVersion(self):
         resp = self._add_version('1.0', self.hashes[0])
@@ -141,9 +150,15 @@ class VersionTestCase(QuiltTestCase):
         resp = self._add_version('1.0', self.hashes[0])
         assert resp.status_code == requests.codes.conflict
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
         # Different hash
         resp = self._add_version('1.0', self.hashes[1])
         assert resp.status_code == requests.codes.conflict
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testDelete(self):
         resp = self._add_version('1.0', self.hashes[0])
@@ -163,6 +178,9 @@ class VersionTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.method_not_allowed
 
     def testAccess(self):
+        resp = self._add_version('1.0', self.hashes[0])
+        assert resp.status_code == requests.codes.ok
+
         sharewith = "share_with"
 
         resp = self.app.put(
@@ -173,9 +191,22 @@ class VersionTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-
         assert resp.status_code == requests.codes.ok
 
+        # Can view
+        resp = self.app.get(
+            '/api/version/{usr}/{pkg}/{version}'.format(
+                usr=self.user,
+                pkg=self.pkg,
+                version='1.0'
+            ),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Can't modify
         resp = self.app.put(
             '/api/version/{usr}/{pkg}/{version}'.format(
                 usr=self.user,
@@ -190,5 +221,7 @@ class VersionTestCase(QuiltTestCase):
                 'Authorization': sharewith
             }
         )
+        assert resp.status_code == requests.codes.forbidden
 
-        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data

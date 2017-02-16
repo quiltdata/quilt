@@ -121,6 +121,9 @@ class TagTestCase(QuiltTestCase):
         resp = self._add_tag('latest', '000')
         assert resp.status_code == requests.codes.not_found
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testUpdateTag(self):
         resp = self._add_tag('latest', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -162,6 +165,9 @@ class TagTestCase(QuiltTestCase):
         assert data['tags'] == []
 
     def testAccess(self):
+        resp = self._add_tag('foo', self.hashes[0])
+        assert resp.status_code == requests.codes.ok
+
         sharewith = "share_with"
 
         resp = self.app.put(
@@ -172,9 +178,22 @@ class TagTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-
         assert resp.status_code == requests.codes.ok
 
+        # Can view
+        resp = self.app.get(
+            '/api/tag/{usr}/{pkg}/{tag}'.format(
+                usr=self.user,
+                pkg=self.pkg,
+                tag='foo'
+            ),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Can't modify
         resp = self.app.put(
             '/api/tag/{usr}/{pkg}/{tag}'.format(
                 usr=self.user,
@@ -189,5 +208,7 @@ class TagTestCase(QuiltTestCase):
                 'Authorization': sharewith
             }
         )
+        assert resp.status_code == requests.codes.forbidden
 
-        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data

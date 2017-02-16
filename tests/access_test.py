@@ -104,6 +104,9 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.not_found
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testOwnerCantDeleteOwnAccess(self):
         """
         Push a package and test that the owner
@@ -112,6 +115,9 @@ class AccessTestCase(QuiltTestCase):
         # Try to revoke owner's access
         resp = self._unsharePackage(self.user)
         assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testNoAccess(self):
         """
@@ -132,10 +138,13 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.not_found
 
-    def testSharerCanPushNewVersion(self):
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
+    def testSharerCantPushNewVersion(self):
         """
         Push a package, share it and test that the
-        recipient can add a new version.
+        recipient can't add a new version.
         """
         sharewith = "anotheruser"
         resp = self._sharePackage(sharewith)
@@ -148,7 +157,7 @@ class AccessTestCase(QuiltTestCase):
             hash=newhash
         )
 
-        # Test that the receiver can create a new version
+        # Test that the receiver can't create a new version
         # of the package
         resp = self.app.put(
             newpkgurl,
@@ -161,7 +170,10 @@ class AccessTestCase(QuiltTestCase):
             }
         )
 
-        assert resp.status_code == requests.codes.ok
+        assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testNonSharerCantPushToPublicPkg(self):
         """
@@ -193,6 +205,9 @@ class AccessTestCase(QuiltTestCase):
         )
 
         assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testListAccess(self):
         """
