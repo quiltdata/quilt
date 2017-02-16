@@ -310,7 +310,7 @@ def logs_list(auth_user, owner, package_name):
         db.session.query(Log, Blob)
         .filter_by(package=package)
         .join(Log.blob)
-        .order_by(Tag.created)
+        .order_by(Log.created)
     )
 
     return dict(
