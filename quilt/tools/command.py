@@ -63,7 +63,13 @@ def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise CommandException("Authentication failed. Run `quilt login` again.")
 
-def _create_session():
+def create_session():
+    """
+    Creates a session object to be used for `push`, `install`, etc.
+
+    It reads the credentials, possibly gets an updated access token,
+    and sets the request headers.
+    """
     try:
         file_path = os.path.join(BASE_DIR, AUTH_FILE_NAME)
         with open(file_path) as fd:
@@ -139,7 +145,7 @@ def build(package, path):
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-def push(package):
+def push(session, package):
     """
     Push a Quilt data package to the server
     """
@@ -152,8 +158,6 @@ def push(package):
     path = store.get_path()
     pkghash = store.get_hash()
     assert path
-
-    session = _create_session()
 
     response = session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -200,7 +204,7 @@ def push(package):
     if not response.ok:
         raise CommandException("Failed to set the 'latest' tag: error %s" % response.status_code)
 
-def install(package):
+def install(session, package):
     """
     Download a Quilt data package from the server and install locally
     """
@@ -212,8 +216,6 @@ def install(package):
         overwrite = input("Overwrite y/n? ")
         if overwrite.lower() != 'y':
             return
-
-    session = _create_session()
 
     # Get the "latest" tag.
     response = session.get(
@@ -249,13 +251,11 @@ def install(package):
     except StoreException as ex:
         raise CommandException("Failed to install the package: %s" % ex)
 
-def access_list(package):
+def access_list(session, package):
     """
     Print list of users who can access a package.
     """
     owner, pkg = _parse_package(package)
-
-    session = _create_session()
 
     lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=QUILT_PKG_URL, owner=owner, pkg=pkg)
     response = session.get(lookup_url)
@@ -270,10 +270,8 @@ def access_list(package):
 
     print('\n'.join(users))
 
-def access_add(package, user):
+def access_add(session, package, user):
     owner, pkg = _parse_package(package)
-
-    session = _create_session()
 
     response = session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
     if response.status_code == requests.codes.not_found:
@@ -282,10 +280,8 @@ def access_add(package, user):
     elif not response.ok:
         raise CommandException("Failed to add access: %s" % response.status_code)
 
-def access_remove(package, user):
+def access_remove(session, package, user):
     owner, pkg = _parse_package(package)
-
-    session = _create_session()
 
     response = session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
     if response.status_code == requests.codes.not_found:
@@ -351,16 +347,17 @@ def inspect(package):
 
 def main():
     parser = argparse.ArgumentParser(description="Quilt Command Line")
+    parser.set_defaults(need_session=True)
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
 
     login_p = subparsers.add_parser("login")
-    login_p.set_defaults(func=login)
+    login_p.set_defaults(func=login, need_session=False)
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
     build_p.add_argument("path", type=str, help="Path to the Yaml build file")
-    build_p.set_defaults(func=build)
+    build_p.set_defaults(func=build, need_session=False)
 
     push_p = subparsers.add_parser("push")
     push_p.add_argument("package", type=str, help="Owner/Package Name")
@@ -389,22 +386,26 @@ def main():
     access_remove_p.set_defaults(func=access_remove)
 
     ls_p = subparsers.add_parser("ls")
-    ls_p.set_defaults(func=ls)
+    ls_p.set_defaults(func=ls, need_session=False)
 
     inspect_p = subparsers.add_parser("inspect")
     inspect_p.add_argument("package", type=str, help="Owner/Package Name")
-    inspect_p.set_defaults(func=inspect)
+    inspect_p.set_defaults(func=inspect, need_session=False)
 
     args = parser.parse_args()
-    func = args.func
 
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
     kwargs = vars(args)
-    del kwargs['func']
     del kwargs['cmd']
 
+    func = kwargs.pop('func')
+
     try:
+        # Create a session if needed.
+        if kwargs.pop('need_session'):
+            kwargs['session'] = create_session()
+
         func(**kwargs)
         return 0
     except CommandException as ex:

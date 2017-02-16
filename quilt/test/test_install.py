@@ -5,6 +5,7 @@ Tests for commands.
 import json
 import os
 
+import requests
 import responses
 
 from quilt.tools import command
@@ -22,7 +23,8 @@ class InstallTest(QuiltTestCase):
         self._mock_package('foo/bar', contents_hash)
         self._mock_s3(contents_hash, contents)
 
-        command.install('foo/bar')
+        session = requests.Session()
+        command.install(session, 'foo/bar')
 
         with open('quilt_packages/foo/bar.h5') as fd:
             file_contents = fd.read()
@@ -36,8 +38,9 @@ class InstallTest(QuiltTestCase):
         self._mock_package('foo/bar', contents_hash)
         self._mock_s3(contents_hash, contents)
 
+        session = requests.Session()
         with self.assertRaisesRegexp(command.CommandException, "Mismatched hash"):
-            command.install('foo/bar')
+            command.install(session, 'foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.h5')
 
