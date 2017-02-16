@@ -121,6 +121,9 @@ class TagTestCase(QuiltTestCase):
         resp = self._add_tag('latest', '000')
         assert resp.status_code == requests.codes.not_found
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testUpdateTag(self):
         resp = self._add_tag('latest', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -206,3 +209,6 @@ class TagTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data

@@ -76,10 +76,16 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.unauthorized
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
         resp = self.app.get(
             '/api/package/test_user/foo/123'
         )
         assert resp.status_code == requests.codes.unauthorized
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testCreateWrongUser(self):
         resp = self.app.put(
@@ -94,6 +100,9 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.forbidden
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testInvalidRequest(self):
         resp = self.app.put(
             '/api/package/test_user/foo/123',
@@ -103,6 +112,9 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
         resp = self.app.put(
             '/api/package/test_user/foo/123',
@@ -114,6 +126,9 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testCase(self):
         # Can't create a package if the username has the wrong case.
