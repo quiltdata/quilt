@@ -104,6 +104,9 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.not_found
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testOwnerCantDeleteOwnAccess(self):
         """
         Push a package and test that the owner
@@ -112,6 +115,9 @@ class AccessTestCase(QuiltTestCase):
         # Try to revoke owner's access
         resp = self._unsharePackage(self.user)
         assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testNoAccess(self):
         """
@@ -131,6 +137,9 @@ class AccessTestCase(QuiltTestCase):
         )
 
         assert resp.status_code == requests.codes.not_found
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testSharerCantPushNewVersion(self):
         """
@@ -163,6 +172,9 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.forbidden
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testNonSharerCantPushToPublicPkg(self):
         """
         Push a package, share it publicly, and test that other users
@@ -193,6 +205,9 @@ class AccessTestCase(QuiltTestCase):
         )
 
         assert resp.status_code == requests.codes.forbidden
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
 
     def testListAccess(self):
         """

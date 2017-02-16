@@ -6,7 +6,7 @@ from functools import wraps
 
 import boto3
 from flask import abort, redirect, render_template, request, Response
-from flask_json import as_json
+from flask_json import as_json, jsonify
 from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
 from packaging.version import Version as PackagingVersion
@@ -109,6 +109,34 @@ def token():
 
 ### API routes ###
 
+class ApiException(Exception):
+    """
+    Base class for API exceptions.
+    """
+    def __init__(self, status_code, message):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
+
+class PackageNotFoundException(ApiException):
+    """
+    API exception for missing packages.
+    """
+    def __init__(self, owner, package):
+        message = "Package %s/%s does not exist" % (owner, package)
+        super().__init__(requests.codes.not_found, message)
+
+@app.errorhandler(ApiException)
+def handle_api_exception(error):
+    """
+    Converts an API exception into an error response.
+    """
+    response = jsonify(dict(
+        message=error.message
+    ))
+    response.status_code = error.status_code
+    return response
+
 def api(require_login=True, schema=None):
     """
     Decorator for API requests.
@@ -121,14 +149,14 @@ def api(require_login=True, schema=None):
                 try:
                     validate(request.get_json(cache=True), schema)
                 except ValidationError as ex:
-                    abort(400, ex.message)
+                    raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
             user = None
 
             if auth is None:
                 if require_login:
-                    abort(requests.codes.unauthorized)
+                    raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
                     AUTHORIZATION_HEADER: auth
@@ -138,9 +166,12 @@ def api(require_login=True, schema=None):
                     data = resp.json()
                     user = data['current_user']
                 elif resp.status_code == requests.codes.unauthorized:
-                    abort(requests.codes.unauthorized)
+                    raise ApiException(
+                        requests.codes.unauthorized,
+                        "Invalid credentials"
+                    )
                 else:
-                    abort(requests.codes.server_error)
+                    raise ApiException(requests.codes.server_error, "Server error")
             return f(user, *args, **kwargs)
         return wrapper
     return innerdec
@@ -158,7 +189,7 @@ def _get_package(auth_user, owner, package_name):
         .one_or_none()
     )
     if package is None:
-        abort(requests.codes.not_found, "Package doesn't exist")
+        raise PackageNotFoundException(owner, package_name)
     return package
 
 PACKAGE_SCHEMA = {
@@ -177,8 +208,8 @@ PACKAGE_SCHEMA = {
 def package_put(auth_user, owner, package_name, package_hash):
     # TODO: Write access for collaborators.
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can push packages.")
+        raise ApiException(requests.codes.forbidden,
+                           "Only the package owner can push packages.")
 
     # TODO: Description, etc.
 
@@ -205,7 +236,7 @@ def package_put(auth_user, owner, package_name, package_hash):
         )
 
         if package_ci is not None:
-            abort(
+            raise ApiException(
                 requests.codes.forbidden,
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
@@ -266,7 +297,10 @@ def package_get(auth_user, owner, package_name, package_hash):
     )
 
     if blob is None:
-        abort(requests.codes.not_found)
+        raise ApiException(
+            requests.codes.not_found,
+            "Package hash does not exist"
+        )
 
     url = s3_client.generate_presigned_url(
         S3_GET_OBJECT,
@@ -301,8 +335,10 @@ def package_list(auth_user, owner, package_name):
 @as_json
 def logs_list(auth_user, owner, package_name):
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can view logs.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can view logs."
+        )
 
     package = _get_package(auth_user, owner, package_name)
 
@@ -337,8 +373,10 @@ VERSION_SCHEMA = {
 def version_put(auth_user, owner, package_name, package_version):
     # TODO: Write access for collaborators.
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can create versions.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can create versions"
+        )
 
     data = request.get_json()
     package_hash = data['hash']
@@ -346,7 +384,7 @@ def version_put(auth_user, owner, package_name, package_version):
     try:
         PackagingVersion(package_version)
     except ValueError:
-        abort(400, "Malformed version")
+        raise ApiException(requests.codes.bad_request, "Malformed version")
 
     blob = (
         Blob.query
@@ -357,7 +395,7 @@ def version_put(auth_user, owner, package_name, package_version):
     )
 
     if blob is None:
-        abort(requests.codes.not_found, "Package hash does not exist")
+        raise ApiException(requests.codes.not_found, "Package hash does not exist")
 
     version = Version(
         package_id=blob.package_id,
@@ -369,7 +407,7 @@ def version_put(auth_user, owner, package_name, package_version):
         db.session.add(version)
         db.session.commit()
     except IntegrityError:
-        abort(requests.codes.conflict, "Version already exists")
+        raise ApiException(requests.codes.conflict, "Version already exists")
 
     return dict()
 
@@ -389,7 +427,10 @@ def version_get(auth_user, owner, package_name, package_version):
     )
 
     if blob is None:
-        abort(requests.codes.not_found, "Version doesn't exist")
+        raise ApiException(
+            requests.codes.not_found,
+            "Package %s/%s version %s does not exist" % (owner, package_name, package_version)
+        )
 
     return dict(
         hash=blob.hash
@@ -435,8 +476,10 @@ TAG_SCHEMA = {
 def tag_put(auth_user, owner, package_name, package_tag):
     # TODO: Write access for collaborators.
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can modify tags.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can modify tags"
+        )
 
     data = request.get_json()
     package_hash = data['hash']
@@ -450,7 +493,7 @@ def tag_put(auth_user, owner, package_name, package_tag):
     )
 
     if blob is None:
-        abort(requests.codes.not_found, "Package hash does not exist")
+        raise ApiException(requests.codes.not_found, "Package hash does not exist")
 
     # Update an existing tag or create a new one.
     tag = (
@@ -488,7 +531,10 @@ def tag_get(auth_user, owner, package_name, package_tag):
     )
 
     if tag is None:
-        abort(requests.codes.not_found, "Tag doesn't exist")
+        raise ApiException(
+            requests.codes.not_found,
+            "Package %s/%s tag %r does not exist" % (owner, package_name, package_tag)
+        )
 
     return dict(
         hash=tag.blob.hash
@@ -500,8 +546,10 @@ def tag_get(auth_user, owner, package_name, package_tag):
 def tag_delete(auth_user, owner, package_name, package_tag):
     # TODO: Write access for collaborators.
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can delete tags.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can delete tags"
+        )
 
     tag = (
         Tag.query
@@ -512,7 +560,10 @@ def tag_delete(auth_user, owner, package_name, package_tag):
         .one_or_none()
     )
     if tag is None:
-        abort(requests.codes.not_found, "Tag does not exist")
+        raise ApiException(
+            requests.codes.not_found,
+            "Package %s/%s tag %r does not exist" % (owner, package_name, package_tag)
+        )
 
     db.session.delete(tag)
     db.session.commit()
@@ -547,11 +598,13 @@ def tag_list(auth_user, owner, package_name):
 @as_json
 def access_put(auth_user, owner, package_name, user):
     if not user:
-        abort(requests.codes.bad_request, "A valid user is required.")
+        raise ApiException(requests.codes.bad_request, "A valid user is required")
 
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can grant access.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can grant access"
+        )
 
     package = (
         Package.query
@@ -560,14 +613,14 @@ def access_put(auth_user, owner, package_name, user):
         .one_or_none()
     )
     if package is None:
-        abort(requests.codes.not_found)
+        raise PackageNotFoundException(owner, package_name)
 
     try:
         access = Access(package=package, user=user)
         db.session.add(access)
         db.session.commit()
     except IntegrityError:
-        abort(requests.codes.conflict, "The user already has access")
+        raise ApiException(requests.codes.conflict, "The user already has access")
 
     return dict()
 
@@ -576,8 +629,10 @@ def access_put(auth_user, owner, package_name, user):
 @as_json
 def access_get(auth_user, owner, package_name, user):
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can view access.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can view access"
+        )
 
     access = (
         db.session.query(Access)
@@ -587,7 +642,7 @@ def access_get(auth_user, owner, package_name, user):
         .one_or_none()
     )
     if access is None:
-        abort(requests.codes.not_found)
+        raise PackageNotFoundException(owner, package_name)
 
     return dict()
 
@@ -596,11 +651,16 @@ def access_get(auth_user, owner, package_name, user):
 @as_json
 def access_delete(auth_user, owner, package_name, user):
     if auth_user != owner:
-        abort(requests.codes.forbidden,
-              "Only the package owner can revoke access.")
+        raise ApiException(
+            requests.codes.forbidden,
+            "Only the package owner can revoke access"
+        )
 
     if user == owner:
-        abort(requests.codes.forbidden)
+        raise ApiException(
+            requests.codes.forbidden,
+            "Cannot revoke the owner's access"
+        )
 
     access = (
         Access.query
@@ -611,7 +671,7 @@ def access_delete(auth_user, owner, package_name, user):
         .one_or_none()
     )
     if access is None:
-        abort(requests.codes.not_found)
+        raise PackageNotFoundException(owner, package_name)
 
     db.session.delete(access)
     db.session.commit()
@@ -634,4 +694,4 @@ def access_list(auth_user, owner, package_name):
     if is_public or is_collaborator:
         return dict(users=can_access)
     else:
-        abort(requests.codes.not_found)
+        raise PackageNotFoundException(owner, package_name)
