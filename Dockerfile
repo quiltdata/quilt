@@ -38,6 +38,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY quilt_server /usr/src/quilt-server/quilt_server
 COPY migrations /usr/src/quilt-server/migrations
 COPY setup.py MANIFEST.in /usr/src/quilt-server/
+WORKDIR /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
 # Needed to run `flask db ...`

@@ -1,0 +1,58 @@
+version: '2.1'
+services:
+  db:
+    image: mysql
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=True
+      - MYSQL_DATABASE=quilt
+    healthcheck:
+      test: ["CMD", "mysql", "-u", "root", "-e", "select 1"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+  migration:
+    image: quiltdata/server
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=test_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+    ports:
+      - "5003:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      flask db upgrade
+  pkg:
+    image: quiltdata/server
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=test_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+    ports:
+      - "5000:80"
+    depends_on:
+      db:
+        condition: service_healthy
+  s3:
+    image: quiltdata/nginx-s3-proxy
+    ports:
+      - "5001:80"
+  auth:
+    image: quiltdata/auth
+    ports:
+      - "5002:5002"
+  cli:
+    image: quiltdata/cli
+    environment:
+      - QUILT_USER=quilttester
+      - PKG=testpkg
+      - QUILT_PKG_URL=http://pkg
+
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      ./integration_test.sh
