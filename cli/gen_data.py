@@ -42,16 +42,14 @@ def build_package(name, numdf=1):
 def main(argv):
     parser = argparse.ArgumentParser(description='Test quilt build/push/install.')
     parser.add_argument('-n', '--numdf',
+                        type=int,
                         default=1,
                         help='Number of DataFrames in the package.')
     parser.add_argument('name', help='Package name.')
     args = parser.parse_args(argv)
 
-    pkgname = args.name
-    numdf = int(args.numdf)
-
     # Build a test package
-    build_package(pkgname, numdf)
+    build_package(args.name, args.numdf)
 
 
 if __name__ == "__main__":

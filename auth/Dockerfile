@@ -17,5 +17,5 @@ WORKDIR /home/quilt
 # Install the Flask Fake-Auth server
 COPY authserver.py /home/quilt/
 
-ENTRYPOINT ["/home/quilt/authserver.py"]
+CMD ["/home/quilt/authserver.py"]
 

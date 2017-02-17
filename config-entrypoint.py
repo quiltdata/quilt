@@ -40,10 +40,10 @@ def main(argv):
                 print("Failed to read s3://%s/config.py: %s" % (config_bucket, ex))
                 return 1
     else:
-        config_path = default_config_path  # In `quilt_server`
-        
-    if os.environ.get('QUILT_SERVER_CONFIG', None) is None:
-        os.environ['QUILT_SERVER_CONFIG'] = config_path
+        if os.environ.get('QUILT_SERVER_CONFIG') is None:
+            os.environ['QUILT_SERVER_CONFIG'] = config_path
+        else:
+            config_path = default_config_path  # In `quilt_server`
 
     os.execvp(argv[1], argv[1:])
 

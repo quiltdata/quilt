@@ -6,8 +6,8 @@ services:
       - MYSQL_ALLOW_EMPTY_PASSWORD=True
       - MYSQL_DATABASE=quilt
     healthcheck:
-      test: ["CMD", "echo", "select", "1", "|", "mysql", "-u", "root"]
-      interval: 1m30s
+      test: ["CMD", "mysql", "-u", "root", "-e", "select 1"]
+      interval: 1m
       timeout: 10s
       retries: 3
   migration:
@@ -47,10 +47,10 @@ services:
   cli:
     image: quiltdata/cli
     environment:
-      - QUILT_PKG_URL=http://pkg
-      - QUILT_AUTH_URL=http://auth:5002
       - QUILT_USER=quilttester
       - PKG=testpkg
+      - QUILT_PKG_URL=http://pkg
+
     depends_on:
       db:
         condition: service_healthy

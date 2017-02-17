@@ -11,7 +11,7 @@ WORKDIR /home/quilt
 # Install Quilt CLI
 RUN conda create -n quiltcli python=3.5 anaconda
 ENV PATH="/home/quilt/.conda/envs/quiltcli/bin/:${PATH}"
-RUN pip install quilt
+RUN pip install git+https://github.com/quiltdata/quilt.git
 
 # Copy dummy auth token
 RUN mkdir -p /home/quilt/.local/share/QuiltCli/
