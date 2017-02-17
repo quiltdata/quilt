@@ -78,13 +78,13 @@ class VersionTestCase(QuiltTestCase):
         resp = self._add_version('1.0', self.hashes[0])
         assert resp.status_code == requests.codes.ok
 
-        resp = self._add_version('2.0b1', self.hashes[1])
+        resp = self._add_version('  2.0pre1', self.hashes[1])
         assert resp.status_code == requests.codes.ok
 
-        resp = self._add_version('2.0', self.hashes[1])
+        resp = self._add_version(' 2.0 ', self.hashes[1])
         assert resp.status_code == requests.codes.ok
 
-        resp = self._add_version('2.0.1', self.hashes[2])
+        resp = self._add_version('2.0.1+foo123', self.hashes[2])
         assert resp.status_code == requests.codes.ok
 
         # List versions.
@@ -109,7 +109,7 @@ class VersionTestCase(QuiltTestCase):
                 hash=self.hashes[0]
             ),
             dict(
-                version='2.0b1',
+                version='2.0rc1',  # `pre` -> `rc`
                 hash=self.hashes[1]
             ),
             dict(
@@ -117,7 +117,7 @@ class VersionTestCase(QuiltTestCase):
                 hash=self.hashes[1]
             ),
             dict(
-                version='2.0.1',
+                version='2.0.1+foo123',
                 hash=self.hashes[2]
             )
         ]
@@ -147,14 +147,14 @@ class VersionTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         # Same hash
-        resp = self._add_version('1.0', self.hashes[0])
+        resp = self._add_version('1.0 ', self.hashes[0])
         assert resp.status_code == requests.codes.conflict
 
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
         # Different hash
-        resp = self._add_version('1.0', self.hashes[1])
+        resp = self._add_version(' 1.0 ', self.hashes[1])
         assert resp.status_code == requests.codes.conflict
 
         data = json.loads(resp.data.decode('utf8'))

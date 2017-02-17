@@ -367,6 +367,17 @@ VERSION_SCHEMA = {
     'required': ['hash']
 }
 
+def _normalize_version(version):
+    try:
+        version = str(PackagingVersion(version))
+    except ValueError:
+        raise ApiException(requests.codes.bad_request, "Malformed version")
+
+    # TODO: Trailing '.0's should be ignored - i.e., "1.2.0" == "1.2" - however,
+    # `packaging.version` does not seem to expose any functions to deal with that.
+
+    return version
+
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['PUT'])
 @api(schema=VERSION_SCHEMA)
 @as_json
@@ -378,13 +389,10 @@ def version_put(auth_user, owner, package_name, package_version):
             "Only the package owner can create versions"
         )
 
+    package_version = _normalize_version(package_version)
+
     data = request.get_json()
     package_hash = data['hash']
-
-    try:
-        PackagingVersion(package_version)
-    except ValueError:
-        raise ApiException(requests.codes.bad_request, "Malformed version")
 
     blob = (
         Blob.query
@@ -415,6 +423,8 @@ def version_put(auth_user, owner, package_name, package_version):
 @api()
 @as_json
 def version_get(auth_user, owner, package_name, package_version):
+    package_version = _normalize_version(package_version)
+
     blob = (
         Blob.query
         .join(Blob.versions)
