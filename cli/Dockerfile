@@ -16,6 +16,11 @@ RUN pip install quilt
 # Copy dummy auth token
 RUN mkdir -p /home/quilt/.local/share/QuiltCli/
 COPY auth.json /home/quilt/.local/share/QuiltCli/
-COPY gen_data.py /home/quilt
 
+# Copy gen_data script and build test inputs
+COPY gen_data.py /home/quilt
 RUN python gen_data.py -n 5 testpkg
+
+# Copy integration test script
+COPY integration_test.sh /home/quilt/
+

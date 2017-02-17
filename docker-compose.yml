@@ -49,4 +49,10 @@ services:
     environment:
       - QUILT_PKG_URL=http://pkg
       - QUILT_AUTH_URL=http://auth:5002
-
+      - QUILT_USER=quilttester
+      - PKG=testpkg
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      ./integration_test.sh
