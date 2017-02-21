@@ -21,7 +21,7 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('version', sa.Column('user_version', mysql.VARCHAR(collation='utf8_bin', length=64), nullable=True))
+    op.add_column('version', sa.Column('user_version', mysql.VARCHAR(collation='utf8_bin', length=64), nullable=False))
 
     for row in Version.query.all():
         row.user_version = row.version

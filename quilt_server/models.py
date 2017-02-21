@@ -61,7 +61,7 @@ class Version(db.Model):
     blob_id = db.Column(db.BigInteger, db.ForeignKey('blob.id'))
 
     # Original version string, before normalization.
-    user_version = db.Column(CaseSensitiveString(64))
+    user_version = db.Column(CaseSensitiveString(64), nullable=False)
 
     package = db.relationship('Package', back_populates='versions')
     blob = db.relationship('Blob', back_populates='versions')
