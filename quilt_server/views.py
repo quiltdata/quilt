@@ -16,7 +16,7 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
 from . import app, db
-from .const import PUBLIC, ANONYMOUS_USER
+from .const import PUBLIC
 from .models import Access, Blob, Log, Package, Tag, UTF8_GENERAL_CI, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
@@ -152,7 +152,7 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-            user = ANONYMOUS_USER
+            user = PUBLIC
 
             if auth is None:
                 if require_login:

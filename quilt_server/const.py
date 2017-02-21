@@ -2,5 +2,4 @@
 Constants
 """
 
-PUBLIC = 'public'
-ANONYMOUS_USER = 'anonymous' # This username is blocked by Quilt signup
+PUBLIC = 'public' # This username is blocked by Quilt signup
