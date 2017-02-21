@@ -152,7 +152,7 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-            user = None
+            user = PUBLIC
 
             if auth is None:
                 if require_login:
@@ -283,7 +283,7 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def package_get(auth_user, owner, package_name, package_hash):
     blob = (
@@ -317,7 +317,7 @@ def package_get(auth_user, owner, package_name, package_hash):
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def package_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
@@ -412,7 +412,7 @@ def version_put(auth_user, owner, package_name, package_version):
     return dict()
 
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def version_get(auth_user, owner, package_name, package_version):
     blob = (
@@ -437,7 +437,7 @@ def version_get(auth_user, owner, package_name, package_version):
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def version_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
@@ -517,7 +517,7 @@ def tag_put(auth_user, owner, package_name, package_tag):
     return dict()
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def tag_get(auth_user, owner, package_name, package_tag):
     tag = (
@@ -571,7 +571,7 @@ def tag_delete(auth_user, owner, package_name, package_tag):
     return dict()
 
 @app.route('/api/tag/<owner>/<package_name>/', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def tag_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)

@@ -82,7 +82,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.get(
             '/api/package/test_user/foo/123'
         )
-        assert resp.status_code == requests.codes.unauthorized
+        assert resp.status_code == requests.codes.not_found
 
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
