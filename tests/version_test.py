@@ -60,6 +60,7 @@ class VersionTestCase(QuiltTestCase):
         resp = self._add_version('1', self.hashes[0])
         assert resp.status_code == requests.codes.ok
 
+        # Access the same version.
         resp = self.app.get(
             '/api/version/{usr}/{pkg}/{version}'.format(
                 usr=self.user,
@@ -74,20 +75,38 @@ class VersionTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['hash'] == self.hashes[0]
 
-    def testMultipleVersions(self):
-        resp = self._add_version('1.0', self.hashes[0])
+        # Access the same version, but with whitespace.
+        resp = self.app.get(
+            '/api/version/{usr}/{pkg}/{version}'.format(
+                usr=self.user,
+                pkg=self.pkg,
+                version='  1\t'
+            ),
+            headers={
+                'Authorization': self.user
+            }
+        )
         assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['hash'] == self.hashes[0]
 
-        resp = self._add_version('  2.0pre1', self.hashes[1])
-        assert resp.status_code == requests.codes.ok
-
-        resp = self._add_version(' 2.0 ', self.hashes[1])
-        assert resp.status_code == requests.codes.ok
+    def testListVersions(self):
+        # Add a few versions in a random order, with random whitespace.
 
         resp = self._add_version('2.0.1+foo123', self.hashes[2])
         assert resp.status_code == requests.codes.ok
 
+        resp = self._add_version('  2.0  ', self.hashes[1])
+        assert resp.status_code == requests.codes.ok
+
+        resp = self._add_version('1.0', self.hashes[0])
+        assert resp.status_code == requests.codes.ok
+
+        resp = self._add_version('2.0pre1', self.hashes[1])
+        assert resp.status_code == requests.codes.ok
+
         # List versions.
+
         resp = self.app.get(
             '/api/version/{usr}/{pkg}/'.format(
                 usr=self.user,
@@ -100,20 +119,22 @@ class VersionTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+        # Verify that the response is sorted by version,
+        # but preserves the original formatting - whitespace, etc.
+
         data = json.loads(resp.data.decode('utf8'))
         versions = data['versions']
-        # Sorted by version.
         assert versions == [
             dict(
                 version='1.0',
                 hash=self.hashes[0]
             ),
             dict(
-                version='2.0rc1',  # `pre` -> `rc`
+                version='2.0pre1',
                 hash=self.hashes[1]
             ),
             dict(
-                version='2.0',
+                version='  2.0  ',
                 hash=self.hashes[1]
             ),
             dict(
@@ -130,6 +151,12 @@ class VersionTestCase(QuiltTestCase):
         assert 'message' in data
 
         resp = self._add_version('1x', self.hashes[0])
+        assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
+        resp = self._add_version('1. 0', self.hashes[0])
         assert resp.status_code == requests.codes.bad_request
 
         data = json.loads(resp.data.decode('utf8'))

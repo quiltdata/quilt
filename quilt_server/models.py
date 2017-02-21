@@ -2,6 +2,8 @@
 DB Tables.
 """
 
+from packaging.version import Version as PackagingVersion
+
 from sqlalchemy.dialects import mysql
 
 from . import db
@@ -58,9 +60,21 @@ class Version(db.Model):
     version = db.Column(CaseSensitiveString(64), primary_key=True)
     blob_id = db.Column(db.BigInteger, db.ForeignKey('blob.id'))
 
+    # Original version string, before normalization.
+    user_version = db.Column(CaseSensitiveString(64))
+
     package = db.relationship('Package', back_populates='versions')
     blob = db.relationship('Blob', back_populates='versions')
 
+    @classmethod
+    def normalize(cls, v):
+        # TODO: Trailing '.0's should be ignored - i.e., "1.2.0" == "1.2" - however,
+        # `packaging.version` does not seem to expose any functions to deal with that.
+
+        return str(PackagingVersion(v))
+
+    def sort_key(self):
+        return PackagingVersion(self.version)
 
 class Tag(db.Model):
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), primary_key=True)
