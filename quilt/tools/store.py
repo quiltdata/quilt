@@ -17,11 +17,17 @@ except ImportError:
     fastparquet = None
 
 try:
+    import pyarrow as pa
+    from pyarrow import parquet
+except ImportError:
+    pa is None
+
+try:
     from pyspark.sql import SparkSession
 except ImportError:
     SparkSession = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK
+from .const import DTIMEF, PackageFormat
 from .hashing import digest_file
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -290,7 +296,7 @@ class HDF5PackageStore(PackageStore):
         return hdf5_packages
 
 
-class ParquetPackageStore(PackageStore):
+class FastParquetPackageStore(PackageStore):
     """
     Parquet Implementation of PackageStore.
     """
@@ -298,9 +304,9 @@ class ParquetPackageStore(PackageStore):
     PACKAGE_FILE_EXT = '.parq'
 
     def __init__(self, user, package, mode):
-        super(ParquetPackageStore, self).__init__(user, package, mode)
+        super(FastParquetPackageStore, self).__init__(user, package, mode)
         if fastparquet is None:
-            raise StoreException("Module fastparquet is required for ParquetPackageStore.")
+            raise StoreException("Module fastparquet is required for FastParquetPackageStore.")
 
         if self._mode == 'w':
             path = self.create_path()
@@ -313,7 +319,7 @@ class ParquetPackageStore(PackageStore):
         Creates a new subdirectory in the innermost `quilt_packages` directory
         (or in a new `quilt_packages` directory in the current directory).
         """
-        path = super(ParquetPackageStore, self).create_path()
+        path = super(FastParquetPackageStore, self).create_path()
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
@@ -350,7 +356,8 @@ class ParquetPackageStore(PackageStore):
             if os.path.isdir(pkg)]
         return parq_packages
 
-class SparkPackageStore(ParquetPackageStore):
+
+class SparkPackageStore(FastParquetPackageStore):
     """
     Spark Implementation of PackageStore.
     """
@@ -370,32 +377,98 @@ class SparkPackageStore(ParquetPackageStore):
         df = spark.read.parquet(fpath)
         return df
 
+class ArrowPackageStore(PackageStore):
+    """
+    Parquet Implementation of PackageStore.
+    """
+
+    PACKAGE_FILE_EXT = '.parq'
+
+    def __init__(self, user, package, mode):
+        super(ArrowPackageStore, self).__init__(user, package, mode)
+        if pa is None:
+            raise StoreException("Module pyarrow is required for ArrowPackageStore.")
+
+        if self._mode == 'w':
+            path = self.create_path()
+        else:
+            path = self.get_path()
+        self.active_path = path
+
+    def create_path(self):
+        """
+        Creates a new subdirectory in the innermost `quilt_packages` directory
+        (or in a new `quilt_packages` directory in the current directory).
+        """
+        path = super(ArrowPackageStore, self).create_path()
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
+    def save_df(self, df, name, path, ext, target):
+        """
+        Save a DataFrame to the store.
+        """
+        # Below should really use os.path.join, but name is
+        # arriving with a leading / that breaks it.
+        path = self.active_path + name + self.PACKAGE_FILE_EXT
+        table = pa.Table.from_pandas(df)        
+        parquet.write_table(table, path)
+
+    def get(self, path):
+        """
+        Read a DataFrame to the store.
+        """
+        fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
+        table = parquet.read_table(fpath)
+        return table.to_pandas()
+
+    def get_hash(self):
+        raise StoreException("Not Implemented")
+
+    @classmethod
+    def ls_packages(cls, pkg_dir):
+        """
+        List installed packages.
+        """
+        parq_packages = [
+            (user, pkg)
+            for user in os.listdir(pkg_dir)
+            for pkg in os.listdir(os.path.join(pkg_dir, user))
+            if os.path.isdir(pkg)]
+        return parq_packages
+
 # Helper functions
 def get_store(user, package, format=None, mode='r'):
     """
     Return a PackageStore object of the appropriate type for a
     given data package.
     """
-    pkg_format = format
-    if not pkg_format:
-        pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
+    if not format:
+        pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT', PackageFormat.default.value))
 
-    if pkg_format == FORMAT_PARQ:
-        return ParquetPackageStore(user, package, mode)
-    elif pkg_format == FORMAT_SPARK:
-        return SparkPackageStore(user, package, mode)
-    else:
+    if pkg_format is PackageFormat.HDF5:
         return HDF5PackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.FASTPARQUET:
+        return FastParquetPackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.SPARK:
+        return SparkPackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.ARROW:
+        return ArrowPackageStore(user, package, mode)
+    else:
+        raise StoreException("Not Implemented")
 
 def ls_packages(pkg_dir):
     """
     List all packages from all package directories.
     """
-    pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
-    if pkg_format == FORMAT_HDF5:
+    pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT', PackageFormat.default.value))
+    if pkg_format is PackageFormat.HDF5:
         packages = HDF5PackageStore.ls_packages(pkg_dir)
-    elif pkg_format == FORMAT_PARQ:
-        packages = ParquetPackageStore.ls_packages(pkg_dir)
+    elif pkg_format is PackageFormat.FASTPARQUET:
+        packages = FastParquetPackageStore.ls_packages(pkg_dir)
     else:
         raise StoreException("Unsupported Package Format %s" % pkg_format)
     return packages
+
+
