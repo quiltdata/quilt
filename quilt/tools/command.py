@@ -151,6 +151,7 @@ def logout():
     Become anonymous. Useful for testing.
     """
     auth_file = os.path.join(BASE_DIR, AUTH_FILE_NAME)
+    # TODO revoke refresh token (without logging out of web sessions)
     if os.path.exists(auth_file):
         os.remove(auth_file)
     else:
