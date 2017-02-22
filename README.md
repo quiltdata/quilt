@@ -45,6 +45,7 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 ## Install a package
 Let's install a public package containing wine quality data from the UCI Machine
 Learning Repository.
+- `quilt login`
 - `quilt install akarve/wine`
 
 Now let's fire up Python and import the package.
