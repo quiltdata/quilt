@@ -76,22 +76,24 @@ def create_session():
     It reads the credentials, possibly gets an updated access token,
     and sets the request headers.
     """
-    try:
-        file_path = os.path.join(BASE_DIR, AUTH_FILE_NAME)
+    file_path = os.path.join(BASE_DIR, AUTH_FILE_NAME)
+    if os.path.exists(file_path):
         with open(file_path) as fd:
             auth = json.load(fd)
-    except (IOError, ValueError):
-        raise CommandException("Please run `quilt login` first.")
 
-    # If the access token expires within a minute, update it.
-    if auth['expires_at'] < time.time() + 60:
-        try:
-            auth = _update_auth(auth['refresh_token'])
-        except CommandException as ex:
-            raise CommandException(
-                "Failed to update the access token (%s). Run `quilt login` again." % ex
-            )
-        _save_auth(auth)
+        # If the access token expires within a minute, update it.
+        if auth['expires_at'] < time.time() + 60:
+            try:
+                auth = _update_auth(auth['refresh_token'])
+            except CommandException as ex:
+                raise CommandException(
+                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                )
+            _save_auth(auth)
+    else:
+        # The auth file doesn't exist, probably because the
+        # user hasn't run quilt login yet.
+        auth = None
 
     session = requests.Session()
     session.hooks.update(dict(
@@ -100,8 +102,9 @@ def create_session():
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Authorization": "Bearer %s" % auth['access_token']
     })
+    if auth is not None:
+        session.headers["Authorization"] = "Bearer %s" % auth['access_token']
 
     return session
 
