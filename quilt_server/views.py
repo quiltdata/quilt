@@ -367,6 +367,14 @@ VERSION_SCHEMA = {
     'required': ['hash']
 }
 
+def normalize_version(version):
+    try:
+        version = Version.normalize(version)
+    except ValueError:
+        raise ApiException(requests.codes.bad_request, "Malformed version")
+
+    return version
+
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['PUT'])
 @api(schema=VERSION_SCHEMA)
 @as_json
@@ -378,13 +386,11 @@ def version_put(auth_user, owner, package_name, package_version):
             "Only the package owner can create versions"
         )
 
+    user_version = package_version
+    package_version = normalize_version(package_version)
+
     data = request.get_json()
     package_hash = data['hash']
-
-    try:
-        PackagingVersion(package_version)
-    except ValueError:
-        raise ApiException(requests.codes.bad_request, "Malformed version")
 
     blob = (
         Blob.query
@@ -400,6 +406,7 @@ def version_put(auth_user, owner, package_name, package_version):
     version = Version(
         package_id=blob.package_id,
         version=package_version,
+        user_version=user_version,
         blob=blob
     )
 
@@ -415,6 +422,8 @@ def version_put(auth_user, owner, package_name, package_version):
 @api(require_login=False)
 @as_json
 def version_get(auth_user, owner, package_name, package_version):
+    package_version = normalize_version(package_version)
+
     blob = (
         Blob.query
         .join(Blob.versions)
@@ -449,12 +458,12 @@ def version_list(auth_user, owner, package_name):
         .all()
     )
 
-    sorted_versions = sorted(versions, key=lambda v: PackagingVersion(v[0].version))
+    sorted_versions = sorted(versions, key=lambda row: row[0].sort_key())
 
     return dict(
         versions=[
             dict(
-                version=version.version,
+                version=version.user_version,
                 hash=blob.hash
             ) for version, blob in sorted_versions
         ]
