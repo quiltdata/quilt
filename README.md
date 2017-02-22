@@ -40,7 +40,7 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 # Tutorial
 
 ## Install `quilt`
-- `pip install quilt`
+- `pip install git+https://github.com/quiltdata/quilt.git` (more up-to-date than `pip install quilt`)
 
 ## Install a package
 Let's install a public package containing wine quality data from the UCI Machine
