@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Command line parsing and command dispatch
+"""
 
 from __future__ import print_function
 from builtins import input
@@ -143,6 +146,16 @@ def login():
 
     _save_auth(auth)
 
+def logout():
+    """
+    Become anonymous. Useful for testing.
+    """
+    auth_file = os.path.join(BASE_DIR, AUTH_FILE_NAME)
+    if os.path.exists(auth_file):
+        os.remove(auth_file)
+    else:
+        print("Already logged out.")
+
 def build(package, path):
     """
     Compile a Quilt data package
@@ -262,11 +275,17 @@ def access_list(session, package):
     print('\n'.join(users))
 
 def access_add(session, package, user):
+    """
+    Add access
+    """
     owner, pkg = _parse_package(package)
 
     session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
 def access_remove(session, package, user):
+    """
+    Remove access
+    """
     owner, pkg = _parse_package(package)
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
@@ -327,6 +346,9 @@ def inspect(package):
     _print_children(list(h5_file.values()), '')
 
 def main():
+    """
+    Build and run parser
+    """
     parser = argparse.ArgumentParser(description="Quilt Command Line")
     parser.set_defaults(need_session=True)
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
@@ -334,6 +356,9 @@ def main():
 
     login_p = subparsers.add_parser("login")
     login_p.set_defaults(func=login, need_session=False)
+
+    logout_p = subparsers.add_parser("logout")
+    logout_p.set_defaults(func=logout, need_session=False)
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
