@@ -38,6 +38,7 @@ setup(
         'future>=0.16.0',
         'pandas>=0.19.2',
         'pyOpenSSL>=16.2.0',
+        'python<3.6',
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'responses>=0.5.1',
