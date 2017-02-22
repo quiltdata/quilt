@@ -17,7 +17,7 @@ from sqlalchemy.exc import IntegrityError
 
 from . import app, db
 from .const import PUBLIC
-from .models import Access, Blob, Log, Package, Tag, UTF8_GENERAL_CI, Version
+from .models import Access, Instance, Log, Package, Tag, UTF8_GENERAL_CI, Version
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -247,22 +247,22 @@ def package_put(auth_user, owner, package_name, package_hash):
         owner_access = Access(package=package, user=owner)
         db.session.add(owner_access)
 
-    # Insert a blob if it doesn't already exist.
-    blob = (
-        Blob.query
+    # Insert an instance if it doesn't already exist.
+    instance = (
+        Instance.query
         .with_for_update()
         .filter_by(package=package, hash=package_hash)
         .one_or_none()
     )
 
-    if blob is None:
-        blob = Blob(package=package, hash=package_hash)
-        db.session.add(blob)
+    if instance is None:
+        instance = Instance(package=package, hash=package_hash)
+        db.session.add(instance)
 
     # Insert a log.
     log = Log(
         package=package,
-        blob=blob,
+        instance=instance,
         author=owner,
     )
     db.session.add(log)
@@ -286,17 +286,17 @@ def package_put(auth_user, owner, package_name, package_hash):
 @api(require_login=False)
 @as_json
 def package_get(auth_user, owner, package_name, package_hash):
-    blob = (
-        Blob.query
+    instance = (
+        Instance.query
         .filter_by(hash=package_hash)
-        .join(Blob.package)
+        .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
         .one_or_none()
     )
 
-    if blob is None:
+    if instance is None:
         raise ApiException(
             requests.codes.not_found,
             "Package hash does not exist"
@@ -306,14 +306,14 @@ def package_get(auth_user, owner, package_name, package_hash):
         S3_GET_OBJECT,
         Params=dict(
             Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (owner, package_name, blob.hash)
+            Key='%s/%s/%s' % (owner, package_name, instance.hash)
         ),
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
 
     return dict(
         url=url,
-        hash=blob.hash,
+        hash=instance.hash,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -321,13 +321,13 @@ def package_get(auth_user, owner, package_name, package_hash):
 @as_json
 def package_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
-    blobs = (
-        Blob.query
+    instances = (
+        Instance.query
         .filter_by(package=package)
     )
 
     return dict(
-        hashes=[blob.hash for blob in blobs]
+        hashes=[instance.hash for instance in instances]
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
@@ -343,18 +343,18 @@ def logs_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
 
     logs = (
-        db.session.query(Log, Blob)
+        db.session.query(Log, Instance)
         .filter_by(package=package)
-        .join(Log.blob)
+        .join(Log.instance)
         .order_by(Log.created)
     )
 
     return dict(
         logs=[dict(
-            hash=blob.hash,
+            hash=instance.hash,
             created=log.created,
             author=log.author
-        ) for log, blob in logs]
+        ) for log, instance in logs]
     )
 
 VERSION_SCHEMA = {
@@ -392,22 +392,22 @@ def version_put(auth_user, owner, package_name, package_version):
     data = request.get_json()
     package_hash = data['hash']
 
-    blob = (
-        Blob.query
+    instance = (
+        Instance.query
         .filter_by(hash=package_hash)
-        .join(Blob.package)
+        .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
 
-    if blob is None:
+    if instance is None:
         raise ApiException(requests.codes.not_found, "Package hash does not exist")
 
     version = Version(
-        package_id=blob.package_id,
+        package_id=instance.package_id,
         version=package_version,
         user_version=user_version,
-        blob=blob
+        instance=instance
     )
 
     try:
@@ -424,9 +424,9 @@ def version_put(auth_user, owner, package_name, package_version):
 def version_get(auth_user, owner, package_name, package_version):
     package_version = normalize_version(package_version)
 
-    blob = (
-        Blob.query
-        .join(Blob.versions)
+    instance = (
+        Instance.query
+        .join(Instance.versions)
         .filter_by(version=package_version)
         .join(Version.package)
         .filter_by(owner=owner, name=package_name)
@@ -435,14 +435,14 @@ def version_get(auth_user, owner, package_name, package_version):
         .one_or_none()
     )
 
-    if blob is None:
+    if instance is None:
         raise ApiException(
             requests.codes.not_found,
             "Package %s/%s version %s does not exist" % (owner, package_name, package_version)
         )
 
     return dict(
-        hash=blob.hash
+        hash=instance.hash
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
@@ -452,9 +452,9 @@ def version_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
 
     versions = (
-        db.session.query(Version, Blob)
+        db.session.query(Version, Instance)
         .filter_by(package=package)
-        .join(Version.blob)
+        .join(Version.instance)
         .all()
     )
 
@@ -464,8 +464,8 @@ def version_list(auth_user, owner, package_name):
         versions=[
             dict(
                 version=version.user_version,
-                hash=blob.hash
-            ) for version, blob in sorted_versions
+                hash=instance.hash
+            ) for version, instance in sorted_versions
         ]
     )
 
@@ -493,33 +493,33 @@ def tag_put(auth_user, owner, package_name, package_tag):
     data = request.get_json()
     package_hash = data['hash']
 
-    blob = (
-        Blob.query
+    instance = (
+        Instance.query
         .filter_by(hash=package_hash)
-        .join(Blob.package)
+        .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
 
-    if blob is None:
+    if instance is None:
         raise ApiException(requests.codes.not_found, "Package hash does not exist")
 
     # Update an existing tag or create a new one.
     tag = (
         Tag.query
         .with_for_update()
-        .filter_by(package_id=blob.package_id, tag=package_tag)
+        .filter_by(package_id=instance.package_id, tag=package_tag)
         .one_or_none()
     )
     if tag is None:
         tag = Tag(
-            package_id=blob.package_id,
+            package_id=instance.package_id,
             tag=package_tag,
-            blob=blob
+            instance=instance
         )
         db.session.add(tag)
     else:
-        tag.blob = blob
+        tag.instance = instance
 
     db.session.commit()
 
@@ -546,7 +546,7 @@ def tag_get(auth_user, owner, package_name, package_tag):
         )
 
     return dict(
-        hash=tag.blob.hash
+        hash=tag.instance.hash
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
@@ -586,10 +586,10 @@ def tag_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
 
     tags = (
-        db.session.query(Tag, Blob)
+        db.session.query(Tag, Instance)
         .filter_by(package=package)
         .order_by(Tag.tag)
-        .join(Tag.blob)
+        .join(Tag.instance)
         .all()
     )
 
@@ -597,8 +597,8 @@ def tag_list(auth_user, owner, package_name):
         tags=[
             dict(
                 tag=tag.tag,
-                hash=blob.hash
-            ) for tag, blob in tags
+                hash=instance.hash
+            ) for tag, instance in tags
         ]
     )
 
