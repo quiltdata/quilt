@@ -1,10 +1,5 @@
-# Alpha, then awesome
-Quilt is alpha software. It will eventually be awesome. Until then we welcome your contributions.
-If you hit any snags or want to chat, please find us via
-the little orange chat icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
-
-We're three engineers with a strong commitment to quality but a long list of things
-to do :)
+# Help
+Chat with us via the orange icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
 
 # Overview
 [Quilt](https://beta.quiltdata.com/) is a data package manager.
