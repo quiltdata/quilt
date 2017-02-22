@@ -1,5 +1,5 @@
-# This is alpha software
-It will eventually be awesome. Until then we welcome your contributions.
+# Alpha, then awesome
+Quilt is alpha software. It will eventually be awesome. Until then we welcome your contributions.
 If you hit any snags or want to chat, please find us via
 the little orange chat icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
 
