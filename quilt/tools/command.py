@@ -348,10 +348,18 @@ def tag_remove(session, package, tag):
         )
     )
 
-def install(session, package):
+def install(session, package, hash=None, version=None, tag=None):
     """
-    Download a Quilt data package from the server and install locally
+    Download a Quilt data package from the server and install locally.
+
+    At most one of `hash`, `version`, or `tag` can be given. If none are
+    given, `tag` defaults to "latest".
     """
+    if hash is version is tag is None:
+        tag = LATEST_TAG
+
+    assert [hash, version, tag].count(None) == 2
+
     owner, pkg = _parse_package(package)
     store = get_store(owner, pkg, mode='w')
 
@@ -361,17 +369,28 @@ def install(session, package):
         if overwrite.lower() != 'y':
             return
 
-    # Get the "latest" tag.
-    response = session.get(
-        "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=QUILT_PKG_URL,
-            owner=owner,
-            pkg=pkg,
-            tag=LATEST_TAG
+    if version is not None:
+        response = session.get(
+            "{url}/api/version/{owner}/{pkg}/{version}".format(
+                url=QUILT_PKG_URL,
+                owner=owner,
+                pkg=pkg,
+                version=version
+            )
         )
-    )
-
-    pkghash = response.json()['hash']
+        pkghash = response.json()['hash']
+    elif tag is not None:
+        response = session.get(
+            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                url=QUILT_PKG_URL,
+                owner=owner,
+                pkg=pkg,
+                tag=tag
+            )
+        )
+        pkghash = response.json()['hash']
+    else:
+        pkghash = hash
 
     response = session.get(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -541,6 +560,10 @@ def main():
     install_p = subparsers.add_parser("install")
     install_p.add_argument("package", type=str, help="Owner/Package Name")
     install_p.set_defaults(func=install)
+    install_group = install_p.add_mutually_exclusive_group()
+    install_group.add_argument("-x", "--hash", type=str, help="Package hash")
+    install_group.add_argument("-v", "--version", type=str, help="Package version")
+    install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
 
     access_p = subparsers.add_parser("access")
     access_subparsers = access_p.add_subparsers(title="Access", dest='cmd')
