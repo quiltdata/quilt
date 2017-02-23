@@ -5,6 +5,7 @@ Log tests
 import json
 import requests
 
+from quilt_server.utils import hash_contents
 from .utils import QuiltTestCase
 
 
@@ -17,28 +18,15 @@ class LogTestCase(QuiltTestCase):
 
         self.user = "test_user"
         self.pkg = "pkg"
-        self.hashes = ['123', '456', '789']
+        self.contents_list = [
+            {'foo': []},
+            {'bar': []},
+            {'baz': []},
+        ]
 
-        # Upload three package hashes.
-        for h in self.hashes:
-            pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
-                usr=self.user,
-                pkg=self.pkg,
-                hash=h
-            )
-
-            resp = self.app.put(
-                pkgurl,
-                data=json.dumps(dict(
-                    description=""
-                )),
-                content_type='application/json',
-                headers={
-                    'Authorization': self.user
-                }
-            )
-
-            assert resp.status_code == requests.codes.ok
+        # Upload three package instances.
+        for contents in self.contents_list:
+            self.put_package(self.user, self.pkg, contents)
 
     def testLog(self):
         resp = self.app.get(
@@ -57,9 +45,9 @@ class LogTestCase(QuiltTestCase):
 
         assert len(logs) == 3
 
-        for log, pkghash in zip(logs, self.hashes):
+        for log, contents in zip(logs, self.contents_list):
             assert log['author'] == self.user
-            assert log['hash'] == pkghash
+            assert log['hash'] == hash_contents(contents)
 
     def testAccess(self):
         sharewith = "share_with"

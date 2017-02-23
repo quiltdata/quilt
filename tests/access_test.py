@@ -6,6 +6,7 @@ import json
 import requests
 
 from quilt_server.const import PUBLIC
+from quilt_server.utils import hash_contents
 
 from .utils import QuiltTestCase
 
@@ -20,18 +21,21 @@ class AccessTestCase(QuiltTestCase):
 
         self.user = "test_user"
         self.pkg = "pkgtoshare"
-        self.pkghash = '123'
+
+        contents = {"foo": []}
+
         self.pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
-            hash=self.pkghash
+            hash=hash_contents(contents)
         )
 
         # Push a package.
         resp = self.app.put(
             self.pkgurl,
             data=json.dumps(dict(
-                description=""
+                description="",
+                contents=contents
             )),
             content_type='application/json',
             headers={
@@ -150,11 +154,11 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(sharewith)
         assert resp.status_code == requests.codes.ok
 
-        newhash = '456'
+        newcontents = {"bar": []}
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
-            hash=newhash
+            hash=hash_contents(newcontents)
         )
 
         # Test that the receiver can't create a new version
@@ -162,7 +166,8 @@ class AccessTestCase(QuiltTestCase):
         resp = self.app.put(
             newpkgurl,
             data=json.dumps(dict(
-                description=""
+                description="",
+                contents=newcontents
             )),
             content_type='application/json',
             headers={
@@ -184,11 +189,11 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(PUBLIC)
         assert resp.status_code == requests.codes.ok
 
-        newhash = '456'
+        newcontents = {"bar": []}
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
-            hash=newhash
+            hash=hash_contents(newcontents)
         )
 
         # Test that the receiver can't create a new version
@@ -196,7 +201,8 @@ class AccessTestCase(QuiltTestCase):
         resp = self.app.put(
             newpkgurl,
             data=json.dumps(dict(
-                description=""
+                description="",
+                contents=newcontents
             )),
             content_type='application/json',
             headers={

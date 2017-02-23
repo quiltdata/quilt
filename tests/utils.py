@@ -7,10 +7,12 @@ import random
 import string
 import unittest
 
+import requests
 import responses
 import sqlalchemy_utils
 
 import quilt_server
+from quilt_server.utils import hash_contents
 
 
 class QuiltTestCase(unittest.TestCase):
@@ -55,3 +57,24 @@ class QuiltTestCase(unittest.TestCase):
                 return (200, {}, json.dumps(dict(current_user=auth)))
 
         self.requests_mock.add_callback(responses.GET, auth_url, callback=cb)
+
+    def put_package(self, owner, package, contents):
+        pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
+            usr=owner,
+            pkg=package,
+            hash=hash_contents(contents)
+        )
+
+        resp = self.app.put(
+            pkgurl,
+            data=json.dumps(dict(
+                description="",
+                contents=contents
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': owner
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
