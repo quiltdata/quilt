@@ -16,7 +16,7 @@ import requests
 from .build import build_package, BuildException
 from .const import LATEST_TAG
 from .store import PackageStore, StoreException, get_store, ls_packages
-from .util import BASE_DIR
+from .util import BASE_DIR, flatten_contents
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -174,7 +174,8 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
-            description=""  # TODO
+        contents=flatten_contents(store.get_contents()),
+        description=""  # TODO
         ))
     )
 
