@@ -10,6 +10,7 @@ import sys
 import time
 import webbrowser
 
+import pandas as pd
 import requests
 
 from .build import build_package, BuildException
@@ -148,11 +149,11 @@ def build(package, path):
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
-    try:
-        build_package(owner, pkg, path)
-        print("Built %s/%s successfully." % (owner, pkg))
-    except BuildException as ex:
-        raise CommandException("Failed to build the package: %s" % ex)
+    #try:
+    build_package(owner, pkg, path)
+    print("Built %s/%s successfully." % (owner, pkg))
+    #except BuildException as ex:
+    #    raise CommandException("Failed to build the package: %s" % ex)
 
 def push(session, package):
     """
@@ -163,10 +164,7 @@ def push(session, package):
     store = get_store(owner, pkg)
     if not store.exists():
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-
-    path = store.get_path()
     pkghash = store.get_hash()
-    assert path
 
     response = session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -286,17 +284,10 @@ def inspect(package):
     """
     Inspect package details
     """
-    try:
-        import h5py
-    except ImportError:
-        raise CommandException("Please install 'h5py' to use 'quilt inspect'")
-
     owner, pkg = _parse_package(package)
     store = get_store(owner, pkg)
     if not store.exists():
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    path = store.get_path()
-    assert path
 
     def _print_children(children, prefix):
         for idx, child in enumerate(children):
@@ -310,21 +301,20 @@ def inspect(package):
 
     def _print_node(node, prefix, child_prefix):
         name_prefix = u"─ "
-        if isinstance(node, h5py.Group):
+        if isinstance(node, dict):
             children = list(node.values())
             if children:
                 name_prefix = u"┬ "
             print(prefix + name_prefix + node.name)
             _print_children(children, child_prefix)
-        elif isinstance(node, h5py.Dataset):
+        elif isinstance(node, pd.DataFrame):
             info = "shape %s, type \"%s\"" % (node.shape, node.dtype.str)
-            print(prefix + name_prefix + node.name + ": " + info)
+            print(prefix + name_prefix + ": " + info)
         else:
-            print(prefix + name_prefix + node.name + ": " + str(node))
+            print(prefix + name_prefix + ": " + str(node))
 
-    h5_file = h5py.File(path)
-    print(path)
-    _print_children(list(h5_file.values()), '')
+    print(store.get_path())
+    _print_children(children=store.keys(''), prefix='')
 
 def main():
     parser = argparse.ArgumentParser(description="Quilt Command Line")

@@ -1,6 +1,8 @@
 """
 Build: parse and add user-supplied files to store
 """
+from enum import Enum
+import json
 from operator import attrgetter
 import os
 import re
@@ -30,7 +32,12 @@ CHUNK_SIZE = 4096
 ZLIB_LEVEL = 2  # Maximum level.
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
+CONTENTS_FILE = 'contents.json'
 
+class NodeType(Enum):
+    GROUP = 'GROUP'
+    TABLE = 'TABLE'
+    
 
 class StoreException(Exception):
     """
@@ -46,6 +53,9 @@ class PackageStore(object):
     reading and writing to/from data files.
     """
     PACKAGE_DIR_NAME = 'quilt_packages'
+    PACKAGE_FILE_EXT = '.json'
+    BUILD_DIR = 'build'
+    OBJ_DIR = 'objs'
 
     @classmethod
     def find_package_dirs(cls, start='.'):
@@ -74,13 +84,28 @@ class PackageStore(object):
         self._user = user
         self._package = package
         self._mode = mode
-        self._path = self.get_path()
+        self._find_path_read()
+        print("Build store (base)")
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
         pass
+
+    def get_contents(self):
+        contents = {}
+        try:
+            with open(self._path, 'r') as contents_file:
+                contents = json.loads(contents_file.read())
+        except IOError:
+            # TODO: Should we initialize contents.json on pkg creation?
+            pass
+        return contents
+
+    def save_contents(self, contents):
+        with open(self._path, 'w') as contents_file:
+            contents_file.write(json.dumps(contents))
 
     def keys(self, prefix):
         """
@@ -94,7 +119,30 @@ class PackageStore(object):
         """
         raise StoreException("Not Implemented")
 
-    def create_path(self):
+    def get_path(self):
+        return self._path
+    
+    def _find_path_read(self):
+        """
+        Finds an existing package in one of the package directories.
+        """
+        self._path = None
+        self._pkg_dir = None
+        if not VALID_NAME_RE.match(self._user):
+            raise StoreException("Invalid user name: %r" % self._user)
+        if not VALID_NAME_RE.match(self._package):
+            raise StoreException("Invalid package name: %r" % self._package)
+
+        pkg_dirs = PackageStore.find_package_dirs()
+        for package_dir in pkg_dirs:
+            path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
+            if os.path.exists(path):
+                self._path = path
+                self._pkg_dir = package_dir
+                return
+        return
+
+    def _find_path_write(self):
         """
         Creates a path to store a data package in the innermost `quilt_packages`
         directory (or in a new `quilt_packages` directory in the current directory)
@@ -109,81 +157,31 @@ class PackageStore(object):
         user_path = os.path.join(package_dir, self._user)
         if not os.path.isdir(user_path):
             os.makedirs(user_path)
-        path = os.path.join(user_path, self._package)
-        return path
-
-    def get_path(self):
-        """
-        Finds an existing package in one of the package directories.
-        """
-        if not VALID_NAME_RE.match(self._user):
-            raise StoreException("Invalid user name: %r" % self._user)
-        if not VALID_NAME_RE.match(self._package):
-            raise StoreException("Invalid package name: %r" % self._package)
-
-        pkg_dirs = PackageStore.find_package_dirs()
-        for package_dir in pkg_dirs:
-            path = os.path.join(package_dir, self._user, self._package)
-            if os.path.exists(path):
-                return path
-        return None
+        obj_path = os.path.join(package_dir, self.OBJ_DIR)
+        if not os.path.isdir(obj_path):
+            os.makedirs(obj_path)
+        path = os.path.join(user_path, self._package + self.PACKAGE_FILE_EXT)
+        self._path = path
+        self._pkg_dir = package_dir
+        return
 
 
 class HDF5PackageStore(PackageStore):
     """
     HDF5 Implementation of PackageStore.
     """
-    PACKAGE_FILE_EXT = '.h5'
+    DF_NAME = 'df'
+    DATA_FILE_EXT = '.h5'
 
     def __init__(self, user, package, mode):
         super(HDF5PackageStore, self).__init__(user, package, mode)
         self.__store = None
 
-    def __enter__(self):
-        if self._mode == 'w' and self._path is None:
-            self._path = self.create_path()
-        self.__get_store()
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.__store.close()
-        self.__store = None
-
-    def __get_store(self):
-        if self.__store is None:
-            self.__store = pd.HDFStore(self._path, mode=self._mode)
-        return self.__store
-
     def exists(self):
         """
         Returns True if the package is already installed.
         """
-        return not self._path is None
-
-    def create_path(self):
-        """
-        Creates a new .h5 file in the innermost `quilt_packages` directory
-        (or in a new `quilt_packages` directory in the current directory).
-        Overwrites any existing package.
-        """
-        path = super(HDF5PackageStore, self).create_path() + self.PACKAGE_FILE_EXT
-        return path
-
-    def get_path(self):
-        """
-        Finds an existing package in one of the package directories.
-        """
-        if not VALID_NAME_RE.match(self._user):
-            raise StoreException("Invalid user name: %r" % self._user)
-        if not VALID_NAME_RE.match(self._package):
-            raise StoreException("Invalid package name: %r" % self._package)
-
-        pkg_dirs = PackageStore.find_package_dirs()
-        for package_dir in pkg_dirs:
-            path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
-            if os.path.exists(path):
-                return path
-        return None
+        return not self._path is None   
 
     def get(self, path):
         """
@@ -192,10 +190,39 @@ class HDF5PackageStore(PackageStore):
         if not self.exists():
             raise StoreException("Package not found")
 
-        return self.__get_store().get(path)
+        print("STORE.GET PATH=%s" % path)
+        key = path.lstrip('/')
+
+        ipath = key.split('/')
+        print("IPATH=%s" % ipath)
+
+        ptr = self.get_contents()
+        path_so_far = []
+        for node in ipath:
+            path_so_far += node
+            if not node in ptr:
+                raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
+                    path=path_so_far,
+                    owner=self._user,
+                    pkg=self._package))
+            ptr = ptr[node]
+        node = ptr
+
+        if NodeType(node['type']) is NodeType.TABLE:
+            filehash = node['hash']
+            print("HASH=%s" % filehash)
+
+            objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+            with pd.HDFStore(objpath, 'r') as store:
+                print(store)
+                return store.get(self.DF_NAME)
+        else:
+            return node
+        assert False, "Shouldn't reach here"
 
     def get_hash(self):
-        path = self.get_path()
+        path = os.path.join(self.get_path(), self.STORE + self.PACKAGE_FILE_EXT)
+        print("Getting hash for %s" % path)
         if path is None:
             raise StoreException("Package not found")
         return digest_file(path)
@@ -231,7 +258,8 @@ class HDF5PackageStore(PackageStore):
         """
         Download and install a package locally.
         """
-        local_filename = self.create_path()
+        self._find_path_write()
+        local_filename = self.get_path()
 
         response = requests.get(url, stream=True)
         if not response.ok:
@@ -252,30 +280,46 @@ class HDF5PackageStore(PackageStore):
             raise StoreException("Mismatched hash! Expected %s, got %s." %
                                  (download_hash, file_hash))
 
-
     def keys(self, prefix):
-        # prepending root ensures dots is never empty, preventing an
-        # exception from attrgetter
-        dots = 'root' + prefix.replace('/', '.')
-        node = attrgetter(dots)(self.__get_store())
-        return node._v_children.keys()
+        return self.get_contents().keys()
 
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
-        self.__store[name] = df
+        self._find_path_write()
+        print("NAME=%s" % name)
+        print("PATH=%s" % path)
+        print("PKG_DIR=%s" % self._pkg_dir)
+        print("EXT=%s" % ext)
+        buildfile = name.lstrip('/').replace('/', '.')
+        storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
+        with pd.HDFStore(storepath, mode=self._mode) as store:
+            store[self.DF_NAME] = df
 
-        # add metadata as HDF5 attrs
-        dots = 'root' + name.replace('/', '.')
-        snode = attrgetter(dots)(self.__store)
-        # in spite of pytables docs
-        # http://www.pytables.org/usersguide/libref/declarative_classes.html#attributesetclassdescr
-        # snode.attrs does not work
-        snode._v_attrs.q_ext = ext
-        snode._v_attrs.q_path = path
-        snode._v_attrs.q_target = target
-        snode._v_attrs.q_timestamp = time.strftime(DTIMEF, time.gmtime())
+        # Update contents
+        contents = self.get_contents()
+        filehash = digest_file(storepath)
+        ipath = buildfile.split('.')
+        print("IPATH=%s" % ipath)
+        dfname = ipath.pop()
+
+        ptr = contents
+        for node in ipath:
+            if not node in ptr:
+                ptr[node] = dict(type=NodeType.GROUP.value)
+            ptr = ptr[node]
+
+        ptr[dfname] = dict(type=NodeType.TABLE.value,
+                           hash=filehash,
+                           q_ext=ext,
+                           q_path=path,
+                           q_target=target)
+        print("FINAL CONTENTS=%s" % contents)
+        
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+        os.rename(storepath, objpath)
+        self.save_contents(contents)
 
     @classmethod
     def ls_packages(cls, pkg_dir):
@@ -385,7 +429,9 @@ def get_store(user, package, format=None, mode='r'):
     elif pkg_format == FORMAT_SPARK:
         return SparkPackageStore(user, package, mode)
     else:
-        return HDF5PackageStore(user, package, mode)
+        store = HDF5PackageStore(user, package, mode)
+        print("got store=%s" % store)
+        return store
 
 def ls_packages(pkg_dir):
     """
