@@ -5,6 +5,7 @@ Tag tests
 import json
 import requests
 
+from quilt_server.utils import hash_contents
 from .utils import QuiltTestCase
 
 
@@ -17,28 +18,16 @@ class TagTestCase(QuiltTestCase):
 
         self.user = "test_user"
         self.pkg = "pkg"
-        self.hashes = ['123', '456', '789']
+        self.contents_list = [
+            {'foo': []},
+            {'bar': []},
+            {'baz': []},
+        ]
+        self.hashes = [hash_contents(contents) for contents in self.contents_list]
 
-        # Upload three package hashes.
-        for h in self.hashes:
-            pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
-                usr=self.user,
-                pkg=self.pkg,
-                hash=h
-            )
-
-            resp = self.app.put(
-                pkgurl,
-                data=json.dumps(dict(
-                    description=""
-                )),
-                content_type='application/json',
-                headers={
-                    'Authorization': self.user
-                }
-            )
-
-            assert resp.status_code == requests.codes.ok
+        # Upload three package instances.
+        for contents in self.contents_list:
+            self.put_package(self.user, self.pkg, contents)
 
     def _add_tag(self, tag, pkghash):
         return self.app.put(

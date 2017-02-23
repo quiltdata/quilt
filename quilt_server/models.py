@@ -5,6 +5,7 @@ DB Tables.
 from packaging.version import Version as PackagingVersion
 
 from sqlalchemy.dialects import mysql
+from sqlalchemy.orm import deferred
 
 from . import db
 
@@ -29,7 +30,14 @@ class Package(db.Model):
 
     access = db.relationship('Access', back_populates='package')
 
-db.Index('idx_package', Package.owner, Package.name, unique=True)
+db.Index('idx_owner_name', Package.owner, Package.name, unique=True)
+
+
+InstanceBlobAssoc = db.Table(
+    'instance_blob',
+    db.Column('instance_id', db.BigInteger, db.ForeignKey('instance.id')),
+    db.Column('blob_id', db.BigInteger, db.ForeignKey('s3_blob.id'))
+)
 
 
 class Instance(db.Model):
@@ -37,11 +45,24 @@ class Instance(db.Model):
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), nullable=False)
     hash = db.Column(db.String(64), nullable=False)
 
+    # Contents can be a potentially large JSON blob, so store it as
+    # MEDIUMTEXT rather than VARCHAR, and load lazily.
+    contents = deferred(db.Column(mysql.MEDIUMTEXT(collation=UTF8_BIN), nullable=False))
+
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')
     tags = db.relationship('Tag', back_populates='instance')
+    blobs = db.relationship('S3Blob', secondary=InstanceBlobAssoc)
 
-db.Index('idx_blob', Instance.package_id, Instance.hash, unique=True)
+db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
+
+
+class S3Blob(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    owner = db.Column(USERNAME_TYPE, nullable=False)
+    hash = db.Column(db.String(64), nullable=False)
+
+db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
 
 
 class Log(db.Model):

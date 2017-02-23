@@ -3,21 +3,23 @@ API routes.
 """
 
 from functools import wraps
+import json
 
 import boto3
 from flask import abort, redirect, render_template, request, Response
 from flask_json import as_json, jsonify
 from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
-from packaging.version import Version as PackagingVersion
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import undefer
 
 from . import app, db
 from .const import PUBLIC
-from .models import Access, Instance, Log, Package, Tag, UTF8_GENERAL_CI, Version
+from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
+from .utils import hash_contents
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -192,14 +194,26 @@ def _get_package(auth_user, owner, package_name):
         raise PackageNotFoundException(owner, package_name)
     return package
 
+SHA256_PATTERN = r'[0-9a-f]{64}'
+
 PACKAGE_SCHEMA = {
     'type': 'object',
     'properties': {
         'description': {
             'type': 'string'
+        },
+        'contents': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'array',
+                'items': {
+                    'type': 'string',
+                    'pattern': SHA256_PATTERN
+                }
+            }
         }
     },
-    'required': ['description']
+    'required': ['description', 'contents']
 }
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
@@ -211,7 +225,16 @@ def package_put(auth_user, owner, package_name, package_hash):
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can push packages.")
 
-    # TODO: Description, etc.
+    # TODO: Description.
+    data = request.get_json()
+    contents = data['contents']
+
+    if hash_contents(contents) != package_hash:
+        raise ApiException(requests.codes.bad_request, "Wrong contents hash")
+
+    all_hashes = set()
+    for hash_list in contents.values():
+        all_hashes.update(hash_list)
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
@@ -256,7 +279,32 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
 
     if instance is None:
-        instance = Instance(package=package, hash=package_hash)
+        instance = Instance(
+            package=package,
+            contents=json.dumps(contents),
+            hash=package_hash
+        )
+
+        # Add all the hashes that don't exist yet.
+
+        blobs = (
+            S3Blob.query
+            .with_for_update()
+            .filter(
+                sa.and_(
+                    S3Blob.owner == owner,
+                    S3Blob.hash.in_(all_hashes)
+                )
+            )
+            .all()
+        )
+
+        existing_hashes = {blob.hash for blob in blobs}
+
+        for blob_hash in all_hashes:
+            if blob_hash not in existing_hashes:
+                instance.blobs.append(S3Blob(owner=owner, hash=blob_hash))
+
         db.session.add(instance)
 
     # Insert a log.
@@ -267,19 +315,22 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
     db.session.add(log)
 
-    upload_url = s3_client.generate_presigned_url(
-        S3_PUT_OBJECT,
-        Params=dict(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (owner, package_name, package_hash)
-        ),
-        ExpiresIn=PACKAGE_URL_EXPIRATION
-    )
+    upload_urls = {}
+
+    for blob_hash in all_hashes:
+        upload_urls[blob_hash] = s3_client.generate_presigned_url(
+            S3_PUT_OBJECT,
+            Params=dict(
+                Bucket=PACKAGE_BUCKET_NAME,
+                Key='%s/%s/%s' % (owner, package_name, blob_hash)
+            ),
+            ExpiresIn=PACKAGE_URL_EXPIRATION
+        )
 
     db.session.commit()
 
     return dict(
-        upload_url=upload_url
+        upload_urls=upload_urls
     )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
@@ -289,6 +340,7 @@ def package_get(auth_user, owner, package_name, package_hash):
     instance = (
         Instance.query
         .filter_by(hash=package_hash)
+        .options(undefer('contents'))  # Contents is deferred by default.
         .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
@@ -302,18 +354,26 @@ def package_get(auth_user, owner, package_name, package_hash):
             "Package hash does not exist"
         )
 
-    url = s3_client.generate_presigned_url(
-        S3_GET_OBJECT,
-        Params=dict(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (owner, package_name, instance.hash)
-        ),
-        ExpiresIn=PACKAGE_URL_EXPIRATION
-    )
+    contents = json.loads(instance.contents)
+
+    all_hashes = set()
+    for hash_list in contents.values():
+        all_hashes.update(hash_list)
+
+    urls = {}
+    for blob_hash in all_hashes:
+        urls[blob_hash] = s3_client.generate_presigned_url(
+            S3_GET_OBJECT,
+            Params=dict(
+                Bucket=PACKAGE_BUCKET_NAME,
+                Key='%s/%s/%s' % (owner, package_name, blob_hash)
+            ),
+            ExpiresIn=PACKAGE_URL_EXPIRATION
+        )
 
     return dict(
-        url=url,
-        hash=instance.hash,
+        contents=contents,
+        urls=urls,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
