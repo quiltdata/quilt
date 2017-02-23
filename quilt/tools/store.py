@@ -23,8 +23,9 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK
-from .hashing import digest_file
+from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType
+from .hashing import digest_file, hash_contents
+from .util import flatten_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
@@ -32,12 +33,7 @@ CHUNK_SIZE = 4096
 ZLIB_LEVEL = 2  # Maximum level.
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
-CONTENTS_FILE = 'contents.json'
-
-class NodeType(Enum):
-    GROUP = 'GROUP'
-    TABLE = 'TABLE'
-    
+CONTENTS_FILE = 'contents.json'    
 
 class StoreException(Exception):
     """
@@ -190,11 +186,8 @@ class HDF5PackageStore(PackageStore):
         if not self.exists():
             raise StoreException("Package not found")
 
-        print("STORE.GET PATH=%s" % path)
         key = path.lstrip('/')
-
         ipath = key.split('/')
-        print("IPATH=%s" % ipath)
 
         ptr = self.get_contents()
         path_so_far = []
@@ -210,22 +203,17 @@ class HDF5PackageStore(PackageStore):
 
         if NodeType(node['type']) is NodeType.TABLE:
             filehash = node['hash']
-            print("HASH=%s" % filehash)
-
             objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
             with pd.HDFStore(objpath, 'r') as store:
-                print(store)
                 return store.get(self.DF_NAME)
         else:
             return node
         assert False, "Shouldn't reach here"
 
     def get_hash(self):
-        path = os.path.join(self.get_path(), self.STORE + self.PACKAGE_FILE_EXT)
-        print("Getting hash for %s" % path)
-        if path is None:
-            raise StoreException("Package not found")
-        return digest_file(path)
+        flat_contents = flatten_contents(self.get_contents())
+        print("FLAT: %s" % flat_contents)
+        return hash_contents(flat_contents)
 
     class UploadFile(object):
         """
@@ -254,32 +242,55 @@ class HDF5PackageStore(PackageStore):
         """
         return self.UploadFile(self)
 
-    def install(self, url, download_hash):
+    def install(self, contents):
         """
         Download and install a package locally.
         """
         self._find_path_write()
         local_filename = self.get_path()
+        with open(local_filename, 'w') as contents_file:
+            contents_file.write(json.dumps(contents))
 
-        response = requests.get(url, stream=True)
-        if not response.ok:
-            raise StoreException("Download failed: error %s" % response.status_code)
+        # Download individual object files and store
+        # in object dir. Verify individual file hashes.
+        # Verify global hash?
 
-        assert local_filename, "Blank filename? %s" % local_filename
+        def install_table(node):
+            download_hash = node['hash']
+            url = node['url']
 
-        with open(local_filename, 'wb') as output_file:
-            # `requests` will automatically un-gzip the content, as long as
-            # the 'Content-Encoding: gzip' header is set.
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                if chunk: # filter out keep-alive new chunks
-                    output_file.write(chunk)
+            # download and install
+            print("INSTALL: %s" % download_hash)
+            response = requests.get(url, stream=True)
+            if not response.ok:
+                msg = "Download {hash} failed: error {code}"
+                raise StoreException(msg.format(hash=download_hash, code=response.status_code))
 
-        file_hash = self.get_hash()
-        if file_hash != download_hash:
-            os.remove(local_filename)
-            raise StoreException("Mismatched hash! Expected %s, got %s." %
-                                 (download_hash, file_hash))
+            local_filename = os.path.join(self._pkg_dir, self.OBJ_DIR, download_hash + self.DATA_FILE_EXT)
 
+            with open(local_filename, 'wb') as output_file:
+                # `requests` will automatically un-gzip the content, as long as
+                # the 'Content-Encoding: gzip' header is set.
+                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                    if chunk: # filter out keep-alive new chunks
+                        output_file.write(chunk)
+
+            file_hash = digest_file(local_filename)
+            if file_hash != download_hash:
+                os.remove(local_filename)
+                raise StoreException("Mismatched hash! Expected %s, got %s." %
+                                     (download_hash, file_hash))
+        
+        def install_tables(contents):
+            for key in contents.keys():
+                node = contents.get(key)
+                if NodeType(node.get('type')) is NodeType.GROUP:
+                    return install_tables(node)
+                else:
+                    install_table(node)
+
+        return install_tables(contents)
+        
     def keys(self, prefix):
         return self.get_contents().keys()
 
@@ -311,7 +322,7 @@ class HDF5PackageStore(PackageStore):
             ptr = ptr[node]
 
         ptr[dfname] = dict(type=NodeType.TABLE.value,
-                           hash=filehash,
+                           hash=[filehash],
                            q_ext=ext,
                            q_path=path,
                            q_target=target)

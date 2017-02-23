@@ -1,6 +1,12 @@
 """
 Constants
 """
+from enum import Enum
+
+class NodeType(Enum):
+    GROUP = 'GROUP'
+    TABLE = 'TABLE'
+
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
