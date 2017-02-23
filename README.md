@@ -170,6 +170,12 @@ If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`
 * `quilt push USER/PACKAGE` stores the package in the registry
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to set access
+* `quilt log USER/PACKAGE` to see all changes to a package
+* `quilt version list USER/PACKAGE` to see versions of a package
+* `quilt version add USER/PACKAGE VERSION HASH` to create a new version
+* `quilt tag list USER/PACKAGE` to see tags of a package
+* `quilt tag add USER/PACKAGE TAG HASH` to create a new tag
+* `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Developer
 - `pip install pylint pytest`
