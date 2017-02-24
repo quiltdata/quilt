@@ -216,21 +216,20 @@ def push(session, package):
     )
 
     dataset = response.json()
-    print("RESPONSE DATASET=%s" % dataset)
-
-
-    upload_url = dataset['upload_url']
+    print("RESPONSE DATASET=%s" % dataset)    
+    upload_urls = dataset['upload_urls']
 
     headers = {
         'Content-Encoding': 'gzip'
     }
 
-    # Create a temporary gzip'ed file.
-    with store.tempfile() as temp_file:
-        response = requests.put(upload_url, data=temp_file, headers=headers)
+    for hash, url in upload_urls.items():
+        # Create a temporary gzip'ed file.
+        with store.tempfile(hash) as temp_file:
+            response = requests.put(url, data=temp_file, headers=headers)
 
-        if not response.ok:
-            raise CommandException("Upload failed: error %s" % response.status_code)
+            if not response.ok:
+                raise CommandException("Upload failed: error %s" % response.status_code)
 
     # Set the "latest" tag.
     response = session.put(

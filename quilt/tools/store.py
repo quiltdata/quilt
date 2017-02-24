@@ -210,6 +210,10 @@ class HDF5PackageStore(PackageStore):
             return node
         assert False, "Shouldn't reach here"
 
+    def get_by_hash(self, hash):
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, hash + self.DATA_FILE_EXT)
+        return open(objpath, 'rb')
+
     def get_hash(self):
         flat_contents = flatten_contents(self.get_contents())
         print("FLAT: %s" % flat_contents)
@@ -219,13 +223,13 @@ class HDF5PackageStore(PackageStore):
         """
         Helper class to manage temporary package files uploaded by push.
         """
-        def __init__(self, store):
+        def __init__(self, store, hash):
             self._store = store
-            self._path = store.get_path()
+            self._hash = hash
 
         def __enter__(self):
             self._temp_file = tempfile.TemporaryFile()
-            with open(self._path, 'rb') as input_file:
+            with self._store.get_by_hash(self._hash) as input_file:
                 zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
                 for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
                     self._temp_file.write(zlib_obj.compress(chunk))
@@ -236,11 +240,11 @@ class HDF5PackageStore(PackageStore):
         def __exit__(self, type, value, traceback):
             self._temp_file.close()
 
-    def tempfile(self):
+    def tempfile(self, hash):
         """
         Create and return a temporary file for uploading to a registry.
         """
-        return self.UploadFile(self)
+        return self.UploadFile(self, hash)
 
     def install(self, contents):
         """
