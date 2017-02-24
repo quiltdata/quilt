@@ -27,10 +27,12 @@ def flatten_contents(contents, prefix=[]):
     assert isinstance(contents, dict)
     elements = {}
     for key, node in contents.items():
+        if key == 'type':
+            continue
         print("Node is: {node}".format(node=node))
         assert isinstance(node, dict), "Node is: {node}".format(node=node)
         path = prefix + [key]
-        type = NodeType(node.pop('type'))
+        type = NodeType(node.get('type'))
         if type is NodeType.TABLE:
             fullname = ".".join(path)
             elements[fullname] = node['hash']

@@ -244,6 +244,10 @@ def push(session, package):
         ))
     )
 
+    if not response.ok:
+        raise CommandException("Failed to update latest tag: error %s" % response.status_code)
+
+
 def version_list(session, package):
     """
     List the versions of a package.
@@ -405,7 +409,10 @@ def install(session, package, hash=None, version=None, tag=None):
     print("RESPONSE DATASET=%s" % dataset)
 
     try:
-        store.install(dataset['contents'], dataset['urls'])
+        response_urls = dataset['urls']
+        response_contents = dataset['contents']
+        print("URLS=%s" % response_urls)
+        store.install(response_contents, response_urls)
     except StoreException as ex:
         raise CommandException("Failed to install the package: %s" % ex)
 

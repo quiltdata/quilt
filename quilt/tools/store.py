@@ -261,39 +261,44 @@ class HDF5PackageStore(PackageStore):
         # Verify global hash?
 
         def install_table(node, urls):
-            download_hash = node['hash']
-            url = urls[download_hash]
+            hashes = node['hash']
+            for download_hash in hashes:
+                url = urls[download_hash]
 
-            # download and install
-            print("INSTALL: %s" % download_hash)
-            response = requests.get(url, stream=True)
-            if not response.ok:
-                msg = "Download {hash} failed: error {code}"
-                raise StoreException(msg.format(hash=download_hash, code=response.status_code))
+                # download and install
+                print("INSTALL: %s" % download_hash)
+                response = requests.get(url, stream=True)
+                if not response.ok:
+                    msg = "Download {hash} failed: error {code}"
+                    raise StoreException(msg.format(hash=download_hash, code=response.status_code))
 
-            local_filename = os.path.join(self._pkg_dir, self.OBJ_DIR, download_hash + self.DATA_FILE_EXT)
+                local_filename = os.path.join(self._pkg_dir,
+                                              self.OBJ_DIR,
+                                              download_hash + self.DATA_FILE_EXT)
 
-            with open(local_filename, 'wb') as output_file:
-                # `requests` will automatically un-gzip the content, as long as
-                # the 'Content-Encoding: gzip' header is set.
-                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                    if chunk: # filter out keep-alive new chunks
-                        output_file.write(chunk)
+                with open(local_filename, 'wb') as output_file:
+                    # `requests` will automatically un-gzip the content, as long as
+                    # the 'Content-Encoding: gzip' header is set.
+                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                        if chunk: # filter out keep-alive new chunks
+                            output_file.write(chunk)
 
-            file_hash = digest_file(local_filename)
-            if file_hash != download_hash:
-                os.remove(local_filename)
-                raise StoreException("Mismatched hash! Expected %s, got %s." %
-                                     (download_hash, file_hash))
+                file_hash = digest_file(local_filename)
+                if file_hash != download_hash:
+                    os.remove(local_filename)
+                    raise StoreException("Mismatched hash! Expected %s, got %s." %
+                                         (download_hash, file_hash))
         
         def install_tables(contents, urls):
             for key in contents.keys():
+                if key == 'type':
+                    continue
                 node = contents.get(key)
                 print("NODE=%s" % node)
                 if NodeType(node.get('type')) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
-                    install_table(node)
+                    install_table(node, urls)
 
         return install_tables(contents, urls)
         
