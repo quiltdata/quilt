@@ -11,7 +11,7 @@ OAUTH = dict(
     client_secret=os.getenv('OAUTH_CLIENT_SECRET')
 )
 
-S3_ENDPOINT = 'http://s3'
+S3_ENDPOINT = 'http://s3:5001'
 PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
