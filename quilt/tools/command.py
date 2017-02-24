@@ -216,7 +216,6 @@ def push(session, package):
     )
 
     dataset = response.json()
-    print("RESPONSE DATASET=%s" % dataset)    
     upload_urls = dataset['upload_urls']
 
     headers = {
@@ -406,12 +405,10 @@ def install(session, package, hash=None, version=None, tag=None):
         )
     )
     dataset = response.json()
-    print("RESPONSE DATASET=%s" % dataset)
 
     try:
         response_urls = dataset['urls']
         response_contents = dataset['contents']
-        print("URLS=%s" % response_urls)
         store.install(response_contents, response_urls)
     except StoreException as ex:
         raise CommandException("Failed to install the package: %s" % ex)

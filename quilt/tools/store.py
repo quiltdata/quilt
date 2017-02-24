@@ -81,7 +81,6 @@ class PackageStore(object):
         self._package = package
         self._mode = mode
         self._find_path_read()
-        print("Build store (base)")
 
     def __enter__(self):
         return self
@@ -109,6 +108,35 @@ class PackageStore(object):
         """
         raise StoreException("Not Implemented")
 
+    def get(self, path):
+        """
+        Read a DataFrame from the store.
+        """
+        if not self.exists():
+            raise StoreException("Package not found")
+
+        key = path.lstrip('/')
+        ipath = key.split('/')
+
+        ptr = self.get_contents()
+        path_so_far = []
+        for node in ipath:
+            path_so_far += node
+            if not node in ptr:
+                raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
+                    path=path_so_far,
+                    owner=self._user,
+                    pkg=self._package))
+            ptr = ptr[node]
+        node = ptr
+
+        if NodeType(node['type']) is NodeType.TABLE:
+            hash_list = node['hash']
+            return self.dataframe(hash_list)
+        else:
+            return node
+        assert False, "Shouldn't reach here"
+    
     def get_hash(self):
         """
         Returns the hash digest of the package data.
@@ -179,45 +207,18 @@ class HDF5PackageStore(PackageStore):
         """
         return not self._path is None   
 
-    def get(self, path):
-        """
-        Read a DataFrame from the store.
-        """
-        if not self.exists():
-            raise StoreException("Package not found")
-
-        key = path.lstrip('/')
-        ipath = key.split('/')
-
-        ptr = self.get_contents()
-        path_so_far = []
-        for node in ipath:
-            path_so_far += node
-            if not node in ptr:
-                raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
-                    path=path_so_far,
-                    owner=self._user,
-                    pkg=self._package))
-            ptr = ptr[node]
-        node = ptr
-
-        if NodeType(node['type']) is NodeType.TABLE:
-            filehash = node['hash']
-            objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
-            with pd.HDFStore(objpath, 'r') as store:
-                return store.get(self.DF_NAME)
-        else:
-            return node
-        assert False, "Shouldn't reach here"
+    def dataframe(self, hash_list):
+        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
+        filehash = hash_list[0]
+        with pd.HDFStore(get_by_hash(filehash), 'r') as store:
+            return store.get(self.DF_NAME)
 
     def get_by_hash(self, hash):
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, hash + self.DATA_FILE_EXT)
         return open(objpath, 'rb')
 
     def get_hash(self):
-        print("HASHING CONTENTS=%s" % self.get_contents())
         flat_contents = flatten_contents(self.get_contents())
-        print("FLAT: %s" % flat_contents)
         return hash_contents(flat_contents)
 
     class UploadFile(object):
@@ -266,7 +267,6 @@ class HDF5PackageStore(PackageStore):
                 url = urls[download_hash]
 
                 # download and install
-                print("INSTALL: %s" % download_hash)
                 response = requests.get(url, stream=True)
                 if not response.ok:
                     msg = "Download {hash} failed: error {code}"
@@ -294,7 +294,6 @@ class HDF5PackageStore(PackageStore):
                 if key == 'type':
                     continue
                 node = contents.get(key)
-                print("NODE=%s" % node)
                 if NodeType(node.get('type')) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
@@ -310,10 +309,6 @@ class HDF5PackageStore(PackageStore):
         Save a DataFrame to the store.
         """
         self._find_path_write()
-        print("NAME=%s" % name)
-        print("PATH=%s" % path)
-        print("PKG_DIR=%s" % self._pkg_dir)
-        print("EXT=%s" % ext)
         buildfile = name.lstrip('/').replace('/', '.')
         storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
         with pd.HDFStore(storepath, mode=self._mode) as store:
@@ -323,7 +318,6 @@ class HDF5PackageStore(PackageStore):
         contents = self.get_contents()
         filehash = digest_file(storepath)
         ipath = buildfile.split('.')
-        print("IPATH=%s" % ipath)
         dfname = ipath.pop()
 
         ptr = contents
@@ -337,7 +331,6 @@ class HDF5PackageStore(PackageStore):
                            q_ext=ext,
                            q_path=path,
                            q_target=target)
-        print("FINAL CONTENTS=%s" % contents)
         
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
         os.rename(storepath, objpath)
@@ -452,7 +445,6 @@ def get_store(user, package, format=None, mode='r'):
         return SparkPackageStore(user, package, mode)
     else:
         store = HDF5PackageStore(user, package, mode)
-        print("got store=%s" % store)
         return store
 
 def ls_packages(pkg_dir):
