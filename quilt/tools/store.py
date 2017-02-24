@@ -215,6 +215,7 @@ class HDF5PackageStore(PackageStore):
         return open(objpath, 'rb')
 
     def get_hash(self):
+        print("HASHING CONTENTS=%s" % self.get_contents())
         flat_contents = flatten_contents(self.get_contents())
         print("FLAT: %s" % flat_contents)
         return hash_contents(flat_contents)
@@ -246,7 +247,7 @@ class HDF5PackageStore(PackageStore):
         """
         return self.UploadFile(self, hash)
 
-    def install(self, contents):
+    def install(self, contents, urls):
         """
         Download and install a package locally.
         """
@@ -259,9 +260,9 @@ class HDF5PackageStore(PackageStore):
         # in object dir. Verify individual file hashes.
         # Verify global hash?
 
-        def install_table(node):
+        def install_table(node, urls):
             download_hash = node['hash']
-            url = node['url']
+            url = urls[download_hash]
 
             # download and install
             print("INSTALL: %s" % download_hash)
@@ -285,15 +286,16 @@ class HDF5PackageStore(PackageStore):
                 raise StoreException("Mismatched hash! Expected %s, got %s." %
                                      (download_hash, file_hash))
         
-        def install_tables(contents):
+        def install_tables(contents, urls):
             for key in contents.keys():
                 node = contents.get(key)
+                print("NODE=%s" % node)
                 if NodeType(node.get('type')) is NodeType.GROUP:
-                    return install_tables(node)
+                    return install_tables(node, urls)
                 else:
                     install_table(node)
 
-        return install_tables(contents)
+        return install_tables(contents, urls)
         
     def keys(self, prefix):
         return self.get_contents().keys()

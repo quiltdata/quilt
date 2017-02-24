@@ -210,7 +210,7 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
-        contents=flatten_contents(store.get_contents()),
+        contents=store.get_contents(),
         description=""  # TODO
         ))
     )
@@ -383,9 +383,10 @@ def install(session, package):
         )
     )
     dataset = response.json()
+    print("RESPONSE DATASET=%s" % dataset)
 
     try:
-        store.install(dataset['url'], dataset['hash'])
+        store.install(dataset['contents'], dataset['urls'])
     except StoreException as ex:
         raise CommandException("Failed to install the package: %s" % ex)
 
