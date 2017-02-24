@@ -168,6 +168,7 @@ If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`
 * `quilt login`
 * `quilt build USER/PACKAGE FILE.YML`
 * `quilt push USER/PACKAGE` stores the package in the registry
+* `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to set access
 * `quilt log USER/PACKAGE` to see all changes to a package
