@@ -105,13 +105,13 @@ def hash_contents(contents):
         assert isinstance(obj, dict)
         obj_type = NodeType(obj[TYPE_KEY])
         hash_str(obj_type.value)
-        if obj_type == NodeType.TABLE:
+        if obj_type is NodeType.TABLE:
             hashes = obj["hashes"]
             hash_int(len(hashes))
             for h in hashes:
                 assert isinstance(h, str)
                 hash_str(h)
-        elif obj_type == NodeType.GROUP:
+        elif obj_type is NodeType.GROUP:
             hash_int(len(obj) - 1)  # Skip the "$type"
             for key, child in sorted(obj.items()):
                 assert isinstance(key, str)
@@ -136,7 +136,7 @@ def find_object_hashes(contents):
         if key == TYPE_KEY:
             continue
         obj_type = NodeType(obj[TYPE_KEY])
-        if obj_type == NodeType.TABLE:
+        if obj_type is NodeType.TABLE:
             yield from obj["hashes"]
-        elif obj_type == NodeType.GROUP:
+        elif obj_type is NodeType.GROUP:
             yield from find_object_hashes(obj)
