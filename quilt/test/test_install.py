@@ -51,19 +51,44 @@ class InstallTest(QuiltTestCase):
             file_contents = fd.read()
             assert file_contents == tabledata
 
-    def test_bad_hash(self):
+    def test_bad_contents_hash(self):
         """
-        Test that a package with a bad hash fails installation.
+        Test that a package with a bad contents hash fails installation.
         """
         tabledata = 'Bad package'
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
+        contents = {'foo': {TYPE_KEY: NodeType.GROUP.value,
+                            'bar' : {TYPE_KEY: NodeType.TABLE.value,
+                                      'hashes': [obj_hash]}
+                           }
+                   }
+        contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
+
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
+        self._mock_s3(obj_hash, tabledata)
+
+        session = requests.Session()
+        with self.assertRaisesRegexp(command.CommandException, "Mismatched hash"):
+            command.install(session, 'foo/bar')
+
+        assert not os.path.exists('quilt_packages/foo/bar.json')
+
+    def test_bad_object_hash(self):
+        """
+        Test that a package with a file hash mismatch fails installation.
+        """
+        tabledata = 'Bad package'
+        h = hashlib.new(HASH_TYPE)
+        h.update(tabledata.encode('utf-8'))
+        obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
         contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
                              'bar' : {TYPE_KEY: NodeType.TABLE.value,
                                       'hashes': [obj_hash]}
                             })
-        contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
+        contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, contents, [obj_hash])

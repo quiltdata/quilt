@@ -165,11 +165,11 @@ def build(package, path):
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
-    #try:
-    build_package(owner, pkg, path)
-    print("Built %s/%s successfully." % (owner, pkg))
-    #except BuildException as ex:
-    #    raise CommandException("Failed to build the package: %s" % ex)
+    try:
+        build_package(owner, pkg, path)
+        print("Built %s/%s successfully." % (owner, pkg))
+    except BuildException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
 
 def log(session, package):
     """
@@ -243,9 +243,7 @@ def push(session, package):
             hash=pkghash
         ))
     )
-
-    if not response.ok:
-        raise CommandException("Failed to update latest tag: error %s" % response.status_code)
+    assert response.ok # other responses handled by _handle_response
 
 
 def version_list(session, package):
@@ -406,8 +404,7 @@ def install(session, package, hash=None, version=None, tag=None):
             hash=pkghash
         )
     )
-    if not response.ok:
-        raise CommandException("Failed to install the package: %s" % response.json())
+    assert response.ok # other responses handled by _handle_response
 
     dataset = response.json()
     response_urls = dataset['urls']
@@ -420,6 +417,7 @@ def install(session, package, hash=None, version=None, tag=None):
     try:
         store.install(response_contents, response_urls)
     except StoreException as ex:
+        store.clear_contents()
         raise CommandException("Failed to install the package: %s" % ex)
 
 def access_list(session, package):

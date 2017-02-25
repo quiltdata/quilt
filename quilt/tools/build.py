@@ -77,9 +77,7 @@ def build_package(username, package, yaml_path):
 
     Returns the name of the package.
     """
-    #try:
     build_dir = os.path.dirname(yaml_path)
-
     fd = open(yaml_path)
     docs = yaml.load_all(fd)
     data = next(docs, None) # leave other dicts in the generator

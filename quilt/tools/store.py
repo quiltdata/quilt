@@ -93,7 +93,7 @@ class PackageStore(object):
         contents = {}
         try:
             with open(self._path, 'r') as contents_file:
-                contents = json.loads(contents_file.read())
+                contents = json.load(contents_file)
         except IOError:
             # TODO: Should we initialize contents.json on pkg creation?
             pass
@@ -112,7 +112,7 @@ class PackageStore(object):
         Saves an updated version of the package's contents.
         """
         with open(self._path, 'w') as contents_file:
-            contents_file.write(json.dumps(contents))
+            json.dump(contents, contents_file)
 
     def keys(self, prefix):
         """
@@ -133,10 +133,10 @@ class PackageStore(object):
         ptr = self.get_contents()
         path_so_far = []
         for node in ipath:
-            path_so_far += node
+            path_so_far += [node]
             if not node in ptr:
                 raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
-                    path=path_so_far,
+                    path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
             ptr = ptr[node]
@@ -147,7 +147,6 @@ class PackageStore(object):
             return self.dataframe(hash_list)
         else:
             return node
-        assert False, "Shouldn't reach here"
 
     def get_hash(self):
         """
@@ -220,8 +219,7 @@ class PackageStore(object):
 
         ptr = contents
         for node in ipath:
-            if not node in ptr:
-                ptr[node] = {TYPE_KEY: NodeType.GROUP.value}
+            ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
             ptr = ptr[node]
 
         ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
@@ -338,11 +336,10 @@ class HDF5PackageStore(PackageStore):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key in contents.keys():
+            for key, node in contents.items():
                 if key == TYPE_KEY:
                     continue
-                node = contents.get(key)
-                if NodeType(node.get(TYPE_KEY)) is NodeType.GROUP:
+                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
                     install_table(node, urls)
@@ -391,25 +388,9 @@ class ParquetPackageStore(PackageStore):
     PACKAGE_FILE_EXT = '.parq'
 
     def __init__(self, user, package, mode):
-        super(ParquetPackageStore, self).__init__(user, package, mode)
         if fastparquet is None:
             raise StoreException("Module fastparquet is required for ParquetPackageStore.")
-
-        if self._mode == 'w':
-            path = self.create_path()
-        else:
-            path = self.get_path()
-        self.active_path = path
-
-    def create_path(self):
-        """
-        Creates a new subdirectory in the innermost `quilt_packages` directory
-        (or in a new `quilt_packages` directory in the current directory).
-        """
-        path = super(ParquetPackageStore, self).create_path()
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        return path
+        super(ParquetPackageStore, self).__init__(user, package, mode)
 
     def save_df(self, df, name, path, ext, target):
         """
@@ -483,8 +464,7 @@ def get_store(user, package, format=None, mode='r'):
     elif pkg_format == FORMAT_SPARK:
         return SparkPackageStore(user, package, mode)
     else:
-        store = HDF5PackageStore(user, package, mode)
-        return store
+        return HDF5PackageStore(user, package, mode)
 
 def ls_packages(pkg_dir):
     """

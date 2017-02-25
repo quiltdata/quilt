@@ -58,7 +58,6 @@ class Node(object):
                 if not isinstance(self._get_store_obj(pref + k), Node)]
 
     def _get_store_obj(self, path):
-        self._keys()
         try:
             obj = self._store.get(path)
         except KeyError:
