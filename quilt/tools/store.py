@@ -1,13 +1,10 @@
 """
 Build: parse and add user-supplied files to store
 """
-from enum import Enum
 import json
-from operator import attrgetter
 import os
 import re
 import tempfile
-import time
 import zlib
 
 import pandas as pd
@@ -23,7 +20,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TYPE_KEY
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TYPE_KEY
 from .hashing import digest_file, hash_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -32,7 +29,7 @@ CHUNK_SIZE = 4096
 ZLIB_LEVEL = 2  # Maximum level.
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
-CONTENTS_FILE = 'contents.json'    
+CONTENTS_FILE = 'contents.json'
 
 class StoreException(Exception):
     """
@@ -79,6 +76,8 @@ class PackageStore(object):
         self._user = user
         self._package = package
         self._mode = mode
+        self._pkg_dir = None
+        self._path = None
         self._find_path_read()
 
     def __enter__(self):
@@ -88,6 +87,9 @@ class PackageStore(object):
         pass
 
     def get_contents(self):
+        """
+        Returns a dictionary with the contents of the package.
+        """
         contents = {}
         try:
             with open(self._path, 'r') as contents_file:
@@ -98,11 +100,17 @@ class PackageStore(object):
         return contents
 
     def clear_contents(self):
+        """
+        Removes the package's contents file.
+        """
         if self._path:
             os.remove(self._path)
         self._path = None
 
     def save_contents(self, contents):
+        """
+        Saves an updated version of the package's contents.
+        """
         with open(self._path, 'w') as contents_file:
             contents_file.write(json.dumps(contents))
 
@@ -140,7 +148,7 @@ class PackageStore(object):
         else:
             return node
         assert False, "Shouldn't reach here"
-    
+
     def get_hash(self):
         """
         Returns the hash digest of the package data.
@@ -148,8 +156,17 @@ class PackageStore(object):
         raise StoreException("Not Implemented")
 
     def get_path(self):
+        """
+        Returns the path to the package's contents file.
+        """
         return self._path
-    
+
+    def _object_path(self, objhash):
+        """
+        Returns the path to an object file based on its hash.
+        """
+        return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash + self.DATA_FILE_EXT)
+
     def _find_path_read(self):
         """
         Finds an existing package in one of the package directories.
@@ -193,6 +210,29 @@ class PackageStore(object):
         self._pkg_dir = package_dir
         return
 
+    def _add_to_contents(self, fullname, objhash, ext, path, target):
+        """
+        Adds an object (name-hash mapping) to the package's contents.
+        """
+        contents = self.get_contents()
+        ipath = fullname.split('.')
+        dfname = ipath.pop()
+
+        ptr = contents
+        for node in ipath:
+            if not node in ptr:
+                ptr[node] = {TYPE_KEY: NodeType.GROUP.value}
+            ptr = ptr[node]
+
+        ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
+                           hashes=[objhash],
+                           metadata=dict(q_ext=ext,
+                                         q_path=path,
+                                         q_target=target)
+                          )
+
+        self.save_contents(contents)
+
 
 class HDF5PackageStore(PackageStore):
     """
@@ -209,18 +249,16 @@ class HDF5PackageStore(PackageStore):
         """
         Returns True if the package is already installed.
         """
-        return not self._path is None   
+        return not self._path is None
 
     def dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
         assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
         filehash = hash_list[0]
-        obj_path = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
-        with pd.HDFStore(obj_path, 'r') as store:
+        with pd.HDFStore(self._object_path(filehash), 'r') as store:
             return store.get(self.DF_NAME)
-
-    def get_by_hash(self, hash):
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, hash + self.DATA_FILE_EXT)
-        return open(objpath, 'rb')
 
     def get_hash(self):
         return hash_contents(self.get_contents())
@@ -229,13 +267,13 @@ class HDF5PackageStore(PackageStore):
         """
         Helper class to manage temporary package files uploaded by push.
         """
-        def __init__(self, store, hash):
+        def __init__(self, store, objhash):
             self._store = store
-            self._hash = hash
+            self._hash = objhash
 
         def __enter__(self):
             self._temp_file = tempfile.TemporaryFile()
-            with self._store.get_by_hash(self._hash) as input_file:
+            with open(self._store._object_path(self._hash), 'rb') as input_file:
                 zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
                 for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
                     self._temp_file.write(zlib_obj.compress(chunk))
@@ -266,6 +304,9 @@ class HDF5PackageStore(PackageStore):
         # Verify global hash?
 
         def install_table(node, urls):
+            """
+            Downloads and installs the set of objects for one table.
+            """
             hashes = node['hashes']
             for download_hash in hashes:
                 url = urls[download_hash]
@@ -292,8 +333,11 @@ class HDF5PackageStore(PackageStore):
                     os.remove(local_filename)
                     raise StoreException("Mismatched hash! Expected %s, got %s." %
                                          (download_hash, file_hash))
-        
+
         def install_tables(contents, urls):
+            """
+            Parses package contents and calls install_table for each table.
+            """
             for key in contents.keys():
                 if key == TYPE_KEY:
                     continue
@@ -304,8 +348,11 @@ class HDF5PackageStore(PackageStore):
                     install_table(node, urls)
 
         return install_tables(contents, urls)
-        
+
     def keys(self, prefix):
+        """
+        Returns a list of package contents.
+        """
         return self.get_contents().keys()
 
     def save_df(self, df, name, path, ext, target):
@@ -317,29 +364,11 @@ class HDF5PackageStore(PackageStore):
         storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
-
-        # Update contents
-        contents = self.get_contents()
         filehash = digest_file(storepath)
-        ipath = buildfile.split('.')
-        dfname = ipath.pop()
-
-        ptr = contents
-        for node in ipath:
-            if not node in ptr:
-                ptr[node] = {TYPE_KEY: NodeType.GROUP.value}
-            ptr = ptr[node]
-
-        ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
-                           hashes=[filehash],
-                           metadata=dict(q_ext=ext,
-                                         q_path=path,
-                                         q_target=target)
-                           )
-        
+        self._add_to_contents(buildfile, filehash, ext, path, target)
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
         os.rename(storepath, objpath)
-        self.save_contents(contents)
+
 
     @classmethod
     def ls_packages(cls, pkg_dir):
@@ -386,10 +415,15 @@ class ParquetPackageStore(PackageStore):
         """
         Save a DataFrame to the store.
         """
-        # Below should really use os.path.join, but name is
-        # arriving with a leading / that breaks it.
-        path = self.active_path + name + self.PACKAGE_FILE_EXT
-        fastparquet.write(path, df)
+        self._find_path_write()
+        buildfile = name.lstrip('/').replace('/', '.')
+        storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
+        fastparquet.write(storepath, df)
+
+        filehash = digest_file(storepath)
+        self._add_to_contents(buildfile, filehash, ext, path, target)
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+        os.rename(storepath, objpath)
 
     def get(self, path):
         """

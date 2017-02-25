@@ -13,15 +13,15 @@ import sys
 import time
 import webbrowser
 
-from packaging.version import Version
 import pandas as pd
 import requests
+from packaging.version import Version
 
 from .build import build_package, BuildException
 from .const import LATEST_TAG
 from .hashing import hash_contents
 from .store import PackageStore, StoreException, get_store, ls_packages
-from .util import BASE_DIR, flatten_contents
+from .util import BASE_DIR
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -211,8 +211,8 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
-        contents=store.get_contents(),
-        description=""  # TODO
+            contents=store.get_contents(),
+            description=""  # TODO
         ))
     )
 
@@ -223,9 +223,9 @@ def push(session, package):
         'Content-Encoding': 'gzip'
     }
 
-    for hash, url in upload_urls.items():
+    for objhash, url in upload_urls.items():
         # Create a temporary gzip'ed file.
-        with store.tempfile(hash) as temp_file:
+        with store.tempfile(objhash) as temp_file:
             response = requests.put(url, data=temp_file, headers=headers)
 
             if not response.ok:
@@ -397,7 +397,7 @@ def install(session, package, hash=None, version=None, tag=None):
     else:
         pkghash = hash
     assert pkghash is not None
-    
+
     response = session.get(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
             url=QUILT_PKG_URL,
@@ -408,7 +408,7 @@ def install(session, package, hash=None, version=None, tag=None):
     )
     if not response.ok:
         raise CommandException("Failed to install the package: %s" % response.json())
-    
+
     dataset = response.json()
     response_urls = dataset['urls']
     response_contents = dataset['contents']
@@ -416,7 +416,7 @@ def install(session, package, hash=None, version=None, tag=None):
     # Verify contents hash
     if pkghash != hash_contents(response_contents):
         raise CommandException("Mismatched hash. Try again.")
-    
+
     try:
         store.install(response_contents, response_urls)
     except StoreException as ex:

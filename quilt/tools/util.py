@@ -1,8 +1,6 @@
 """
 Helper functions.
 """
-import os.path
-import re
 
 from appdirs import user_data_dir
 
@@ -22,22 +20,3 @@ def file_to_str(fname):
     with open(fname, 'rU') as f:
         data = f.read()
     return data
-
-def flatten_contents(contents, prefix=[]):
-    assert isinstance(contents, dict)
-    elements = {}
-    for key, node in contents.items():
-        if key == 'type':
-            continue
-        assert isinstance(node, dict), "Node is: {node}".format(node=node)
-        path = prefix + [key]
-        type = NodeType(node.get('type'))
-        if type is NodeType.TABLE:
-            fullname = ".".join(path)
-            elements[fullname] = node['hash']
-        elif type is NodeType.GROUP:
-            elements.update(flatten_contents(node, prefix + [key]))
-        else:
-            assert False, "Unknown NodeType? {type}".format(type=type.value)
-
-    return elements

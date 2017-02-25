@@ -4,17 +4,17 @@ Test the build process
 #TODO: we should really test the CLI interface itself, rather than
 #the functions that cli calls
 import os
-import sys
+
+try:
+    import fastparquet
+except ImportError:
+    fastparquet = None
 
 import pytest
 
 from quilt.tools import build
 from quilt.tools.const import FORMAT_PARQ
 
-try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
 
 USER = 'test_121'
 PACKAGE = 'groot'
@@ -59,6 +59,6 @@ def test_build_parquet():
     print(csv.columns, xls.columns, tsv.columns)
     assert cols == len(tsv.columns) and cols == len(xls.columns), \
         'Expected dataframes to have same # columns'
-    del(os.environ["QUILT_PACKAGE_FORMAT"])
+    del os.environ["QUILT_PACKAGE_FORMAT"]
     # TODO add more integrity checks, incl. negative test cases
 

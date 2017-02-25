@@ -31,15 +31,12 @@ class Node(object):
     def __init__(self, store, prefix=''):
         self._prefix = prefix
         self._store = store
-        print("NODE: %s %s" % (prefix, store))
 
     def __getattr__(self, name):
         # TODO clean if... up since VALID_NAME_RE no longer allows leading _
-        print("GETATTR NAME=%s" % name)
         if name.startswith('_'):
             raise AttributeError
         path = self._prefix + '/' + name
-        print("GETATTR PATH=%s" % path)
         return self._get_store_obj(path)
 
     def __repr__(self):
@@ -64,7 +61,6 @@ class Node(object):
         self._keys()
         try:
             obj = self._store.get(path)
-            print("OBJ=%s" % obj)
         except KeyError:
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
@@ -86,7 +82,6 @@ class Node(object):
         """
         keys directly accessible on this object via getattr or .
         """
-        print("KEYS=%s" % self._store.keys(self._prefix))
         return self._store.keys(self._prefix)
 
 class FakeLoader(object):
@@ -95,7 +90,6 @@ class FakeLoader(object):
     """
     def __init__(self, path):
         self._path = path
-        print("FAKELOADER, PATH=%s" % path)
 
     def load_module(self, fullname):
         """
@@ -115,13 +109,11 @@ class PackageLoader(object):
     def __init__(self, path, store):
         self._path = path
         self._store = store
-        print("PKGLOADER, PATH=%s" % path)
 
     def load_module(self, fullname):
         """
         Returns an object that lazily looks up tables and groups.
         """
-        print("LOADING MODULE, FULLNAME=%s" % fullname)
         mod = sys.modules.get(fullname)
         if mod is not None:
             return mod
@@ -131,7 +123,6 @@ class PackageLoader(object):
 
         mod = Node(self._store)
         sys.modules[fullname] = mod
-        print("MOD=%s" % mod)
         return mod
 
 class ModuleFinder(object):
@@ -143,17 +134,12 @@ class ModuleFinder(object):
         """
         Looks up the table based on the module path.
         """
-
-        print("FULLNAME=%s" % fullname)
-        print("PATH=%s" % path)
-        
         if not fullname.startswith(__name__ + '.'):
             # Not a quilt submodule.
             return None
 
         submodule = fullname[len(__name__) + 1:]
         parts = submodule.split('.')
-        print("PARTS=%s" % parts)
 
         if len(parts) == 1:
             for package_dir in PackageStore.find_package_dirs():

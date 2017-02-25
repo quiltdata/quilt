@@ -16,18 +16,24 @@ from quilt.tools.hashing import hash_contents
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
+    """
+    Unit tests for quilt install.
+    """
     # Note: we're using the deprecated `assertRaisesRegexp` method because
     # the new one, `assertRaisesRegex`, is not present in Python2.
 
     def test_install_latest(self):
+        """
+        Install the latest update of a package.
+        """
         tabledata = "table"*10
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
         contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
-                             'bar' : { TYPE_KEY : NodeType.TABLE.value,
-                                       'hashes': [obj_hash]}
-                             })
+                             'bar' : {TYPE_KEY : NodeType.TABLE.value,
+                                      'hashes': [obj_hash]}
+                            })
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -46,14 +52,17 @@ class InstallTest(QuiltTestCase):
             assert file_contents == tabledata
 
     def test_bad_hash(self):
+        """
+        Test that a package with a bad hash fails installation.
+        """
         tabledata = 'Bad package'
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
         contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
-                             'bar' : { TYPE_KEY : NodeType.TABLE.value,
-                                       'hashes': [obj_hash]}
-                             })
+                             'bar' : {TYPE_KEY: NodeType.TABLE.value,
+                                      'hashes': [obj_hash]}
+                            })
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -77,7 +86,7 @@ class InstallTest(QuiltTestCase):
         pkg_url = '%s/api/package/foo/bar/%s' % (command.QUILT_PKG_URL, pkg_hash)
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,
-            urls={h: 'https://example.com/%s' % h for h in hashes}      
+            urls={h: 'https://example.com/%s' % h for h in hashes}
         )))
 
     def _mock_s3(self, pkg_hash, contents):
