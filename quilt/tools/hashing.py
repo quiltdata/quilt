@@ -88,4 +88,4 @@ def hash_contents(contents):
         assert isinstance(key, str)
         hash_object(obj)
 
-        return result.hexdigest()
+    return result.hexdigest()
