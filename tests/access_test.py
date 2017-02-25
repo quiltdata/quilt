@@ -6,7 +6,7 @@ import json
 import requests
 
 from quilt_server.const import PUBLIC
-from quilt_server.utils import hash_contents
+from quilt_server.schemas import hash_contents
 
 from .utils import QuiltTestCase
 
@@ -22,7 +22,7 @@ class AccessTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkgtoshare"
 
-        contents = {"foo": []}
+        contents = {'foo': {'$type': 'GROUP'}}
 
         self.pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
@@ -154,7 +154,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(sharewith)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = {"bar": []}
+        newcontents = {'bar': {'$type': 'GROUP'}}
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
@@ -189,7 +189,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(PUBLIC)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = {"bar": []}
+        newcontents = {'bar': {'$type': 'GROUP'}}
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,

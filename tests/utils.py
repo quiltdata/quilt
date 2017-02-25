@@ -12,7 +12,7 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.utils import hash_contents
+from quilt_server.schemas import hash_contents
 
 
 class QuiltTestCase(unittest.TestCase):

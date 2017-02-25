@@ -5,7 +5,7 @@ Version tests
 import json
 import requests
 
-from quilt_server.utils import hash_contents
+from quilt_server.schemas import hash_contents
 from .utils import QuiltTestCase
 
 
@@ -19,9 +19,9 @@ class VersionTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkg"
         self.contents_list = [
-            {'foo': []},
-            {'bar': []},
-            {'baz': []},
+            {'foo': {'$type' : 'GROUP'}},
+            {'bar': {'$type' : 'GROUP'}},
+            {'baz': {'$type' : 'GROUP'}},
         ]
         self.hashes = [hash_contents(contents) for contents in self.contents_list]
 

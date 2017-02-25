@@ -19,7 +19,7 @@ from sqlalchemy.orm import undefer
 from . import app, db
 from .const import PUBLIC
 from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
-from .utils import hash_contents
+from .schemas import find_object_hashes, PACKAGE_SCHEMA, hash_contents
 
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -194,28 +194,6 @@ def _get_package(auth_user, owner, package_name):
         raise PackageNotFoundException(owner, package_name)
     return package
 
-SHA256_PATTERN = r'[0-9a-f]{64}'
-
-PACKAGE_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'description': {
-            'type': 'string'
-        },
-        'contents': {
-            'type': 'object',
-            'additionalProperties': {
-                'type': 'array',
-                'items': {
-                    'type': 'string',
-                    'pattern': SHA256_PATTERN
-                }
-            }
-        }
-    },
-    'required': ['description', 'contents']
-}
-
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
@@ -232,9 +210,7 @@ def package_put(auth_user, owner, package_name, package_hash):
     if hash_contents(contents) != package_hash:
         raise ApiException(requests.codes.bad_request, "Wrong contents hash")
 
-    all_hashes = set()
-    for hash_list in contents.values():
-        all_hashes.update(hash_list)
+    all_hashes = set(find_object_hashes(contents))
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
@@ -304,8 +280,12 @@ def package_put(auth_user, owner, package_name, package_hash):
         for blob_hash in all_hashes:
             if blob_hash not in existing_hashes:
                 instance.blobs.append(S3Blob(owner=owner, hash=blob_hash))
+    else:
+        # Just update the contents dictionary.
+        # Nothing else could've changed without invalidating the hash.
+        instance.contents = json.dumps(contents)
 
-        db.session.add(instance)
+    db.session.add(instance)
 
     # Insert a log.
     log = Log(
@@ -356,9 +336,7 @@ def package_get(auth_user, owner, package_name, package_hash):
 
     contents = json.loads(instance.contents)
 
-    all_hashes = set()
-    for hash_list in contents.values():
-        all_hashes.update(hash_list)
+    all_hashes = set(find_object_hashes(contents))
 
     urls = {}
     for blob_hash in all_hashes:
