@@ -23,9 +23,8 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType
+from .const import DTIMEF, FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TYPE_KEY
 from .hashing import digest_file, hash_contents
-from .util import flatten_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
@@ -98,6 +97,11 @@ class PackageStore(object):
             pass
         return contents
 
+    def clear_contents(self):
+        if self._path:
+            os.remove(self._path)
+        self._path = None
+
     def save_contents(self, contents):
         with open(self._path, 'w') as contents_file:
             contents_file.write(json.dumps(contents))
@@ -130,8 +134,8 @@ class PackageStore(object):
             ptr = ptr[node]
         node = ptr
 
-        if NodeType(node['type']) is NodeType.TABLE:
-            hash_list = node['hash']
+        if NodeType(node[TYPE_KEY]) is NodeType.TABLE:
+            hash_list = node['hashes']
             return self.dataframe(hash_list)
         else:
             return node
@@ -210,7 +214,8 @@ class HDF5PackageStore(PackageStore):
     def dataframe(self, hash_list):
         assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
         filehash = hash_list[0]
-        with pd.HDFStore(get_by_hash(filehash), 'r') as store:
+        obj_path = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+        with pd.HDFStore(obj_path, 'r') as store:
             return store.get(self.DF_NAME)
 
     def get_by_hash(self, hash):
@@ -218,8 +223,7 @@ class HDF5PackageStore(PackageStore):
         return open(objpath, 'rb')
 
     def get_hash(self):
-        flat_contents = flatten_contents(self.get_contents())
-        return hash_contents(flat_contents)
+        return hash_contents(self.get_contents())
 
     class UploadFile(object):
         """
@@ -262,7 +266,7 @@ class HDF5PackageStore(PackageStore):
         # Verify global hash?
 
         def install_table(node, urls):
-            hashes = node['hash']
+            hashes = node['hashes']
             for download_hash in hashes:
                 url = urls[download_hash]
 
@@ -291,10 +295,10 @@ class HDF5PackageStore(PackageStore):
         
         def install_tables(contents, urls):
             for key in contents.keys():
-                if key == 'type':
+                if key == TYPE_KEY:
                     continue
                 node = contents.get(key)
-                if NodeType(node.get('type')) is NodeType.GROUP:
+                if NodeType(node.get(TYPE_KEY)) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
                     install_table(node, urls)
@@ -323,14 +327,15 @@ class HDF5PackageStore(PackageStore):
         ptr = contents
         for node in ipath:
             if not node in ptr:
-                ptr[node] = dict(type=NodeType.GROUP.value)
+                ptr[node] = {TYPE_KEY: NodeType.GROUP.value}
             ptr = ptr[node]
 
-        ptr[dfname] = dict(type=NodeType.TABLE.value,
-                           hash=[filehash],
-                           q_ext=ext,
-                           q_path=path,
-                           q_target=target)
+        ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
+                           hashes=[filehash],
+                           metadata=dict(q_ext=ext,
+                                         q_path=path,
+                                         q_target=target)
+                           )
         
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
         os.rename(storepath, objpath)

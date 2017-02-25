@@ -29,7 +29,6 @@ def flatten_contents(contents, prefix=[]):
     for key, node in contents.items():
         if key == 'type':
             continue
-        print("Node is: {node}".format(node=node))
         assert isinstance(node, dict), "Node is: {node}".format(node=node)
         path = prefix + [key]
         type = NodeType(node.get('type'))

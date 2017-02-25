@@ -19,6 +19,7 @@ import requests
 
 from .build import build_package, BuildException
 from .const import LATEST_TAG
+from .hashing import hash_contents
 from .store import PackageStore, StoreException, get_store, ls_packages
 from .util import BASE_DIR, flatten_contents
 
@@ -395,7 +396,8 @@ def install(session, package, hash=None, version=None, tag=None):
         pkghash = response.json()['hash']
     else:
         pkghash = hash
-
+    assert pkghash is not None
+    
     response = session.get(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
             url=QUILT_PKG_URL,
@@ -404,11 +406,18 @@ def install(session, package, hash=None, version=None, tag=None):
             hash=pkghash
         )
     )
+    if not response.ok:
+        raise CommandException("Failed to install the package: %s" % response.json())
+    
     dataset = response.json()
+    response_urls = dataset['urls']
+    response_contents = dataset['contents']
 
+    # Verify contents hash
+    if pkghash != hash_contents(response_contents):
+        raise CommandException("Mismatched hash. Try again.")
+    
     try:
-        response_urls = dataset['urls']
-        response_contents = dataset['contents']
         store.install(response_contents, response_urls)
     except StoreException as ex:
         raise CommandException("Failed to install the package: %s" % ex)

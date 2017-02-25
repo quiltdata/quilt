@@ -92,5 +92,6 @@ def build_package(username, package, yaml_path):
         raise BuildException("'tables' must be a dictionary")
 
     with get_store(username, package, format, 'w') as store:
+        store.clear_contents()
         _build_table(build_dir, store, '', tables)
 

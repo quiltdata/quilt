@@ -7,6 +7,7 @@ class NodeType(Enum):
     GROUP = 'GROUP'
     TABLE = 'TABLE'
 
+TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
