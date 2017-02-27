@@ -266,3 +266,80 @@ class AccessTestCase(QuiltTestCase):
         assert self.user in can_access
         assert PUBLIC in can_access
         assert otheruser not in can_access
+
+    def testListPackages(self):
+        """
+        List private, privately-shared, and public packages.
+        """
+        sharewith = "anotheruser"
+
+        # Other users can't see private packages.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == []
+
+        # Anonymous users can't see private packages.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user)
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == []
+
+        # Share with a user.
+        resp = self._sharePackage(sharewith)
+        assert resp.status_code == requests.codes.ok
+
+        # The user can now see the private package.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == [self.pkg]
+
+        # Anonymous users still can't see it.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user)
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == []
+
+        # Share publicly.
+        resp = self._sharePackage(PUBLIC)
+        assert resp.status_code == requests.codes.ok
+
+        # The user can still see it.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user),
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == [self.pkg]
+
+        # Anonymous users can now see it.
+        resp = self.app.get(
+            '/api/package/{owner}/'.format(owner=self.user)
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == [self.pkg]

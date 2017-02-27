@@ -368,6 +368,22 @@ def package_list(auth_user, owner, package_name):
         hashes=[instance.hash for instance in instances]
     )
 
+@app.route('/api/package/<owner>/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def user_packages(auth_user, owner):
+    packages = (
+        Package.query
+        .filter_by(owner=owner)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .all()
+    )
+
+    return dict(
+        packages=[package.name for package in packages]
+    )
+
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
