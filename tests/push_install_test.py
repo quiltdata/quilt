@@ -103,7 +103,20 @@ class PushInstallTestCase(QuiltTestCase):
         assert url1.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
         assert url2.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
 
-        # List packages.
+        # List user's packages.
+        resp = self.app.get(
+            '/api/package/test_user/',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == ['foo']
+
+        # List package instances.
         resp = self.app.get(
             '/api/package/test_user/foo/',
             headers={
