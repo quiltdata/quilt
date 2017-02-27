@@ -160,6 +160,12 @@ class PackageStore(object):
         """
         return self._path
 
+    def exists(self):
+        """
+        Returns True if the package is already installed.
+        """
+        return not self._path is None
+
     def _object_path(self, objhash):
         """
         Returns the path to an object file based on its hash.
@@ -242,12 +248,6 @@ class HDF5PackageStore(PackageStore):
     def __init__(self, user, package, mode):
         super(HDF5PackageStore, self).__init__(user, package, mode)
         self.__store = None
-
-    def exists(self):
-        """
-        Returns True if the package is already installed.
-        """
-        return not self._path is None
 
     def dataframe(self, hash_list):
         """

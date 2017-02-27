@@ -1,5 +1,7 @@
 import hashlib
+from six import iteritems, string_types
 import struct
+
 from .const import HASH_TYPE, NodeType, TYPE_KEY
 
 def digest_file(fname):
@@ -71,12 +73,12 @@ def hash_contents(contents):
             hashes = obj["hashes"]
             hash_int(len(hashes))
             for h in hashes:
-                assert isinstance(h, str)
+                assert isinstance(h, string_types)
                 hash_str(h)
         elif obj_type is NodeType.GROUP:
             hash_int(len(obj) - 1)  # Skip the "$type"
-            for key, child in sorted(obj.items()):
-                assert isinstance(key, str)
+            for key, child in sorted(iteritems(obj)):                
+                assert isinstance(key, string_types), "key={key} type={type}".format(key=key, type=type(key))
                 if key != TYPE_KEY:
                     hash_str(key)
                     hash_object(child)
@@ -84,8 +86,8 @@ def hash_contents(contents):
             assert False
 
     hash_int(len(contents))
-    for key, obj in sorted(contents.items()):
-        assert isinstance(key, str)
+    for key, obj in sorted(iteritems(contents)):
+        assert isinstance(key, string_types), "key={key} type={type}".format(key=key, type=type(key))
         hash_object(obj)
 
     return result.hexdigest()
