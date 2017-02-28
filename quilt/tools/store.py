@@ -173,7 +173,7 @@ class PackageStore(object):
         self._find_path_write()
         local_filename = self.get_path()
         with open(local_filename, 'w') as contents_file:
-            contents_file.write(json.dumps(contents))
+            json.dump(contents, contents_file)
 
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
