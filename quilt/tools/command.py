@@ -13,11 +13,13 @@ import sys
 import time
 import webbrowser
 
-from packaging.version import Version
+import pandas as pd
 import requests
+from packaging.version import Version
 
 from .build import build_package, BuildException
 from .const import LATEST_TAG
+from .hashing import hash_contents
 from .store import PackageStore, StoreException, get_store, ls_packages
 from .util import BASE_DIR
 
@@ -199,10 +201,7 @@ def push(session, package):
     store = get_store(owner, pkg)
     if not store.exists():
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-
-    path = store.get_path()
     pkghash = store.get_hash()
-    assert path
 
     response = session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -212,23 +211,25 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
+            contents=store.get_contents(),
             description=""  # TODO
         ))
     )
 
     dataset = response.json()
-    upload_url = dataset['upload_url']
+    upload_urls = dataset['upload_urls']
 
     headers = {
         'Content-Encoding': 'gzip'
     }
 
-    # Create a temporary gzip'ed file.
-    with store.tempfile() as temp_file:
-        response = requests.put(upload_url, data=temp_file, headers=headers)
+    for objhash, url in upload_urls.items():
+        # Create a temporary gzip'ed file.
+        with store.tempfile(objhash) as temp_file:
+            response = requests.put(url, data=temp_file, headers=headers)
 
-        if not response.ok:
-            raise CommandException("Upload failed: error %s" % response.status_code)
+            if not response.ok:
+                raise CommandException("Upload failed: error %s" % response.status_code)
 
     # Set the "latest" tag.
     response = session.put(
@@ -242,6 +243,8 @@ def push(session, package):
             hash=pkghash
         ))
     )
+    assert response.ok # other responses handled by _handle_response
+
 
 def version_list(session, package):
     """
@@ -391,6 +394,7 @@ def install(session, package, hash=None, version=None, tag=None):
         pkghash = response.json()['hash']
     else:
         pkghash = hash
+    assert pkghash is not None
 
     response = session.get(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -400,11 +404,20 @@ def install(session, package, hash=None, version=None, tag=None):
             hash=pkghash
         )
     )
+    assert response.ok # other responses handled by _handle_response
+
     dataset = response.json()
+    response_urls = dataset['urls']
+    response_contents = dataset['contents']
+
+    # Verify contents hash
+    if pkghash != hash_contents(response_contents):
+        raise CommandException("Mismatched hash. Try again.")
 
     try:
-        store.install(dataset['url'], dataset['hash'])
+        store.install(response_contents, response_urls)
     except StoreException as ex:
+        store.clear_contents()
         raise CommandException("Failed to install the package: %s" % ex)
 
 def access_list(session, package):
@@ -452,17 +465,10 @@ def inspect(package):
     """
     Inspect package details
     """
-    try:
-        import h5py
-    except ImportError:
-        raise CommandException("Please install 'h5py' to use 'quilt inspect'")
-
     owner, pkg = _parse_package(package)
     store = get_store(owner, pkg)
     if not store.exists():
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    path = store.get_path()
-    assert path
 
     def _print_children(children, prefix):
         for idx, child in enumerate(children):
@@ -476,21 +482,20 @@ def inspect(package):
 
     def _print_node(node, prefix, child_prefix):
         name_prefix = u"─ "
-        if isinstance(node, h5py.Group):
+        if isinstance(node, dict):
             children = list(node.values())
             if children:
                 name_prefix = u"┬ "
             print(prefix + name_prefix + node.name)
             _print_children(children, child_prefix)
-        elif isinstance(node, h5py.Dataset):
+        elif isinstance(node, pd.DataFrame):
             info = "shape %s, type \"%s\"" % (node.shape, node.dtype.str)
-            print(prefix + name_prefix + node.name + ": " + info)
+            print(prefix + name_prefix + ": " + info)
         else:
-            print(prefix + name_prefix + node.name + ": " + str(node))
+            print(prefix + name_prefix + ": " + str(node))
 
-    h5_file = h5py.File(path)
-    print(path)
-    _print_children(list(h5_file.values()), '')
+    print(store.get_path())
+    _print_children(children=store.keys(''), prefix='')
 
 def main():
     """

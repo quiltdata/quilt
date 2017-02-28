@@ -5,16 +5,17 @@ Test the build process
 #the functions that cli calls
 import os
 
+try:
+    import fastparquet
+except ImportError:
+    fastparquet = None
+
 import pytest
 
 from quilt.tools import build
 from quilt.tools.const import FORMAT_PARQ
 from .utils import QuiltTestCase
 
-try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
 
 PACKAGE = 'groot'
 

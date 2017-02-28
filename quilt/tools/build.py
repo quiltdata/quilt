@@ -77,21 +77,19 @@ def build_package(username, package, yaml_path):
 
     Returns the name of the package.
     """
-    try:
-        build_dir = os.path.dirname(yaml_path)
+    build_dir = os.path.dirname(yaml_path)
+    fd = open(yaml_path)
+    docs = yaml.load_all(fd)
+    data = next(docs, None) # leave other dicts in the generator
+    if not isinstance(data, dict):
+        raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
-        fd = open(yaml_path)
-        docs = yaml.load_all(fd)
-        data = next(docs, None) # leave other dicts in the generator
-        if not isinstance(data, dict):
-            raise BuildException("Unable to parse YAML: %s" % yaml_path)
+    tables = data.get('tables')
+    format = data.get('format', None)
+    if not isinstance(tables, dict):
+        raise BuildException("'tables' must be a dictionary")
 
-        tables = data.get('tables')
-        format = data.get('format', None)
-        if not isinstance(tables, dict):
-            raise BuildException("'tables' must be a dictionary")
+    with get_store(username, package, format, 'w') as store:
+        store.clear_contents()
+        _build_table(build_dir, store, '', tables)
 
-        with get_store(username, package, format, 'w') as store:
-            _build_table(build_dir, store, '', tables)
-    except (IOError, StoreException) as ex:
-        raise BuildException(str(ex))

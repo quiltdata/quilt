@@ -59,15 +59,15 @@ class Node(object):
 
     def _get_store_obj(self, path):
         try:
-            with self._store:
-                return self._store.get(path)
+            obj = self._store.get(path)
         except KeyError:
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
-        except TypeError:
-            # This is awful, but that's what happens when the object being looked up
-            # is a group rather than a table.
+
+        if isinstance(obj, dict):
             return Node(self._store, path)
+        else:
+            return obj
 
     def _groups(self):
         """
@@ -142,6 +142,7 @@ class ModuleFinder(object):
 
         if len(parts) == 1:
             for package_dir in PackageStore.find_package_dirs():
+                # find contents
                 file_path = os.path.join(package_dir, parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)

@@ -6,3 +6,5 @@ dist
 tmp_*
 
 quilt_packages
+metastore_db
+derby.log
