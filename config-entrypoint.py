@@ -15,7 +15,6 @@ from botocore.exceptions import ClientError, NoCredentialsError
 
 def main(argv):
     config_bucket = os.getenv('QUILT_SERVER_CONFIG_S3_BUCKET')
-    default_config_path = 'dev_config.py'
 
     try:
         uuid = open('/sys/hypervisor/uuid').read()
@@ -39,11 +38,10 @@ def main(argv):
             except (ClientError, NoCredentialsError) as ex:
                 print("Failed to read s3://%s/config.py: %s" % (config_bucket, ex))
                 return 1
+        os.environ['QUILT_SERVER_CONFIG'] = config_path
     else:
-        if os.environ.get('QUILT_SERVER_CONFIG') is None:
-            os.environ['QUILT_SERVER_CONFIG'] = config_path
-        else:
-            config_path = default_config_path  # In `quilt_server`
+        if 'QUILT_SERVER_CONFIG' not in os.environ:
+            os.environ['QUILT_SERVER_CONFIG'] = 'dev_config.py'
 
     os.execvp(argv[1], argv[1:])
 
