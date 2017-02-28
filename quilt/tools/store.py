@@ -4,6 +4,7 @@ Build: parse and add user-supplied files to store
 import json
 import os
 import re
+from shutil import copyfile
 import tempfile
 import zlib
 
@@ -173,7 +174,7 @@ class PackageStore(object):
         self._find_path_write()
         local_filename = self.get_path()
         with open(local_filename, 'w') as contents_file:
-            contents_file.write(json.dumps(contents))
+            json.dump(contents, contents_file)
 
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
@@ -366,6 +367,15 @@ class HDF5PackageStore(PackageStore):
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
         os.rename(storepath, objpath)
 
+    def save_file(self, srcfile, name, path, ext, target):
+        """
+        Save a (raw) file to the store.
+        """
+        self._find_path_write()
+        filehash = digest_file(srcfile)
+        self._add_to_contents(srcfile, filehash, ext, path, target)
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
+        copyfile(srcfile, objpath)
 
     @classmethod
     def ls_packages(cls, pkg_dir):

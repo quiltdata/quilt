@@ -11,6 +11,10 @@ class BuildException(Exception):
     """
     pass
 
+def _build_file(build_dir, store, name, rel_path, target='file'):
+    path = os.path.join(build_dir, rel_path)
+    store.save_file(name, path)
+
 def _build_table(build_dir, store, name, table, target='pandas'):
     if isinstance(table, list):
         if len(table) != 2:
