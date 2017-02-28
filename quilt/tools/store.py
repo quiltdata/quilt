@@ -86,6 +86,13 @@ class PackageStore(object):
     def __exit__(self, type, value, traceback):
         pass
 
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        raise NotImplementedError()
+
     def get_contents(self):
         """
         Returns a dictionary with the contents of the package.
@@ -118,7 +125,7 @@ class PackageStore(object):
         """
         Returns a list of package contents.
         """
-        raise StoreException("Not Implemented")
+        return self.get_contents().keys()
 
     def get(self, path):
         """
@@ -301,11 +308,17 @@ class HDF5PackageStore(PackageStore):
     HDF5 Implementation of PackageStore.
     """
     DF_NAME = 'df'
-    DATA_FILE_EXT = '.h5'
 
     def __init__(self, user, package, mode):
         super(HDF5PackageStore, self).__init__(user, package, mode)
         self.__store = None
+
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        return '.h5'
 
     def dataframe(self, hash_list):
         """
@@ -346,12 +359,6 @@ class HDF5PackageStore(PackageStore):
         """
         return self.UploadFile(self, hash)
 
-    def keys(self, prefix):
-        """
-        Returns a list of package contents.
-        """
-        return self.get_contents().keys()
-
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
@@ -384,13 +391,17 @@ class ParquetPackageStore(PackageStore):
     """
     Parquet Implementation of PackageStore.
     """
-
-    DATA_FILE_EXT = '.parq'
-
     def __init__(self, user, package, mode):
         if fastparquet is None:
             raise StoreException("Module fastparquet is required for ParquetPackageStore.")
         super(ParquetPackageStore, self).__init__(user, package, mode)
+
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        return '.parq'
 
     def save_df(self, df, name, path, ext, target):
         """
