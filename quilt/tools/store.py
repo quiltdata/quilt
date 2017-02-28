@@ -87,6 +87,26 @@ class PackageStore(object):
     def __exit__(self, type, value, traceback):
         pass
 
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        raise NotImplementedError()
+
+    def dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
+        raise NotImplementedError()
+
+    def save_df(self, df, name, path, ext, target):
+        """
+        Save a DataFrame to the store.
+        """
+        raise NotImplementedError()
+
+>>>>>>> master
     def get_contents(self):
         """
         Returns a dictionary with the contents of the package.
@@ -119,7 +139,35 @@ class PackageStore(object):
         """
         Returns a list of package contents.
         """
-        raise StoreException("Not Implemented")
+        return self.get_contents().keys()
+
+    def get(self, path):
+        """
+        Read a DataFrame from the store.
+        """
+        if not self.exists():
+            raise StoreException("Package not found")
+
+        key = path.lstrip('/')
+        ipath = key.split('/')
+
+        ptr = self.get_contents()
+        path_so_far = []
+        for node in ipath:
+            path_so_far += [node]
+            if not node in ptr:
+                raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
+                    path="/".join(path_so_far),
+                    owner=self._user,
+                    pkg=self._package))
+            ptr = ptr[node]
+        node = ptr
+
+        if NodeType(node[TYPE_KEY]) is NodeType.TABLE:
+            hash_list = node['hashes']
+            return self.dataframe(hash_list)
+        else:
+            return node
 
     def get(self, path):
         """
@@ -285,7 +333,6 @@ class PackageStore(object):
         ptr = contents
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
-            ptr = ptr[node]
 
         ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
                            hashes=[objhash],
@@ -302,11 +349,17 @@ class HDF5PackageStore(PackageStore):
     HDF5 Implementation of PackageStore.
     """
     DF_NAME = 'df'
-    DATA_FILE_EXT = '.h5'
 
     def __init__(self, user, package, mode):
         super(HDF5PackageStore, self).__init__(user, package, mode)
         self.__store = None
+
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        return '.h5'
 
     def dataframe(self, hash_list):
         """
@@ -346,12 +399,6 @@ class HDF5PackageStore(PackageStore):
         Create and return a temporary file for uploading to a registry.
         """
         return self.UploadFile(self, hash)
-
-    def keys(self, prefix):
-        """
-        Returns a list of package contents.
-        """
-        return self.get_contents().keys()
 
     def save_df(self, df, name, path, ext, target):
         """
@@ -394,13 +441,17 @@ class ParquetPackageStore(PackageStore):
     """
     Parquet Implementation of PackageStore.
     """
-
-    DATA_FILE_EXT = '.parq'
-
     def __init__(self, user, package, mode):
         if fastparquet is None:
             raise StoreException("Module fastparquet is required for ParquetPackageStore.")
         super(ParquetPackageStore, self).__init__(user, package, mode)
+
+    @property
+    def DATA_FILE_EXT(self):
+        """
+        Return the format-specific object file extension
+        """
+        return '.parq'
 
     def save_df(self, df, name, path, ext, target):
         """
@@ -456,6 +507,8 @@ class SparkPackageStore(ParquetPackageStore):
         Creates a DataFrame from a set of objects (identified by hashes).
         """
         spark = SparkSession.builder.getOrCreate()
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        filehash = hash_list[0]
         df = spark.read.parquet(self._object_path(filehash))
         return df
 

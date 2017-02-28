@@ -77,7 +77,7 @@ def hash_contents(contents):
                 hash_str(h)
         elif obj_type is NodeType.GROUP:
             hash_int(len(obj) - 1)  # Skip the "$type"
-            for key, child in sorted(iteritems(obj)):                
+            for key, child in sorted(iteritems(obj)):
                 assert isinstance(key, string_types), "key={key} type={type}".format(key=key, type=type(key))
                 if key != TYPE_KEY:
                     hash_str(key)

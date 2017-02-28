@@ -45,7 +45,7 @@ class InstallTest(QuiltTestCase):
         command.install(session, 'foo/bar')
 
         with open('quilt_packages/foo/bar.json') as fd:
-            file_contents = json.loads(fd.read())
+            file_contents = json.load(fd)
             assert file_contents == contents
 
         store = get_store("foo", "bar")
