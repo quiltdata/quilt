@@ -303,7 +303,6 @@ class PackageStore(object):
         ptr = contents
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
-            ptr = ptr[node]
 
         ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
                            hashes=[objhash],
