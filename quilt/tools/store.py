@@ -166,6 +166,64 @@ class PackageStore(object):
         """
         return not self._path is None
 
+    def install(self, contents, urls):
+        """
+        Download and install a package locally.
+        """
+        self._find_path_write()
+        local_filename = self.get_path()
+        with open(local_filename, 'w') as contents_file:
+            contents_file.write(json.dumps(contents))
+
+        # Download individual object files and store
+        # in object dir. Verify individual file hashes.
+        # Verify global hash?
+
+        def install_table(node, urls):
+            """
+            Downloads and installs the set of objects for one table.
+            """
+            hashes = node['hashes']
+            for download_hash in hashes:
+                url = urls[download_hash]
+
+                # download and install
+                response = requests.get(url, stream=True)
+                if not response.ok:
+                    msg = "Download {hash} failed: error {code}"
+                    raise StoreException(msg.format(hash=download_hash, code=response.status_code))
+
+                local_filename = os.path.join(self._pkg_dir,
+                                              self.OBJ_DIR,
+                                              download_hash + self.DATA_FILE_EXT)
+
+                with open(local_filename, 'wb') as output_file:
+                    # `requests` will automatically un-gzip the content, as long as
+                    # the 'Content-Encoding: gzip' header is set.
+                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                        if chunk: # filter out keep-alive new chunks
+                            output_file.write(chunk)
+
+                file_hash = digest_file(local_filename)
+                if file_hash != download_hash:
+                    os.remove(local_filename)
+                    raise StoreException("Mismatched hash! Expected %s, got %s." %
+                                         (download_hash, file_hash))
+
+        def install_tables(contents, urls):
+            """
+            Parses package contents and calls install_table for each table.
+            """
+            for key, node in contents.items():
+                if key == TYPE_KEY:
+                    continue
+                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
+                    return install_tables(node, urls)
+                else:
+                    install_table(node, urls)
+
+        return install_tables(contents, urls)
+
     def _object_path(self, objhash):
         """
         Returns the path to an object file based on its hash.
@@ -288,64 +346,6 @@ class HDF5PackageStore(PackageStore):
         """
         return self.UploadFile(self, hash)
 
-    def install(self, contents, urls):
-        """
-        Download and install a package locally.
-        """
-        self._find_path_write()
-        local_filename = self.get_path()
-        with open(local_filename, 'w') as contents_file:
-            contents_file.write(json.dumps(contents))
-
-        # Download individual object files and store
-        # in object dir. Verify individual file hashes.
-        # Verify global hash?
-
-        def install_table(node, urls):
-            """
-            Downloads and installs the set of objects for one table.
-            """
-            hashes = node['hashes']
-            for download_hash in hashes:
-                url = urls[download_hash]
-
-                # download and install
-                response = requests.get(url, stream=True)
-                if not response.ok:
-                    msg = "Download {hash} failed: error {code}"
-                    raise StoreException(msg.format(hash=download_hash, code=response.status_code))
-
-                local_filename = os.path.join(self._pkg_dir,
-                                              self.OBJ_DIR,
-                                              download_hash + self.DATA_FILE_EXT)
-
-                with open(local_filename, 'wb') as output_file:
-                    # `requests` will automatically un-gzip the content, as long as
-                    # the 'Content-Encoding: gzip' header is set.
-                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                        if chunk: # filter out keep-alive new chunks
-                            output_file.write(chunk)
-
-                file_hash = digest_file(local_filename)
-                if file_hash != download_hash:
-                    os.remove(local_filename)
-                    raise StoreException("Mismatched hash! Expected %s, got %s." %
-                                         (download_hash, file_hash))
-
-        def install_tables(contents, urls):
-            """
-            Parses package contents and calls install_table for each table.
-            """
-            for key, node in contents.items():
-                if key == TYPE_KEY:
-                    continue
-                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
-                    return install_tables(node, urls)
-                else:
-                    install_table(node, urls)
-
-        return install_tables(contents, urls)
-
     def keys(self, prefix):
         """
         Returns a list of package contents.
@@ -385,7 +385,7 @@ class ParquetPackageStore(PackageStore):
     Parquet Implementation of PackageStore.
     """
 
-    PACKAGE_FILE_EXT = '.parq'
+    DATA_FILE_EXT = '.parq'
 
     def __init__(self, user, package, mode):
         if fastparquet is None:
@@ -406,12 +406,13 @@ class ParquetPackageStore(PackageStore):
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
         os.rename(storepath, objpath)
 
-    def get(self, path):
+    def dataframe(self, hash_list):
         """
-        Read a DataFrame to the store.
+        Creates a DataFrame from a set of objects (identified by hashes).
         """
-        fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
-        pfile = fastparquet.ParquetFile(fpath)
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        filehash = hash_list[0]
+        pfile = fastparquet.ParquetFile(self._object_path(filehash))
         return pfile.to_pandas()
 
     def get_hash(self):
@@ -440,13 +441,12 @@ class SparkPackageStore(ParquetPackageStore):
             raise StoreException("Module SparkSession from pyspark.sql is required for " +
                                  "SparkPackageStore.")
 
-    def get(self, path):
+    def dataframe(self, hash_list):
         """
-        Read a DataFrame to the store.
+        Creates a DataFrame from a set of objects (identified by hashes).
         """
         spark = SparkSession.builder.getOrCreate()
-        fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
-        df = spark.read.parquet(fpath)
+        df = spark.read.parquet(self._object_path(filehash))
         return df
 
 # Helper functions
