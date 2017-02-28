@@ -446,6 +446,8 @@ class SparkPackageStore(ParquetPackageStore):
         Creates a DataFrame from a set of objects (identified by hashes).
         """
         spark = SparkSession.builder.getOrCreate()
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        filehash = hash_list[0]
         df = spark.read.parquet(self._object_path(filehash))
         return df
 
