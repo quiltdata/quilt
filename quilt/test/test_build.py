@@ -26,7 +26,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         PATH = os.path.join(mydir, './build.yml')
-         build.build_package('test_hdf5', PACKAGE, PATH)
+        build.build_package('test_hdf5', PACKAGE, PATH)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
