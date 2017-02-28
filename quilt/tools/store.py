@@ -93,6 +93,18 @@ class PackageStore(object):
         """
         raise NotImplementedError()
 
+    def dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
+        raise NotImplementedError()
+
+    def save_df(self, df, name, path, ext, target):
+        """
+        Save a DataFrame to the store.
+        """
+        raise NotImplementedError()
+
     def get_contents(self):
         """
         Returns a dictionary with the contents of the package.
