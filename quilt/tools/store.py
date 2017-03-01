@@ -88,6 +88,9 @@ class PackageStore(object):
         pass
 
     def file(self, hash_list):
+        """
+        Returns the path to an object file that matches the given hash.
+        """
         assert isinstance(hash_list, list)
         assert len(hash_list) == 1, "File objects must be contained in one file."
         filehash = hash_list[0]
@@ -312,7 +315,7 @@ class PackageStore(object):
         ptr = contents
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
-            
+
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
@@ -329,7 +332,7 @@ class PackageStore(object):
                          metadata=dict(q_ext=ext,
                                        q_path=path,
                                        q_target=target)
-                         )
+                        )
 
         self.save_contents(contents)
 

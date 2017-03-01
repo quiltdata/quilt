@@ -78,7 +78,7 @@ def hash_contents(contents):
         elif obj_type is NodeType.GROUP:
             hash_int(len(obj) - 1)  # Skip the "$type"
             for key, child in sorted(iteritems(obj)):
-                assert isinstance(key, string_types), "key={key} type={type}".format(key=key, type=type(key))
+                assert isinstance(key, string_types)
                 if key != TYPE_KEY:
                     hash_str(key)
                     hash_object(child)
@@ -87,7 +87,7 @@ def hash_contents(contents):
 
     hash_int(len(contents))
     for key, obj in sorted(iteritems(contents)):
-        assert isinstance(key, string_types), "key={key} type={type}".format(key=key, type=type(key))
+        assert isinstance(key, string_types)
         hash_object(obj)
 
     return result.hexdigest()

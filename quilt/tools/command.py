@@ -493,6 +493,7 @@ def inspect(package):
             elif node_type is NodeType.TABLE:
                 fullname = "/".join([path, name])
                 df = store.get(fullname)
+                assert isinstance(df, pd.DataFrame)
                 info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
                 print(prefix + name_prefix + ": " + info)
             elif node_type is NodeType.FILE:
