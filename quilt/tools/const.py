@@ -6,6 +6,11 @@ from enum import Enum
 class NodeType(Enum):
     GROUP = 'GROUP'
     TABLE = 'TABLE'
+    FILE = 'FILE'
+
+class TargetType(Enum):
+    PANDAS = 'pandas'
+    FILE = 'file'
 
 TYPE_KEY = "$type"
 DATEF = '%F'

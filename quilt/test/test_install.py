@@ -12,7 +12,6 @@ import responses
 from quilt.tools import command
 from quilt.tools.const import HASH_TYPE, TYPE_KEY, NodeType
 from quilt.tools.hashing import hash_contents
-from quilt.tools.store import get_store
 
 from .utils import QuiltTestCase
 
@@ -48,9 +47,7 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd)
             assert file_contents == contents
 
-        store = get_store("foo", "bar")
-        with open('quilt_packages/objs/{hash}{ext}'.format(hash=obj_hash,
-                                                           ext=store.DATA_FILE_EXT)) as fd:
+        with open('quilt_packages/objs/{hash}'.format(hash=obj_hash)) as fd:
             file_contents = fd.read()
             assert file_contents == tabledata
 

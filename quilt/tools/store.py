@@ -4,6 +4,7 @@ Build: parse and add user-supplied files to store
 import json
 import os
 import re
+from shutil import copyfile
 import tempfile
 import zlib
 
@@ -20,7 +21,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TYPE_KEY
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType, TYPE_KEY
 from .hashing import digest_file, hash_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -86,12 +87,15 @@ class PackageStore(object):
     def __exit__(self, type, value, traceback):
         pass
 
-    @property
-    def DATA_FILE_EXT(self):
+    def file(self, hash_list):
         """
-        Return the format-specific object file extension
+        Returns the path to an object file that matches the given hash.
         """
-        raise NotImplementedError()
+        assert isinstance(hash_list, list)
+        assert len(hash_list) == 1, "File objects must be contained in one file."
+        filehash = hash_list[0]
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
+        return objpath
 
     def dataframe(self, hash_list):
         """
@@ -104,6 +108,18 @@ class PackageStore(object):
         Save a DataFrame to the store.
         """
         raise NotImplementedError()
+
+    def save_file(self, srcfile, name, path, target):
+        """
+        Save a (raw) file to the store.
+        """
+        self._find_path_write()
+        filehash = digest_file(srcfile)
+        fullname = name.lstrip('/').replace('/', '.')
+        self._add_to_contents(fullname, filehash, '', path, target)
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
+        if not os.path.exists(objpath):
+            copyfile(srcfile, objpath)
 
     def get_contents(self):
         """
@@ -133,15 +149,9 @@ class PackageStore(object):
         with open(self._path, 'w') as contents_file:
             json.dump(contents, contents_file)
 
-    def keys(self, prefix):
-        """
-        Returns a list of package contents.
-        """
-        return self.get_contents().keys()
-
     def get(self, path):
         """
-        Read a DataFrame from the store.
+        Read a group or object from the store.
         """
         if not self.exists():
             raise StoreException("Package not found")
@@ -161,11 +171,15 @@ class PackageStore(object):
             ptr = ptr[node]
         node = ptr
 
-        if NodeType(node[TYPE_KEY]) is NodeType.TABLE:
-            hash_list = node['hashes']
-            return self.dataframe(hash_list)
-        else:
+        node_type = NodeType(node[TYPE_KEY])
+        if node_type is NodeType.GROUP:
             return node
+        elif node_type is NodeType.TABLE:
+            return self.dataframe(node['hashes'])
+        elif node_type is NodeType.FILE:
+            return self.file(node['hashes'])
+        else:
+            assert False, "Unhandled NodeType {nt}".format(nt=node_type)
 
     def get_hash(self):
         """
@@ -214,7 +228,7 @@ class PackageStore(object):
 
                 local_filename = os.path.join(self._pkg_dir,
                                               self.OBJ_DIR,
-                                              download_hash + self.DATA_FILE_EXT)
+                                              download_hash)
 
                 with open(local_filename, 'wb') as output_file:
                     # `requests` will automatically un-gzip the content, as long as
@@ -247,7 +261,7 @@ class PackageStore(object):
         """
         Returns the path to an object file based on its hash.
         """
-        return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash + self.DATA_FILE_EXT)
+        return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
 
     def _find_path_read(self):
         """
@@ -298,18 +312,29 @@ class PackageStore(object):
         """
         contents = self.get_contents()
         ipath = fullname.split('.')
-        dfname = ipath.pop()
+        leaf = ipath.pop()
 
         ptr = contents
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
 
-        ptr[dfname] = dict({TYPE_KEY: NodeType.TABLE.value},
-                           hashes=[objhash],
-                           metadata=dict(q_ext=ext,
-                                         q_path=path,
-                                         q_target=target)
-                          )
+        try:
+            target_type = TargetType(target)
+            if target_type is TargetType.PANDAS:
+                node_type = NodeType.TABLE
+            elif target_type is TargetType.FILE:
+                node_type = NodeType.FILE
+            else:
+                assert False, "Unhandled TargetType {tt}".format(tt=target_type)
+        except ValueError:
+            raise StoreException("Unrecognized target {tgt}".format(tgt=target))
+
+        ptr[leaf] = dict({TYPE_KEY: node_type.value},
+                         hashes=[objhash],
+                         metadata=dict(q_ext=ext,
+                                       q_path=path,
+                                       q_target=target)
+                        )
 
         self.save_contents(contents)
 
@@ -323,13 +348,6 @@ class HDF5PackageStore(PackageStore):
     def __init__(self, user, package, mode):
         super(HDF5PackageStore, self).__init__(user, package, mode)
         self.__store = None
-
-    @property
-    def DATA_FILE_EXT(self):
-        """
-        Return the format-specific object file extension
-        """
-        return '.h5'
 
     def dataframe(self, hash_list):
         """
@@ -376,14 +394,13 @@ class HDF5PackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
+        storepath = os.path.join(self._pkg_dir, buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
         os.rename(storepath, objpath)
-
 
     @classmethod
     def ls_packages(cls, pkg_dir):
@@ -407,25 +424,18 @@ class ParquetPackageStore(PackageStore):
             raise StoreException("Module fastparquet is required for ParquetPackageStore.")
         super(ParquetPackageStore, self).__init__(user, package, mode)
 
-    @property
-    def DATA_FILE_EXT(self):
-        """
-        Return the format-specific object file extension
-        """
-        return '.parq'
-
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile + self.DATA_FILE_EXT)
+        storepath = os.path.join(self._pkg_dir, buildfile)
         fastparquet.write(storepath, df)
 
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash + self.DATA_FILE_EXT)
+        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
         os.rename(storepath, objpath)
 
     def dataframe(self, hash_list):
