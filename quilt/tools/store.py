@@ -118,7 +118,8 @@ class PackageStore(object):
         fullname = name.lstrip('/').replace('/', '.')
         self._add_to_contents(fullname, filehash, '', path, target)
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        copyfile(srcfile, objpath)
+        if not os.path.exists(objpath):
+            copyfile(srcfile, objpath)
 
     def get_contents(self):
         """
@@ -170,11 +171,12 @@ class PackageStore(object):
             ptr = ptr[node]
         node = ptr
 
-        if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
+        node_type = NodeType(node[TYPE_KEY])
+        if node_type is NodeType.GROUP:
             return node
-        elif NodeType(node[TYPE_KEY]) is NodeType.TABLE:
+        elif node_type is NodeType.TABLE:
             return self.dataframe(node['hashes'])
-        elif NodeType(node[TYPE_KEY]) is NodeType.FILE:
+        elif node_type is NodeType.FILE:
             return self.file(node['hashes'])
         else:
             raise NotImplementedError()
@@ -323,7 +325,7 @@ class PackageStore(object):
             elif target_type is TargetType.FILE:
                 node_type = NodeType.FILE
             else:
-                raise NotImplementedError()
+                raise NotImplementedError("Unrecognized TargetType {tt}".format(tt=target_type))
         except (ValueError, NotImplementedError):
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 

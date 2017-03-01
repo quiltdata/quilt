@@ -4,8 +4,6 @@ Helper functions.
 
 from appdirs import user_data_dir
 
-from .const import NodeType
-
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)

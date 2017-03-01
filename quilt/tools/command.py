@@ -500,7 +500,7 @@ def inspect(package):
                 fullname = "/".join([path, name])
                 print(prefix + name_prefix + name)
             else:
-                print(prefix + name_prefix + ": " + str(node))
+                raise NotImplementedError("Unsupported NodeType {nt}".format(node_type))
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 

@@ -84,8 +84,7 @@ class Node(object):
         """
         group = self._store.get(self._prefix)
         assert isinstance(group, dict), "{type} {grp}".format(type=type(group), grp=group)
-        assert TYPE_KEY in group
-        group.pop(TYPE_KEY)
+        del group[TYPE_KEY]
         return group.keys()
 
 
