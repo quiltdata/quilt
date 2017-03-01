@@ -179,7 +179,7 @@ class PackageStore(object):
         elif node_type is NodeType.FILE:
             return self.file(node['hashes'])
         else:
-            raise NotImplementedError()
+            assert False, "Unhandled NodeType {nt}".format(nt=node_type)
 
     def get_hash(self):
         """
@@ -325,8 +325,8 @@ class PackageStore(object):
             elif target_type is TargetType.FILE:
                 node_type = NodeType.FILE
             else:
-                raise NotImplementedError("Unrecognized TargetType {tt}".format(tt=target_type))
-        except (ValueError, NotImplementedError):
+                assert False, "Unhandled TargetType {tt}".format(tt=target_type)
+        except ValueError:
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 
         ptr[leaf] = dict({TYPE_KEY: node_type.value},
