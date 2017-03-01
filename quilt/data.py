@@ -19,6 +19,7 @@ import os.path
 import sys
 
 from .tools.build import get_store
+from .tools.const import TYPE_KEY
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
@@ -81,7 +82,12 @@ class Node(object):
         """
         keys directly accessible on this object via getattr or .
         """
-        return self._store.keys(self._prefix)
+        group = self._store.get(self._prefix)
+        assert isinstance(group, dict), "{type} {grp}".format(type=type(group), grp=group)
+        assert TYPE_KEY in group
+        group.pop(TYPE_KEY)
+        return group.keys()
+
 
 class FakeLoader(object):
     """

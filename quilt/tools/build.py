@@ -13,7 +13,7 @@ class BuildException(Exception):
 
 def _build_file(build_dir, store, name, rel_path, target='file'):
     path = os.path.join(build_dir, rel_path)
-    store.save_file(name, path)
+    store.save_file(path, name, name, target)
 
 def _build_table(build_dir, store, name, table, target='pandas'):
     if isinstance(table, list):
@@ -89,11 +89,14 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
     tables = data.get('tables')
-    format = data.get('format', None)
+    format = data.get('format')
+    files = data.get('files')
+    readme = files.get('README') if files else None
     if not isinstance(tables, dict):
         raise BuildException("'tables' must be a dictionary")
 
     with get_store(username, package, format, 'w') as store:
         store.clear_contents()
         _build_table(build_dir, store, '', tables)
-
+        if readme is not None:
+            _build_file(build_dir, store, 'README', rel_path=readme)
