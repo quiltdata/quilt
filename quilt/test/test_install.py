@@ -8,6 +8,7 @@ import os
 
 import requests
 import responses
+from six import assertRaisesRegex
 
 from quilt.tools import command
 from quilt.tools.const import HASH_TYPE, TYPE_KEY, NodeType
@@ -19,9 +20,6 @@ class InstallTest(QuiltTestCase):
     """
     Unit tests for quilt install.
     """
-    # Note: we're using the deprecated `assertRaisesRegexp` method because
-    # the new one, `assertRaisesRegex`, is not present in Python2.
-
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -71,7 +69,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(obj_hash, tabledata)
 
         session = requests.Session()
-        with self.assertRaisesRegexp(command.CommandException, "Mismatched hash"):
+        with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install(session, 'foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
@@ -95,7 +93,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(obj_hash, tabledata)
 
         session = requests.Session()
-        with self.assertRaisesRegexp(command.CommandException, "Mismatched hash"):
+        with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install(session, 'foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
@@ -108,7 +106,7 @@ class InstallTest(QuiltTestCase):
         )))
 
     def _mock_package(self, package, pkg_hash, contents, hashes):
-        pkg_url = '%s/api/package/foo/bar/%s' % (command.QUILT_PKG_URL, pkg_hash)
+        pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,
             urls={h: 'https://example.com/%s' % h for h in hashes}

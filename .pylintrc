@@ -4,3 +4,10 @@ extension-pkg-whitelist=numpy
 [TYPECHECK]
 generated-members=requests.codes.*,responses.*
 ignored-modules=quilt.data
+
+[BASIC]
+variable-rgx=[a-z_][a-z0-9_]{0,30}$
+variable-name-hint=[a-z_][a-z0-9_]{0,30}$
+
+[VARIABLES]
+redefining-builtins-modules=six.moves,builtins
