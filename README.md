@@ -52,7 +52,7 @@
 ## DB Migrations
 Create a new migrations file:
 
-    flask db migrate -m "[description your changes]"
+    flask db migrate -m "[description of your changes]"
 
 Edit the file, then apply the migration:
 
