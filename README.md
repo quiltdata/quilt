@@ -52,9 +52,9 @@
 ## DB Migrations
 Create a new migrations file:
 
-    flask db migrate
+    flask db migrate -m "[description your changes]"
 
-Apply the migration:
+Edit the file, then apply the migration:
 
     flask db upgrade
 

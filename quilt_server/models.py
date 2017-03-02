@@ -45,6 +45,12 @@ class Instance(db.Model):
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), nullable=False)
     hash = db.Column(db.String(64), nullable=False)
 
+    created_date = db.Column(db.DateTime, default=db.func.utc_timestamp(), nullable=False)
+    created_by = db.Column(USERNAME_TYPE, nullable=False)
+    modified_date = db.Column(db.DateTime, default=db.func.utc_timestamp(),
+                              onupdate=db.func.utc_timestamp(), nullable=False)
+    modified_by = db.Column(USERNAME_TYPE, nullable=False)
+
     # Contents can be a potentially large JSON blob, so store it as
     # MEDIUMTEXT rather than VARCHAR, and load lazily.
     contents = deferred(db.Column(mysql.MEDIUMTEXT(collation=UTF8_BIN), nullable=False))
