@@ -419,9 +419,20 @@ class ArrowPackageStore(PackageStore):
         """
         Read a DataFrame to the store.
         """
+        nt = 8
         fpath = self.get_path() + path + self.PACKAGE_FILE_EXT
-        table = parquet.read_table(fpath)
-        return table.to_pandas()
+        starttime = time.time()
+        table = parquet.read_table(fpath, nthreads=nt)
+        finishtime = time.time()
+        elapsed = finishtime - starttime
+        print("Read {path} in {time}s with {nt} threads".format(path=path, time=elapsed, nt=nt))
+
+        starttime = time.time()
+        df = table.to_pandas()
+        finishtime = time.time()
+        elapsed = finishtime - starttime
+        print("Converted to pandas in {time}s".format(time=elapsed))
+        return df
 
     def get_hash(self):
         raise StoreException("Not Implemented")
