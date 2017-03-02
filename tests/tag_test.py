@@ -73,6 +73,8 @@ class TagTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
         assert data['hash'] == self.hashes[0]
+        assert data['created_by'] == data['updated_by'] == self.user
+        assert data['created_at'] == data['updated_at']
 
     def testMultipleTags(self):
         # Add a few tags.

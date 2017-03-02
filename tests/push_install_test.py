@@ -142,6 +142,8 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         contents = data['contents']
         assert contents == self.CONTENTS
+        assert data['created_by'] == data['updated_by'] == 'test_user'
+        assert data['created_at'] == data['updated_at']
         urls = data['urls']
         assert len(urls) == 2
 
