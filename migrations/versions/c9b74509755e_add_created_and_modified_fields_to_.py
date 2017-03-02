@@ -18,9 +18,9 @@ depends_on = None
 
 def upgrade():
     op.add_column('instance', sa.Column('created_by', mysql.VARCHAR(collation='utf8_bin', length=64), nullable=False))
-    op.add_column('instance', sa.Column('created_date', sa.DateTime(), nullable=False))
-    op.add_column('instance', sa.Column('modified_by', mysql.VARCHAR(collation='utf8_bin', length=64), nullable=False))
-    op.add_column('instance', sa.Column('modified_date', sa.DateTime(), nullable=False))
+    op.add_column('instance', sa.Column('created_at', sa.DateTime(), nullable=False))
+    op.add_column('instance', sa.Column('updated_by', mysql.VARCHAR(collation='utf8_bin', length=64), nullable=False))
+    op.add_column('instance', sa.Column('updated_at', sa.DateTime(), nullable=False))
 
     op.execute("""
         UPDATE instance JOIN (
@@ -29,12 +29,12 @@ def upgrade():
             GROUP BY instance_id
         ) log
         ON id = instance_id
-        SET created_date = min_created, created_by = author,
-            modified_date = max_created, modified_by = author
+        SET created_at = min_created, created_by = author,
+            updated_at = max_created, updated_by = author
     """)
 
 def downgrade():
-    op.drop_column('instance', 'modified_date')
-    op.drop_column('instance', 'modified_by')
-    op.drop_column('instance', 'created_date')
+    op.drop_column('instance', 'updated_at')
+    op.drop_column('instance', 'updated_by')
+    op.drop_column('instance', 'created_at')
     op.drop_column('instance', 'created_by')

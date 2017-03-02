@@ -260,7 +260,7 @@ def package_put(auth_user, owner, package_name, package_hash):
             contents=json.dumps(contents),
             hash=package_hash,
             created_by=auth_user,
-            modified_by=auth_user
+            updated_by=auth_user
         )
 
         # Add all the hashes that don't exist yet.
@@ -286,7 +286,7 @@ def package_put(auth_user, owner, package_name, package_hash):
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
         instance.contents = json.dumps(contents)
-        instance.modified_by = auth_user
+        instance.updated_by = auth_user
 
     db.session.add(instance)
 
@@ -356,9 +356,9 @@ def package_get(auth_user, owner, package_name, package_hash):
         contents=contents,
         urls=urls,
         created_by=instance.created_by,
-        created_date=instance.created_date,
-        modified_by=instance.modified_by,
-        modified_date=instance.modified_date,
+        created_at=instance.created_at,
+        updated_by=instance.updated_by,
+        updated_at=instance.updated_at,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -505,9 +505,9 @@ def version_get(auth_user, owner, package_name, package_version):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_date=instance.created_date,
-        modified_by=instance.modified_by,
-        modified_date=instance.modified_date,
+        created_at=instance.created_at,
+        updated_by=instance.updated_by,
+        updated_at=instance.updated_at,
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
@@ -614,9 +614,9 @@ def tag_get(auth_user, owner, package_name, package_tag):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_date=instance.created_date,
-        modified_by=instance.modified_by,
-        modified_date=instance.modified_date,
+        created_at=instance.created_at,
+        updated_by=instance.updated_by,
+        updated_at=instance.updated_at,
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
