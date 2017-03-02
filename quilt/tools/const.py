@@ -1,9 +1,25 @@
 """
 Constants
 """
-
 from enum import Enum
 
+class NodeType(Enum):
+    GROUP = 'GROUP'
+    TABLE = 'TABLE'
+    FILE = 'FILE'
+
+class TargetType(Enum):
+    PANDAS = 'pandas'
+    FILE = 'file'
+
+class PackageFormat(Enum):    
+    HDF5 = 'HDF5'
+    FASTPARQUET = 'FAST_PARQUET'
+    ARROW = 'ARROW_PARQUET'
+    SPARK = 'SPARK_PARQUET'
+    default = HDF5
+
+TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
@@ -14,15 +30,6 @@ LATEST_TAG = 'latest'
 HASH_TYPE = 'sha256'
 # RSA digital signature key Size
 RSA_BITS = 2048
-
-
-class PackageFormat(Enum):    
-    HDF5 = 'HDF5'
-    FASTPARQUET = 'FAST_PARQUET'
-    ARROW = 'ARROW_PARQUET'
-    SPARK = 'SPARK_PARQUET'
-    default = HDF5
-
     
 # TODO nan probably not a safe choice and may pollute number cols with strs
 NA_VALS = ['nan']

@@ -36,6 +36,7 @@ setup(
     install_requires=[
         'appdirs>=1.4.0',
         'future>=0.16.0',
+        'packaging>=16.8',
         'pandas>=0.19.2',
         'pyOpenSSL>=16.2.0',
         'pyyaml>=3.12',

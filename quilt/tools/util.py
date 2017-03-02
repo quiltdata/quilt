@@ -1,8 +1,6 @@
 """
 Helper functions.
 """
-import os.path
-import re
 
 from appdirs import user_data_dir
 

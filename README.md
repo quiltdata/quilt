@@ -1,10 +1,5 @@
-# This is alpha software
-It will eventually be awesome. Until then we welcome your contributions.
-If you hit any snags or want to chat, please find us via
-the little orange chat icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
-
-We're three engineers with a strong commitment to quality but a long list of things
-to do :)
+# Help
+Chat with us via the orange icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
 
 # Overview
 [Quilt](https://beta.quiltdata.com/) is a data package manager.
@@ -40,11 +35,12 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 # Tutorial
 
 ## Install `quilt`
-- `pip install quilt`
+- `pip install git+https://github.com/quiltdata/quilt.git` (more up-to-date than `pip install quilt`)
 
 ## Install a package
 Let's install a public package containing wine quality data from the UCI Machine
 Learning Repository.
+- `quilt login`
 - `quilt install akarve/wine`
 
 Now let's fire up Python and import the package.
@@ -172,13 +168,22 @@ If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`
 * `quilt login`
 * `quilt build USER/PACKAGE FILE.YML`
 * `quilt push USER/PACKAGE` stores the package in the registry
+* `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to set access
+* `quilt log USER/PACKAGE` to see all changes to a package
+* `quilt version list USER/PACKAGE` to see versions of a package
+* `quilt version add USER/PACKAGE VERSION HASH` to create a new version
+* `quilt tag list USER/PACKAGE` to see tags of a package
+* `quilt tag add USER/PACKAGE TAG HASH` to create a new tag
+* `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Developer
-- `pip install pylint pytest`
+- `pip install pylint pytest pytest-cov`
 - `pytest` will run any `test_*` files in any subdirectory
-- All new modules, files, and functions should have a corresponding test
+- All new modules, files, and functions should have a corresponding test 
+- Track test code coverage by running: `python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v`
+- View coverage results by opening cov_html/index.html
 
 ## Local installation
 1. `git clone https://github.com/quiltdata/quilt.git`

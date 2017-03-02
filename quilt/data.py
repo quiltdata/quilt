@@ -19,6 +19,7 @@ import os.path
 import sys
 
 from .tools.build import get_store
+from .tools.const import TYPE_KEY
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
@@ -59,15 +60,15 @@ class Node(object):
 
     def _get_store_obj(self, path):
         try:
-            with self._store:
-                return self._store.get(path)
+            obj = self._store.get(path)
         except KeyError:
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
-        except TypeError:
-            # This is awful, but that's what happens when the object being looked up
-            # is a group rather than a table.
+
+        if isinstance(obj, dict):
             return Node(self._store, path)
+        else:
+            return obj
 
     def _groups(self):
         """
@@ -81,7 +82,11 @@ class Node(object):
         """
         keys directly accessible on this object via getattr or .
         """
-        return self._store.keys(self._prefix)
+        group = self._store.get(self._prefix)
+        assert isinstance(group, dict), "{type} {grp}".format(type=type(group), grp=group)
+        del group[TYPE_KEY]
+        return group.keys()
+
 
 class FakeLoader(object):
     """
@@ -142,6 +147,7 @@ class ModuleFinder(object):
 
         if len(parts) == 1:
             for package_dir in PackageStore.find_package_dirs():
+                # find contents
                 file_path = os.path.join(package_dir, parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
