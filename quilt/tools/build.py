@@ -23,8 +23,10 @@ def _build_table(build_dir, store, name, table, target='pandas'):
         ext, rel_path = table
         path = os.path.join(build_dir, rel_path)
         # read source file into DataFrame
+        print("Reading %s..." % path)
         df = _file_to_data_frame(ext, path, target)
         # serialize DataFrame to file(s)
+        print("Writing the dataframe...")
         store.save_df(df, name, path, ext, target)
 
     elif isinstance(table, dict):
