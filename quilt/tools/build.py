@@ -2,8 +2,10 @@ import os
 
 import yaml
 import pandas as pd
+
 from .store import get_store, VALID_NAME_RE, StoreException
 from .const import TARGET
+from .util import FileWithReadProgress
 
 class BuildException(Exception):
     """
@@ -59,7 +61,8 @@ def _file_to_data_frame(ext, path, target):
     df = None
     try_again = False
     try:
-        df = handler(path, **kwargs)
+        with FileWithReadProgress(path) as fd:
+            df = handler(fd, **kwargs)
     except UnicodeDecodeError as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path
@@ -73,7 +76,8 @@ def _file_to_data_frame(ext, path, target):
         failover_args = {}
         failover_args.update(failover)
         failover_args.update(kwargs)
-        df = handler(path, **failover_args)
+        with FileWithReadProgress(path) as fd:
+            df = handler(fd, **failover_args)
 
     return df
 
