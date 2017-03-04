@@ -108,9 +108,10 @@ def build_package(username, package, yaml_path):
             _build_file(build_dir, store, 'README', rel_path=readme)
 
 def generate_build_file(startpath):
-    contents = {}
+    buildfiles = {}
+    buildtables = {}
     
-    def add_to_contents(path, files):
+    def add_to_contents(contents, path, files):
         ptr = contents
         for dir in path:
             if dir not in ptr:
@@ -123,10 +124,27 @@ def generate_build_file(startpath):
     for root, dirs, files in os.walk(startpath):
         rel_path = os.path.relpath(root, startpath)
         path = rel_path.split(os.sep)
-        add_to_contents(path, files)
+        # separate files
+        tablefiles = []
+        rawfiles = []
+        for file in files:
+            try:
+                name, ext = file.split('.')
+                if ext.lower() in TARGET['pandas']:
+                    tablefiles.append(file)
+                else:
+                    rawfiles.append(file)
+            except ValueError:
+                # File with no extension
+                rawfiles.append(file)
+
+        add_to_contents(buildtables, path, tablefiles)
+        add_to_contents(buildfiles, path, rawfiles)
+
+    for contents in [buildfiles, buildtables]:
+        if '.' in contents:
+            for key in contents['.']:
+                contents[key] = contents['.'][key]
+            del contents['.']
         
-    if '.' in contents:
-        for key in contents['.']:
-            contents[key] = contents['.'][key]
-        del contents['.']
-    return dict(files=contents)
+    return dict(files=buildfiles, tables=buildtables)
