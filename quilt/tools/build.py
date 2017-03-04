@@ -107,29 +107,51 @@ def build_package(username, package, yaml_path):
         if readme is not None:
             _build_file(build_dir, store, 'README', rel_path=readme)
 
-def generate_build_file(startpath):
+def generate_build_file(startpath, outfilename='build.yml'):
     buildfiles = {}
     buildtables = {}
     
-    def add_to_contents(contents, path, files):
-        ptr = contents
+    def add_to_buildfiles(path, files):
+        ptr = buildfiles
         for dir in path:
             if dir not in ptr:
                 ptr[dir] = {}
             ptr = ptr[dir]
         for file in files:
             fullpath = "/".join(path + [file])
-            ptr[file] = ["file", fullpath]
+            name, ext = file.split('.')
+            ptr[name] = fullpath
+
+    def add_to_buildtables(path, files):
+        ptr = buildtables
+        for dir in path:
+            if dir not in ptr:
+                ptr[dir] = {}
+            ptr = ptr[dir]
+        for file in files:
+            fullpath = "/".join(path + [file])
+            name, ext = file.split('.')
+            ptr[name] = [ext.lower(), fullpath]
+
     
     for root, dirs, files in os.walk(startpath):
+        # skip hidden directories
+        for d in dirs:
+            if d.startswith('.'):
+                dirs.remove(d)
+        
         rel_path = os.path.relpath(root, startpath)
         path = rel_path.split(os.sep)
-        # separate files
+
         tablefiles = []
         rawfiles = []
         for file in files:
+            # skip hidden files
+            if file.startswith('.'):
+                continue
             try:
                 name, ext = file.split('.')
+                # separate files into tables and raw
                 if ext.lower() in TARGET['pandas']:
                     tablefiles.append(file)
                 else:
@@ -138,13 +160,16 @@ def generate_build_file(startpath):
                 # File with no extension
                 rawfiles.append(file)
 
-        add_to_contents(buildtables, path, tablefiles)
-        add_to_contents(buildfiles, path, rawfiles)
+        add_to_buildfiles(path, rawfiles)
+        add_to_buildtables(path, tablefiles)
 
     for contents in [buildfiles, buildtables]:
         if '.' in contents:
             for key in contents['.']:
                 contents[key] = contents['.'][key]
             del contents['.']
-        
-    return dict(files=buildfiles, tables=buildtables)
+
+    contents = dict(files=buildfiles, tables=buildtables)
+    with open(outfilename, 'w') as outfile:
+        yaml.dump(contents, outfile)
+    return contents
