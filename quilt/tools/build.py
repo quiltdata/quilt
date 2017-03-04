@@ -106,3 +106,27 @@ def build_package(username, package, yaml_path):
         _build_table(build_dir, store, '', tables)
         if readme is not None:
             _build_file(build_dir, store, 'README', rel_path=readme)
+
+def generate_build_file(startpath):
+    contents = {}
+    
+    def add_to_contents(path, files):
+        ptr = contents
+        for dir in path:
+            if dir not in ptr:
+                ptr[dir] = {}
+            ptr = ptr[dir]
+        for file in files:
+            fullpath = "/".join(path + [file])
+            ptr[file] = ["file", fullpath]
+    
+    for root, dirs, files in os.walk(startpath):
+        rel_path = os.path.relpath(root, startpath)
+        path = rel_path.split(os.sep)
+        add_to_contents(path, files)
+        
+    if '.' in contents:
+        for key in contents['.']:
+            contents[key] = contents['.'][key]
+        del contents['.']
+    return dict(files=contents)
