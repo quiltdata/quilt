@@ -17,7 +17,7 @@ import pandas as pd
 import requests
 from packaging.version import Version
 
-from .build import build_package, BuildException
+from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG, NodeType, TYPE_KEY
 from .hashing import hash_contents
 from .store import PackageStore, StoreException, get_store, ls_packages
@@ -171,8 +171,14 @@ def build(package, path, directory=None):
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
+    if directory:
+        buildfilepath = generate_build_file(directory)
+        buildpath = buildfilepath
+    else:
+        buildpath = path
+    
     try:
-        build_package(owner, pkg, path)
+        build_package(owner, pkg, buildpath)
         print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)

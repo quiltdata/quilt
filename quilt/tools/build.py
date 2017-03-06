@@ -1,4 +1,5 @@
 import os
+import re
 
 import yaml
 import pandas as pd
@@ -12,6 +13,22 @@ class BuildException(Exception):
     Build-time exception class
     """
     pass
+
+def _pythonize_name(name):
+    # Horrible HACK
+    if name == '.':
+        return name
+    
+    safename = re.sub('[^A-Za-z0-9_]+', '_', name)
+    starts_w_number = re.match('^[0-9].*', safename)
+    if starts_w_number:
+        safename = ("a%s" % safename)
+
+    safename = safename.rstrip('_')
+    safename = safename.lstrip('_')
+    msg = "Generated illegal name {sf} from {nm}"
+    assert VALID_NAME_RE.match(safename), msg.format(sf=safename, nm=name)
+    return safename
 
 def _build_file(build_dir, store, name, rel_path, target='file'):
     path = os.path.join(build_dir, rel_path)
@@ -119,19 +136,24 @@ def generate_build_file(startpath, outfilename='build.yml'):
             ptr = ptr[dir]
         for file in files:
             fullpath = "/".join(path + [file])
-            name, ext = file.split('.')
-            ptr[name] = fullpath
+            if '.' in file:
+                name, ext = file.split('.')
+            else:
+                name = file
+            ptr[_pythonize_name(name)] = fullpath
 
     def add_to_buildtables(path, files):
         ptr = buildtables
         for dir in path:
             if dir not in ptr:
-                ptr[dir] = {}
+                # pythonize dir
+                ptr[_pythonize_name(dir)] = {}
             ptr = ptr[dir]
         for file in files:
             fullpath = "/".join(path + [file])
             name, ext = file.split('.')
-            ptr[name] = [ext.lower(), fullpath]
+            # pythonize name
+            ptr[_pythonize_name(name)] = [ext.lower(), fullpath]
 
     
     for root, dirs, files in os.walk(startpath):
@@ -170,6 +192,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
             del contents['.']
 
     contents = dict(files=buildfiles, tables=buildtables)
-    with open(outfilename, 'w') as outfile:
+    buildfilepath = os.path.join(startpath, outfilename)
+    with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile)
-    return contents
+    return buildfilepath
