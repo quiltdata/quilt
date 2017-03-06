@@ -166,7 +166,7 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path):
+def build(package, path, directory=None):
     """
     Compile a Quilt data package
     """
@@ -534,7 +534,9 @@ def main():
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
-    build_p.add_argument("path", type=str, help="Path to the Yaml build file")
+    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
+    buildpath_group.add_argument("-d", "--directory", type=str, help="Source file directory")
+    buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
     build_p.set_defaults(func=build, need_session=False)
 
     push_p = subparsers.add_parser("push")
