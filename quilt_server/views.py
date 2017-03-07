@@ -21,6 +21,8 @@ from .const import PUBLIC
 from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
 from .schemas import find_object_hashes, PACKAGE_SCHEMA, hash_contents
 
+QUILT_CDN = 'https://cdn.quiltdata.com/'
+
 OAUTH_BASE_URL = app.config['OAUTH']['base_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
 OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
@@ -66,7 +68,7 @@ def oauth_callback():
 
     error = request.args.get('error')
     if error is not None:
-        return render_template('oauth_fail.html', error=error)
+        return render_template('oauth_fail.html', error=error, QUILT_CDN=QUILT_CDN)
 
     code = request.args.get('code')
     if code is None:
@@ -79,9 +81,9 @@ def oauth_callback():
             code=code,
             client_secret=OAUTH_CLIENT_SECRET
         )
-        return render_template('oauth_success.html', code=resp['refresh_token'])
+        return render_template('oauth_success.html', code=resp['refresh_token'], QUILT_CDN=QUILT_CDN)
     except OAuth2Error as ex:
-        return render_template('oauth_fail.html', error=ex.error)
+        return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
 
 @app.route('/api/token', methods=['POST'])
 @as_json
