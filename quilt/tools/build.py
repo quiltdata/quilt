@@ -14,7 +14,7 @@ class BuildException(Exception):
     """
     pass
 
-def _pythonize_name(name):   
+def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
     starts_w_number = re.match('^[0-9].*', safename)
     if starts_w_number:
@@ -125,7 +125,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
     startbase = os.path.basename(startpath)
     buildfiles = {startbase : {}}
     buildtables = {startbase : {}}
-    
+
     def add_to_buildfiles(path, files):
         try:
             safepath = [_pythonize_name(dir) if dir != '.' else '.' for dir in path]
@@ -133,7 +133,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
             warning = "Warning: could not determine a Python-legal name for {path}; skipping."
             print(warning.format(path=os.sep.join(path)))
             return
-        
+
         ptr = buildfiles
         for dir in path:
             if dir not in ptr:
@@ -155,28 +155,28 @@ def generate_build_file(startpath, outfilename='build.yml'):
             warning = "Warning: could not determine a Python-legal name for {path}; skipping."
             print(warning.format(path=os.sep.join(path)))
             return
-        
+
         ptr = buildtables
-        for dir in safepath:
-            if dir not in ptr:
-                # pythonize dir
-                ptr[dir] = {}
-            ptr = ptr[dir]
+        for folder in safepath:
+            if folder not in ptr:
+                # pythonize folder
+                ptr[folder] = {}
+            ptr = ptr[folder]
         for file in files:
             fullpath = "/".join(path + [file])
             name, ext = file.split('.')
             # pythonize name
             ptr[_pythonize_name(name)] = [ext.lower(), fullpath]
-    
+
     for root, dirs, files in os.walk(startpath):
         # skip hidden directories
         for d in dirs:
             if d.startswith('.'):
                 dirs.remove(d)
-        
+
         rel_path = os.path.relpath(root, startpath)
-        path = rel_path.split(os.sep)       
-        
+        path = rel_path.split(os.sep)
+
         tablefiles = []
         rawfiles = []
         for file in files:

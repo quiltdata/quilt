@@ -176,7 +176,7 @@ def build(package, path, directory=None):
         buildpath = buildfilepath
     else:
         buildpath = path
-    
+
     try:
         build_package(owner, pkg, buildpath)
         print("Built %s/%s successfully." % (owner, pkg))

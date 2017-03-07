@@ -62,3 +62,13 @@ class BuildTest(QuiltTestCase):
             'Expected dataframes to have same # columns'
         del os.environ["QUILT_PACKAGE_FORMAT"]
         # TODO add more integrity checks, incl. negative test cases
+
+    def test_generate_buildfile(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath)
+        build.generate_build_file(path)
+        assert os.path.exists(buildfilepath)
+        build.build_package('test_hdf5', 'generated', buildfilepath)    
+        os.remove(buildfilepath)
