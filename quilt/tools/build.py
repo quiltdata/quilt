@@ -14,7 +14,7 @@ class BuildException(Exception):
     """
     pass
 
-def _pythonize_name(name):
+def _pythonize_name(name):   
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
     starts_w_number = re.match('^[0-9].*', safename)
     if starts_w_number:
@@ -127,6 +127,13 @@ def generate_build_file(startpath, outfilename='build.yml'):
     buildtables = {startbase : {}}
     
     def add_to_buildfiles(path, files):
+        try:
+            safepath = [_pythonize_name(dir) if dir != '.' else '.' for dir in path]
+        except BuildException:
+            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
+            print(warning.format(path=os.sep.join(path)))
+            return
+        
         ptr = buildfiles
         for dir in path:
             if dir not in ptr:
@@ -142,8 +149,15 @@ def generate_build_file(startpath, outfilename='build.yml'):
             ptr[_pythonize_name(name)] = fullpath
 
     def add_to_buildtables(path, files):
+        try:
+            safepath = [_pythonize_name(dir) if dir != '.' else '.' for dir in path]
+        except BuildException:
+            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
+            print(warning.format(path=os.sep.join(path)))
+            return
+        
         ptr = buildtables
-        for dir in path:
+        for dir in safepath:
             if dir not in ptr:
                 # pythonize dir
                 ptr[dir] = {}
@@ -159,13 +173,10 @@ def generate_build_file(startpath, outfilename='build.yml'):
         for d in dirs:
             if d.startswith('.'):
                 dirs.remove(d)
-            elif not VALID_NAME_RE.match(d):
-                print("Warning: \"%s\" is not a legal name in Python, skipping." % d)
-                dirs.remove(d)
         
         rel_path = os.path.relpath(root, startpath)
-        path = rel_path.split(os.sep)
-
+        path = rel_path.split(os.sep)       
+        
         tablefiles = []
         rawfiles = []
         for file in files:
@@ -183,8 +194,11 @@ def generate_build_file(startpath, outfilename='build.yml'):
                 # File with no extension
                 rawfiles.append(file)
 
-        add_to_buildfiles(path, rawfiles)
-        add_to_buildtables(path, tablefiles)
+        if rawfiles:
+            add_to_buildfiles(path, rawfiles)
+
+        if tablefiles:
+            add_to_buildtables(path, tablefiles)
 
     for contents in [buildfiles, buildtables]:
         if '.' in contents:
