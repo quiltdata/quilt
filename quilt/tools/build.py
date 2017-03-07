@@ -15,10 +15,6 @@ class BuildException(Exception):
     pass
 
 def _pythonize_name(name):
-    # Horrible HACK
-    if name == '.':
-        return name
-    
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
     starts_w_number = re.match('^[0-9].*', safename)
     if starts_w_number:
@@ -125,8 +121,9 @@ def build_package(username, package, yaml_path):
             _build_file(build_dir, store, 'README', rel_path=readme)
 
 def generate_build_file(startpath, outfilename='build.yml'):
-    buildfiles = {}
-    buildtables = {}
+    startbase = os.path.basename(startpath)
+    buildfiles = {startbase : {}}
+    buildtables = {startbase : {}}
     
     def add_to_buildfiles(path, files):
         ptr = buildfiles
@@ -136,9 +133,10 @@ def generate_build_file(startpath, outfilename='build.yml'):
             ptr = ptr[dir]
         for file in files:
             fullpath = "/".join(path + [file])
-            if '.' in file:
+            try:
                 name, ext = file.split('.')
-            else:
+            except ValueError:
+                # file with no extension
                 name = file
             ptr[_pythonize_name(name)] = fullpath
 
