@@ -22,8 +22,9 @@ def _pythonize_name(name):
 
     safename = safename.rstrip('_')
     safename = safename.lstrip('_')
-    msg = "Generated illegal name {sf} from {nm}"
-    assert VALID_NAME_RE.match(safename), msg.format(sf=safename, nm=name)
+
+    if not VALID_NAME_RE.match(safename):
+        raise BuildException("Unable to determine a Python-legal name for %s" % name)
     return safename
 
 def _build_file(build_dir, store, name, rel_path, target='file'):
@@ -145,19 +146,21 @@ def generate_build_file(startpath, outfilename='build.yml'):
         for dir in path:
             if dir not in ptr:
                 # pythonize dir
-                ptr[_pythonize_name(dir)] = {}
+                ptr[dir] = {}
             ptr = ptr[dir]
         for file in files:
             fullpath = "/".join(path + [file])
             name, ext = file.split('.')
             # pythonize name
             ptr[_pythonize_name(name)] = [ext.lower(), fullpath]
-
     
     for root, dirs, files in os.walk(startpath):
         # skip hidden directories
         for d in dirs:
             if d.startswith('.'):
+                dirs.remove(d)
+            elif not VALID_NAME_RE.match(d):
+                print("Warning: \"%s\" is not a legal name in Python, skipping." % d)
                 dirs.remove(d)
         
         rel_path = os.path.relpath(root, startpath)
