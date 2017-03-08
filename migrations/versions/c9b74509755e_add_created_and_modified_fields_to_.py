@@ -26,7 +26,7 @@ def upgrade():
         UPDATE instance JOIN (
             SELECT instance_id, min(created) min_created, max(created) max_created, author
             FROM log
-            GROUP BY instance_id
+            GROUP BY instance_id, author
         ) log
         ON id = instance_id
         SET created_at = min_created, created_by = author,
