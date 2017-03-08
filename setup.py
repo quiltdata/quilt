@@ -7,6 +7,7 @@ setup(
     install_requires=[
         'boto3',
         'Flask',
+        'Flask-Cors',
         'Flask-JSON',
         'Flask-Migrate',
         'jsonschema',
