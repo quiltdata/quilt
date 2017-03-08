@@ -13,7 +13,7 @@ RUN pip3 install uwsgi
 # Install the requirements from setup.py before copying the server code.
 # This is redundant, but it avoids unnecessary image rebuilds
 # and speeds up docker build/push/pull significantly.
-RUN pip3 install boto3 Flask Flask-JSON Flask-Migrate packaging PyMySQL requests-oauthlib
+RUN pip3 install boto3 Flask Flask-Cors Flask-JSON Flask-Migrate packaging PyMySQL requests-oauthlib
 
 # Create Quilt user
 RUN useradd -s /bin/bash -m quilt
