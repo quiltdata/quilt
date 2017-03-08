@@ -2,11 +2,13 @@
 API routes.
 """
 
+from datetime import timedelta
 from functools import wraps
 import json
 
 import boto3
 from flask import abort, redirect, render_template, request, Response
+from flask_cors import CORS
 from flask_json import as_json, jsonify
 from jsonschema import validate, ValidationError
 from oauthlib.oauth2 import OAuth2Error
@@ -112,6 +114,12 @@ def token():
 
 
 ### API routes ###
+
+# Allow CORS requests to API routes.
+# The "*" origin is more secure than specific origins because it blocks cookies.
+# Cache the settings for a day to avoid pre-flight requests.
+CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
 
 class ApiException(Exception):
     """
