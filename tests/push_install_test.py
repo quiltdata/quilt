@@ -20,6 +20,7 @@ class PushInstallTestCase(QuiltTestCase):
 
     HASH1 = 'd146942c9a051553f77d1e00672f2829565c590be972a1330de726a8db223589'
     HASH2 = '4cf37d7f670709346438cf2f2598db630eb34520947308aed55ad5e53f0c1518'
+    HASH3 = '46449f44f36ec78364ae846fa47df57870e49d3c6cee59b3682aaf289e6d7586'
 
     CONTENTS = {
         "foo": {
@@ -39,6 +40,10 @@ class PushInstallTestCase(QuiltTestCase):
                     "hashes": [HASH1]
                 }
             }
+        },
+        "file": {
+            "$type": "FILE",
+            "hashes": [HASH3]
         }
     }
 
@@ -66,10 +71,15 @@ class PushInstallTestCase(QuiltTestCase):
                     "hashes": [HASH1]
                 }
             }
+        },
+        "file": {
+            "$type": "FILE",
+            "hashes": [HASH3],
+            "metadata": {}
         }
     }
 
-    CONTENTS_HASH = 'a163e05b57cbb074ccb6d34adfdf0ffd3c3d320026e3f2c075ef7b14a33a46f0'
+    CONTENTS_HASH = '5317bbeb5a891b0214f5fe198828c4e5bfbaacb8d62e06312905e126c815d0c6'
 
     def testContentsHash(self):
         assert hash_contents(self.CONTENTS) == self.CONTENTS_HASH
@@ -96,12 +106,14 @@ class PushInstallTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'))
         urls = data['upload_urls']
-        assert len(urls) == 2
+        assert len(urls) == 3
 
         url1 = urllib.parse.urlparse(urls[self.HASH1])
         url2 = urllib.parse.urlparse(urls[self.HASH2])
+        url3 = urllib.parse.urlparse(urls[self.HASH3])
         assert url1.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
         assert url2.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
+        assert url3.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
         # List user's packages.
         resp = self.app.get(
@@ -145,12 +157,14 @@ class PushInstallTestCase(QuiltTestCase):
         assert data['created_by'] == data['updated_by'] == 'test_user'
         assert data['created_at'] == data['updated_at']
         urls = data['urls']
-        assert len(urls) == 2
+        assert len(urls) == 3
 
         url1 = urllib.parse.urlparse(urls[self.HASH1])
         url2 = urllib.parse.urlparse(urls[self.HASH2])
+        url3 = urllib.parse.urlparse(urls[self.HASH3])
         assert url1.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
         assert url2.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
+        assert url3.path == '/%s/test_user/foo/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
     def testPushNewMetadata(self):
         # Push the original contents.
