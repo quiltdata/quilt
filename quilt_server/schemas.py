@@ -10,6 +10,7 @@ import struct
 class NodeType(Enum):
     GROUP = 'GROUP'
     TABLE = 'TABLE'
+    FILE = 'FILE'
 
 TYPE_KEY = "$type"
 
@@ -29,7 +30,7 @@ PACKAGE_SCHEMA = {
                     {
                         'properties': {
                             TYPE_KEY: {
-                                'enum': [NodeType.TABLE.value]
+                                'enum': [NodeType.TABLE.value, NodeType.FILE.value]
                             },
                             'metadata': {
                                 'type': 'object'
@@ -105,7 +106,7 @@ def hash_contents(contents):
         assert isinstance(obj, dict)
         obj_type = NodeType(obj[TYPE_KEY])
         hash_str(obj_type.value)
-        if obj_type is NodeType.TABLE:
+        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
             hashes = obj["hashes"]
             hash_int(len(hashes))
             for h in hashes:
@@ -136,7 +137,7 @@ def find_object_hashes(contents):
         if key == TYPE_KEY:
             continue
         obj_type = NodeType(obj[TYPE_KEY])
-        if obj_type is NodeType.TABLE:
+        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
             yield from obj["hashes"]
         elif obj_type is NodeType.GROUP:
             yield from find_object_hashes(obj)
