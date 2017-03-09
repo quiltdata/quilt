@@ -316,6 +316,7 @@ class PackageStore(object):
         leaf = ipath.pop()
 
         ptr = contents
+        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
 
