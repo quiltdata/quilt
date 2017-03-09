@@ -125,13 +125,15 @@ class PackageStore(object):
         """
         Returns a dictionary with the contents of the package.
         """
-        contents = {}
         try:
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
         except IOError:
-            # TODO: Should we initialize contents.json on pkg creation?
-            pass
+            contents = {}
+
+        # Make sure the top-level a valid node (GROUP by default)
+        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+
         return contents
 
     def clear_contents(self):
@@ -157,8 +159,7 @@ class PackageStore(object):
             raise StoreException("Package not found")
 
         key = path.lstrip('/')
-        ipath = key.split('/')
-
+        ipath = key.split('/') if key else []
         ptr = self.get_contents()
         path_so_far = []
         for node in ipath:
@@ -315,6 +316,7 @@ class PackageStore(object):
         leaf = ipath.pop()
 
         ptr = contents
+        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
             ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
 
