@@ -72,3 +72,10 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(buildfilepath)
         build.build_package('test_hdf5', 'generated', buildfilepath)    
         os.remove(buildfilepath)
+
+    def test_failover(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_failover.yml')
+        build.build_package('test_failover', PACKAGE, path)
+        from quilt.data.test_failover import bad
+
