@@ -62,3 +62,9 @@ class BuildTest(QuiltTestCase):
             'Expected dataframes to have same # columns'
         del os.environ["QUILT_PACKAGE_FORMAT"]
         # TODO add more integrity checks, incl. negative test cases
+
+    def test_failover(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_failover.yml')
+        build.build_package('test_failover', PACKAGE, path)
+        from quilt.data.test_failover import bad
