@@ -24,7 +24,7 @@ class FileWithReadProgress(object):
             unit_scale=True
         )
 
-    def read(self, size=None):
+    def read(self, size=-1):
         """Read bytes and update the progress bar."""
         buf = self._fd.read(size)
         self._progress.update(len(buf))
