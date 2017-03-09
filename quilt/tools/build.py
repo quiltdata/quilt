@@ -18,7 +18,7 @@ def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
     starts_w_number = re.match('^[0-9].*', safename)
     if starts_w_number:
-        safename = ("a%s" % safename)
+        safename = ("abc%s" % safename)
 
     safename = safename.rstrip('_')
     safename = safename.lstrip('_')
