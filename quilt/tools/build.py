@@ -20,8 +20,7 @@ def _pythonize_name(name):
     if starts_w_number:
         safename = ("abc%s" % safename)
 
-    safename = safename.rstrip('_')
-    safename = safename.lstrip('_')
+    safename = safename.strip('_')
 
     if not VALID_NAME_RE.match(safename):
         raise BuildException("Unable to determine a Python-legal name for %s" % name)
@@ -120,6 +119,11 @@ def build_package(username, package, yaml_path):
         if readme is not None:
             _build_file(build_dir, store, 'README', rel_path=readme)
 
+def splitext_no_dot(filename):
+    name, ext = os.path.splitext(filename)
+    ext.strip('.')
+    return name, ext.strip('.')
+
 def generate_build_file(startpath, outfilename='build.yml'):
     startbase = os.path.basename(startpath)
     buildfiles = {startbase : {}}
@@ -127,7 +131,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
 
     def add_to_buildfiles(path, files):
         try:
-            safepath = [_pythonize_name(dir) if dir != '.' else '.' for dir in path]
+            safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
         except BuildException:
             warning = "Warning: could not determine a Python-legal name for {path}; skipping."
             print(warning.format(path=os.sep.join(path)))
@@ -139,12 +143,8 @@ def generate_build_file(startpath, outfilename='build.yml'):
                 ptr[dir] = {}
             ptr = ptr[dir]
         for file in files:
-            fullpath = "/".join(path + [file])
-            try:
-                name, ext = file.split('.')
-            except ValueError:
-                # file with no extension
-                name = file
+            fullpath = os.path.join(*safepath, file)
+            name, ext = splitext_no_dot(file)
             ptr[_pythonize_name(name)] = fullpath
 
     def add_to_buildtables(path, files):
@@ -163,7 +163,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
             ptr = ptr[folder]
         for file in files:
             fullpath = "/".join(path + [file])
-            name, ext = file.split('.')
+            name, ext = splitext_no_dot(file)
             # pythonize name
             ptr[_pythonize_name(name)] = [ext.lower(), fullpath]
 
@@ -183,7 +183,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
             if file.startswith('.'):
                 continue
             try:
-                name, ext = file.split('.')
+                name, ext = splitext_no_dot(file)
                 # separate files into tables and raw
                 if ext.lower() in TARGET['pandas']:
                     tablefiles.append(file)
@@ -199,11 +199,15 @@ def generate_build_file(startpath, outfilename='build.yml'):
         if tablefiles:
             add_to_buildtables(path, tablefiles)
 
+    def remove_node(node, contents):
+        if node in contents:
+            for key in contents[node]:
+                contents[key] = contents[node][key]
+            del contents[node]
+
     for contents in [buildfiles, buildtables]:
-        if '.' in contents:
-            for key in contents['.']:
-                contents[key] = contents['.'][key]
-            del contents['.']
+        remove_node('.', contents)
+        remove_node('..', contents)
 
     contents = dict(files=buildfiles, tables=buildtables)
     buildfilepath = os.path.join(startpath, outfilename)
