@@ -128,11 +128,12 @@ class PackageStore(object):
         try:
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
-                # Make the top-level a GROUP node
-                contents[TYPE_KEY] = NodeType.GROUP.value
         except IOError:
-            # TODO: Should we initialize contents.json on pkg creation?
             contents = {}
+
+        # Make sure the top-level a valid node (GROUP by default)
+        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+
         return contents
 
     def clear_contents(self):
