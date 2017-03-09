@@ -125,7 +125,6 @@ class PackageStore(object):
         """
         Returns a dictionary with the contents of the package.
         """
-        contents = {}
         try:
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
@@ -133,7 +132,7 @@ class PackageStore(object):
                 contents[TYPE_KEY] = NodeType.GROUP.value
         except IOError:
             # TODO: Should we initialize contents.json on pkg creation?
-            pass
+            contents = {}
         return contents
 
     def clear_contents(self):
