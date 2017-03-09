@@ -138,10 +138,9 @@ def generate_build_file(startpath, outfilename='build.yml'):
             return
 
         ptr = buildfiles
-        for dir in path:
-            if dir not in ptr:
-                ptr[dir] = {}
-            ptr = ptr[dir]
+        for folder in path:
+            ptr = ptr.setdefault(folder, {})
+
         for file in files:
             fullpath = os.path.join(*safepath, file)
             name, ext = splitext_no_dot(file)
@@ -149,7 +148,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
 
     def add_to_buildtables(path, files):
         try:
-            safepath = [_pythonize_name(dir) if dir != '.' else '.' for dir in path]
+            safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
         except BuildException:
             warning = "Warning: could not determine a Python-legal name for {path}; skipping."
             print(warning.format(path=os.sep.join(path)))
@@ -157,10 +156,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
 
         ptr = buildtables
         for folder in safepath:
-            if folder not in ptr:
-                # pythonize folder
-                ptr[folder] = {}
-            ptr = ptr[folder]
+            ptr = ptr.setdefault(folder, {})
         for file in files:
             fullpath = "/".join(path + [file])
             name, ext = splitext_no_dot(file)
