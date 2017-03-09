@@ -147,7 +147,7 @@ class PackageStore(object):
         Saves an updated version of the package's contents.
         """
         with open(self._path, 'w') as contents_file:
-            json.dump(contents, contents_file)
+            json.dump(contents, contents_file, indent=2, sort_keys=True)
 
     def get(self, path):
         """
