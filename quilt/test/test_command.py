@@ -33,7 +33,6 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.install(session=session, package="a/b/c")
 
-    @pytest.mark.skipif("h5py is None")
     def test_inspect_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.inspect(package="no_user")
@@ -46,7 +45,6 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "not found"):
             command.push(session=session, package="owner/package")
 
-    @pytest.mark.skipif("h5py is None")
     def test_inspect_missing_package(self):
         with assertRaisesRegex(self, command.CommandException, "not found"):
             command.inspect(package="owner/package")

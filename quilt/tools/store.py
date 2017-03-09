@@ -556,7 +556,8 @@ def get_store(user, package, format=None, mode='r'):
     given data package.
     """
     if not format:
-        pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT', PackageFormat.default.value))
+        pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT',
+                                                  PackageFormat.default.value))
 
     if pkg_format is PackageFormat.HDF5:
         return HDF5PackageStore(user, package, mode)
@@ -581,5 +582,3 @@ def ls_packages(pkg_dir):
     else:
         raise StoreException("Unsupported Package Format %s" % pkg_format)
     return packages
-
-
