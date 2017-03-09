@@ -24,19 +24,35 @@ class InstallTest(QuiltTestCase):
         """
         Install the latest update of a package.
         """
-        tabledata = "table"*10
+        table_data = "table" * 10
         h = hashlib.new(HASH_TYPE)
-        h.update(tabledata.encode('utf-8'))
-        obj_hash = h.hexdigest()
-        contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
-                             'bar' : {TYPE_KEY : NodeType.TABLE.value,
-                                      'hashes': [obj_hash]}
-                            })
+        h.update(table_data.encode('utf-8'))
+        table_hash = h.hexdigest()
+
+        file_data = "file" * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(file_data.encode('utf-8'))
+        file_hash = h.hexdigest()
+
+        contents = {
+            'foo': {
+                TYPE_KEY: NodeType.GROUP.value,
+                'bar': {
+                    TYPE_KEY: NodeType.TABLE.value,
+                    'hashes': [table_hash]
+                },
+                'blah': {
+                    TYPE_KEY: NodeType.FILE.value,
+                    'hashes': [file_hash]
+                }
+            }
+        }
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
-        self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
-        self._mock_s3(obj_hash, tabledata)
+        self._mock_package('foo/bar', contents_hash, contents, [table_hash, file_hash])
+        self._mock_s3(table_hash, table_data)
+        self._mock_s3(file_hash, file_data)
 
         session = requests.Session()
         command.install(session, 'foo/bar')
@@ -45,9 +61,13 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd)
             assert file_contents == contents
 
-        with open('quilt_packages/objs/{hash}'.format(hash=obj_hash)) as fd:
-            file_contents = fd.read()
-            assert file_contents == tabledata
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+            contents = fd.read()
+            assert contents == table_data
+
+        with open('quilt_packages/objs/{hash}'.format(hash=file_hash)) as fd:
+            contents = fd.read()
+            assert contents == file_data
 
     def test_bad_contents_hash(self):
         """
