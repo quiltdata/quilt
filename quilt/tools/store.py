@@ -129,6 +129,8 @@ class PackageStore(object):
         try:
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
+                # Make the top-level a GROUP node
+                contents[TYPE_KEY] = NodeType.GROUP.value
         except IOError:
             # TODO: Should we initialize contents.json on pkg creation?
             pass
@@ -157,8 +159,7 @@ class PackageStore(object):
             raise StoreException("Package not found")
 
         key = path.lstrip('/')
-        ipath = key.split('/')
-
+        ipath = key.split('/') if key else []
         ptr = self.get_contents()
         path_so_far = []
         for node in ipath:
