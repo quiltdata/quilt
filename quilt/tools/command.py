@@ -128,19 +128,25 @@ def login():
     """
     Authenticate.
     """
+    login_url = "%s/login" % QUILT_PKG_URL
+
+    print("Launching a web browser...")
+    print("If that didn't work, please visit the following URL: %s" % login_url)
+
     # Open the browser. Get rid of stdout while launching the browser to prevent
     # Chrome/Firefox from outputing garbage over the code prompt.
     devnull = os.open(os.devnull, os.O_RDWR)
     old_stdout = os.dup(1)
     os.dup2(devnull, 1)
     try:
-        webbrowser.open("%s/login" % QUILT_PKG_URL)
+        webbrowser.open(login_url)
     finally:
         os.close(devnull)
         os.dup2(old_stdout, 1)
         os.close(old_stdout)
 
-    refresh_token = input("Enter the code: ")
+    print()
+    refresh_token = input("Enter the code from the webpage: ")
 
     # Get an access token (and a new refresh token).
     # Technically, we could have the user enter both tokens - but it doesn't
@@ -500,7 +506,7 @@ def inspect(package):
                 fullname = "/".join([path, name])
                 print(prefix + name_prefix + name)
             else:
-                assert False, "Unhandled NodeType {nt}".format(nt=node_type)                
+                assert False, "Unhandled NodeType {nt}".format(nt=node_type)
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 

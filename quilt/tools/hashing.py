@@ -1,6 +1,7 @@
 import hashlib
-from six import iteritems, string_types
 import struct
+
+from six import iteritems, string_types
 
 from .const import HASH_TYPE, NodeType, TYPE_KEY
 
@@ -30,8 +31,7 @@ def digest_file(fname):
 
 def hash_contents(contents):
     """
-    Creates a hash of key names and hashes in a dictionary matching
-    the "contents" in `PACKAGE_SCHEMA` above. "metadata" fields are ignored.
+    Creates a hash of key names and hashes in a package dictionary.
 
     Expected format:
 
@@ -69,7 +69,7 @@ def hash_contents(contents):
         assert isinstance(obj, dict)
         obj_type = NodeType(obj[TYPE_KEY])
         hash_str(obj_type.value)
-        if obj_type is NodeType.TABLE:
+        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
             hashes = obj["hashes"]
             hash_int(len(hashes))
             for h in hashes:
@@ -83,7 +83,7 @@ def hash_contents(contents):
                     hash_str(key)
                     hash_object(child)
         else:
-            assert False
+            assert False, "Unexpected object type: %s" % obj_type
 
     hash_int(len(contents))
     for key, obj in sorted(iteritems(contents)):

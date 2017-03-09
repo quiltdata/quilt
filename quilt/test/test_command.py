@@ -6,6 +6,8 @@ import pytest
 import requests
 import responses
 
+from six import assertRaisesRegex
+
 try:
     import h5py
 except ImportError:
@@ -15,41 +17,38 @@ from quilt.tools import command
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    # Note: we're using the deprecated `assertRaisesRegexp` method because
-    # the new one, `assertRaisesRegex`, is not present in Python2.
-
     def test_push_invalid_package(self):
         session = requests.Session()
 
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.push(session=session, package="no_user")
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.push(session=session, package="a/b/c")
 
     def test_install_invalid_package(self):
         session = requests.Session()
 
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.install(session=session, package="no_user")
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.install(session=session, package="a/b/c")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_invalid_package(self):
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.inspect(package="no_user")
-        with self.assertRaisesRegexp(command.CommandException, "owner/package_name"):
+        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.inspect(package="a/b/c")
 
     def test_push_missing_package(self):
         session = requests.Session()
 
-        with self.assertRaisesRegexp(command.CommandException, "not found"):
+        with assertRaisesRegex(self, command.CommandException, "not found"):
             command.push(session=session, package="owner/package")
 
     @pytest.mark.skipif("h5py is None")
     def test_inspect_missing_package(self):
-        with self.assertRaisesRegexp(command.CommandException, "not found"):
+        with assertRaisesRegex(self, command.CommandException, "not found"):
             command.inspect(package="owner/package")
 
     @patch('webbrowser.open')

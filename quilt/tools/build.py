@@ -2,8 +2,10 @@ import os
 
 import yaml
 import pandas as pd
+
 from .store import get_store, VALID_NAME_RE, StoreException
 from .const import TARGET
+from .util import FileWithReadProgress
 
 class BuildException(Exception):
     """
@@ -23,8 +25,10 @@ def _build_table(build_dir, store, name, table, target='pandas'):
         ext, rel_path = table
         path = os.path.join(build_dir, rel_path)
         # read source file into DataFrame
+        print("Reading %s..." % path)
         df = _file_to_data_frame(ext, path, target)
         # serialize DataFrame to file(s)
+        print("Writing the dataframe...")
         store.save_df(df, name, path, ext, target)
 
     elif isinstance(table, dict):
@@ -57,7 +61,8 @@ def _file_to_data_frame(ext, path, target):
     df = None
     try_again = False
     try:
-        df = handler(path, **kwargs)
+        with FileWithReadProgress(path) as fd:
+            df = handler(fd, **kwargs)
     except UnicodeDecodeError as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path

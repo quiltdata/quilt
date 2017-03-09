@@ -30,8 +30,8 @@ class BuildTest(QuiltTestCase):
         Test compilation
         """
         mydir = os.path.dirname(__file__)
-        PATH = os.path.join(mydir, './build.yml')
-        build.build_package('test_hdf5', PACKAGE, PATH)
+        path = os.path.join(mydir, './build.yml')
+        build.build_package('test_hdf5', PACKAGE, path)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -75,9 +75,9 @@ class BuildTest(QuiltTestCase):
         """
         os.environ["QUILT_PACKAGE_FORMAT"] = PackageFormat.ARROW.value
         mydir = os.path.dirname(__file__)
-        PATH = os.path.join(mydir, './build.yml')
-        build.build_package('test_parquet', PACKAGE, PATH)
-        # TODO load DFs based on contents of .yml file at PATH
+        path = os.path.join(mydir, './build.yml')
+        build.build_package('test_parquet', PACKAGE, path)
+        # TODO load DFs based on contents of .yml file at path
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_parquet.groot import csv, tsv, xls
@@ -88,5 +88,11 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
-        del(os.environ["QUILT_PACKAGE_FORMAT"])
+        del os.environ["QUILT_PACKAGE_FORMAT"]
         # TODO add more integrity checks, incl. negative test cases
+
+    def test_failover(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_failover.yml')
+        build.build_package('test_failover', PACKAGE, path)
+        from quilt.data.test_failover import bad
