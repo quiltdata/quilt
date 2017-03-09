@@ -76,8 +76,7 @@ def _file_to_data_frame(ext, path, target):
         failover_args = {}
         failover_args.update(failover)
         failover_args.update(kwargs)
-        with FileWithReadProgress(path) as fd:
-            df = handler(fd, **failover_args)
+        df = handler(path, **failover_args)
 
     return df
 
