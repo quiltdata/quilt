@@ -36,6 +36,7 @@ def hash_contents(contents):
     Expected format:
 
     {
+        "$type": "GROUP",
         "table1": {
             "$type": "TABLE",
             "metadata": {...},
@@ -55,6 +56,7 @@ def hash_contents(contents):
     }
     """
     assert isinstance(contents, dict)
+    assert NodeType(contents[TYPE_KEY]) is NodeType.GROUP
 
     result = hashlib.sha256()
 
@@ -66,7 +68,7 @@ def hash_contents(contents):
         result.update(string.encode())
 
     def hash_object(obj):
-        assert isinstance(obj, dict)
+        assert isinstance(obj, dict), "Unexpected object: %r" % obj
         obj_type = NodeType(obj[TYPE_KEY])
         hash_str(obj_type.value)
         if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
@@ -85,9 +87,6 @@ def hash_contents(contents):
         else:
             assert False, "Unexpected object type: %s" % obj_type
 
-    hash_int(len(contents))
-    for key, obj in sorted(iteritems(contents)):
-        assert isinstance(key, string_types)
-        hash_object(obj)
+    hash_object(contents)
 
     return result.hexdigest()

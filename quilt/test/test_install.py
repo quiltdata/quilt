@@ -1,5 +1,5 @@
 """
-Tests for commands.
+Tests for the install command.
 """
 
 import hashlib
@@ -35,6 +35,7 @@ class InstallTest(QuiltTestCase):
         file_hash = h.hexdigest()
 
         contents = {
+            TYPE_KEY: NodeType.GROUP.value,
             'foo': {
                 TYPE_KEY: NodeType.GROUP.value,
                 'bar': {
@@ -77,11 +78,16 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
-        contents = {'foo': {TYPE_KEY: NodeType.GROUP.value,
-                            'bar' : {TYPE_KEY: NodeType.TABLE.value,
-                                     'hashes': [obj_hash]}
-                           }
-                   }
+        contents = {
+            TYPE_KEY: NodeType.GROUP.value,
+            'foo': {
+                TYPE_KEY: NodeType.GROUP.value,
+                'bar': {
+                    TYPE_KEY: NodeType.TABLE.value,
+                    'hashes': [obj_hash]
+                }
+            }
+        }
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -102,10 +108,16 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
-        contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
-                             'bar' : {TYPE_KEY: NodeType.TABLE.value,
-                                      'hashes': [obj_hash]}
-                            })
+        contents = {
+            TYPE_KEY: NodeType.GROUP.value,
+            'foo': {
+                TYPE_KEY: NodeType.GROUP.value,
+                'bar' : {
+                    TYPE_KEY: NodeType.TABLE.value,
+                    'hashes': [obj_hash]
+                }
+            }
+        }
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
