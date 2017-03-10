@@ -10,7 +10,7 @@ import boto3
 from flask import abort, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
-from jsonschema import validate, ValidationError
+from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
 import requests
 from requests_oauthlib import OAuth2Session
@@ -154,12 +154,18 @@ def api(require_login=True, schema=None):
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
     """
+    if schema is not None:
+        Draft4Validator.check_schema(schema)
+        validator = Draft4Validator(schema)
+    else:
+        validator = None
+
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            if schema is not None:
+            if validator is not None:
                 try:
-                    validate(request.get_json(cache=True), schema)
+                    validator.validate(request.get_json(cache=True))
                 except ValidationError as ex:
                     raise ApiException(requests.codes.bad_request, ex.message)
 
