@@ -2,9 +2,8 @@
 Helper functions.
 """
 
-import os
-
 from appdirs import user_data_dir
+from six import string_types
 from tqdm import tqdm
 
 APP_NAME = "QuiltCli"
@@ -16,10 +15,20 @@ class FileWithReadProgress(object):
     """
     Acts like a file with mode='rb', but displays a progress bar while the file is read.
     """
-    def __init__(self, path):
-        self._fd = open(path, 'rb')
+    def __init__(self, path_or_fd):
+        if isinstance(path_or_fd, string_types):
+            self._fd = open(path_or_fd, 'rb')
+            self._need_to_close = True
+        else:
+            self._fd = path_or_fd
+            self._need_to_close = False
+
+        self._fd.seek(0, 2)
+        size = self._fd.tell()
+        self._fd.seek(0)
+
         self._progress = tqdm(
-            total=os.path.getsize(path),
+            total=size,
             unit='B',
             unit_scale=True
         )
@@ -30,10 +39,19 @@ class FileWithReadProgress(object):
         self._progress.update(len(buf))
         return buf
 
+    def tell(self):
+        """Get the file position."""
+        return self._fd.tell()
+
+    def seek(self, offset, whence=0):
+        """Set the new file position."""
+        self._fd.seek(offset, whence)
+
     def close(self):
         """Close the file and the progress bar."""
         self._progress.close()
-        self._fd.close()
+        if self._need_to_close:
+            self._fd.close()
 
     def __enter__(self):
         return self
