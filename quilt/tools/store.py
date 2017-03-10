@@ -396,13 +396,12 @@ class HDF5PackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._object_path('.' + buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
     @classmethod
     def ls_packages(cls, pkg_dir):
@@ -432,13 +431,12 @@ class ParquetPackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._object_path('.' + buildfile)
         fastparquet.write(storepath, df)
 
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
     def dataframe(self, hash_list):
         """
