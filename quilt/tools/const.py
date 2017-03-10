@@ -12,6 +12,7 @@ class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
 
+PACKAGE_DIR_NAME = 'quilt_packages'
 TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'

@@ -5,7 +5,7 @@ import yaml
 import pandas as pd
 
 from .store import get_store, VALID_NAME_RE, StoreException
-from .const import TARGET
+from .const import PACKAGE_DIR_NAME, TARGET
 from .util import FileWithReadProgress
 
 class BuildException(Exception):
@@ -120,16 +120,29 @@ def build_package(username, package, yaml_path):
             _build_file(build_dir, store, 'README', rel_path=readme)
 
 def splitext_no_dot(filename):
+    """
+    Wrap os.path.splitext to return the name and the extension
+    without the '.' (e.g., csv instead of .csv)
+    """
     name, ext = os.path.splitext(filename)
     ext.strip('.')
     return name, ext.strip('.')
 
 def generate_build_file(startpath, outfilename='build.yml'):
-    startbase = os.path.basename(startpath)
-    buildfiles = {startbase : {}}
-    buildtables = {startbase : {}}
+    """
+    Generate a build file (yaml) based on the contents of a
+    directory tree.
+    """
+    buildfiles = {}
+    buildtables = {}
 
-    def add_to_buildfiles(path, files):
+    def file_node(ext, fullpath):
+        return fullpath
+
+    def table_node(ext, fullpath):
+        return [ext.lower(), fullpath]
+
+    def add_to_contents(contents, nodefunc, path, files):
         try:
             safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
         except BuildException:
@@ -137,36 +150,19 @@ def generate_build_file(startpath, outfilename='build.yml'):
             print(warning.format(path=os.sep.join(path)))
             return
 
-        ptr = buildfiles
-        for folder in path:
-            ptr = ptr.setdefault(folder, {})
-
-        for file in files:
-            fullpath = os.path.join(*safepath, file)
-            name, ext = splitext_no_dot(file)
-            ptr[_pythonize_name(name)] = fullpath
-
-    def add_to_buildtables(path, files):
-        try:
-            safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
-        except BuildException:
-            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
-            print(warning.format(path=os.sep.join(path)))
-            return
-
-        ptr = buildtables
+        ptr = contents
         for folder in safepath:
             ptr = ptr.setdefault(folder, {})
+
         for file in files:
-            fullpath = "/".join(path + [file])
+            fullpath = os.path.join(os.path.join(*path), file)
             name, ext = splitext_no_dot(file)
-            # pythonize name
-            ptr[_pythonize_name(name)] = [ext.lower(), fullpath]
+            ptr[_pythonize_name(name)] = nodefunc(ext, fullpath)
 
     for root, dirs, files in os.walk(startpath):
         # skip hidden directories
         for d in dirs:
-            if d.startswith('.'):
+            if d.startswith('.') or d == PACKAGE_DIR_NAME:
                 dirs.remove(d)
 
         rel_path = os.path.relpath(root, startpath)
@@ -178,32 +174,26 @@ def generate_build_file(startpath, outfilename='build.yml'):
             # skip hidden files
             if file.startswith('.'):
                 continue
-            try:
-                name, ext = splitext_no_dot(file)
-                # separate files into tables and raw
-                if ext.lower() in TARGET['pandas']:
-                    tablefiles.append(file)
-                else:
-                    rawfiles.append(file)
-            except ValueError:
-                # File with no extension
+
+            name, ext = splitext_no_dot(file)
+            # separate files into tables and raw
+            if ext.lower() in TARGET['pandas']:
+                tablefiles.append(file)
+            else:
                 rawfiles.append(file)
 
         if rawfiles:
-            add_to_buildfiles(path, rawfiles)
+            add_to_contents(buildfiles, file_node, path, rawfiles)
 
         if tablefiles:
-            add_to_buildtables(path, tablefiles)
-
-    def remove_node(node, contents):
-        if node in contents:
-            for key in contents[node]:
-                contents[key] = contents[node][key]
-            del contents[node]
+            add_to_contents(buildtables, table_node, path, tablefiles)
 
     for contents in [buildfiles, buildtables]:
-        remove_node('.', contents)
-        remove_node('..', contents)
+        for node in ['.', '..']:
+            if node in contents:
+                for key in contents[node]:
+                    contents[key] = contents[node][key]
+                del contents[node]
 
     contents = dict(files=buildfiles, tables=buildtables)
     buildfilepath = os.path.join(startpath, outfilename)
