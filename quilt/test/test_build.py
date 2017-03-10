@@ -95,4 +95,4 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_failover.yml')
         build.build_package('test_failover', PACKAGE, path)
-        from quilt.data.test_failover import bad
+        from quilt.data.test_failover.groot import bad
