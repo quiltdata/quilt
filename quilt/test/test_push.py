@@ -57,8 +57,7 @@ class PushTest(QuiltTestCase):
         contents = pkg_obj.get_contents()
         urls = upload_urls(contents)
         for blob_hash, url in urls.items():
-            with pkg_obj.tempfile(blob_hash) as blob_file:
-                self._mock_s3(blob_hash, url, blob_file)
+            self._mock_s3(blob_hash, url)
 
         self._mock_put_package('foo/bar', pkg_hash, contents)
         self._mock_put_tag('foo/bar', 'latest', pkg_hash)
@@ -77,5 +76,5 @@ class PushTest(QuiltTestCase):
         tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
         self.requests_mock.add(responses.PUT, tag_url, json.dumps(dict()))
 
-    def _mock_s3(self, object_hash, s3_url, objfile):
-        self.requests_mock.add(responses.PUT, s3_url, objfile)
+    def _mock_s3(self, object_hash, s3_url):
+        self.requests_mock.add(responses.PUT, s3_url)
