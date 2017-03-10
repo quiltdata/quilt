@@ -21,7 +21,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType, TYPE_KEY
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType
 from .hashing import digest_file, hash_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -38,6 +38,11 @@ class StoreException(Exception):
     """
     pass
 
+def _empty_group():
+    return dict(
+        type=NodeType.GROUP.value,
+        children=dict()
+    )
 
 class PackageStore(object):
     """
@@ -130,10 +135,7 @@ class PackageStore(object):
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
         except IOError:
-            contents = {}
-
-        # Make sure the top-level a valid node (GROUP by default)
-        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+            contents = _empty_group()
 
         return contents
 
@@ -165,15 +167,15 @@ class PackageStore(object):
         path_so_far = []
         for node in ipath:
             path_so_far += [node]
-            if not node in ptr:
+            ptr = ptr["children"].get(node)
+            if ptr is None:
                 raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
-            ptr = ptr[node]
         node = ptr
 
-        node_type = NodeType(node[TYPE_KEY])
+        node_type = NodeType(node["type"])
         if node_type is NodeType.GROUP:
             return node
         elif node_type is NodeType.TABLE:
@@ -249,10 +251,8 @@ class PackageStore(object):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key, node in contents.items():
-                if key == TYPE_KEY:
-                    continue
-                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
+            for key, node in contents["children"].items():
+                if NodeType(node["type"]) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
                     install_table(node, urls)
@@ -321,9 +321,8 @@ class PackageStore(object):
         leaf = ipath.pop()
 
         ptr = contents
-        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
-            ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
+            ptr = ptr["children"].setdefault(node, _empty_group())
 
         try:
             target_type = TargetType(target)
@@ -336,12 +335,15 @@ class PackageStore(object):
         except ValueError:
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr[leaf] = dict({TYPE_KEY: node_type.value},
-                         hashes=[objhash],
-                         metadata=dict(q_ext=ext,
-                                       q_path=path,
-                                       q_target=target)
-                        )
+        ptr["children"][leaf] = dict(
+            type=node_type.value,
+            hashes=[objhash],
+            metadata=dict(
+                q_ext=ext,
+                q_path=path,
+                q_target=target
+            )
+        )
 
         self.save_contents(contents)
 
