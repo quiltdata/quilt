@@ -4,31 +4,12 @@ Build: parse and add user-supplied files to store
 import os
 import re
 
-import requests
-
-try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
-
-try:
-    import pyarrow as pa
-    from pyarrow import parquet
-except ImportError:
-    pa = None
-
-try:
-    from pyspark.sql import SparkSession
-except ImportError:
-    SparkSession = None
-
 from .const import PackageFormat
 
 from .package import Package, HDF5Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
-CHUNK_SIZE = 4096
 
 class StoreException(Exception):
     """

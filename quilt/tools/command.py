@@ -18,9 +18,10 @@ import requests
 from packaging.version import Version
 
 from .build import build_package, BuildException
-from .const import LATEST_TAG, NodeType, TYPE_KEY
+from .const import LATEST_TAG, NodeType, TYPE_KEY, PackageFormat
 from .hashing import hash_contents
-from .store import PackageStore, StoreException, get_store, ls_packages
+from .package import PackageException
+from .store import PackageStore, StoreException, ls_packages
 from .util import BASE_DIR
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -204,10 +205,11 @@ def push(session, package):
     """
     owner, pkg = _parse_package(package)
 
-    store = get_store(owner, pkg)
-    if not store.exists():
+    store = PackageStore()
+    pkgobj = store.get_package(owner, pkg)
+    if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    pkghash = store.get_hash()
+    pkghash = pkgobj.get_hash()
 
     response = session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
@@ -217,7 +219,7 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
-            contents=store.get_contents(),
+            contents=pkgobj.get_contents(),
             description=""  # TODO
         ))
     )
@@ -231,7 +233,7 @@ def push(session, package):
 
     for objhash, url in upload_urls.items():
         # Create a temporary gzip'ed file.
-        with store.tempfile(objhash) as temp_file:
+        with pkgobj.tempfile(objhash) as temp_file:
             response = requests.put(url, data=temp_file, headers=headers)
 
             if not response.ok:
@@ -370,13 +372,14 @@ def install(session, package, hash=None, version=None, tag=None):
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg = _parse_package(package)
-    store = get_store(owner, pkg, mode='w')
+    store = PackageStore()
+    pkgobj = store.create_package(owner, pkg, PackageFormat.HDF5)
 
-    if store.exists():
+    if pkgobj.exists():
         print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-        overwrite = input("Overwrite? (y/n) ")
-        if overwrite.lower() != 'y':
-            return
+        #overwrite = input("Overwrite? (y/n) ")
+        #if overwrite.lower() != 'y':
+        #    return
 
     if version is not None:
         response = session.get(
@@ -421,9 +424,9 @@ def install(session, package, hash=None, version=None, tag=None):
         raise CommandException("Mismatched hash. Try again.")
 
     try:
-        store.install(response_contents, response_urls)
-    except StoreException as ex:
-        store.clear_contents()
+        pkgobj.install(response_contents, response_urls)
+    except PackageException as ex:
+        pkgobj.clear_contents()
         raise CommandException("Failed to install the package: %s" % ex)
 
 def access_list(session, package):
@@ -460,7 +463,8 @@ def ls():
     """
     List all installed Quilt data packages
     """
-    for pkg_dir in PackageStore.find_package_dirs():
+    store = PackageStore()
+    for pkg_dir in store.find_package_dirs():
         print("%s" % pkg_dir)
         packages = ls_packages(pkg_dir)
         for idx, (owner, pkg) in enumerate(packages):
@@ -472,8 +476,9 @@ def inspect(package):
     Inspect package details
     """
     owner, pkg = _parse_package(package)
-    store = get_store(owner, pkg)
-    if not store.exists():
+    store = PackageStore()
+    pkgobj = store.get_package(owner, pkg)
+    if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
     def _print_children(children, prefix, path):
@@ -498,7 +503,7 @@ def inspect(package):
                 _print_children(children, child_prefix, path + name)
             elif node_type is NodeType.TABLE:
                 fullname = "/".join([path, name])
-                df = store.get(fullname)
+                df = pkgobj.get(fullname)
                 assert isinstance(df, pd.DataFrame)
                 info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
                 print(prefix + name_prefix + ": " + info)
@@ -510,8 +515,8 @@ def inspect(package):
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 
-    print(store.get_path())
-    _print_children(children=store.get_contents().items(), prefix='', path='')
+    print(pkgobj.get_path())
+    _print_children(children=pkgobj.get_contents().items(), prefix='', path='')
 
 def main():
     """

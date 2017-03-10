@@ -3,7 +3,7 @@ import os
 import yaml
 import pandas as pd
 
-from .store import get_store, VALID_NAME_RE, StoreException
+from .store import PackageStore, StoreException, VALID_NAME_RE
 from .const import TARGET
 from .util import FileWithReadProgress
 
@@ -13,11 +13,11 @@ class BuildException(Exception):
     """
     pass
 
-def _build_file(build_dir, store, name, rel_path, target='file'):
+def _build_file(build_dir, package, name, rel_path, target='file'):
     path = os.path.join(build_dir, rel_path)
-    store.save_file(path, name, name, target)
+    package.save_file(path, name, name, target)
 
-def _build_table(build_dir, store, name, table, target='pandas'):
+def _build_table(build_dir, package, name, table, target='pandas'):
     if isinstance(table, list):
         if len(table) != 2:
             raise BuildException(
@@ -29,7 +29,7 @@ def _build_table(build_dir, store, name, table, target='pandas'):
         df = _file_to_data_frame(ext, path, target)
         # serialize DataFrame to file(s)
         print("Writing the dataframe...")
-        store.save_df(df, name, path, ext, target)
+        package.save_df(df, name, path, ext, target)
 
     elif isinstance(table, dict):
         # TODO the problem with this, it does not seem to iterate
@@ -39,7 +39,7 @@ def _build_table(build_dir, store, name, table, target='pandas'):
         for child_name, child_table in table.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid table name: %r" % child_name)
-            _build_table(build_dir, store, name + '/' + child_name, child_table)
+            _build_table(build_dir, package, name + '/' + child_name, child_table)
     else:
         raise BuildException("Table definition must be a list or dict")
 
@@ -100,8 +100,8 @@ def build_package(username, package, yaml_path):
     if not isinstance(tables, dict):
         raise BuildException("'tables' must be a dictionary")
 
-    with get_store(username, package, format, 'w') as store:
-        store.clear_contents()
-        _build_table(build_dir, store, '', tables)
+    store = PackageStore()
+    with store.create_package(username, package, format) as newpackage:
+        _build_table(build_dir, newpackage, '', tables)
         if readme is not None:
-            _build_file(build_dir, store, 'README', rel_path=readme)
+            _build_file(build_dir, newpackage, 'README', rel_path=readme)
