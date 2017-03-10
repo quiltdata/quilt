@@ -18,7 +18,7 @@ import requests
 from packaging.version import Version
 
 from .build import build_package, generate_build_file, BuildException
-from .const import LATEST_TAG, NodeType, TYPE_KEY
+from .const import LATEST_TAG, NodeType
 from .hashing import hash_contents
 from .store import PackageStore, StoreException, get_store, ls_packages
 from .util import BASE_DIR
@@ -495,9 +495,9 @@ def inspect(package):
     def _print_node(node, prefix, child_prefix, name, path):
         name_prefix = u"─ "
         if isinstance(node, dict):
-            node_type = NodeType(node.pop(TYPE_KEY))
+            node_type = NodeType(node["type"])
             if node_type is NodeType.GROUP:
-                children = list(node.items())
+                children = list(node["children"].items())
                 if children:
                     name_prefix = u"┬ "
                 print(prefix + name_prefix + name)

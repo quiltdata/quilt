@@ -21,7 +21,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType, TYPE_KEY, PACKAGE_DIR_NAME
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType, PACKAGE_DIR_NAME
 from .hashing import digest_file, hash_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -38,6 +38,11 @@ class StoreException(Exception):
     """
     pass
 
+def _empty_group():
+    return dict(
+        type=NodeType.GROUP.value,
+        children=dict()
+    )
 
 class PackageStore(object):
     """
@@ -48,6 +53,7 @@ class PackageStore(object):
     PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
+    TMP_OBJ_DIR = 'objs/tmp'
 
     @classmethod
     def find_package_dirs(cls, start='.'):
@@ -128,10 +134,7 @@ class PackageStore(object):
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
         except IOError:
-            contents = {}
-
-        # Make sure the top-level a valid node (GROUP by default)
-        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+            contents = _empty_group()
 
         return contents
 
@@ -163,15 +166,15 @@ class PackageStore(object):
         path_so_far = []
         for node in ipath:
             path_so_far += [node]
-            if not node in ptr:
+            ptr = ptr["children"].get(node)
+            if ptr is None:
                 raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
-            ptr = ptr[node]
         node = ptr
 
-        node_type = NodeType(node[TYPE_KEY])
+        node_type = NodeType(node["type"])
         if node_type is NodeType.GROUP:
             return node
         elif node_type is NodeType.TABLE:
@@ -247,10 +250,8 @@ class PackageStore(object):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key, node in contents.items():
-                if key == TYPE_KEY:
-                    continue
-                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
+            for key, node in contents["children"].items():
+                if NodeType(node["type"]) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
                     install_table(node, urls)
@@ -262,6 +263,12 @@ class PackageStore(object):
         Returns the path to an object file based on its hash.
         """
         return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
+
+    def _temporary_object_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
 
     def _find_path_read(self):
         """
@@ -295,14 +302,12 @@ class PackageStore(object):
             raise StoreException("Invalid package name: %r" % self._package)
 
         package_dir = next(PackageStore.find_package_dirs(), PACKAGE_DIR_NAME)
-        user_path = os.path.join(package_dir, self._user)
-        if not os.path.isdir(user_path):
-            os.makedirs(user_path)
-        obj_path = os.path.join(package_dir, self.OBJ_DIR)
-        if not os.path.isdir(obj_path):
-            os.makedirs(obj_path)
-        path = os.path.join(user_path, self._package + self.PACKAGE_FILE_EXT)
-        self._path = path
+        for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
+            path = os.path.join(package_dir, name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+        self._path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
         self._pkg_dir = package_dir
         return
 
@@ -315,9 +320,8 @@ class PackageStore(object):
         leaf = ipath.pop()
 
         ptr = contents
-        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
-            ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
+            ptr = ptr["children"].setdefault(node, _empty_group())
 
         try:
             target_type = TargetType(target)
@@ -330,12 +334,15 @@ class PackageStore(object):
         except ValueError:
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr[leaf] = dict({TYPE_KEY: node_type.value},
-                         hashes=[objhash],
-                         metadata=dict(q_ext=ext,
-                                       q_path=path,
-                                       q_target=target)
-                        )
+        ptr["children"][leaf] = dict(
+            type=node_type.value,
+            hashes=[objhash],
+            metadata=dict(
+                q_ext=ext,
+                q_path=path,
+                q_target=target
+            )
+        )
 
         self.save_contents(contents)
 
@@ -395,13 +402,12 @@ class HDF5PackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
     @classmethod
     def ls_packages(cls, pkg_dir):
@@ -431,13 +437,12 @@ class ParquetPackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         fastparquet.write(storepath, df)
 
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
     def dataframe(self, hash_list):
         """

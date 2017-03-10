@@ -1,5 +1,5 @@
 """
-Tests for commands.
+Tests for the install command.
 """
 
 import hashlib
@@ -11,7 +11,7 @@ import responses
 from six import assertRaisesRegex
 
 from quilt.tools import command
-from quilt.tools.const import HASH_TYPE, TYPE_KEY, NodeType
+from quilt.tools.const import HASH_TYPE, NodeType
 from quilt.tools.hashing import hash_contents
 
 from .utils import QuiltTestCase
@@ -34,19 +34,24 @@ class InstallTest(QuiltTestCase):
         h.update(file_data.encode('utf-8'))
         file_hash = h.hexdigest()
 
-        contents = {
-            'foo': {
-                TYPE_KEY: NodeType.GROUP.value,
-                'bar': {
-                    TYPE_KEY: NodeType.TABLE.value,
-                    'hashes': [table_hash]
-                },
-                'blah': {
-                    TYPE_KEY: NodeType.FILE.value,
-                    'hashes': [file_hash]
-                }
-            }
-        }
+        contents = dict(
+            type=NodeType.GROUP.value,
+            children=dict(
+                foo=dict(
+                    type=NodeType.GROUP.value,
+                    children=dict(
+                        bar=dict(
+                            type=NodeType.TABLE.value,
+                            hashes=[table_hash]
+                        ),
+                        blah=dict(
+                            type=NodeType.FILE.value,
+                            hashes=[file_hash]
+                        )
+                    )
+                )
+            )
+        )
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -77,11 +82,20 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
-        contents = {'foo': {TYPE_KEY: NodeType.GROUP.value,
-                            'bar' : {TYPE_KEY: NodeType.TABLE.value,
-                                     'hashes': [obj_hash]}
-                           }
-                   }
+        contents = dict(
+            type=NodeType.GROUP.value,
+            children=dict(
+                foo=dict(
+                    type=NodeType.GROUP.value,
+                    children=dict(
+                        bar=dict(
+                            type=NodeType.TABLE.value,
+                            hashes=[obj_hash]
+                        )
+                    )
+                )
+            )
+        )
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -102,10 +116,20 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
-        contents = dict(foo={TYPE_KEY: NodeType.GROUP.value,
-                             'bar' : {TYPE_KEY: NodeType.TABLE.value,
-                                      'hashes': [obj_hash]}
-                            })
+        contents = dict(
+            type=NodeType.GROUP.value,
+            children=dict(
+                foo=dict(
+                    type=NodeType.GROUP.value,
+                    children=dict(
+                        bar=dict(
+                            type=NodeType.TABLE.value,
+                            hashes=[obj_hash]
+                        )
+                    )
+                )
+            )
+        )
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
