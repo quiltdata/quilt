@@ -32,6 +32,7 @@ class PushTest(QuiltTestCase):
     def _mock_put_package(self, package, pkg_hash):
         pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(
+            # TODO: Add upload URLs here to test zip and upload code
             upload_urls={}
         )))
 
