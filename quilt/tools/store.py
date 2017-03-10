@@ -49,6 +49,7 @@ class PackageStore(object):
     PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
+    TMP_OBJ_DIR = 'objs/tmp'
 
     @classmethod
     def find_package_dirs(cls, start='.'):
@@ -264,6 +265,12 @@ class PackageStore(object):
         """
         return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
 
+    def _temporary_object_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
+
     def _find_path_read(self):
         """
         Finds an existing package in one of the package directories.
@@ -296,14 +303,12 @@ class PackageStore(object):
             raise StoreException("Invalid package name: %r" % self._package)
 
         package_dir = next(PackageStore.find_package_dirs(), self.PACKAGE_DIR_NAME)
-        user_path = os.path.join(package_dir, self._user)
-        if not os.path.isdir(user_path):
-            os.makedirs(user_path)
-        obj_path = os.path.join(package_dir, self.OBJ_DIR)
-        if not os.path.isdir(obj_path):
-            os.makedirs(obj_path)
-        path = os.path.join(user_path, self._package + self.PACKAGE_FILE_EXT)
-        self._path = path
+        for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
+            path = os.path.join(package_dir, name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+        self._path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
         self._pkg_dir = package_dir
         return
 
@@ -396,7 +401,7 @@ class HDF5PackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = self._object_path('.' + buildfile)
+        storepath = self._temporary_object_path(buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
@@ -431,7 +436,7 @@ class ParquetPackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = self._object_path('.' + buildfile)
+        storepath = self._temporary_object_path(buildfile)
         fastparquet.write(storepath, df)
 
         filehash = digest_file(storepath)
