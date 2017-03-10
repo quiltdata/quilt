@@ -1,0 +1,3 @@
+---
+tables:
+  foo: [csv, data/foo.csv]
