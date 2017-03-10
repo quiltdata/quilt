@@ -3,7 +3,7 @@ import struct
 
 from six import iteritems, string_types
 
-from .const import HASH_TYPE, NodeType, TYPE_KEY
+from .const import HASH_TYPE, NodeType
 
 def digest_file(fname):
     """
@@ -36,57 +36,61 @@ def hash_contents(contents):
     Expected format:
 
     {
-        "$type": "GROUP",
-        "table1": {
-            "$type": "TABLE",
-            "metadata": {...},
-            "hashes": ["hash1", "hash2", ...]
-        }
-        "group1": {
-            "$type": "GROUP",
-            "table2": {
-                ...
-            },
-            "group2": {
-                ...
+        "type": "GROUP",
+        "children": {
+            "table1": {
+                "type": "TABLE",
+                "metadata": {...},
+                "hashes": ["hash1", "hash2", ...]
+            }
+            "group1": {
+                "type": "GROUP",
+                "children": {
+                    "table2": {
+                        ...
+                    },
+                    "group2": {
+                        ...
+                    },
+                    ...
+                }
             },
             ...
-        },
-        ...
+        }
     }
     """
     assert isinstance(contents, dict)
-    assert NodeType(contents[TYPE_KEY]) is NodeType.GROUP
+    assert NodeType(contents["type"]) is NodeType.GROUP
 
     result = hashlib.sha256()
 
-    def hash_int(value):
+    def _hash_int(value):
         result.update(struct.pack(">L", value))
 
-    def hash_str(string):
-        hash_int(len(string))
+    def _hash_str(string):
+        assert isinstance(string, string_types)
+        _hash_int(len(string))
         result.update(string.encode())
 
-    def hash_object(obj):
+    def _hash_object(obj):
         assert isinstance(obj, dict), "Unexpected object: %r" % obj
-        obj_type = NodeType(obj[TYPE_KEY])
-        hash_str(obj_type.value)
+        obj_type = NodeType(obj["type"])
+        _hash_str(obj_type.value)
         if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
             hashes = obj["hashes"]
-            hash_int(len(hashes))
+            _hash_int(len(hashes))
             for h in hashes:
-                assert isinstance(h, string_types)
-                hash_str(h)
+                _hash_str(h)
         elif obj_type is NodeType.GROUP:
-            hash_int(len(obj) - 1)  # Skip the "$type"
-            for key, child in sorted(iteritems(obj)):
-                assert isinstance(key, string_types)
-                if key != TYPE_KEY:
-                    hash_str(key)
-                    hash_object(child)
+            children = obj["children"]
+            assert isinstance(children, dict)
+            _hash_int(len(children))
+            for key, child in sorted(iteritems(children)):
+                _hash_str(key)
+                _hash_object(child)
         else:
             assert False, "Unexpected object type: %s" % obj_type
 
-    hash_object(contents)
+    _hash_object(contents)
 
     return result.hexdigest()

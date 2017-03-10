@@ -19,7 +19,6 @@ import os.path
 import sys
 
 from .tools.build import get_store
-from .tools.const import TYPE_KEY
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
@@ -84,8 +83,7 @@ class Node(object):
         """
         group = self._store.get(self._prefix)
         assert isinstance(group, dict), "{type} {grp}".format(type=type(group), grp=group)
-        del group[TYPE_KEY]
-        return group.keys()
+        return group["children"].keys()
 
 
 class FakeLoader(object):

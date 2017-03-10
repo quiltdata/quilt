@@ -12,7 +12,6 @@ class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
 
-TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
