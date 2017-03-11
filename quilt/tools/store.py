@@ -539,12 +539,12 @@ class ArrowPackageStore(PackageStore):
 
 
 # Helper functions
-def get_store(user, package, format=None, mode='r'):
+def get_store(user, package, pkgformat=None, mode='r'):
     """
     Return a PackageStore object of the appropriate type for a
     given data package.
     """
-    if not format:
+    if not pkgformat:
         pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT',
                                                   PackageFormat.default.value))
 
