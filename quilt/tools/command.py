@@ -18,8 +18,8 @@ import requests
 from packaging.version import Version
 
 from .build import build_package, generate_build_file, BuildException
-from .const import LATEST_TAG, NodeType
-from .hashing import hash_contents
+from .const import LATEST_TAG
+from .core import hash_contents, NodeType
 from .store import PackageStore, StoreException, get_store, ls_packages
 from .util import BASE_DIR
 
