@@ -519,7 +519,7 @@ class ArrowPackageStore(PackageStore):
         """
         Creates a DataFrame from a set of objects (identified by hashes).
         """
-        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
+        assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow packages."
         filehash = hash_list[0]
 
         nt = 8
