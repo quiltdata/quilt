@@ -23,8 +23,8 @@ def find_object_hashes(contents):
     for key, obj in contents[CHILDREN_KEY].items():
         obj_type = NodeType(obj[TYPE_KEY])
         if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            hash_it = iter(obj['hashes'])
-            yield next(hash_it)
+            for objhash in obj['hashes']:
+                yield objhash
         elif obj_type is NodeType.GROUP:
             yield next(find_object_hashes(obj))
 

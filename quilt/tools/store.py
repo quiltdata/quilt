@@ -28,7 +28,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import NodeType, TargetType, PackageFormat
+from .const import TargetType, PackageFormat
 from .core import hash_contents, NodeType
 from .hashing import digest_file
 
