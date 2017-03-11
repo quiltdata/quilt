@@ -21,8 +21,9 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, NodeType, TargetType
-from .hashing import digest_file, hash_contents
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, TargetType
+from .core import hash_contents, NodeType
+from .hashing import digest_file
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')

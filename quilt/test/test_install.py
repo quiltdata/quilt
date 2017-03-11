@@ -11,8 +11,8 @@ import responses
 from six import assertRaisesRegex
 
 from quilt.tools import command
-from quilt.tools.const import HASH_TYPE, NodeType
-from quilt.tools.hashing import hash_contents
+from quilt.tools.const import HASH_TYPE
+from quilt.tools.core import hash_contents, NodeType
 
 from .utils import QuiltTestCase
 
