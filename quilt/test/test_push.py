@@ -9,7 +9,7 @@ import requests
 import responses
 
 from quilt.tools import command, store
-from quilt.tools.const import NodeType
+from quilt.tools.core import NodeType
 
 from .utils import QuiltTestCase
 
