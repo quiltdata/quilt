@@ -17,7 +17,7 @@ import pandas as pd
 import requests
 from packaging.version import Version
 
-from .build import build_package, BuildException
+from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG
 from .core import hash_contents, NodeType
 from .store import PackageStore, StoreException, get_store, ls_packages
@@ -166,13 +166,19 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path):
+def build(package, path, directory=None):
     """
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
+    if directory:
+        buildfilepath = generate_build_file(directory)
+        buildpath = buildfilepath
+    else:
+        buildpath = path
+
     try:
-        build_package(owner, pkg, path)
+        build_package(owner, pkg, buildpath)
         print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
@@ -534,7 +540,9 @@ def main():
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
-    build_p.add_argument("path", type=str, help="Path to the Yaml build file")
+    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
+    buildpath_group.add_argument("-d", "--directory", type=str, help="Source file directory")
+    buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
     build_p.set_defaults(func=build, need_session=False)
 
     push_p = subparsers.add_parser("push")
