@@ -19,7 +19,6 @@ class PackageFormat(Enum):
     SPARK = 'SPARK_PARQUET'
     default = HDF5
 
-TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)

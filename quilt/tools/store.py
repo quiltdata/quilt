@@ -28,7 +28,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import NodeType, TargetType, PackageFormat, TYPE_KEY
+from .const import NodeType, TargetType, PackageFormat
 from .hashing import digest_file, hash_contents
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -45,6 +45,11 @@ class StoreException(Exception):
     """
     pass
 
+def _empty_group():
+    return dict(
+        type=NodeType.GROUP.value,
+        children=dict()
+    )
 
 class PackageStore(object):
     """
@@ -56,6 +61,7 @@ class PackageStore(object):
     PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
+    TMP_OBJ_DIR = 'objs/tmp'
 
     @classmethod
     def find_package_dirs(cls, start='.'):
@@ -136,10 +142,7 @@ class PackageStore(object):
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file)
         except IOError:
-            contents = {}
-
-        # Make sure the top-level a valid node (GROUP by default)
-        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+            contents = _empty_group()
 
         return contents
 
@@ -171,15 +174,15 @@ class PackageStore(object):
         path_so_far = []
         for node in ipath:
             path_so_far += [node]
-            if not node in ptr:
+            ptr = ptr["children"].get(node)
+            if ptr is None:
                 raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
-            ptr = ptr[node]
         node = ptr
 
-        node_type = NodeType(node[TYPE_KEY])
+        node_type = NodeType(node["type"])
         if node_type is NodeType.GROUP:
             return node
         elif node_type is NodeType.TABLE:
@@ -193,7 +196,8 @@ class PackageStore(object):
         """
         Returns the hash digest of the package data.
         """
-        raise StoreException("Not Implemented")
+        def get_hash(self):
+            return hash_contents(self.get_contents())
 
     def get_path(self):
         """
@@ -255,10 +259,8 @@ class PackageStore(object):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key, node in contents.items():
-                if key == TYPE_KEY:
-                    continue
-                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
+            for key, node in contents["children"].items():
+                if NodeType(node["type"]) is NodeType.GROUP:
                     return install_tables(node, urls)
                 else:
                     install_table(node, urls)
@@ -270,6 +272,40 @@ class PackageStore(object):
         Returns the path to an object file based on its hash.
         """
         return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
+
+    def _temporary_object_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
+
+    class UploadFile(object):
+        """
+        Helper class to manage temporary package files uploaded by push.
+        """
+        def __init__(self, store, objhash):
+            self._store = store
+            self._hash = objhash
+
+        def __enter__(self):
+            self._temp_file = tempfile.TemporaryFile()
+            with open(self._store._object_path(self._hash), 'rb') as input_file:
+                zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
+                for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
+                    self._temp_file.write(zlib_obj.compress(chunk))
+                self._temp_file.write(zlib_obj.flush())
+            self._temp_file.seek(0)
+            return self._temp_file
+
+        def __exit__(self, type, value, traceback):
+            self._temp_file.close()
+
+    def tempfile(self, objhash):
+        """
+        Create and return a temporary file for uploading to a registry.
+        """
+        return self.UploadFile(self, objhash)
+
 
     def _find_path_read(self):
         """
@@ -303,14 +339,12 @@ class PackageStore(object):
             raise StoreException("Invalid package name: %r" % self._package)
 
         package_dir = next(PackageStore.find_package_dirs(), self.PACKAGE_DIR_NAME)
-        user_path = os.path.join(package_dir, self._user)
-        if not os.path.isdir(user_path):
-            os.makedirs(user_path)
-        obj_path = os.path.join(package_dir, self.OBJ_DIR)
-        if not os.path.isdir(obj_path):
-            os.makedirs(obj_path)
-        path = os.path.join(user_path, self._package + self.PACKAGE_FILE_EXT)
-        self._path = path
+        for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
+            path = os.path.join(package_dir, name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+        self._path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
         self._pkg_dir = package_dir
         return
 
@@ -323,9 +357,8 @@ class PackageStore(object):
         leaf = ipath.pop()
 
         ptr = contents
-        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
-            ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
+            ptr = ptr["children"].setdefault(node, _empty_group())
 
         try:
             target_type = TargetType(target)
@@ -338,14 +371,29 @@ class PackageStore(object):
         except ValueError:
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr[leaf] = dict({TYPE_KEY: node_type.value},
-                         hashes=[objhash],
-                         metadata=dict(q_ext=ext,
-                                       q_path=path,
-                                       q_target=target)
-                        )
+        ptr["children"][leaf] = dict(
+            type=node_type.value,
+            hashes=[objhash],
+            metadata=dict(
+                q_ext=ext,
+                q_path=path,
+                q_target=target
+            )
+        )
 
         self.save_contents(contents)
+
+    @classmethod
+    def ls_packages(cls, pkg_dir):
+        """
+        List installed packages.
+        """
+        packages = [
+            (user, pkg[:-len(PackageStore.PACKAGE_FILE_EXT)])
+            for user in os.listdir(pkg_dir)
+            for pkg in os.listdir(os.path.join(pkg_dir, user))
+            if pkg.endswith(PackageStore.PACKAGE_FILE_EXT)]
+        return packages
 
 
 class HDF5PackageStore(PackageStore):
@@ -367,61 +415,18 @@ class HDF5PackageStore(PackageStore):
         with pd.HDFStore(self._object_path(filehash), 'r') as store:
             return store.get(self.DF_NAME)
 
-    def get_hash(self):
-        return hash_contents(self.get_contents())
-
-    class UploadFile(object):
-        """
-        Helper class to manage temporary package files uploaded by push.
-        """
-        def __init__(self, store, objhash):
-            self._store = store
-            self._hash = objhash
-
-        def __enter__(self):
-            self._temp_file = tempfile.TemporaryFile()
-            with open(self._store._object_path(self._hash), 'rb') as input_file:
-                zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
-                for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
-                    self._temp_file.write(zlib_obj.compress(chunk))
-                self._temp_file.write(zlib_obj.flush())
-            self._temp_file.seek(0)
-            return self._temp_file
-
-        def __exit__(self, type, value, traceback):
-            self._temp_file.close()
-
-    def tempfile(self, hash):
-        """
-        Create and return a temporary file for uploading to a registry.
-        """
-        return self.UploadFile(self, hash)
-
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
-
-    @classmethod
-    def ls_packages(cls, pkg_dir):
-        """
-        List installed packages.
-        """
-        hdf5_packages = [
-            (user, pkg[:-len(HDF5PackageStore.PACKAGE_FILE_EXT)])
-            for user in os.listdir(pkg_dir)
-            for pkg in os.listdir(os.path.join(pkg_dir, user))
-            if pkg.endswith(HDF5PackageStore.PACKAGE_FILE_EXT)]
-        return hdf5_packages
+        os.rename(storepath, self._object_path(filehash))
 
 
 class FastParquetPackageStore(PackageStore):
@@ -439,13 +444,12 @@ class FastParquetPackageStore(PackageStore):
         """
         self._find_path_write()
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         fastparquet.write(storepath, df)
 
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
     def dataframe(self, hash_list):
         """
@@ -455,21 +459,6 @@ class FastParquetPackageStore(PackageStore):
         filehash = hash_list[0]
         pfile = fastparquet.ParquetFile(self._object_path(filehash))
         return pfile.to_pandas()
-
-    def get_hash(self):
-        raise StoreException("Not Implemented")
-
-    @classmethod
-    def ls_packages(cls, pkg_dir):
-        """
-        List installed packages.
-        """
-        parq_packages = [
-            (user, pkg)
-            for user in os.listdir(pkg_dir)
-            for pkg in os.listdir(os.path.join(pkg_dir, user))
-            if os.path.isdir(pkg)]
-        return parq_packages
 
 
 class SparkPackageStore(FastParquetPackageStore):
@@ -513,7 +502,7 @@ class ArrowPackageStore(PackageStore):
 
         # Save the dataframe to a local build file
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         table = pa.Table.from_pandas(df)
         parquet.write_table(table, storepath)
 
@@ -574,11 +563,5 @@ def ls_packages(pkg_dir):
     """
     List all packages from all package directories.
     """
-    pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT', PackageFormat.default.value))
-    if pkg_format is PackageFormat.HDF5:
-        packages = HDF5PackageStore.ls_packages(pkg_dir)
-    elif pkg_format is PackageFormat.FASTPARQUET:
-        packages = FastParquetPackageStore.ls_packages(pkg_dir)
-    else:
-        raise StoreException("Unsupported Package Format %s" % pkg_format)
+    packages = PackageStore.ls_packages(pkg_dir)
     return packages

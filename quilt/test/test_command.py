@@ -2,6 +2,9 @@
 Tests for commands.
 """
 
+from datetime import datetime
+import json
+import os
 import pytest
 import requests
 import responses
@@ -13,7 +16,7 @@ try:
 except ImportError:
     h5py = None
 
-from quilt.tools import command
+from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
@@ -119,3 +122,39 @@ class CommandTest(QuiltTestCase):
             command.login()
 
         mock_save.assert_not_called()
+
+    def test_ls(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.ls()
+
+    def test_inspect_valid_package(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.inspect('foo/bar')
+
+    def test_log(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        owner = 'foo'
+        package = 'bar'
+        command.build('%s/%s' % (owner, package), build_path)
+
+        pkg_obj = store.get_store(owner, package)
+        self._mock_logs_list(owner, package, pkg_obj.get_hash())
+
+        session = requests.Session()
+        command.log(session, "{owner}/{pkg}".format(owner=owner, pkg=package))
+
+    def _mock_logs_list(self, owner, package, pkg_hash):
+        logs_url = "%s/api/log/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
+        resp = dict(logs=[dict(
+            hash=pkg_hash,
+            created=str(datetime.now()),
+            author=owner)])
+        print("MOCKING URL=%s" % logs_url)
+        self.requests_mock.add(responses.GET, logs_url, json.dumps(resp))
