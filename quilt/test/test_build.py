@@ -69,8 +69,19 @@ class BuildTest(QuiltTestCase):
         del os.environ["QUILT_PACKAGE_FORMAT"]
         # TODO add more integrity checks, incl. negative test cases
 
+    def test_generate_buildfile(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath)
+        build.generate_build_file(path)
+        assert os.path.exists(buildfilepath)
+        build.build_package('test_hdf5', 'generated', buildfilepath)    
+        os.remove(buildfilepath)
+
     def test_failover(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_failover.yml')
         build.build_package('test_failover', PACKAGE, path)
         from quilt.data.test_failover import bad
+

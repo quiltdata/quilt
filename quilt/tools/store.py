@@ -21,7 +21,7 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, TargetType
+from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, PACKAGE_DIR_NAME, TargetType
 from .core import hash_contents, NodeType
 from .hashing import digest_file
 
@@ -51,7 +51,6 @@ class PackageStore(object):
     class and its subclasses abstract file formats, file naming and
     reading and writing to/from data files.
     """
-    PACKAGE_DIR_NAME = 'quilt_packages'
     PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
@@ -72,8 +71,8 @@ class PackageStore(object):
         path = os.path.realpath(start)
         while True:
             parent_path, name = os.path.split(path)
-            if name != cls.PACKAGE_DIR_NAME:
-                package_dir = os.path.join(path, cls.PACKAGE_DIR_NAME)
+            if name != PACKAGE_DIR_NAME:
+                package_dir = os.path.join(path, PACKAGE_DIR_NAME)
                 if os.path.isdir(package_dir):
                     yield package_dir
             if parent_path == path:  # The only reliable way to detect the root.
@@ -303,7 +302,7 @@ class PackageStore(object):
         if not VALID_NAME_RE.match(self._package):
             raise StoreException("Invalid package name: %r" % self._package)
 
-        package_dir = next(PackageStore.find_package_dirs(), self.PACKAGE_DIR_NAME)
+        package_dir = next(PackageStore.find_package_dirs(), PACKAGE_DIR_NAME)
         for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
             path = os.path.join(package_dir, name)
             if not os.path.isdir(path):
