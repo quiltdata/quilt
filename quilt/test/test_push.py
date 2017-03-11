@@ -13,8 +13,8 @@ from quilt.tools.const import NodeType
 
 from .utils import QuiltTestCase
 
-TYPE_KEY='type'
-CHILDREN_KEY='children'
+TYPE_KEY = 'type'
+CHILDREN_KEY = 'children'
 
 def find_object_hashes(contents):
     """
@@ -33,13 +33,13 @@ def find_object_hashes(contents):
 def upload_urls(contents):
     all_hashes = set(find_object_hashes(contents))
 
-    upload_urls = {}
+    urls = {}
     for blob_hash in all_hashes:
         template = "https://example.com/{owner}/{pkg}/{hash}"
-        upload_urls[blob_hash] = template.format(owner='foo',
+        urls[blob_hash] = template.format(owner='foo',
                                                  pkg='bar',
                                                  hash=blob_hash)
-    return upload_urls
+    return urls
 
 
 class PushTest(QuiltTestCase):
@@ -57,10 +57,10 @@ class PushTest(QuiltTestCase):
         contents = pkg_obj.get_contents()
         urls = upload_urls(contents)
         for blob_hash, url in urls.items():
-            self._mock_s3(blob_hash, url)
+            self._mock_s3(url)
 
         self._mock_put_package('foo/bar', pkg_hash, contents)
-        self._mock_put_tag('foo/bar', 'latest', pkg_hash)
+        self._mock_put_tag('foo/bar', 'latest')
 
         session = requests.Session()
         command.push(session, 'foo/bar')
@@ -72,9 +72,9 @@ class PushTest(QuiltTestCase):
             upload_urls=upload_urls(contents)
         )))
 
-    def _mock_put_tag(self, package, tag, pkg_hash):
+    def _mock_put_tag(self, package, tag):
         tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
         self.requests_mock.add(responses.PUT, tag_url, json.dumps(dict()))
 
-    def _mock_s3(self, object_hash, s3_url):
+    def _mock_s3(self, s3_url):
         self.requests_mock.add(responses.PUT, s3_url)
