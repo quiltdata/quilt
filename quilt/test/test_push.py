@@ -21,14 +21,13 @@ def find_object_hashes(contents):
     Iterator that returns hashes of all of the tables.
     """
     for key, obj in contents[CHILDREN_KEY].items():
-        print("KEY=%s, OBJ=%s" % (key, obj))
-        if key == TYPE_KEY:
-            continue
         obj_type = NodeType(obj[TYPE_KEY])
         if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            yield from obj["hashes"]
+            for objhash in obj['hashes']:
+                yield objhash
         elif obj_type is NodeType.GROUP:
-            yield from find_object_hashes(obj)
+            for objhash in find_object_hashes(obj):
+                yield objhash
 
 def upload_urls(contents):
     all_hashes = set(find_object_hashes(contents))
@@ -37,8 +36,8 @@ def upload_urls(contents):
     for blob_hash in all_hashes:
         template = "https://example.com/{owner}/{pkg}/{hash}"
         urls[blob_hash] = template.format(owner='foo',
-                                                 pkg='bar',
-                                                 hash=blob_hash)
+                                          pkg='bar',
+                                          hash=blob_hash)
     return urls
 
 
@@ -68,7 +67,6 @@ class PushTest(QuiltTestCase):
     def _mock_put_package(self, package, pkg_hash, contents):
         pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(
-            # TODO: Add upload URLs here to test zip and upload code
             upload_urls=upload_urls(contents)
         )))
 

@@ -6,6 +6,7 @@ import os
 import re
 from shutil import copyfile
 import tempfile
+import time
 import zlib
 
 import pandas as pd
@@ -17,11 +18,17 @@ except ImportError:
     fastparquet = None
 
 try:
+    import pyarrow as pa
+    from pyarrow import parquet
+except ImportError:
+    pa = None
+
+try:
     from pyspark.sql import SparkSession
 except ImportError:
     SparkSession = None
 
-from .const import FORMAT_HDF5, FORMAT_PARQ, FORMAT_SPARK, PACKAGE_DIR_NAME, TargetType
+from .const import TargetType, PackageFormat, PACKAGE_DIR_NAME
 from .core import hash_contents, NodeType
 from .hashing import digest_file
 
@@ -189,7 +196,8 @@ class PackageStore(object):
         """
         Returns the hash digest of the package data.
         """
-        raise StoreException("Not Implemented")
+        def get_hash(self):
+            return hash_contents(self.get_contents())
 
     def get_path(self):
         """
@@ -271,6 +279,34 @@ class PackageStore(object):
         """
         return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
 
+    class UploadFile(object):
+        """
+        Helper class to manage temporary package files uploaded by push.
+        """
+        def __init__(self, store, objhash):
+            self._store = store
+            self._hash = objhash
+
+        def __enter__(self):
+            self._temp_file = tempfile.TemporaryFile()
+            with open(self._store._object_path(self._hash), 'rb') as input_file:
+                zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
+                for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
+                    self._temp_file.write(zlib_obj.compress(chunk))
+                self._temp_file.write(zlib_obj.flush())
+            self._temp_file.seek(0)
+            return self._temp_file
+
+        def __exit__(self, type, value, traceback):
+            self._temp_file.close()
+
+    def tempfile(self, objhash):
+        """
+        Create and return a temporary file for uploading to a registry.
+        """
+        return self.UploadFile(self, objhash)
+
+
     def _find_path_read(self):
         """
         Finds an existing package in one of the package directories.
@@ -347,6 +383,18 @@ class PackageStore(object):
 
         self.save_contents(contents)
 
+    @classmethod
+    def ls_packages(cls, pkg_dir):
+        """
+        List installed packages.
+        """
+        packages = [
+            (user, pkg[:-len(PackageStore.PACKAGE_FILE_EXT)])
+            for user in os.listdir(pkg_dir)
+            for pkg in os.listdir(os.path.join(pkg_dir, user))
+            if pkg.endswith(PackageStore.PACKAGE_FILE_EXT)]
+        return packages
+
 
 class HDF5PackageStore(PackageStore):
     """
@@ -367,36 +415,6 @@ class HDF5PackageStore(PackageStore):
         with pd.HDFStore(self._object_path(filehash), 'r') as store:
             return store.get(self.DF_NAME)
 
-    def get_hash(self):
-        return hash_contents(self.get_contents())
-
-    class UploadFile(object):
-        """
-        Helper class to manage temporary package files uploaded by push.
-        """
-        def __init__(self, store, objhash):
-            self._store = store
-            self._hash = objhash
-
-        def __enter__(self):
-            self._temp_file = tempfile.TemporaryFile()
-            with open(self._store._object_path(self._hash), 'rb') as input_file:
-                zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
-                for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
-                    self._temp_file.write(zlib_obj.compress(chunk))
-                self._temp_file.write(zlib_obj.flush())
-            self._temp_file.seek(0)
-            return self._temp_file
-
-        def __exit__(self, type, value, traceback):
-            self._temp_file.close()
-
-    def tempfile(self, hash):
-        """
-        Create and return a temporary file for uploading to a registry.
-        """
-        return self.UploadFile(self, hash)
-
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
@@ -410,27 +428,15 @@ class HDF5PackageStore(PackageStore):
         self._add_to_contents(buildfile, filehash, ext, path, target)
         os.rename(storepath, self._object_path(filehash))
 
-    @classmethod
-    def ls_packages(cls, pkg_dir):
-        """
-        List installed packages.
-        """
-        hdf5_packages = [
-            (user, pkg[:-len(HDF5PackageStore.PACKAGE_FILE_EXT)])
-            for user in os.listdir(pkg_dir)
-            for pkg in os.listdir(os.path.join(pkg_dir, user))
-            if pkg.endswith(HDF5PackageStore.PACKAGE_FILE_EXT)]
-        return hdf5_packages
 
-
-class ParquetPackageStore(PackageStore):
+class FastParquetPackageStore(PackageStore):
     """
     Parquet Implementation of PackageStore.
     """
     def __init__(self, user, package, mode):
         if fastparquet is None:
-            raise StoreException("Module fastparquet is required for ParquetPackageStore.")
-        super(ParquetPackageStore, self).__init__(user, package, mode)
+            raise StoreException("Module fastparquet is required for FastParquetPackageStore.")
+        super(FastParquetPackageStore, self).__init__(user, package, mode)
 
     def save_df(self, df, name, path, ext, target):
         """
@@ -454,22 +460,8 @@ class ParquetPackageStore(PackageStore):
         pfile = fastparquet.ParquetFile(self._object_path(filehash))
         return pfile.to_pandas()
 
-    def get_hash(self):
-        raise StoreException("Not Implemented")
 
-    @classmethod
-    def ls_packages(cls, pkg_dir):
-        """
-        List installed packages.
-        """
-        parq_packages = [
-            (user, pkg)
-            for user in os.listdir(pkg_dir)
-            for pkg in os.listdir(os.path.join(pkg_dir, user))
-            if os.path.isdir(pkg)]
-        return parq_packages
-
-class SparkPackageStore(ParquetPackageStore):
+class SparkPackageStore(FastParquetPackageStore):
     """
     Spark Implementation of PackageStore.
     """
@@ -490,32 +482,86 @@ class SparkPackageStore(ParquetPackageStore):
         df = spark.read.parquet(self._object_path(filehash))
         return df
 
+class ArrowPackageStore(PackageStore):
+    """
+    Parquet Implementation of PackageStore.
+    """
+
+    PACKAGE_FILE_EXT = '.parq'
+
+    def __init__(self, user, package, mode):
+        if pa is None:
+            raise StoreException("Module pyarrow is required for ArrowPackageStore.")
+        super(ArrowPackageStore, self).__init__(user, package, mode)
+
+    def save_df(self, df, name, path, ext, target):
+        """
+        Save a DataFrame to the store.
+        """
+        self._find_path_write()
+
+        # Save the dataframe to a local build file
+        buildfile = name.lstrip('/').replace('/', '.')
+        storepath = self._temporary_object_path(buildfile)
+        table = pa.Table.from_pandas(df)
+        parquet.write_table(table, storepath)
+
+        # Calculate the file hash and add it to the package contents
+        filehash = digest_file(storepath)
+        self._add_to_contents(buildfile, filehash, ext, path, target)
+
+        # Move the build file to the object store and rename it to
+        # its hash
+        objpath = self._object_path(filehash)
+        os.rename(storepath, objpath)
+
+    def dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
+        assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow packages."
+        filehash = hash_list[0]
+
+        nt = 8
+        fpath = self._object_path(filehash)
+        starttime = time.time()
+        table = parquet.read_table(fpath, nthreads=nt)
+        finishtime = time.time()
+        elapsed = finishtime - starttime
+        print("Read {path} in {time}s with {nt} threads".format(path=fpath, time=elapsed, nt=nt))
+
+        starttime = time.time()
+        df = table.to_pandas()
+        finishtime = time.time()
+        elapsed = finishtime - starttime
+        print("Converted to pandas in {time}s".format(time=elapsed))
+        return df
+
+
 # Helper functions
-def get_store(user, package, format=None, mode='r'):
+def get_store(user, package, pkgformat=None, mode='r'):
     """
     Return a PackageStore object of the appropriate type for a
     given data package.
     """
-    pkg_format = format
-    if not pkg_format:
-        pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
+    if not pkgformat:
+        pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT',
+                                                  PackageFormat.default.value))
 
-    if pkg_format == FORMAT_PARQ:
-        return ParquetPackageStore(user, package, mode)
-    elif pkg_format == FORMAT_SPARK:
-        return SparkPackageStore(user, package, mode)
-    else:
+    if pkg_format is PackageFormat.HDF5:
         return HDF5PackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.FASTPARQUET:
+        return FastParquetPackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.SPARK:
+        return SparkPackageStore(user, package, mode)
+    elif pkg_format is PackageFormat.ARROW:
+        return ArrowPackageStore(user, package, mode)
+    else:
+        raise StoreException("Not Implemented")
 
 def ls_packages(pkg_dir):
     """
     List all packages from all package directories.
     """
-    pkg_format = os.environ.get('QUILT_PACKAGE_FORMAT', FORMAT_HDF5)
-    if pkg_format == FORMAT_HDF5:
-        packages = HDF5PackageStore.ls_packages(pkg_dir)
-    elif pkg_format == FORMAT_PARQ:
-        packages = ParquetPackageStore.ls_packages(pkg_dir)
-    else:
-        raise StoreException("Unsupported Package Format %s" % pkg_format)
+    packages = PackageStore.ls_packages(pkg_dir)
     return packages

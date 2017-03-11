@@ -107,13 +107,13 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
     tables = data.get('tables')
-    format = data.get('format')
+    pkgformat = data.get('format')
     files = data.get('files')
     readme = files.get('README') if files else None
     if not isinstance(tables, dict):
         raise BuildException("'tables' must be a dictionary")
 
-    with get_store(username, package, format, 'w') as store:
+    with get_store(username, package, pkgformat, 'w') as store:
         store.clear_contents()
         _build_table(build_dir, store, '', tables)
         if readme is not None:
