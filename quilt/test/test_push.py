@@ -26,7 +26,8 @@ def find_object_hashes(contents):
             for objhash in obj['hashes']:
                 yield objhash
         elif obj_type is NodeType.GROUP:
-            yield next(find_object_hashes(obj))
+            for objhash in find_object_hashes(obj):
+                yield objhash
 
 def upload_urls(contents):
     all_hashes = set(find_object_hashes(contents))
