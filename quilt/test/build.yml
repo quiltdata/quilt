@@ -1,7 +1,8 @@
 ---
 tables:
-  csv: [csv, data/10KRows13Cols.csv]
-  tsv: [tsv, data/10KRows13Cols.tsv]
-  xls: [xlsx, data/10KRows13Cols.xlsx]
+  dataframes:
+    csv: [csv, data/10KRows13Cols.csv]
+    tsv: [tsv, data/10KRows13Cols.tsv]
+    xls: [xlsx, data/10KRows13Cols.xlsx]
 files:
   README: data/README.md

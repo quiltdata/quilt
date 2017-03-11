@@ -30,7 +30,10 @@ class BuildTest(QuiltTestCase):
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
-        from quilt.data.test_hdf5.groot import csv, tsv, xls
+        from quilt.data.test_hdf5.groot import dataframes, README
+        csv = dataframes.csv
+        tsv = dataframes.csv
+        xls = dataframes.xls
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
@@ -52,7 +55,10 @@ class BuildTest(QuiltTestCase):
         # TODO load DFs based on contents of .yml file at path
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
-        from quilt.data.test_parquet.groot import csv, tsv, xls
+        from quilt.data.test_hdf5.groot import dataframes, README
+        csv = dataframes.csv
+        tsv = dataframes.csv
+        xls = dataframes.xls
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
