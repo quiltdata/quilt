@@ -517,7 +517,7 @@ def inspect(package):
             assert False, "node=%s type=%s" % (node, type(node))
 
     print(store.get_path())
-    _print_children(children=store.get_contents().items(), prefix='', path='')
+    _print_children(children=store.get_contents()["children"].items(), prefix='', path='')
 
 def main():
     """
