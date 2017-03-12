@@ -31,7 +31,7 @@ setup(
     author_email='founders@quiltdata.io',
     license='LICENSE',
     url='https://github.com/quiltdata/quilt',
-    download_url='https://github.com/quiltdata/quilt/releases/tag/v2.2.0-alpha',
+    download_url='https://github.com/quiltdata/quilt/releases/tag/v2.2.0-beta',
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
