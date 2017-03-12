@@ -196,8 +196,7 @@ class PackageStore(object):
         """
         Returns the hash digest of the package data.
         """
-        def get_hash(self):
-            return hash_contents(self.get_contents())
+        return hash_contents(self.get_contents())
 
     def get_path(self):
         """
