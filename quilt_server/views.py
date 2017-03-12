@@ -426,8 +426,8 @@ def logs_list(auth_user, owner, package_name):
         db.session.query(Log, Instance)
         .filter_by(package=package)
         .join(Log.instance)
-        # We want chronological order - but Log.created could theoretically have duplicates.
-        .order_by(Log.id)
+        # Sort chronologically, but rely on IDs in case of duplicate created times.
+        .order_by(Log.created, Log.id)
     )
 
     return dict(
