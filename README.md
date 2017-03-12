@@ -13,7 +13,7 @@ the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 ## Benefits
 * Access data frames [5X to 20X faster](http://wesmckinney.com/blog/pandas-and-apache-arrow/).
 Quilt stores data frames in high-efficiency, memory-mapped binary formats like HDF5.
-* Version your data. Pull packages by version number or tag (incomplete feature).
+* Version your data. Pull packages by version number or tag.
 * Publish data packages for the benefit of the community.
 * Satisfy your data dependencies with one command, `quilt install dependency`.
 
