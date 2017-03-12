@@ -19,7 +19,7 @@ from packaging.version import Version
 
 from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG
-from .core import hash_contents, NodeType
+from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
 from .store import PackageStore, StoreException, get_store, ls_packages
 from .util import BASE_DIR
 
@@ -225,7 +225,7 @@ def push(session, package):
         data=json.dumps(dict(
             contents=store.get_contents(),
             description=""  # TODO
-        ))
+        ), default=encode_node)
     )
 
     dataset = response.json()
@@ -418,7 +418,7 @@ def install(session, package, hash=None, version=None, tag=None):
     )
     assert response.ok # other responses handled by _handle_response
 
-    dataset = response.json()
+    dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
     response_contents = dataset['contents']
 
@@ -494,30 +494,26 @@ def inspect(package):
 
     def _print_node(node, prefix, child_prefix, name, path):
         name_prefix = u"─ "
-        if isinstance(node, dict):
-            node_type = NodeType(node["type"])
-            if node_type is NodeType.GROUP:
-                children = list(node["children"].items())
-                if children:
-                    name_prefix = u"┬ "
-                print(prefix + name_prefix + name)
-                _print_children(children, child_prefix, path + name)
-            elif node_type is NodeType.TABLE:
-                fullname = "/".join([path, name])
-                df = store.get(fullname)
-                assert isinstance(df, pd.DataFrame)
-                info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
-                print(prefix + name_prefix + ": " + info)
-            elif node_type is NodeType.FILE:
-                fullname = "/".join([path, name])
-                print(prefix + name_prefix + name)
-            else:
-                assert False, "Unhandled NodeType {nt}".format(nt=node_type)
+        if isinstance(node, GroupNode):
+            children = list(node.children.items())
+            if children:
+                name_prefix = u"┬ "
+            print(prefix + name_prefix + name)
+            _print_children(children, child_prefix, path + name)
+        elif isinstance(node, TableNode):
+            fullname = "/".join([path, name])
+            df = store.get(fullname)
+            assert isinstance(df, pd.DataFrame)
+            info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
+            print(prefix + name_prefix + ": " + info)
+        elif isinstance(node, FileNode):
+            fullname = "/".join([path, name])
+            print(prefix + name_prefix + name)
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 
     print(store.get_path())
-    _print_children(children=store.get_contents()["children"].items(), prefix='', path='')
+    _print_children(children=store.get_contents().children.items(), prefix='', path='')
 
 def main():
     """

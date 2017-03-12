@@ -19,11 +19,12 @@ import os.path
 import sys
 
 from .tools.build import get_store
+from .tools.core import GroupNode
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
 
-class Node(object):
+class DataNode(object):
     """
     Represents either the root of the store or a group, similar to nodes
     in HDFStore's `root`.
@@ -55,7 +56,7 @@ class Node(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if not isinstance(self._get_store_obj(pref + k), Node)]
+                if not isinstance(self._get_store_obj(pref + k), DataNode)]
 
     def _get_store_obj(self, path):
         try:
@@ -64,8 +65,8 @@ class Node(object):
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
 
-        if isinstance(obj, dict):
-            return Node(self._store, path)
+        if isinstance(obj, GroupNode):
+            return DataNode(self._store, path)
         else:
             return obj
 
@@ -75,15 +76,15 @@ class Node(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if isinstance(self._get_store_obj(pref + k), Node)]
+                if isinstance(self._get_store_obj(pref + k), DataNode)]
 
     def _keys(self):
         """
         keys directly accessible on this object via getattr or .
         """
         group = self._store.get(self._prefix)
-        assert isinstance(group, dict), "{type} {grp}".format(type=type(group), grp=group)
-        return group["children"].keys()
+        assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
+        return group.children.keys()
 
 
 class FakeLoader(object):
@@ -123,7 +124,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = Node(self._store)
+        mod = DataNode(self._store)
         sys.modules[fullname] = mod
         return mod
 
