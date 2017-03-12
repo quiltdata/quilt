@@ -8,7 +8,14 @@ import urllib
 import requests
 
 from quilt_server import app
-from quilt_server.schemas import hash_contents
+from quilt_server.core import (
+    decode_node,
+    encode_node,
+    hash_contents,
+    GroupNode,
+    TableNode,
+    FileNode,
+)
 
 from .utils import QuiltTestCase
 
@@ -22,64 +29,50 @@ class PushInstallTestCase(QuiltTestCase):
     HASH2 = '4cf37d7f670709346438cf2f2598db630eb34520947308aed55ad5e53f0c1518'
     HASH3 = '46449f44f36ec78364ae846fa47df57870e49d3c6cee59b3682aaf289e6d7586'
 
-    CONTENTS = {
-        "foo": {
-            "$type": "TABLE",
-            "hashes": [HASH1, HASH2]
-        },
-        "group1": {
-            "$type": "GROUP",
-            "empty": {
-                "$type": "TABLE",
-                "hashes": []
-            },
-            "group2": {
-                "$type": "GROUP",
-                "bar": {
-                    "$type": "TABLE",
-                    "hashes": [HASH1]
-                }
-            }
-        },
-        "file": {
-            "$type": "FILE",
-            "hashes": [HASH3]
-        }
-    }
+    CONTENTS = GroupNode(dict(
+        foo=TableNode(
+            hashes=[HASH1, HASH2]
+        ),
+        group1=GroupNode(dict(
+            empty=TableNode(
+                hashes=[]
+            ),
+            group2=GroupNode(dict(
+                bar=TableNode(
+                    hashes=[HASH1]
+                )
+            ))
+        )),
+        file=FileNode(
+            hashes=[HASH3]
+        )
+    ))
 
-    CONTENTS_WITH_METADATA = {
-        "foo": {
-            "$type": "TABLE",
-            "metadata": {
-                "important": True
-            },
-            "hashes": [HASH1, HASH2]
-        },
-        "group1": {
-            "$type": "GROUP",
-            "empty": {
-                "$type": "TABLE",
-                "hashes": [],
-                "metadata": {
-                    "whatever": "123"
-                }
-            },
-            "group2": {
-                "$type": "GROUP",
-                "bar": {
-                    "$type": "TABLE",
-                    "hashes": [HASH1]
-                }
-            }
-        },
-        "file": {
-            "$type": "FILE",
-            "hashes": [HASH3],
-            "metadata": {}
-        }
-    }
+    CONTENTS_WITH_METADATA = GroupNode(dict(
+        foo=TableNode(
+            hashes=[HASH1, HASH2],
+            metadata=dict(
+                important=True
+            )
+        ),
+        group1=GroupNode(dict(
+            empty=TableNode(
+                hashes=[],
+                metadata=dict(
+                    whatever="123"
+                )
+            ),
+            group2=GroupNode(dict(
+                bar=TableNode([HASH1])
+            ))
+        )),
+        file=FileNode(
+            hashes=[HASH3],
+            metadata=dict()
+        )
+    ))
 
-    CONTENTS_HASH = '5317bbeb5a891b0214f5fe198828c4e5bfbaacb8d62e06312905e126c815d0c6'
+    CONTENTS_HASH = 'cf8743510800aaf6f284568b19c3da5f2b7f3e517889c916f4e274bffeb7c035'
 
     def testContentsHash(self):
         assert hash_contents(self.CONTENTS) == self.CONTENTS_HASH
@@ -95,7 +88,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -151,7 +144,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
         assert contents == self.CONTENTS
         assert data['created_by'] == data['updated_by'] == 'test_user'
@@ -173,7 +166,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -187,7 +180,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS_WITH_METADATA
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -204,7 +197,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         assert data['contents'] == self.CONTENTS_WITH_METADATA
 
     def testNotLoggedIn(self):
@@ -213,7 +206,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json'
         )
         assert resp.status_code == requests.codes.unauthorized
@@ -235,7 +228,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'blah'
@@ -279,7 +272,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -297,7 +290,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -311,7 +304,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -325,7 +318,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'
@@ -339,7 +332,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': 'test_user'

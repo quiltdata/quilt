@@ -9,3 +9,5 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.
 
 PACKAGE_URL_EXPIRATION = 600  # 10 minutes
+
+JSON_USE_ENCODE_METHODS = True  # Support the __json__ method in Node

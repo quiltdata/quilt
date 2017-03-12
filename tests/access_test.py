@@ -6,7 +6,7 @@ import json
 import requests
 
 from quilt_server.const import PUBLIC
-from quilt_server.schemas import hash_contents
+from quilt_server.core import encode_node, hash_contents, GroupNode
 
 from .utils import QuiltTestCase
 
@@ -22,7 +22,9 @@ class AccessTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkgtoshare"
 
-        contents = {'foo': {'$type': 'GROUP'}}
+        contents = GroupNode(dict(
+            foo=GroupNode(dict())
+        ))
 
         self.pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
@@ -36,7 +38,7 @@ class AccessTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=contents
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': self.user
@@ -154,7 +156,9 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(sharewith)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = {'bar': {'$type': 'GROUP'}}
+        newcontents = GroupNode(dict(
+            bar=GroupNode(dict())
+        ))
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
@@ -168,7 +172,7 @@ class AccessTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=newcontents
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': sharewith
@@ -189,7 +193,9 @@ class AccessTestCase(QuiltTestCase):
         resp = self._sharePackage(PUBLIC)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = {'bar': {'$type': 'GROUP'}}
+        newcontents = GroupNode(dict(
+            bar=GroupNode(dict())
+        ))
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=self.user,
             pkg=self.pkg,
@@ -203,7 +209,7 @@ class AccessTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 description="",
                 contents=newcontents
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': otheruser
