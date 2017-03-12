@@ -1,5 +1,5 @@
 # Help
-Chat with us via the orange icon on [beta.quiltdata.com](https://beta.quiltdata.com/).
+Chat with us via the orange icon on [quiltdata.com](https://quiltdata.com/).
 
 # Overview
 [Quilt](https://beta.quiltdata.com/) is a data package manager.
