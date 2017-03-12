@@ -9,7 +9,7 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 * Publish data packages for the benefit of the community.
 * Satisfy your data dependencies with one command, `quilt install dependency`.
 
-# What is Quilt
+# What is Quilt?
 [Quilt](https://quiltdata.com/) is a data package manager. A data package is a namespace of binary data frames.
 You can use data packages from the community, or publish packages for others to use.
 
