@@ -2,7 +2,7 @@
 Chat with us via the orange icon on [quiltdata.com](https://quiltdata.com/).
 
 # Motivation
-Less data plumbing and more data science. Quilt provides the "dataset management" infrastructure for data scientists so that they can focus on actually doing the analysis.
+Less data plumbing and more data science. Quilt provides the "dataset management" infrastructure for data scientists so that they can focus on analysis.
 * Access data frames [5X to 20X faster](http://wesmckinney.com/blog/pandas-and-apache-arrow/).
 Quilt stores data frames in high-efficiency, memory-mapped binary formats like HDF5.
 * Version your data. Pull packages by version number or tag.
