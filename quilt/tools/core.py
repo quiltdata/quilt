@@ -4,6 +4,9 @@ import struct
 
 from six import iteritems, string_types
 
+TYPE_KEY = 'type'
+CHILDREN_KEY = 'children'
+
 class NodeType(Enum):
     GROUP = 'GROUP'
     TABLE = 'TABLE'
@@ -40,7 +43,7 @@ def hash_contents(contents):
     }
     """
     assert isinstance(contents, dict)
-    assert NodeType(contents["type"]) is NodeType.GROUP
+    assert NodeType(contents[TYPE_KEY]) is NodeType.GROUP
 
     result = hashlib.sha256()
 
@@ -54,7 +57,7 @@ def hash_contents(contents):
 
     def _hash_object(obj):
         assert isinstance(obj, dict), "Unexpected object: %r" % obj
-        obj_type = NodeType(obj["type"])
+        obj_type = NodeType(obj[TYPE_KEY])
         _hash_str(obj_type.value)
         if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
             hashes = obj["hashes"]
@@ -62,7 +65,7 @@ def hash_contents(contents):
             for h in hashes:
                 _hash_str(h)
         elif obj_type is NodeType.GROUP:
-            children = obj["children"]
+            children = obj[CHILDREN_KEY]
             assert isinstance(children, dict)
             _hash_int(len(children))
             for key, child in sorted(iteritems(children)):
@@ -74,3 +77,16 @@ def hash_contents(contents):
     _hash_object(contents)
 
     return result.hexdigest()
+
+def find_object_hashes(contents):
+    """
+    Iterator that returns hashes of all of the tables.
+    """
+    for obj in contents[CHILDREN_KEY].values():
+        obj_type = NodeType(obj[TYPE_KEY])
+        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
+            for objhash in obj['hashes']:
+                yield objhash
+        elif obj_type is NodeType.GROUP:
+            for objhash in find_object_hashes(obj):
+                yield objhash

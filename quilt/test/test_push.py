@@ -9,25 +9,9 @@ import requests
 import responses
 
 from quilt.tools import command, store
-from quilt.tools.core import NodeType
+from quilt.tools.core import find_object_hashes
 
 from .utils import QuiltTestCase
-
-TYPE_KEY = 'type'
-CHILDREN_KEY = 'children'
-
-def find_object_hashes(contents):
-    """
-    Iterator that returns hashes of all of the tables.
-    """
-    for key, obj in contents[CHILDREN_KEY].items():
-        obj_type = NodeType(obj[TYPE_KEY])
-        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            for objhash in obj['hashes']:
-                yield objhash
-        elif obj_type is NodeType.GROUP:
-            for objhash in find_object_hashes(obj):
-                yield objhash
 
 def upload_urls(contents):
     all_hashes = set(find_object_hashes(contents))
