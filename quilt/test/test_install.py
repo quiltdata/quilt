@@ -12,7 +12,7 @@ from six import assertRaisesRegex
 
 from quilt.tools import command
 from quilt.tools.const import HASH_TYPE
-from quilt.tools.core import hash_contents, NodeType
+from quilt.tools.core import decode_node, encode_node, hash_contents, GroupNode, TableNode, FileNode
 
 from .utils import QuiltTestCase
 
@@ -34,24 +34,12 @@ class InstallTest(QuiltTestCase):
         h.update(file_data.encode('utf-8'))
         file_hash = h.hexdigest()
 
-        contents = dict(
-            type=NodeType.GROUP.value,
-            children=dict(
-                foo=dict(
-                    type=NodeType.GROUP.value,
-                    children=dict(
-                        bar=dict(
-                            type=NodeType.TABLE.value,
-                            hashes=[table_hash]
-                        ),
-                        blah=dict(
-                            type=NodeType.FILE.value,
-                            hashes=[file_hash]
-                        )
-                    )
-                )
-            )
-        )
+        contents = GroupNode(dict(
+            foo=GroupNode(dict(
+                bar=TableNode([table_hash]),
+                blah=FileNode([file_hash])
+            ))
+        ))
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -63,7 +51,7 @@ class InstallTest(QuiltTestCase):
         command.install(session, 'foo/bar')
 
         with open('quilt_packages/foo/bar.json') as fd:
-            file_contents = json.load(fd)
+            file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
         with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
@@ -82,20 +70,11 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = h.hexdigest()
-        contents = dict(
-            type=NodeType.GROUP.value,
-            children=dict(
-                foo=dict(
-                    type=NodeType.GROUP.value,
-                    children=dict(
-                        bar=dict(
-                            type=NodeType.TABLE.value,
-                            hashes=[obj_hash]
-                        )
-                    )
-                )
-            )
-        )
+        contents = GroupNode(dict(
+            foo=GroupNode(dict(
+                bar=TableNode([obj_hash])
+            ))
+        ))
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -116,20 +95,11 @@ class InstallTest(QuiltTestCase):
         h = hashlib.new(HASH_TYPE)
         h.update(tabledata.encode('utf-8'))
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
-        contents = dict(
-            type=NodeType.GROUP.value,
-            children=dict(
-                foo=dict(
-                    type=NodeType.GROUP.value,
-                    children=dict(
-                        bar=dict(
-                            type=NodeType.TABLE.value,
-                            hashes=[obj_hash]
-                        )
-                    )
-                )
-            )
-        )
+        contents = GroupNode(dict(
+            foo=GroupNode(dict(
+                bar=TableNode([obj_hash])
+            ))
+        ))
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
@@ -154,7 +124,7 @@ class InstallTest(QuiltTestCase):
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,
             urls={h: 'https://example.com/%s' % h for h in hashes}
-        )))
+        ), default=encode_node))
 
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash

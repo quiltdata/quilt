@@ -29,7 +29,7 @@ except ImportError:
     SparkSession = None
 
 from .const import TargetType, PackageFormat, PACKAGE_DIR_NAME
-from .core import hash_contents, NodeType
+from .core import decode_node, encode_node, hash_contents, FileNode, GroupNode, TableNode
 from .hashing import digest_file
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -46,11 +46,6 @@ class StoreException(Exception):
     """
     pass
 
-def _empty_group():
-    return dict(
-        type=NodeType.GROUP.value,
-        children=dict()
-    )
 
 class PackageStore(object):
     """
@@ -140,9 +135,9 @@ class PackageStore(object):
         """
         try:
             with open(self._path, 'r') as contents_file:
-                contents = json.load(contents_file)
+                contents = json.load(contents_file, object_hook=decode_node)
         except IOError:
-            contents = _empty_group()
+            contents = GroupNode(dict())
 
         return contents
 
@@ -159,7 +154,7 @@ class PackageStore(object):
         Saves an updated version of the package's contents.
         """
         with open(self._path, 'w') as contents_file:
-            json.dump(contents, contents_file, indent=2, sort_keys=True)
+            json.dump(contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
     def get(self, path):
         """
@@ -172,9 +167,9 @@ class PackageStore(object):
         ipath = key.split('/') if key else []
         ptr = self.get_contents()
         path_so_far = []
-        for node in ipath:
-            path_so_far += [node]
-            ptr = ptr["children"].get(node)
+        for node_name in ipath:
+            path_so_far += [node_name]
+            ptr = ptr.children.get(node_name)
             if ptr is None:
                 raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
@@ -182,15 +177,14 @@ class PackageStore(object):
                     pkg=self._package))
         node = ptr
 
-        node_type = NodeType(node["type"])
-        if node_type is NodeType.GROUP:
+        if isinstance(node, GroupNode):
             return node
-        elif node_type is NodeType.TABLE:
-            return self.dataframe(node['hashes'])
-        elif node_type is NodeType.FILE:
-            return self.file(node['hashes'])
+        elif isinstance(node, TableNode):
+            return self.dataframe(node.hashes)
+        elif isinstance(node, FileNode):
+            return self.file(node.hashes)
         else:
-            assert False, "Unhandled NodeType {nt}".format(nt=node_type)
+            assert False, "Unhandled Node {node}".format(node=node)
 
     def get_hash(self):
         """
@@ -217,7 +211,7 @@ class PackageStore(object):
         self._find_path_write()
         local_filename = self.get_path()
         with open(local_filename, 'w') as contents_file:
-            json.dump(contents, contents_file)
+            json.dump(contents, contents_file, default=encode_node)
 
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
@@ -227,8 +221,7 @@ class PackageStore(object):
             """
             Downloads and installs the set of objects for one table.
             """
-            hashes = node['hashes']
-            for download_hash in hashes:
+            for download_hash in node.hashes:
                 url = urls[download_hash]
 
                 # download and install
@@ -258,9 +251,9 @@ class PackageStore(object):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key, node in contents["children"].items():
-                if NodeType(node["type"]) is NodeType.GROUP:
-                    return install_tables(node, urls)
+            for node in contents.children.values():
+                if isinstance(node, GroupNode):
+                    install_tables(node, urls)
                 else:
                     install_table(node, urls)
 
@@ -357,21 +350,20 @@ class PackageStore(object):
 
         ptr = contents
         for node in ipath:
-            ptr = ptr["children"].setdefault(node, _empty_group())
+            ptr = ptr.children.setdefault(node, GroupNode(dict()))
 
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
-                node_type = NodeType.TABLE
+                node_cls = TableNode
             elif target_type is TargetType.FILE:
-                node_type = NodeType.FILE
+                node_cls = FileNode
             else:
                 assert False, "Unhandled TargetType {tt}".format(tt=target_type)
         except ValueError:
             raise StoreException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr["children"][leaf] = dict(
-            type=node_type.value,
+        ptr.children[leaf] = node_cls(
             hashes=[objhash],
             metadata=dict(
                 q_ext=ext,

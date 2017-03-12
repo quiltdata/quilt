@@ -1,49 +1,83 @@
-from enum import Enum
 import hashlib
 import struct
 
 from six import iteritems, string_types
 
-TYPE_KEY = 'type'
-CHILDREN_KEY = 'children'
 
-class NodeType(Enum):
-    GROUP = 'GROUP'
-    TABLE = 'TABLE'
-    FILE = 'FILE'
+class Node(object):
+    @property
+    @classmethod
+    def json_type(cls):
+        raise NotImplementedError
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__dict__ == other.__dict__
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self.__dict__)
+
+    def __json__(self):
+        return dict(self.__dict__, type=self.json_type)
+
+class GroupNode(Node):
+    json_type = 'GROUP'
+
+    def __init__(self, children):
+        assert isinstance(children, dict)
+        self.children = children
+
+class TableNode(Node):
+    json_type = 'TABLE'
+
+    def __init__(self, hashes, metadata=None):
+        if metadata is None:
+            metadata = {}
+
+        assert isinstance(hashes, list)
+        assert isinstance(metadata, dict)
+
+        self.hashes = hashes
+        self.metadata = metadata
+
+class FileNode(Node):
+    json_type = 'FILE'
+
+    def __init__(self, hashes, metadata=None):
+        if metadata is None:
+            metadata = {}
+
+        assert isinstance(hashes, list)
+        assert isinstance(metadata, dict)
+
+        self.hashes = hashes
+        self.metadata = metadata
+
+NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, TableNode, FileNode]}
+
+def encode_node(node):
+    if isinstance(node, Node):
+        return node.__json__()
+    raise TypeError
+
+def decode_node(value):
+    type_str = value.pop('type', None)
+    if type_str is None:
+        return value
+    node_cls = NODE_TYPE_TO_CLASS[type_str]
+    return node_cls(**value)
 
 def hash_contents(contents):
     """
     Creates a hash of key names and hashes in a package dictionary.
 
-    Expected format:
-
-    {
-        "type": "GROUP",
-        "children": {
-            "table1": {
-                "type": "TABLE",
-                "metadata": {...},
-                "hashes": ["hash1", "hash2", ...]
-            }
-            "group1": {
-                "type": "GROUP",
-                "children": {
-                    "table2": {
-                        ...
-                    },
-                    "group2": {
-                        ...
-                    },
-                    ...
-                }
-            },
-            ...
-        }
-    }
+    "contents" must be a GroupNode.
     """
-    assert isinstance(contents, dict)
-    assert NodeType(contents[TYPE_KEY]) is NodeType.GROUP
+    assert isinstance(contents, GroupNode)
 
     result = hashlib.sha256()
 
@@ -56,23 +90,20 @@ def hash_contents(contents):
         result.update(string.encode())
 
     def _hash_object(obj):
-        assert isinstance(obj, dict), "Unexpected object: %r" % obj
-        obj_type = NodeType(obj[TYPE_KEY])
-        _hash_str(obj_type.value)
-        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            hashes = obj["hashes"]
+        _hash_str(obj.json_type)
+        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+            hashes = obj.hashes
             _hash_int(len(hashes))
             for h in hashes:
                 _hash_str(h)
-        elif obj_type is NodeType.GROUP:
-            children = obj[CHILDREN_KEY]
-            assert isinstance(children, dict)
+        elif isinstance(obj, GroupNode):
+            children = obj.children
             _hash_int(len(children))
             for key, child in sorted(iteritems(children)):
                 _hash_str(key)
                 _hash_object(child)
         else:
-            assert False, "Unexpected object type: %s" % obj_type
+            assert False, "Unexpected object: %r" % obj
 
     _hash_object(contents)
 
@@ -82,11 +113,10 @@ def find_object_hashes(contents):
     """
     Iterator that returns hashes of all of the tables.
     """
-    for obj in contents[CHILDREN_KEY].values():
-        obj_type = NodeType(obj[TYPE_KEY])
-        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            for objhash in obj['hashes']:
+    for obj in contents.children.values():
+        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+            for objhash in obj.hashes:
                 yield objhash
-        elif obj_type is NodeType.GROUP:
+        elif isinstance(obj, GroupNode):
             for objhash in find_object_hashes(obj):
                 yield objhash

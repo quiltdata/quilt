@@ -40,7 +40,7 @@ class PushTest(QuiltTestCase):
         assert pkg_hash
         contents = pkg_obj.get_contents()
         urls = upload_urls(contents)
-        for blob_hash, url in urls.items():
+        for url in urls.values():
             self._mock_s3(url)
 
         self._mock_put_package('foo/bar', pkg_hash, contents)
