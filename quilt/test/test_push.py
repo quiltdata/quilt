@@ -37,6 +37,7 @@ class PushTest(QuiltTestCase):
         pkg_obj = store.get_store('foo', 'bar')
         assert pkg_obj.exists(), "Failed build?"
         pkg_hash = pkg_obj.get_hash()
+        assert pkg_hash
         contents = pkg_obj.get_contents()
         urls = upload_urls(contents)
         for url in urls.values():
