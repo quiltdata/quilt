@@ -20,6 +20,7 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 
 # Known Issues
 - `Python 3.6` - Install fails due to missing HDF5 dependencies. Try Python 3.5. For example if you're using Anaconda, create a 3.5 environment: `conda create -n ENV python=3.5`.
+-  `quilt/test/build.yml` relies on pickle and is therefore not compatible between Python 2 and Python 3.
 
 # Quick Start
 1. Open Terminal
