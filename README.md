@@ -25,9 +25,9 @@ the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 
 # Quick Start
 1. Open Terminal
-1. `$ pip install git+https://github.com/quiltdata/quilt.git` (install quilt)
+1. `$ pip install quilt`
 1. `$ quilt install examples/wine` (install a sample package)
-1. `python` (fire up python)
+1. `$ python` (fire up python)
 1. You've got data frames
 ```
 >>> from quilt.data.examples import wine
