@@ -8,8 +8,7 @@ You can use data packages from the community, or publish packages for others to 
 `quilt` is the command-line client that builds, retrieves, and stores
 packages. `quilt` works in conjunction with a server-side registry,
 not covered in this document. `quilt` currently pushes to and pulls from
-the registry at [quiltdata.com](https://quiltdata.com/). In the near
-future users will be able to browse packages in the registry.
+the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 
 ## Benefits
 * Access data frames [5X to 20X faster](http://wesmckinney.com/blog/pandas-and-apache-arrow/).
@@ -39,8 +38,7 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 - `pip install git+https://github.com/quiltdata/quilt.git` (more up-to-date than `pip install quilt`)
 
 ## Install a package
-Let's install a public package containing wine quality data from the UCI Machine
-Learning Repository.
+Let's install the public package [examples/wine](https://quiltdata.com/package/examples/wine)
 - `quilt install examples/wine`
 
 Now let's fire up Python and import the package.
