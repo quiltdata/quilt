@@ -12,7 +12,7 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.schemas import hash_contents
+from quilt_server.core import encode_node, hash_contents
 
 
 class QuiltTestCase(unittest.TestCase):
@@ -70,7 +70,7 @@ class QuiltTestCase(unittest.TestCase):
             data=json.dumps(dict(
                 description="",
                 contents=contents
-            )),
+            ), default=encode_node),
             content_type='application/json',
             headers={
                 'Authorization': owner

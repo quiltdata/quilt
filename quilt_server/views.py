@@ -20,8 +20,9 @@ from sqlalchemy.orm import undefer
 
 from . import app, db
 from .const import PUBLIC
+from .core import decode_node, encode_node, find_object_hashes, hash_contents
 from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
-from .schemas import find_object_hashes, PACKAGE_SCHEMA, hash_contents
+from .schemas import PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -220,7 +221,7 @@ def package_put(auth_user, owner, package_name, package_hash):
                            "Only the package owner can push packages.")
 
     # TODO: Description.
-    data = request.get_json()
+    data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
     contents = data['contents']
 
     if hash_contents(contents) != package_hash:
@@ -270,10 +271,12 @@ def package_put(auth_user, owner, package_name, package_hash):
         .one_or_none()
     )
 
+    contents_str = json.dumps(contents, default=encode_node)
+
     if instance is None:
         instance = Instance(
             package=package,
-            contents=json.dumps(contents),
+            contents=contents_str,
             hash=package_hash,
             created_by=auth_user,
             updated_by=auth_user
@@ -301,7 +304,7 @@ def package_put(auth_user, owner, package_name, package_hash):
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
-        instance.contents = json.dumps(contents)
+        instance.contents = contents_str
         instance.updated_by = auth_user
 
     db.session.add(instance)
@@ -353,7 +356,7 @@ def package_get(auth_user, owner, package_name, package_hash):
             "Package hash does not exist"
         )
 
-    contents = json.loads(instance.contents)
+    contents = json.loads(instance.contents, object_hook=decode_node)
 
     all_hashes = set(find_object_hashes(contents))
 
@@ -423,7 +426,8 @@ def logs_list(auth_user, owner, package_name):
         db.session.query(Log, Instance)
         .filter_by(package=package)
         .join(Log.instance)
-        .order_by(Log.created)
+        # Sort chronologically, but rely on IDs in case of duplicate created times.
+        .order_by(Log.created, Log.id)
     )
 
     return dict(

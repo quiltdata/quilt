@@ -5,7 +5,7 @@ Log tests
 import json
 import requests
 
-from quilt_server.schemas import hash_contents
+from quilt_server.core import hash_contents, GroupNode
 from .utils import QuiltTestCase
 
 
@@ -19,9 +19,15 @@ class LogTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkg"
         self.contents_list = [
-            {'foo': {'$type' : 'GROUP'}},
-            {'bar': {'$type' : 'GROUP'}},
-            {'baz': {'$type' : 'GROUP'}},
+            GroupNode(dict(
+                foo=GroupNode(dict())
+            )),
+            GroupNode(dict(
+                bar=GroupNode(dict())
+            )),
+            GroupNode(dict(
+                baz=GroupNode(dict())
+            ))
         ]
 
         # Upload three package instances.
