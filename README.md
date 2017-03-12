@@ -2,13 +2,13 @@
 Chat with us via the orange icon on [quiltdata.com](https://quiltdata.com/).
 
 # Overview
-[Quilt](https://beta.quiltdata.com/) is a data package manager.
+[Quilt](https://quiltdata.com/) is a data package manager.
 You can use data packages from the community, or publish packages for others to use.
 
 `quilt` is the command-line client that builds, retrieves, and stores
 packages. `quilt` works in conjunction with a server-side registry,
 not covered in this document. `quilt` currently pushes to and pulls from
-the registry at [beta.quiltdata.com](https://beta.quiltdata.com/). In the near
+the registry at [quiltdata.com](https://quiltdata.com/). In the near
 future users will be able to browse packages in the registry.
 
 ## Benefits
@@ -25,11 +25,11 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 # Quick Start
 1. Open Terminal
 1. `$ pip install git+https://github.com/quiltdata/quilt.git` (install quilt)
-1. `$ quilt install akarve/wine` (install a sample package)
+1. `$ quilt install examples/wine` (install a sample package)
 1. `python` (fire up python)
 1. You've got data frames
 ```
->>> from quilt.data.akarve import wine
+>>> from quilt.data.examples import wine
 >>> wine.quality.red # this is a pandas.DataFrame
 ```
 
@@ -41,12 +41,12 @@ Quilt stores data frames in high-efficiency, memory-mapped binary formats like H
 ## Install a package
 Let's install a public package containing wine quality data from the UCI Machine
 Learning Repository.
-- `quilt install akarve/wine`
+- `quilt install examples/wine`
 
 Now let's fire up Python and import the package.
 ```
 $ python
->>> from quilt.data.akarve import wine
+>>> from quilt.data.examples import wine
 ```
 The import syntax is `from quilt.data.USER import PACKAGE`.
 
@@ -54,12 +54,12 @@ Let's see what's in the `wine` package:
 ```
 >>> wine
 <class 'quilt.data.Node'>
-File: /Users/karve/code/quilt-cli/quilt_packages/akarve/wine.h5
+File: /Users/karve/code/quilt-cli/quilt_packages/examples/wine.h5
 Path: /
 quality/
 >>> wine.quality
 <class 'quilt.data.Node'>
-File: /Users/karve/code/quilt-cli/quilt_packages/akarve/wine.h5
+File: /Users/karve/code/quilt-cli/quilt_packages/examples/wine.h5
 Path: /quality/
 red/
 white/
@@ -157,7 +157,7 @@ packages are private to the owner (you).
 ### Manage access
 - `quilt access add YOU/YOUR_PACKAGE FRIEND`. Now user `FRIEND` can
 `quilt install YOU/YOUR_PACKAGE`. In the near future
-the quilt registry at [beta.quiltdata.com](https://quiltdata.com) will offer
+the quilt registry at [quiltdata.com](https://quiltdata.com) will offer
 a graphical user interface for easy access control.
 
 If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`.
