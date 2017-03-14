@@ -165,7 +165,43 @@ packages are private to the owner (you).
 the quilt registry at [quiltdata.com](https://quiltdata.com) will offer
 a graphical user interface for easy access control.
 
-If you wish to make a package public, `quilt access add YOU/YOUR_PACKAGE public`.
+If you wish to make a package public:
+```
+quilt access add YOU/YOUR_PACKAGE public
+```
+
+If you change your mind:
+```
+quilt access remove YOU/YOUR_PACKAGE public
+```
+
+### Version and track your packages
+Once you've pushed a package to the registry, you can list its versions and tags.
+
+#### Tags
+```
+quilt tag list USER/PACKAGE
+```
+`latest: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
+
+The tag `latest` is automatically added to the most recently pushed instance of a data package. To add a new tag, copy the package hash for the package instance you want to tag and run:
+```
+quilt tag add USER/PACKAGE NEW_TAG PKG_HASH
+```
+#### Versions
+```
+quilt tag list USER/PACKAGE
+```
+`latest: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`  
+`newtag: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
+
+To create a new version, copy the package hash for the package instance you want to tag and run:
+```
+quilt version add USER/PACKAGE VERSION PKG_HASH
+quilt version list USER/PACKAGE
+```
+`0.0.1: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
+
 
 # Command summary
 * `quilt -h` for a list of commands
