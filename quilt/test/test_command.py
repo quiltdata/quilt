@@ -11,11 +11,6 @@ import responses
 
 from six import assertRaisesRegex
 
-try:
-    import h5py
-except ImportError:
-    h5py = None
-
 from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
