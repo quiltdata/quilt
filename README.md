@@ -22,6 +22,8 @@ the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 # Known Issues
 - `Python 3.6` - Install fails due to missing HDF5 dependencies. Try Python 3.5. For example if you're using Anaconda, create a 3.5 environment: `conda create -n ENV python=3.5`.
 -  `quilt/test/build.yml` relies on pickle and is therefore not compatible between Python 2 and Python 3.
+- Anaconda with python 2.7 has an old version of `setuptools`. Strangely, `pip install --upgrade setuptools` run three times, yes three times, will ultimately succeed.
+
 
 # Quick Start
 1. Open Terminal
