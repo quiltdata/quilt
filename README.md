@@ -31,9 +31,9 @@ the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 1. `$ quilt install examples/wine` (install a sample package)
 1. `$ python` (fire up python)
 1. You've got data frames
-```
->>> from quilt.data.examples import wine
->>> wine.quality.red # this is a pandas.DataFrame
+```python
+from quilt.data.examples import wine
+wine.quality.red # this is a pandas.DataFrame
 ```
 
 # Tutorial
@@ -55,45 +55,48 @@ The import syntax is `from quilt.data.USER import PACKAGE`.
 Let's see what's in the `wine` package:
 ```
 >>> wine
-<class 'quilt.data.Node'>
-File: /Users/karve/code/quilt-cli/quilt_packages/examples/wine.h5
+<class 'quilt.data.DataNode'>
+File: /Users/kmoore/toa/github/quilt2/quilt_packages/examples/wine.json
 Path: /
+README/
 quality/
 >>> wine.quality
-<class 'quilt.data.Node'>
-File: /Users/karve/code/quilt-cli/quilt_packages/examples/wine.h5
+<class 'quilt.data.DataNode'>
+File: /Users/kmoore/toa/github/quilt2/quilt_packages/examples/wine.json
 Path: /quality/
 red/
 white/
->>> wine.quality.red
-# ... omitting lots of rows
-1598     11.0        6  
-
-[1599 rows x 12 columns]
 >>> type(wine.quality.red)
 <class 'pandas.core.frame.DataFrame'>
->>> type(wine.quality)
-<class 'quilt.data.Node'>
+>>> wine.quality.red
+      fixed acidity  volatile acidity  citric acid  residual sugar  chlorides  \
+0               7.4             0.700         0.00             1.9      0.076   
+1               7.8             0.880         0.00             2.6      0.098   
+2               7.8             0.760         0.04             2.3      0.092   
+...
+[1599 rows x 12 columns]
 ```
-As you can see, `quilt` packages are a tree of groups and data frames.
-You can enumerate a package tree as follows:
-```
->>> wine.quality._keys()
-dict_keys(['red', 'white'])
->>> wine.quality._groups()
-[]
->>> wine.quality._dfs()
-['red', 'white']
-```
-
-### Traverse a package
-
-`foo._keys()` enumerates all children of `foo`, whereas `foo._dfs()` and
-`foo._groups()` partition keys into data frames and groups, respectively.
-Groups are like folders for data frames.
 
 ## Create your first package
-Create a `build.yml` file. Your file should look something like this:
+The simplest way to create a data package is from a set of input files. Quilt's `build` command can take a source file directory as a parameter and automatically build a package based on its contents.
+```
+quilt build USER/PACKAGE -d PATH_TO_INPUT_FILES
+```
+That will create a data package USER/PACKAGE on your local machine. You can inspect the contents using:
+```
+quilt inspect USER/PACKAGE
+```
+
+You can now use your package locally:
+```python
+from quilt.data.USER import PACKAGE
+```
+Data packages deserialize 5x to 20x faster than text files.
+
+## Customize package contents by editing build.yml 
+Running `quilt build USER/PACKAGE -d PATH` as described above generates a data package and a file, `build.yml` that specifies the contents of the package.
+
+Your file should look something like this:
 ```yaml
 ---
 tables:
@@ -105,15 +108,13 @@ tables:
     shoe: [tsv, measurements.txt]
 ...
 ```
-The above `build.yml` tells `quilt` how to build a package from a set
-of input files. The `tables` dictionary is required. The tree
-structure under `tables` dictates the package tree. `foo.one` and
-`foo.two` will import as data frames. `foo.um` is a group containing
-three data frames. `foo.um.buckle` is a data frame, etc.
+The above `build.yml` tells `quilt` how to build a package from a set of input files. By editing the automatically generated build.yml or creating a configuration file of your own, you can control the exact names of DataFrames and files in your package.
 
+The tree structures under `tables` and `files` dictate the package tree. `foo.one` and `foo.two` will import as data frames. `foo.um` is a group containing three data frames. `foo.um.buckle` is a data frame, etc.
+
+### DataFrames/Tables
 Each leaf node in `tables` is specified by a list of the form
-`[parser, file]`. You can have as many leaf nodes (data frames) and non-leaf nodes
-(groups) as you choose.
+`[parser, file]`. You can have as many leaf nodes (data frames) and non-leaf nodes (groups) as you choose.
 
 **Note**: `parser` and `file`'s extension may differ, and in
 practice often do. For example `foo.one` uses the `csv`
@@ -129,20 +130,22 @@ parsers without changing file names.
 
 `quilt` can be extended to support more parsers. See `TARGET` in `quilt/data/tools/constants.py`.
 
-### Build the package
+### Raw files
+Packages can include data and other contents that are not representable as DataFrames. The `files` tree in build.yml maps names to raw input files. Those files will be included in the data package unmodified.
+
+Files can be accessed by using the normal Python `open` method.
+```python
+from quilt.data.USER import PACKAGE
+with open(PACKAGE.a_file, 'r') as localfile:
+  print(localfile.read())
+```
+
+### Build the package using the build file
 - `quilt build USER/PACKAGE build.yml`
 
-`build` parses the files referenced in `data.yml`, transforms them with specified
-parser into data frames, then serializes the data frames to
-memory-mapped binary formats. At present quilt packages are pandas
-data frames stored in HDF5. In the future we will support R, Spark, and
+`build` parses the source files referenced in the `tables` tree of `build.yml`, transforms them with specified parser into data frames, then serializes the data frames to memory-mapped binary formats. At present quilt packages are pandas data frames stored in HDF5. In the future we will support R, Spark, and
 binary formats like Parquet.
 
-You can now use your package locally:
-```
->>> from quilt.data.user import package
-```
-Data packages deserialize 5x to 20x faster than text files.
 
 ### Push the package
 So far your package lives on your local machine. Now you can
