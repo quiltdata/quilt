@@ -124,7 +124,7 @@ class Package(object):
         Read a group or object from the store.
         """
         if not self.exists():
-            raise StoreException("Package not found")
+            raise PackageException("Package not found")
 
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
@@ -133,7 +133,7 @@ class Package(object):
         for node in ipath:
             path_so_far += [node]
             if not node in ptr:
-                raise StoreException("Key {path} Not Found in Package {owner}/{pkg}".format(
+                raise PackageException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
@@ -154,7 +154,7 @@ class Package(object):
         """
         Returns the hash digest of the package data.
         """
-        raise StoreException("Not Implemented")
+        raise PackageException("Not Implemented")
 
     def get_path(self):
         """
@@ -192,7 +192,7 @@ class Package(object):
                 response = requests.get(url, stream=True)
                 if not response.ok:
                     msg = "Download {hash} failed: error {code}"
-                    raise StoreException(msg.format(hash=download_hash, code=response.status_code))
+                    raise PackageException(msg.format(hash=download_hash, code=response.status_code))
 
                 local_filename = os.path.join(self._pkg_dir,
                                               self.OBJ_DIR,
@@ -253,7 +253,7 @@ class Package(object):
             else:
                 assert False, "Unhandled TargetType {tt}".format(tt=target_type)
         except ValueError:
-            raise StoreException("Unrecognized target {tgt}".format(tgt=target))
+            raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
         ptr[leaf] = dict({TYPE_KEY: node_type.value},
                          hashes=[objhash],
@@ -334,7 +334,7 @@ class FastParquetPackage(Package):
     """
     def __init__(self, user, package, mode):
         if fastparquet is None:
-            raise StoreException("Module fastparquet is required for FastParquetPackage.")
+            raise PackageException("Module fastparquet is required for FastParquetPackage.")
         super(FastParquetPackage, self).__init__(user, package, mode)
 
     def save_df(self, df, name, path, ext, target):
@@ -360,7 +360,7 @@ class FastParquetPackage(Package):
         return pfile.to_pandas()
 
     def get_hash(self):
-        raise StoreException("Not Implemented")
+        raise PackageException("Not Implemented")
 
 
 class SparkPackage(FastParquetPackage):
@@ -371,7 +371,7 @@ class SparkPackage(FastParquetPackage):
         super(SparkPackage, self).__init__(user, package, mode)
 
         if SparkSession is None:
-            raise StoreException("Module SparkSession from pyspark.sql is required for " +
+            raise PackageException("Module SparkSession from pyspark.sql is required for " +
                                  "SparkPackage.")
 
     def dataframe(self, hash_list):
@@ -394,7 +394,7 @@ class ArrowPackage(Package):
 
     def __init__(self, user, package, mode):
         if pa is None:
-            raise StoreException("Module pyarrow is required for ArrowPackage.")
+            raise PackageException("Module pyarrow is required for ArrowPackage.")
         super(ArrowPackage, self).__init__(user, package, mode)
 
     def save_df(self, df, name, path, ext, target):
