@@ -8,9 +8,8 @@ Install, compile, and version data with Quilt.
 * **Compile** files into memory-mapped binary data frames that load [5X to 20X faster than files](http://wesmckinney.com/blog/pandas-and-apache-arrow/)
 * **Version** your data. Hash, tag, and version quilt data packages.
 
-# What is Quilt?
-[Quilt](https://quiltdata.com/) is a data package manager. A data package is a namespace of binary data frames.
-You can use data packages from the community, or publish packages for others to use.
+## Quilt is a data package manager
+A data package is a namespace of binary data frames. You can use data packages from the community, publish packages for others to use, or keep packages private to you.
 
 `quilt` is the command-line client that builds, retrieves, and stores
 packages. `quilt` works in conjunction with a server-side registry,
