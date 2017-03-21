@@ -18,7 +18,6 @@ except ImportError:
 import pytest
 
 from quilt.tools import build
-from quilt.tools.const import PackageFormat
 from .utils import QuiltTestCase
 
 
@@ -42,6 +41,7 @@ class BuildTest(QuiltTestCase):
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
+        assert os.path.exists(README)
         cols = len(csv.columns)
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
@@ -59,7 +59,7 @@ class BuildTest(QuiltTestCase):
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
-        from quilt.data.test_parquet.groot import dataframes, README
+        from quilt.data.test_parquet.groot import dataframes, README        
         csv = dataframes.csv
         tsv = dataframes.csv
         xls = dataframes.xls
@@ -67,6 +67,7 @@ class BuildTest(QuiltTestCase):
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
+        assert os.path.exists(README)
         cols = len(csv.columns)
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
@@ -95,6 +96,7 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
+        assert os.path.exists(README)
         # TODO add more integrity checks, incl. negative test cases
 
     def test_generate_buildfile(self):
@@ -104,7 +106,7 @@ class BuildTest(QuiltTestCase):
         assert not os.path.exists(buildfilepath)
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
-        build.build_package('test_hdf5', 'generated', buildfilepath)    
+        build.build_package('test_hdf5', 'generated', buildfilepath)
         os.remove(buildfilepath)
 
     def test_failover(self):
