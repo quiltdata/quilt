@@ -2,7 +2,6 @@ import json
 import os
 from shutil import copyfile
 import tempfile
-#import time
 import zlib
 
 import pandas as pd
@@ -88,19 +87,8 @@ class Package(object):
 
             nt = 8
             fpath = self._object_path(filehash)
-            #starttime = time.time()
             table = parquet.read_table(fpath, nthreads=nt)
-            #finishtime = time.time()
-            #elapsed = finishtime - starttime
-            #print("Read {path} in {time}s with {nt} threads".format(path=fpath,
-            #                                                        time=elapsed,
-            #                                                        nt=nt))
-
-            #starttime = time.time()
             df = table.to_pandas()
-            #finishtime = time.time()
-            #elapsed = finishtime - starttime
-            #print("Converted to pandas in {time}s".format(time=elapsed))
             return df
         elif enumformat is PackageFormat.FASTPARQUET:
             assert len(hash_list) == 1, "Multi-file DFs not supported yet."
