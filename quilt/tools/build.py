@@ -5,7 +5,7 @@ import yaml
 import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import PACKAGE_DIR_NAME, TARGET
+from .const import PACKAGE_DIR_NAME, TARGET, PackageFormat
 from .util import FileWithReadProgress
 
 class BuildException(Exception):
@@ -107,14 +107,14 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
     tables = data.get('tables')
-    pkgformat = data.get('format')
+    pkgformat = data.get('format', PackageFormat.default)
     files = data.get('files')
     readme = files.get('README') if files else None
     if not isinstance(tables, dict):
         raise BuildException("'tables' must be a dictionary")
 
     store = PackageStore()
-    with store.create_package(username, package, format) as newpackage:
+    with store.create_package(username, package, pkgformat) as newpackage:
         _build_table(build_dir, newpackage, '', tables)
         if readme is not None:
             _build_file(build_dir, newpackage, 'README', rel_path=readme)

@@ -53,9 +53,8 @@ class BuildTest(QuiltTestCase):
         """
         Test compilation
         """
-        os.environ["QUILT_PACKAGE_FORMAT"] = PackageFormat.FASTPARQUET.value
         mydir = os.path.dirname(__file__)
-        PATH = os.path.join(mydir, './build.yml')
+        PATH = os.path.join(mydir, './build_fastparquet.yml')
         build.build_package('test_parquet', PACKAGE, PATH)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
@@ -72,7 +71,6 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
-        del(os.environ["QUILT_PACKAGE_FORMAT"])
         # TODO add more integrity checks, incl. negative test cases
 
     @pytest.mark.skipif("pyarrow is None")
@@ -80,9 +78,8 @@ class BuildTest(QuiltTestCase):
         """
         Test compilation
         """
-        os.environ["QUILT_PACKAGE_FORMAT"] = PackageFormat.ARROW.value
         mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build.yml')
+        path = os.path.join(mydir, './build_arrow.yml')
         build.build_package('test_arrow', PACKAGE, path)
         # TODO load DFs based on contents of .yml file at path
         # not hardcoded vals (this will require loading modules from variable
@@ -98,7 +95,6 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
-        del os.environ["QUILT_PACKAGE_FORMAT"]
         # TODO add more integrity checks, incl. negative test cases
 
     def test_generate_buildfile(self):

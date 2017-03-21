@@ -21,7 +21,7 @@ from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG, PackageFormat
 from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
 from .package import PackageException
-from .store import PackageStore, StoreException, ls_packages
+from .store import PackageStore, ls_packages
 from .util import BASE_DIR
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -379,13 +379,13 @@ def install(session, package, hash=None, version=None, tag=None):
 
     owner, pkg = _parse_package(package)
     store = PackageStore()
-    pkgobj = store.create_package(owner, pkg, PackageFormat.HDF5)
+    existing_pkg = store.get_package(owner, pkg)
 
-    if pkgobj.exists():
+    if existing_pkg is not None:
         print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-        #overwrite = input("Overwrite? (y/n) ")
-        #if overwrite.lower() != 'y':
-        #    return
+        overwrite = input("Overwrite? (y/n) ")
+        if overwrite.lower() != 'y':
+            return
 
     if version is not None:
         response = session.get(
@@ -429,6 +429,7 @@ def install(session, package, hash=None, version=None, tag=None):
     if pkghash != hash_contents(response_contents):
         raise CommandException("Mismatched hash. Try again.")
 
+    pkgobj = store.create_package(owner, pkg, PackageFormat.HDF5)
     try:
         pkgobj.install(response_contents, response_urls)
     except PackageException as ex:

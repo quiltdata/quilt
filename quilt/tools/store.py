@@ -3,33 +3,10 @@ Build: parse and add user-supplied files to store
 """
 import os
 import re
-from shutil import copyfile
-import tempfile
-import time
-import zlib
 
-import requests
 
-try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
-
-try:
-    import pyarrow as pa
-    from pyarrow import parquet
-except ImportError:
-    pa = None
-
-try:
-    from pyspark.sql import SparkSession
-except ImportError:
-    SparkSession = None
-
-from .const import TargetType, PackageFormat, PACKAGE_DIR_NAME
-from .core import decode_node, encode_node, hash_contents, FileNode, GroupNode, TableNode
-from .hashing import digest_file
-from .package import Package, HDF5Package
+from .const import PackageFormat, PACKAGE_DIR_NAME
+from .package import Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
@@ -75,14 +52,12 @@ class PackageStore(object):
                     yield package_dir
             if parent_path == path:  # The only reliable way to detect the root.
                 break
-            path = parent_path 
+            path = parent_path
 
     def get_package(self, user, package):
         """
         Finds an existing package in one of the package directories.
         """
-        self._path = None
-        self._pkg_dir = None
         if not VALID_NAME_RE.match(user):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
@@ -92,35 +67,13 @@ class PackageStore(object):
         for package_dir in pkg_dirs:
             path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
             if os.path.exists(path):
-                return HDF5Package(user=user,
-                                   package=package,
-                                   mode='r',
-                                   path=path,
-                                   pkg_dir=package_dir)
+                return Package(user=user,
+                               package=package,
+                               path=path,
+                               pkg_dir=package_dir)
         return None
 
-    def _find_path_write(self):
-        """
-        Creates a path to store a data package in the innermost `quilt_packages`
-        directory (or in a new `quilt_packages` directory in the current directory)
-        and allocates a per-user directory if needed.
-        """
-        if not VALID_NAME_RE.match(self._user):
-            raise StoreException("Invalid user name: %r" % self._user)
-        if not VALID_NAME_RE.match(self._package):
-            raise StoreException("Invalid package name: %r" % self._package)
-
-        package_dir = next(PackageStore.find_package_dirs(), PACKAGE_DIR_NAME)
-        for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
-            path = os.path.join(package_dir, name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-
-        self._path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
-        self._pkg_dir = package_dir
-        return
-
-    def create_package(self, user, package, format):
+    def create_package(self, user, package, pkgformat=PackageFormat.default):
         """
         Creates a new package in the innermost `quilt_packages` directory
         (or in a new `quilt_packages` directory in the current directory)
@@ -139,12 +92,12 @@ class PackageStore(object):
 
         path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
 
-        # TODO: Check format and create appropriate Package subclass
-        return HDF5Package(user=user,
-                           package=package,
-                           mode='w',
-                           path=path,
-                           pkg_dir=package_dir)
+        pkgobj = Package(user=user,
+                         package=package,
+                         path=path,
+                         pkg_dir=package_dir)
+        pkgobj.init_contents(pkgformat)
+        return pkgobj
 
     @classmethod
     def ls_packages(cls, pkg_dir):
