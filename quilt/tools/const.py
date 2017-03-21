@@ -3,11 +3,6 @@ Constants
 """
 from enum import Enum
 
-class NodeType(Enum):
-    GROUP = 'GROUP'
-    TABLE = 'TABLE'
-    FILE = 'FILE'
-
 class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
@@ -19,12 +14,11 @@ class PackageFormat(Enum):
     SPARK = 'SPARK_PARQUET'
     default = HDF5
 
-TYPE_KEY = "$type"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
-
 LATEST_TAG = 'latest'
+PACKAGE_DIR_NAME = 'quilt_packages'
 
 # SHA-2 Family
 HASH_TYPE = 'sha256'

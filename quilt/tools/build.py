@@ -1,10 +1,11 @@
 import os
+import re
 
 import yaml
 import pandas as pd
 
-from .store import PackageStore, StoreException, VALID_NAME_RE
-from .const import TARGET
+from .store import PackageStore, VALID_NAME_RE, StoreException
+from .const import PACKAGE_DIR_NAME, TARGET
 from .util import FileWithReadProgress
 
 class BuildException(Exception):
@@ -12,6 +13,18 @@ class BuildException(Exception):
     Build-time exception class
     """
     pass
+
+def _pythonize_name(name):
+    safename = re.sub('[^A-Za-z0-9_]+', '_', name)
+    starts_w_number = re.match('^[0-9].*', safename)
+    if starts_w_number:
+        safename = ("abc%s" % safename)
+
+    safename = safename.strip('_')
+
+    if not VALID_NAME_RE.match(safename):
+        raise BuildException("Unable to determine a Python-legal name for %s" % name)
+    return safename
 
 def _build_file(build_dir, package, name, rel_path, target='file'):
     path = os.path.join(build_dir, rel_path)
@@ -94,7 +107,7 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
     tables = data.get('tables')
-    format = data.get('format')
+    pkgformat = data.get('format')
     files = data.get('files')
     readme = files.get('README') if files else None
     if not isinstance(tables, dict):
@@ -105,3 +118,85 @@ def build_package(username, package, yaml_path):
         _build_table(build_dir, newpackage, '', tables)
         if readme is not None:
             _build_file(build_dir, newpackage, 'README', rel_path=readme)
+
+def splitext_no_dot(filename):
+    """
+    Wrap os.path.splitext to return the name and the extension
+    without the '.' (e.g., csv instead of .csv)
+    """
+    name, ext = os.path.splitext(filename)
+    ext.strip('.')
+    return name, ext.strip('.')
+
+def generate_build_file(startpath, outfilename='build.yml'):
+    """
+    Generate a build file (yaml) based on the contents of a
+    directory tree.
+    """
+    buildfiles = {}
+    buildtables = {}
+
+    def file_node(ext, fullpath):
+        return fullpath
+
+    def table_node(ext, fullpath):
+        return [ext.lower(), fullpath]
+
+    def add_to_contents(contents, nodefunc, path, files):
+        try:
+            safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
+        except BuildException:
+            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
+            print(warning.format(path=os.sep.join(path)))
+            return
+
+        ptr = contents
+        for folder in safepath:
+            ptr = ptr.setdefault(folder, {})
+
+        for file in files:
+            fullpath = os.path.join(os.path.join(*path), file)
+            name, ext = splitext_no_dot(file)
+            ptr[_pythonize_name(name)] = nodefunc(ext, fullpath)
+
+    for root, dirs, files in os.walk(startpath):
+        # skip hidden directories
+        for d in dirs:
+            if d.startswith('.') or d == PACKAGE_DIR_NAME:
+                dirs.remove(d)
+
+        rel_path = os.path.relpath(root, startpath)
+        path = rel_path.split(os.sep)
+
+        tablefiles = []
+        rawfiles = []
+        for file in files:
+            # skip hidden files
+            if file.startswith('.'):
+                continue
+
+            name, ext = splitext_no_dot(file)
+            # separate files into tables and raw
+            if ext.lower() in TARGET['pandas']:
+                tablefiles.append(file)
+            else:
+                rawfiles.append(file)
+
+        if rawfiles:
+            add_to_contents(buildfiles, file_node, path, rawfiles)
+
+        if tablefiles:
+            add_to_contents(buildtables, table_node, path, tablefiles)
+
+    for contents in [buildfiles, buildtables]:
+        for node in ['.', '..']:
+            if node in contents:
+                for key in contents[node]:
+                    contents[key] = contents[node][key]
+                del contents[node]
+
+    contents = dict(files=buildfiles, tables=buildtables)
+    buildfilepath = os.path.join(startpath, outfilename)
+    with open(buildfilepath, 'w') as outfile:
+        yaml.dump(contents, outfile)
+    return buildfilepath

@@ -17,9 +17,9 @@ import pandas as pd
 import requests
 from packaging.version import Version
 
-from .build import build_package, BuildException
-from .const import LATEST_TAG, NodeType, TYPE_KEY, PackageFormat
-from .hashing import hash_contents
+from .build import build_package, generate_build_file, BuildException
+from .const import LATEST_TAG, PackageFormat
+from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
 from .package import PackageException
 from .store import PackageStore, StoreException, ls_packages
 from .util import BASE_DIR
@@ -167,13 +167,19 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path):
+def build(package, path, directory=None):
     """
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
+    if directory:
+        buildfilepath = generate_build_file(directory)
+        buildpath = buildfilepath
+    else:
+        buildpath = path
+
     try:
-        build_package(owner, pkg, path)
+        build_package(owner, pkg, buildpath)
         print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
@@ -221,7 +227,7 @@ def push(session, package):
         data=json.dumps(dict(
             contents=pkgobj.get_contents(),
             description=""  # TODO
-        ))
+        ), default=encode_node)
     )
 
     dataset = response.json()
@@ -415,7 +421,7 @@ def install(session, package, hash=None, version=None, tag=None):
     )
     assert response.ok # other responses handled by _handle_response
 
-    dataset = response.json()
+    dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
     response_contents = dataset['contents']
 
@@ -493,30 +499,26 @@ def inspect(package):
 
     def _print_node(node, prefix, child_prefix, name, path):
         name_prefix = u"─ "
-        if isinstance(node, dict):
-            node_type = NodeType(node.pop(TYPE_KEY))
-            if node_type is NodeType.GROUP:
-                children = list(node.items())
-                if children:
-                    name_prefix = u"┬ "
-                print(prefix + name_prefix + name)
-                _print_children(children, child_prefix, path + name)
-            elif node_type is NodeType.TABLE:
-                fullname = "/".join([path, name])
-                df = pkgobj.get(fullname)
-                assert isinstance(df, pd.DataFrame)
-                info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
-                print(prefix + name_prefix + ": " + info)
-            elif node_type is NodeType.FILE:
-                fullname = "/".join([path, name])
-                print(prefix + name_prefix + name)
-            else:
-                assert False, "Unhandled NodeType {nt}".format(nt=node_type)
+        if isinstance(node, GroupNode):
+            children = list(node.children.items())
+            if children:
+                name_prefix = u"┬ "
+            print(prefix + name_prefix + name)
+            _print_children(children, child_prefix, path + name)
+        elif isinstance(node, TableNode):
+            fullname = "/".join([path, name])
+            df = pkgobj.get(fullname)
+            assert isinstance(df, pd.DataFrame)
+            info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
+            print(prefix + name_prefix + ": " + info)
+        elif isinstance(node, FileNode):
+            fullname = "/".join([path, name])
+            print(prefix + name_prefix + name)
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 
     print(pkgobj.get_path())
-    _print_children(children=pkgobj.get_contents().items(), prefix='', path='')
+    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
 
 def main():
     """
@@ -539,7 +541,9 @@ def main():
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
-    build_p.add_argument("path", type=str, help="Path to the Yaml build file")
+    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
+    buildpath_group.add_argument("-d", "--directory", type=str, help="Source file directory")
+    buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
     build_p.set_defaults(func=build, need_session=False)
 
     push_p = subparsers.add_parser("push")

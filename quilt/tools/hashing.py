@@ -1,9 +1,6 @@
 import hashlib
-import struct
 
-from six import iteritems, string_types
-
-from .const import HASH_TYPE, NodeType, TYPE_KEY
+from .const import HASH_TYPE
 
 def digest_file(fname):
     """
@@ -28,66 +25,3 @@ def digest_file(fname):
         for chunk in iter(lambda: f.read(SIZE), b''):
             h.update(chunk)
     return h.hexdigest()
-
-def hash_contents(contents):
-    """
-    Creates a hash of key names and hashes in a package dictionary.
-
-    Expected format:
-
-    {
-        "table1": {
-            "$type": "TABLE",
-            "metadata": {...},
-            "hashes": ["hash1", "hash2", ...]
-        }
-        "group1": {
-            "$type": "GROUP",
-            "table2": {
-                ...
-            },
-            "group2": {
-                ...
-            },
-            ...
-        },
-        ...
-    }
-    """
-    assert isinstance(contents, dict)
-
-    result = hashlib.sha256()
-
-    def hash_int(value):
-        result.update(struct.pack(">L", value))
-
-    def hash_str(string):
-        hash_int(len(string))
-        result.update(string.encode())
-
-    def hash_object(obj):
-        assert isinstance(obj, dict)
-        obj_type = NodeType(obj[TYPE_KEY])
-        hash_str(obj_type.value)
-        if obj_type is NodeType.TABLE or obj_type is NodeType.FILE:
-            hashes = obj["hashes"]
-            hash_int(len(hashes))
-            for h in hashes:
-                assert isinstance(h, string_types)
-                hash_str(h)
-        elif obj_type is NodeType.GROUP:
-            hash_int(len(obj) - 1)  # Skip the "$type"
-            for key, child in sorted(iteritems(obj)):
-                assert isinstance(key, string_types)
-                if key != TYPE_KEY:
-                    hash_str(key)
-                    hash_object(child)
-        else:
-            assert False, "Unexpected object type: %s" % obj_type
-
-    hash_int(len(contents))
-    for key, obj in sorted(iteritems(contents)):
-        assert isinstance(key, string_types)
-        hash_object(obj)
-
-    return result.hexdigest()

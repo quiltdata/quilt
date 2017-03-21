@@ -24,8 +24,9 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import NodeType, TargetType, PackageFormat, TYPE_KEY
-from .hashing import digest_file, hash_contents
+from .const import TargetType, PackageFormat
+from .core import decode_node, encode_node, hash_contents, FileNode, GroupNode, TableNode
+from .hashing import digest_file
 
 ZLIB_LEVEL = 2  # Maximum level.
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
@@ -42,6 +43,7 @@ class PackageException(Exception):
 class Package(object):
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
+    TMP_OBJ_DIR = 'objs/tmp'
 
     def __init__(self, user, package, mode, path, pkg_dir):
         self._user = user
@@ -95,12 +97,9 @@ class Package(object):
         """
         try:
             with open(self._path, 'r') as contents_file:
-                contents = json.load(contents_file)
+                contents = json.load(contents_file, object_hook=decode_node)
         except IOError:
-            contents = {}
-
-        # Make sure the top-level a valid node (GROUP by default)
-        contents.setdefault(TYPE_KEY, NodeType.GROUP.value)
+            contents = GroupNode(dict())
 
         return contents
 
@@ -117,7 +116,7 @@ class Package(object):
         Saves an updated version of the package's contents.
         """
         with open(self._path, 'w') as contents_file:
-            json.dump(contents, contents_file, indent=2, sort_keys=True)
+            json.dump(contents, contents_file, default=encode_node, indent=2, sort_keys=True)    
 
     def get(self, path):
         """
@@ -130,31 +129,30 @@ class Package(object):
         ipath = key.split('/') if key else []
         ptr = self.get_contents()
         path_so_far = []
-        for node in ipath:
-            path_so_far += [node]
-            if not node in ptr:
+        for node_name in ipath:
+            path_so_far += [node_name]
+            ptr = ptr.children.get(node_name)
+            if ptr is None:
                 raise PackageException("Key {path} Not Found in Package {owner}/{pkg}".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
-            ptr = ptr[node]
         node = ptr
 
-        node_type = NodeType(node[TYPE_KEY])
-        if node_type is NodeType.GROUP:
+        if isinstance(node, GroupNode):
             return node
-        elif node_type is NodeType.TABLE:
-            return self.dataframe(node['hashes'])
-        elif node_type is NodeType.FILE:
-            return self.file(node['hashes'])
+        elif isinstance(node, TableNode):
+            return self.dataframe(node.hashes)
+        elif isinstance(node, FileNode):
+            return self.file(node.hashes)
         else:
-            assert False, "Unhandled NodeType {nt}".format(nt=node_type)
-
+            assert False, "Unhandled Node {node}".format(node=node)
+            
     def get_hash(self):
         """
         Returns the hash digest of the package data.
         """
-        raise PackageException("Not Implemented")
+        return hash_contents(self.get_contents())
 
     def get_path(self):
         """
@@ -174,7 +172,7 @@ class Package(object):
         """
         local_filename = self.get_path()
         with open(local_filename, 'w') as contents_file:
-            json.dump(contents, contents_file)
+            json.dump(contents, contents_file, default=encode_node)
 
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
@@ -184,8 +182,7 @@ class Package(object):
             """
             Downloads and installs the set of objects for one table.
             """
-            hashes = node['hashes']
-            for download_hash in hashes:
+            for download_hash in node.hashes:
                 url = urls[download_hash]
 
                 # download and install
@@ -209,20 +206,18 @@ class Package(object):
                 if file_hash != download_hash:
                     os.remove(local_filename)
                     raise PackageException("Mismatched hash! Expected %s, got %s." %
-                                           (download_hash, file_hash))
+                                         (download_hash, file_hash))
 
         def install_tables(contents, urls):
             """
             Parses package contents and calls install_table for each table.
             """
-            for key, node in contents.items():
-                if key == TYPE_KEY:
-                    continue
-                if NodeType(node[TYPE_KEY]) is NodeType.GROUP:
-                    return install_tables(node, urls)
+            for node in contents.children.values():
+                if isinstance(node, GroupNode):
+                    install_tables(node, urls)
                 else:
                     install_table(node, urls)
-
+                
         return install_tables(contents, urls)
 
     def _object_path(self, objhash):
@@ -230,6 +225,12 @@ class Package(object):
         Returns the path to an object file based on its hash.
         """
         return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
+
+    def _temporary_object_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
 
     def _add_to_contents(self, fullname, objhash, ext, path, target):
         """
@@ -240,30 +241,31 @@ class Package(object):
         leaf = ipath.pop()
 
         ptr = contents
-        ptr.setdefault(TYPE_KEY, NodeType.GROUP.value)
         for node in ipath:
-            ptr = ptr.setdefault(node, {TYPE_KEY: NodeType.GROUP.value})
+            ptr = ptr.children.setdefault(node, GroupNode(dict()))
 
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
-                node_type = NodeType.TABLE
+                node_cls = TableNode
             elif target_type is TargetType.FILE:
-                node_type = NodeType.FILE
+                node_cls = FileNode
             else:
                 assert False, "Unhandled TargetType {tt}".format(tt=target_type)
         except ValueError:
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr[leaf] = dict({TYPE_KEY: node_type.value},
-                         hashes=[objhash],
-                         metadata=dict(q_ext=ext,
-                                       q_path=path,
-                                       q_target=target)
-                        )
+        ptr.children[leaf] = node_cls(
+            hashes=[objhash],
+            metadata=dict(
+                q_ext=ext,
+                q_path=path,
+                q_target=target
+            )
+        )
 
         self.save_contents(contents)
-
+        
 
 class HDF5Package(Package):
     """
@@ -274,15 +276,6 @@ class HDF5Package(Package):
     def __init__(self, user, package, mode, path, pkg_dir):
         super(HDF5Package, self).__init__(user, package, mode, path, pkg_dir)
         self.__store = None
-
-    def dataframe(self, hash_list):
-        """
-        Creates a DataFrame from a set of objects (identified by hashes).
-        """
-        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
-        filehash = hash_list[0]
-        with pd.HDFStore(self._object_path(filehash), 'r') as store:
-            return store.get(self.DF_NAME)
 
     def get_hash(self):
         return hash_contents(self.get_contents())
@@ -314,18 +307,26 @@ class HDF5Package(Package):
         """
         return self.UploadFile(self, hash)
 
+    def dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
+        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
+        filehash = hash_list[0]
+        with pd.HDFStore(self._object_path(filehash), 'r') as store:
+            return store.get(self.DF_NAME)
+
     def save_df(self, df, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = os.path.join(self._pkg_dir, buildfile)
+        storepath = self._temporary_object_path(buildfile)
         with pd.HDFStore(storepath, mode=self._mode) as store:
             store[self.DF_NAME] = df
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        os.rename(storepath, objpath)
+        os.rename(storepath, self._object_path(filehash))
 
 
 class FastParquetPackage(Package):

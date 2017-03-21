@@ -3,6 +3,10 @@ Build: parse and add user-supplied files to store
 """
 import os
 import re
+from shutil import copyfile
+import tempfile
+import time
+import zlib
 
 import requests
 
@@ -22,8 +26,9 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import PackageFormat
-
+from .const import TargetType, PackageFormat, PACKAGE_DIR_NAME
+from .core import decode_node, encode_node, hash_contents, FileNode, GroupNode, TableNode
+from .hashing import digest_file
 from .package import Package, HDF5Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -43,8 +48,9 @@ class PackageStore(object):
     class and its subclasses abstract file formats, file naming and
     reading and writing to/from data files.
     """
-    PACKAGE_DIR_NAME = 'quilt_packages'
     PACKAGE_FILE_EXT = '.json'
+    BUILD_DIR = 'build'
+    OBJ_DIR = 'objs'
 
     def __init__(self, startpath='.'):
         self._start_dir = startpath
@@ -63,8 +69,8 @@ class PackageStore(object):
         path = os.path.realpath(self._start_dir)
         while True:
             parent_path, name = os.path.split(path)
-            if name != self.PACKAGE_DIR_NAME:
-                package_dir = os.path.join(path, self.PACKAGE_DIR_NAME)
+            if name != PACKAGE_DIR_NAME:
+                package_dir = os.path.join(path, PACKAGE_DIR_NAME)
                 if os.path.isdir(package_dir):
                     yield package_dir
             if parent_path == path:  # The only reliable way to detect the root.
@@ -93,6 +99,27 @@ class PackageStore(object):
                                    pkg_dir=package_dir)
         return None
 
+    def _find_path_write(self):
+        """
+        Creates a path to store a data package in the innermost `quilt_packages`
+        directory (or in a new `quilt_packages` directory in the current directory)
+        and allocates a per-user directory if needed.
+        """
+        if not VALID_NAME_RE.match(self._user):
+            raise StoreException("Invalid user name: %r" % self._user)
+        if not VALID_NAME_RE.match(self._package):
+            raise StoreException("Invalid package name: %r" % self._package)
+
+        package_dir = next(PackageStore.find_package_dirs(), PACKAGE_DIR_NAME)
+        for name in [self._user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
+            path = os.path.join(package_dir, name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+        self._path = os.path.join(package_dir, self._user, self._package + self.PACKAGE_FILE_EXT)
+        self._pkg_dir = package_dir
+        return
+
     def create_package(self, user, package, format):
         """
         Creates a new package in the innermost `quilt_packages` directory
@@ -104,14 +131,13 @@ class PackageStore(object):
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
 
-        package_dir = next(self.find_package_dirs(), self.PACKAGE_DIR_NAME)
-        user_path = os.path.join(package_dir, user)
-        if not os.path.isdir(user_path):
-            os.makedirs(user_path)
-        obj_path = os.path.join(package_dir, Package.OBJ_DIR)
-        if not os.path.isdir(obj_path):
-            os.makedirs(obj_path)
-        path = os.path.join(user_path, package + self.PACKAGE_FILE_EXT)
+        package_dir = next(self.find_package_dirs(), PACKAGE_DIR_NAME)
+        for name in [user, Package.OBJ_DIR, Package.TMP_OBJ_DIR]:
+            path = os.path.join(package_dir, name)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+
+        path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
 
         # TODO: Check format and create appropriate Package subclass
         return HDF5Package(user=user,
@@ -120,16 +146,21 @@ class PackageStore(object):
                            path=path,
                            pkg_dir=package_dir)
 
+    @classmethod
+    def ls_packages(cls, pkg_dir):
+        """
+        List installed packages.
+        """
+        packages = [
+            (user, pkg[:-len(PackageStore.PACKAGE_FILE_EXT)])
+            for user in os.listdir(pkg_dir)
+            for pkg in os.listdir(os.path.join(pkg_dir, user))
+            if pkg.endswith(PackageStore.PACKAGE_FILE_EXT)]
+        return packages
 
 def ls_packages(pkg_dir):
     """
     List all packages from all package directories.
     """
-    pkg_format = PackageFormat(os.environ.get('QUILT_PACKAGE_FORMAT', PackageFormat.default.value))
-    if pkg_format is PackageFormat.HDF5:
-        packages = HDF5PackageStore.ls_packages(pkg_dir)
-    elif pkg_format is PackageFormat.FASTPARQUET:
-        packages = FastParquetPackageStore.ls_packages(pkg_dir)
-    else:
-        raise StoreException("Unsupported Package Format %s" % pkg_format)
+    packages = PackageStore.ls_packages(pkg_dir)
     return packages
