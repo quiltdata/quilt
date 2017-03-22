@@ -44,16 +44,4 @@ services:
   auth:
     image: quiltdata/auth
     ports:
-      - "5002:5002"
-  cli:
-    image: quiltdata/cli
-    environment:
-      - QUILT_USER=quilttester
-      - PKG=testpkg
-      - QUILT_PKG_URL=http://pkg
-
-    depends_on:
-      db:
-        condition: service_healthy
-    command:
-      ./integration_test.sh
+      - "5002:5002"  

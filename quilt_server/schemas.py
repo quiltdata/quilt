@@ -2,7 +2,7 @@
 Definition of the package schema, helper functions, etc.
 """
 
-from .core import GroupNode, TableNode, FileNode
+from .core import RootNode, GroupNode, TableNode, FileNode
 
 SHA256_PATTERN = r'[0-9a-f]{64}'
 
@@ -15,8 +15,11 @@ PACKAGE_SCHEMA = {
         'contents': {
             'type': 'object',
             'properties': {
+                'format' : {
+                    'enum': ['HDF5', 'ARROW_PARQUET', 'FAST_PARQUET']
+                },
                 'type': {
-                    'enum': [GroupNode.json_type]
+                    'enum': [RootNode.json_type, GroupNode.json_type]
                 },
                 'children': {
                     'type': 'object',
