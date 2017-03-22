@@ -59,7 +59,7 @@ class BuildTest(QuiltTestCase):
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
-        from quilt.data.test_parquet.groot import dataframes, README        
+        from quilt.data.test_parquet.groot import dataframes, README
         csv = dataframes.csv
         tsv = dataframes.csv
         xls = dataframes.xls

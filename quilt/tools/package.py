@@ -156,8 +156,10 @@ class Package(object):
         try:
             with open(self._path, 'r') as contents_file:
                 contents = json.load(contents_file, object_hook=decode_node)
+                if not isinstance(contents, RootNode):
+                    contents = RootNode(contents.children, PackageFormat.default.value)
         except IOError:
-            contents = GroupNode(dict())
+            contents = RootNode(dict(), PackageFormat.default)
 
         return contents
 
