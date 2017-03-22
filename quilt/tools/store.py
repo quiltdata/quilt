@@ -5,7 +5,8 @@ import os
 import re
 
 
-from .const import PackageFormat, PACKAGE_DIR_NAME
+from .const import PACKAGE_DIR_NAME
+from .core import PackageFormat
 from .package import Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _

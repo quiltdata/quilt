@@ -18,8 +18,9 @@ import requests
 from packaging.version import Version
 
 from .build import build_package, generate_build_file, BuildException
-from .const import LATEST_TAG, PackageFormat
-from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
+from .const import LATEST_TAG
+from .core import (hash_contents, GroupNode, TableNode, FileNode,
+                   decode_node, encode_node, PackageFormat)
 from .package import PackageException
 from .store import PackageStore, ls_packages
 from .util import BASE_DIR, FileWithReadProgress

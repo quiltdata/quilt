@@ -23,8 +23,10 @@ try:
 except ImportError:
     SparkSession = None
 
-from .const import TargetType, PackageFormat
-from .core import decode_node, encode_node, hash_contents, FileNode, RootNode, GroupNode, TableNode
+from .const import TargetType
+from .core import (decode_node, encode_node, hash_contents,
+                   FileNode, RootNode, GroupNode, TableNode,
+                   PackageFormat)
 from .hashing import digest_file
 
 ZLIB_LEVEL = 2

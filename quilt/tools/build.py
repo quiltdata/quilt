@@ -5,7 +5,8 @@ import yaml
 import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import PACKAGE_DIR_NAME, TARGET, PackageFormat
+from .const import PACKAGE_DIR_NAME, TARGET
+from .core import PackageFormat
 from .util import FileWithReadProgress
 
 class BuildException(Exception):
