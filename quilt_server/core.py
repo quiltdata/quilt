@@ -1,8 +1,16 @@
+from enum import Enum
 import hashlib
 import struct
 
 from six import iteritems, string_types
 
+
+class PackageFormat(Enum):
+    HDF5 = 'HDF5'
+    FASTPARQUET = 'FAST_PARQUET'
+    ARROW = 'ARROW_PARQUET'
+    SPARK = 'SPARK_PARQUET'
+    default = HDF5
 
 class Node(object):
     @property
@@ -33,7 +41,7 @@ class GroupNode(Node):
 
 class RootNode(GroupNode):
     json_type = 'ROOT'
-    
+
     def __init__(self, children, format=None):
         self.format = format
         super(RootNode, self).__init__(children)
