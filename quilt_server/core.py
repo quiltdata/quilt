@@ -42,8 +42,8 @@ class GroupNode(Node):
 class RootNode(GroupNode):
     json_type = 'ROOT'
 
-    def __init__(self, children, format=None):
-        self.format = format
+    def __init__(self, children, format=PackageFormat.default):
+        self.format = PackageFormat(format)
         super(RootNode, self).__init__(children)
 
 class TableNode(Node):
@@ -77,6 +77,8 @@ NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableN
 def encode_node(node):
     if isinstance(node, Node):
         return node.__json__()
+    elif isinstance(node, Enum):
+        return node.value
     raise TypeError
 
 def decode_node(value):

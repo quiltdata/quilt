@@ -17,7 +17,7 @@ PACKAGE_SCHEMA = {
             'type': 'object',
             'properties': {
                 'format' : {
-                    'enum': [fmt.value for fmt in list(PackageFormat)]
+                    'enum': [fmt.value for fmt in PackageFormat]
                 },
                 'type': {
                     'enum': [RootNode.json_type, GroupNode.json_type]
