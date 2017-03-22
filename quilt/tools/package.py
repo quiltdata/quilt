@@ -27,7 +27,7 @@ from .const import TargetType, PackageFormat
 from .core import decode_node, encode_node, hash_contents, FileNode, RootNode, GroupNode, TableNode
 from .hashing import digest_file
 
-ZLIB_LEVEL = 2  # Maximum level.
+ZLIB_LEVEL = 2
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
 CHUNK_SIZE = 4096
