@@ -1,18 +1,15 @@
-# Help
+# Questions?
 Chat with us via the orange icon on [quiltdata.com](https://quiltdata.com/).
 
-# Motivation - Package all the things
+# Manage data like code
 It's easy to install code dependencies with projects like pip and npm. But what about data dependencies? That's where `quilt` comes in.
-Less data plumbing and more data science. Quilt provides the "dataset management" infrastructure for data scientists so that they can focus on analysis.
-* Access data frames [5X to 20X faster](http://wesmckinney.com/blog/pandas-and-apache-arrow/).
-Quilt stores data frames in high-efficiency, memory-mapped binary formats like HDF5.
-* Version your data. Pull packages by version number or tag.
-* Publish data packages to share with your team or with the world.
-* Satisfy your data dependencies with one command, `quilt install USER/PACKAGE`.
+Install, compile, and version data with Quilt.
+* **Install** and import data with simple one-liners: `from quilt.data.bob import sales`
+* **Compile** files into memory-mapped binary data frames that load [5X to 20X faster than files](http://wesmckinney.com/blog/pandas-and-apache-arrow/)
+* **Version** your data. Hash, tag, and version quilt data packages.
 
-# What is Quilt?
-[Quilt](https://quiltdata.com/) is a data package manager. A data package is a namespace of binary data frames.
-You can use data packages from the community, or publish packages for others to use.
+## Quilt is a data package manager
+A data package is a namespace of binary data frames. You can use data packages from the community, publish packages for others to use, or keep packages private to you.
 
 `quilt` is the command-line client that builds, retrieves, and stores
 packages. `quilt` works in conjunction with a server-side registry,

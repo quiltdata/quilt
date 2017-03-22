@@ -22,7 +22,7 @@ from .const import LATEST_TAG, PackageFormat
 from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
 from .package import PackageException
 from .store import PackageStore, ls_packages
-from .util import BASE_DIR
+from .util import BASE_DIR, FileWithReadProgress
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 
@@ -217,6 +217,7 @@ def push(session, package):
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
     pkghash = pkgobj.get_hash()
 
+    print("Uploading package metadata...")
     response = session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
             url=QUILT_PKG_URL,
@@ -237,14 +238,17 @@ def push(session, package):
         'Content-Encoding': 'gzip'
     }
 
-    for objhash, url in upload_urls.items():
+    total = len(upload_urls)
+    for idx, (objhash, url) in enumerate(upload_urls.items()):
         # Create a temporary gzip'ed file.
+        print("Uploading object %d/%d..." % (idx + 1, total))
         with pkgobj.tempfile(objhash) as temp_file:
-            response = requests.put(url, data=temp_file, headers=headers)
+            with FileWithReadProgress(temp_file) as temp_file_with_progress:
+                response = requests.put(url, data=temp_file_with_progress, headers=headers)
+                if not response.ok:
+                    raise CommandException("Upload failed: error %s" % response.status_code)
 
-            if not response.ok:
-                raise CommandException("Upload failed: error %s" % response.status_code)
-
+    print("Updating the 'latest' tag...")
     # Set the "latest" tag.
     response = session.put(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
@@ -259,6 +263,8 @@ def push(session, package):
     )
     assert response.ok # other responses handled by _handle_response
 
+    url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
+    print("Success! Visit the package page here: %s" % url)
 
 def version_list(session, package):
     """
