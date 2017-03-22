@@ -7,6 +7,7 @@ class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
 
+
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)

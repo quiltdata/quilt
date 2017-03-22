@@ -1,5 +1,5 @@
 ---
-format: ARROW_PARQUET
+format: PARQUET
 tables:
   dataframes:
     csv: [csv, data/10KRows13Cols.csv]

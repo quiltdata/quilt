@@ -1,3 +1,4 @@
+from enum import Enum
 import json
 import os
 from shutil import copyfile
@@ -34,6 +35,11 @@ ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
 CHUNK_SIZE = 4096
 
+class ParquetLib(Enum):
+    ARROW = 'pyarrow'
+    FASTPARQUET = 'fastparquet'
+    SPARK = 'pyspark'
+
 
 class PackageException(Exception):
     """
@@ -47,6 +53,31 @@ class Package(object):
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = 'objs/tmp'
     DF_NAME = 'df'
+
+    __parquet_lib = None
+
+    @classmethod
+    def get_parquet_lib(cls):
+        if not cls.__parquet_lib:
+            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY')
+            if parq_env:
+                cls.__parquet_lib = ParquetLib(parq_env)
+            else:
+                if SparkSession is not None:
+                    cls.__parquet_lib = ParquetLib.SPARK
+                elif pa is not None:
+                    cls.__parquet_lib = ParquetLib.ARROW
+                elif fastparquet is not None:
+                    cls.__parquet_lib = ParquetLib.FASTPARQUET
+                else:
+                    msg = "One of the following libraries is requried to read"
+                    msg += " Parquet packages: %s" % [l.value for l in ParquetLib]
+                    raise PackageException(msg)
+        return cls.__parquet_lib
+
+    @classmethod
+    def reset_parquet_lib(cls):
+        cls.__parquet_lib = None
 
     def __init__(self, user, package, path, pkg_dir):
         self._user = user
@@ -70,43 +101,59 @@ class Package(object):
         objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
         return objpath
 
+    def _read_hdf5(self, hash_list):
+        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
+        filehash = hash_list[0]
+        with pd.HDFStore(self._object_path(filehash), 'r') as store:
+            return store.get(self.DF_NAME)
+
+    def _read_parquet_arrow(self, hash_list):
+        if pa is None:
+            raise PackageException("Module pyarrow is required for ArrowPackage.")
+
+        assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow Packages (yet)."
+        filehash = hash_list[0]
+
+        nt = 8
+        fpath = self._object_path(filehash)
+        table = parquet.read_table(fpath, nthreads=nt)
+        df = table.to_pandas()
+        return df
+
+    def _read_parquet_fastparquet(self, hash_list):
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        filehash = hash_list[0]
+        pfile = fastparquet.ParquetFile(self._object_path(filehash))
+        return pfile.to_pandas()
+
+    def _read_parquet_spark(self, hash_list):
+        if SparkSession is None:
+            raise PackageException("Module SparkSession from pyspark.sql is required for " +
+                                   "SparkPackage.")
+
+        spark = SparkSession.builder.getOrCreate()
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        filehash = hash_list[0]
+        df = spark.read.parquet(self._object_path(filehash))
+        return df
+
     def _dataframe(self, hash_list, pkgformat):
         """
         Creates a DataFrame from a set of objects (identified by hashes).
         """
         enumformat = PackageFormat(pkgformat)
         if enumformat is PackageFormat.HDF5:
-            assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
-            filehash = hash_list[0]
-            with pd.HDFStore(self._object_path(filehash), 'r') as store:
-                return store.get(self.DF_NAME)
-        elif enumformat is PackageFormat.ARROW:
-            if pa is None:
-                raise PackageException("Module pyarrow is required for ArrowPackage.")
-
-            assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow Packages (yet)."
-            filehash = hash_list[0]
-
-            nt = 8
-            fpath = self._object_path(filehash)
-            table = parquet.read_table(fpath, nthreads=nt)
-            df = table.to_pandas()
-            return df
-        elif enumformat is PackageFormat.FASTPARQUET:
-            assert len(hash_list) == 1, "Multi-file DFs not supported yet."
-            filehash = hash_list[0]
-            pfile = fastparquet.ParquetFile(self._object_path(filehash))
-            return pfile.to_pandas()
-        elif enumformat is PackageFormat.SPARK:
-            if SparkSession is None:
-                raise PackageException("Module SparkSession from pyspark.sql is required for " +
-                                       "SparkPackage.")
-
-            spark = SparkSession.builder.getOrCreate()
-            assert len(hash_list) == 1, "Multi-file DFs not supported yet."
-            filehash = hash_list[0]
-            df = spark.read.parquet(self._object_path(filehash))
-            return df
+            return self._read_hdf5(hash_list)
+        elif enumformat is PackageFormat.PARQUET:
+            parqlib = self.get_parquet_lib()
+            if parqlib is ParquetLib.SPARK:
+                return self._read_parquet_spark(hash_list)
+            elif parqlib is ParquetLib.ARROW:
+                return self._read_parquet_arrow(hash_list)
+            elif parqlib is ParquetLib.FASTPARQUET:
+                return self._read_parquet_fastparquet(hash_list)
+            else:
+                assert False, "Unimplemented Parquet Library %s" % parqlib
         else:
             assert False, "Unimplemented package format: %s" % enumformat
 
@@ -122,16 +169,16 @@ class Package(object):
         if enumformat is PackageFormat.HDF5:
             with pd.HDFStore(storepath, mode='w') as store:
                 store[self.DF_NAME] = df
-        elif enumformat is PackageFormat.FASTPARQUET:
-            buildfile = name.lstrip('/').replace('/', '.')
-            storepath = os.path.join(self._pkg_dir, buildfile)
-            fastparquet.write(storepath, df)
-        elif enumformat is PackageFormat.ARROW:
-            if pa is None:
-                raise PackageException("Module pyarrow is required for ArrowPackage.")
-
-            table = pa.Table.from_pandas(df)
-            parquet.write_table(table, storepath)
+        elif enumformat is PackageFormat.PARQUET:
+            # switch parquet lib
+            parqlib = self.get_parquet_lib()
+            if parqlib is ParquetLib.FASTPARQUET:
+                fastparquet.write(storepath, df)
+            elif parqlib is ParquetLib.ARROW:
+                table = pa.Table.from_pandas(df)
+                parquet.write_table(table, storepath)
+            else:
+                assert False, "Unimplemented ParquetLib %s" % parqlib
         else:
             assert False, "Unimplemented PackageFormat %s" % enumformat
 
