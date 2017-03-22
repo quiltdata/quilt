@@ -31,6 +31,13 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
+class RootNode(GroupNode):
+    json_type = 'ROOT'
+    
+    def __init__(self, children, format=None):
+        self.format = format
+        super(RootNode, self).__init__(children)
+
 class TableNode(Node):
     json_type = 'TABLE'
 
@@ -57,7 +64,7 @@ class FileNode(Node):
         self.hashes = hashes
         self.metadata = metadata
 
-NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, TableNode, FileNode]}
+NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
 def encode_node(node):
     if isinstance(node, Node):
