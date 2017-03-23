@@ -18,7 +18,6 @@ import imp
 import os.path
 import sys
 
-from .tools.build import get_store
 from .tools.core import GroupNode
 from .tools.store import PackageStore
 
@@ -26,23 +25,23 @@ __path__ = []  # Required for submodules to work
 
 class DataNode(object):
     """
-    Represents either the root of the store or a group, similar to nodes
+    Represents either the root of the package or a group, similar to nodes
     in HDFStore's `root`.
     """
-    def __init__(self, store, prefix=''):
+    def __init__(self, package, prefix=''):
         self._prefix = prefix
-        self._store = store
+        self._package = package
 
     def __getattr__(self, name):
         # TODO clean if... up since VALID_NAME_RE no longer allows leading _
         if name.startswith('_'):
             raise AttributeError
         path = self._prefix + '/' + name
-        return self._get_store_obj(path)
+        return self._get_package_obj(path)
 
     def __repr__(self):
         cinfo = str(self.__class__)
-        finfo = 'File: ' + self._store.get_path()
+        finfo = 'File: ' + self._package.get_path()
         pinfo = 'Path: ' + self._prefix + '/'
         #TODO maybe show all descendant subpaths instead of just children
         spaths = [k + '/' for k in self._keys()]
@@ -56,17 +55,17 @@ class DataNode(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if not isinstance(self._get_store_obj(pref + k), DataNode)]
+                if not isinstance(self._get_package_obj(pref + k), DataNode)]
 
-    def _get_store_obj(self, path):
+    def _get_package_obj(self, path):
         try:
-            obj = self._store.get(path)
+            obj = self._package.get(path)
         except KeyError:
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
 
         if isinstance(obj, GroupNode):
-            return DataNode(self._store, path)
+            return DataNode(self._package, path)
         else:
             return obj
 
@@ -76,13 +75,13 @@ class DataNode(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if isinstance(self._get_store_obj(pref + k), DataNode)]
+                if isinstance(self._get_package_obj(pref + k), DataNode)]
 
     def _keys(self):
         """
         keys directly accessible on this object via getattr or .
         """
-        group = self._store.get(self._prefix)
+        group = self._package.get(self._prefix)
         assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
         return group.children.keys()
 
@@ -109,9 +108,9 @@ class PackageLoader(object):
     """
     Module loader for Quilt tables.
     """
-    def __init__(self, path, store):
+    def __init__(self, path, package):
         self._path = path
-        self._store = store
+        self._package = package
 
     def load_module(self, fullname):
         """
@@ -124,7 +123,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = DataNode(self._store)
+        mod = DataNode(self._package)
         sys.modules[fullname] = mod
         return mod
 
@@ -137,6 +136,7 @@ class ModuleFinder(object):
         """
         Looks up the table based on the module path.
         """
+        store = PackageStore()
         if not fullname.startswith(__name__ + '.'):
             # Not a quilt submodule.
             return None
@@ -145,17 +145,17 @@ class ModuleFinder(object):
         parts = submodule.split('.')
 
         if len(parts) == 1:
-            for package_dir in PackageStore.find_package_dirs():
+            for package_dir in store.find_package_dirs():
                 # find contents
                 file_path = os.path.join(package_dir, parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
         elif len(parts) == 2:
             user, package = parts
-            store = get_store(user, package)
-            if store:
-                file_path = store.get_path()
-                return PackageLoader(file_path, store)
+            pkgobj = store.get_package(user, package)
+            if pkgobj:
+                file_path = pkgobj.get_path()
+                return PackageLoader(file_path, pkgobj)
 
         return None
 

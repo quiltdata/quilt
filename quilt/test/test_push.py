@@ -34,7 +34,8 @@ class PushTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build_simple.yml')
         command.build('foo/bar', build_path)
 
-        pkg_obj = store.get_store('foo', 'bar')
+        pkgstore = store.PackageStore()
+        pkg_obj = pkgstore.get_package('foo', 'bar')
         assert pkg_obj.exists(), "Failed build?"
         pkg_hash = pkg_obj.get_hash()
         assert pkg_hash

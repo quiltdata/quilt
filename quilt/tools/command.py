@@ -19,8 +19,10 @@ from packaging.version import Version
 
 from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG
-from .core import hash_contents, GroupNode, TableNode, FileNode, decode_node, encode_node
-from .store import PackageStore, StoreException, get_store, ls_packages
+from .core import (hash_contents, GroupNode, TableNode, FileNode,
+                   decode_node, encode_node, PackageFormat)
+from .package import PackageException
+from .store import PackageStore, ls_packages
 from .util import BASE_DIR, FileWithReadProgress
 
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
@@ -210,10 +212,11 @@ def push(session, package):
     """
     owner, pkg = _parse_package(package)
 
-    store = get_store(owner, pkg)
-    if not store.exists():
+    store = PackageStore()
+    pkgobj = store.get_package(owner, pkg)
+    if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    pkghash = store.get_hash()
+    pkghash = pkgobj.get_hash()
 
     print("Uploading package metadata...")
     response = session.put(
@@ -224,7 +227,7 @@ def push(session, package):
             hash=pkghash
         ),
         data=json.dumps(dict(
-            contents=store.get_contents(),
+            contents=pkgobj.get_contents(),
             description=""  # TODO
         ), default=encode_node)
     )
@@ -240,10 +243,9 @@ def push(session, package):
     for idx, (objhash, url) in enumerate(upload_urls.items()):
         # Create a temporary gzip'ed file.
         print("Uploading object %d/%d..." % (idx + 1, total))
-        with store.tempfile(objhash) as temp_file:
+        with pkgobj.tempfile(objhash) as temp_file:
             with FileWithReadProgress(temp_file) as temp_file_with_progress:
                 response = requests.put(url, data=temp_file_with_progress, headers=headers)
-
                 if not response.ok:
                     raise CommandException("Upload failed: error %s" % response.status_code)
 
@@ -383,9 +385,10 @@ def install(session, package, hash=None, version=None, tag=None):
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg = _parse_package(package)
-    store = get_store(owner, pkg, mode='w')
+    store = PackageStore()
+    existing_pkg = store.get_package(owner, pkg)
 
-    if store.exists():
+    if existing_pkg is not None:
         print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
         overwrite = input("Overwrite? (y/n) ")
         if overwrite.lower() != 'y':
@@ -433,10 +436,11 @@ def install(session, package, hash=None, version=None, tag=None):
     if pkghash != hash_contents(response_contents):
         raise CommandException("Mismatched hash. Try again.")
 
+    pkgobj = store.create_package(owner, pkg, PackageFormat.HDF5)
     try:
-        store.install(response_contents, response_urls)
-    except StoreException as ex:
-        store.clear_contents()
+        pkgobj.install(response_contents, response_urls)
+    except PackageException as ex:
+        pkgobj.clear_contents()
         raise CommandException("Failed to install the package: %s" % ex)
 
 def access_list(session, package):
@@ -473,7 +477,8 @@ def ls():
     """
     List all installed Quilt data packages
     """
-    for pkg_dir in PackageStore.find_package_dirs():
+    store = PackageStore()
+    for pkg_dir in store.find_package_dirs():
         print("%s" % pkg_dir)
         packages = ls_packages(pkg_dir)
         for idx, (owner, pkg) in enumerate(packages):
@@ -485,8 +490,9 @@ def inspect(package):
     Inspect package details
     """
     owner, pkg = _parse_package(package)
-    store = get_store(owner, pkg)
-    if not store.exists():
+    store = PackageStore()
+    pkgobj = store.get_package(owner, pkg)
+    if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
     def _print_children(children, prefix, path):
@@ -509,7 +515,7 @@ def inspect(package):
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
             fullname = "/".join([path, name])
-            df = store.get(fullname)
+            df = pkgobj.get(fullname)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
@@ -519,8 +525,8 @@ def inspect(package):
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 
-    print(store.get_path())
-    _print_children(children=store.get_contents().children.items(), prefix='', path='')
+    print(pkgobj.get_path())
+    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
 
 def main():
     """

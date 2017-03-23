@@ -1,8 +1,14 @@
+from enum import Enum
 import hashlib
 import struct
 
 from six import iteritems, string_types
 
+
+class PackageFormat(Enum):
+    HDF5 = 'HDF5'
+    PARQUET = 'PARQUET'
+    default = HDF5
 
 class Node(object):
     @property
@@ -31,6 +37,16 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
+class RootNode(GroupNode):
+    json_type = 'ROOT'
+
+    def __init__(self, children, format):
+        self.format = PackageFormat(format)
+        super(RootNode, self).__init__(children)
+
+    def __json__(self):
+        return dict(self.__dict__, type=self.json_type, format=self.format.value)
+
 class TableNode(Node):
     json_type = 'TABLE'
 
@@ -57,7 +73,7 @@ class FileNode(Node):
         self.hashes = hashes
         self.metadata = metadata
 
-NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, TableNode, FileNode]}
+NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
 def encode_node(node):
     if isinstance(node, Node):

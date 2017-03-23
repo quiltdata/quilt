@@ -139,7 +139,8 @@ class CommandTest(QuiltTestCase):
         package = 'bar'
         command.build('%s/%s' % (owner, package), build_path)
 
-        pkg_obj = store.get_store(owner, package)
+        pkgstore = store.PackageStore()
+        pkg_obj = pkgstore.get_package(owner, package)
         self._mock_logs_list(owner, package, pkg_obj.get_hash())
 
         session = requests.Session()
