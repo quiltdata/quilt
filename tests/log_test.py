@@ -57,15 +57,7 @@ class LogTestCase(QuiltTestCase):
 
     def testAccess(self):
         sharewith = "share_with"
-
-        resp = self.app.put(
-            '/api/access/{owner}/{pkg}/{usr}'.format(
-                owner=self.user, usr=sharewith, pkg=self.pkg
-            ),
-            headers={
-                'Authorization': self.user
-            }
-        )
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # Can't view

@@ -725,9 +725,9 @@ def access_put(auth_user, owner, package_name, user):
                 requests.codes.not_found,
                 "User %s does not exist" % user
                 )
-        elif response.status_code != requests.codes.ok:
+        elif resp.status_code != requests.codes.ok:
             raise ApiException(
-                response.status_code,
+                resp.status_code,
                 "Unknown error"
                 )
 
