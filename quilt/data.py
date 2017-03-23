@@ -44,9 +44,9 @@ class DataNode(object):
         finfo = 'File: ' + self._package.get_path()
         pinfo = 'Path: ' + self._prefix + '/'
         #TODO maybe show all descendant subpaths instead of just children
-        spaths = [k + '/' for k in self._keys()]
-        spaths.sort()
-        output = [cinfo, finfo, pinfo] + spaths
+        groups = sorted(k + '/' for k in self._groups())
+        dfs = sorted(self._dfs())
+        output = [cinfo, finfo, pinfo] + groups + dfs
         return '\n'.join(output)
 
     def _dfs(self):
