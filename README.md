@@ -5,7 +5,7 @@ Chat with us via the orange icon on [quiltdata.com](https://quiltdata.com/).
 It's easy to install code dependencies with projects like pip and npm. But what about data dependencies? That's where `quilt` comes in.
 Install, compile, and version data with Quilt.
 * **Install** and import data with simple one-liners: `from quilt.data.bob import sales`
-* **Compile** files into memory-mapped binary data frames that load [5X to 20X faster than files](http://wesmckinney.com/blog/pandas-and-apache-arrow/)
+* **Compile** files into memory-mapped binary data frames that load 5X to 20X faster than files
 * **Version** your data. Hash, tag, and version quilt data packages.
 
 ## Quilt is a data package manager
