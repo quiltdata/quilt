@@ -714,6 +714,23 @@ def access_put(auth_user, owner, package_name, user):
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
+    if user != PUBLIC:
+        auth = request.headers.get(AUTHORIZATION_HEADER)
+        headers = {
+            AUTHORIZATION_HEADER: auth
+            }
+        resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user, headers=headers)
+        if resp.status_code == requests.codes.not_found:
+            raise ApiException(
+                requests.codes.not_found,
+                "User %s does not exist" % user
+                )
+        elif response.status_code != requests.codes.ok:
+            raise ApiException(
+                response.status_code,
+                "Unknown error"
+                )
+
     try:
         access = Access(package=package, user=user)
         db.session.add(access)
