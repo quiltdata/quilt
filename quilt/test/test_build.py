@@ -146,6 +146,7 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(buildfilepath)
         build.build_package('test_hdf5', 'generated', buildfilepath)
         os.remove(buildfilepath)
+        from quilt.data.test_hdf5.generated import bad, foo, nuts, README
 
     def test_failover(self):
         """
