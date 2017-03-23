@@ -1,9 +1,8 @@
 ---
 format: PARQUET
-tables:
+contents:
   dataframes:
     csv: [csv, data/10KRows13Cols.csv]
     tsv: [tsv, data/10KRows13Cols.tsv]
     xls: [xlsx, data/10KRows13Cols.xlsx]
-files:
-  README: data/README.md
+  README: [raw, data/README.md]
