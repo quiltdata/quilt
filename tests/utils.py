@@ -61,7 +61,6 @@ class QuiltTestCase(unittest.TestCase):
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""
         user_url = '%s/profiles/%s' % (quilt_server.app.config['OAUTH']['base_url'], user)
-        print("MOCK: %s" % user_url)
 
         def cb(request):
             auth = request.headers.get('Authorization')
