@@ -84,7 +84,9 @@ def oauth_callback():
             code=code,
             client_secret=OAUTH_CLIENT_SECRET
         )
-        return render_template('oauth_success.html', code=resp['refresh_token'], QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_success.html',
+                               code=resp['refresh_token'],
+                               QUILT_CDN=QUILT_CDN)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
 
@@ -726,8 +728,9 @@ def access_put(auth_user, owner, package_name, user):
                 "User %s does not exist" % user
                 )
         elif resp.status_code != requests.codes.ok:
+            print("{code}: {reason}".format(code=resp.status_code, reason=resp.reason))
             raise ApiException(
-                resp.status_code,
+                requests.codes.server_error,
                 "Unknown error"
                 )
 
