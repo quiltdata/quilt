@@ -115,10 +115,10 @@ def build_package(username, package, yaml_path):
         raise BuildException("'tables' must be a dictionary")
 
     store = PackageStore()
-    with store.create_package(username, package, pkgformat) as newpackage:
-        _build_table(build_dir, newpackage, '', tables)
-        if readme is not None:
-            _build_file(build_dir, newpackage, 'README', rel_path=readme)
+    newpackage = store.create_package(username, package, pkgformat)
+    _build_table(build_dir, newpackage, '', tables)
+    if readme is not None:
+        _build_file(build_dir, newpackage, 'README', rel_path=readme)
 
 def splitext_no_dot(filename):
     """
