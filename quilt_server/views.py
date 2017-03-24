@@ -698,6 +698,7 @@ def tag_list(auth_user, owner, package_name):
 @api()
 @as_json
 def access_put(auth_user, owner, package_name, user):
+    # TODO: use re to check for valid username (e.g., not ../, etc.)
     if not user:
         raise ApiException(requests.codes.bad_request, "A valid user is required")
 
@@ -717,11 +718,7 @@ def access_put(auth_user, owner, package_name, user):
         raise PackageNotFoundException(owner, package_name)
 
     if user != PUBLIC:
-        auth = request.headers.get(AUTHORIZATION_HEADER)
-        headers = {
-            AUTHORIZATION_HEADER: auth
-            }
-        resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user, headers=headers)
+        resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user)
         if resp.status_code == requests.codes.not_found:
             raise ApiException(
                 requests.codes.not_found,

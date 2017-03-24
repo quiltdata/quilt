@@ -63,11 +63,7 @@ class QuiltTestCase(unittest.TestCase):
         user_url = '%s/profiles/%s' % (quilt_server.app.config['OAUTH']['base_url'], user)
 
         def cb(request):
-            auth = request.headers.get('Authorization')
-            if auth is None:
-                return (401, {}, "Not logged in")
-            else:
-                return (200, {}, json.dumps(dict(username=user)))
+            return (200, {}, json.dumps(dict(username=user)))
 
         self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
 
