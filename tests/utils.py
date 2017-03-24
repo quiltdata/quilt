@@ -61,11 +61,7 @@ class QuiltTestCase(unittest.TestCase):
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""
         user_url = '%s/profiles/%s' % (quilt_server.app.config['OAUTH']['base_url'], user)
-
-        def cb(request):
-            return (200, {}, json.dumps(dict(username=user)))
-
-        self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
+        self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
     def put_package(self, owner, package, contents):
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
@@ -95,7 +91,7 @@ class QuiltTestCase(unittest.TestCase):
                 owner=owner, usr=other_user, pkg=pkg
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': owner
             }
         )
 
@@ -105,6 +101,6 @@ class QuiltTestCase(unittest.TestCase):
                 owner=owner, usr=other_user, pkg=pkg
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': owner
             }
         )
