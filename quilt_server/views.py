@@ -84,7 +84,9 @@ def oauth_callback():
             code=code,
             client_secret=OAUTH_CLIENT_SECRET
         )
-        return render_template('oauth_success.html', code=resp['refresh_token'], QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_success.html',
+                               code=resp['refresh_token'],
+                               QUILT_CDN=QUILT_CDN)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
 
@@ -696,6 +698,7 @@ def tag_list(auth_user, owner, package_name):
 @api()
 @as_json
 def access_put(auth_user, owner, package_name, user):
+    # TODO: use re to check for valid username (e.g., not ../, etc.)
     if not user:
         raise ApiException(requests.codes.bad_request, "A valid user is required")
 
@@ -713,6 +716,20 @@ def access_put(auth_user, owner, package_name, user):
     )
     if package is None:
         raise PackageNotFoundException(owner, package_name)
+
+    if user != PUBLIC:
+        resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user)
+        if resp.status_code == requests.codes.not_found:
+            raise ApiException(
+                requests.codes.not_found,
+                "User %s does not exist" % user
+                )
+        elif resp.status_code != requests.codes.ok:
+            print("{code}: {reason}".format(code=resp.status_code, reason=resp.reason))
+            raise ApiException(
+                requests.codes.server_error,
+                "Unknown error"
+                )
 
     try:
         access = Access(package=package, user=user)

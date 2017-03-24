@@ -58,6 +58,11 @@ class QuiltTestCase(unittest.TestCase):
 
         self.requests_mock.add_callback(responses.GET, auth_url, callback=cb)
 
+    def _mock_check_user(self, user):
+        """Mocks the username check call and returns just the username"""
+        user_url = '%s/profiles/%s' % (quilt_server.app.config['OAUTH']['base_url'], user)
+        self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
+
     def put_package(self, owner, package, contents):
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=owner,
@@ -76,5 +81,26 @@ class QuiltTestCase(unittest.TestCase):
                 'Authorization': owner
             }
         )
-
         assert resp.status_code == requests.codes.ok
+
+    def _share_package(self, owner, pkg, other_user):
+        self._mock_check_user(other_user)
+
+        return self.app.put(
+            '/api/access/{owner}/{pkg}/{usr}'.format(
+                owner=owner, usr=other_user, pkg=pkg
+            ),
+            headers={
+                'Authorization': owner
+            }
+        )
+
+    def _unshare_package(self, owner, pkg, other_user):
+        return self.app.delete(
+            '/api/access/{owner}/{pkg}/{usr}'.format(
+                owner=owner, usr=other_user, pkg=pkg
+            ),
+            headers={
+                'Authorization': owner
+            }
+        )

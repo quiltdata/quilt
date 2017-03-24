@@ -47,33 +47,13 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
-    def _sharePackage(self, other_user):
-        return self.app.put(
-            '/api/access/{owner}/{pkg}/{usr}'.format(
-                owner=self.user, usr=other_user, pkg=self.pkg
-            ),
-            headers={
-                'Authorization': self.user
-            }
-        )
-
-    def _unsharePackage(self, other_user):
-        return self.app.delete(
-            '/api/access/{owner}/{pkg}/{usr}'.format(
-                owner=self.user, usr=other_user, pkg=self.pkg
-            ),
-            headers={
-                'Authorization': self.user
-            }
-        )
-
     def testShareDataset(self):
         """
         Push a package, share it and test that the
         recipient can read it.
         """
         sharewith = "anotheruser"
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # Test that the receiver can read the package
@@ -93,11 +73,11 @@ class AccessTestCase(QuiltTestCase):
         access it.
         """
         sharewith = "anotheruser"
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # Revoke access (unshare the package)
-        resp = self._unsharePackage(sharewith)
+        resp = self._unshare_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # Test that the recipient can't read the package
@@ -119,7 +99,7 @@ class AccessTestCase(QuiltTestCase):
         can't remove his/her own access.
         """
         # Try to revoke owner's access
-        resp = self._unsharePackage(self.user)
+        resp = self._unshare_package(self.user, self.pkg, self.user)
         assert resp.status_code == requests.codes.forbidden
 
         data = json.loads(resp.data.decode('utf8'))
@@ -131,7 +111,7 @@ class AccessTestCase(QuiltTestCase):
         can't access it.
         """
         sharewith = "anotheruser"
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # Test that other users can't read the package
@@ -153,7 +133,7 @@ class AccessTestCase(QuiltTestCase):
         recipient can't add a new version.
         """
         sharewith = "anotheruser"
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         newcontents = GroupNode(dict(
@@ -190,7 +170,7 @@ class AccessTestCase(QuiltTestCase):
         can't push new versions.
         """
         otheruser = "anotheruser"
-        resp = self._sharePackage(PUBLIC)
+        resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
         newcontents = GroupNode(dict(
@@ -228,7 +208,7 @@ class AccessTestCase(QuiltTestCase):
         in the access list
         """
         sharewith = "anotheruser"
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # List the access for the package
@@ -253,7 +233,7 @@ class AccessTestCase(QuiltTestCase):
         can list the access.
         """
         otheruser = "anotheruser"
-        resp = self._sharePackage(PUBLIC)
+        resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
         # List the access for the package
@@ -301,7 +281,7 @@ class AccessTestCase(QuiltTestCase):
         assert data['packages'] == []
 
         # Share with a user.
-        resp = self._sharePackage(sharewith)
+        resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
         # The user can now see the private package.
@@ -326,7 +306,7 @@ class AccessTestCase(QuiltTestCase):
         assert data['packages'] == []
 
         # Share publicly.
-        resp = self._sharePackage(PUBLIC)
+        resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
         # The user can still see it.
