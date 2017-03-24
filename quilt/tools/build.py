@@ -27,35 +27,36 @@ def _pythonize_name(name):
         raise BuildException("Unable to determine a Python-legal name for %s" % name)
     return safename
 
-def _build_file(build_dir, package, name, rel_path, target='file'):
-    path = os.path.join(build_dir, rel_path)
-    package.save_file(path, name, name, target)
-
-def _build_table(build_dir, package, name, table, target='pandas'):
-    if isinstance(table, list):
-        if len(table) != 2:
+def _build_node(build_dir, package, name, node, target='pandas'):
+    if isinstance(node, list):
+        if len(node) != 2:
             raise BuildException(
-                "Table definition must be a list of [type, path]")
-        ext, rel_path = table
+                "Node definition must be a list of [type, path]")
+        ext, rel_path = node
         path = os.path.join(build_dir, rel_path)
-        # read source file into DataFrame
-        print("Reading %s..." % path)
-        df = _file_to_data_frame(ext, path, target)
-        # serialize DataFrame to file(s)
-        print("Writing the dataframe...")
-        package.save_df(df, name, path, ext, target)
 
-    elif isinstance(table, dict):
+        if ext == 'raw':
+            print("Copying %s..." % path)
+            package.save_file(path, name, rel_path)
+        else:
+            # read source file into DataFrame
+            print("Reading %s..." % path)
+            df = _file_to_data_frame(ext, path, target)
+            # serialize DataFrame to file(s)
+            print("Writing the dataframe...")
+            package.save_df(df, name, rel_path, ext, target)
+
+    elif isinstance(node, dict):
         # TODO the problem with this, it does not seem to iterate
         # in the same order as the entries in the file, which is
         # weird as users might expect error/success messages to be in
         # file order
-        for child_name, child_table in table.items():
+        for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid table name: %r" % child_name)
-            _build_table(build_dir, package, name + '/' + child_name, child_table)
+            _build_node(build_dir, package, name + '/' + child_name, child_table)
     else:
-        raise BuildException("Table definition must be a list or dict")
+        raise BuildException("Node definition must be a list or dict")
 
 def _file_to_data_frame(ext, path, target):
     ext = ext.lower() #ensure that case doesn't matter
@@ -107,18 +108,16 @@ def build_package(username, package, yaml_path):
     if not isinstance(data, dict):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
-    tables = data.get('tables')
-    pkgformat = data.get('format', PackageFormat.default)
-    files = data.get('files')
-    readme = files.get('README') if files else None
-    if not isinstance(tables, dict):
-        raise BuildException("'tables' must be a dictionary")
+    contents = data.get('contents', {})
+    if not isinstance(contents, dict):
+        raise BuildException("'contents' must be a dictionary")
+    pkgformat = data.get('format', PackageFormat.default.value)
+    if not isinstance(pkgformat, str):
+        raise BuildException("'format' must be a string")
 
     store = PackageStore()
     newpackage = store.create_package(username, package, pkgformat)
-    _build_table(build_dir, newpackage, '', tables)
-    if readme is not None:
-        _build_file(build_dir, newpackage, 'README', rel_path=readme)
+    _build_node(build_dir, newpackage, '', contents)
 
 def splitext_no_dot(filename):
     """
@@ -134,69 +133,44 @@ def generate_build_file(startpath, outfilename='build.yml'):
     Generate a build file (yaml) based on the contents of a
     directory tree.
     """
-    buildfiles = {}
-    buildtables = {}
+    def _generate_contents(dir_path):
+        contents = {}
 
-    def file_node(ext, fullpath):
-        return fullpath
-
-    def table_node(ext, fullpath):
-        return [ext.lower(), fullpath]
-
-    def add_to_contents(contents, nodefunc, path, files):
-        try:
-            safepath = [_pythonize_name(d) if d != '.' else '.' for d in path]
-        except BuildException:
-            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
-            print(warning.format(path=os.sep.join(path)))
-            return
-
-        ptr = contents
-        for folder in safepath:
-            ptr = ptr.setdefault(folder, {})
-
-        for file in files:
-            fullpath = os.path.join(os.path.join(*path), file)
-            name, ext = splitext_no_dot(file)
-            ptr[_pythonize_name(name)] = nodefunc(ext, fullpath)
-
-    for root, dirs, files in os.walk(startpath):
-        # skip hidden directories
-        for d in dirs:
-            if d.startswith('.') or d == PACKAGE_DIR_NAME:
-                dirs.remove(d)
-
-        rel_path = os.path.relpath(root, startpath)
-        path = rel_path.split(os.sep)
-
-        tablefiles = []
-        rawfiles = []
-        for file in files:
-            # skip hidden files
-            if file.startswith('.'):
+        for name in os.listdir(dir_path):
+            if name.startswith('.') or name == PACKAGE_DIR_NAME:
                 continue
 
-            name, ext = splitext_no_dot(file)
-            # separate files into tables and raw
-            if ext.lower() in TARGET['pandas']:
-                tablefiles.append(file)
+            path = os.path.join(dir_path, name)
+
+            if os.path.isdir(path):
+                nodename = name
+                data = _generate_contents(path)
+            elif os.path.isfile(path):
+                nodename, ext = splitext_no_dot(name)
+                ext = ext.lower()
+                rel_path = os.path.relpath(path, startpath)
+                if ext in TARGET['pandas']:
+                    data = [ext, rel_path]
+                else:
+                    data = ['raw', rel_path]
             else:
-                rawfiles.append(file)
+                continue
 
-        if rawfiles:
-            add_to_contents(buildfiles, file_node, path, rawfiles)
+            try:
+                safename = _pythonize_name(nodename)
+                if safename in contents:
+                    print("Warning: duplicate name %r in %s." % (safename, dir_path))
+                    continue
+                contents[safename] = data
+            except BuildException:
+                warning = "Warning: could not determine a Python-legal name for {path}; skipping."
+                print(warning.format(path=path))
 
-        if tablefiles:
-            add_to_contents(buildtables, table_node, path, tablefiles)
+        return contents
 
-    for contents in [buildfiles, buildtables]:
-        for node in ['.', '..']:
-            if node in contents:
-                for key in contents[node]:
-                    contents[key] = contents[node][key]
-                del contents[node]
-
-    contents = dict(files=buildfiles, tables=buildtables)
+    contents = dict(
+        contents=_generate_contents(startpath)
+    )
     buildfilepath = os.path.join(startpath, outfilename)
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile)

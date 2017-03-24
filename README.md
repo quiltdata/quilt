@@ -96,7 +96,7 @@ Running `quilt build USER/PACKAGE -d PATH` as described above generates a data p
 Your file should look something like this:
 ```yaml
 ---
-tables:
+contents:
   one: [csv, src/bar/your.txt]
   two: [csv, another.csv]
   um:
@@ -105,12 +105,12 @@ tables:
     shoe: [tsv, measurements.txt]
 ...
 ```
-The above `build.yml` tells `quilt` how to build a package from a set of input files. By editing the automatically generated build.yml or creating a configuration file of your own, you can control the exact names of DataFrames and files in your package.
+The above `build.yml` tells `quilt` how to build a package from a set of input files. By editing the automatically generated `build.yml` or creating a configuration file of your own, you can control the exact names of DataFrames and files in your package.
 
-The tree structures under `tables` and `files` dictate the package tree. `foo.one` and `foo.two` will import as data frames. `foo.um` is a group containing three data frames. `foo.um.buckle` is a data frame, etc.
+The tree structure under `contents` dictate the package tree. `foo.one` and `foo.two` will import as data frames. `foo.um` is a group containing three data frames. `foo.um.buckle` is a data frame, etc.
 
 ### DataFrames/Tables
-Each leaf node in `tables` is specified by a list of the form
+Each leaf node in `contents` is specified by a list of the form
 `[parser, file]`. You can have as many leaf nodes (data frames) and non-leaf nodes (groups) as you choose.
 
 **Note**: `parser` and `file`'s extension may differ, and in
@@ -128,7 +128,7 @@ parsers without changing file names.
 `quilt` can be extended to support more parsers. See `TARGET` in `quilt/data/tools/constants.py`.
 
 ### Raw files
-Packages can include data and other contents that are not representable as DataFrames. The `files` tree in build.yml maps names to raw input files. Those files will be included in the data package unmodified.
+Packages can include data and other contents that are not representable as DataFrames. To include an input file unmodified, set the `parser` value to `raw`.
 
 Files can be accessed by using the normal Python `open` method.
 ```python
@@ -140,7 +140,7 @@ with open(PACKAGE.a_file, 'r') as localfile:
 ### Build the package using the build file
 - `quilt build USER/PACKAGE build.yml`
 
-`build` parses the source files referenced in the `tables` tree of `build.yml`, transforms them with specified parser into data frames, then serializes the data frames to memory-mapped binary formats. At present quilt packages are pandas data frames stored in HDF5. In the future we will support R, Spark, and
+`build` parses the source files referenced in the `contents` tree of `build.yml`, transforms them with specified parser into data frames, then serializes the data frames to memory-mapped binary formats. At present quilt packages are pandas data frames stored in HDF5. In the future we will support R, Spark, and
 binary formats like Parquet.
 
 

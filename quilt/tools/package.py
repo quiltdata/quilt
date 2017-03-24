@@ -181,13 +181,13 @@ class Package(object):
         self._add_to_contents(buildfile, filehash, ext, path, target)
         os.rename(storepath, self._object_path(filehash))
 
-    def save_file(self, srcfile, name, path, target):
+    def save_file(self, srcfile, name, path):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, filehash, '', path, target)
+        self._add_to_contents(fullname, filehash, '', path, 'file')
         objpath = self._object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
