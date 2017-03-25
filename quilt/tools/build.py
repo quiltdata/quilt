@@ -4,6 +4,11 @@ import re
 import yaml
 import pandas as pd
 
+try:
+    from pyspark import sql as sparksql
+except ImportError:
+    sparksql = None
+
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import PACKAGE_DIR_NAME, TARGET
 from .core import PackageFormat
@@ -41,7 +46,10 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         else:
             # read source file into DataFrame
             print("Reading %s..." % path)
-            df = _file_to_data_frame(ext, path, target)
+            if sparksql:
+                df = _file_to_spark_data_frame(ext, path, target)
+            else:
+                df = _file_to_pandas_data_frame(ext, path, target)
             # serialize DataFrame to file(s)
             print("Writing the dataframe...")
             package.save_df(df, name, rel_path, ext, target)
@@ -58,7 +66,16 @@ def _build_node(build_dir, package, name, node, target='pandas'):
     else:
         raise BuildException("Node definition must be a list or dict")
 
-def _file_to_data_frame(ext, path, target):
+def _file_to_spark_data_frame(ext, path, target):
+    spark = sparksql.SparkSession.builder.getOrCreate()
+    df = spark.read.load(path, format=ext, header=True)
+    for col in df.columns:
+        pcol = _pythonize_name(col)
+        if col != pcol:
+            df = df.withColumnRenamed(col, pcol)
+    return df
+
+def _file_to_pandas_data_frame(ext, path, target):
     ext = ext.lower() #ensure that case doesn't matter
     platform = TARGET.get(target)
     if platform is None:
