@@ -105,12 +105,8 @@ class Package(object):
         if pa is None:
             raise PackageException("Module pyarrow is required for ArrowPackage.")
 
-        assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow Packages (yet)."
-        filehash = hash_list[0]
-
-        nt = 8
-        fpath = self._object_path(filehash)
-        table = parquet.read_table(fpath, nthreads=nt)
+        objfiles = [self._object_path(h) for h in hash_list]
+        table = parquet.read_multiple_files(paths=objfiles, nthreads=4)
         df = table.to_pandas()
         return df
 
