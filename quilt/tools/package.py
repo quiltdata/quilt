@@ -111,7 +111,12 @@ class Package(object):
         return df
 
     def _read_parquet_fastparquet(self, hash_list):
-        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        # As of 3/25/2017, fastparquet on GH supports passing a list
+        # of paths, but the latest version on conda and pip (0.0.5) does
+        # not.
+        # TODO: Update this method to pass the list of objectfile paths
+        # like _read_parquet_arrow (above).
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
         filehash = hash_list[0]
         pfile = fastparquet.ParquetFile(self._object_path(filehash))
         return pfile.to_pandas()
