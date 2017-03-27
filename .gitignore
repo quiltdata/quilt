@@ -11,3 +11,5 @@ derby.log
 
 .coverage
 cov_html
+
+.vscode
