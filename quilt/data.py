@@ -49,6 +49,10 @@ class DataNode(object):
         output = [cinfo, finfo, pinfo] + groups + dfs
         return '\n'.join(output)
 
+    def __dir__(self):
+        # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
+        return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
+
     def _dfs(self):
         """
         every child key referencing a dataframe
@@ -83,7 +87,7 @@ class DataNode(object):
         """
         group = self._package.get(self._prefix)
         assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
-        return group.children.keys()
+        return list(group.children)
 
 
 class FakeLoader(object):
