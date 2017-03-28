@@ -545,7 +545,7 @@ def version_list(auth_user, owner, package_name):
         .all()
     )
 
-    sorted_versions = sorted(versions, key=lambda row: row[0].sort_key())
+    sorted_versions = sorted(versions, key=lambda row: row.Version.sort_key())
 
     return dict(
         versions=[
@@ -811,3 +811,46 @@ def access_list(auth_user, owner, package_name):
         return dict(users=can_access)
     else:
         raise PackageNotFoundException(owner, package_name)
+
+@app.route('/api/all_packages/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def all_packages(auth_user):
+    results = (
+        db.session.query(Package, Access)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .all()
+    )
+
+    # Use sets to dedupe own+public and shared+public.
+
+    own_packages = set()
+    shared_packages = set()
+    public_packages = set()
+
+    for package, access in results:
+        if package.owner == auth_user:
+            own_packages.add(package)
+        elif access.user == auth_user:
+            shared_packages.add(package)
+        elif access.user == PUBLIC:
+            public_packages.add(package)
+        else:
+            assert False
+
+    shared_packages -= public_packages
+
+    def _to_json(packages):
+        return [
+            dict(
+                owner=package.owner,
+                name=package.name,
+            ) for package in sorted(packages, key=Package.sort_key)
+        ]
+
+    return dict(
+        own=_to_json(own_packages),
+        shared=_to_json(shared_packages),
+        public=_to_json(public_packages),
+    )

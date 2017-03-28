@@ -26,26 +26,7 @@ class AccessTestCase(QuiltTestCase):
             foo=GroupNode(dict())
         ))
 
-        self.pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
-            usr=self.user,
-            pkg=self.pkg,
-            hash=hash_contents(contents)
-        )
-
-        # Push a package.
-        resp = self.app.put(
-            self.pkgurl,
-            data=json.dumps(dict(
-                description="",
-                contents=contents
-            ), default=encode_node),
-            content_type='application/json',
-            headers={
-                'Authorization': self.user
-            }
-        )
-
-        assert resp.status_code == requests.codes.ok
+        self.pkgurl = self.put_package(self.user, self.pkg, contents)
 
     def testShareDataset(self):
         """
@@ -329,3 +310,88 @@ class AccessTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
         assert data['packages'] == [self.pkg]
+
+    def testListAllPackages(self):
+        """
+        List all accessible packages.
+        """
+        public_pkg = "publicpkg"
+        self.put_package(self.user, public_pkg, GroupNode(children=dict()))
+        self._share_package(self.user, public_pkg, PUBLIC)
+
+        # The user can see own packages. Own public packages show up as "own".
+        resp = self.app.get(
+            '/api/all_packages/',
+            headers={
+                'Authorization': self.user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        assert data['own'] == [
+            dict(owner=self.user, name=self.pkg),
+            dict(owner=self.user, name=public_pkg),
+        ]
+        assert data['shared'] == []
+        assert data['public'] == []
+
+
+        # Other users can only see public packages.
+        sharewith = "anotheruser"
+
+        resp = self.app.get(
+            '/api/all_packages/',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        assert data['own'] == []
+        assert data['shared'] == []
+        assert data['public'] == [dict(owner=self.user, name=public_pkg)]
+
+
+        # Users can see shared packages.
+        resp = self._share_package(self.user, self.pkg, sharewith)
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get(
+            '/api/all_packages/',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        assert data['own'] == []
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg)]
+        assert data['public'] == [dict(owner=self.user, name=public_pkg)]
+
+
+        # If a package is both shared and public, it only shows up as "public".
+        resp = self._share_package(self.user, self.pkg, PUBLIC)
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get(
+            '/api/all_packages/',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        assert data['own'] == []
+        assert data['shared'] == []
+        assert data['public'] == [
+            dict(owner=self.user, name=self.pkg),
+            dict(owner=self.user, name=public_pkg),
+        ]
