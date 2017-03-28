@@ -18,7 +18,7 @@ the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
 
 
 # Known Issues
--  `quilt/test/build.yml` relies on pickle and is therefore not compatible between Python 2 and Python 3.
+- Data packages built in Python 3.x are not always backwards compatible with Python 2.7+. This happens because `pickle` is not backwards compatible across major Python versions.
 - Anaconda with python 2.7 has an old version of `setuptools`. Strangely, `pip install --upgrade setuptools` run three times, yes three times, will ultimately succeed.
 
 
