@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 import os
-from shutil import copyfile
+from shutil import copyfile, rmtree
 import tempfile
 import zlib
 
@@ -79,6 +79,10 @@ class Package(object):
     @classmethod
     def reset_parquet_lib(cls):
         cls.__parquet_lib = None
+
+    @classmethod
+    def set_parquet_lib(cls, parqlib):
+        cls.__parquet_lib = ParquetLib(parqlib)
 
     def __init__(self, user, package, path, pkg_dir):
         self._user = user
@@ -180,7 +184,7 @@ class Package(object):
             assert False, "Unimplemented PackageFormat %s" % enumformat
 
         # Move serialized DataFrame to object store
-        if os.path.isdir(storepath):
+        if os.path.isdir(storepath): # Pyspark
             hashes = []
             files = [file for file in os.listdir(storepath) if file.endswith(".parquet")]
             for obj in files:
@@ -190,6 +194,7 @@ class Package(object):
                 os.rename(path, self._object_path(objhash))
                 hashes.append(objhash)
             self._add_to_contents(buildfile, hashes, ext, path, target)
+            rmtree(storepath)
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target)
