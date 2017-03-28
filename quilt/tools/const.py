@@ -20,8 +20,10 @@ HASH_TYPE = 'sha256'
 RSA_BITS = 2048
 
 # TODO nan probably not a safe choice and may pollute number cols with strs
-NA_VALS = ['nan']
-KEEP_NA = False
+kwargs = {
+  'keep_default_na': False,
+  'na_values': ['nan']
+}
 # Supported build targets and file types
 # BUILD[target][file_extension]
 # file_extension should be lowercase
@@ -30,45 +32,28 @@ TARGET = {
         'csv': {
             'attr': 'read_csv',
             'failover' : {'engine' : 'python'},
-            'kwargs': {
-                'keep_default_na': KEEP_NA,
-                'na_values': NA_VALS,
-            }
+            'kwargs': kwargs
         },
         'ssv': {
             'attr': 'read_csv',
             'failover' : {'engine' : 'python'},
-            'kwargs': {
-                'keep_default_na': KEEP_NA,
-                'na_values': NA_VALS,
-                'sep': ';'
-            }
+            'kwargs': dict(kwargs, sep=';')
         },
         'tsv': {
             'attr': 'read_csv',
             'failover' : {'engine' : 'python'},
-            'kwargs': {
-                'keep_default_na': KEEP_NA,
-                'na_values': NA_VALS,
-                'sep': '\t'
-            }
+            'kwargs': dict(kwargs, sep='\t')
         },
         'xls': {
             'attr': 'read_excel',
             # TODO set sheetname='None' to get all sheets?
             # Currently defaults to sheetname=0, which imports first sheet only
-            'kwargs': {
-                'keep_default_na': KEEP_NA,
-                'na_values': NA_VALS
-            }
+            'kwargs': kwargs
         },
         'xlsx': {
             'attr': 'read_excel',
             # see comments under 'xls'
-            'kwargs': {
-                'keep_default_na': KEEP_NA,
-                'na_values': NA_VALS
-            }
+            'kwargs': kwargs
         }
     }
 }
