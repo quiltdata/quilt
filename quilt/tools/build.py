@@ -49,7 +49,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         ext = ext.lower()
         transform = node.get('transform')
         if not transform: # guess transform if user doesn't provide one
-            if ext in TARGET['pandas']:
+            if ext in TARGET[target]:
                 transform = ext
             else:
                 transform = 'raw'
@@ -58,15 +58,16 @@ def _build_node(build_dir, package, name, node, target='pandas'):
             print("Copying %s..." % path)
             package.save_file(path, name, rel_path)
         else:
+            user_kwargs = {k : node[k] for k in node.keys() if k not in ('file', 'transform')}
             # read source file into DataFrame
             print("Reading %s..." % path)
-            df = _file_to_data_frame(transform, path, target)
+            df = _file_to_data_frame(transform, path, target, user_kwargs)
             # serialize DataFrame to file(s)
             print("Writing the dataframe...")
             package.save_df(df, name, rel_path, transform, target)
 
-def _file_to_data_frame(ext, path, target):
-    ext = ext.lower() #ensure that case doesn't matter
+def _file_to_data_frame(ext, path, target, user_kwargs):
+    ext = ext.lower() # ensure that case doesn't matter
     platform = TARGET.get(target)
     if platform is None:
         raise BuildException('Unsupported target platform: %s' % target)
@@ -75,7 +76,9 @@ def _file_to_data_frame(ext, path, target):
         raise BuildException(
             "Unsupported input file type: .%s. Try supplying a 'transform' key." % ext)
     fname = logic['attr']
-    kwargs = logic['kwargs']
+    # allow user to specify handler kwargs and override default kwargs
+    kwargs = dict(logic['kwargs'])
+    kwargs.update(user_kwargs)
     failover = logic.get('failover', None)
     handler = getattr(pd, fname, None)
     if handler is None:
