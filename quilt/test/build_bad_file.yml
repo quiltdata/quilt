@@ -1,9 +1,8 @@
 ---
-format: PARQUET
 contents:
   dataframes:
     csv: 
-      file: data/10KRows13Cols.csv
+      fake_key: fake_value
     tsv:
       file: data/10KRows13Cols.tsv
     xls:

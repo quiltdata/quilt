@@ -1,3 +1,4 @@
 ---
 contents:
-  foo: [csv, data/foo.csv]
+  foo: 
+    file: data/foo.csv

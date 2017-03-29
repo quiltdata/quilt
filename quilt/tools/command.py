@@ -265,7 +265,7 @@ def push(session, package):
     assert response.ok # other responses handled by _handle_response
 
     url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Success! Visit the package page here: %s" % url)
+    print("Push complete. Your package is live:\n%s" % url)
 
 def version_list(session, package):
     """

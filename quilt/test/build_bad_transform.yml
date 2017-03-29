@@ -1,9 +1,9 @@
 ---
-format: PARQUET
 contents:
   dataframes:
     csv: 
       file: data/10KRows13Cols.csv
+      transform: bad_transform
     tsv:
       file: data/10KRows13Cols.tsv
     xls:
