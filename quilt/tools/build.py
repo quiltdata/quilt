@@ -8,7 +8,7 @@ import yaml
 import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import PACKAGE_DIR_NAME, TARGET
+from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
 from .util import FileWithReadProgress
 
@@ -41,24 +41,30 @@ def _build_node(build_dir, package, name, node, target='pandas'):
                 raise StoreException("Invalid table name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table)
     else: # leaf node
-        rel_path = node.get('file')
+        rel_path = node.get(RESERVED['file'])
         if not rel_path:
-            raise BuildException("Leaf nodes must define a 'file' key")
+            raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
         path = os.path.join(build_dir, rel_path)
-        ignore, ext = splitext_no_dot(rel_path)
-        ext = ext.lower()
-        transform = node.get('transform')
-        if not transform: # guess transform if user doesn't provide one
+
+        transform = node.get(RESERVED['transform'])
+        if transform:
+            if transform not in TARGET[target]:
+                raise BuildException("Unknown transform '%s' for %s" % (transform, target))
+        else: # guess transform if user doesn't provide one
+            ignore, ext = splitext_no_dot(rel_path)
+            ext = ext.lower()
             if ext in TARGET[target]:
                 transform = ext
+                print("Inferring 'transform: %s' for %s" % (transform, rel_path))
             else:
-                transform = 'raw'
+                transform = None
+                print("No transform given for %s. Using 'transform: %s'" % (rel_path, transform))
 
-        if transform == 'raw':
+        if not transform:
             print("Copying %s..." % path)
             package.save_file(path, name, rel_path)
         else:
-            user_kwargs = {k : node[k] for k in node.keys() if k not in ('file', 'transform')}
+            user_kwargs = {k: node[k] for k in node if k not in RESERVED}
             # read source file into DataFrame
             print("Reading %s..." % path)
             df = _file_to_data_frame(transform, path, target, user_kwargs)
@@ -74,7 +80,7 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
     logic = platform.get(ext)
     if logic is None:
         raise BuildException(
-            "Unsupported input file type: .%s. Try supplying a 'transform' key." % ext)
+            "Unsupported transform: %s. Try setting a 'transform' key." % ext)
     fname = logic['attr']
     # allow user to specify handler kwargs and override default kwargs
     kwargs = dict(logic['kwargs'])
@@ -82,7 +88,7 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
     failover = logic.get('failover', None)
     handler = getattr(pd, fname, None)
     if handler is None:
-        raise BuildException("Invalid ingest function: %r" % fname)
+        raise BuildException("Invalid transform: %r" % fname)
 
     df = None
     try_again = False
