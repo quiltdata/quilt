@@ -1,3 +1,5 @@
 ---
 contents:
-  bad: [csv, data/bad.csv]
+  bad: 
+    file: data/bad.csv
+    transform: csv

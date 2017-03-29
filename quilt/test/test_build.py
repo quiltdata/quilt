@@ -141,7 +141,7 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
         buildfilepath = os.path.join(path, 'build.yml')
-        assert not os.path.exists(buildfilepath)
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
         build.build_package('test_hdf5', 'generated', buildfilepath)

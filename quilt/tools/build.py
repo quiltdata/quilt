@@ -1,3 +1,6 @@
+"""
+parse build file, serialize package
+"""
 import os
 import re
 
@@ -15,6 +18,10 @@ class BuildException(Exception):
     """
     pass
 
+def _is_internal_node(node):
+    # all of an internal nodes children are dicts
+    return all([isinstance(x, dict) for x in node.values()])
+
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
     starts_w_number = re.match('^[0-9].*', safename)
@@ -28,35 +35,38 @@ def _pythonize_name(name):
     return safename
 
 def _build_node(build_dir, package, name, node, target='pandas'):
-    if isinstance(node, list):
-        if len(node) != 2:
-            raise BuildException(
-                "Node definition must be a list of [type, path]")
-        ext, rel_path = node
+    print('*** DEBUG ***')
+    print(node)
+    print(type(node))
+    if _is_internal_node(node):
+        for child_name, child_table in node.items():
+            if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
+                raise StoreException("Invalid table name: %r" % child_name)
+            _build_node(build_dir, package, name + '/' + child_name, child_table)
+    else: # leaf node
+        rel_path = node.get('file')
+        if not rel_path:
+            raise BuildException("Leaf nodes must define a 'file' key")
         path = os.path.join(build_dir, rel_path)
+        ignore, ext = splitext_no_dot(rel_path)
+        ext = ext.lower()
+        transform = node.get('transform')
+        if not transform: # guess transform if user doesn't provide one
+            if ext in TARGET['pandas']:
+                transform = ext
+            else:
+                transform = 'raw'
 
-        if ext == 'raw':
+        if transform == 'raw':
             print("Copying %s..." % path)
             package.save_file(path, name, rel_path)
         else:
             # read source file into DataFrame
             print("Reading %s..." % path)
-            df = _file_to_data_frame(ext, path, target)
+            df = _file_to_data_frame(transform, path, target)
             # serialize DataFrame to file(s)
             print("Writing the dataframe...")
-            package.save_df(df, name, rel_path, ext, target)
-
-    elif isinstance(node, dict):
-        # TODO the problem with this, it does not seem to iterate
-        # in the same order as the entries in the file, which is
-        # weird as users might expect error/success messages to be in
-        # file order
-        for child_name, child_table in node.items():
-            if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
-                raise StoreException("Invalid table name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table)
-    else:
-        raise BuildException("Node definition must be a list or dict")
+            package.save_df(df, name, rel_path, transform, target)
 
 def _file_to_data_frame(ext, path, target):
     ext = ext.lower() #ensure that case doesn't matter
@@ -65,7 +75,8 @@ def _file_to_data_frame(ext, path, target):
         raise BuildException('Unsupported target platform: %s' % target)
     logic = platform.get(ext)
     if logic is None:
-        raise BuildException('Unsupported input file type: .%s' % ext)
+        raise BuildException(
+            "Unsupported input file type: .%s. Try supplying a 'transform' key." % ext)
     fname = logic['attr']
     kwargs = logic['kwargs']
     failover = logic.get('failover', None)
@@ -149,10 +160,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
                 nodename, ext = splitext_no_dot(name)
                 ext = ext.lower()
                 rel_path = os.path.relpath(path, startpath)
-                if ext in TARGET['pandas']:
-                    data = [ext, rel_path]
-                else:
-                    data = ['raw', rel_path]
+                data = dict(file=rel_path)
             else:
                 continue
 
@@ -173,5 +181,5 @@ def generate_build_file(startpath, outfilename='build.yml'):
     )
     buildfilepath = os.path.join(startpath, outfilename)
     with open(buildfilepath, 'w') as outfile:
-        yaml.dump(contents, outfile)
+        yaml.dump(contents, outfile, default_flow_style=False)
     return buildfilepath
