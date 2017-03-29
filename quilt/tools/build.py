@@ -35,9 +35,6 @@ def _pythonize_name(name):
     return safename
 
 def _build_node(build_dir, package, name, node, target='pandas'):
-    print('*** DEBUG ***')
-    print(node)
-    print(type(node))
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
