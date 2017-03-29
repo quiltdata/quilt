@@ -20,7 +20,7 @@ class BuildException(Exception):
 
 def _is_internal_node(node):
     # all of an internal nodes children are dicts
-    return all([isinstance(x, dict) for x in node.values()])
+    return all(isinstance(x, dict) for x in node.values())
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9_]+', '_', name)
