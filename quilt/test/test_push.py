@@ -36,7 +36,6 @@ class PushTest(QuiltTestCase):
 
         pkgstore = store.PackageStore()
         pkg_obj = pkgstore.get_package('foo', 'bar')
-        assert pkg_obj.exists(), "Failed build?"
         pkg_hash = pkg_obj.get_hash()
         assert pkg_hash
         contents = pkg_obj.get_contents()

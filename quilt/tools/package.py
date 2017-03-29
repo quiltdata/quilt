@@ -7,6 +7,7 @@ import zlib
 
 import pandas as pd
 import requests
+from six import iteritems
 
 try:
     import fastparquet
@@ -85,12 +86,6 @@ class Package(object):
         self._pkg_dir = pkg_dir
         self._path = path
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        pass
-
     def file(self, hash_list):
         """
         Returns the path to an object file that matches the given hash.
@@ -98,8 +93,7 @@ class Package(object):
         assert isinstance(hash_list, list)
         assert len(hash_list) == 1, "File objects must be contained in one file."
         filehash = hash_list[0]
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
-        return objpath
+        return self._object_path(filehash)
 
     def _read_hdf5(self, hash_list):
         assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
@@ -187,14 +181,14 @@ class Package(object):
         self._add_to_contents(buildfile, filehash, ext, path, target)
         os.rename(storepath, self._object_path(filehash))
 
-    def save_file(self, srcfile, name, path, target):
+    def save_file(self, srcfile, name, path):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, filehash, '', path, target)
-        objpath = os.path.join(self._pkg_dir, self.OBJ_DIR, filehash)
+        self._add_to_contents(fullname, filehash, '', path, 'file')
+        objpath = self._object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
 
@@ -216,9 +210,7 @@ class Package(object):
         """
         Removes the package's contents file.
         """
-        if self._path:
-            os.remove(self._path)
-        self._path = None
+        os.remove(self._path)
 
     def save_contents(self, contents):
         """
@@ -237,9 +229,6 @@ class Package(object):
         """
         Read a group or object from the store.
         """
-        if not self.exists():
-            raise PackageException("Package not found")
-
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
         ptr = self.get_contents()
@@ -276,66 +265,37 @@ class Package(object):
         """
         return self._path
 
-    def exists(self):
-        """
-        Returns True if the package is already installed.
-        """
-        return not self._path is None
-
     def install(self, contents, urls):
         """
         Download and install a package locally.
         """
-        local_filename = self.get_path()
-        with open(local_filename, 'w') as contents_file:
-            json.dump(contents, contents_file, default=encode_node)
-
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
         # Verify global hash?
 
-        def install_table(node, urls):
-            """
-            Downloads and installs the set of objects for one table.
-            """
-            for download_hash in node.hashes:
-                url = urls[download_hash]
+        for download_hash, url in iteritems(urls):
+            # download and install
+            response = requests.get(url, stream=True)
+            if not response.ok:
+                msg = "Download {hash} failed: error {code}"
+                raise PackageException(msg.format(hash=download_hash, code=response.status_code))
 
-                # download and install
-                response = requests.get(url, stream=True)
-                if not response.ok:
-                    msg = "Download {hash} failed: error {code}"
-                    raise PackageException(msg.format(hash=download_hash,
-                                                      code=response.status_code))
+            local_filename = self._object_path(download_hash)
 
-                local_filename = os.path.join(self._pkg_dir,
-                                              self.OBJ_DIR,
-                                              download_hash)
+            with open(local_filename, 'wb') as output_file:
+                # `requests` will automatically un-gzip the content, as long as
+                # the 'Content-Encoding: gzip' header is set.
+                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                    if chunk: # filter out keep-alive new chunks
+                        output_file.write(chunk)
 
-                with open(local_filename, 'wb') as output_file:
-                    # `requests` will automatically un-gzip the content, as long as
-                    # the 'Content-Encoding: gzip' header is set.
-                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                        if chunk: # filter out keep-alive new chunks
-                            output_file.write(chunk)
+            file_hash = digest_file(local_filename)
+            if file_hash != download_hash:
+                os.remove(local_filename)
+                raise PackageException("Mismatched hash! Expected %s, got %s." %
+                                       (download_hash, file_hash))
 
-                file_hash = digest_file(local_filename)
-                if file_hash != download_hash:
-                    os.remove(local_filename)
-                    raise PackageException("Mismatched hash! Expected %s, got %s." %
-                                           (download_hash, file_hash))
-
-        def install_tables(contents, urls):
-            """
-            Parses package contents and calls install_table for each table.
-            """
-            for node in contents.children.values():
-                if isinstance(node, GroupNode):
-                    install_tables(node, urls)
-                else:
-                    install_table(node, urls)
-
-        return install_tables(contents, urls)
+        self.save_contents(contents)
 
     class UploadFile(object):
         """
