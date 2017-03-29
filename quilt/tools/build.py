@@ -49,7 +49,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         transform = node.get(RESERVED['transform'])
         if transform:
             if transform not in TARGET[target]:
-                raise BuildException("Unknown transform '%s' for %s" % (transform, target))
+                raise BuildException("Unknown transform '%s' for %s @ %s" % (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
             ext = ext.lower()
