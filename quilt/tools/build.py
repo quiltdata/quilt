@@ -47,8 +47,9 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         path = os.path.join(build_dir, rel_path)
 
         transform = node.get(RESERVED['transform'])
+        ID = 'id'
         if transform:
-            if transform not in TARGET[target]:
+            if (transform not in TARGET[target]) and (transform != ID):
                 raise BuildException("Unknown transform '%s' for %s @ %s" % (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
@@ -57,19 +58,19 @@ def _build_node(build_dir, package, name, node, target='pandas'):
                 transform = ext
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
             else:
-                transform = None
+                transform = ID
                 print("No transform given for %s. Using 'transform: %s'" % (rel_path, transform))
 
-        if not transform:
+        if transform == ID:
             print("Copying %s..." % path)
             package.save_file(path, name, rel_path)
         else:
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
             # read source file into DataFrame
-            print("Reading %s..." % path)
+            print("Compiling %s..." % path)
             df = _file_to_data_frame(transform, path, target, user_kwargs)
             # serialize DataFrame to file(s)
-            print("Writing the dataframe...")
+            print("Saving as binary dataframe...")
             package.save_df(df, name, rel_path, transform, target)
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
