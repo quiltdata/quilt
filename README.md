@@ -7,6 +7,7 @@ Install, compile, and version data with Quilt.
 * **Install** and import data with simple one-liners: `from quilt.data.bob import sales`
 * **Compile** files into memory-mapped binary data frames that load 5X to 20X faster than files
 * **Version** your data. Hash, tag, and version quilt data packages.
+[Read more on our blog](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8).
 
 ## Quilt is a data package manager
 A data package is a namespace of binary data frames. You can use data packages from the community, publish packages for others to use, or keep packages private to you.
