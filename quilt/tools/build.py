@@ -61,7 +61,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
                 transform = ID
                 print("No transform given for %s. Using 'transform: %s'" % (rel_path, transform))
 
-        if not transform or transform == ID:
+        if transform == ID:
             print("Copying %s..." % path)
             package.save_file(path, name, rel_path)
         else:
