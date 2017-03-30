@@ -14,11 +14,11 @@ A data package is a namespace of binary data frames. You can use data packages f
 `quilt` is the command-line client that builds, retrieves, and stores
 packages. `quilt` works in conjunction with a server-side registry,
 not covered in this document. `quilt` currently pushes to and pulls from
-the registry at [quiltdata.com](https://quiltdata.com/package/examples/wine).
+the registry at [quiltdata.com](https://quiltdata.com/).
 
 
 # Known Issues
-- Data packages built in Python 3.x are not always backwards compatible with Python 2.7+. This happens because `pickle` is not backwards compatible across major Python versions.
+- Data packages built in Python 3.x are not always backwards compatible with Python 2.7+. This happens because `pickle` is not backwards compatible across major Python versions. **Workaround**: If you need to use Python 2.7 and Python 3.x, build packages on Python 2.7.
 - Anaconda with python 2.7 has an old version of `setuptools`. Strangely, `pip install --upgrade setuptools` run three times, yes three times, will ultimately succeed.
 
 
@@ -88,7 +88,7 @@ You can now use your package locally:
 ```python
 from quilt.data.USER import PACKAGE
 ```
-Data packages deserialize 5x to 20x faster than text files.
+Data packages deserialize 5x to 20x faster than text files since there is little to no parsing but simply copying from disk into memory.
 
 ## Customize package contents by editing build.yml 
 Running `quilt build USER/PACKAGE -d PATH` as described above generates a data package and a file, `build.yml` that specifies the contents of the package.
@@ -97,17 +97,26 @@ Your file should look something like this:
 ```yaml
 ---
 contents:
-  one: [csv, src/bar/your.txt]
-  two: [csv, another.csv]
+  one:
+      file: src/bar/your.txt
+      transform: csv
+  two:
+      file: another.csv
   um:
-    buckle: [xls, finance/excel_file.xls]
-    my: [xlsx, numbers/excel_file.xlsx]
-    shoe: [tsv, measurements.txt]
+    buckle:
+      file: finance/excel_file.xls
+    my:
+      file: numbers/excel_file.xlsx
+    shoe:
+      transform: tsv
+      file: measurements.txt
 ...
 ```
 The above `build.yml` tells `quilt` how to build a package from a set of input files. By editing the automatically generated `build.yml` or creating a configuration file of your own, you can control the exact names of DataFrames and files in your package.
 
 The tree structure under `contents` dictate the package tree. `foo.one` and `foo.two` will import as data frames. `foo.um` is a group containing three data frames. `foo.um.buckle` is a data frame, etc.
+
+The `transform` key specifies the parser. This is useful when the file extension does not match the file format (e.g. `your.txt` is actually in CSV format). Without a transform key, the build system will try to infer the parser from the file extension. To prevent a file from being compiled, and simply copy it into the package as is, set `transform: id`.
 
 ### DataFrames/Tables
 Each leaf node in `contents` is specified by a list of the form
