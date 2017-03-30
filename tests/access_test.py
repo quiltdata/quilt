@@ -331,8 +331,8 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
 
         assert data['own'] == [
-            dict(owner=self.user, name=self.pkg),
-            dict(owner=self.user, name=public_pkg),
+            dict(owner=self.user, name=self.pkg, is_public=False),
+            dict(owner=self.user, name=public_pkg, is_public=True),
         ]
         assert data['shared'] == []
         assert data['public'] == []
@@ -353,7 +353,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert data['own'] == []
         assert data['shared'] == []
-        assert data['public'] == [dict(owner=self.user, name=public_pkg)]
+        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
 
 
         # Users can see shared packages.
@@ -371,11 +371,11 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
 
         assert data['own'] == []
-        assert data['shared'] == [dict(owner=self.user, name=self.pkg)]
-        assert data['public'] == [dict(owner=self.user, name=public_pkg)]
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False)]
+        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
 
 
-        # If a package is both shared and public, it only shows up as "public".
+        # If a package is both shared and public, it only shows up as "shared".
         resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
@@ -390,8 +390,5 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
 
         assert data['own'] == []
-        assert data['shared'] == []
-        assert data['public'] == [
-            dict(owner=self.user, name=self.pkg),
-            dict(owner=self.user, name=public_pkg),
-        ]
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
+        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
