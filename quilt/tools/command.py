@@ -436,9 +436,10 @@ def install(session, package, hash=None, version=None, tag=None):
     if pkghash != hash_contents(response_contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.create_package(owner, pkg)
+    pkgobj = store.create_package(owner, pkg, response_contents)
     try:
-        pkgobj.install(response_contents, response_urls)
+        pkgobj.install_objects(response_urls)
+        pkgobj.save_contents()
     except PackageException as ex:
         raise CommandException("Failed to install the package: %s" % ex)
 

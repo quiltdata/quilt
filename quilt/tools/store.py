@@ -76,7 +76,7 @@ class PackageStore(object):
                 return pkg
         return None
 
-    def create_package(self, user, package):
+    def create_package(self, user, package, contents):
         """
         Creates a new package in the innermost `quilt_packages` directory
         (or in a new `quilt_packages` directory in the current directory)
@@ -104,7 +104,8 @@ class PackageStore(object):
         return Package(user=user,
                        package=package,
                        path=path,
-                       pkg_dir=package_dir)
+                       pkg_dir=package_dir,
+                       contents=contents)
 
     @classmethod
     def ls_packages(cls, pkg_dir):

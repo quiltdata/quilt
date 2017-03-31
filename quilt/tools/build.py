@@ -9,7 +9,7 @@ import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
-from .core import PackageFormat
+from .core import PackageFormat, RootNode
 from .util import FileWithReadProgress
 
 class BuildException(Exception):
@@ -138,9 +138,9 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unsupported format: %r" % pkgformat)
 
     store = PackageStore()
-    newpackage = store.create_package(username, package)
-    newpackage.init_contents(pkgformat)
+    newpackage = store.create_package(username, package, RootNode(dict(), pkgformat.value))
     _build_node(build_dir, newpackage, '', contents)
+    newpackage.save_contents()
 
 def splitext_no_dot(filename):
     """

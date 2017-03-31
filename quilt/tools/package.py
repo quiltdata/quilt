@@ -80,12 +80,12 @@ class Package(object):
     def reset_parquet_lib(cls):
         cls.__parquet_lib = None
 
-    def __init__(self, user, package, path, pkg_dir):
+    def __init__(self, user, package, path, pkg_dir, contents=None):
         self._user = user
         self._package = package
         self._pkg_dir = pkg_dir
         self._path = path
-        self._contents = None
+        self._contents = contents
 
     def file(self, hash_list):
         """
@@ -226,14 +226,6 @@ class Package(object):
         with open(self._path, 'w') as contents_file:
             json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
-    def init_contents(self, pkgformat):
-        """
-        Creates empty in-memory contents.
-        """
-        assert self._contents is None
-        assert isinstance(pkgformat, PackageFormat)
-        self._contents = RootNode(dict(), pkgformat.value)
-
     def get(self, path):
         """
         Traverse the package tree and return node corresponding to
@@ -283,14 +275,13 @@ class Package(object):
         """
         return self._path
 
-    def install(self, contents, urls):
+    def install_objects(self, urls):
         """
-        Download and install a package locally.
+        Download and install objects.
         """
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
         # Verify global hash?
-        assert self._contents is None
 
         for download_hash, url in iteritems(urls):
             # download and install
@@ -313,9 +304,6 @@ class Package(object):
                 os.remove(local_filename)
                 raise PackageException("Mismatched hash! Expected %s, got %s." %
                                        (download_hash, file_hash))
-
-        self._contents = contents
-        self.save_contents()
 
     class UploadFile(object):
         """
@@ -388,5 +376,3 @@ class Package(object):
                 q_target=target
             )
         )
-
-        self.save_contents()
