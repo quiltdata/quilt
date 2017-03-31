@@ -85,6 +85,11 @@ class Package(object):
         self._package = package
         self._pkg_dir = pkg_dir
         self._path = path
+        self._format = None
+
+    def set_format(self, pkgformat):
+        """Set the format. Only used when building a new package."""
+        self._format = pkgformat
 
     def file(self, hash_list):
         """
@@ -210,15 +215,10 @@ class Package(object):
                 if not isinstance(contents, RootNode):
                     contents = RootNode(contents.children, PackageFormat.default.value)
         except IOError:
-            contents = RootNode(dict(), PackageFormat.default)
+            assert self._format is not None
+            contents = RootNode(dict(), self._format.value)
 
         return contents
-
-    def clear_contents(self):
-        """
-        Removes the package's contents file.
-        """
-        os.remove(self._path)
 
     def save_contents(self, contents):
         """
@@ -226,12 +226,6 @@ class Package(object):
         """
         with open(self._path, 'w') as contents_file:
             json.dump(contents, contents_file, default=encode_node, indent=2, sort_keys=True)
-
-    def init_contents(self, pkgformat):
-        # Verify the format is recognized
-        enumformat = PackageFormat(pkgformat)
-        contents = RootNode(dict(), enumformat.value)
-        self.save_contents(contents)
 
     def get(self, path):
         """
