@@ -235,7 +235,8 @@ class Package(object):
 
     def get(self, path):
         """
-        Read a group or object from the store.
+        Traverse the package tree and return node corresponding to
+        the given path.
         """
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
@@ -251,6 +252,16 @@ class Package(object):
                     owner=self._user,
                     pkg=self._package))
         node = ptr
+        return node
+
+    def get_obj(self, node):
+        """
+        Read an object from the package given a node from the
+        package tree.
+        """
+        # TODO: This adds yet another re-reading of the contents file
+        ptr = self.get_contents()
+        pkgformat = ptr.format
 
         if isinstance(node, GroupNode):
             return node
