@@ -68,13 +68,15 @@ class PackageStore(object):
         for package_dir in pkg_dirs:
             path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
             if os.path.exists(path):
-                return Package(user=user,
-                               package=package,
-                               path=path,
-                               pkg_dir=package_dir)
+                pkg = Package(user=user,
+                              package=package,
+                              path=path,
+                              pkg_dir=package_dir)
+                pkg.load_contents()
+                return pkg
         return None
 
-    def create_package(self, user, package, pkgformat=PackageFormat.default):
+    def create_package(self, user, package):
         """
         Creates a new package in the innermost `quilt_packages` directory
         (or in a new `quilt_packages` directory in the current directory)
@@ -93,12 +95,16 @@ class PackageStore(object):
 
         path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
 
-        pkgobj = Package(user=user,
-                         package=package,
-                         path=path,
-                         pkg_dir=package_dir)
-        pkgobj.init_contents(pkgformat)
-        return pkgobj
+        # Delete any existing data.
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+        return Package(user=user,
+                       package=package,
+                       path=path,
+                       pkg_dir=package_dir)
 
     @classmethod
     def ls_packages(cls, pkg_dir):

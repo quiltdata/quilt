@@ -85,6 +85,7 @@ class Package(object):
         self._package = package
         self._pkg_dir = pkg_dir
         self._path = path
+        self._contents = None
 
     def file(self, hash_list):
         """
@@ -204,34 +205,34 @@ class Package(object):
         """
         Returns a dictionary with the contents of the package.
         """
-        try:
-            with open(self._path, 'r') as contents_file:
-                contents = json.load(contents_file, object_hook=decode_node)
-                if not isinstance(contents, RootNode):
-                    contents = RootNode(contents.children, PackageFormat.default.value)
-        except IOError:
-            contents = RootNode(dict(), PackageFormat.default)
+        assert self._contents is not None
+        return self._contents
 
-        return contents
+    def load_contents(self):
+        """
+        Loads the contents from the package file.
+        """
+        assert self._contents is None
+        with open(self._path, 'r') as contents_file:
+            self._contents = json.load(contents_file, object_hook=decode_node)
+            if not isinstance(self._contents, RootNode):
+                self._contents = RootNode(self._contents.children, PackageFormat.default.value)
 
-    def clear_contents(self):
+    def save_contents(self):
         """
-        Removes the package's contents file.
+        Saves the in-memory contents to the package file.
         """
-        os.remove(self._path)
-
-    def save_contents(self, contents):
-        """
-        Saves an updated version of the package's contents.
-        """
+        assert self._contents is not None
         with open(self._path, 'w') as contents_file:
-            json.dump(contents, contents_file, default=encode_node, indent=2, sort_keys=True)
+            json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
     def init_contents(self, pkgformat):
-        # Verify the format is recognized
-        enumformat = PackageFormat(pkgformat)
-        contents = RootNode(dict(), enumformat.value)
-        self.save_contents(contents)
+        """
+        Creates empty in-memory contents.
+        """
+        assert self._contents is None
+        assert isinstance(pkgformat, PackageFormat)
+        self._contents = RootNode(dict(), pkgformat.value)
 
     def get(self, path):
         """
@@ -241,7 +242,6 @@ class Package(object):
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
         ptr = self.get_contents()
-        pkgformat = ptr.format
         path_so_far = []
         for node_name in ipath:
             path_so_far += [node_name]
@@ -259,7 +259,6 @@ class Package(object):
         Read an object from the package given a node from the
         package tree.
         """
-        # TODO: This adds yet another re-reading of the contents file
         ptr = self.get_contents()
         pkgformat = ptr.format
 
@@ -291,6 +290,7 @@ class Package(object):
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
         # Verify global hash?
+        assert self._contents is None
 
         for download_hash, url in iteritems(urls):
             # download and install
@@ -314,7 +314,8 @@ class Package(object):
                 raise PackageException("Mismatched hash! Expected %s, got %s." %
                                        (download_hash, file_hash))
 
-        self.save_contents(contents)
+        self._contents = contents
+        self.save_contents()
 
     class UploadFile(object):
         """
@@ -388,4 +389,4 @@ class Package(object):
             )
         )
 
-        self.save_contents(contents)
+        self.save_contents()
