@@ -30,6 +30,9 @@ class Package(db.Model):
 
     access = db.relationship('Access', back_populates='package')
 
+    def sort_key(self):
+        return (self.owner, self.name)
+
 db.Index('idx_owner_name', Package.owner, Package.name, unique=True)
 
 

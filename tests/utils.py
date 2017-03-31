@@ -82,6 +82,7 @@ class QuiltTestCase(unittest.TestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+        return pkgurl
 
     def _share_package(self, owner, pkg, other_user):
         self._mock_check_user(other_user)
