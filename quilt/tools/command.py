@@ -515,7 +515,8 @@ def inspect(package):
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
             fullname = "/".join([path, name])
-            df = pkgobj.get(fullname)
+            node = pkgobj.get(fullname)
+            df = pkgobj.get_obj(node)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
