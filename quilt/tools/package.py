@@ -85,7 +85,18 @@ class Package(object):
         self._package = package
         self._pkg_dir = pkg_dir
         self._path = path
+
+        if contents is None:
+            contents = self._load_contents()
+
         self._contents = contents
+
+    def _load_contents(self):
+        with open(self._path, 'r') as contents_file:
+            contents = json.load(contents_file, object_hook=decode_node)
+            if not isinstance(contents, RootNode):
+                contents = RootNode(contents.children, PackageFormat.default.value)
+            return contents
 
     def file(self, hash_list):
         """
@@ -207,16 +218,6 @@ class Package(object):
         """
         assert self._contents is not None
         return self._contents
-
-    def load_contents(self):
-        """
-        Loads the contents from the package file.
-        """
-        assert self._contents is None
-        with open(self._path, 'r') as contents_file:
-            self._contents = json.load(contents_file, object_hook=decode_node)
-            if not isinstance(self._contents, RootNode):
-                self._contents = RootNode(self._contents.children, PackageFormat.default.value)
 
     def save_contents(self):
         """

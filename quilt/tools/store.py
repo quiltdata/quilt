@@ -6,7 +6,7 @@ import re
 
 
 from .const import PACKAGE_DIR_NAME
-from .core import PackageFormat
+from .core import PackageFormat, RootNode
 from .package import Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -68,15 +68,13 @@ class PackageStore(object):
         for package_dir in pkg_dirs:
             path = os.path.join(package_dir, user, package + self.PACKAGE_FILE_EXT)
             if os.path.exists(path):
-                pkg = Package(user=user,
-                              package=package,
-                              path=path,
-                              pkg_dir=package_dir)
-                pkg.load_contents()
-                return pkg
+                return Package(user=user,
+                               package=package,
+                               path=path,
+                               pkg_dir=package_dir)
         return None
 
-    def create_package(self, user, package, contents):
+    def install_package(self, user, package, contents):
         """
         Creates a new package in the innermost `quilt_packages` directory
         (or in a new `quilt_packages` directory in the current directory)
@@ -86,6 +84,8 @@ class PackageStore(object):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
+
+        assert contents is not None
 
         package_dir = next(self.find_package_dirs(), PACKAGE_DIR_NAME)
         for name in [user, Package.OBJ_DIR, Package.TMP_OBJ_DIR]:
@@ -106,6 +106,14 @@ class PackageStore(object):
                        path=path,
                        pkg_dir=package_dir,
                        contents=contents)
+
+    def create_package(self, user, package, pkgformat):
+        """
+        Creates a new package an initializes its contents with the given format.
+        See `install_package`.
+        """
+        contents = RootNode(dict(), pkgformat.value)
+        return self.install_package(user, package, contents)
 
     @classmethod
     def ls_packages(cls, pkg_dir):
