@@ -152,10 +152,15 @@ def build_package(username, package, yaml_path):
     pkgformat = data.get('format', PackageFormat.default.value)
     if not isinstance(pkgformat, str):
         raise BuildException("'format' must be a string")
+    try:
+        pkgformat = PackageFormat(pkgformat)
+    except ValueError:
+        raise BuildException("Unsupported format: %r" % pkgformat)
 
     store = PackageStore()
     newpackage = store.create_package(username, package, pkgformat)
     _build_node(build_dir, newpackage, '', contents)
+    newpackage.save_contents()
 
 def splitext_no_dot(filename):
     """

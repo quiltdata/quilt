@@ -84,11 +84,23 @@ class Package(object):
     def set_parquet_lib(cls, parqlib):
         cls.__parquet_lib = ParquetLib(parqlib)
 
-    def __init__(self, user, package, path, pkg_dir):
+    def __init__(self, user, package, path, pkg_dir, contents=None):
         self._user = user
         self._package = package
         self._pkg_dir = pkg_dir
         self._path = path
+
+        if contents is None:
+            contents = self._load_contents()
+
+        self._contents = contents
+
+    def _load_contents(self):
+        with open(self._path, 'r') as contents_file:
+            contents = json.load(contents_file, object_hook=decode_node)
+            if not isinstance(contents, RootNode):
+                contents = RootNode(contents.children, PackageFormat.default.value)
+            return contents
 
     def file(self, hash_list):
         """
@@ -223,34 +235,16 @@ class Package(object):
         """
         Returns a dictionary with the contents of the package.
         """
-        try:
-            with open(self._path, 'r') as contents_file:
-                contents = json.load(contents_file, object_hook=decode_node)
-                if not isinstance(contents, RootNode):
-                    contents = RootNode(contents.children, PackageFormat.default.value)
-        except IOError:
-            contents = RootNode(dict(), PackageFormat.default)
+        assert self._contents is not None
+        return self._contents
 
-        return contents
-
-    def clear_contents(self):
+    def save_contents(self):
         """
-        Removes the package's contents file.
+        Saves the in-memory contents to the package file.
         """
-        os.remove(self._path)
-
-    def save_contents(self, contents):
-        """
-        Saves an updated version of the package's contents.
-        """
+        assert self._contents is not None
         with open(self._path, 'w') as contents_file:
-            json.dump(contents, contents_file, default=encode_node, indent=2, sort_keys=True)
-
-    def init_contents(self, pkgformat):
-        # Verify the format is recognized
-        enumformat = PackageFormat(pkgformat)
-        contents = RootNode(dict(), enumformat.value)
-        self.save_contents(contents)
+            json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
     def get(self, path):
         """
@@ -260,7 +254,6 @@ class Package(object):
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
         ptr = self.get_contents()
-        pkgformat = ptr.format
         path_so_far = []
         for node_name in ipath:
             path_so_far += [node_name]
@@ -278,7 +271,6 @@ class Package(object):
         Read an object from the package given a node from the
         package tree.
         """
-        # TODO: This adds yet another re-reading of the contents file
         ptr = self.get_contents()
         pkgformat = ptr.format
 
@@ -303,9 +295,9 @@ class Package(object):
         """
         return self._path
 
-    def install(self, contents, urls):
+    def install_objects(self, urls):
         """
-        Download and install a package locally.
+        Download and install objects.
         """
         # Download individual object files and store
         # in object dir. Verify individual file hashes.
@@ -332,8 +324,6 @@ class Package(object):
                 os.remove(local_filename)
                 raise PackageException("Mismatched hash! Expected %s, got %s." %
                                        (download_hash, file_hash))
-
-        self.save_contents(contents)
 
     class UploadFile(object):
         """
@@ -406,5 +396,3 @@ class Package(object):
                 q_target=target
             )
         )
-
-        self.save_contents(contents)
