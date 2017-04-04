@@ -1,7 +1,11 @@
 ---
 contents:
   dataframes:
-    csv: [csv, data/10KRows13Cols.csv]
-    tsv: [tsv, data/10KRows13Cols.tsv]
-    xls: [xlsx, data/10KRows13Cols.xlsx]
-  README: [raw, data/README.md]
+    csv: 
+      file: data/10KRows13Cols.csv
+    tsv:
+      file: data/10KRows13Cols.tsv
+    xls:
+      file: data/10KRows13Cols.xlsx
+  README:
+    file: data/README.md

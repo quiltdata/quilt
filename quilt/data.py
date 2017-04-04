@@ -37,7 +37,12 @@ class DataNode(object):
         if name.startswith('_'):
             raise AttributeError
         path = self._prefix + '/' + name
-        return self._get_package_obj(path)
+
+        node = self._get_node(path)
+        if isinstance(node, GroupNode):
+            return DataNode(self._package, path)
+        else:
+            return self._package.get_obj(node)
 
     def __repr__(self):
         cinfo = str(self.__class__)
@@ -49,25 +54,25 @@ class DataNode(object):
         output = [cinfo, finfo, pinfo] + groups + dfs
         return '\n'.join(output)
 
+    def __dir__(self):
+        # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
+        return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
+
     def _dfs(self):
         """
         every child key referencing a dataframe
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if not isinstance(self._get_package_obj(pref + k), DataNode)]
+                if not isinstance(self._get_node(pref + k), GroupNode)]
 
-    def _get_package_obj(self, path):
+    def _get_node(self, path):
         try:
-            obj = self._package.get(path)
+            node = self._package.get(path)
         except KeyError:
             # No such group or table
             raise AttributeError("No such table or group: %s" % path)
-
-        if isinstance(obj, GroupNode):
-            return DataNode(self._package, path)
-        else:
-            return obj
+        return node
 
     def _groups(self):
         """
@@ -75,7 +80,7 @@ class DataNode(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if isinstance(self._get_package_obj(pref + k), DataNode)]
+                if isinstance(self._get_node(pref + k), GroupNode)]
 
     def _keys(self):
         """
@@ -83,7 +88,7 @@ class DataNode(object):
         """
         group = self._package.get(self._prefix)
         assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
-        return group.children.keys()
+        return list(group.children)
 
 
 class FakeLoader(object):

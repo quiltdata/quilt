@@ -17,8 +17,8 @@ except ImportError:
 
 import pytest
 
-from quilt.tools.package import ParquetLib, Package
-from quilt.tools import build
+from ..tools.package import ParquetLib, Package
+from ..tools import build
 from .utils import QuiltTestCase
 
 
@@ -47,6 +47,21 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
+
+        path = os.path.join(mydir, './build_bad_transform.yml')
+        try: 
+            build.build_package('test_hdf5_transform', PACKAGE, path)
+            assert true, 'Expected build_bad_transform.yml to fail'
+        except build.BuildException:
+            pass
+
+        path = os.path.join(mydir, './build_bad_file.yml')
+        try: 
+            build.build_package('test_hdf5_file', PACKAGE, path)
+            assert true, 'Expected build_bad_file.yml to fail'
+        except build.BuildException:
+            pass
+
         # TODO add more integrity checks, incl. negative test cases
 
     @pytest.mark.skipif("fastparquet is None and pyarrow is None")
@@ -141,7 +156,7 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
         buildfilepath = os.path.join(path, 'build.yml')
-        assert not os.path.exists(buildfilepath)
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
         build.build_package('test_hdf5', 'generated', buildfilepath)

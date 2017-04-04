@@ -165,8 +165,16 @@ class Package(object):
 
         # Serialize DataFrame to chosen format
         if enumformat is PackageFormat.HDF5:
-            with pd.HDFStore(storepath, mode='w') as store:
-                store[self.DF_NAME] = df
+            # HACK: Force the use of old pickle to ensure Python 2/3 compatibility.
+            from pandas.compat import cPickle
+            old_protocol = cPickle.HIGHEST_PROTOCOL
+            try:
+                cPickle.HIGHEST_PROTOCOL = 2
+                with pd.HDFStore(storepath, mode='w') as store:
+                    store[self.DF_NAME] = df
+            finally:
+                cPickle.HIGHEST_PROTOCOL = old_protocol
+
         elif enumformat is PackageFormat.PARQUET:
             # switch parquet lib
             parqlib = self.get_parquet_lib()
@@ -246,7 +254,8 @@ class Package(object):
 
     def get(self, path):
         """
-        Read a group or object from the store.
+        Traverse the package tree and return node corresponding to
+        the given path.
         """
         key = path.lstrip('/')
         ipath = key.split('/') if key else []
@@ -262,6 +271,16 @@ class Package(object):
                     owner=self._user,
                     pkg=self._package))
         node = ptr
+        return node
+
+    def get_obj(self, node):
+        """
+        Read an object from the package given a node from the
+        package tree.
+        """
+        # TODO: This adds yet another re-reading of the contents file
+        ptr = self.get_contents()
+        pkgformat = ptr.format
 
         if isinstance(node, GroupNode):
             return node

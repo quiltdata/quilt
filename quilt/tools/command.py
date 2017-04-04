@@ -265,7 +265,7 @@ def push(session, package):
     assert response.ok # other responses handled by _handle_response
 
     url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Success! Visit the package page here: %s" % url)
+    print("Push complete. Your package is live:\n%s" % url)
 
 def version_list(session, package):
     """
@@ -515,7 +515,8 @@ def inspect(package):
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
             fullname = "/".join([path, name])
-            df = pkgobj.get(fullname)
+            node = pkgobj.get(fullname)
+            df = pkgobj.get_obj(node)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
