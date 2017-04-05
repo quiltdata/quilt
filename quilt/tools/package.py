@@ -221,7 +221,7 @@ class Package(object):
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target)
-            os.rename(storepath, self._object_path(filehash))
+            os.rename(storepath, self.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
         """
