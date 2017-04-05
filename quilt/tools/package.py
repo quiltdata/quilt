@@ -59,6 +59,10 @@ class Package(object):
 
     @classmethod
     def get_parquet_lib(cls):
+        """
+        Find/choose a library to read and write Parquet files
+        based on installed options.
+        """
         if not cls.__parquet_lib:
             parq_env = os.environ.get('QUILT_PARQUET_LIBRARY')
             if parq_env:
@@ -206,9 +210,8 @@ class Package(object):
         # Move serialized DataFrame to object store
         if os.path.isdir(storepath): # Pyspark
             hashes = []
-            files = [file for file in os.listdir(storepath) if file.endswith(".parquet")]
+            files = [ofile for ofile in os.listdir(storepath) if ofile.endswith(".parquet")]
             for obj in files:
-                #path = self._temporary_object_path(obj)
                 path = os.path.join(storepath, obj)
                 objhash = digest_file(path)
                 os.rename(path, self._object_path(objhash))

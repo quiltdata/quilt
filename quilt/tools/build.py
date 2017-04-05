@@ -85,7 +85,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     ext = ext.lower() # ensure that case doesn't matter
-    spark = sparksql.SparkSession.builder.getOrCreate()    
+    spark = sparksql.SparkSession.builder.getOrCreate()
     df = spark.read.load(path, format=ext, header=True, **user_kwargs)
     for col in df.columns:
         pcol = _pythonize_name(col)
