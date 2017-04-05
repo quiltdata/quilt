@@ -7,7 +7,6 @@ import zlib
 
 import pandas as pd
 import requests
-from six import iteritems
 
 try:
     import fastparquet
@@ -35,6 +34,7 @@ ZLIB_LEVEL = 2
 ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
 ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
 CHUNK_SIZE = 4096
+
 
 class ParquetLib(Enum):
     ARROW = 'pyarrow'
@@ -105,12 +105,12 @@ class Package(object):
         assert isinstance(hash_list, list)
         assert len(hash_list) == 1, "File objects must be contained in one file."
         filehash = hash_list[0]
-        return self._object_path(filehash)
+        return self.object_path(filehash)
 
     def _read_hdf5(self, hash_list):
         assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
         filehash = hash_list[0]
-        with pd.HDFStore(self._object_path(filehash), 'r') as store:
+        with pd.HDFStore(self.object_path(filehash), 'r') as store:
             return store.get(self.DF_NAME)
 
     def _read_parquet_arrow(self, hash_list):
@@ -121,7 +121,7 @@ class Package(object):
         filehash = hash_list[0]
 
         nt = 8
-        fpath = self._object_path(filehash)
+        fpath = self.object_path(filehash)
         table = parquet.read_table(fpath, nthreads=nt)
         df = table.to_pandas()
         return df
@@ -129,7 +129,7 @@ class Package(object):
     def _read_parquet_fastparquet(self, hash_list):
         assert len(hash_list) == 1, "Multi-file DFs not supported yet."
         filehash = hash_list[0]
-        pfile = fastparquet.ParquetFile(self._object_path(filehash))
+        pfile = fastparquet.ParquetFile(self.object_path(filehash))
         return pfile.to_pandas()
 
     def _read_parquet_spark(self, hash_list):
@@ -140,7 +140,7 @@ class Package(object):
         spark = SparkSession.builder.getOrCreate()
         assert len(hash_list) == 1, "Multi-file DFs not supported yet."
         filehash = hash_list[0]
-        df = spark.read.parquet(self._object_path(filehash))
+        df = spark.read.parquet(self.object_path(filehash))
         return df
 
     def _dataframe(self, hash_list, pkgformat):
@@ -199,7 +199,7 @@ class Package(object):
         # Move serialized DataFrame to object store
         filehash = digest_file(storepath)
         self._add_to_contents(buildfile, filehash, ext, path, target)
-        os.rename(storepath, self._object_path(filehash))
+        os.rename(storepath, self.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
         """
@@ -208,7 +208,7 @@ class Package(object):
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
         self._add_to_contents(fullname, filehash, '', path, 'file')
-        objpath = self._object_path(filehash)
+        objpath = self.object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
 
@@ -216,14 +216,12 @@ class Package(object):
         """
         Returns a dictionary with the contents of the package.
         """
-        assert self._contents is not None
         return self._contents
 
     def save_contents(self):
         """
         Saves the in-memory contents to the package file.
         """
-        assert self._contents is not None
         with open(self._path, 'w') as contents_file:
             json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
@@ -276,48 +274,18 @@ class Package(object):
         """
         return self._path
 
-    def install_objects(self, urls):
-        """
-        Download and install objects.
-        """
-        # Download individual object files and store
-        # in object dir. Verify individual file hashes.
-        # Verify global hash?
-
-        for download_hash, url in iteritems(urls):
-            # download and install
-            response = requests.get(url, stream=True)
-            if not response.ok:
-                msg = "Download {hash} failed: error {code}"
-                raise PackageException(msg.format(hash=download_hash, code=response.status_code))
-
-            local_filename = self._object_path(download_hash)
-
-            with open(local_filename, 'wb') as output_file:
-                # `requests` will automatically un-gzip the content, as long as
-                # the 'Content-Encoding: gzip' header is set.
-                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                    if chunk: # filter out keep-alive new chunks
-                        output_file.write(chunk)
-
-            file_hash = digest_file(local_filename)
-            if file_hash != download_hash:
-                os.remove(local_filename)
-                raise PackageException("Mismatched hash! Expected %s, got %s." %
-                                       (download_hash, file_hash))
-
     class UploadFile(object):
         """
         Helper class to manage temporary package files uploaded by push.
         """
-        def __init__(self, store, objhash):
-            self._store = store
+        def __init__(self, package, objhash):
+            self._package = package
             self._hash = objhash
             self._temp_file = None
 
         def __enter__(self):
             self._temp_file = tempfile.TemporaryFile()
-            with open(self._store._object_path(self._hash), 'rb') as input_file:
+            with open(self._package.object_path(self._hash), 'rb') as input_file:
                 zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
                 for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
                     self._temp_file.write(zlib_obj.compress(chunk))
@@ -334,7 +302,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _object_path(self, objhash):
+    def object_path(self, objhash):
         """
         Returns the path to an object file based on its hash.
         """

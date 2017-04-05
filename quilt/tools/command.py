@@ -13,23 +13,24 @@ import sys
 import time
 import webbrowser
 
+from packaging.version import Version
 import pandas as pd
 import requests
-from packaging.version import Version
+from six import iteritems
 
 from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG
 from .core import (hash_contents, GroupNode, TableNode, FileNode,
-                   decode_node, encode_node, PackageFormat)
-from .package import PackageException
+                   decode_node, encode_node)
+from .hashing import digest_file
 from .store import PackageStore, ls_packages
 from .util import BASE_DIR, FileWithReadProgress
-
-HEADERS = {"Content-Type": "application/json", "Accept": "application/json"}
 
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', 'https://pkg.quiltdata.com')
 
 AUTH_FILE_NAME = "auth.json"
+
+CHUNK_SIZE = 4096
 
 
 class CommandException(Exception):
@@ -240,7 +241,7 @@ def push(session, package):
     }
 
     total = len(upload_urls)
-    for idx, (objhash, url) in enumerate(upload_urls.items()):
+    for idx, (objhash, url) in enumerate(iteritems(upload_urls)):
         # Create a temporary gzip'ed file.
         print("Uploading object %d/%d..." % (idx + 1, total))
         with pkgobj.tempfile(objhash) as temp_file:
@@ -437,11 +438,29 @@ def install(session, package, hash=None, version=None, tag=None):
         raise CommandException("Mismatched hash. Try again.")
 
     pkgobj = store.install_package(owner, pkg, response_contents)
-    try:
-        pkgobj.install_objects(response_urls)
-        pkgobj.save_contents()
-    except PackageException as ex:
-        raise CommandException("Failed to install the package: %s" % ex)
+
+    for download_hash, url in iteritems(response_urls):
+        response = requests.get(url, stream=True)
+        if not response.ok:
+            msg = "Download {hash} failed: error {code}"
+            raise CommandException(msg.format(hash=download_hash, code=response.status_code))
+
+        local_filename = pkgobj.object_path(download_hash)
+
+        with open(local_filename, 'wb') as output_file:
+            # `requests` will automatically un-gzip the content, as long as
+            # the 'Content-Encoding: gzip' header is set.
+            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                if chunk: # filter out keep-alive new chunks
+                    output_file.write(chunk)
+
+        file_hash = digest_file(local_filename)
+        if file_hash != download_hash:
+            os.remove(local_filename)
+            raise CommandException("Mismatched hash! Expected %s, got %s." %
+                                   (download_hash, file_hash))
+
+    pkgobj.save_contents()
 
 def access_list(session, package):
     """
