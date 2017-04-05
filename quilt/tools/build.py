@@ -7,6 +7,11 @@ import re
 import yaml
 import pandas as pd
 
+try:
+    from pyspark import sql as sparksql
+except ImportError:
+    sparksql = None
+
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
@@ -67,11 +72,26 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         else:
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
             # read source file into DataFrame
+
             print("Compiling %s..." % path)
-            df = _file_to_data_frame(transform, path, target, user_kwargs)
+            if sparksql:
+                df = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+            else:
+                df = _file_to_data_frame(transform, path, target, user_kwargs)
+
             # serialize DataFrame to file(s)
             print("Saving as binary dataframe...")
             package.save_df(df, name, rel_path, transform, target)
+
+def _file_to_spark_data_frame(ext, path, target, user_kwargs):
+    ext = ext.lower() # ensure that case doesn't matter
+    spark = sparksql.SparkSession.builder.getOrCreate()
+    df = spark.read.load(path, format=ext, header=True, **user_kwargs)
+    for col in df.columns:
+        pcol = _pythonize_name(col)
+        if col != pcol:
+            df = df.withColumnRenamed(col, pcol)
+    return df
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
     ext = ext.lower() # ensure that case doesn't matter

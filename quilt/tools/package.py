@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 import os
-from shutil import copyfile
+from shutil import copyfile, rmtree
 import tempfile
 import zlib
 
@@ -20,9 +20,9 @@ except ImportError:
     pa = None
 
 try:
-    from pyspark.sql import SparkSession
+    from pyspark import sql as sparksql
 except ImportError:
-    SparkSession = None
+    sparksql = None
 
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
@@ -59,12 +59,16 @@ class Package(object):
 
     @classmethod
     def get_parquet_lib(cls):
+        """
+        Find/choose a library to read and write Parquet files
+        based on installed options.
+        """
         if not cls.__parquet_lib:
             parq_env = os.environ.get('QUILT_PARQUET_LIBRARY')
             if parq_env:
                 cls.__parquet_lib = ParquetLib(parq_env)
             else:
-                if SparkSession is not None:
+                if sparksql is not None:
                     cls.__parquet_lib = ParquetLib.SPARK
                 elif pa is not None:
                     cls.__parquet_lib = ParquetLib.ARROW
@@ -79,6 +83,10 @@ class Package(object):
     @classmethod
     def reset_parquet_lib(cls):
         cls.__parquet_lib = None
+
+    @classmethod
+    def set_parquet_lib(cls, parqlib):
+        cls.__parquet_lib = ParquetLib(parqlib)
 
     def __init__(self, user, package, path, pkg_dir, contents=None):
         self._user = user
@@ -117,30 +125,30 @@ class Package(object):
         if pa is None:
             raise PackageException("Module pyarrow is required for ArrowPackage.")
 
-        assert len(hash_list) == 1, "Multi-file DFs not supported for Arrow Packages (yet)."
-        filehash = hash_list[0]
-
-        nt = 8
-        fpath = self.object_path(filehash)
-        table = parquet.read_table(fpath, nthreads=nt)
+        objfiles = [self.object_path(h) for h in hash_list]
+        table = parquet.read_multiple_files(paths=objfiles, nthreads=4)
         df = table.to_pandas()
         return df
 
     def _read_parquet_fastparquet(self, hash_list):
-        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
+        # As of 3/25/2017, fastparquet on GH supports passing a list
+        # of paths, but the latest version on conda and pip (0.0.5) does
+        # not.
+        # TODO: Update this method to pass the list of objectfile paths
+        # like _read_parquet_arrow (above).
+        assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
         filehash = hash_list[0]
         pfile = fastparquet.ParquetFile(self.object_path(filehash))
         return pfile.to_pandas()
 
     def _read_parquet_spark(self, hash_list):
-        if SparkSession is None:
+        if sparksql is None:
             raise PackageException("Module SparkSession from pyspark.sql is required for " +
                                    "SparkPackage.")
 
-        spark = SparkSession.builder.getOrCreate()
-        assert len(hash_list) == 1, "Multi-file DFs not supported yet."
-        filehash = hash_list[0]
-        df = spark.read.parquet(self.object_path(filehash))
+        spark = sparksql.SparkSession.builder.getOrCreate()
+        objfiles = [self.object_path(h) for h in hash_list]
+        df = spark.read.parquet(*objfiles)
         return df
 
     def _dataframe(self, hash_list, pkgformat):
@@ -191,15 +199,29 @@ class Package(object):
             elif parqlib is ParquetLib.ARROW:
                 table = pa.Table.from_pandas(df)
                 parquet.write_table(table, storepath)
+            elif parqlib is ParquetLib.SPARK:
+                assert isinstance(df, sparksql.DataFrame)
+                df.write.parquet(storepath)
             else:
                 assert False, "Unimplemented ParquetLib %s" % parqlib
         else:
             assert False, "Unimplemented PackageFormat %s" % enumformat
 
         # Move serialized DataFrame to object store
-        filehash = digest_file(storepath)
-        self._add_to_contents(buildfile, filehash, ext, path, target)
-        os.rename(storepath, self.object_path(filehash))
+        if os.path.isdir(storepath): # Pyspark
+            hashes = []
+            files = [ofile for ofile in os.listdir(storepath) if ofile.endswith(".parquet")]
+            for obj in files:
+                path = os.path.join(storepath, obj)
+                objhash = digest_file(path)
+                os.rename(path, self.object_path(objhash))
+                hashes.append(objhash)
+            self._add_to_contents(buildfile, hashes, ext, path, target)
+            rmtree(storepath)
+        else:
+            filehash = digest_file(storepath)
+            self._add_to_contents(buildfile, [filehash], ext, path, target)
+            os.rename(storepath, self._object_path(filehash))
 
     def save_file(self, srcfile, name, path):
         """
@@ -207,7 +229,7 @@ class Package(object):
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, filehash, '', path, 'file')
+        self._add_to_contents(fullname, [filehash], '', path, 'file')
         objpath = self.object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
@@ -314,7 +336,7 @@ class Package(object):
         """
         return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
 
-    def _add_to_contents(self, fullname, objhash, ext, path, target):
+    def _add_to_contents(self, fullname, hashes, ext, path, target):
         """
         Adds an object (name-hash mapping) to the package's contents.
         """
@@ -338,7 +360,7 @@ class Package(object):
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
         ptr.children[leaf] = node_cls(
-            hashes=[objhash],
+            hashes=hashes,
             metadata=dict(
                 q_ext=ext,
                 q_path=path,
