@@ -234,6 +234,18 @@ quilt version list USER/PACKAGE
 - Track test code coverage by running: `python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v`
 - View coverage results by opening cov_html/index.html
 
+## Compilation
+### Supported column types (via dtype: arg)
+* int
+* bool
+* float
+* complex
+* str
+* unicode
+* buffer
+
+Everything else becomes type object.
+
 ## Local installation
 1. `git clone https://github.com/quiltdata/quilt.git`
 1. `cd quilt`
