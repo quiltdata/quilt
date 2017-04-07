@@ -244,7 +244,7 @@ quilt version list USER/PACKAGE
 * unicode
 * buffer
 
-Everything else becomes type object.
+Everything else becomes type object. See [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
 
 ## Local installation
 1. `git clone https://github.com/quiltdata/quilt.git`
