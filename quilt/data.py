@@ -19,6 +19,7 @@ import os.path
 import sys
 
 from .tools.core import GroupNode
+from .tools.package import PackageException
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
@@ -32,13 +33,21 @@ class DataNode(object):
         self._prefix = prefix
         self._package = package
 
+        # Make sure the node exists and is a group.
+        node = self._package.get(prefix)
+        assert isinstance(node, GroupNode)
+
     def __getattr__(self, name):
         # TODO clean if... up since VALID_NAME_RE no longer allows leading _
         if name.startswith('_'):
             raise AttributeError
         path = self._prefix + '/' + name
 
-        node = self._get_node(path)
+        try:
+            node = self._package.get(path)
+        except PackageException:
+            raise AttributeError("No such table or group: %s" % path)
+
         if isinstance(node, GroupNode):
             return DataNode(self._package, path)
         else:
@@ -64,15 +73,7 @@ class DataNode(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if not isinstance(self._get_node(pref + k), GroupNode)]
-
-    def _get_node(self, path):
-        try:
-            node = self._package.get(path)
-        except KeyError:
-            # No such group or table
-            raise AttributeError("No such table or group: %s" % path)
-        return node
+                if not isinstance(self._package.get(pref + k), GroupNode)]
 
     def _groups(self):
         """
@@ -80,7 +81,7 @@ class DataNode(object):
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if isinstance(self._get_node(pref + k), GroupNode)]
+                if isinstance(self._package.get(pref + k), GroupNode)]
 
     def _keys(self):
         """
