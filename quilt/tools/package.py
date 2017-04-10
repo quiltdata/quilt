@@ -257,15 +257,20 @@ class Package(object):
         ptr = self.get_contents()
         path_so_far = []
         for node_name in ipath:
-            path_so_far += [node_name]
-            ptr = ptr.children.get(node_name)
-            if ptr is None:
-                raise PackageException("Key {path} Not Found in Package {owner}/{pkg}".format(
+            if not isinstance(ptr, GroupNode):
+                raise PackageException("Key {path} in package {owner}/{pkg} is a leaf node".format(
                     path="/".join(path_so_far),
                     owner=self._user,
                     pkg=self._package))
-        node = ptr
-        return node
+
+            path_so_far += [node_name]
+            ptr = ptr.children.get(node_name)
+            if ptr is None:
+                raise PackageException("Key {path} not found in package {owner}/{pkg}".format(
+                    path="/".join(path_so_far),
+                    owner=self._user,
+                    pkg=self._package))
+        return ptr
 
     def get_obj(self, node):
         """
