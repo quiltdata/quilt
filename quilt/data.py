@@ -18,6 +18,7 @@ import imp
 import os.path
 import sys
 
+from .tools.const import PACKAGE_DIR_NAME
 from .tools.core import GroupNode
 from .tools.package import PackageException
 from .tools.store import PackageStore
@@ -142,7 +143,6 @@ class ModuleFinder(object):
         """
         Looks up the table based on the module path.
         """
-        store = PackageStore()
         if not fullname.startswith(__name__ + '.'):
             # Not a quilt submodule.
             return None
@@ -151,14 +151,14 @@ class ModuleFinder(object):
         parts = submodule.split('.')
 
         if len(parts) == 1:
-            for package_dir in store.find_package_dirs():
+            for store_dir in PackageStore.find_store_dirs():
                 # find contents
-                file_path = os.path.join(package_dir, parts[0])
+                file_path = os.path.join(store_dir, parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
         elif len(parts) == 2:
             user, package = parts
-            pkgobj = store.get_package(user, package)
+            pkgobj = PackageStore.find_package(user, package)
             if pkgobj:
                 file_path = pkgobj.get_path()
                 return PackageLoader(file_path, pkgobj)

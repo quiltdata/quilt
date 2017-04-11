@@ -23,7 +23,7 @@ from .const import LATEST_TAG
 from .core import (hash_contents, GroupNode, TableNode, FileNode,
                    decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore, ls_packages
+from .store import PackageStore
 from .util import BASE_DIR, FileWithReadProgress
 
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', 'https://pkg.quiltdata.com')
@@ -213,8 +213,7 @@ def push(session, package):
     """
     owner, pkg = _parse_package(package)
 
-    store = PackageStore()
-    pkgobj = store.get_package(owner, pkg)
+    pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
     pkghash = pkgobj.get_hash()
@@ -445,7 +444,7 @@ def install(session, package, hash=None, version=None, tag=None):
             msg = "Download {hash} failed: error {code}"
             raise CommandException(msg.format(hash=download_hash, code=response.status_code))
 
-        local_filename = pkgobj.object_path(download_hash)
+        local_filename = store.object_path(download_hash)
 
         with open(local_filename, 'wb') as output_file:
             # `requests` will automatically un-gzip the content, as long as
@@ -496,10 +495,9 @@ def ls():
     """
     List all installed Quilt data packages
     """
-    store = PackageStore()
-    for pkg_dir in store.find_package_dirs():
+    for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
-        packages = ls_packages(pkg_dir)
+        packages = PackageStore(pkg_dir).ls_packages()
         for idx, (owner, pkg) in enumerate(packages):
             prefix = u"└── " if idx == len(packages) - 1 else u"├── "
             print("%s%s/%s" % (prefix, owner, pkg))
@@ -509,8 +507,7 @@ def inspect(package):
     Inspect package details
     """
     owner, pkg = _parse_package(package)
-    store = PackageStore()
-    pkgobj = store.get_package(owner, pkg)
+    pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 

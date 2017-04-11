@@ -50,9 +50,6 @@ class PackageException(Exception):
 
 
 class Package(object):
-    BUILD_DIR = 'build'
-    OBJ_DIR = 'objs'
-    TMP_OBJ_DIR = 'objs/tmp'
     DF_NAME = 'df'
 
     __parquet_lib = None
@@ -88,10 +85,10 @@ class Package(object):
     def set_parquet_lib(cls, parqlib):
         cls.__parquet_lib = ParquetLib(parqlib)
 
-    def __init__(self, user, package, path, pkg_dir, contents=None):
+    def __init__(self, store, user, package, path, contents=None):
+        self._store = store
         self._user = user
         self._package = package
-        self._pkg_dir = pkg_dir
         self._path = path
 
         if contents is None:
@@ -113,19 +110,19 @@ class Package(object):
         assert isinstance(hash_list, list)
         assert len(hash_list) == 1, "File objects must be contained in one file."
         filehash = hash_list[0]
-        return self.object_path(filehash)
+        return self._store.object_path(filehash)
 
     def _read_hdf5(self, hash_list):
         assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
         filehash = hash_list[0]
-        with pd.HDFStore(self.object_path(filehash), 'r') as store:
+        with pd.HDFStore(self._store.object_path(filehash), 'r') as store:
             return store.get(self.DF_NAME)
 
     def _read_parquet_arrow(self, hash_list):
         if pa is None:
             raise PackageException("Module pyarrow is required for ArrowPackage.")
 
-        objfiles = [self.object_path(h) for h in hash_list]
+        objfiles = [self._store.object_path(h) for h in hash_list]
         table = parquet.read_multiple_files(paths=objfiles, nthreads=4)
         df = table.to_pandas()
         return df
@@ -138,7 +135,7 @@ class Package(object):
         # like _read_parquet_arrow (above).
         assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
         filehash = hash_list[0]
-        pfile = fastparquet.ParquetFile(self.object_path(filehash))
+        pfile = fastparquet.ParquetFile(self._store.object_path(filehash))
         return pfile.to_pandas()
 
     def _read_parquet_spark(self, hash_list):
@@ -147,7 +144,7 @@ class Package(object):
                                    "SparkPackage.")
 
         spark = sparksql.SparkSession.builder.getOrCreate()
-        objfiles = [self.object_path(h) for h in hash_list]
+        objfiles = [self._store.object_path(h) for h in hash_list]
         df = spark.read.parquet(*objfiles)
         return df
 
@@ -177,7 +174,7 @@ class Package(object):
         """
         enumformat = PackageFormat(self.get_contents().format)
         buildfile = name.lstrip('/').replace('/', '.')
-        storepath = self._temporary_object_path(buildfile)
+        storepath = self._store.temporary_object_path(buildfile)
 
         # Serialize DataFrame to chosen format
         if enumformat is PackageFormat.HDF5:
@@ -214,14 +211,14 @@ class Package(object):
             for obj in files:
                 path = os.path.join(storepath, obj)
                 objhash = digest_file(path)
-                os.rename(path, self.object_path(objhash))
+                os.rename(path, self._store.object_path(objhash))
                 hashes.append(objhash)
             self._add_to_contents(buildfile, hashes, ext, path, target)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target)
-            os.rename(storepath, self.object_path(filehash))
+            os.rename(storepath, self._store.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
         """
@@ -230,7 +227,7 @@ class Package(object):
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
         self._add_to_contents(fullname, [filehash], '', path, 'file')
-        objpath = self.object_path(filehash)
+        objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
 
@@ -301,6 +298,12 @@ class Package(object):
         """
         return self._path
 
+    def get_store(self):
+        """
+        Returns the store containing this package.
+        """
+        return self._store
+
     class UploadFile(object):
         """
         Helper class to manage temporary package files uploaded by push.
@@ -312,7 +315,7 @@ class Package(object):
 
         def __enter__(self):
             self._temp_file = tempfile.TemporaryFile()
-            with open(self._package.object_path(self._hash), 'rb') as input_file:
+            with open(self._package.get_store().object_path(self._hash), 'rb') as input_file:
                 zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
                 for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
                     self._temp_file.write(zlib_obj.compress(chunk))
@@ -328,18 +331,6 @@ class Package(object):
         Create and return a temporary file for uploading to a registry.
         """
         return self.UploadFile(self, hash)
-
-    def object_path(self, objhash):
-        """
-        Returns the path to an object file based on its hash.
-        """
-        return os.path.join(self._pkg_dir, self.OBJ_DIR, objhash)
-
-    def _temporary_object_path(self, name):
-        """
-        Returns the path to a temporary object, before we know its hash.
-        """
-        return os.path.join(self._pkg_dir, self.TMP_OBJ_DIR, name)
 
     def _add_to_contents(self, fullname, hashes, ext, path, target):
         """
