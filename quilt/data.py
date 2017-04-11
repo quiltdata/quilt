@@ -18,7 +18,7 @@ import imp
 import os.path
 import sys
 
-from .tools.const import STORE_DIR_NAME
+from .tools.const import PACKAGE_DIR_NAME
 from .tools.core import GroupNode
 from .tools.store import PackageStore
 
@@ -152,7 +152,7 @@ class ModuleFinder(object):
         if len(parts) == 1:
             for store_dir in PackageStore.find_store_dirs():
                 # find contents
-                file_path = os.path.join(store_dir, STORE_DIR_NAME, parts[0])
+                file_path = os.path.join(store_dir, parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
         elif len(parts) == 2:

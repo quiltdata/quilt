@@ -13,7 +13,7 @@ except ImportError:
     sparksql = None
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import STORE_DIR_NAME, RESERVED, TARGET
+from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
 from .util import FileWithReadProgress
 
@@ -180,7 +180,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
         contents = {}
 
         for name in os.listdir(dir_path):
-            if name.startswith('.') or name == STORE_DIR_NAME:
+            if name.startswith('.') or name == PACKAGE_DIR_NAME:
                 continue
 
             path = os.path.join(dir_path, name)

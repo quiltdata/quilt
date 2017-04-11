@@ -5,7 +5,7 @@ import os
 import re
 
 
-from .const import STORE_DIR_NAME
+from .const import PACKAGE_DIR_NAME
 from .core import RootNode
 from .package import Package
 
@@ -31,8 +31,10 @@ class PackageStore(object):
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = 'objs/tmp'
 
-    def __init__(self, store_dir='.'):
-        self._path = os.path.join(store_dir, STORE_DIR_NAME)
+    def __init__(self, store_dir=PACKAGE_DIR_NAME):
+        assert os.path.basename(os.path.abspath(store_dir)) == PACKAGE_DIR_NAME, \
+            "Unexpected package directory: %s" % store_dir
+        self._path = store_dir
 
     @classmethod
     def find_store_dirs(cls, start_dir='.'):
@@ -49,8 +51,10 @@ class PackageStore(object):
         path = os.path.realpath(start_dir)
         while True:
             parent_path, name = os.path.split(path)
-            if name != STORE_DIR_NAME and os.path.isdir(os.path.join(path, STORE_DIR_NAME)):
-                yield path
+            if name != PACKAGE_DIR_NAME:
+                package_dir = os.path.join(path, PACKAGE_DIR_NAME)
+                if os.path.isdir(package_dir):
+                    yield package_dir
             if parent_path == path:  # The only reliable way to detect the root.
                 break
             path = parent_path
@@ -65,9 +69,9 @@ class PackageStore(object):
         dirs = cls.find_store_dirs(start_dir)
         for store_dir in dirs:
             store = PackageStore(store_dir)
-            package = store.get_package(user, package)
-            if package is not None:
-                return package
+            pkg = store.get_package(user, package)
+            if pkg is not None:
+                return pkg
         return None
 
     @classmethod

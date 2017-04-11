@@ -14,7 +14,7 @@ DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
 LATEST_TAG = 'latest'
-STORE_DIR_NAME = 'quilt_packages'
+PACKAGE_DIR_NAME = 'quilt_packages'
 # reserved words in build.yml
 RESERVED = {
     'file': 'file',
