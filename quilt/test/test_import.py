@@ -5,6 +5,9 @@ Tests for magic imports.
 from datetime import datetime
 import os
 
+from pandas.core.frame import DataFrame
+
+from quilt.data import DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from .utils import QuiltTestCase
@@ -17,18 +20,23 @@ class ImportTest(QuiltTestCase):
 
         # Good imports
 
-        import quilt.data.foo.package
-
         from quilt.data.foo import package
         from quilt.data.foo.package import dataframes
         from quilt.data.foo.package import README
 
-        # Good attributes of imported packages
+        # Contents of the imports
 
-        package.dataframes
-        package.dataframes.csv
-        package.README
-        dataframes.csv
+        assert isinstance(package, DataNode)
+        assert isinstance(dataframes, DataNode)
+        assert isinstance(dataframes.csv, DataFrame)
+        assert isinstance(README, str)
+
+        assert package.dataframes == dataframes
+        assert package.README == README
+
+        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._groups()) == set()
+        assert set(dataframes._dfs()) == {'xls', 'csv', 'tsv'}
 
         # Bad attributes of imported packages
 

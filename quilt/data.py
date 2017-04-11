@@ -30,12 +30,23 @@ class DataNode(object):
     in HDFStore's `root`.
     """
     def __init__(self, package, prefix=''):
-        self._prefix = prefix
         self._package = package
+        self._prefix = prefix
 
         # Make sure the node exists and is a group.
         node = self._package.get(prefix)
         assert isinstance(node, GroupNode)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self._package == other._package and self._prefix == other._prefix
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash((self._package, self._prefix))
 
     def __getattr__(self, name):
         # TODO clean if... up since VALID_NAME_RE no longer allows leading _
