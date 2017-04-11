@@ -2,10 +2,10 @@
 Tests for magic imports.
 """
 
-from datetime import datetime
 import os
 
 from pandas.core.frame import DataFrame
+from six import string_types
 
 from quilt.data import DataNode
 from quilt.tools import command
@@ -29,7 +29,7 @@ class ImportTest(QuiltTestCase):
         assert isinstance(package, DataNode)
         assert isinstance(dataframes, DataNode)
         assert isinstance(dataframes.csv, DataFrame)
-        assert isinstance(README, str)
+        assert isinstance(README, string_types)
 
         assert package.dataframes == dataframes
         assert package.README == README
