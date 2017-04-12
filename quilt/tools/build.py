@@ -73,7 +73,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
             # read source file into DataFrame
 
-            print("Compiling %s..." % path)
+            print("Serializing %s..." % path)
             if sparksql:
                 df = _file_to_spark_data_frame(transform, path, target, user_kwargs)
             else:
