@@ -17,6 +17,7 @@ from packaging.version import Version
 import pandas as pd
 import requests
 from six import iteritems
+from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
 from .const import LATEST_TAG
@@ -438,20 +439,30 @@ def install(session, package, hash=None, version=None, tag=None):
 
     pkgobj = store.install_package(owner, pkg, response_contents)
 
-    for download_hash, url in iteritems(response_urls):
+    total = len(response_urls)
+    for idx, (download_hash, url) in enumerate(iteritems(response_urls)):
+        print("Downloading object %d/%d..." % (idx + 1, total))
+
         response = requests.get(url, stream=True)
         if not response.ok:
             msg = "Download {hash} failed: error {code}"
             raise CommandException(msg.format(hash=download_hash, code=response.status_code))
 
         local_filename = store.object_path(download_hash)
+        length_remaining = response.raw.length_remaining
 
         with open(local_filename, 'wb') as output_file:
-            # `requests` will automatically un-gzip the content, as long as
-            # the 'Content-Encoding: gzip' header is set.
-            for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                if chunk: # filter out keep-alive new chunks
-                    output_file.write(chunk)
+            with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
+                # `requests` will automatically un-gzip the content, as long as
+                # the 'Content-Encoding: gzip' header is set.
+                # To report progress, however, we need the length of the original compressed data;
+                # we use the undocumented but technically public `response.raw.length_remaining`.
+                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                    if chunk: # filter out keep-alive new chunks
+                        output_file.write(chunk)
+                    if response.raw.length_remaining is not None:  # Not set in unit tests.
+                        progress.update(length_remaining - response.raw.length_remaining)
+                        length_remaining = response.raw.length_remaining
 
         file_hash = digest_file(local_filename)
         if file_hash != download_hash:
