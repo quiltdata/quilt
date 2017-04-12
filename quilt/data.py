@@ -18,7 +18,6 @@ import imp
 import os.path
 import sys
 
-from .tools.const import PACKAGE_DIR_NAME
 from .tools.core import GroupNode
 from .tools.package import PackageException
 from .tools.store import PackageStore
@@ -31,12 +30,11 @@ class DataNode(object):
     in HDFStore's `root`.
     """
     def __init__(self, package, prefix=''):
+        assert not prefix.endswith('/')
+
         self._package = package
         self._prefix = prefix
-
-        # Make sure the node exists and is a group.
-        node = self._package.get(prefix)
-        assert isinstance(node, GroupNode)
+        self._node = self._package.get(self._prefix)
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -56,19 +54,14 @@ class DataNode(object):
         path = self._prefix + '/' + name
 
         try:
-            node = self._package.get(path)
+            return DataNode(self._package, path)
         except PackageException:
             raise AttributeError("No such table or group: %s" % path)
-
-        if isinstance(node, GroupNode):
-            return DataNode(self._package, path)
-        else:
-            return self._package.get_obj(node)
 
     def __repr__(self):
         cinfo = str(self.__class__)
         finfo = 'File: ' + self._package.get_path()
-        pinfo = 'Path: ' + self._prefix + '/'
+        pinfo = 'Path: ' + self._prefix + ('/' if self._is_group() else '')
         #TODO maybe show all descendant subpaths instead of just children
         groups = sorted(k + '/' for k in self._groups())
         dfs = sorted(self._dfs())
@@ -78,6 +71,16 @@ class DataNode(object):
     def __dir__(self):
         # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
         return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
+
+    def _is_group(self):
+        return isinstance(self._node, GroupNode)
+
+    def _is_df(self):
+        return not isinstance(self._node, GroupNode)
+
+    def _df(self):
+        assert not isinstance(self._node, GroupNode)
+        return self._package.get_obj(self._node)
 
     def _dfs(self):
         """
@@ -99,9 +102,9 @@ class DataNode(object):
         """
         keys directly accessible on this object via getattr or .
         """
-        group = self._package.get(self._prefix)
-        assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
-        return list(group.children)
+        if not self._is_group():
+            return []
+        return list(self._node.children)
 
 
 class FakeLoader(object):

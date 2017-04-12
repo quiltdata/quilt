@@ -28,8 +28,18 @@ class ImportTest(QuiltTestCase):
 
         assert isinstance(package, DataNode)
         assert isinstance(dataframes, DataNode)
-        assert isinstance(dataframes.csv, DataFrame)
-        assert isinstance(README, string_types)
+        assert isinstance(dataframes.csv, DataNode)
+        assert isinstance(README, DataNode)
+
+        assert package._is_group()
+        assert dataframes._is_group()
+        assert dataframes.csv._is_df()
+        assert README._is_df()
+
+        assert not package._is_df()
+        assert not dataframes._is_df()
+        assert not dataframes.csv._is_group()
+        assert not README._is_group()
 
         assert package.dataframes == dataframes
         assert package.README == README
@@ -37,6 +47,9 @@ class ImportTest(QuiltTestCase):
         assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
         assert set(dataframes._groups()) == set()
         assert set(dataframes._dfs()) == {'xls', 'csv', 'tsv'}
+
+        assert set(dataframes.csv._keys()) == set()
+        assert set(README._keys()) == set()
 
         # Bad attributes of imported packages
 
