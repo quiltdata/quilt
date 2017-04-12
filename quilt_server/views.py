@@ -413,7 +413,7 @@ def user_packages(auth_user, owner):
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def logs_list(auth_user, owner, package_name):
     package = _get_package(auth_user, owner, package_name)
