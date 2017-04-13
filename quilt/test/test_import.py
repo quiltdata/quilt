@@ -51,6 +51,10 @@ class ImportTest(QuiltTestCase):
         assert set(dataframes.csv._keys()) == set()
         assert set(README._keys()) == set()
 
+        str(package)
+        str(dataframes)
+        str(README)
+
         # Bad attributes of imported packages
 
         with self.assertRaises(AttributeError):
