@@ -32,7 +32,7 @@ the registry at [quiltdata.com](https://quiltdata.com/).
 1. You've got data frames
 ```python
 from quilt.data.examples import wine
-wine.quality.red # this is a pandas.DataFrame
+wine.quality.red()  # this is a pandas.DataFrame
 ```
 
 # Tutorial
@@ -54,20 +54,18 @@ The import syntax is `from quilt.data.USER import PACKAGE`.
 Let's see what's in the `wine` package:
 ```python
 >>> wine
-<class 'quilt.data.DataNode'>
-File: /Users/kmoore/toa/github/quilt2/quilt_packages/examples/wine.json
-Path: /
-README/
-quality/
->>> wine.quality
-<class 'quilt.data.DataNode'>
-File: /Users/kmoore/toa/github/quilt2/quilt_packages/examples/wine.json
-Path: /quality/
-red/
-white/
->>> type(wine.quality.red)
-<class 'pandas.core.frame.DataFrame'>
+<GroupNode '/Users/kmoore/toa/github/quilt2/quilt_packages/examples/wine' ''>
+>>> wine._keys()
+['README', 'quality']
+>>> wine.quality._keys()
+['white', 'red']
+>>> wine.quality.red._keys()
+[]
 >>> wine.quality.red
+<LeafNode '/home/dima/quilt_packages/examples/wine' '/quality/red'>
+>>> type(wine.quality.red())
+<class 'pandas.core.frame.DataFrame'>
+>>> wine.quality.red()
       fixed acidity  volatile acidity  citric acid  residual sugar  chlorides  \
 0               7.4             0.700         0.00             1.9      0.076   
 1               7.8             0.880         0.00             2.6      0.098   
@@ -144,7 +142,7 @@ Packages can include data and other contents that are not representable as DataF
 Files can be accessed by using the normal Python `open` method.
 ```python
 from quilt.data.USER import PACKAGE
-with open(PACKAGE.a_file, 'r') as localfile:
+with open(PACKAGE.a_file(), 'r') as localfile:
   print(localfile.read())
 ```
 
