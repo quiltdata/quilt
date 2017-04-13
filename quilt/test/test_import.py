@@ -45,8 +45,8 @@ class ImportTest(QuiltTestCase):
         assert package.README == README
 
         assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
-        assert set(dataframes._groups()) == set()
-        assert set(dataframes._dfs()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._group_keys()) == set()
+        assert set(dataframes._df_keys()) == {'xls', 'csv', 'tsv'}
 
         assert set(dataframes.csv._keys()) == set()
         assert set(README._keys()) == set()

@@ -82,7 +82,7 @@ class DataNode(object):
         assert not isinstance(self._node, GroupNode)
         return self._package.get_obj(self._node)
 
-    def _dfs(self):
+    def _df_keys(self):
         """
         every child key referencing a dataframe
         """
@@ -90,7 +90,7 @@ class DataNode(object):
         return [k for k in self._keys()
                 if not isinstance(self._package.get(pref + k), GroupNode)]
 
-    def _groups(self):
+    def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
