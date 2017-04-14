@@ -413,15 +413,9 @@ def user_packages(auth_user, owner):
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
-@api()
+@api(require_login=False)
 @as_json
 def logs_list(auth_user, owner, package_name):
-    if auth_user != owner:
-        raise ApiException(
-            requests.codes.forbidden,
-            "Only the package owner can view logs."
-        )
-
     package = _get_package(auth_user, owner, package_name)
 
     logs = (
