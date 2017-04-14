@@ -7,11 +7,6 @@ import re
 import yaml
 import pandas as pd
 
-try:
-    from pyspark import sql as sparksql
-except ImportError:
-    sparksql = None
-
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
@@ -74,9 +69,9 @@ def _build_node(build_dir, package, name, node, target='pandas'):
             # read source file into DataFrame
 
             print("Serializing %s..." % path)
-            if sparksql:
+            try:
                 df = _file_to_spark_data_frame(transform, path, target, user_kwargs)
-            else:
+            except ImportError:
                 df = _file_to_data_frame(transform, path, target, user_kwargs)
 
             # serialize DataFrame to file(s)
@@ -84,6 +79,8 @@ def _build_node(build_dir, package, name, node, target='pandas'):
             package.save_df(df, name, rel_path, transform, target)
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
+    from pyspark import sql as sparksql
+
     ext = ext.lower() # ensure that case doesn't matter
     spark = sparksql.SparkSession.builder.getOrCreate()
     df = spark.read.load(path, format=ext, header=True, **user_kwargs)

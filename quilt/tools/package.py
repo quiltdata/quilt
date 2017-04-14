@@ -6,23 +6,6 @@ import tempfile
 import zlib
 
 import pandas as pd
-import requests
-
-try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
-
-try:
-    import pyarrow as pa
-    from pyarrow import parquet
-except ImportError:
-    pa = None
-
-try:
-    from pyspark import sql as sparksql
-except ImportError:
-    sparksql = None
 
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
@@ -37,9 +20,9 @@ CHUNK_SIZE = 4096
 
 
 class ParquetLib(Enum):
+    SPARK = 'pyspark'
     ARROW = 'pyarrow'
     FASTPARQUET = 'fastparquet'
-    SPARK = 'pyspark'
 
 
 class PackageException(Exception):
@@ -65,12 +48,14 @@ class Package(object):
             if parq_env:
                 cls.__parquet_lib = ParquetLib(parq_env)
             else:
-                if sparksql is not None:
-                    cls.__parquet_lib = ParquetLib.SPARK
-                elif pa is not None:
-                    cls.__parquet_lib = ParquetLib.ARROW
-                elif fastparquet is not None:
-                    cls.__parquet_lib = ParquetLib.FASTPARQUET
+                import imp
+                for lib in ParquetLib:
+                    try:
+                        imp.find_module(lib.value)
+                        cls.__parquet_lib = lib
+                        break
+                    except ImportError:
+                        pass
                 else:
                     msg = "One of the following libraries is requried to read"
                     msg += " Parquet packages: %s" % [l.value for l in ParquetLib]
@@ -119,8 +104,7 @@ class Package(object):
             return store.get(self.DF_NAME)
 
     def _read_parquet_arrow(self, hash_list):
-        if pa is None:
-            raise PackageException("Module pyarrow is required for ArrowPackage.")
+        from pyarrow import parquet
 
         objfiles = [self._store.object_path(h) for h in hash_list]
         table = parquet.read_multiple_files(paths=objfiles, nthreads=4)
@@ -133,15 +117,15 @@ class Package(object):
         # not.
         # TODO: Update this method to pass the list of objectfile paths
         # like _read_parquet_arrow (above).
+        import fastparquet
+
         assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
         filehash = hash_list[0]
         pfile = fastparquet.ParquetFile(self._store.object_path(filehash))
         return pfile.to_pandas()
 
     def _read_parquet_spark(self, hash_list):
-        if sparksql is None:
-            raise PackageException("Module SparkSession from pyspark.sql is required for " +
-                                   "SparkPackage.")
+        from pyspark import sql as sparksql
 
         spark = sparksql.SparkSession.builder.getOrCreate()
         objfiles = [self._store.object_path(h) for h in hash_list]
@@ -192,11 +176,15 @@ class Package(object):
             # switch parquet lib
             parqlib = self.get_parquet_lib()
             if parqlib is ParquetLib.FASTPARQUET:
+                import fastparquet
                 fastparquet.write(storepath, df)
             elif parqlib is ParquetLib.ARROW:
+                import pyarrow as pa
+                from pyarrow import parquet
                 table = pa.Table.from_pandas(df)
                 parquet.write_table(table, storepath)
             elif parqlib is ParquetLib.SPARK:
+                from pyspark import sql as sparksql
                 assert isinstance(df, sparksql.DataFrame)
                 df.write.parquet(storepath)
             else:
