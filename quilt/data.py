@@ -18,25 +18,23 @@ import imp
 import os.path
 import sys
 
-from .tools.const import PACKAGE_DIR_NAME
-from .tools.core import GroupNode
+from .tools.core import GroupNode as CoreGroupNode
 from .tools.package import PackageException
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
 
-class DataNode(object):
+class PackageNode(object):
     """
-    Represents either the root of the package or a group, similar to nodes
-    in HDFStore's `root`.
+    Abstract class that represents a group or a leaf node in a package.
     """
-    def __init__(self, package, prefix=''):
+    def __init__(self, package, prefix, node):
+        # Can't instantiate it directly
+        assert self.__class__ != PackageNode.__class__
+
         self._package = package
         self._prefix = prefix
-
-        # Make sure the node exists and is a group.
-        node = self._package.get(prefix)
-        assert isinstance(node, GroupNode)
+        self._node = node
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
@@ -49,6 +47,16 @@ class DataNode(object):
     def __hash__(self):
         return hash((self._package, self._prefix))
 
+    def __repr__(self):
+        finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
+        pinfo = self._prefix
+        return "<%s %r %r>" % (self.__class__.__name__, finfo, pinfo)
+
+
+class GroupNode(PackageNode):
+    """
+    Represents a group in a package. Allows accessing child objects using the dot notation.
+    """
     def __getattr__(self, name):
         # TODO clean if... up since VALID_NAME_RE no longer allows leading _
         if name.startswith('_'):
@@ -56,52 +64,59 @@ class DataNode(object):
         path = self._prefix + '/' + name
 
         try:
-            node = self._package.get(path)
+            return create_node(self._package, path)
         except PackageException:
             raise AttributeError("No such table or group: %s" % path)
-
-        if isinstance(node, GroupNode):
-            return DataNode(self._package, path)
-        else:
-            return self._package.get_obj(node)
-
-    def __repr__(self):
-        cinfo = str(self.__class__)
-        finfo = 'File: ' + self._package.get_path()
-        pinfo = 'Path: ' + self._prefix + '/'
-        #TODO maybe show all descendant subpaths instead of just children
-        groups = sorted(k + '/' for k in self._groups())
-        dfs = sorted(self._dfs())
-        output = [cinfo, finfo, pinfo] + groups + dfs
-        return '\n'.join(output)
 
     def __dir__(self):
         # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
         return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
 
-    def _dfs(self):
+    def _leaf_keys(self):
         """
         every child key referencing a dataframe
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if not isinstance(self._package.get(pref + k), GroupNode)]
+                if not isinstance(self._package.get(pref + k), CoreGroupNode)]
 
-    def _groups(self):
+    def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
         pref = self._prefix + '/'
         return [k for k in self._keys()
-                if isinstance(self._package.get(pref + k), GroupNode)]
+                if isinstance(self._package.get(pref + k), CoreGroupNode)]
 
     def _keys(self):
         """
         keys directly accessible on this object via getattr or .
         """
-        group = self._package.get(self._prefix)
-        assert isinstance(group, GroupNode), "{type} {grp}".format(type=type(group), grp=group)
-        return list(group.children)
+        return list(self._node.children)
+
+
+class LeafNode(PackageNode):
+    """
+    Represents a dataframe or a file. Allows accessing the contents using `()`.
+    """
+    def __call__(self):
+        return self.data()
+
+    def data(self):
+        """
+        Returns the contents of the node: a dataframe or a file path.
+        """
+        return self._package.get_obj(self._node)
+
+
+def create_node(package, prefix=''):
+    assert not prefix.endswith('/')
+    node = package.get(prefix)
+
+    if isinstance(node, CoreGroupNode):
+        return GroupNode(package, prefix, node)
+    else:
+        return LeafNode(package, prefix, node)
 
 
 class FakeLoader(object):
@@ -141,7 +156,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = DataNode(self._package)
+        mod = create_node(self._package)
         sys.modules[fullname] = mod
         return mod
 

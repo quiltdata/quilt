@@ -36,13 +36,13 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_hdf5.groot import dataframes, README
-        csv = dataframes.csv
-        tsv = dataframes.csv
-        xls = dataframes.xls
+        csv = dataframes.csv()
+        tsv = dataframes.csv()
+        xls = dataframes.xls()
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
-        assert os.path.exists(README)
+        assert os.path.exists(README())
         cols = len(csv.columns)
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
@@ -71,13 +71,13 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_parquet.groot import dataframes, README
-        csv = dataframes.csv
-        tsv = dataframes.csv
-        xls = dataframes.xls
+        csv = dataframes.csv()
+        tsv = dataframes.csv()
+        xls = dataframes.xls()
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
-        assert os.path.exists(README)
+        assert os.path.exists(README())
         cols = len(csv.columns)
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
@@ -98,14 +98,14 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_fastparquet.groot import dataframes, README
-        csv = dataframes.csv
-        tsv = dataframes.csv
-        xls = dataframes.xls
+        csv = dataframes.csv()
+        tsv = dataframes.csv()
+        xls = dataframes.xls()
         rows = len(csv.index)
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
-        assert os.path.exists(README)
+        assert os.path.exists(README())
         cols = len(csv.columns)
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
@@ -128,9 +128,9 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_arrow.groot import dataframes, README
-        csv = dataframes.csv
-        tsv = dataframes.csv
-        xls = dataframes.xls
+        csv = dataframes.csv()
+        tsv = dataframes.csv()
+        xls = dataframes.xls()
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
@@ -138,7 +138,7 @@ class BuildTest(QuiltTestCase):
         print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
-        assert os.path.exists(README)
+        assert os.path.exists(README())
         # TODO add more integrity checks, incl. negative test cases
         assert Package.get_parquet_lib() is ParquetLib.ARROW
         del os.environ["QUILT_PARQUET_LIBRARY"]

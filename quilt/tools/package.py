@@ -265,9 +265,7 @@ class Package(object):
         ptr = self.get_contents()
         pkgformat = ptr.format
 
-        if isinstance(node, GroupNode):
-            return node
-        elif isinstance(node, TableNode):
+        if isinstance(node, TableNode):
             return self._dataframe(node.hashes, pkgformat)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)

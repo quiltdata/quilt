@@ -7,7 +7,7 @@ import os
 from pandas.core.frame import DataFrame
 from six import string_types
 
-from quilt.data import DataNode
+from quilt.data import GroupNode, LeafNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from .utils import QuiltTestCase
@@ -26,17 +26,26 @@ class ImportTest(QuiltTestCase):
 
         # Contents of the imports
 
-        assert isinstance(package, DataNode)
-        assert isinstance(dataframes, DataNode)
-        assert isinstance(dataframes.csv, DataFrame)
-        assert isinstance(README, string_types)
+        assert isinstance(package, GroupNode)
+        assert isinstance(dataframes, GroupNode)
+        assert isinstance(dataframes.csv, LeafNode)
+        assert isinstance(README, LeafNode)
 
         assert package.dataframes == dataframes
         assert package.README == README
 
         assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
-        assert set(dataframes._groups()) == set()
-        assert set(dataframes._dfs()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._group_keys()) == set()
+        assert set(dataframes._leaf_keys()) == {'xls', 'csv', 'tsv'}
+
+        assert isinstance(README(), string_types)
+        assert isinstance(README.data(), string_types)
+        assert isinstance(dataframes.csv(), DataFrame)
+        assert isinstance(dataframes.csv.data(), DataFrame)
+
+        str(package)
+        str(dataframes)
+        str(README)
 
         # Bad attributes of imported packages
 
