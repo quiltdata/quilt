@@ -25,7 +25,7 @@ from .core import (hash_contents, GroupNode, TableNode, FileNode,
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore
-from .util import BASE_DIR, FileWithReadProgress
+from .util import BASE_DIR, FileWithReadProgress, parse_utc, utc2local
 
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', 'https://pkg.quiltdata.com')
 
@@ -200,13 +200,14 @@ def log(session, package):
             pkg=pkg
         )
     )
-
+    # table header
     format_str = "%-64s %-19s %s"
-
-    print(format_str % ("Hash", "Created", "Author"))
-    for entry in response.json()['logs']:
+    print(format_str % ("Hash", "Pushed", "Author"))
+    # table body
+    logs = sorted(response.json()['logs'], key=lambda x: parse_utc(x['created']), reverse=True)
+    for entry in logs:
         # TODO: convert "created" to local time.
-        print(format_str % (entry['hash'], entry['created'], entry['author']))
+        print(format_str % (entry['hash'], utc2local(parse_utc(entry['created'])), entry['author']))
 
 def push(session, package):
     """
