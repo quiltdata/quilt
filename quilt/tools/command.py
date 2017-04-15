@@ -204,8 +204,8 @@ def log(session, package):
     format_str = "%-64s %-19s %s"
     print(format_str % ("Hash", "Pushed", "Author"))
     # table body
-    logs = sorted(response.json()['logs'], key=lambda x: parse_utc(x['created']), reverse=True)
-    for entry in logs:
+    logs = response.json()['logs']
+    for entry in reversed(logs):
         # TODO: convert "created" to local time.
         print(format_str % (entry['hash'], utc2local(parse_utc(entry['created'])), entry['author']))
 

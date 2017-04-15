@@ -8,7 +8,7 @@ from appdirs import user_data_dir
 from six import string_types
 from tqdm import tqdm
 
-from .const import UTCF
+from .const import SERVER_TIME_F
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -75,29 +75,11 @@ def file_to_str(fname):
         data = f.read()
     return data
 
-
-def make_comparator(func):
-    """
-    for use in sorting
-    func: is a binary operator returning True/False
-    """
-    def compare(left, right):
-        """
-        apply func in one of three possible senses
-        """
-        if func(left, right):
-            return -1
-        elif func(right, left):
-            return 1
-        else:
-            return 0
-        return compare
-
 def parse_utc(utc):
     """
     convert quilt server UTC strings into  datetime objects
     """
-    return datetime.strptime(utc, UTCF)
+    return datetime.strptime(utc, SERVER_TIME_F)
 
 # http://stackoverflow.com/questions/4770297/python-convert-utc-datetime-string-to-local-datetime
 def utc2local(utc):
