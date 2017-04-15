@@ -137,8 +137,10 @@ class PackageNotFoundException(ApiException):
     """
     API exception for missing packages.
     """
-    def __init__(self, owner, package):
+    def __init__(self, owner, package, logged_in=True):
         message = "Package %s/%s does not exist" % (owner, package)
+        if not logged_in:
+            message = "%s (do you need to log in?)" % message
         super().__init__(requests.codes.not_found, message)
 
 @app.errorhandler(ApiException)
@@ -210,7 +212,7 @@ def _get_package(auth_user, owner, package_name):
         .one_or_none()
     )
     if package is None:
-        raise PackageNotFoundException(owner, package_name)
+        raise PackageNotFoundException(owner, package_name, auth_user is not PUBLIC)
     return package
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
@@ -500,22 +502,19 @@ def version_put(auth_user, owner, package_name, package_version):
 @as_json
 def version_get(auth_user, owner, package_name, package_version):
     package_version = normalize_version(package_version)
+    package = _get_package(auth_user, owner, package_name)
 
     instance = (
         Instance.query
         .join(Instance.versions)
-        .filter_by(version=package_version)
-        .join(Version.package)
-        .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter_by(package=package, version=package_version)
         .one_or_none()
     )
 
     if instance is None:
         raise ApiException(
             requests.codes.not_found,
-            "Package %s/%s version %s does not exist" % (owner, package_name, package_version)
+            "Version %s does not exist" % package_version
         )
 
     return dict(
@@ -610,21 +609,19 @@ def tag_put(auth_user, owner, package_name, package_tag):
 @api(require_login=False)
 @as_json
 def tag_get(auth_user, owner, package_name, package_tag):
+    package = _get_package(auth_user, owner, package_name)
+
     instance = (
         Instance.query
         .join(Instance.tags)
-        .filter_by(tag=package_tag)
-        .join(Tag.package)
-        .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter_by(package=package, tag=package_tag)
         .one_or_none()
     )
 
     if instance is None:
         raise ApiException(
             requests.codes.not_found,
-            "Package %s/%s tag %r does not exist" % (owner, package_name, package_tag)
+            "Tag %r does not exist" % package_tag
         )
 
     return dict(
