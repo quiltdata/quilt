@@ -143,6 +143,7 @@ class PackageStore(object):
         packages = [
             (user, pkg[:-len(self.PACKAGE_FILE_EXT)])
             for user in os.listdir(self._path)
+            if os.path.isdir(os.path.join(self._path, user))
             for pkg in os.listdir(os.path.join(self._path, user))
             if pkg.endswith(self.PACKAGE_FILE_EXT)]
         return packages
