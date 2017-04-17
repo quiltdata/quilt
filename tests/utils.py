@@ -7,6 +7,7 @@ import random
 import string
 import unittest
 
+from mixpanel import Mixpanel
 import requests
 import responses
 import sqlalchemy_utils
@@ -14,6 +15,15 @@ import sqlalchemy_utils
 import quilt_server
 from quilt_server.core import encode_node, hash_contents
 
+class MockMixpanelConsumer(object):
+    """
+    Mock Mixpanel consumer that just logs the events to stdout.
+    """
+    def send(self, endpoint, message):
+        """
+        Logs the event.
+        """
+        print("%s: %s" % (endpoint, message))
 
 class QuiltTestCase(unittest.TestCase):
     """
@@ -26,6 +36,10 @@ class QuiltTestCase(unittest.TestCase):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
         self._mock_user()
+
+        mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
+        self.mp_patcher = unittest.mock.patch('quilt_server.views.mp', mock_mp)
+        self.mp_patcher.start()
 
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'mysql+pymysql://root@localhost/test_%s' % random_name
@@ -42,6 +56,8 @@ class QuiltTestCase(unittest.TestCase):
         quilt_server.db.session.remove()
         quilt_server.db.drop_all()
         sqlalchemy_utils.drop_database(self.db_url)
+
+        self.mp_patcher.stop()
 
         self.requests_mock.stop()
 
