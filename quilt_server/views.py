@@ -539,6 +539,13 @@ def version_get(auth_user, owner, package_name, package_version):
             "Version %s does not exist" % package_version
         )
 
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="version_get",
+        package_owner=owner,
+        package_name=package_name,
+        package_version=package_version,
+    ))
+
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
@@ -645,6 +652,13 @@ def tag_get(auth_user, owner, package_name, package_tag):
             requests.codes.not_found,
             "Tag %r does not exist" % package_tag
         )
+
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="tag_get",
+        package_owner=owner,
+        package_name=package_name,
+        package_tag=package_tag,
+    ))
 
     return dict(
         hash=instance.hash,
