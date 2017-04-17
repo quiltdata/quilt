@@ -1,10 +1,14 @@
 """
 Helper functions.
 """
+from datetime import datetime
+import time
 
 from appdirs import user_data_dir
 from six import string_types
 from tqdm import tqdm
+
+from .const import SERVER_TIME_F
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -56,7 +60,7 @@ class FileWithReadProgress(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, exc_type, value, traceback):
         self.close()
 
 
@@ -70,3 +74,19 @@ def file_to_str(fname):
     with open(fname, 'rU') as f:
         data = f.read()
     return data
+
+def parse_utc(utc):
+    """
+    convert quilt server UTC strings into  datetime objects
+    """
+    return datetime.strptime(utc, SERVER_TIME_F)
+
+# http://stackoverflow.com/questions/4770297/python-convert-utc-datetime-string-to-local-datetime
+def utc2local(utc):
+    """
+    convert utc time to local time; beware of stackoverflow magic :-/
+    """
+    epoch = time.mktime(utc.timetuple())
+    offset = datetime.fromtimestamp(epoch) - datetime.utcfromtimestamp(epoch)
+
+    return utc + offset

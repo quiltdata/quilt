@@ -13,6 +13,7 @@ from six import assertRaisesRegex
 
 from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
+from ..tools.const import SERVER_TIME_F
 
 class CommandTest(QuiltTestCase):
     def test_push_invalid_package(self):
@@ -149,7 +150,7 @@ class CommandTest(QuiltTestCase):
         logs_url = "%s/api/log/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
         resp = dict(logs=[dict(
             hash=pkg_hash,
-            created=str(datetime.now()),
+            created=str(datetime.utcnow().strftime(SERVER_TIME_F)),
             author=owner)])
         print("MOCKING URL=%s" % logs_url)
         self.requests_mock.add(responses.GET, logs_url, json.dumps(resp))

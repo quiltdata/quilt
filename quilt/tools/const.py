@@ -10,6 +10,7 @@ class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
 
+SERVER_TIME_F = "%Y-%m-%dT%H:%M:%S"
 DATEF = '%F'
 TIMEF = '%T'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
