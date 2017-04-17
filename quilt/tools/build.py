@@ -121,6 +121,8 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
             try_again = True
         else:
             raise error
+    except ValueError as error:
+        raise BuildException(str(error))
 
     if try_again:
         failover_args = {}
