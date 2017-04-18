@@ -149,7 +149,7 @@ class CommandTest(QuiltTestCase):
         logs_url = "%s/api/log/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
         resp = dict(logs=[dict(
             hash=pkg_hash,
-            created=str(time.time()),
+            created=time.time(),
             author=owner)])
         print("MOCKING URL=%s" % logs_url)
         self.requests_mock.add(responses.GET, logs_url, json.dumps(resp))

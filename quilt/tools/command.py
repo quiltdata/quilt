@@ -206,7 +206,7 @@ def log(session, package):
 
     print(format_str % ("Hash", "Pushed", "Author"))
     for entry in reversed(response.json()['logs']):
-        ugly = datetime.fromtimestamp(float(entry['created']))
+        ugly = datetime.fromtimestamp(entry['created'])
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
