@@ -11,6 +11,7 @@ setup(
         'Flask-JSON',
         'Flask-Migrate',
         'jsonschema',
+        'mixpanel',
         'packaging',
         'PyMySQL',
         'requests-oauthlib',

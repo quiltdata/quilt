@@ -47,7 +47,9 @@ s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
 
 MIXPANEL_EVENT = 'SERVER'
 
+# TODO(dima): Use an async consumer.
 mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'])
+
 
 ### Web routes ###
 
