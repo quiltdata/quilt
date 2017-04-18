@@ -2,7 +2,7 @@
 API routes.
 """
 
-from datetime import timedelta
+from datetime import timedelta, timezone
 from functools import wraps
 import json
 
@@ -227,6 +227,12 @@ def _get_package(auth_user, owner, package_name):
         raise PackageNotFoundException(owner, package_name, auth_user is not PUBLIC)
     return package
 
+def _utc_datetime_to_ts(dt):
+    """
+    Convert a UTC datetime object to a UNIX timestamp.
+    """
+    return dt.replace(tzinfo=timezone.utc).timestamp()
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
@@ -403,9 +409,9 @@ def package_get(auth_user, owner, package_name, package_hash):
         contents=contents,
         urls=urls,
         created_by=instance.created_by,
-        created_at=instance.created_at,
+        created_at=_utc_datetime_to_ts(instance.created_at),
         updated_by=instance.updated_by,
-        updated_at=instance.updated_at,
+        updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -455,7 +461,7 @@ def logs_list(auth_user, owner, package_name):
     return dict(
         logs=[dict(
             hash=instance.hash,
-            created=log.created,
+            created=_utc_datetime_to_ts(log.created),
             author=log.author
         ) for log, instance in logs]
     )
@@ -551,9 +557,9 @@ def version_get(auth_user, owner, package_name, package_version):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_at=instance.created_at,
+        created_at=_utc_datetime_to_ts(instance.created_at),
         updated_by=instance.updated_by,
-        updated_at=instance.updated_at,
+        updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
@@ -665,9 +671,9 @@ def tag_get(auth_user, owner, package_name, package_tag):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_at=instance.created_at,
+        created_at=_utc_datetime_to_ts(instance.created_at),
         updated_by=instance.updated_by,
-        updated_at=instance.updated_at,
+        updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
