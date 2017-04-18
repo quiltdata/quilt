@@ -11,7 +11,6 @@ from flask import abort, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 from jsonschema import Draft4Validator, ValidationError
-from mixpanel import Mixpanel
 from oauthlib.oauth2 import OAuth2Error
 import requests
 from requests_oauthlib import OAuth2Session
@@ -20,6 +19,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 
 from . import app, db
+from .analytics import MIXPANEL_EVENT, mp
 from .const import PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents
 from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
@@ -44,11 +44,6 @@ S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
-
-MIXPANEL_EVENT = 'SERVER'
-
-# TODO(dima): Use an async consumer.
-mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'])
 
 
 ### Web routes ###
