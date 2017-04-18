@@ -6,6 +6,7 @@ Command line parsing and command dispatch
 from __future__ import print_function
 from builtins import input
 import argparse
+from datetime import datetime
 import json
 import os
 import stat
@@ -203,10 +204,11 @@ def log(session, package):
 
     format_str = "%-64s %-19s %s"
 
-    print(format_str % ("Hash", "Created", "Author"))
-    for entry in response.json()['logs']:
-        # TODO: convert "created" to local time.
-        print(format_str % (entry['hash'], entry['created'], entry['author']))
+    print(format_str % ("Hash", "Pushed", "Author"))
+    for entry in reversed(response.json()['logs']):
+        ugly = datetime.fromtimestamp(entry['created'])
+        nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
+        print(format_str % (entry['hash'], nice, entry['author']))
 
 def push(session, package):
     """
