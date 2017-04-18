@@ -50,7 +50,7 @@ class PackageNode(object):
     def __repr__(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         pinfo = self._prefix
-        kinfo = '\n'.join(self._keys()) if hasattr(self, '_keys') else ''
+        kinfo = '\n'.join(self._keys()) if isinstance(self, GroupNode) else ''
         return "<%s %r:%r>\n%s" % (self.__class__.__name__, finfo, pinfo, kinfo)
 
 
