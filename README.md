@@ -62,7 +62,7 @@ Let's see what's in the `wine` package:
 >>> wine.quality.red._keys()
 []
 >>> wine.quality.red
-<LeafNode '/home/dima/quilt_packages/examples/wine' '/quality/red'>
+<DataNode '/home/dima/quilt_packages/examples/wine' '/quality/red'>
 >>> type(wine.quality.red())
 <class 'pandas.core.frame.DataFrame'>
 >>> wine.quality.red()
