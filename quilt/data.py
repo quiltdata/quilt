@@ -50,8 +50,7 @@ class PackageNode(object):
     def __repr__(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         pinfo = self._prefix
-        kinfo = '\n'.join(self._keys()) if isinstance(self, GroupNode) else ''
-        return "<%s %r:%r>\n%s" % (self.__class__.__name__, finfo, pinfo, kinfo)
+        return "<%s %r:%r>" % (self.__class__.__name__, finfo, pinfo)
 
 
 class GroupNode(PackageNode):
@@ -72,6 +71,11 @@ class GroupNode(PackageNode):
     def __dir__(self):
         # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
         return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
+
+    def __repr__(self):
+        pinfo = super(GroupNode, self).__repr__()
+        kinfo = '\n'.join(self._keys())
+        return "%s\n%s" % (pinfo, kinfo)
 
     def _data_keys(self):
         """
