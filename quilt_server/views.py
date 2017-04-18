@@ -11,6 +11,7 @@ from flask import abort, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 from jsonschema import Draft4Validator, ValidationError
+from mixpanel import Mixpanel
 from oauthlib.oauth2 import OAuth2Error
 import requests
 from requests_oauthlib import OAuth2Session
@@ -43,6 +44,11 @@ S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
+
+MIXPANEL_EVENT = 'SERVER'
+
+# TODO(dima): Use an async consumer.
+mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'])
 
 
 ### Web routes ###
@@ -148,6 +154,12 @@ def handle_api_exception(error):
     """
     Converts an API exception into an error response.
     """
+    mp.track(None, MIXPANEL_EVENT, dict(
+        type="exception",
+        status_code=error.status_code,
+        message=error.message,
+    ))
+
     response = jsonify(dict(
         message=error.message
     ))
@@ -335,6 +347,12 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     db.session.commit()
 
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="push",
+        package_owner=owner,
+        package_name=package_name,
+    ))
+
     return dict(
         upload_urls=upload_urls
     )
@@ -374,6 +392,12 @@ def package_get(auth_user, owner, package_name, package_hash):
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
+
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="install",
+        package_owner=owner,
+        package_name=package_name,
+    ))
 
     return dict(
         contents=contents,
@@ -517,6 +541,13 @@ def version_get(auth_user, owner, package_name, package_version):
             "Version %s does not exist" % package_version
         )
 
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="version_get",
+        package_owner=owner,
+        package_name=package_name,
+        package_version=package_version,
+    ))
+
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
@@ -623,6 +654,13 @@ def tag_get(auth_user, owner, package_name, package_tag):
             requests.codes.not_found,
             "Tag %r does not exist" % package_tag
         )
+
+    mp.track(auth_user, MIXPANEL_EVENT, dict(
+        type="tag_get",
+        package_owner=owner,
+        package_name=package_name,
+        package_tag=package_tag,
+    ))
 
     return dict(
         hash=instance.hash,
