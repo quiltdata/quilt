@@ -7,7 +7,7 @@ import os
 from pandas.core.frame import DataFrame
 from six import string_types
 
-from quilt.data import GroupNode, LeafNode
+from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from .utils import QuiltTestCase
@@ -28,15 +28,15 @@ class ImportTest(QuiltTestCase):
 
         assert isinstance(package, GroupNode)
         assert isinstance(dataframes, GroupNode)
-        assert isinstance(dataframes.csv, LeafNode)
-        assert isinstance(README, LeafNode)
+        assert isinstance(dataframes.csv, DataNode)
+        assert isinstance(README, DataNode)
 
         assert package.dataframes == dataframes
         assert package.README == README
 
         assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._leaf_keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README.data(), string_types)

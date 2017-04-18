@@ -50,7 +50,8 @@ class PackageNode(object):
     def __repr__(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         pinfo = self._prefix
-        return "<%s %r %r>" % (self.__class__.__name__, finfo, pinfo)
+        kinfo = '\n'.join(self._keys()) if hasattr(self, '_keys') else ''
+        return "<%s %r:%r>\n%s" % (self.__class__.__name__, finfo, pinfo, kinfo)
 
 
 class GroupNode(PackageNode):
@@ -72,7 +73,7 @@ class GroupNode(PackageNode):
         # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
         return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
 
-    def _leaf_keys(self):
+    def _data_keys(self):
         """
         every child key referencing a dataframe
         """
@@ -95,7 +96,7 @@ class GroupNode(PackageNode):
         return list(self._node.children)
 
 
-class LeafNode(PackageNode):
+class DataNode(PackageNode):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
@@ -116,7 +117,7 @@ def create_node(package, prefix=''):
     if isinstance(node, CoreGroupNode):
         return GroupNode(package, prefix, node)
     else:
-        return LeafNode(package, prefix, node)
+        return DataNode(package, prefix, node)
 
 
 class FakeLoader(object):
