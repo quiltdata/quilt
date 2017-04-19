@@ -149,6 +149,10 @@ def handle_api_exception(error):
     """
     Converts an API exception into an error response.
     """
+    # TODO inject `time` property into all events; else we'll just get
+    # Mixpanel server arrival times
+    # TODO abstract track() calls so that we can swap out analytics providers,
+    # validate event types, inject time, etc. in one place
     mp.track(None, MIXPANEL_EVENT, dict(
         type="exception",
         status_code=error.status_code,
@@ -350,6 +354,7 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     mp.track(auth_user, MIXPANEL_EVENT, dict(
         type="push",
+        user=auth_user,
         package_owner=owner,
         package_name=package_name,
     ))
@@ -396,6 +401,7 @@ def package_get(auth_user, owner, package_name, package_hash):
 
     mp.track(auth_user, MIXPANEL_EVENT, dict(
         type="install",
+        user=auth_user,
         package_owner=owner,
         package_name=package_name,
     ))
@@ -543,7 +549,8 @@ def version_get(auth_user, owner, package_name, package_version):
         )
 
     mp.track(auth_user, MIXPANEL_EVENT, dict(
-        type="version_get",
+        type="get_hash",
+        user=auth_user,
         package_owner=owner,
         package_name=package_name,
         package_version=package_version,
@@ -657,7 +664,8 @@ def tag_get(auth_user, owner, package_name, package_tag):
         )
 
     mp.track(auth_user, MIXPANEL_EVENT, dict(
-        type="tag_get",
+        type="get_hash",
+        user=auth_user,
         package_owner=owner,
         package_name=package_name,
         package_tag=package_tag,
