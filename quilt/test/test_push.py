@@ -5,7 +5,6 @@ Tests for the push command.
 import json
 import os
 
-import requests
 import responses
 
 from quilt.tools import command, store
@@ -45,8 +44,7 @@ class PushTest(QuiltTestCase):
         self._mock_put_package('foo/bar', pkg_hash, contents)
         self._mock_put_tag('foo/bar', 'latest')
 
-        session = requests.Session()
-        command.push(session, 'foo/bar')
+        command.push('foo/bar')
 
     def _mock_put_package(self, package, pkg_hash, contents):
         pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)

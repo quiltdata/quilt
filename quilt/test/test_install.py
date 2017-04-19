@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 
-import requests
 import responses
 from six import assertRaisesRegex
 
@@ -47,8 +46,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        session = requests.Session()
-        command.install(session, 'foo/bar')
+        command.install('foo/bar')
 
         with open('quilt_packages/foo/bar.json') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -81,9 +79,8 @@ class InstallTest(QuiltTestCase):
         self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
-        session = requests.Session()
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
-            command.install(session, 'foo/bar')
+            command.install('foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
 
@@ -106,9 +103,8 @@ class InstallTest(QuiltTestCase):
         self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
-        session = requests.Session()
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
-            command.install(session, 'foo/bar')
+            command.install('foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
 
