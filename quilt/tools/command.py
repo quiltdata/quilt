@@ -543,14 +543,11 @@ def inspect(package):
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
-            fullname = "/".join([path, name])
-            node = pkgobj.get(fullname)
             df = pkgobj.get_obj(node)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
         elif isinstance(node, FileNode):
-            fullname = "/".join([path, name])
             print(prefix + name_prefix + name)
         else:
             assert False, "node=%s type=%s" % (node, type(node))
