@@ -171,7 +171,19 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path, directory=None, generate=None):
+def generate(directory):
+    """
+    Generate a build-file for quilt build from a directory of
+    source files.
+    """
+    try:
+        buildfilepath = generate_build_file(directory)
+    except BuildException as builderror:
+        raise CommandException(str(builderror))
+
+    print("Generated build-file %s." % (buildfilepath))
+
+def build(package, path, directory=None):
     """
     Compile a Quilt data package
     """
@@ -179,9 +191,6 @@ def build(package, path, directory=None, generate=None):
     if directory:
         buildfilepath = generate_build_file(directory)
         buildpath = buildfilepath
-    elif generate:
-        generate_build_file(generate)
-        buildpath = None
     else:
         buildpath = path
 
@@ -583,11 +592,14 @@ def main():
     log_p.add_argument("package", type=str, help="Owner/Package Name")
     log_p.set_defaults(func=log)
 
+    generate_p = subparsers.add_parser("generate")
+    generate_p.add_argument("directory", help="Source file directory")
+    generate_p.set_defaults(func=generate, need_session=False)
+
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
     buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("-d", "--directory", type=str, help="Source file directory")
-    buildpath_group.add_argument("-g", "--generate", type=str, help="Source file directory")
+    buildpath_group.add_argument("-a", "--auto", type=str, help="Source file directory")
     buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
     build_p.set_defaults(func=build, need_session=False)
 

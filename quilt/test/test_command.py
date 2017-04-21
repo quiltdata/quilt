@@ -161,7 +161,7 @@ class CommandTest(QuiltTestCase):
         buildfilepath = os.path.join(path, 'build.yml')
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         try:
-            command.build('foo/bar', None, generate=path)
+            command.generate(path)
             assert os.path.exists(buildfilepath), "failed to create %s" % buildfilepath
         finally:
             os.remove(buildfilepath)

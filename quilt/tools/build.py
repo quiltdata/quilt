@@ -50,7 +50,8 @@ def _build_node(build_dir, package, name, node, target='pandas'):
         ID = 'id'
         if transform:
             if (transform not in TARGET[target]) and (transform != ID):
-                raise BuildException("Unknown transform '%s' for %s @ %s" % (transform, rel_path, target))
+                raise BuildException("Unknown transform '%s' for %s @ %s" %
+                                     (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
             ext = ext.lower()
@@ -179,7 +180,7 @@ def generate_build_file(startpath, outfilename='build.yml'):
         contents = {}
 
         for name in os.listdir(dir_path):
-            if name.startswith('.') or name == PACKAGE_DIR_NAME:
+            if name.startswith('.') or name == PACKAGE_DIR_NAME or name == outfilename:
                 continue
 
             path = os.path.join(dir_path, name)
@@ -207,10 +208,14 @@ def generate_build_file(startpath, outfilename='build.yml'):
 
         return contents
 
+    buildfilepath = os.path.join(startpath, outfilename)
+    if os.path.exists(buildfilepath):
+        raise BuildException("Build file %s already exists." % buildfilepath)
+
     contents = dict(
         contents=_generate_contents(startpath)
     )
-    buildfilepath = os.path.join(startpath, outfilename)
+
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
     return buildfilepath
