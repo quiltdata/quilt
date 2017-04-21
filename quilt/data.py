@@ -18,8 +18,9 @@ import imp
 import os.path
 import sys
 
+from six import iteritems
+
 from .tools.core import GroupNode as CoreGroupNode
-from .tools.package import PackageException
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
@@ -57,20 +58,17 @@ class GroupNode(PackageNode):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
     """
-    def __getattr__(self, name):
-        # TODO clean if... up since VALID_NAME_RE no longer allows leading _
-        if name.startswith('_'):
-            raise AttributeError
-        path = self._prefix + '/' + name
+    def __init__(self, package, prefix, node):
+        super(GroupNode, self).__init__(package, prefix, node)
 
-        try:
-            return create_node(self._package, path)
-        except PackageException:
-            raise AttributeError("No such table or group: %s" % path)
-
-    def __dir__(self):
-        # https://mail.python.org/pipermail/python-ideas/2011-May/010321.html
-        return sorted(set((dir(type(self)) + list(self.__dict__) + self._keys())))
+        for name, child_node in iteritems(node.children):
+            assert not name.startswith('_')
+            child_prefix = prefix + '/' + name
+            if isinstance(child_node, CoreGroupNode):
+                child = GroupNode(package, child_prefix, child_node)
+            else:
+                child = DataNode(package, child_prefix, child_node)
+            setattr(self, name, child)
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
@@ -81,17 +79,15 @@ class GroupNode(PackageNode):
         """
         every child key referencing a dataframe
         """
-        pref = self._prefix + '/'
-        return [k for k in self._keys()
-                if not isinstance(self._package.get(pref + k), CoreGroupNode)]
+        return [name for name, node in iteritems(self._node.children)
+                if not isinstance(node, CoreGroupNode)]
 
     def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
-        pref = self._prefix + '/'
-        return [k for k in self._keys()
-                if isinstance(self._package.get(pref + k), CoreGroupNode)]
+        return [name for name, node in iteritems(self._node.children)
+                if isinstance(node, CoreGroupNode)]
 
     def _keys(self):
         """
@@ -112,16 +108,6 @@ class DataNode(PackageNode):
         Returns the contents of the node: a dataframe or a file path.
         """
         return self._package.get_obj(self._node)
-
-
-def create_node(package, prefix=''):
-    assert not prefix.endswith('/')
-    node = package.get(prefix)
-
-    if isinstance(node, CoreGroupNode):
-        return GroupNode(package, prefix, node)
-    else:
-        return DataNode(package, prefix, node)
 
 
 class FakeLoader(object):
@@ -161,7 +147,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = create_node(self._package)
+        mod = GroupNode(self._package, '', self._package.get_contents())
         sys.modules[fullname] = mod
         return mod
 
