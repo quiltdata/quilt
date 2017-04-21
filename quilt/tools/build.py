@@ -168,8 +168,14 @@ def splitext_no_dot(filename):
     without the '.' (e.g., csv instead of .csv)
     """
     name, ext = os.path.splitext(filename)
-    ext.strip('.')
+    ext = ext.lower()
     return name, ext.strip('.')
+
+def _nodename(name, target='pandas'):
+    nodename, ext = splitext_no_dot(name)
+    if ext not in TARGET[target]:
+        nodename = "{node}_{ext}".format(node=nodename, ext=ext)
+    return _pythonize_name(nodename)
 
 def generate_build_file(startpath, outfilename='build.yml'):
     """
@@ -184,20 +190,16 @@ def generate_build_file(startpath, outfilename='build.yml'):
                 continue
 
             path = os.path.join(dir_path, name)
-
             if os.path.isdir(path):
-                nodename = name
                 data = _generate_contents(path)
             elif os.path.isfile(path):
-                nodename, ext = splitext_no_dot(name)
-                ext = ext.lower()
                 rel_path = os.path.relpath(path, startpath)
                 data = dict(file=rel_path)
             else:
                 continue
 
             try:
-                safename = _pythonize_name(nodename)
+                safename = _nodename(name)
                 if safename in contents:
                     print("Warning: duplicate name %r in %s." % (safename, dir_path))
                     continue
