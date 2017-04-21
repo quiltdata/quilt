@@ -54,7 +54,6 @@ def _build_node(build_dir, package, name, node, target='pandas'):
                                      (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
-            ext = ext.lower()
             if ext in TARGET[target]:
                 transform = ext
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
@@ -168,6 +167,7 @@ def splitext_no_dot(filename):
     without the '.' (e.g., csv instead of .csv)
     """
     name, ext = os.path.splitext(filename)
+    ext = ext.lower()
     ext.strip('.')
     return name, ext.strip('.')
 
@@ -187,10 +187,10 @@ def generate_build_file(startpath, outfilename='build.yml'):
 
             if os.path.isdir(path):
                 nodename = name
+                ext = None
                 data = _generate_contents(path)
             elif os.path.isfile(path):
                 nodename, ext = splitext_no_dot(name)
-                ext = ext.lower()
                 rel_path = os.path.relpath(path, startpath)
                 data = dict(file=rel_path)
             else:
@@ -199,8 +199,11 @@ def generate_build_file(startpath, outfilename='build.yml'):
             try:
                 safename = _pythonize_name(nodename)
                 if safename in contents:
-                    print("Warning: duplicate name %r in %s." % (safename, dir_path))
-                    continue
+                    if ext:
+                        safename = "{name}_{ext}".format(name=safename, ext=ext)
+                    else:
+                        print("Warning: duplicate name %r in %s." % (safename, dir_path))
+                        continue
                 contents[safename] = data
             except BuildException:
                 warning = "Warning: could not determine a Python-legal name for {path}; skipping."
