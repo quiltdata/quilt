@@ -5,12 +5,10 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input
-import argparse
 from datetime import datetime
 import json
 import os
 import stat
-import sys
 import time
 import webbrowser
 
@@ -80,7 +78,7 @@ def _handle_response(resp, **kwargs):
         except ValueError:
             raise CommandException("Unexpected failure: error %s" % resp.status_code)
 
-def create_session():
+def _create_session():
     """
     Creates a session object to be used for `push`, `install`, etc.
 
@@ -118,6 +116,18 @@ def create_session():
         session.headers["Authorization"] = "Bearer %s" % auth['access_token']
 
     return session
+
+_session = None
+
+def _get_session():
+    """
+    Creates a session or returns an existing session.
+    """
+    global _session
+    if _session is None:
+        _session = _create_session()
+
+    return _session
 
 def _parse_package(name):
     try:
@@ -203,11 +213,12 @@ def build(package, path, auto=None):
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-def log(session, package):
+def log(package):
     """
     List all of the changes to a package on the server.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
@@ -225,11 +236,12 @@ def log(session, package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(session, package):
+def push(package):
     """
     Push a Quilt data package to the server
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
@@ -285,11 +297,12 @@ def push(session, package):
     url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
     print("Push complete. Your package is live:\n%s" % url)
 
-def version_list(session, package):
+def version_list(package):
     """
     List the versions of a package.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     response = session.get(
         "{url}/api/version/{owner}/{pkg}/".format(
@@ -302,7 +315,7 @@ def version_list(session, package):
     for version in response.json()['versions']:
         print("%s: %s" % (version['version'], version['hash']))
 
-def version_add(session, package, version, pkghash):
+def version_add(package, version, pkghash):
     """
     Add a new version for a given package hash.
 
@@ -310,6 +323,7 @@ def version_add(session, package, version, pkghash):
     Versions are permanent - once created, they cannot be modified or deleted.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     try:
         Version(version)
@@ -335,11 +349,12 @@ def version_add(session, package, version, pkghash):
         ))
     )
 
-def tag_list(session, package):
+def tag_list(package):
     """
     List the tags of a package.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     response = session.get(
         "{url}/api/tag/{owner}/{pkg}/".format(
@@ -352,7 +367,7 @@ def tag_list(session, package):
     for tag in response.json()['tags']:
         print("%s: %s" % (tag['tag'], tag['hash']))
 
-def tag_add(session, package, tag, pkghash):
+def tag_add(package, tag, pkghash):
     """
     Add a new tag for a given package hash.
 
@@ -362,6 +377,7 @@ def tag_add(session, package, tag, pkghash):
     When a package is pushed, it gets the "latest" tag.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     session.put(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
@@ -375,11 +391,12 @@ def tag_add(session, package, tag, pkghash):
         ))
     )
 
-def tag_remove(session, package, tag):
+def tag_remove(package, tag):
     """
     Delete a tag.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     session.delete(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
@@ -390,7 +407,7 @@ def tag_remove(session, package, tag):
         )
     )
 
-def install(session, package, hash=None, version=None, tag=None):
+def install(package, hash=None, version=None, tag=None):
     """
     Download a Quilt data package from the server and install locally.
 
@@ -403,6 +420,7 @@ def install(session, package, hash=None, version=None, tag=None):
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg = _parse_package(package)
+    session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
 
@@ -489,11 +507,12 @@ def install(session, package, hash=None, version=None, tag=None):
 
     pkgobj.save_contents()
 
-def access_list(session, package):
+def access_list(package):
     """
     Print list of users who can access a package.
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=QUILT_PKG_URL, owner=owner, pkg=pkg)
     response = session.get(lookup_url)
@@ -503,19 +522,21 @@ def access_list(session, package):
 
     print('\n'.join(users))
 
-def access_add(session, package, user):
+def access_add(package, user):
     """
     Add access
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
-def access_remove(session, package, user):
+def access_remove(package, user):
     """
     Remove access
     """
     owner, pkg = _parse_package(package)
+    session = _get_session()
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
@@ -558,144 +579,14 @@ def inspect(package):
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
-            fullname = "/".join([path, name])
-            node = pkgobj.get(fullname)
             df = pkgobj.get_obj(node)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
         elif isinstance(node, FileNode):
-            fullname = "/".join([path, name])
             print(prefix + name_prefix + name)
         else:
             assert False, "node=%s type=%s" % (node, type(node))
 
     print(pkgobj.get_path())
     _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
-
-def main():
-    """
-    Build and run parser
-    """
-    parser = argparse.ArgumentParser(description="Quilt Command Line")
-    parser.set_defaults(need_session=True)
-    subparsers = parser.add_subparsers(title="Commands", dest='cmd')
-    subparsers.required = True
-
-    login_p = subparsers.add_parser("login")
-    login_p.set_defaults(func=login, need_session=False)
-
-    logout_p = subparsers.add_parser("logout")
-    logout_p.set_defaults(func=logout, need_session=False)
-
-    log_p = subparsers.add_parser("log")
-    log_p.add_argument("package", type=str, help="Owner/Package Name")
-    log_p.set_defaults(func=log)
-
-    generate_p = subparsers.add_parser("generate")
-    generate_p.add_argument("directory", help="Source file directory")
-    generate_p.set_defaults(func=generate, need_session=False)
-
-    build_p = subparsers.add_parser("build")
-    build_p.add_argument("package", type=str, help="Owner/Package Name")
-    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("-a", "--auto", type=str, help="Source file directory")
-    buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
-    build_p.set_defaults(func=build, need_session=False)
-
-    push_p = subparsers.add_parser("push")
-    push_p.add_argument("package", type=str, help="Owner/Package Name")
-    push_p.set_defaults(func=push)
-
-    push_p = subparsers.add_parser("push")
-    push_p.add_argument("package", type=str, help="Owner/Package Name")
-    push_p.set_defaults(func=push)
-
-    version_p = subparsers.add_parser("version")
-    version_subparsers = version_p.add_subparsers(title="version", dest='cmd')
-    version_subparsers.required = True
-
-    version_list_p = version_subparsers.add_parser("list")
-    version_list_p.add_argument("package", type=str, help="Owner/Package Name")
-    version_list_p.set_defaults(func=version_list)
-
-    version_add_p = version_subparsers.add_parser("add")
-    version_add_p.add_argument("package", type=str, help="Owner/Package Name")
-    version_add_p.add_argument("version", type=str, help="Version")
-    version_add_p.add_argument("pkghash", type=str, help="Package hash")
-    version_add_p.set_defaults(func=version_add)
-
-    tag_p = subparsers.add_parser("tag")
-    tag_subparsers = tag_p.add_subparsers(title="Tag", dest='cmd')
-    tag_subparsers.required = True
-
-    tag_list_p = tag_subparsers.add_parser("list")
-    tag_list_p.add_argument("package", type=str, help="Owner/Package Name")
-    tag_list_p.set_defaults(func=tag_list)
-
-    tag_add_p = tag_subparsers.add_parser("add")
-    tag_add_p.add_argument("package", type=str, help="Owner/Package Name")
-    tag_add_p.add_argument("tag", type=str, help="Tag name")
-    tag_add_p.add_argument("pkghash", type=str, help="Package hash")
-    tag_add_p.set_defaults(func=tag_add)
-
-    tag_remove_p = tag_subparsers.add_parser("remove")
-    tag_remove_p.add_argument("package", type=str, help="Owner/Package Name")
-    tag_remove_p.add_argument("tag", type=str, help="Tag name")
-    tag_remove_p.set_defaults(func=tag_remove)
-
-    install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help="Owner/Package Name")
-    install_p.set_defaults(func=install)
-    install_group = install_p.add_mutually_exclusive_group()
-    install_group.add_argument("-x", "--hash", type=str, help="Package hash")
-    install_group.add_argument("-v", "--version", type=str, help="Package version")
-    install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
-
-    access_p = subparsers.add_parser("access")
-    access_subparsers = access_p.add_subparsers(title="Access", dest='cmd')
-    access_subparsers.required = True
-
-    access_list_p = access_subparsers.add_parser("list")
-    access_list_p.add_argument("package", type=str, help="Owner/Package Name")
-    access_list_p.set_defaults(func=access_list)
-
-    access_add_p = access_subparsers.add_parser("add")
-    access_add_p.add_argument("package", type=str, help="Owner/Package Name")
-    access_add_p.add_argument("user", type=str, help="User to add")
-    access_add_p.set_defaults(func=access_add)
-
-    access_remove_p = access_subparsers.add_parser("remove")
-    access_remove_p.add_argument("package", type=str, help="Owner/Package Name")
-    access_remove_p.add_argument("user", type=str, help="User to remove")
-    access_remove_p.set_defaults(func=access_remove)
-
-    ls_p = subparsers.add_parser("ls")
-    ls_p.set_defaults(func=ls, need_session=False)
-
-    inspect_p = subparsers.add_parser("inspect")
-    inspect_p.add_argument("package", type=str, help="Owner/Package Name")
-    inspect_p.set_defaults(func=inspect, need_session=False)
-
-    args = parser.parse_args()
-
-    # Convert argparse.Namespace into dict and clean it up.
-    # We can then pass it directly to the helper function.
-    kwargs = vars(args)
-    del kwargs['cmd']
-
-    func = kwargs.pop('func')
-
-    try:
-        # Create a session if needed.
-        if kwargs.pop('need_session'):
-            kwargs['session'] = create_session()
-
-        func(**kwargs)
-        return 0
-    except CommandException as ex:
-        print(ex, file=sys.stderr)
-        return 1
-    except requests.exceptions.ConnectionError as ex:
-        print("Failed to connect: %s" % ex, file=sys.stderr)
-        return 1

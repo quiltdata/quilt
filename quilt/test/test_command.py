@@ -7,7 +7,6 @@ import os
 import time
 
 import pytest
-import requests
 import responses
 
 from six import assertRaisesRegex
@@ -17,20 +16,16 @@ from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
     def test_push_invalid_package(self):
-        session = requests.Session()
-
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
-            command.push(session=session, package="no_user")
+            command.push(package="no_user")
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
-            command.push(session=session, package="a/b/c")
+            command.push(package="a/b/c")
 
     def test_install_invalid_package(self):
-        session = requests.Session()
-
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
-            command.install(session=session, package="no_user")
+            command.install(package="no_user")
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
-            command.install(session=session, package="a/b/c")
+            command.install(package="a/b/c")
 
     def test_inspect_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
@@ -39,10 +34,8 @@ class CommandTest(QuiltTestCase):
             command.inspect(package="a/b/c")
 
     def test_push_missing_package(self):
-        session = requests.Session()
-
         with assertRaisesRegex(self, command.CommandException, "not found"):
-            command.push(session=session, package="owner/package")
+            command.push(package="owner/package")
 
     def test_inspect_missing_package(self):
         with assertRaisesRegex(self, command.CommandException, "not found"):
@@ -143,8 +136,7 @@ class CommandTest(QuiltTestCase):
         pkg_obj = store.PackageStore.find_package(owner, package)
         self._mock_logs_list(owner, package, pkg_obj.get_hash())
 
-        session = requests.Session()
-        command.log(session, "{owner}/{pkg}".format(owner=owner, pkg=package))
+        command.log("{owner}/{pkg}".format(owner=owner, pkg=package))
 
     def _mock_logs_list(self, owner, package, pkg_hash):
         logs_url = "%s/api/log/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
