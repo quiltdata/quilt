@@ -189,19 +189,18 @@ def build(package, path, directory=None):
     """
     owner, pkg = _parse_package(package)
     if directory:
-        buildfilepath = generate_build_file(directory)
-        buildpath = buildfilepath
+        try:
+            buildpath = generate_build_file(directory)
+        except BuildException as builderror:
+            raise CommandException(str(builderror))
     else:
         buildpath = path
 
-    if buildpath is not None:
-        try:
-            build_package(owner, pkg, buildpath)
-            print("Built %s/%s successfully." % (owner, pkg))
-        except BuildException as ex:
-            raise CommandException("Failed to build the package: %s" % ex)
-    else:
-        assert generate is not None
+    try:
+        build_package(owner, pkg, buildpath)
+        print("Built %s/%s successfully." % (owner, pkg))
+    except BuildException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
 
 def log(session, package):
     """
