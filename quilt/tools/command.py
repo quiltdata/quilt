@@ -183,11 +183,12 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path, directory=None):
+def build(package, path, auto=None):
     """
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
+    directory = auto
     if directory:
         try:
             buildpath = generate_build_file(directory)
