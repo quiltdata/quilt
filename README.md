@@ -1,13 +1,15 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
 # Package and version data 
-Quilt is a data package manager. (Like `pip` or `npm`, but for serialized data.)
-
+Quilt is a data package manager (like `pip` or `npm`, but for serialized data).
 Quilt consists of a client-side data compiler (this repository) and a
 [server-side registry](https://quiltdata.com), where packages are stored.
 
-Data packages are *built* locally, *pushed* to a server-side registry, *installed* from the
-registry, and *imported* into code.
+## Overview of commands
+* **build** to create a package from files
+* **push** a package to store it in the registry
+* **install** a package to download it locally
+* **import** packages to use them in code
 
 ## Future
 Quilt currently supports Python. Spark and R support are in the works.
