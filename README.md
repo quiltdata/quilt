@@ -50,10 +50,10 @@ If you encounter missing HDF5 libraries, try the following:
   - If necessary, install [Homebrew](https://brew.sh/)
   - `brew update`
   - `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
-  - Find your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
-  - `export HDF5_DIR=YOUR_HDF5_DIRECTORY` (add this line to your `.bash_profile`)
+  - Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
+  - `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
 - Linux:
-  - sudo `apt-get install libhdf5-serial-dev`
+  - `sudo apt-get install libhdf5-serial-dev`
 
 # Build.yml options
 ``` yaml
