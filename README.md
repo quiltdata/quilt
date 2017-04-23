@@ -41,7 +41,7 @@ Pytables has trouble with HDF5 dependencies. Try the following:
 ``` yaml
   contents:
     NAME:
-      file; PATH_TO_FILE
+      file: PATH_TO_FILE
       transform: {id, csv, xls, tsv}
       sep="\t" # tab separated values
       # or any key-word argument to [pandas.read_csv](http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
