@@ -42,7 +42,7 @@ before_install:
   # see also: https://github.com/travis-ci/apt-package-whitelist/issues/416
   # right now this looks like the best HDF5 bet
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libhdf5-serial-dev; fi
-  - python --version
+  - echo $(python --version)
 
 install:
   - pip install .
