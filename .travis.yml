@@ -33,8 +33,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libhdf5-serial-dev; fi
 
 install:
-  # OSX needs this line
-  - pip install -r requirements.txt
+  - python setup.py install
 
 # extremely slow and fails pytest
 # install:
