@@ -1,12 +1,15 @@
-# Quilt is a data package manager
-Package, serialize, and version data with Quilt.
+[![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
-Quilt consists of a client-side data compiler (this repository) and a 
+# Package, serialize, and version data with Quilt.
+Quilt is a data package manager.
+Quilt consists of a client-side data compiler (this repository) and a
 [server-side registry](https://quiltdata.com).
 
-To learn more:
-* Tutorial: [Data packages](https://blog.quilt.data.com)
-* Motivation: [Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
+# Tutorial
+[Data packages](https://blog.quiltdata.com)
+
+# Motivation
+[Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
 # Command summary
 * `quilt -h` for a list of commands
@@ -17,11 +20,13 @@ To learn more:
 * `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to set access
+  * `quilt access add public` makes a package visible to the world
 * `quilt log USER/PACKAGE` to see all changes to a package
 * `quilt version list USER/PACKAGE` to see versions of a package
 * `quilt version add USER/PACKAGE VERSION HASH` to create a new version
 * `quilt tag list USER/PACKAGE` to see tags of a package
 * `quilt tag add USER/PACKAGE TAG HASH` to create a new tag
+  * The tag "latest" is automatically added to the most recent push
 * `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Known Issues
@@ -32,33 +37,16 @@ Pytables has trouble with HDF5 dependencies. Try the following:
   - Add to `.bash_profile`: `export HDF5_DIR="/usr/local/opt/hdf5@1.8/"`  
 - Linux: `sudo apt-get build-dep python-tables`
 
-# Version and track your packages
-
-## Tags
+# Build.yml options
+``` yaml
+  contents:
+    NAME:
+      file; PATH_TO_FILE
+      transform: {id, csv, xls, tsv}
+      sep="\t" # tab separated values
+      # or any key-word argument to [pandas.read_csv](http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
 ```
-quilt tag list USER/PACKAGE
-```
-`latest: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
-
-The tag `latest` is automatically added to the most recently pushed instance of a data package. To add a new tag, copy the package hash for the package instance you want to tag and run:
-```
-quilt tag add USER/PACKAGE NEW_TAG PKG_HASH
-```
-## Versions
-```
-quilt tag list USER/PACKAGE
-```
-`latest: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`  
-`newtag: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
-
-To create a new version, copy the package hash for the package instance you want to tag and run:
-```
-quilt version add USER/PACKAGE VERSION PKG_HASH
-quilt version list USER/PACKAGE
-```
-`0.0.1: 7f6ca2546aba49be878c7f407bb49ef9388c51be716360685bce2d2cdae4fcd1`
-
-# Serialization (via pandas)
+## Column types
 Supported Pandas column types (via dtype:)
 * int
 * bool
