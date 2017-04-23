@@ -43,9 +43,8 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/science/hdf5@1.8; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HDF5_DIR=$(brew --prefix homebrew/science/hdf5@1.8); fi
-  # libhdf5-dev doesn't work in spite of https://github.com/travis-ci/apt-package-whitelist/issues/416
+  # apt-get libhdf5-dev doesn't work in spite of https://github.com/travis-ci/apt-package-whitelist/issues/416
   # see also: https://github.com/travis-ci/apt-package-whitelist/issues/416
-  # hmm, i don't like this but let's see what happens
   # right now this looks like the best HDF5 bet
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libhdf5-serial-dev; fi
 
