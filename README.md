@@ -30,6 +30,9 @@ Quilt consists of a client-side data compiler (this repository) and a
 * `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Known Issues
+## Python 3.2
+Currently fails unit tests
+
 ## HDF5
 Pytables has trouble with HDF5 dependencies. Try the following:
 - Mac:

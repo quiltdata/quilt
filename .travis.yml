@@ -8,8 +8,8 @@ matrix:
       env: TOXENV=py27
     - os: linux
       sudo: required
-      python: 3.2
-      env: TOXENV=py32
+      python: 3.3
+      env: TOXENV=py33
     - os: linux
       sudo: required
       python: 3.6
@@ -17,6 +17,9 @@ matrix:
     - os: osx
       language: generic
       env: TOXENV=py27
+    - os: osx
+      language: generic
+      env: TOXENV=py33
     - os: osx
       language: generic
       env: TOXENV=py36
