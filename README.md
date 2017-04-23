@@ -1,9 +1,19 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
-# Package, serialize, and version data with Quilt.
-Quilt is a data package manager.
+# Package and version data 
+Quilt is a data package manager. (Like `pip` or `npm`, but for serialized data.)
+
 Quilt consists of a client-side data compiler (this repository) and a
-[server-side registry](https://quiltdata.com).
+[server-side registry](https://quiltdata.com), where packages are stored.
+
+Data packages are *built* locally, *pushed* to a server-side registry, *installed* from the
+registry, and *imported* into code.
+
+## Future
+Quilt currently supports Python. Spark and R support are in the works.
+
+## Questions
+Visit [quiltdata.com](https://quiltdata.com/) to chat with us. 
 
 # Tutorial
 [Data packages](https://blog.quiltdata.com)
@@ -11,7 +21,7 @@ Quilt consists of a client-side data compiler (this repository) and a
 # Motivation
 [Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
-# Command summary
+# Commands 
 * `quilt -h` for a list of commands
 * `quilt CMD -h` for info about a command
 * `quilt login`
@@ -30,25 +40,30 @@ Quilt consists of a client-side data compiler (this repository) and a
 * `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Known Issues
-## Python 3.2
-Currently fails unit tests
+## Python 3.2 is not supported
 
 ## HDF5
-Pytables has trouble with HDF5 dependencies. Try the following:
+If you encounter missing HDF5 libraries, try the following:
 - Mac:
-  - `brew install hdf5@1.8` (pytables currently doesn't work with 1.10)
-  - Add to `.bash_profile`: `export HDF5_DIR="/usr/local/opt/hdf5@1.8/"`  
-- Linux: `sudo apt-get build-dep python-tables`
+  - If necessary, install [Homebrew](https://brew.sh/)
+  - `brew update`
+  - `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
+  - Find your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
+  - `export HDF5_DIR=YOUR_HDF5_DIRECTORY` (add this line to your `.bash_profile`)
+- Linux:
+  - sudo `apt-get install libhdf5-serial-dev`
 
 # Build.yml options
 ``` yaml
-  contents:
-    NAME:
+contents:
+  GROUP_NAME:
+    DATA_NAME:
       file: PATH_TO_FILE
-      transform: {id, csv, xls, tsv}
+      transform: {id, csv, tsv, ssv, xls, xlsx}
       sep="\t" # tab separated values
       # or any key-word argument to [pandas.read_csv](http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
 ```
+
 ## Column types
 Supported Pandas column types (via dtype:)
 * int
