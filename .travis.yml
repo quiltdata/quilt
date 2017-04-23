@@ -33,7 +33,7 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libhdf5-serial-dev; fi
 
 install:
-  - pip install -e .
+  - pip install .
 
 # extremely slow and fails pytest
 # install:
