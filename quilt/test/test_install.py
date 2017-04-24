@@ -125,15 +125,3 @@ class InstallTest(QuiltTestCase):
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash
         self.requests_mock.add(responses.GET, s3_url, contents)
-
-# execute outside of mock scope so we get real network
-def test_prod_install():
-    # public package
-    command.install('akarve/days', force=True)
-    from quilt.data.akarve import days
-    df = days.names.data()
-    assert(df.loc[3]['Day'] == 'Wednesday')
-    # TODO clean up after this test b/c tests shouldn't have side-effects
-    # cleanup is non-trivial because there's no uninstall and it's overkill
-    # to blow away all of quilt_packages
-
