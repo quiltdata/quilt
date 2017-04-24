@@ -240,6 +240,7 @@ def _mp_track(auth_user, args):
     else:
         source = 'web'
 
+    # Set common attributes sent with each event. They can be overridden by `args`.
     all_args = dict(
         source=source
     )
