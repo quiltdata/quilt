@@ -80,6 +80,7 @@ def main():
     install_p = subparsers.add_parser("install")
     install_p.add_argument("package", type=str, help="Owner/Package Name")
     install_p.set_defaults(func=command.install)
+    install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
     install_group.add_argument("-x", "--hash", type=str, help="Package hash")
     install_group.add_argument("-v", "--version", type=str, help="Package version")

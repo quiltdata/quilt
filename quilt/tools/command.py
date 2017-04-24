@@ -392,7 +392,7 @@ def tag_remove(package, tag):
         )
     )
 
-def install(package, hash=None, version=None, tag=None):
+def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
 
@@ -410,10 +410,13 @@ def install(package, hash=None, version=None, tag=None):
     existing_pkg = store.get_package(owner, pkg)
 
     if existing_pkg is not None:
-        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-        overwrite = input("Overwrite? (y/n) ")
-        if overwrite.lower() != 'y':
-            return
+        if not force:
+          print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+          overwrite = input("Overwrite? (y/n) ")
+          if overwrite.lower() != 'y':
+              return
+        else:
+          pass
 
     if version is not None:
         response = session.get(
