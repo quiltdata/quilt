@@ -11,8 +11,8 @@ Quilt consists of a client-side data compiler (this repository) and a
 * **install** a package to download it locally
 * **import** packages to use them in code
 
-## Demo
-[Package, serialize, and version data (video)](https://youtu.be/tLdiDqtnnho)
+## Demo video
+[Package, serialize, and version data](https://youtu.be/tLdiDqtnnho)
 
 ## Future
 Quilt currently supports Python. Spark and R support are in the works.
