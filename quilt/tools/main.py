@@ -36,7 +36,6 @@ def main():
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
     buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("-a", "--auto", type=str, help="Source file directory")
     buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
     build_p.set_defaults(func=command.build)
 

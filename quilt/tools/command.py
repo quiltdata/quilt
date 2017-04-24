@@ -19,7 +19,7 @@ from six import iteritems
 from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
-from .const import LATEST_TAG
+from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, GroupNode, TableNode, FileNode,
                    decode_node, encode_node)
 from .hashing import digest_file
@@ -193,17 +193,22 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path, auto=None):
+def build(package, path):
     """
     Compile a Quilt data package
     """
+    if not os.path.exists(path):
+        raise CommandException("%s does not exist." % path)
+
     owner, pkg = _parse_package(package)
-    directory = auto
-    if directory:
-        try:
-            buildpath = generate_build_file(directory)
-        except BuildException as builderror:
-            raise CommandException(str(builderror))
+    if os.path.isdir(path):
+        buildpath = os.path.join(path, DEFAULT_BUILDFILE)
+        if not os.path.exists(buildpath):
+            try:
+                generated_buildfile = generate_build_file(path)
+                assert generated_buildfile == buildpath
+            except BuildException as builderror:
+                raise CommandException(str(builderror))
     else:
         buildpath = path
 
