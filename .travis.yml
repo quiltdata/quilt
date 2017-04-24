@@ -17,20 +17,15 @@ matrix:
     - os: linux
       sudo: required
       python: 3.6
+    # HACK this covers python 2.7
+    # TODO: be explicit
     - os: osx
       language: generic
-      env: TOXENV=py2
-    - os: osx
-      language: generic
-      env: TOXENV=py3
+
+# TODO: test multiple python versions on OSX https://github.com/travis-ci/travis-ci/issues/2312
 
 before_install:
   - pip install pytest
-  # tox for env management
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install tox; fi
-  # install python
-  - if [[ "$TOXENV" == "py2" ]]; then brew install python; fi
-  - if [[ "$TOXENV" == "py3" ]]; then brew install python3; fi
   # Install HDF5
   # travis_retry here because occasionally fails on high latency
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
@@ -46,6 +41,5 @@ install:
   - pip install .
 
 script:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tox -e $TOXENV; fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then pytest; fi
+  - pytest
 
