@@ -19,24 +19,18 @@ matrix:
       python: 3.6
     - os: osx
       language: generic
-      env: TOXENV=py27
+      env: TOXENV=py2
     - os: osx
       language: generic
-      env: TOXENV=py33
-    - os: osx
-      language: generic
-      env: TOXENV=py34
-    - os: osx
-      language: generic
-      env: TOXENV=py35
-    - os: osx
-      language: generic
-      env: TOXENV=py36
+      env: TOXENV=py3
 
 before_install:
   - pip install pytest
   # tox for env management
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install tox; fi
+  # install python
+  - if [[ "$TOXENV" == "py2" ]]; then brew install python; fi
+  - if [[ "$TOXENV" == "py3" ]]; then brew install python3; fi
   # Install HDF5
   # travis_retry here because occasionally fails on high latency
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
