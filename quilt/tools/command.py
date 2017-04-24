@@ -181,14 +181,29 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path, directory=None):
+def generate(directory):
+    """
+    Generate a build-file for quilt build from a directory of
+    source files.
+    """
+    try:
+        buildfilepath = generate_build_file(directory)
+    except BuildException as builderror:
+        raise CommandException(str(builderror))
+
+    print("Generated build-file %s." % (buildfilepath))
+
+def build(package, path, auto=None):
     """
     Compile a Quilt data package
     """
     owner, pkg = _parse_package(package)
+    directory = auto
     if directory:
-        buildfilepath = generate_build_file(directory)
-        buildpath = buildfilepath
+        try:
+            buildpath = generate_build_file(directory)
+        except BuildException as builderror:
+            raise CommandException(str(builderror))
     else:
         buildpath = path
 
