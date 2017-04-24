@@ -153,7 +153,7 @@ def handle_api_exception(error):
     # Mixpanel server arrival times
     # TODO abstract track() calls so that we can swap out analytics providers,
     # validate event types, inject time, etc. in one place
-    mp.track(None, MIXPANEL_EVENT, dict(
+    _mp_track(None, dict(
         type="exception",
         status_code=error.status_code,
         message=error.message,
@@ -231,6 +231,22 @@ def _utc_datetime_to_ts(dt):
     Convert a UTC datetime object to a UNIX timestamp.
     """
     return dt.replace(tzinfo=timezone.utc).timestamp()
+
+def _mp_track(auth_user, args):
+    user_agent = request.headers.get('user-agent', '')
+    # TODO(dima): Remove 'python-requests' once everyone upgrades the CLI.
+    if user_agent.startswith('python-requests/') or user_agent.startswith('quilt-cli/'):
+        source = 'cli'
+    else:
+        source = 'web'
+
+    # Set common attributes sent with each event. They can be overridden by `args`.
+    all_args = dict(
+        source=source
+    )
+    all_args.update(args)
+
+    mp.track(auth_user, MIXPANEL_EVENT, all_args)
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
@@ -352,7 +368,7 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     db.session.commit()
 
-    mp.track(auth_user, MIXPANEL_EVENT, dict(
+    _mp_track(auth_user, dict(
         type="push",
         user=auth_user,
         package_owner=owner,
@@ -399,7 +415,7 @@ def package_get(auth_user, owner, package_name, package_hash):
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
 
-    mp.track(auth_user, MIXPANEL_EVENT, dict(
+    _mp_track(auth_user, dict(
         type="install",
         user=auth_user,
         package_owner=owner,
@@ -548,7 +564,7 @@ def version_get(auth_user, owner, package_name, package_version):
             "Version %s does not exist" % package_version
         )
 
-    mp.track(auth_user, MIXPANEL_EVENT, dict(
+    _mp_track(auth_user, dict(
         type="get_hash",
         user=auth_user,
         package_owner=owner,
@@ -663,7 +679,7 @@ def tag_get(auth_user, owner, package_name, package_tag):
             "Tag %r does not exist" % package_tag
         )
 
-    mp.track(auth_user, MIXPANEL_EVENT, dict(
+    _mp_track(auth_user, dict(
         type="get_hash",
         user=auth_user,
         package_owner=owner,
