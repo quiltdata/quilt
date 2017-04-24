@@ -35,7 +35,12 @@ matrix:
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install pytest; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+  # tox for env management
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install tox; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tox -e $TOXENV; fi
+  # Install HDF5
+  # travis_retry here because occasionally fails on high latency
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/science/hdf5@1.8; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HDF5_DIR=$(brew --prefix homebrew/science/hdf5@1.8); fi
   # apt-get libhdf5-dev doesn't work in spite of https://github.com/travis-ci/apt-package-whitelist/issues/416
@@ -47,8 +52,6 @@ before_install:
 install:
   - pip install .
 
-# extremely slow and fails pytest
-# install:
-#   - python setup.py install
+script:
+  - pytest
 
-script: pytest
