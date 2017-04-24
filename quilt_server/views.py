@@ -5,6 +5,7 @@ API routes.
 from datetime import timedelta, timezone
 from functools import wraps
 import json
+import time
 
 import boto3
 from flask import abort, redirect, render_template, request, Response
@@ -240,9 +241,14 @@ def _mp_track(auth_user, args):
     else:
         source = 'web'
 
+    # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
+    ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
+
     # Set common attributes sent with each event. They can be overridden by `args`.
     all_args = dict(
-        source=source
+        time=time.time(),
+        ip=ip_addr,
+        source=source,
     )
     all_args.update(args)
 
