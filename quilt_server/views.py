@@ -233,9 +233,9 @@ def _utc_datetime_to_ts(dt):
     return dt.replace(tzinfo=timezone.utc).timestamp()
 
 def _mp_track(auth_user, args):
-    # TODO(dima): Update the CLI to send a custom string
     user_agent = request.headers.get('user-agent', '')
-    if user_agent.startswith('python-requests/'):
+    # TODO(dima): Remove 'python-requests' once everyone upgrades the CLI.
+    if user_agent.startswith('python-requests/') or user_agent.startswith('quilt-cli/'):
         source = 'cli'
     else:
         source = 'web'
