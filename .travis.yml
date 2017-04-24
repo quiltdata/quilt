@@ -38,7 +38,7 @@ before_install:
   - echo $(python --version)
 
 install:
-  - pip install .
+  - travis_retry pip install .
 
 script:
   - pytest
