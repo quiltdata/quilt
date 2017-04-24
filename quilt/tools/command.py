@@ -411,12 +411,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if existing_pkg is not None:
         if not force:
-          print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-          overwrite = input("Overwrite? (y/n) ")
-          if overwrite.lower() != 'y':
-              return
+            print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+            overwrite = input("Overwrite? (y/n) ")
+            if overwrite.lower() != 'y':
+                return
         else:
-          pass
+            pass
 
     if version is not None:
         response = session.get(

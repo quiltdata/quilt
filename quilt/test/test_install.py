@@ -133,4 +133,7 @@ def test_prod_install():
     from quilt.data.akarve import days
     df = days.names.data()
     assert(df.loc[3]['Day'] == 'Wednesday')
+    # TODO clean up after this test b/c tests shouldn't have side-effects
+    # cleanup is non-trivial because there's no uninstall and it's overkill
+    # to blow away all of quilt_packages
 
