@@ -34,10 +34,9 @@ matrix:
       env: TOXENV=py36
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install pytest; fi
+  - pip install pytest
   # tox for env management
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then pip install tox; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tox -e $TOXENV; fi
   # Install HDF5
   # travis_retry here because occasionally fails on high latency
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
@@ -53,5 +52,6 @@ install:
   - pip install .
 
 script:
-  - pytest
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then tox -e $TOXENV; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then pytest; fi
 
