@@ -14,20 +14,16 @@ A data package is an abstraction that encapsulates and automates data preparatio
 * **install** a package to download it locally
 * **import** packages to use them in code
 
-# Tutorial
-[Data packages](https://blog.quiltdata.com)
+# Learn
+* [Video demonstration](https://youtu.be/tLdiDqtnnho)
+* [Tutorial on data packages](https://blog.quiltdata.com)
+* [Why package data?](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
-## Demo 
-[Package, serialize, and version data](https://youtu.be/tLdiDqtnnho)
-
-## Motivation
-[Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
-
-## Future
+# Future
 Quilt currently supports Python. Spark and R support are in the works.
 
-## Questions
-Visit [quiltdata.com](https://quiltdata.com/) to chat with us. 
+# Questions?
+Chat with us on  [quiltdata.com](https://quiltdata.com/). 
 
 
 # Commands 
