@@ -1,18 +1,27 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
 # Package and version data 
-Quilt is a data package manager (like `pip` or `npm`, but for serialized data).
+Quilt is a data package manager.
 Quilt consists of a client-side data compiler (this repository) and a
 [server-side registry](https://quiltdata.com), where packages are stored.
 
-## Overview of commands
+## Data packages
+A data package is an abstraction that encapsulates and automates data preparation. More concretely, a data package is a tree of serialized data wrapped in a Python module. Each data package has a unique handle, a revision history, and a web page. Packages are stored in a server-side registry that enforces access control.
+
+## Package lifecycle
 * **build** to create a package from files
 * **push** a package to store it in the registry
 * **install** a package to download it locally
 * **import** packages to use them in code
 
-## Demo video
+# Tutorial
+[Data packages](https://blog.quiltdata.com)
+
+## Demo 
 [Package, serialize, and version data](https://youtu.be/tLdiDqtnnho)
+
+## Motivation
+[Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
 ## Future
 Quilt currently supports Python. Spark and R support are in the works.
@@ -20,11 +29,6 @@ Quilt currently supports Python. Spark and R support are in the works.
 ## Questions
 Visit [quiltdata.com](https://quiltdata.com/) to chat with us. 
 
-# Tutorial
-[Data packages](https://blog.quiltdata.com)
-
-# Motivation
-[Why and how to manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
 # Commands 
 * `quilt -h` for a list of commands
@@ -45,20 +49,30 @@ Visit [quiltdata.com](https://quiltdata.com/) to chat with us.
 * `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
 # Known Issues
-## Python 3.2 is not supported
+## Supported Python versions
+* 2.7
+* ~~3.2~~
+* 3.3
+* 3.4
+* 3.5
+* 3.6
 
-## HDF5
-If you encounter missing HDF5 libraries, try the following:
-- Mac:
-  - If necessary, install [Homebrew](https://brew.sh/)
-  - `brew update`
-  - `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
-  - Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
-  - `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
-- Linux:
-  - `sudo apt-get install libhdf5-serial-dev`
+## `pip install quilt` missing HDF5 libs
+The following steps should get you up and running:
+### Mac:
+1. If necessary, install [Homebrew](https://brew.sh/)
+1. `brew update`
+1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
+1. Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
+1. `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
+1. `pip install quilt`
 
-# Build.yml options
+### Linux:
+1. `sudo apt-get install libhdf5-serial-dev`
+1. `pip install quilt`
+
+# `build.yml` structure and options
+See the [Tutorial](https://blog.quiltdata.com) for details on `build.yml`.
 ``` yaml
 contents:
   GROUP_NAME:
@@ -87,6 +101,9 @@ Everything else becomes type object. See [dtypes](https://docs.scipy.org/doc/num
 - All new modules, files, and functions should have a corresponding test 
 - Track test code coverage by running: `python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v`
 - View coverage results by opening cov_html/index.html
+
+## Install latest from `master`
+- `pip install git+https://github.com/quiltdata/quilt.git`
 
 ## Local installation
 1. `git clone https://github.com/quiltdata/quilt.git`
