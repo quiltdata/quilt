@@ -32,7 +32,7 @@ Chat with us on  [quiltdata.com](https://quiltdata.com/).
 * `quilt -h` for a list of commands
 * `quilt CMD -h` for info about a command
 * `quilt login`
-* `quilt build USER/PACKAGE FILE.YML`
+* `quilt build USER/PACKAGE [SOURCE DIRECTORY or FILE.YML]`
 * `quilt push USER/PACKAGE` stores the package in the registry
 * `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 * `quilt access list USER/PACKAGE` to see who has access to a package

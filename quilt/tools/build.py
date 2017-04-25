@@ -8,7 +8,7 @@ import yaml
 import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import PACKAGE_DIR_NAME, RESERVED, TARGET
+from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
 from .util import FileWithReadProgress
 
@@ -38,7 +38,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
-                raise StoreException("Invalid table name: %r" % child_name)
+                raise StoreException("Invalid node name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
@@ -54,7 +54,6 @@ def _build_node(build_dir, package, name, node, target='pandas'):
                                      (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
-            ext = ext.lower()
             if ext in TARGET[target]:
                 transform = ext
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
@@ -168,10 +167,11 @@ def splitext_no_dot(filename):
     without the '.' (e.g., csv instead of .csv)
     """
     name, ext = os.path.splitext(filename)
+    ext = ext.lower()
     ext.strip('.')
     return name, ext.strip('.')
 
-def generate_build_file(startpath, outfilename='build.yml'):
+def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build file (yaml) based on the contents of a
     directory tree.
@@ -180,17 +180,20 @@ def generate_build_file(startpath, outfilename='build.yml'):
         contents = {}
 
         for name in os.listdir(dir_path):
-            if name.startswith('.') or name == PACKAGE_DIR_NAME or name == outfilename:
+            if name.startswith('.') or \
+               name == PACKAGE_DIR_NAME or \
+               name.endswith('~') or \
+               name == outfilename:
                 continue
 
             path = os.path.join(dir_path, name)
 
             if os.path.isdir(path):
                 nodename = name
+                ext = None
                 data = _generate_contents(path)
             elif os.path.isfile(path):
                 nodename, ext = splitext_no_dot(name)
-                ext = ext.lower()
                 rel_path = os.path.relpath(path, startpath)
                 data = dict(file=rel_path)
             else:
@@ -199,8 +202,11 @@ def generate_build_file(startpath, outfilename='build.yml'):
             try:
                 safename = _pythonize_name(nodename)
                 if safename in contents:
-                    print("Warning: duplicate name %r in %s." % (safename, dir_path))
-                    continue
+                    if ext:
+                        safename = "{name}_{ext}".format(name=safename, ext=ext)
+                    else:
+                        print("Warning: duplicate name %r in %s." % (safename, dir_path))
+                        continue
                 contents[safename] = data
             except BuildException:
                 warning = "Warning: could not determine a Python-legal name for {path}; skipping."
