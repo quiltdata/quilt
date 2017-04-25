@@ -14,6 +14,8 @@ A data package is an abstraction that encapsulates and automates data preparatio
 * **install** a package to download it locally
 * **import** packages to use them in code
 
+<img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
+
 # Learn
 * [Video demonstration](https://youtu.be/tLdiDqtnnho)
 * [Tutorial on data packages](https://blog.quiltdata.com)
