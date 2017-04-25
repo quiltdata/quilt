@@ -17,7 +17,7 @@ A data package is an abstraction that encapsulates and automates data preparatio
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
 # Learn
-* [Video demonstration](https://youtu.be/tLdiDqtnnho)
+* [Video demo](https://youtu.be/tLdiDqtnnho)
 * [Tutorial on data packages](https://blog.quiltdata.com)
 * [Why package data?](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
