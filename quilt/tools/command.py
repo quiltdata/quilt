@@ -14,6 +14,7 @@ import webbrowser
 
 from packaging.version import Version
 import pandas as pd
+import pkg_resources
 import requests
 from six import iteritems
 from tqdm import tqdm
@@ -32,6 +33,7 @@ AUTH_FILE_NAME = "auth.json"
 
 CHUNK_SIZE = 4096
 
+VERSION = pkg_resources.require('quilt')[0].version
 
 class CommandException(Exception):
     """
@@ -111,6 +113,7 @@ def _create_session():
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "User-Agent": "quilt-cli/%s" % VERSION,
     })
     if auth is not None:
         session.headers["Authorization"] = "Bearer %s" % auth['access_token']
