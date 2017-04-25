@@ -18,7 +18,7 @@ A data package is an abstraction that encapsulates and automates data preparatio
 
 # Learn
 * [Video demo](https://youtu.be/tLdiDqtnnho)
-* [Tutorial on data packages](https://blog.quiltdata.com)
+* [Tutorial on data packages](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/)
 * [Why package data?](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
 # Future
@@ -70,7 +70,7 @@ The following steps should get you up and running:
 1. `pip install quilt`
 
 # `build.yml` structure and options
-See the [Tutorial](https://blog.quiltdata.com) for details on `build.yml`.
+See the [Tutorial](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/) for details on `build.yml`.
 ``` yaml
 contents:
   GROUP_NAME:
