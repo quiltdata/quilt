@@ -48,7 +48,7 @@ Chat with us on  [quiltdata.com](https://quiltdata.com/).
 ## Supported Python versions
 * 2.7
 * ~~3.2~~
-* 3.3
+* ~~3.3~~
 * 3.4
 * 3.5
 * 3.6
