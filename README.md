@@ -58,7 +58,7 @@ Chat with us on  [quiltdata.com](https://quiltdata.com/).
 ## `pip install quilt` missing HDF5 libs
 The following steps should get you up and running:
 ### Mac:
-1. If necessary, install [Homebrew](https://brew.sh/)
+1. Install [Homebrew](https://brew.sh/)
 1. `brew update`
 1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
 1. Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
