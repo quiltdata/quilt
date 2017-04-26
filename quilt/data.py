@@ -40,6 +40,8 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
+    def _to_core_node(self):
+        raise NotImplementedError
 
 class GroupNode(Node):
     """
@@ -50,19 +52,21 @@ class GroupNode(Node):
         kinfo = '\n'.join(self._keys())
         return "%s\n%s" % (pinfo, kinfo)
 
+    def _items(self):
+        return ((name, child) for name, child in iteritems(self.__dict__)
+                if not name.startswith('_'))
+
     def _data_keys(self):
         """
         every child key referencing a dataframe
         """
-        return [name for name, value in iteritems(self.__dict__)
-                if not name.startswith('_') and not isinstance(value, GroupNode)]
+        return [name for name, child in self._items() if not isinstance(child, GroupNode)]
 
     def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
-        return [name for name, value in iteritems(self.__dict__)
-                if not name.startswith('_') and isinstance(value, GroupNode)]
+        return [name for name, child in self._items() if isinstance(child, GroupNode)]
 
     def _keys(self):
         """
@@ -70,8 +74,16 @@ class GroupNode(Node):
         """
         return [name for name in self.__dict__ if not name.startswith('_')]
 
+    def _core_children(self):
+        return {name: child._to_core_node() for name, child in self._items()}
+
+    def _to_core_node(self):
+        return core.GroupNode(self._core_children())
 
 class PackageNode(GroupNode):
+    """
+    Represents a package.
+    """
     def __init__(self, package):
         super(PackageNode, self).__init__()
         self._package = package
@@ -80,6 +92,12 @@ class PackageNode(GroupNode):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
+    def _to_core_node(self):
+        return core.RootNode(self._core_children(), self._package.get_contents().format)
+
+    def _save(self):
+        self._package.set_contents(self._to_core_node())
+        self._package.save_contents()
 
 class DataNode(Node):
     """
@@ -99,6 +117,8 @@ class DataNode(Node):
         """
         return self._package.get_obj(self._node)
 
+    def _to_core_node(self):
+        return self._node
 
 class FakeLoader(object):
     """
