@@ -16,6 +16,19 @@ A data package is an abstraction that encapsulates and automates data preparatio
 
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
+# Installation
+## Mac:
+1. Install [Homebrew](https://brew.sh/)
+1. `brew update`
+1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
+1. Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
+1. `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
+1. `pip install quilt`
+
+## Linux:
+1. `sudo apt-get install libhdf5-serial-dev`
+1. `pip install quilt`
+
 # Learn
 * [Video demo](https://youtu.be/tLdiDqtnnho)
 * [Tutorial on data packages](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/)
@@ -27,8 +40,10 @@ Quilt currently supports Python. Spark and R support are in the works.
 # Questions?
 Chat with us on  [quiltdata.com](https://quiltdata.com/). 
 
+# Command summary
+You can use Quilt on the command line or directly Python. Both interfaces have the same singature.
+So `$ quilt install foo/bar build.yml` is equivalent to `quilt.install("foo/bar", "build.yml")`.
 
-# Commands 
 * `quilt -h` for a list of commands
 * `quilt CMD -h` for info about a command
 * `quilt login`
@@ -46,28 +61,13 @@ Chat with us on  [quiltdata.com](https://quiltdata.com/).
   * The tag "latest" is automatically added to the most recent push
 * `quilt tag remove USER/PACKAGE TAG` to delete a tag
 
-# Known Issues
-## Supported Python versions
+# Supported Python versions
 * 2.7
 * ~~3.2~~
 * ~~3.3~~
 * 3.4
 * 3.5
 * 3.6
-
-## `pip install quilt` missing HDF5 libs
-The following steps should get you up and running:
-### Mac:
-1. Install [Homebrew](https://brew.sh/)
-1. `brew update`
-1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
-1. Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
-1. `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
-1. `pip install quilt`
-
-### Linux:
-1. `sudo apt-get install libhdf5-serial-dev`
-1. `pip install quilt`
 
 # `build.yml` structure and options
 See the [Tutorial](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/) for details on `build.yml`.
