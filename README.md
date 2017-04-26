@@ -41,7 +41,7 @@ Quilt currently supports Python. Spark and R support are in the works.
 Chat with us on  [quiltdata.com](https://quiltdata.com/). 
 
 # Command summary
-You can use Quilt on the command line or directly Python. Both interfaces have the same singature.
+You can use Quilt on the command line or directly in Python. Both interfaces have the same singature.
 So `$ quilt install foo/bar build.yml` is equivalent to `quilt.install("foo/bar", "build.yml")`.
 
 * `quilt -h` for a list of commands
