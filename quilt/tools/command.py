@@ -14,12 +14,13 @@ import webbrowser
 
 from packaging.version import Version
 import pandas as pd
+import pkg_resources
 import requests
 from six import iteritems
 from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
-from .const import LATEST_TAG
+from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, GroupNode, TableNode, FileNode,
                    decode_node, encode_node)
 from .hashing import digest_file
@@ -32,6 +33,7 @@ AUTH_FILE_NAME = "auth.json"
 
 CHUNK_SIZE = 4096
 
+VERSION = pkg_resources.require('quilt')[0].version
 
 class CommandException(Exception):
     """
@@ -111,6 +113,7 @@ def _create_session():
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "User-Agent": "quilt-cli/%s" % VERSION,
     })
     if auth is not None:
         session.headers["Authorization"] = "Bearer %s" % auth['access_token']
@@ -181,14 +184,34 @@ def logout():
     else:
         print("Already logged out.")
 
-def build(package, path, directory=None):
+def generate(directory):
+    """
+    Generate a build-file for quilt build from a directory of
+    source files.
+    """
+    try:
+        buildfilepath = generate_build_file(directory)
+    except BuildException as builderror:
+        raise CommandException(str(builderror))
+
+    print("Generated build-file %s." % (buildfilepath))
+
+def build(package, path):
     """
     Compile a Quilt data package
     """
+    if not os.path.exists(path):
+        raise CommandException("%s does not exist." % path)
+
     owner, pkg = _parse_package(package)
-    if directory:
-        buildfilepath = generate_build_file(directory)
-        buildpath = buildfilepath
+    if os.path.isdir(path):
+        buildpath = os.path.join(path, DEFAULT_BUILDFILE)
+        if not os.path.exists(buildpath):
+            try:
+                generated_buildfile = generate_build_file(path)
+                assert generated_buildfile == buildpath
+            except BuildException as builderror:
+                raise CommandException(str(builderror))
     else:
         buildpath = path
 

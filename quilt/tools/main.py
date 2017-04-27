@@ -29,11 +29,15 @@ def main():
     log_p.add_argument("package", type=str, help="Owner/Package Name")
     log_p.set_defaults(func=command.log)
 
+    generate_p = subparsers.add_parser("generate")
+    generate_p.add_argument("directory", help="Source file directory")
+    generate_p.set_defaults(func=command.generate)
+
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help="Owner/Package Name")
     buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("-d", "--directory", type=str, help="Source file directory")
-    buildpath_group.add_argument("path", type=str, nargs='?', help="Path to the Yaml build file")
+    buildpath_group.add_argument("path", type=str, nargs='?',
+                                 help="Path to source files (directory) or the Yaml build file")
     build_p.set_defaults(func=command.build)
 
     push_p = subparsers.add_parser("push")
