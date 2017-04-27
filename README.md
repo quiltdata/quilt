@@ -69,6 +69,9 @@ So `$ quilt install foo/bar build.yml` is equivalent to `quilt.install("foo/bar"
 * 3.5
 * 3.6
 
+# Build recipes
+* [VCF (and other custom file formats)](https://quiltdata.com/package/akarve/vcf)
+
 # `build.yml` structure and options
 See the [Tutorial](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/) for details on `build.yml`.
 ``` yaml
@@ -82,7 +85,7 @@ contents:
 ```
 
 ## Column types
-Supported Pandas column types (via dtype:)
+Supported Pandas column types (via dtype):
 * int
 * bool
 * float
