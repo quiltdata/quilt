@@ -17,7 +17,7 @@ A data package is an abstraction that encapsulates and automates data preparatio
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
 # Installation
-## Mac:
+## Mac
 1. Install [Homebrew](https://brew.sh/)
 1. `brew update`
 1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
@@ -25,7 +25,7 @@ A data package is an abstraction that encapsulates and automates data preparatio
 1. `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
 1. `pip install quilt`
 
-## Linux:
+## Linux
 1. `sudo apt-get install libhdf5-serial-dev`
 1. `pip install quilt`
 
