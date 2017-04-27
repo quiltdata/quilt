@@ -3,6 +3,7 @@ Tests for magic imports.
 """
 
 import os
+import shutil
 
 from pandas.core.frame import DataFrame
 from six import string_types
@@ -10,6 +11,7 @@ from six import string_types
 from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
+from quilt.tools.store import PackageStore
 from .utils import QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -91,3 +93,23 @@ class ImportTest(QuiltTestCase):
 
         # Imports should find the second package
         from quilt.data.foo.nested import dataframes
+
+    def test_save(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package1', build_path)
+
+        from quilt.data.foo import package1
+
+        package1.dataframes2 = package1.dataframes
+        package1._save()
+
+        # Imports are cached, so manually create a copy of the package.
+        path1 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package1' + PackageStore.PACKAGE_FILE_EXT)
+        path2 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package2' + PackageStore.PACKAGE_FILE_EXT)
+        shutil.copy(path1, path2)
+
+        from quilt.data.foo import package2
+
+        assert package2.dataframes2
+        assert package2.dataframes2.csv

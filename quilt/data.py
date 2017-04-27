@@ -20,86 +20,94 @@ import sys
 
 from six import iteritems
 
-from .tools.core import GroupNode as CoreGroupNode
+from .tools import core
 from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
 
-class PackageNode(object):
+class Node(object):
     """
     Abstract class that represents a group or a leaf node in a package.
     """
-    def __init__(self, package, prefix, node):
+    def __init__(self):
         # Can't instantiate it directly
-        assert self.__class__ != PackageNode.__class__
+        assert self.__class__ != Node.__class__
 
-        self._package = package
-        self._prefix = prefix
-        self._node = node
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self._package == other._package and self._prefix == other._prefix
-        return NotImplemented
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __hash__(self):
-        return hash((self._package, self._prefix))
+    def _class_repr(self):
+        """Only exists to make it easier for subclasses to customize `__repr__`."""
+        return "<%s>" % self.__class__.__name__
 
     def __repr__(self):
-        finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
-        pinfo = self._prefix
-        return "<%s %r:%r>" % (self.__class__.__name__, finfo, pinfo)
+        return self._class_repr()
 
+    def _to_core_node(self):
+        raise NotImplementedError
 
-class GroupNode(PackageNode):
+class GroupNode(Node):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
     """
-    def __init__(self, package, prefix, node):
-        super(GroupNode, self).__init__(package, prefix, node)
-
-        for name, child_node in iteritems(node.children):
-            assert not name.startswith('_')
-            child_prefix = prefix + '/' + name
-            if isinstance(child_node, CoreGroupNode):
-                child = GroupNode(package, child_prefix, child_node)
-            else:
-                child = DataNode(package, child_prefix, child_node)
-            setattr(self, name, child)
-
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
         kinfo = '\n'.join(self._keys())
         return "%s\n%s" % (pinfo, kinfo)
 
+    def _items(self):
+        return ((name, child) for name, child in iteritems(self.__dict__)
+                if not name.startswith('_'))
+
     def _data_keys(self):
         """
         every child key referencing a dataframe
         """
-        return [name for name, node in iteritems(self._node.children)
-                if not isinstance(node, CoreGroupNode)]
+        return [name for name, child in self._items() if not isinstance(child, GroupNode)]
 
     def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
-        return [name for name, node in iteritems(self._node.children)
-                if isinstance(node, CoreGroupNode)]
+        return [name for name, child in self._items() if isinstance(child, GroupNode)]
 
     def _keys(self):
         """
         keys directly accessible on this object via getattr or .
         """
-        return list(self._node.children)
+        return [name for name in self.__dict__ if not name.startswith('_')]
 
+    def _core_children(self):
+        return {name: child._to_core_node() for name, child in self._items()}
 
-class DataNode(PackageNode):
+    def _to_core_node(self):
+        return core.GroupNode(self._core_children())
+
+class PackageNode(GroupNode):
+    """
+    Represents a package.
+    """
+    def __init__(self, package):
+        super(PackageNode, self).__init__()
+        self._package = package
+
+    def _class_repr(self):
+        finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
+        return "<%s %r>" % (self.__class__.__name__, finfo)
+
+    def _to_core_node(self):
+        return core.RootNode(self._core_children(), self._package.get_contents().format)
+
+    def _save(self):
+        self._package.set_contents(self._to_core_node())
+        self._package.save_contents()
+
+class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
+    def __init__(self, package, node):
+        super(DataNode, self).__init__()
+        self._package = package
+        self._node = node
+
     def __call__(self):
         return self.data()
 
@@ -109,6 +117,8 @@ class DataNode(PackageNode):
         """
         return self._package.get_obj(self._node)
 
+    def _to_core_node(self):
+        return self._node
 
 class FakeLoader(object):
     """
@@ -127,6 +137,25 @@ class FakeLoader(object):
         mod.__path__ = []
         mod.__package__ = fullname
         return mod
+
+
+def _from_core_node(package, core_node):
+    if isinstance(core_node, core.TableNode) or isinstance(core_node, core.FileNode):
+        node = DataNode(package, core_node)
+    else:
+        if isinstance(core_node, core.RootNode):
+            node = PackageNode(package)
+        elif isinstance(core_node, core.GroupNode):
+            node = GroupNode()
+        else:
+            assert "Unexpected node: %r" % core_node
+
+        for name, core_child in iteritems(core_node.children):
+            child = _from_core_node(package, core_child)
+            setattr(node, name, child)
+
+    return node
+
 
 class PackageLoader(object):
     """
@@ -147,7 +176,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = GroupNode(self._package, '', self._package.get_contents())
+        mod = _from_core_node(self._package, self._package.get_contents())
         sys.modules[fullname] = mod
         return mod
 

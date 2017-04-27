@@ -225,6 +225,12 @@ class Package(object):
         """
         return self._contents
 
+    def set_contents(self, contents):
+        """
+        Sets a new contents.
+        """
+        self._contents = contents
+
     def save_contents(self):
         """
         Saves the in-memory contents to the package file.
