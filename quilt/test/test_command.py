@@ -4,9 +4,10 @@ Tests for commands.
 
 import json
 import os
+import time
+
 import pytest
 import responses
-import time
 
 from six import assertRaisesRegex
 
@@ -145,3 +146,14 @@ class CommandTest(QuiltTestCase):
             author=owner)])
         print("MOCKING URL=%s" % logs_url)
         self.requests_mock.add(responses.GET, logs_url, json.dumps(resp))
+
+    def test_generate_buildfile_wo_building(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
+        try:
+            command.generate(path)
+            assert os.path.exists(buildfilepath), "failed to create %s" % buildfilepath
+        finally:
+            os.remove(buildfilepath)

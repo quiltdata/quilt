@@ -18,7 +18,7 @@ def readme():
 
 setup(
     name="quilt",
-    version="2.3.3",
+    version="2.4.0",
     packages=find_packages(),
     description='Quilt is an open-source data frame registry',
     long_description=readme(),
@@ -34,7 +34,7 @@ setup(
     author_email='contact@quiltdata.io',
     license='LICENSE',
     url='https://github.com/quiltdata/quilt',
-    download_url='https://github.com/quiltdata/quilt/releases/tag/2.3.3-beta',
+    download_url='https://github.com/quiltdata/quilt/releases/tag/2.4.0-beta',
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
@@ -46,7 +46,7 @@ setup(
         'requests>=2.12.4',
         'responses>=0.5.1',
         'six>=1.10.0',
-        'tables>=3.3.0,<3.4.0',
+        'tables>=3.3.0',
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
     ],
