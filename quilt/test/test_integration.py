@@ -8,8 +8,8 @@ from ..tools import command
 from .utils import QuiltTestCaseBasic
 from .integration import skip
 
+@skip
 class IntegrationTest(QuiltTestCaseBasic):
-    @skip
     def test_prod_install(self):
         # public package
         command.install('akarve/days')
