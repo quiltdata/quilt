@@ -409,14 +409,11 @@ def install(package, hash=None, version=None, tag=None, force=False):
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
 
-    if existing_pkg is not None:
-        if not force:
-            print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-            overwrite = input("Overwrite? (y/n) ")
-            if overwrite.lower() != 'y':
-                return
-        else:
-            pass
+    if existing_pkg is not None and not force:
+        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+        overwrite = input("Overwrite? (y/n) ")
+        if overwrite.lower() != 'y':
+            return
 
     if version is not None:
         response = session.get(
