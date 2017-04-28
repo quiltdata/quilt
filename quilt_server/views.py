@@ -8,7 +8,7 @@ import json
 import time
 
 import boto3
-from flask import abort, redirect, render_template, request, Response
+from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 from jsonschema import Draft4Validator, ValidationError
@@ -150,15 +150,11 @@ def handle_api_exception(error):
     """
     Converts an API exception into an error response.
     """
-    # TODO inject `time` property into all events; else we'll just get
-    # Mixpanel server arrival times
-    # TODO abstract track() calls so that we can swap out analytics providers,
-    # validate event types, inject time, etc. in one place
-    _mp_track(None, dict(
+    _mp_track(
         type="exception",
         status_code=error.status_code,
         message=error.message,
-    ))
+    )
 
     response = jsonify(dict(
         message=error.message
@@ -180,6 +176,8 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            g.user = PUBLIC
+
             if validator is not None:
                 try:
                     validator.validate(request.get_json(cache=True))
@@ -187,7 +185,6 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-            user = PUBLIC
 
             if auth is None:
                 if require_login:
@@ -199,7 +196,7 @@ def api(require_login=True, schema=None):
                 resp = requests.get(OAUTH_BASE_URL + '/api-root', headers=headers)
                 if resp.status_code == requests.codes.ok:
                     data = resp.json()
-                    user = data['current_user']
+                    g.user = data['current_user']
                 elif resp.status_code == requests.codes.unauthorized:
                     raise ApiException(
                         requests.codes.unauthorized,
@@ -207,7 +204,7 @@ def api(require_login=True, schema=None):
                     )
                 else:
                     raise ApiException(requests.codes.server_error, "Server error")
-            return f(user, *args, **kwargs)
+            return f(g.user, *args, **kwargs)
         return wrapper
     return innerdec
 
@@ -233,7 +230,7 @@ def _utc_datetime_to_ts(dt):
     """
     return dt.replace(tzinfo=timezone.utc).timestamp()
 
-def _mp_track(auth_user, args):
+def _mp_track(**kwargs):
     user_agent = request.headers.get('user-agent', '')
     # TODO(dima): Remove 'python-requests' once everyone upgrades the CLI.
     if user_agent.startswith('python-requests/') or user_agent.startswith('quilt-cli/'):
@@ -248,11 +245,12 @@ def _mp_track(auth_user, args):
     all_args = dict(
         time=time.time(),
         ip=ip_addr,
+        user=g.user,
         source=source,
     )
-    all_args.update(args)
+    all_args.update(kwargs)
 
-    mp.track(auth_user, MIXPANEL_EVENT, all_args)
+    mp.track(g.user, MIXPANEL_EVENT, all_args)
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
@@ -374,12 +372,11 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     db.session.commit()
 
-    _mp_track(auth_user, dict(
+    _mp_track(
         type="push",
-        user=auth_user,
         package_owner=owner,
         package_name=package_name,
-    ))
+    )
 
     return dict(
         upload_urls=upload_urls
@@ -421,12 +418,11 @@ def package_get(auth_user, owner, package_name, package_hash):
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
 
-    _mp_track(auth_user, dict(
+    _mp_track(
         type="install",
-        user=auth_user,
         package_owner=owner,
         package_name=package_name,
-    ))
+    )
 
     return dict(
         contents=contents,
@@ -570,13 +566,12 @@ def version_get(auth_user, owner, package_name, package_version):
             "Version %s does not exist" % package_version
         )
 
-    _mp_track(auth_user, dict(
+    _mp_track(
         type="get_hash",
-        user=auth_user,
         package_owner=owner,
         package_name=package_name,
         package_version=package_version,
-    ))
+    )
 
     return dict(
         hash=instance.hash,
@@ -685,13 +680,12 @@ def tag_get(auth_user, owner, package_name, package_tag):
             "Tag %r does not exist" % package_tag
         )
 
-    _mp_track(auth_user, dict(
+    _mp_track(
         type="get_hash",
-        user=auth_user,
         package_owner=owner,
         package_name=package_name,
         package_tag=package_tag,
-    ))
+    )
 
     return dict(
         hash=instance.hash,
