@@ -3,6 +3,8 @@ Access tests
 """
 
 import json
+import time
+
 import requests
 
 from quilt_server.const import PUBLIC
@@ -392,3 +394,42 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
         assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
+
+    def testRecentPackages(self):
+        # Push two public packages.
+        for i in range(2):
+            pkg = 'pkg%d' % i
+            self.put_package(self.user, pkg, GroupNode(children=dict()))
+            self._share_package(self.user, pkg, PUBLIC)
+
+        time.sleep(1)  # This sucks, but package timestamps only have a resolution of 1s.
+
+        # Push two more.
+        for i in range(2, 4):
+            pkg = 'pkg%d' % i
+            self.put_package(self.user, pkg, GroupNode(children=dict()))
+            self._share_package(self.user, pkg, PUBLIC)
+
+        # Update pkg0.
+        self.put_package(self.user, 'pkg0', GroupNode(children=dict()))
+
+        # Push a non-public package.
+        self.put_package(self.user, 'private', GroupNode(children=dict()))
+
+        # Verify that the three most recently updated ones are what we expect.
+        resp = self.app.get('/api/recent_packages/?count=3')
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        names = [pkg['name'] for pkg in data['packages']]
+        assert len(names) == 3
+        assert set(names) == set(['pkg0', 'pkg2', 'pkg3'])
+
+        # Verify that the private package doesn't show up.
+        resp = self.app.get('/api/recent_packages/')
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        names = [pkg['name'] for pkg in data['packages']]
+        assert len(names) == 4
+        assert set(names) == set(['pkg0', 'pkg1', 'pkg2', 'pkg3'])

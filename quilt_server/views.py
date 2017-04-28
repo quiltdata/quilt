@@ -908,3 +908,33 @@ def all_packages(auth_user):
         shared=_to_json(shared_packages - own_packages),
         public=_to_json(public_packages - shared_packages - own_packages),
     )
+
+@app.route('/api/recent_packages/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def recent_packages(auth_user):
+    try:
+        count = int(request.args.get('count', ''))
+    except ValueError:
+        count = 10
+
+    results = (
+        db.session.query(Package, sa.func.max(Instance.updated_at))
+        .join(Package.access)
+        .filter_by(user=PUBLIC)
+        .join(Package.instances)
+        .group_by(Package.id)
+        .order_by(sa.func.max(Instance.updated_at).desc())
+        .limit(count)
+        .all()
+    )
+
+    return dict(
+        packages=[
+            dict(
+                owner=package.owner,
+                name=package.name,
+                updated_at=updated_at
+            ) for package, updated_at in results
+        ]
+    )
