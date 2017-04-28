@@ -37,7 +37,7 @@ class QuiltTestCase(QuiltTestCaseBasic):
     - (And inherits temp directory from superclass)
     """
     def setUp(self):
-        super().setUp()
+        super(QuiltTestCase, self).setUp()
 
         self.session_patcher = patch('quilt.tools.command._get_session', requests.Session)
         self.session_patcher.start()
@@ -46,7 +46,7 @@ class QuiltTestCase(QuiltTestCaseBasic):
         self.requests_mock.start()
 
     def tearDown(self):
-        super().tearDown()
+        super(QuiltTestCase, self).tearDown()
 
         self.requests_mock.stop()
         self.session_patcher.stop()
