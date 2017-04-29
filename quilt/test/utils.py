@@ -17,7 +17,7 @@ except ImportError:
 import requests
 import responses
 
-class QuiltTestCaseBasic(unittest.TestCase):
+class BasicQuiltTestCase(unittest.TestCase):
     """
     Base class for unittests.
     - Creates a temporary directory
@@ -31,7 +31,7 @@ class QuiltTestCaseBasic(unittest.TestCase):
         os.chdir(self._old_dir)
         shutil.rmtree(self._test_dir)
 
-class QuiltTestCase(QuiltTestCaseBasic):
+class QuiltTestCase(BasicQuiltTestCase):
     """
     - Mocks requests
     - (And inherits temp directory from superclass)
@@ -46,7 +46,8 @@ class QuiltTestCase(QuiltTestCaseBasic):
         self.requests_mock.start()
 
     def tearDown(self):
-        super(QuiltTestCase, self).tearDown()
 
         self.requests_mock.stop()
         self.session_patcher.stop()
+
+        super(QuiltTestCase, self).tearDown()

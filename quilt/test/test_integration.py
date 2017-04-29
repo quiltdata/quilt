@@ -5,11 +5,11 @@ import pytest
 
 
 from ..tools import command
-from .utils import QuiltTestCaseBasic
+from .utils import BasicQuiltTestCase
 from .integration import skip
 
 @skip
-class IntegrationTest(QuiltTestCaseBasic):
+class IntegrationTest(BasicQuiltTestCase):
     def test_prod_install(self):
         # public package
         command.install('akarve/days')
