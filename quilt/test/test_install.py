@@ -9,9 +9,9 @@ import os
 import responses
 from six import assertRaisesRegex
 
-from quilt.tools import command
-from quilt.tools.const import HASH_TYPE
-from quilt.tools.core import decode_node, encode_node, hash_contents, GroupNode, TableNode, FileNode
+from ..tools import command
+from ..tools.const import HASH_TYPE
+from ..tools.core import decode_node, encode_node, hash_contents, GroupNode, TableNode, FileNode
 
 from .utils import QuiltTestCase
 

@@ -17,17 +17,27 @@ except ImportError:
 import requests
 import responses
 
-
-class QuiltTestCase(unittest.TestCase):
+class BasicQuiltTestCase(unittest.TestCase):
     """
     Base class for unittests.
     - Creates a temporary directory
-    - Mocks requests
     """
     def setUp(self):
         self._old_dir = os.getcwd()
         self._test_dir = tempfile.mkdtemp(prefix='quilt-test-')
         os.chdir(self._test_dir)
+
+    def tearDown(self):
+        os.chdir(self._old_dir)
+        shutil.rmtree(self._test_dir)
+
+class QuiltTestCase(BasicQuiltTestCase):
+    """
+    - Mocks requests
+    - (And inherits temp directory from superclass)
+    """
+    def setUp(self):
+        super(QuiltTestCase, self).setUp()
 
         self.session_patcher = patch('quilt.tools.command._get_session', requests.Session)
         self.session_patcher.start()
@@ -36,9 +46,8 @@ class QuiltTestCase(unittest.TestCase):
         self.requests_mock.start()
 
     def tearDown(self):
-        self.requests_mock.stop()
 
+        self.requests_mock.stop()
         self.session_patcher.stop()
 
-        os.chdir(self._old_dir)
-        shutil.rmtree(self._test_dir)
+        super(QuiltTestCase, self).tearDown()

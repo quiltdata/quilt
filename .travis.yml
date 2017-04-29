@@ -14,8 +14,8 @@ matrix:
     - os: linux
       sudo: required
       python: 3.6
-    # HACK this covers python 2.7
-    # TODO: be explicit
+    # HACK this covers python 2.7 by default
+    # TODO be explict about OS X Python version
     - os: osx
       language: generic
 
