@@ -58,7 +58,7 @@ class TableNode(Node):
             metadata = {}
 
         assert isinstance(hashes, list)
-        assert format is None or isinstance(format, str), '%r' % format
+        assert format is None or isinstance(format, string_types), '%r' % format
         assert isinstance(metadata, dict)
 
         self.hashes = hashes
