@@ -128,12 +128,11 @@ class PackageStore(object):
             contents=contents
         )
 
-    def create_package(self, user, package, pkgformat):
+    def create_package(self, user, package):
         """
-        Creates a new package and initializes its contents with the given format.
-        See `install_package`.
+        Creates a new package and initializes its contents. See `install_package`.
         """
-        contents = RootNode(dict(), pkgformat.value)
+        contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
     def ls_packages(self):

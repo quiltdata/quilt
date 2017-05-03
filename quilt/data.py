@@ -93,7 +93,7 @@ class PackageNode(GroupNode):
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
     def _to_core_node(self):
-        return core.RootNode(self._core_children(), self._package.get_contents().format)
+        return core.RootNode(self._core_children())
 
     def _save(self):
         self._package.set_contents(self._to_core_node())

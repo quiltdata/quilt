@@ -34,12 +34,12 @@ def _pythonize_name(name):
         raise BuildException("Unable to determine a Python-legal name for %s" % name)
     return safename
 
-def _build_node(build_dir, package, name, node, target='pandas'):
+def _build_node(build_dir, package, name, node, format, target='pandas'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table)
+            _build_node(build_dir, package, name + '/' + child_name, child_table, format)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
@@ -76,7 +76,7 @@ def _build_node(build_dir, package, name, node, target='pandas'):
 
             # serialize DataFrame to file(s)
             print("Saving as binary dataframe...")
-            package.save_df(df, name, rel_path, transform, target)
+            package.save_df(df, name, rel_path, transform, target, format)
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
@@ -157,8 +157,8 @@ def build_package(username, package, yaml_path):
         raise BuildException("Unsupported format: %r" % pkgformat)
 
     store = PackageStore()
-    newpackage = store.create_package(username, package, pkgformat)
-    _build_node(build_dir, newpackage, '', contents)
+    newpackage = store.create_package(username, package)
+    _build_node(build_dir, newpackage, '', contents, pkgformat)
     newpackage.save_contents()
 
 def splitext_no_dot(filename):

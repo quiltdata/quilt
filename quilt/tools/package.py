@@ -6,6 +6,7 @@ import tempfile
 import zlib
 
 import pandas as pd
+from six import itervalues
 
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
@@ -85,8 +86,21 @@ class Package(object):
         with open(self._path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
-                contents = RootNode(contents.children, PackageFormat.default.value)
+                # Really old package: no root node.
+                contents = RootNode(contents.children)
+            # Fix packages with no format in data nodes.
+            pkg_format = getattr(contents, 'format', PackageFormat.default)
+            self._fix_format(contents, pkg_format)
             return contents
+
+    @classmethod
+    def _fix_format(cls, contents, pkg_format):
+        for child in itervalues(contents.children):
+            if isinstance(child, GroupNode):
+                cls._fix_format(child, pkg_format)
+            elif isinstance(child, TableNode):
+                if child.format is None:
+                    child.format = pkg_format
 
     def file(self, hash_list):
         """
@@ -152,11 +166,11 @@ class Package(object):
         else:
             assert False, "Unimplemented package format: %s" % enumformat
 
-    def save_df(self, df, name, path, ext, target):
+    def save_df(self, df, name, path, ext, target, format):
         """
         Save a DataFrame to the store.
         """
-        enumformat = PackageFormat(self.get_contents().format)
+        enumformat = PackageFormat(format)
         buildfile = name.lstrip('/').replace('/', '.')
         storepath = self._store.temporary_object_path(buildfile)
 
@@ -201,11 +215,11 @@ class Package(object):
                 objhash = digest_file(path)
                 os.rename(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(buildfile, hashes, ext, path, target)
+            self._add_to_contents(buildfile, hashes, ext, path, target, format)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(buildfile, [filehash], ext, path, target)
+            self._add_to_contents(buildfile, [filehash], ext, path, target, format)
             os.rename(storepath, self._store.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
@@ -214,7 +228,7 @@ class Package(object):
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, [filehash], '', path, 'file')
+        self._add_to_contents(fullname, [filehash], '', path, 'file', None)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
@@ -243,11 +257,8 @@ class Package(object):
         Read an object from the package given a node from the
         package tree.
         """
-        ptr = self.get_contents()
-        pkgformat = ptr.format
-
         if isinstance(node, TableNode):
-            return self._dataframe(node.hashes, pkgformat)
+            return self._dataframe(node.hashes, node.format)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
         else:
@@ -299,7 +310,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target):
+    def _add_to_contents(self, fullname, hashes, ext, path, target, format):
         """
         Adds an object (name-hash mapping) to the package's contents.
         """
@@ -311,22 +322,29 @@ class Package(object):
         for node in ipath:
             ptr = ptr.children.setdefault(node, GroupNode(dict()))
 
+        metadata = dict(
+            q_ext=ext,
+            q_path=path,
+            q_target=target
+        )
+
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
-                node_cls = TableNode
+                assert format is not None
+                node = TableNode(
+                    hashes=hashes,
+                    format=format.value,
+                    metadata=metadata
+                )
             elif target_type is TargetType.FILE:
-                node_cls = FileNode
+                node = FileNode(
+                    hashes=hashes,
+                    metadata=metadata
+                )
             else:
                 assert False, "Unhandled TargetType {tt}".format(tt=target_type)
         except ValueError:
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr.children[leaf] = node_cls(
-            hashes=hashes,
-            metadata=dict(
-                q_ext=ext,
-                q_path=path,
-                q_target=target
-            )
-        )
+        ptr.children[leaf] = node
