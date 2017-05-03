@@ -11,6 +11,7 @@ import boto3
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
+import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
 import requests
@@ -45,6 +46,13 @@ S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
+
+
+class QuiltCli(httpagentparser.Browser):
+    look_for = 'quilt-cli'
+    version_markers = [('/', '')]
+
+httpagentparser.detectorshub.register(QuiltCli())
 
 
 ### Web routes ###
@@ -232,8 +240,8 @@ def _utc_datetime_to_ts(dt):
 
 def _mp_track(**kwargs):
     user_agent = request.headers.get('user-agent', '')
-    # TODO(dima): Remove 'python-requests' once everyone upgrades the CLI.
-    if user_agent.startswith('python-requests/') or user_agent.startswith('quilt-cli/'):
+    parsed_agent = httpagentparser.detect(user_agent, fill_none=True)
+    if parsed_agent['browser']['name'] == 'QuiltCli':
         source = 'cli'
     else:
         source = 'web'
@@ -247,6 +255,10 @@ def _mp_track(**kwargs):
         ip=ip_addr,
         user=g.user,
         source=source,
+        browser_name=parsed_agent['browser']['name'],
+        browser_version=parsed_agent['browser']['version'],
+        platform_name=parsed_agent['platform']['name'],
+        platform_version=parsed_agent['platform']['version'],
     )
     all_args.update(kwargs)
 

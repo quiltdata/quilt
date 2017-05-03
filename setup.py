@@ -10,6 +10,7 @@ setup(
         'Flask-Cors',
         'Flask-JSON',
         'Flask-Migrate',
+        'httpagentparser',
         'jsonschema',
         'mixpanel',
         'packaging',
