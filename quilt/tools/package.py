@@ -89,7 +89,7 @@ class Package(object):
                 # Really old package: no root node.
                 contents = RootNode(contents.children)
             # Fix packages with no format in data nodes.
-            pkg_format = getattr(contents, 'format', PackageFormat.default)
+            pkg_format = contents.format or PackageFormat.default
             self._fix_format(contents, pkg_format)
             return contents
 

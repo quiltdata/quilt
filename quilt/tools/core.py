@@ -43,9 +43,12 @@ class RootNode(GroupNode):
     def __init__(self, children, format=None):
         super(RootNode, self).__init__(children)
 
-        if format is not None:
-            # Deprecated, but needs to stay for compatibility with old packages.
-            self.format = PackageFormat(format)
+        # Deprecated, but needs to stay for compatibility with old packages.
+        self.format = PackageFormat(format) if format is not None else None
+
+    def __json__(self):
+        format = self.format.value if self.format is not None else None
+        return dict(self.__dict__, type=self.json_type, format=format)
 
 class TableNode(Node):
     json_type = 'TABLE'
