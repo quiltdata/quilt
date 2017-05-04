@@ -104,10 +104,11 @@ class Package(object):
             return store.get(self.DF_NAME)
 
     def _read_parquet_arrow(self, hash_list):
-        from pyarrow import parquet
+        from pyarrow.parquet import ParquetDataset
 
         objfiles = [self._store.object_path(h) for h in hash_list]
-        table = parquet.read_multiple_files(paths=objfiles, nthreads=4)
+        dataset = ParquetDataset(objfiles)
+        table = dataset.read(nthreads=4)
         df = table.to_pandas()
         return df
 
