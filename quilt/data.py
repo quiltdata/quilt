@@ -69,9 +69,10 @@ class GroupNode(Node):
 
     def data(self):
         """
-        Returns the contents of the node: a dataframe or a file path.
+        Returns the contents of all data-children of this group as a dataframe.
+        (Only supported for Parquet packages).
         """
-        return self._package.get_obj([getattr(self, name)._node for name in self._data_keys()])
+        return self._package.get_obj(self._to_core_node())
 
     def _group_keys(self):
         """
@@ -98,7 +99,6 @@ class PackageNode(GroupNode):
     def __init__(self, package, node):
         super(PackageNode, self).__init__(node)
         self._package = package
-        self._node = node
 
     def _class_repr(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]

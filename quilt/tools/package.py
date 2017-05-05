@@ -249,13 +249,12 @@ class Package(object):
 
         if isinstance(node, TableNode):
             return self._dataframe(node.hashes, pkgformat)
-        elif isinstance(node, list):
+        elif isinstance(node, GroupNode):
             if pkgformat != PackageFormat.PARQUET:
                 raise PackageException("Group data access is only supported for Parquet tables.")
 
-            hash_list = []
-            for child in node:
-                hash_list += child.hashes
+            hash_list = [h for c in node.children.values() if isinstance(c, TableNode)
+                         for h in c.hashes]
             return self._dataframe(hash_list, pkgformat)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
