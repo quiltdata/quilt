@@ -11,7 +11,16 @@ from six import assertRaisesRegex
 
 from ..tools import command
 from ..tools.const import HASH_TYPE
-from ..tools.core import decode_node, encode_node, hash_contents, GroupNode, TableNode, FileNode
+from ..tools.core import (
+    decode_node,
+    encode_node,
+    hash_contents,
+    FileNode,
+    GroupNode,
+    PackageFormat,
+    TableNode,
+    RootNode,
+)
 
 from .utils import QuiltTestCase
 
@@ -107,6 +116,51 @@ class InstallTest(QuiltTestCase):
             command.install('foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
+
+    def test_resume_download(self):
+        """
+        Test that existing objects don't get re-downloaded - unless their hash is wrong.
+        """
+        file_data_list = []
+        file_hash_list = []
+        for i in range(3):
+            file_data = "file%d" % i
+            h = hashlib.new(HASH_TYPE)
+            h.update(file_data.encode('utf-8'))
+            file_data_list.append(file_data)
+            file_hash_list.append(h.hexdigest())
+
+        contents = RootNode(dict(
+            file0=FileNode([file_hash_list[0]]),
+            file1=FileNode([file_hash_list[1]]),
+            file2=FileNode([file_hash_list[2]]),
+        ), format=PackageFormat.HDF5)
+        contents_hash = hash_contents(contents)
+
+        os.makedirs('quilt_packages/objs')
+
+        # file0 already exists.
+        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[0]), 'w') as fd:
+            fd.write(file_data_list[0])
+
+        # file1 exists, but has the wrong contents.
+        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1]), 'w') as fd:
+            fd.write("Garbage")
+
+        # file2 does not exist.
+
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, contents, file_hash_list)
+        # Don't mock the first file, since it's not supposed to be downloaded.
+        self._mock_s3(file_hash_list[1], file_data_list[1])
+        self._mock_s3(file_hash_list[2], file_data_list[2])
+
+        command.install('foo/bar')
+
+        # Verify that file1 got redownloaded.
+        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1])) as fd:
+            contents = fd.read()
+            assert contents == file_data_list[1]
 
     def _mock_tag(self, package, tag, pkg_hash):
         tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
