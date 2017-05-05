@@ -3,7 +3,7 @@ Helper functions.
 """
 
 from appdirs import user_data_dir
-from six import string_types
+from six import string_types, Iterator
 from tqdm import tqdm
 
 APP_NAME = "QuiltCli"
@@ -11,7 +11,7 @@ APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 
 
-class FileWithReadProgress(object):
+class FileWithReadProgress(Iterator):
     """
     Acts like a file with mode='rb', but displays a progress bar while the file is read.
     """
@@ -36,6 +36,15 @@ class FileWithReadProgress(object):
     def read(self, size=-1):
         """Read bytes and update the progress bar."""
         buf = self._fd.read(size)
+        self._progress.update(len(buf))
+        return buf
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """Read the next line and update the progress bar."""
+        buf = next(self._fd)
         self._progress.update(len(buf))
         return buf
 
