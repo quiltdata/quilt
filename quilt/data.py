@@ -51,7 +51,7 @@ class GroupNode(Node):
         super(GroupNode, self).__init__()
         self._node = node
 
-    
+
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
         kinfo = '\n'.join(self._keys())
