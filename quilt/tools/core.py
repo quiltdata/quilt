@@ -47,8 +47,12 @@ class RootNode(GroupNode):
         self.format = PackageFormat(format) if format is not None else None
 
     def __json__(self):
-        format = self.format.value if self.format is not None else None
-        return dict(self.__dict__, type=self.json_type, format=format)
+        val = super(RootNode, self).__json__()
+        if self.format is not None:
+            val['format'] = self.format.value
+        else:
+            del val['format']
+        return val
 
 class TableNode(Node):
     json_type = 'TABLE'
@@ -66,8 +70,12 @@ class TableNode(Node):
         self.metadata = metadata
 
     def __json__(self):
-        format = self.format.value if self.format is not None else None
-        return dict(self.__dict__, type=self.json_type, format=format)
+        val = super(TableNode, self).__json__()
+        if self.format is not None:
+            val['format'] = self.format.value
+        else:
+            del val['format']
+        return val
 
 class FileNode(Node):
     json_type = 'FILE'
