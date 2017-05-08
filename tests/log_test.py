@@ -6,7 +6,7 @@ import json
 import requests
 
 from quilt_server.const import PUBLIC
-from quilt_server.core import hash_contents, GroupNode
+from quilt_server.core import hash_contents, GroupNode, RootNode
 from .utils import QuiltTestCase
 
 
@@ -20,13 +20,13 @@ class LogTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkg"
         self.contents_list = [
-            GroupNode(dict(
+            RootNode(dict(
                 foo=GroupNode(dict())
             )),
-            GroupNode(dict(
+            RootNode(dict(
                 bar=GroupNode(dict())
             )),
-            GroupNode(dict(
+            RootNode(dict(
                 baz=GroupNode(dict())
             ))
         ]

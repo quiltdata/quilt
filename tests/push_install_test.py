@@ -15,6 +15,8 @@ from quilt_server.core import (
     GroupNode,
     TableNode,
     FileNode,
+    RootNode,
+    PackageFormat,
 )
 
 from .utils import QuiltTestCase
@@ -29,17 +31,19 @@ class PushInstallTestCase(QuiltTestCase):
     HASH2 = '4cf37d7f670709346438cf2f2598db630eb34520947308aed55ad5e53f0c1518'
     HASH3 = '46449f44f36ec78364ae846fa47df57870e49d3c6cee59b3682aaf289e6d7586'
 
-    CONTENTS = GroupNode(dict(
+    CONTENTS = RootNode(dict(
         foo=TableNode(
             hashes=[HASH1, HASH2]
         ),
         group1=GroupNode(dict(
             empty=TableNode(
-                hashes=[]
+                hashes=[],
+                format=PackageFormat.default.value
             ),
             group2=GroupNode(dict(
                 bar=TableNode(
-                    hashes=[HASH1]
+                    hashes=[HASH1],
+                    format=PackageFormat.default.value
                 )
             ))
         )),
@@ -48,9 +52,10 @@ class PushInstallTestCase(QuiltTestCase):
         )
     ))
 
-    CONTENTS_WITH_METADATA = GroupNode(dict(
+    CONTENTS_WITH_METADATA = RootNode(dict(
         foo=TableNode(
             hashes=[HASH1, HASH2],
+            format=PackageFormat.default.value,
             metadata=dict(
                 important=True
             )
@@ -58,12 +63,13 @@ class PushInstallTestCase(QuiltTestCase):
         group1=GroupNode(dict(
             empty=TableNode(
                 hashes=[],
+                format=PackageFormat.default.value,
                 metadata=dict(
                     whatever="123"
                 )
             ),
             group2=GroupNode(dict(
-                bar=TableNode([HASH1])
+                bar=TableNode([HASH1], PackageFormat.default.value)
             ))
         )),
         file=FileNode(
@@ -72,7 +78,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
     ))
 
-    CONTENTS_HASH = 'cf8743510800aaf6f284568b19c3da5f2b7f3e517889c916f4e274bffeb7c035'
+    CONTENTS_HASH = 'a20597100b045f5420de46b7188590e8688bcfe2ac01e9cbefe26f8919b3f44d'
 
     def testContentsHash(self):
         assert hash_contents(self.CONTENTS) == self.CONTENTS_HASH
@@ -349,3 +355,68 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.not_found
+
+    def testOldClients(self):
+        # Push a new package.
+        resp = self.app.put(
+            '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        # Push an old package.
+        old_contents = RootNode(
+            children=dict(),
+            format=PackageFormat.default
+        )
+        old_hash = hash_contents(old_contents)
+
+        resp = self.app.put(
+            '/api/package/test_user/old/%s' % old_hash,
+            data=json.dumps(dict(
+                description="",
+                contents=old_contents
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Old clients get an error for new packages.
+        resp = self.app.get(
+            '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
+            headers={
+                'Authorization': 'test_user',
+                'User-Agent': 'quilt-cli/2.4.0',
+            }
+        )
+        assert resp.status_code == requests.codes.server_error
+        assert 'update' in resp.data.decode('utf-8')
+
+        # New clients can install new packages.
+        resp = self.app.get(
+            '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
+            headers={
+                'Authorization': 'test_user',
+                'User-Agent': 'quilt-cli/2.4.1',
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Old clients can install old packages.
+        resp = self.app.get(
+            '/api/package/test_user/old/%s' % old_hash,
+            headers={
+                'Authorization': 'test_user',
+                'User-Agent': 'quilt-cli/2.4.0',
+            }
+        )
+        assert resp.status_code == requests.codes.ok

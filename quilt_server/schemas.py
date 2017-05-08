@@ -17,10 +17,11 @@ PACKAGE_SCHEMA = {
             'type': 'object',
             'properties': {
                 'format' : {
+                    # DEPRECATED.
                     'enum': [fmt.value for fmt in PackageFormat]
                 },
                 'type': {
-                    'enum': [RootNode.json_type, GroupNode.json_type]
+                    'enum': [RootNode.json_type]
                 },
                 'children': {
                     'type': 'object',
@@ -30,7 +31,7 @@ PACKAGE_SCHEMA = {
                                 'type': 'object',
                                 'properties': {
                                     'type': {
-                                        'enum': [TableNode.json_type, FileNode.json_type]
+                                        'enum': [FileNode.json_type]
                                     },
                                     'metadata': {
                                         'type': 'object'
@@ -47,7 +48,38 @@ PACKAGE_SCHEMA = {
                                 'additionalProperties': False,
                             },
                             {
-                                '$ref': '#/properties/contents'
+                                'type': 'object',
+                                'properties': {
+                                    'type': {
+                                        'enum': [TableNode.json_type]
+                                    },
+                                    'format' : {
+                                        'enum': [fmt.value for fmt in PackageFormat]
+                                    },
+                                    'metadata': {
+                                        'type': 'object'
+                                    },
+                                    'hashes': {
+                                        'type': 'array',
+                                        'items': {
+                                            'type': 'string',
+                                            'pattern': SHA256_PATTERN
+                                        }
+                                    }
+                                },
+                                'required': ['type', 'hashes'],
+                                'additionalProperties': False,
+                            },
+                            {
+                                'type': 'object',
+                                'properties': {
+                                    'type': {
+                                        'enum': [GroupNode.json_type]
+                                    },
+                                    'children': {
+                                        '$ref': '#/properties/contents/properties/children'
+                                    }
+                                }
                             }
                         ]
                     }
