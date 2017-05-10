@@ -422,8 +422,8 @@ def package_get(auth_user, owner, package_name, package_hash):
         browser = g.user_agent['browser']
         if (isinstance(contents, RootNode) and contents.format is None
                 and browser['name'] == 'QuiltCli' and
-                PackagingVersion(browser['version']) <= PackagingVersion('2.4.0')):
-            # New package format that requires Quilt CLI newer than 2.4.0.
+                PackagingVersion(browser['version']) <= PackagingVersion('2.4.1')):
+            # New package format that requires Quilt CLI newer than 2.4.1.
             raise ApiException(
                 requests.codes.server_error,
                 "Please update quilt to install this package."

@@ -395,7 +395,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
             headers={
                 'Authorization': 'test_user',
-                'User-Agent': 'quilt-cli/2.4.0',
+                'User-Agent': 'quilt-cli/2.4.1',
             }
         )
         assert resp.status_code == requests.codes.server_error
@@ -406,7 +406,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
             headers={
                 'Authorization': 'test_user',
-                'User-Agent': 'quilt-cli/2.4.1',
+                'User-Agent': 'quilt-cli/2.4.2',
             }
         )
         assert resp.status_code == requests.codes.ok
@@ -416,7 +416,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/old/%s' % old_hash,
             headers={
                 'Authorization': 'test_user',
-                'User-Agent': 'quilt-cli/2.4.0',
+                'User-Agent': 'quilt-cli/2.4.1',
             }
         )
         assert resp.status_code == requests.codes.ok
