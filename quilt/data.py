@@ -49,7 +49,7 @@ class GroupNode(Node):
     """
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
-        kinfo = '\n'.join(self._keys())
+        kinfo = '\n'.join(sorted(self._keys()))
         return "%s\n%s" % (pinfo, kinfo)
 
     def _items(self):
