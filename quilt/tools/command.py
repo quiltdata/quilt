@@ -286,7 +286,7 @@ def push(package):
     total = len(upload_urls)
     for idx, (objhash, url) in enumerate(iteritems(upload_urls)):
         # Create a temporary gzip'ed file.
-        print("Uploading object %d/%d..." % (idx + 1, total))
+        print("Uploading %s (%d/%d)..." % (objhash, idx + 1, total))
         with pkgobj.tempfile(objhash) as temp_file:
             with FileWithReadProgress(temp_file) as temp_file_with_progress:
                 response = requests.put(url, data=temp_file_with_progress, headers=headers)
@@ -489,18 +489,28 @@ def install(package, hash=None, version=None, tag=None, force=False):
     pkgobj = store.install_package(owner, pkg, response_contents)
 
     total = len(response_urls)
-    for idx, (download_hash, url) in enumerate(iteritems(response_urls)):
-        print("Downloading object %d/%d..." % (idx + 1, total))
+    for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
+        print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
+
+        local_filename = store.object_path(download_hash)
+        if os.path.exists(local_filename):
+            file_hash = digest_file(local_filename)
+            if file_hash == download_hash:
+                print("Fragment already installed; skipping.")
+                continue
+            else:
+                print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
+                      file_hash)
 
         response = requests.get(url, stream=True)
         if not response.ok:
             msg = "Download {hash} failed: error {code}"
             raise CommandException(msg.format(hash=download_hash, code=response.status_code))
 
-        local_filename = store.object_path(download_hash)
         length_remaining = response.raw.length_remaining
 
-        with open(local_filename, 'wb') as output_file:
+        temp_path = store.temporary_object_path(download_hash)
+        with open(temp_path, 'wb') as output_file:
             with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
                 # `requests` will automatically un-gzip the content, as long as
                 # the 'Content-Encoding: gzip' header is set.
@@ -513,11 +523,13 @@ def install(package, hash=None, version=None, tag=None, force=False):
                         progress.update(length_remaining - response.raw.length_remaining)
                         length_remaining = response.raw.length_remaining
 
-        file_hash = digest_file(local_filename)
+        file_hash = digest_file(temp_path)
         if file_hash != download_hash:
-            os.remove(local_filename)
-            raise CommandException("Mismatched hash! Expected %s, got %s." %
+            os.remove(temp_path)
+            raise CommandException("Fragment hashes do not match: expected %s, got %s." %
                                    (download_hash, file_hash))
+
+        os.rename(temp_path, local_filename)
 
     pkgobj.save_contents()
 
