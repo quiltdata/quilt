@@ -112,7 +112,7 @@ class InstallTest(QuiltTestCase):
         self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
-        with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
+        with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
             command.install('foo/bar')
 
         assert not os.path.exists('quilt_packages/foo/bar.json')
@@ -151,7 +151,7 @@ class InstallTest(QuiltTestCase):
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, contents, file_hash_list)
-        # Don't mock the first file, since it's not supposed to be downloaded.
+        # Don't mock file0, since it's not supposed to be downloaded.
         self._mock_s3(file_hash_list[1], file_data_list[1])
         self._mock_s3(file_hash_list[2], file_data_list[2])
 

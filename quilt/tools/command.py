@@ -496,10 +496,11 @@ def install(package, hash=None, version=None, tag=None, force=False):
         if os.path.exists(local_filename):
             file_hash = digest_file(local_filename)
             if file_hash == download_hash:
-                print("Object already exists; skipping.")
+                print("Fragment already installed; skipping.")
                 continue
             else:
-                print("Object exists, but has the wrong hash (%s); re-downloading." % file_hash)
+                print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
+                      file_hash)
 
         response = requests.get(url, stream=True)
         if not response.ok:
@@ -525,7 +526,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
         file_hash = digest_file(temp_path)
         if file_hash != download_hash:
             os.remove(temp_path)
-            raise CommandException("Mismatched hash! Expected %s, got %s." %
+            raise CommandException("Fragment hashes do not match: expected %s, got %s." %
                                    (download_hash, file_hash))
 
         os.rename(temp_path, local_filename)
