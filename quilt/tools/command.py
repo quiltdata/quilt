@@ -27,9 +27,15 @@ from .hashing import digest_file
 from .store import PackageStore
 from .util import BASE_DIR, FileWithReadProgress
 
-QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', 'https://pkg.quiltdata.com')
+DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
+QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
 
-AUTH_FILE_NAME = "auth.json"
+if QUILT_PKG_URL == DEFAULT_QUILT_PKG_URL:
+    AUTH_FILE_NAME = "auth.json"
+else:
+    # Store different servers' auth in different files.
+    import hashlib
+    AUTH_FILE_NAME = "auth-%.8s.json" % hashlib.md5(QUILT_PKG_URL.encode('utf-8')).hexdigest()
 
 CHUNK_SIZE = 4096
 
