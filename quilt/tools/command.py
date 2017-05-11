@@ -280,7 +280,7 @@ def push(package):
     total = len(upload_urls)
     for idx, (objhash, url) in enumerate(iteritems(upload_urls)):
         # Create a temporary gzip'ed file.
-        print("Uploading object %d/%d..." % (idx + 1, total))
+        print("Uploading %s (%d/%d)..." % (objhash, idx + 1, total))
         with pkgobj.tempfile(objhash) as temp_file:
             with FileWithReadProgress(temp_file) as temp_file_with_progress:
                 response = requests.put(url, data=temp_file_with_progress, headers=headers)
@@ -484,7 +484,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     total = len(response_urls)
     for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
-        print("Downloading object %d/%d..." % (idx + 1, total))
+        print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
 
         local_filename = store.object_path(download_hash)
         if os.path.exists(local_filename):
@@ -493,7 +493,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 print("Object already exists; skipping.")
                 continue
             else:
-                print("Object exists, but has the wrong hash. Redownloading.")
+                print("Object exists, but has the wrong hash (%s); re-downloading." % file_hash)
 
         response = requests.get(url, stream=True)
         if not response.ok:
