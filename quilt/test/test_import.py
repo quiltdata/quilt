@@ -102,14 +102,12 @@ class ImportTest(QuiltTestCase):
         from quilt.data.foo import package1
 
         package1.dataframes2 = package1.dataframes
-        package1._save()
 
-        # Imports are cached, so manually create a copy of the package.
-        path1 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package1' + PackageStore.PACKAGE_FILE_EXT)
-        path2 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package2' + PackageStore.PACKAGE_FILE_EXT)
-        shutil.copy(path1, path2)
+        command.build('foo/package2', package1)
 
         from quilt.data.foo import package2
 
+        assert package2.dataframes
+        assert package2.dataframes.csv
         assert package2.dataframes2
         assert package2.dataframes2.csv

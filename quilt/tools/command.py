@@ -16,7 +16,7 @@ from packaging.version import Version
 import pandas as pd
 import pkg_resources
 import requests
-from six import iteritems
+from six import iteritems, string_types
 from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
@@ -26,6 +26,8 @@ from .core import (hash_contents, GroupNode, TableNode, FileNode,
 from .hashing import digest_file
 from .store import PackageStore
 from .util import BASE_DIR, FileWithReadProgress
+
+from ..data import PackageNode
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -202,14 +204,39 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path):
+def build(package, path_or_node):
     """
-    Compile a Quilt data package
+    Compile a Quilt data package, either from a build file or an existing package node.
     """
+    if isinstance(path_or_node, PackageNode):
+        build_from_node(package, path_or_node)
+    elif isinstance(path_or_node, string_types):
+        build_from_path(package, path_or_node)
+    else:
+        raise ValueError("Expected a PackageNode or a path, but got %r" % path_or_node)
+
+def build_from_node(package, node):
+    """
+    Compile a Quilt data package from an existing package node.
+    """
+    owner, pkg = _parse_package(package)
+
+    # Build the new package in the same store - otherwise, we'd need to copy all of the objects.
+    store = node._package.get_store()
+    new_package_obj = store.create_package(owner, pkg)
+    new_package_obj.set_contents(node._to_core_node())
+    new_package_obj.save_contents()
+
+def build_from_path(package, path):
+    """
+    Compile a Quilt data package from a build file.
+    Path can be a directory, in which case the build file will be generated automatically.
+    """
+    owner, pkg = _parse_package(package)
+
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
 
-    owner, pkg = _parse_package(package)
     if os.path.isdir(path):
         buildpath = os.path.join(path, DEFAULT_BUILDFILE)
         if not os.path.exists(buildpath):
