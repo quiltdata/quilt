@@ -8,7 +8,7 @@ import time
 import requests
 
 from quilt_server.const import PUBLIC
-from quilt_server.core import encode_node, hash_contents, GroupNode
+from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
 
 from .utils import QuiltTestCase
 
@@ -24,7 +24,7 @@ class AccessTestCase(QuiltTestCase):
         self.user = "test_user"
         self.pkg = "pkgtoshare"
 
-        contents = GroupNode(dict(
+        contents = RootNode(dict(
             foo=GroupNode(dict())
         ))
 
@@ -119,7 +119,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = GroupNode(dict(
+        newcontents = RootNode(dict(
             bar=GroupNode(dict())
         ))
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
@@ -156,7 +156,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
-        newcontents = GroupNode(dict(
+        newcontents = RootNode(dict(
             bar=GroupNode(dict())
         ))
         newpkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
@@ -318,7 +318,7 @@ class AccessTestCase(QuiltTestCase):
         List all accessible packages.
         """
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, GroupNode(children=dict()))
+        self.put_package(self.user, public_pkg, RootNode(children=dict()))
         self._share_package(self.user, public_pkg, PUBLIC)
 
         # The user can see own packages. Own public packages show up as "own".
@@ -399,7 +399,7 @@ class AccessTestCase(QuiltTestCase):
         # Push two public packages.
         for i in range(2):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, GroupNode(children=dict()))
+            self.put_package(self.user, pkg, RootNode(children=dict()))
             self._share_package(self.user, pkg, PUBLIC)
 
         time.sleep(1)  # This sucks, but package timestamps only have a resolution of 1s.
@@ -407,14 +407,14 @@ class AccessTestCase(QuiltTestCase):
         # Push two more.
         for i in range(2, 4):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, GroupNode(children=dict()))
+            self.put_package(self.user, pkg, RootNode(children=dict()))
             self._share_package(self.user, pkg, PUBLIC)
 
         # Update pkg0.
-        self.put_package(self.user, 'pkg0', GroupNode(children=dict()))
+        self.put_package(self.user, 'pkg0', RootNode(children=dict()))
 
         # Push a non-public package.
-        self.put_package(self.user, 'private', GroupNode(children=dict()))
+        self.put_package(self.user, 'private', RootNode(children=dict()))
 
         # Verify that the three most recently updated ones are what we expect.
         resp = self.app.get('/api/recent_packages/?count=3')

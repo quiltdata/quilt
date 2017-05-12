@@ -14,6 +14,7 @@ from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
+from packaging.version import Version as PackagingVersion
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
@@ -23,7 +24,7 @@ from sqlalchemy.orm import undefer
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import PUBLIC
-from .core import decode_node, encode_node, find_object_hashes, hash_contents
+from .core import decode_node, encode_node, find_object_hashes, hash_contents, RootNode
 from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
 from .schemas import PACKAGE_SCHEMA
 
@@ -185,6 +186,8 @@ def api(require_login=True, schema=None):
         @wraps(f)
         def wrapper(*args, **kwargs):
             g.user = PUBLIC
+            user_agent_str = request.headers.get('user-agent', '')
+            g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if validator is not None:
                 try:
@@ -239,9 +242,7 @@ def _utc_datetime_to_ts(dt):
     return dt.replace(tzinfo=timezone.utc).timestamp()
 
 def _mp_track(**kwargs):
-    user_agent = request.headers.get('user-agent', '')
-    parsed_agent = httpagentparser.detect(user_agent, fill_none=True)
-    if parsed_agent['browser']['name'] == 'QuiltCli':
+    if g.user_agent['browser']['name'] == 'QuiltCli':
         source = 'cli'
     else:
         source = 'web'
@@ -255,10 +256,10 @@ def _mp_track(**kwargs):
         ip=ip_addr,
         user=g.user,
         source=source,
-        browser_name=parsed_agent['browser']['name'],
-        browser_version=parsed_agent['browser']['version'],
-        platform_name=parsed_agent['platform']['name'],
-        platform_version=parsed_agent['platform']['version'],
+        browser_name=g.user_agent['browser']['name'],
+        browser_version=g.user_agent['browser']['version'],
+        platform_name=g.user_agent['platform']['name'],
+        platform_version=g.user_agent['platform']['version'],
     )
     all_args.update(kwargs)
 
@@ -416,6 +417,20 @@ def package_get(auth_user, owner, package_name, package_hash):
         )
 
     contents = json.loads(instance.contents, object_hook=decode_node)
+
+    try:
+        browser = g.user_agent['browser']
+        if (isinstance(contents, RootNode) and contents.format is None
+                and browser['name'] == 'QuiltCli' and
+                PackagingVersion(browser['version']) <= PackagingVersion('2.4.1')):
+            # New package format that requires Quilt CLI newer than 2.4.1.
+            raise ApiException(
+                requests.codes.server_error,
+                "Run 'pip install quilt --upgrade' to install this package."
+            )
+    except ValueError:
+        # Invalid version number? Ignore it.
+        pass
 
     all_hashes = set(find_object_hashes(contents))
 
