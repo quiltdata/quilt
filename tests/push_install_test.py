@@ -399,7 +399,7 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.server_error
-        assert 'update' in resp.data.decode('utf-8')
+        assert 'upgrade' in resp.data.decode('utf-8')
 
         # New clients can install new packages.
         resp = self.app.get(

@@ -426,7 +426,7 @@ def package_get(auth_user, owner, package_name, package_hash):
             # New package format that requires Quilt CLI newer than 2.4.1.
             raise ApiException(
                 requests.codes.server_error,
-                "Please update quilt to install this package."
+                "Run 'pip install quilt --upgrade' to install this package."
             )
     except ValueError:
         # Invalid version number? Ignore it.
