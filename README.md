@@ -26,7 +26,9 @@ A data package is an abstraction that encapsulates and automates data preparatio
 1. `pip install quilt`
 
 ## Linux
-1. `sudo apt-get install libhdf5-serial-dev`
+1. Install the OpenSSL headers:
+   * Ubuntu: `sudo apt-get install libssl-dev`
+   * Fedora: `sudo dnf install openssl-devel`
 1. `pip install quilt`
 
 # Learn
@@ -80,8 +82,8 @@ contents:
     DATA_NAME:
       file: PATH_TO_FILE
       transform: {id, csv, tsv, ssv, xls, xlsx}
-      sep="\t" # tab separated values
-      # or any key-word argument to [pandas.read_csv](http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
+      sep: "\t" # tab separated values
+      # or any key-word argument to pandas.read_csv (http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
 ```
 
 ## Column types
