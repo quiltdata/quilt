@@ -6,11 +6,6 @@ Test the build process
 import os
 
 try:
-    import fastparquet
-except ImportError:
-    fastparquet = None
-
-try:
     import pyarrow
 except ImportError:
     pyarrow = None
@@ -58,7 +53,7 @@ class BuildTest(QuiltTestCase):
 
         # TODO add more integrity checks, incl. negative test cases
 
-    @pytest.mark.skipif("fastparquet is None and pyarrow is None")
+    @pytest.mark.skipif("pyarrow is None")
     def test_build_parquet_default(self):
         """
         Test compilation to Parquet via the default library
@@ -83,36 +78,6 @@ class BuildTest(QuiltTestCase):
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
         # TODO add more integrity checks, incl. negative test cases
-
-    @pytest.mark.skipif("fastparquet is None")
-    def test_build_parquet_fastparquet(self):
-        """
-        Test compilation using Parquet via fastparquet
-        """
-        os.environ["QUILT_PARQUET_LIBRARY"] = ParquetLib.FASTPARQUET.value
-        Package.reset_parquet_lib()
-        mydir = os.path.dirname(__file__)
-        PATH = os.path.join(mydir, './build_parquet.yml')
-        build.build_package('test_fastparquet', PACKAGE, PATH)
-        # TODO load DFs based on contents of .yml file at PATH
-        # not hardcoded vals (this will require loading modules from variable
-        # names, probably using __module__)
-        from quilt.data.test_fastparquet.groot import dataframes, README
-        csv = dataframes.csv()
-        tsv = dataframes.csv()
-        xls = dataframes.xls()
-        rows = len(csv.index)
-        rows = len(csv.index)
-        assert rows == len(tsv.index) and rows == len(xls.index), \
-            'Expected dataframes to have same # rows'
-        assert os.path.exists(README())
-        cols = len(csv.columns)
-        print(csv.columns, xls.columns, tsv.columns)
-        assert cols == len(tsv.columns) and cols == len(xls.columns), \
-            'Expected dataframes to have same # columns'
-        # TODO add more integrity checks, incl. negative test cases
-        assert Package.get_parquet_lib() is ParquetLib.FASTPARQUET
-        del os.environ["QUILT_PARQUET_LIBRARY"]
 
     @pytest.mark.skipif("pyarrow is None")
     def test_build_parquet_pyarrow(self):

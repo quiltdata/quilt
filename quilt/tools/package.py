@@ -23,7 +23,6 @@ CHUNK_SIZE = 4096
 class ParquetLib(Enum):
     SPARK = 'pyspark'
     ARROW = 'pyarrow'
-    FASTPARQUET = 'fastparquet'
 
 
 class PackageException(Exception):
@@ -126,19 +125,6 @@ class Package(object):
         df = table.to_pandas()
         return df
 
-    def _read_parquet_fastparquet(self, hash_list):
-        # As of 3/25/2017, fastparquet on GH supports passing a list
-        # of paths, but the latest version on conda and pip (0.0.5) does
-        # not.
-        # TODO: Update this method to pass the list of objectfile paths
-        # like _read_parquet_arrow (above).
-        import fastparquet
-
-        assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
-        filehash = hash_list[0]
-        pfile = fastparquet.ParquetFile(self._store.object_path(filehash))
-        return pfile.to_pandas()
-
     def _read_parquet_spark(self, hash_list):
         from pyspark import sql as sparksql
 
@@ -160,8 +146,6 @@ class Package(object):
                 return self._read_parquet_spark(hash_list)
             elif parqlib is ParquetLib.ARROW:
                 return self._read_parquet_arrow(hash_list)
-            elif parqlib is ParquetLib.FASTPARQUET:
-                return self._read_parquet_fastparquet(hash_list)
             else:
                 assert False, "Unimplemented Parquet Library %s" % parqlib
         else:
@@ -190,10 +174,7 @@ class Package(object):
         elif enumformat is PackageFormat.PARQUET:
             # switch parquet lib
             parqlib = self.get_parquet_lib()
-            if parqlib is ParquetLib.FASTPARQUET:
-                import fastparquet
-                fastparquet.write(storepath, df)
-            elif parqlib is ParquetLib.ARROW:
+            if parqlib is ParquetLib.ARROW:
                 import pyarrow as pa
                 from pyarrow import parquet
                 table = pa.Table.from_pandas(df)
