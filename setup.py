@@ -41,6 +41,7 @@ setup(
         'future>=0.16.0',
         'packaging>=16.8',
         'pandas>=0.19.2',
+        'pyarrow>=0.3.0',
         'pyOpenSSL>=16.2.0',
         'pyyaml>=3.12',
         'requests>=2.12.4',

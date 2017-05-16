@@ -156,6 +156,10 @@ def build_package(username, package, yaml_path):
     except ValueError:
         raise BuildException("Unsupported format: %r" % pkgformat)
 
+    # HDF5 no longer supported.
+    if pkgformat is PackageFormat.HDF5:
+        raise BuildException("HDF5 format is no longer supported; please use PARQUET instead.")
+
     store = PackageStore()
     newpackage = store.create_package(username, package)
     _build_node(build_dir, newpackage, '', contents, pkgformat)
