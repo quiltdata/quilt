@@ -16,14 +16,14 @@ matrix:
       python: 3.6
     # HACK this covers python 2.7 by default
     # TODO be explict about OS X Python version
-    - os: osx
-      language: generic
+    # HACK(dima): Disable OSX builds for now, since they now require conda.
+    # - os: osx
+    #   language: generic
 
 # TODO: test multiple python versions on OSX https://github.com/travis-ci/travis-ci/issues/2312
 
 before_install:
   - pip install pytest
-  - pip install Cython  # Workaround for a failure in the pyarrow package
   # Install HDF5
   # travis_retry here because occasionally fails on high latency
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
