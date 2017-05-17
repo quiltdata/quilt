@@ -23,6 +23,7 @@ matrix:
 
 before_install:
   - pip install pytest
+  - pip install Cython  # Workaround for a failure in the pyarrow package
   # Install HDF5
   # travis_retry here because occasionally fails on high latency
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
