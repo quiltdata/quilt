@@ -30,8 +30,8 @@ before_install:
       chmod +x mconda.sh;
       ./mconda.sh -b;
       export PATH="/home/travis/miniconda3/bin:$PATH";
-      echo "INSTALLED CONDA"
-      echo "$PATH"
+      echo "INSTALLED CONDA";
+      echo "$PATH";
     fi
 
 install:
@@ -39,7 +39,7 @@ install:
       conda create --yes -n quilt_env python=$QPYVER pip;
       conda install --yes -c conda-forge pyarrow=0.3;
       source activate quilt_env;
-      echo "ACTIVATED ENV $QPYVER"
+      echo "ACTIVATED ENV $QPYVER";
     fi
   - echo $(python --version)
   # pytest
