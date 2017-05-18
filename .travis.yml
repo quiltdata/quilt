@@ -24,9 +24,9 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh; fi
   # install miniconda
   - chmod +x mconda.sh
-  - ./miniconda.sh -b
+  - ./mconda.sh -b
   # add anaconda to PATH
-  - export PATH="$HOME/mconda/bin:$PATH"
+  - export PATH="$HOME/miniconda/bin:$PATH"
   # update conda
   # - conda update --yes conda
 
