@@ -20,23 +20,20 @@ matrix:
       env: NO_CONDA=true
 
 before_install:
-  # miniconda for mac
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
       curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh;
     fi
-  # miniconda for linux
-  - if [[ "$TRAVIS_OS_NAME" == "linux"  && "$NO_CONDA" -ne "true"]]; then
-        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
-        chmod +x mconda.sh;
-        ./mconda.sh -b;
-        export PATH="/home/travis/miniconda3/bin:$PATH";
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
     fi
-  # add anaconda to PATH
-  # update conda (optional?)
-  # - conda update --yes conda
+  - if [[ "$NO_CONDA" -ne "true" ]]; then
+      chmod +x mconda.sh;
+      ./mconda.sh -b;
+      export PATH="/home/travis/miniconda3/bin:$PATH";
+    fi
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux"  && "$NO_CONDA" -ne "true"]]; then
+  - if [[ "$NO_CONDA" -ne "true" ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip;
       source activate quilt_env;
       conda install --yes -c conda-forge pyarrow=0.3;
