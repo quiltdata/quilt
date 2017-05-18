@@ -16,7 +16,7 @@ env:
 matrix:
   include:
     - os: linux
-      python: '3.6'
+      python: "3.6"
       env: NO_CONDA=true
 
 before_install:
@@ -26,20 +26,17 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
       curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
     fi
-  - if [[ "$NO_CONDA" -ne "true" ]]; then
+  - if [[ "$NO_CONDA" = true ]]; then
       chmod +x mconda.sh;
       ./mconda.sh -b;
       export PATH="/home/travis/miniconda3/bin:$PATH";
-      echo "INSTALLED CONDA";
-      echo "$PATH";
     fi
 
 install:
-  - if [[ "$NO_CONDA" -ne "true" ]]; then
+  - if [[ "$NO_CONDA" = true ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip;
       conda install --yes -c conda-forge pyarrow=0.3;
       source activate quilt_env;
-      echo "ACTIVATED ENV $QPYVER";
     fi
   - echo $(python --version)
   # pytest
