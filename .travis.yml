@@ -32,7 +32,7 @@ install:
   - source activate quilt_env
   - echo $(python --version)
   # install pyarrow 0.3
-  - conda install -c conda-forge pyarrow=0.3
+  - conda install --yes -c conda-forge pyarrow=0.3
   # pytest
   - pip install pytest
   # install quilt from setup.py
