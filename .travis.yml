@@ -1,6 +1,6 @@
 # use miniconda for python, so don't specify "python", which doesn't
 # work on travis osx anyway
-language: c
+language: generic
 os:
   - linux
   - osx
@@ -14,10 +14,6 @@ env:
     - QPYVER=3.6
 
 before_install:
-  # brew update (do we *really* need this? it's slow. travis recommends this https://docs.travis-ci.com/user/osx-ci-environment/
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
-  # osx needs wget
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install wget; fi
   # miniconda for mac
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh; fi
   # miniconda for linux
@@ -26,8 +22,8 @@ before_install:
   - chmod +x mconda.sh
   - ./mconda.sh -b
   # add anaconda to PATH
-  - export PATH="/home/travis/anaconda/bin:$PATH"
-  # update conda
+  - export PATH="/home/travis/miniconda3/bin:$PATH"
+  # update conda (optional?)
   # - conda update --yes conda
 
 install:
