@@ -25,7 +25,7 @@ before_install:
       curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh;
     fi
   # miniconda for linux
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ] && ["$NO_CONDA" -ne "true"]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux"  && "$NO_CONDA" -ne "true"]]; then
         curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
         chmod +x mconda.sh;
         ./mconda.sh -b;
@@ -36,7 +36,7 @@ before_install:
   # - conda update --yes conda
 
 install:
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ] && ["$NO_CONDA" -ne "true"]]; then
+  - if [[ "$TRAVIS_OS_NAME" == "linux"  && "$NO_CONDA" -ne "true"]]; then
       conda create --yes -n quilt_env python=$QPYVER pip;
       source activate quilt_env;
       conda install --yes -c conda-forge pyarrow=0.3;
