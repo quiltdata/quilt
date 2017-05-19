@@ -18,8 +18,9 @@ env:
 matrix:
   include:
     - os: linux
-      python: "3.6"
+      python: "3.5"
       env: USE_CONDA=false
+      sudo: required
 
 before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
@@ -31,7 +32,7 @@ before_install:
   - if [[ "$USE_CONDA" = true ]]; then
       chmod +x mconda.sh;
       ./mconda.sh -b;
-      export PATH="/home/travis/miniconda3/bin:$PATH";
+      export PATH="$HOME/miniconda3/bin:$PATH";
     fi
 
 install:
