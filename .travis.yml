@@ -59,9 +59,9 @@ before_install:
 install:
   - |
     if [[ "$USE_CONDA" = true ]]; then
-      conda create --yes -n quilt_env python=$QPYVER pip;
-      conda install --yes -c conda-forge pyarrow=0.3;
-      source activate quilt_env;
+      conda create --yes -n quilt_env python=$QPYVER pip
+      source activate quilt_env
+      conda install --yes -c conda-forge pyarrow=0.3
     fi
   # debug support
   - echo $(python --version)
