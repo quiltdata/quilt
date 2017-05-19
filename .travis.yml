@@ -18,7 +18,7 @@ env:
 matrix:
   allow_failures:
     # no wheel support, so pyarrow installation fails
-    - env: TRAVIS_OS_NAME=osx, QPYVER=3.4
+    - env: TRAVIS_OS_NAME=osx QPYVER=3.4
   fast_finish: true
   include:
     - os: linux
