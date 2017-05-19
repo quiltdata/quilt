@@ -17,20 +17,19 @@ env:
 
 matrix:
   allow_failures:
-    # no wheel support, so pyarrow installation fails
-    - env: TRAVIS_OS_NAME=osx QPYVER=3.4
+    # no wheel support, so pyarrow installation fails on OSX/PY34
+    - os: osx
+      env: QPYVER=3.4
   fast_finish: true
   include:
     - os: linux
       language: python
       python: "2.7"
       env: USE_CONDA=false
-      sudo: required
     - os: linux
       language: python
       python: "3.4"
       env: USE_CONDA=false
-      sudo: required
     - os: linux
       language: python
       python: "3.5"
