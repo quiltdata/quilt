@@ -42,21 +42,22 @@ matrix:
       env: USE_CONDA=false
       sudo: required
 
-before_install:
-  - if [[ "$USE_CONDA" = true ]]; then
+before_install: |
+  - |
+    if [[ "$USE_CONDA" = true ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh;
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      elif [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
       fi
-      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
-      fi
-      chmod +x mconda.sh;
-      ./mconda.sh -b;
-      export PATH="$HOME/miniconda3/bin:$PATH";
+      chmod +x mconda.sh
+      ./mconda.sh -b
+      export PATH="$HOME/miniconda3/bin:$PATH"
     fi
 
 install:
-  - if [[ "$USE_CONDA" = true ]]; then
+  - |
+    if [[ "$USE_CONDA" = true ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip;
       conda install --yes -c conda-forge pyarrow=0.3;
       source activate quilt_env;
