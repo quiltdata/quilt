@@ -16,10 +16,19 @@ env:
     - QPYVER=3.6
 
 matrix:
+  allow_failures:
+    # no wheel support, so pyarrow installation fails
+    - env: TRAVIS_OS_NAME=osx, QPYVER=3.4
+  fast_finish: true
   include:
     - os: linux
       language: python
       python: "2.7"
+      env: USE_CONDA=false
+      sudo: required
+    - os: linux
+      language: python
+      python: "3.4"
       env: USE_CONDA=false
       sudo: required
     - os: linux
@@ -34,13 +43,13 @@ matrix:
       sudo: required
 
 before_install:
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-      curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh;
-    fi
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-      curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
-    fi
   - if [[ "$USE_CONDA" = true ]]; then
+      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh;
+      fi
+      if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh;
+      fi
       chmod +x mconda.sh;
       ./mconda.sh -b;
       export PATH="$HOME/miniconda3/bin:$PATH";
@@ -52,6 +61,7 @@ install:
       conda install --yes -c conda-forge pyarrow=0.3;
       source activate quilt_env;
     fi
+  # debug support
   - echo $(python --version)
   # pytest
   - pip install pytest
