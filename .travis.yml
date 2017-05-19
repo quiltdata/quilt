@@ -1,42 +1,74 @@
-language: python
+# use miniconda for python, so don't specify "python", which doesn't
+# work on travis osx anyway
+language: generic
+os:
+  - linux
+  - osx
+  # TODO: windows CI (not currently supported by travis)
+
+env:
+  global:
+    - USE_CONDA=true
+  matrix:
+    - QPYVER=2.7
+    - QPYVER=3.4
+    - QPYVER=3.5
+    - QPYVER=3.6
 
 matrix:
+  allow_failures:
+    # no wheel support, so pyarrow installation fails on OSX/PY34
+    - os: osx
+      env: QPYVER=3.4
+  fast_finish: true
   include:
     - os: linux
+      language: python
+      python: "2.7"
+      env: USE_CONDA=false
       sudo: required
-      python: 2.7
     - os: linux
+      language: python
+      python: "3.4"
+      env: USE_CONDA=false
       sudo: required
-      python: 3.4
     - os: linux
+      language: python
+      python: "3.5"
+      env: USE_CONDA=false
       sudo: required
-      python: 3.5
     - os: linux
+      language: python
+      python: "3.6"
+      env: USE_CONDA=false
       sudo: required
-      python: 3.6
-    # HACK this covers python 2.7 by default
-    # TODO be explict about OS X Python version
-    - os: osx
-      language: generic
-
-# TODO: test multiple python versions on OSX https://github.com/travis-ci/travis-ci/issues/2312
 
 before_install:
-  - pip install pytest
-  # Install HDF5
-  # travis_retry here because occasionally fails on high latency
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then travis_retry brew update; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install homebrew/science/hdf5@1.8; fi
-  - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then export HDF5_DIR=$(brew --prefix homebrew/science/hdf5@1.8); fi
-  # apt-get libhdf5-dev doesn't work in spite of https://github.com/travis-ci/apt-package-whitelist/issues/416
-  # see also: https://github.com/travis-ci/apt-package-whitelist/issues/416
-  # right now this looks like the best HDF5 bet
-  - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install libhdf5-serial-dev; fi
-  - echo $(python --version)
+  - |
+    if [[ "$USE_CONDA" = true ]]; then
+      if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+      elif [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+        curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+      fi
+      chmod +x mconda.sh
+      ./mconda.sh -b
+      export PATH="$HOME/miniconda3/bin:$PATH"
+    fi
 
 install:
-  - travis_retry pip install .
+  - |
+    if [[ "$USE_CONDA" = true ]]; then
+      conda create --yes -n quilt_env python=$QPYVER pip;
+      conda install --yes -c conda-forge pyarrow=0.3;
+      source activate quilt_env;
+    fi
+  # debug support
+  - echo $(python --version)
+  # pytest
+  - pip install pytest
+  # install quilt from setup.py
+  - travis_retry pip install --only-binary 'tables,pyarrow' .
 
 script:
   - pytest
-
