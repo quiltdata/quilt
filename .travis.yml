@@ -11,15 +11,10 @@ env:
     - USE_CONDA=true
   matrix:
     - QPYVER=2.7
-    - QPYVER=3.4
     - QPYVER=3.5
     - QPYVER=3.6
 
 matrix:
-  allow_failures:
-    # no wheel support, so pyarrow installation fails on OSX/PY34
-    - os: osx
-      env: QPYVER=3.4
   fast_finish: true
   include:
     - os: linux
