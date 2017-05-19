@@ -68,7 +68,7 @@ install:
   # pytest
   - pip install pytest
   # install quilt from setup.py
-  - travis_retry pip install --only-binary ':all:' .
+  - travis_retry pip install --only-binary 'tables,pyarrow' .
 
 script:
   - pytest
