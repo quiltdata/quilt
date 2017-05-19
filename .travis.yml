@@ -42,7 +42,7 @@ matrix:
       env: USE_CONDA=false
       sudo: required
 
-before_install: |
+before_install:
   - |
     if [[ "$USE_CONDA" = true ]]; then
       if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
