@@ -8,7 +8,7 @@ from six import iteritems, string_types
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
     PARQUET = 'PARQUET'
-    default = HDF5
+    default = PARQUET
 
 class Node(object):
     @property

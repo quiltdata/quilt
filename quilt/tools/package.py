@@ -43,23 +43,9 @@ class Package(object):
         Find/choose a library to read and write Parquet files
         based on installed options.
         """
-        if not cls.__parquet_lib:
-            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY')
-            if parq_env:
-                cls.__parquet_lib = ParquetLib(parq_env)
-            else:
-                import imp
-                for lib in ParquetLib:
-                    try:
-                        imp.find_module(lib.value)
-                        cls.__parquet_lib = lib
-                        break
-                    except ImportError:
-                        pass
-                else:
-                    msg = "One of the following libraries is requried to read"
-                    msg += " Parquet packages: %s" % [l.value for l in ParquetLib]
-                    raise PackageException(msg)
+        if cls.__parquet_lib is None:
+            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY', ParquetLib.ARROW.value)
+            cls.__parquet_lib = ParquetLib(parq_env)
         return cls.__parquet_lib
 
     @classmethod
@@ -88,7 +74,7 @@ class Package(object):
                 # Really old package: no root node.
                 contents = RootNode(contents.children)
             # Fix packages with no format in data nodes.
-            pkg_format = contents.format or PackageFormat.default
+            pkg_format = contents.format or PackageFormat.HDF5
             self._fix_format(contents, pkg_format)
             return contents
 
@@ -160,18 +146,7 @@ class Package(object):
         storepath = self._store.temporary_object_path(buildfile)
 
         # Serialize DataFrame to chosen format
-        if enumformat is PackageFormat.HDF5:
-            # HACK: Force the use of old pickle to ensure Python 2/3 compatibility.
-            from pandas.compat import cPickle
-            old_protocol = cPickle.HIGHEST_PROTOCOL
-            try:
-                cPickle.HIGHEST_PROTOCOL = 2
-                with pd.HDFStore(storepath, mode='w') as store:
-                    store[self.DF_NAME] = df
-            finally:
-                cPickle.HIGHEST_PROTOCOL = old_protocol
-
-        elif enumformat is PackageFormat.PARQUET:
+        if enumformat is PackageFormat.PARQUET:
             # switch parquet lib
             parqlib = self.get_parquet_lib()
             if parqlib is ParquetLib.ARROW:
