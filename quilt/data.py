@@ -95,10 +95,6 @@ class PackageNode(GroupNode):
     def _to_core_node(self):
         return core.RootNode(self._core_children())
 
-    def _save(self):
-        self._package.set_contents(self._to_core_node())
-        self._package.save_contents()
-
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
