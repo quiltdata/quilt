@@ -21,13 +21,13 @@ from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, GroupNode, TableNode, FileNode,
+from .core import (hash_contents, GroupNode, TableNode, FileNode, PackageFormat,
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore
 from .util import BASE_DIR, FileWithReadProgress
 
-from ..data import PackageNode
+from .. import data
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -208,7 +208,7 @@ def build(package, path_or_node):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
-    if isinstance(path_or_node, PackageNode):
+    if isinstance(path_or_node, data.PackageNode):
         build_from_node(package, path_or_node)
     elif isinstance(path_or_node, string_types):
         build_from_path(package, path_or_node)
@@ -221,11 +221,30 @@ def build_from_node(package, node):
     """
     owner, pkg = _parse_package(package)
 
-    # Build the new package in the same store - otherwise, we'd need to copy all of the objects.
     store = node._package.get_store()
-    new_package_obj = store.create_package(owner, pkg)
-    new_package_obj.set_contents(node._to_core_node())
-    new_package_obj.save_contents()
+    package_obj = store.create_package(owner, pkg)
+
+    def _process_node(node, path=''):
+        if isinstance(node, data.GroupNode):
+            for key, child in node._items():
+                _process_node(child, path + '/' + key)
+        elif isinstance(node, data.DataNode):
+            core_node = node._node
+            metadata = core_node.metadata
+            if isinstance(core_node, TableNode):
+                df = node.data()
+                package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
+                                    'pandas', PackageFormat.default)
+            elif isinstance(core_node, FileNode):
+                src_path = node.data()
+                package_obj.save_file(src_path, path, metadata.get('q_path'))
+            else:
+                assert False, "Unexpected core node type: %r" % core_node
+        else:
+            assert False, "Unexpected node type: %r" % node
+
+    _process_node(node)
+    package_obj.save_contents()
 
 def build_from_path(package, path):
     """
