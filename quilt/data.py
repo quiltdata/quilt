@@ -18,7 +18,8 @@ import imp
 import os.path
 import sys
 
-from six import iteritems
+import pandas as pd
+from six import iteritems, string_types
 
 from .tools import core
 from .tools.store import PackageStore
@@ -83,15 +84,45 @@ class PackageNode(GroupNode):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
+    def _set(self, path, value):
+        assert isinstance(path, list) and len(path) > 0
+
+        if isinstance(value, pd.DataFrame):
+            core_node = core.TableNode(hashes=[])
+        elif isinstance(value, string_types):
+            core_node = core.FileNode(hashes=[])
+        else:
+            assert False, "Unexpected value: %r" % value
+
+        node = self
+        for key in path[:-1]:
+            assert not key.startswith('_')
+            if hasattr(node, key):
+                child = getattr(node, key)
+                if not isinstance(child, GroupNode):
+                    raise ValueError("Key already %r exists, but is not a group" % key)
+            else:
+                child = GroupNode()
+                setattr(node, key, child)
+
+            node = child
+
+        key = path[-1]
+        assert not key.startswith('_')
+        if hasattr(node, key):
+            raise ValueError("Key %r already exists" % key)
+        data_node = DataNode(self._package, core_node, value)
+        setattr(node, path[-1], data_node)
+
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
-    def __init__(self, package, node):
+    def __init__(self, package, node, data=None):
         super(DataNode, self).__init__()
         self._package = package
         self._node = node
-        self.__cached_data = None
+        self.__cached_data = data
 
     def __call__(self):
         return self.data()
