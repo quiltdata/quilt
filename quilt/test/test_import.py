@@ -101,13 +101,23 @@ class ImportTest(QuiltTestCase):
 
         from quilt.data.foo import package1
 
-        package1.dataframes2 = package1.dataframes
-
+        # Build an identical package
         command.build('foo/package2', package1)
+        contents1 = open('quilt_packages/foo/package1.json').read()
+        contents2 = open('quilt_packages/foo/package2.json').read()
+        assert contents1 == contents2
 
-        from quilt.data.foo import package2
+        # Build a modified package
+        package1.dataframes2 = package1.dataframes
+        del package1.dataframes
+        df = package1.dataframes2.csv.data()
+        df.set_value(0, 'Int0', 42)
+        command.build('foo/package3', package1)
 
-        assert package2.dataframes
-        assert package2.dataframes.csv
-        assert package2.dataframes2
-        assert package2.dataframes2.csv
+        from quilt.data.foo import package3
+
+        assert hasattr(package3, 'dataframes2')
+        assert not hasattr(package3, 'dataframes')
+
+        new_df = package3.dataframes2.csv.data()
+        assert new_df.xs(0)['Int0'] == 42
