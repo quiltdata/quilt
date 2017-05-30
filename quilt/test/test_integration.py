@@ -1,7 +1,7 @@
 """
 Integration test of installation from known public package(s)
 """
-from unittest.mock import patch
+from .utils import patch
 
 import pytest
 
