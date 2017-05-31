@@ -40,9 +40,6 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
-    def _to_core_node(self):
-        raise NotImplementedError
-
 class GroupNode(Node):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
@@ -86,12 +83,6 @@ class GroupNode(Node):
         """
         return [name for name in self.__dict__ if not name.startswith('_')]
 
-    def _core_children(self):
-        return {name: child._to_core_node() for name, child in self._items()}
-
-    def _to_core_node(self):
-        return core.GroupNode(self._core_children())
-
 class PackageNode(GroupNode):
     """
     Represents a package.
@@ -104,13 +95,6 @@ class PackageNode(GroupNode):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
-    def _to_core_node(self):
-        return core.RootNode(self._core_children(), self._package.get_contents().format)
-
-    def _save(self):
-        self._package.set_contents(self._to_core_node())
-        self._package.save_contents()
-
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
@@ -119,6 +103,7 @@ class DataNode(Node):
         super(DataNode, self).__init__()
         self._package = package
         self._node = node
+        self.__cached_data = None
 
     def __call__(self):
         return self.data()
@@ -127,10 +112,9 @@ class DataNode(Node):
         """
         Returns the contents of the node: a dataframe or a file path.
         """
-        return self._package.get_obj(self._node)
-
-    def _to_core_node(self):
-        return self._node
+        if self.__cached_data is None:
+            self.__cached_data = self._package.get_obj(self._node)
+        return self.__cached_data
 
 class FakeLoader(object):
     """

@@ -8,7 +8,7 @@ from six import iteritems, string_types
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
     PARQUET = 'PARQUET'
-    default = HDF5
+    default = PARQUET
 
 class Node(object):
     @property
@@ -40,25 +40,42 @@ class GroupNode(Node):
 class RootNode(GroupNode):
     json_type = 'ROOT'
 
-    def __init__(self, children, format):
-        self.format = PackageFormat(format)
+    def __init__(self, children, format=None):
         super(RootNode, self).__init__(children)
 
+        # Deprecated, but needs to stay for compatibility with old packages.
+        self.format = PackageFormat(format) if format is not None else None
+
     def __json__(self):
-        return dict(self.__dict__, type=self.json_type, format=self.format.value)
+        val = super(RootNode, self).__json__()
+        if self.format is not None:
+            val['format'] = self.format.value
+        else:
+            del val['format']
+        return val
 
 class TableNode(Node):
     json_type = 'TABLE'
 
-    def __init__(self, hashes, metadata=None):
+    def __init__(self, hashes, format=None, metadata=None):
         if metadata is None:
             metadata = {}
 
         assert isinstance(hashes, list)
+        assert format is None or isinstance(format, string_types), '%r' % format
         assert isinstance(metadata, dict)
 
         self.hashes = hashes
+        self.format = PackageFormat(format) if format is not None else None
         self.metadata = metadata
+
+    def __json__(self):
+        val = super(TableNode, self).__json__()
+        if self.format is not None:
+            val['format'] = self.format.value
+        else:
+            del val['format']
+        return val
 
 class FileNode(Node):
     json_type = 'FILE'
@@ -78,7 +95,7 @@ NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableN
 def encode_node(node):
     if isinstance(node, Node):
         return node.__json__()
-    raise TypeError
+    raise TypeError("Unexpected type: %r" % type(node))
 
 def decode_node(value):
     type_str = value.pop('type', None)

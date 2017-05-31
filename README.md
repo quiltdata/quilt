@@ -17,16 +17,15 @@ A data package is an abstraction that encapsulates and automates data preparatio
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
 # Installation
-## Mac
-1. Install [Homebrew](https://brew.sh/)
-1. `brew update`
-1. `brew install homebrew/science/hdf5@1.8` (pytables doesn't work with hdf5@1.10)
-1. Determine your HDF5 directory: `brew --prefix homebrew/science/hdf5@1.8`
-1. `export HDF5_DIR=*YOUR_HDF5_DIRECTORY*` (add this line to your .bash_profile)
+## Mac / Windows
+1. Install [Conda](https://conda.io/docs/install/quick.html)
+1. `conda install -c conda-forge pyarrow=0.3`
 1. `pip install quilt`
 
 ## Linux
-1. `sudo apt-get install libhdf5-serial-dev`
+1. Install the OpenSSL headers:
+   * Ubuntu: `sudo apt-get install libssl-dev`
+   * Fedora: `sudo dnf install openssl-devel`
 1. `pip install quilt`
 
 # Learn
@@ -80,8 +79,8 @@ contents:
     DATA_NAME:
       file: PATH_TO_FILE
       transform: {id, csv, tsv, ssv, xls, xlsx}
-      sep="\t" # tab separated values
-      # or any key-word argument to [pandas.read_csv](http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
+      sep: "\t" # tab separated values
+      # or any key-word argument to pandas.read_csv (http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
 ```
 
 ## Column types

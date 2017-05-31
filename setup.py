@@ -2,17 +2,13 @@ from setuptools import setup, find_packages
 
 def readme():
     readme_short = """
-    [Quilt] is a data package manager.
-    `quilt` is a command-line tool that builds, retrieves, and stores
-    data packages. A data package is a namespace of binary data frames
-    (and files).
+    ``quilt`` is a command-line utility that builds, pushes, and installs
+    data packages. A `data package <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_
+    is a versioned bundle of serialized data wrapped in a Python module.
 
-    `quilt` works in conjunction with a server-side registry,
-    not covered in this document. `quilt` currently pushes to and pulls from
-    the registry at [quiltdata.com](https://quiltdata.com/). In the near
-    future users will be able to browse packages in the registry. You can
-    use the registry to install data packages from the community, or publish
-    packages for others to use.
+    ``quilt`` pushes to and pulls from the package registry at quiltdata.com.
+
+    Visit `quiltdata.com <https://quiltdata.com>`_ for docs and more.
     """
     return readme_short
 
@@ -28,6 +24,8 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
     author='quiltdata',
@@ -41,6 +39,7 @@ setup(
         'future>=0.16.0',
         'packaging>=16.8',
         'pandas>=0.19.2',
+        'pyarrow>=0.4.0',
         'pyOpenSSL>=16.2.0',
         'pyyaml>=3.12',
         'requests>=2.12.4',

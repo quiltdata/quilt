@@ -101,15 +101,23 @@ class ImportTest(QuiltTestCase):
 
         from quilt.data.foo import package1
 
+        # Build an identical package
+        command.build('foo/package2', package1)
+        contents1 = open('quilt_packages/foo/package1.json').read()
+        contents2 = open('quilt_packages/foo/package2.json').read()
+        assert contents1 == contents2
+
+        # Build a modified package
         package1.dataframes2 = package1.dataframes
-        package1._save()
+        del package1.dataframes
+        df = package1.dataframes2.csv.data()
+        df.set_value(0, 'Int0', 42)
+        command.build('foo/package3', package1)
 
-        # Imports are cached, so manually create a copy of the package.
-        path1 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package1' + PackageStore.PACKAGE_FILE_EXT)
-        path2 = os.path.join(PACKAGE_DIR_NAME, 'foo', 'package2' + PackageStore.PACKAGE_FILE_EXT)
-        shutil.copy(path1, path2)
+        from quilt.data.foo import package3
 
-        from quilt.data.foo import package2
+        assert hasattr(package3, 'dataframes2')
+        assert not hasattr(package3, 'dataframes')
 
-        assert package2.dataframes2
-        assert package2.dataframes2.csv
+        new_df = package3.dataframes2.csv.data()
+        assert new_df.xs(0)['Int0'] == 42

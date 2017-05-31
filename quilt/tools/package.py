@@ -6,6 +6,7 @@ import tempfile
 import zlib
 
 import pandas as pd
+from six import itervalues
 
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
@@ -22,7 +23,6 @@ CHUNK_SIZE = 4096
 class ParquetLib(Enum):
     SPARK = 'pyspark'
     ARROW = 'pyarrow'
-    FASTPARQUET = 'fastparquet'
 
 
 class PackageException(Exception):
@@ -43,23 +43,9 @@ class Package(object):
         Find/choose a library to read and write Parquet files
         based on installed options.
         """
-        if not cls.__parquet_lib:
-            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY')
-            if parq_env:
-                cls.__parquet_lib = ParquetLib(parq_env)
-            else:
-                import imp
-                for lib in ParquetLib:
-                    try:
-                        imp.find_module(lib.value)
-                        cls.__parquet_lib = lib
-                        break
-                    except ImportError:
-                        pass
-                else:
-                    msg = "One of the following libraries is requried to read"
-                    msg += " Parquet packages: %s" % [l.value for l in ParquetLib]
-                    raise PackageException(msg)
+        if cls.__parquet_lib is None:
+            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY', ParquetLib.ARROW.value)
+            cls.__parquet_lib = ParquetLib(parq_env)
         return cls.__parquet_lib
 
     @classmethod
@@ -85,8 +71,21 @@ class Package(object):
         with open(self._path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
-                contents = RootNode(contents.children, PackageFormat.default.value)
+                # Really old package: no root node.
+                contents = RootNode(contents.children)
+            # Fix packages with no format in data nodes.
+            pkg_format = contents.format or PackageFormat.HDF5
+            self._fix_format(contents, pkg_format)
             return contents
+
+    @classmethod
+    def _fix_format(cls, contents, pkg_format):
+        for child in itervalues(contents.children):
+            if isinstance(child, GroupNode):
+                cls._fix_format(child, pkg_format)
+            elif isinstance(child, TableNode):
+                if child.format is None:
+                    child.format = pkg_format
 
     def file(self, hash_list):
         """
@@ -112,19 +111,6 @@ class Package(object):
         df = table.to_pandas()
         return df
 
-    def _read_parquet_fastparquet(self, hash_list):
-        # As of 3/25/2017, fastparquet on GH supports passing a list
-        # of paths, but the latest version on conda and pip (0.0.5) does
-        # not.
-        # TODO: Update this method to pass the list of objectfile paths
-        # like _read_parquet_arrow (above).
-        import fastparquet
-
-        assert len(hash_list) == 1, "Multi-file DFs not supported yet using fastparquet."
-        filehash = hash_list[0]
-        pfile = fastparquet.ParquetFile(self._store.object_path(filehash))
-        return pfile.to_pandas()
-
     def _read_parquet_spark(self, hash_list):
         from pyspark import sql as sparksql
 
@@ -146,40 +132,24 @@ class Package(object):
                 return self._read_parquet_spark(hash_list)
             elif parqlib is ParquetLib.ARROW:
                 return self._read_parquet_arrow(hash_list)
-            elif parqlib is ParquetLib.FASTPARQUET:
-                return self._read_parquet_fastparquet(hash_list)
             else:
                 assert False, "Unimplemented Parquet Library %s" % parqlib
         else:
             assert False, "Unimplemented package format: %s" % enumformat
 
-    def save_df(self, df, name, path, ext, target):
+    def save_df(self, df, name, path, ext, target, format):
         """
         Save a DataFrame to the store.
         """
-        enumformat = PackageFormat(self.get_contents().format)
+        enumformat = PackageFormat(format)
         buildfile = name.lstrip('/').replace('/', '.')
         storepath = self._store.temporary_object_path(buildfile)
 
         # Serialize DataFrame to chosen format
-        if enumformat is PackageFormat.HDF5:
-            # HACK: Force the use of old pickle to ensure Python 2/3 compatibility.
-            from pandas.compat import cPickle
-            old_protocol = cPickle.HIGHEST_PROTOCOL
-            try:
-                cPickle.HIGHEST_PROTOCOL = 2
-                with pd.HDFStore(storepath, mode='w') as store:
-                    store[self.DF_NAME] = df
-            finally:
-                cPickle.HIGHEST_PROTOCOL = old_protocol
-
-        elif enumformat is PackageFormat.PARQUET:
+        if enumformat is PackageFormat.PARQUET:
             # switch parquet lib
             parqlib = self.get_parquet_lib()
-            if parqlib is ParquetLib.FASTPARQUET:
-                import fastparquet
-                fastparquet.write(storepath, df)
-            elif parqlib is ParquetLib.ARROW:
+            if parqlib is ParquetLib.ARROW:
                 import pyarrow as pa
                 from pyarrow import parquet
                 table = pa.Table.from_pandas(df)
@@ -202,11 +172,11 @@ class Package(object):
                 objhash = digest_file(path)
                 os.rename(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(buildfile, hashes, ext, path, target)
+            self._add_to_contents(buildfile, hashes, ext, path, target, format)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(buildfile, [filehash], ext, path, target)
+            self._add_to_contents(buildfile, [filehash], ext, path, target, format)
             os.rename(storepath, self._store.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
@@ -215,7 +185,7 @@ class Package(object):
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, [filehash], '', path, 'file')
+        self._add_to_contents(fullname, [filehash], '', path, 'file', None)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
@@ -244,18 +214,15 @@ class Package(object):
         Read an object from the package given a node from the
         package tree.
         """
-        ptr = self.get_contents()
-        pkgformat = ptr.format
-
         if isinstance(node, TableNode):
-            return self._dataframe(node.hashes, pkgformat)
+            return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            if pkgformat != PackageFormat.PARQUET:
+            if node.format != PackageFormat.PARQUET:
                 raise PackageException("Group data access is only supported for Parquet tables.")
 
             hash_list = [h for c in node.children.values() if isinstance(c, TableNode)
                          for h in c.hashes]
-            return self._dataframe(hash_list, pkgformat)
+            return self._dataframe(hash_list, node.format)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
         else:
@@ -307,7 +274,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target):
+    def _add_to_contents(self, fullname, hashes, ext, path, target, format):
         """
         Adds an object (name-hash mapping) to the package's contents.
         """
@@ -319,22 +286,29 @@ class Package(object):
         for node in ipath:
             ptr = ptr.children.setdefault(node, GroupNode(dict()))
 
+        metadata = dict(
+            q_ext=ext,
+            q_path=path,
+            q_target=target
+        )
+
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
-                node_cls = TableNode
+                assert format is not None
+                node = TableNode(
+                    hashes=hashes,
+                    format=format.value,
+                    metadata=metadata
+                )
             elif target_type is TargetType.FILE:
-                node_cls = FileNode
+                node = FileNode(
+                    hashes=hashes,
+                    metadata=metadata
+                )
             else:
                 assert False, "Unhandled TargetType {tt}".format(tt=target_type)
         except ValueError:
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
-        ptr.children[leaf] = node_cls(
-            hashes=hashes,
-            metadata=dict(
-                q_ext=ext,
-                q_path=path,
-                q_target=target
-            )
-        )
+        ptr.children[leaf] = node

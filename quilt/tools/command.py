@@ -16,16 +16,18 @@ from packaging.version import Version
 import pandas as pd
 import pkg_resources
 import requests
-from six import iteritems
+from six import iteritems, string_types
 from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, GroupNode, TableNode, FileNode,
+from .core import (hash_contents, GroupNode, TableNode, FileNode, PackageFormat,
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore
 from .util import BASE_DIR, FileWithReadProgress
+
+from .. import data
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -202,14 +204,58 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path):
+def build(package, path_or_node):
     """
-    Compile a Quilt data package
+    Compile a Quilt data package, either from a build file or an existing package node.
     """
+    if isinstance(path_or_node, data.PackageNode):
+        build_from_node(package, path_or_node)
+    elif isinstance(path_or_node, string_types):
+        build_from_path(package, path_or_node)
+    else:
+        raise ValueError("Expected a PackageNode or a path, but got %r" % path_or_node)
+
+def build_from_node(package, node):
+    """
+    Compile a Quilt data package from an existing package node.
+    """
+    owner, pkg = _parse_package(package)
+
+    store = node._package.get_store()
+    package_obj = store.create_package(owner, pkg)
+
+    def _process_node(node, path=''):
+        if isinstance(node, data.GroupNode):
+            for key, child in node._items():
+                _process_node(child, path + '/' + key)
+        elif isinstance(node, data.DataNode):
+            core_node = node._node
+            metadata = core_node.metadata
+            if isinstance(core_node, TableNode):
+                df = node.data()
+                package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
+                                    'pandas', PackageFormat.default)
+            elif isinstance(core_node, FileNode):
+                src_path = node.data()
+                package_obj.save_file(src_path, path, metadata.get('q_path'))
+            else:
+                assert False, "Unexpected core node type: %r" % core_node
+        else:
+            assert False, "Unexpected node type: %r" % node
+
+    _process_node(node)
+    package_obj.save_contents()
+
+def build_from_path(package, path):
+    """
+    Compile a Quilt data package from a build file.
+    Path can be a directory, in which case the build file will be generated automatically.
+    """
+    owner, pkg = _parse_package(package)
+
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
 
-    owner, pkg = _parse_package(package)
     if os.path.isdir(path):
         buildpath = os.path.join(path, DEFAULT_BUILDFILE)
         if not os.path.exists(buildpath):
@@ -286,7 +332,7 @@ def push(package):
     total = len(upload_urls)
     for idx, (objhash, url) in enumerate(iteritems(upload_urls)):
         # Create a temporary gzip'ed file.
-        print("Uploading object %d/%d..." % (idx + 1, total))
+        print("Uploading %s (%d/%d)..." % (objhash, idx + 1, total))
         with pkgobj.tempfile(objhash) as temp_file:
             with FileWithReadProgress(temp_file) as temp_file_with_progress:
                 response = requests.put(url, data=temp_file_with_progress, headers=headers)
@@ -489,18 +535,28 @@ def install(package, hash=None, version=None, tag=None, force=False):
     pkgobj = store.install_package(owner, pkg, response_contents)
 
     total = len(response_urls)
-    for idx, (download_hash, url) in enumerate(iteritems(response_urls)):
-        print("Downloading object %d/%d..." % (idx + 1, total))
+    for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
+        print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
+
+        local_filename = store.object_path(download_hash)
+        if os.path.exists(local_filename):
+            file_hash = digest_file(local_filename)
+            if file_hash == download_hash:
+                print("Fragment already installed; skipping.")
+                continue
+            else:
+                print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
+                      file_hash)
 
         response = requests.get(url, stream=True)
         if not response.ok:
             msg = "Download {hash} failed: error {code}"
             raise CommandException(msg.format(hash=download_hash, code=response.status_code))
 
-        local_filename = store.object_path(download_hash)
         length_remaining = response.raw.length_remaining
 
-        with open(local_filename, 'wb') as output_file:
+        temp_path = store.temporary_object_path(download_hash)
+        with open(temp_path, 'wb') as output_file:
             with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
                 # `requests` will automatically un-gzip the content, as long as
                 # the 'Content-Encoding: gzip' header is set.
@@ -513,11 +569,13 @@ def install(package, hash=None, version=None, tag=None, force=False):
                         progress.update(length_remaining - response.raw.length_remaining)
                         length_remaining = response.raw.length_remaining
 
-        file_hash = digest_file(local_filename)
+        file_hash = digest_file(temp_path)
         if file_hash != download_hash:
-            os.remove(local_filename)
-            raise CommandException("Mismatched hash! Expected %s, got %s." %
+            os.remove(temp_path)
+            raise CommandException("Fragment hashes do not match: expected %s, got %s." %
                                    (download_hash, file_hash))
+
+        os.rename(temp_path, local_filename)
 
     pkgobj.save_contents()
 
