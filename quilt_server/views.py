@@ -378,7 +378,7 @@ def package_put(auth_user, owner, package_name, package_hash):
             S3_PUT_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (owner, package_name, blob_hash)
+                Key='%s/%s' % (owner, blob_hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
@@ -440,7 +440,7 @@ def package_get(auth_user, owner, package_name, package_hash):
             S3_GET_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (owner, package_name, blob_hash)
+                Key='%s/%s' % (owner, blob_hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
