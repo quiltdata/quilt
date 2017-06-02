@@ -110,9 +110,9 @@ class PushInstallTestCase(QuiltTestCase):
         url1 = urllib.parse.urlparse(urls[self.HASH1])
         url2 = urllib.parse.urlparse(urls[self.HASH2])
         url3 = urllib.parse.urlparse(urls[self.HASH3])
-        assert url1.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
-        assert url2.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
-        assert url3.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
+        assert url1.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
+        assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
+        assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
         # List user's packages.
         resp = self.app.get(
@@ -161,9 +161,9 @@ class PushInstallTestCase(QuiltTestCase):
         url1 = urllib.parse.urlparse(urls[self.HASH1])
         url2 = urllib.parse.urlparse(urls[self.HASH2])
         url3 = urllib.parse.urlparse(urls[self.HASH3])
-        assert url1.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
-        assert url2.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
-        assert url3.path == '/%s/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
+        assert url1.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
+        assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
+        assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
     def testPushNewMetadata(self):
         # Push the original contents.

@@ -46,6 +46,8 @@ PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
+OBJ_DIR = 'objs'
+
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
 
 
@@ -378,7 +380,7 @@ def package_put(auth_user, owner, package_name, package_hash):
             S3_PUT_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s' % (owner, blob_hash)
+                Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
@@ -440,7 +442,7 @@ def package_get(auth_user, owner, package_name, package_hash):
             S3_GET_OBJECT,
             Params=dict(
                 Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s' % (owner, blob_hash)
+                Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
             ),
             ExpiresIn=PACKAGE_URL_EXPIRATION
         )
