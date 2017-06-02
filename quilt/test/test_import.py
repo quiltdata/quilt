@@ -43,7 +43,7 @@ class ImportTest(QuiltTestCase):
         assert isinstance(dataframes.csv(), pd.DataFrame)
         assert isinstance(dataframes.csv.data(), pd.DataFrame)
 
-        assert isinstance(dataframes.data(), pd.DataFrame())
+        assert isinstance(dataframes.data(), pd.DataFrame)
         
         str(package)
         str(dataframes)

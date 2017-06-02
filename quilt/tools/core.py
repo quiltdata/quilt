@@ -44,8 +44,6 @@ class GroupNode(Node):
         node = self
 
         while node:
-            output.append(self)
-        
             for c in node.children.values():
                 if isinstance(c, GroupNode):
                     stack.append(c)
@@ -54,7 +52,7 @@ class GroupNode(Node):
                 else:
                     pass # Should we throw exception here?
 
-            node = stack.pop()
+            node = stack.pop() if stack else None
         return output
 
 class RootNode(GroupNode):
