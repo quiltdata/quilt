@@ -3,15 +3,13 @@ Tests for magic imports.
 """
 
 import os
-import shutil
 
-from pandas.core.frame import DataFrame
+import pandas as pd
 from six import string_types
 
 from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.store import PackageStore
 from .utils import QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -42,8 +40,8 @@ class ImportTest(QuiltTestCase):
 
         assert isinstance(README(), string_types)
         assert isinstance(README.data(), string_types)
-        assert isinstance(dataframes.csv(), DataFrame)
-        assert isinstance(dataframes.csv.data(), DataFrame)
+        assert isinstance(dataframes.csv(), pd.DataFrame)
+        assert isinstance(dataframes.csv.data(), pd.DataFrame)
 
         str(package)
         str(dataframes)
@@ -107,11 +105,29 @@ class ImportTest(QuiltTestCase):
         contents2 = open('quilt_packages/foo/package2.json').read()
         assert contents1 == contents2
 
-        # Build a modified package
+        # Rename an attribute
         package1.dataframes2 = package1.dataframes
         del package1.dataframes
-        df = package1.dataframes2.csv.data()
-        df.set_value(0, 'Int0', 42)
+
+        # Modify an existing dataframe
+        csv = package1.dataframes2.csv.data()
+        csv.set_value(0, 'Int0', 42)
+
+        # Add a new dataframe
+        df = pd.DataFrame(dict(a=[1, 2, 3]))
+        package1._set(['new', 'df'], df)
+
+        # Add a new file
+        file_path = os.path.join(mydir, 'data/foo.csv')
+        package1._set(['new', 'file'], file_path)
+
+        # Can't overwrite things
+        with self.assertRaises(ValueError):
+            package1._set(['new'], file_path)
+        with self.assertRaises(ValueError):
+            package1._set(['new', 'file'], file_path)
+
+        # Built a new package and verify the new contents
         command.build('foo/package3', package1)
 
         from quilt.data.foo import package3
@@ -119,5 +135,11 @@ class ImportTest(QuiltTestCase):
         assert hasattr(package3, 'dataframes2')
         assert not hasattr(package3, 'dataframes')
 
-        new_df = package3.dataframes2.csv.data()
-        assert new_df.xs(0)['Int0'] == 42
+        new_csv = package3.dataframes2.csv.data()
+        assert new_csv.xs(0)['Int0'] == 42
+
+        new_df = package3.new.df.data()
+        assert new_df.xs(2)['a'] == 3
+
+        new_file = package3.new.file.data()
+        assert isinstance(new_file, string_types)

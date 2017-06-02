@@ -230,7 +230,7 @@ def build_from_node(package, node):
                 _process_node(child, path + '/' + key)
         elif isinstance(node, data.DataNode):
             core_node = node._node
-            metadata = core_node.metadata
+            metadata = core_node.metadata or {}
             if isinstance(core_node, TableNode):
                 df = node.data()
                 package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
