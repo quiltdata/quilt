@@ -37,6 +37,26 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
+    def preorder_tablenodes(self):
+        stack = []
+        output = []        
+
+        node = self
+
+        while node:
+            output.append(self)
+        
+            for c in node.children.values():
+                if isinstance(c, GroupNode):
+                    stack.append(c)
+                elif isinstance(c, TableNode):
+                    output.append(c)
+                else:
+                    pass # Should we throw exception here?
+
+            node = stack.pop()
+        return output
+
 class RootNode(GroupNode):
     json_type = 'ROOT'
 

@@ -220,8 +220,7 @@ class Package(object):
             if node.format != PackageFormat.PARQUET:
                 raise PackageException("Group data access is only supported for Parquet tables.")
 
-            hash_list = [h for c in node.children.values() if isinstance(c, TableNode)
-                         for h in c.hashes]
+            hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
             return self._dataframe(hash_list, node.format)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
