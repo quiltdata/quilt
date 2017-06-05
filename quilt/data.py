@@ -84,7 +84,8 @@ class GroupNode(DataNode):
 
     def data(self):
         """
-        Returns the contents of all data-children of this group as a dataframe.
+        Returns the contents of all data-children of this group as a dataframe. Warning:
+        calling data on a large dataset may exceed local memory capacity in Python.
         (Only supported for Parquet packages).
         """
         return self._package.get_obj(self._node)
