@@ -38,12 +38,11 @@ class GroupNode(Node):
         self.children = children
 
     def preorder_tablenodes(self):
-        stack = []
-        output = []        
+        stack = [self]
+        output = []
 
-        node = self
-
-        while node:
+        while stack:
+            node = stack.pop()
             for c in node.children.values():
                 if isinstance(c, GroupNode):
                     stack.append(c)
@@ -52,7 +51,6 @@ class GroupNode(Node):
                 else:
                     pass # Should we throw exception here?
 
-            node = stack.pop() if stack else None
         return output
 
 class RootNode(GroupNode):

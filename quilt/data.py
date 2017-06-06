@@ -105,7 +105,7 @@ class GroupNode(DataNode):
 class PackageNode(GroupNode):
     """
     Represents a package.
-    """    
+    """
 
     def _class_repr(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
