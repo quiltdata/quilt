@@ -86,7 +86,6 @@ class InstallTest(QuiltTestCase):
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
-        self._mock_s3(obj_hash, tabledata)
 
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install('foo/bar')
