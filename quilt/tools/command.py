@@ -330,7 +330,7 @@ def push(package, reupload=False):
             s3_response = requests.head(contents['head'])
             if s3_response.ok:
                 print("Fragment already uploaded; skipping.")
-                continue
+                continue  # Next obj_hash
 
         # Create a temporary gzip'ed file.
         with pkgobj.tempfile(obj_hash) as temp_file:
@@ -370,7 +370,7 @@ def push(package, reupload=False):
     )
 
     url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Push complete. Your package is live:\n%s" % url)
+    print("Push complete. %s/%s is live:\n%s" % (owner, pkg, url))
 
 def version_list(package):
     """
