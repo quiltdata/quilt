@@ -43,6 +43,7 @@ AUTHORIZATION_HEADER = 'Authorization'
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
+S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
@@ -267,6 +268,29 @@ def _mp_track(**kwargs):
 
     mp.track(g.user, MIXPANEL_EVENT, all_args)
 
+def _generate_presigned_url(method, owner, blob_hash):
+    return s3_client.generate_presigned_url(
+        method,
+        Params=dict(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
+        ),
+        ExpiresIn=PACKAGE_URL_EXPIRATION
+    )
+
+@app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
+@api()
+@as_json
+def blob_get(auth_user, owner, blob_hash):
+    if auth_user != owner:
+        raise ApiException(requests.codes.forbidden,
+                           "Only the owner can upload objects.")
+    return dict(
+        head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
+        get=_generate_presigned_url(S3_GET_OBJECT, owner, blob_hash),
+        put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
+    )
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
@@ -373,17 +397,11 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
     db.session.add(log)
 
-    upload_urls = {}
-
-    for blob_hash in all_hashes:
-        upload_urls[blob_hash] = s3_client.generate_presigned_url(
-            S3_PUT_OBJECT,
-            Params=dict(
-                Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
-            ),
-            ExpiresIn=PACKAGE_URL_EXPIRATION
-        )
+    # TODO: Stop returning upload URLs once all clients are upgraded to 2.4.2.
+    upload_urls = {
+        blob_hash: _generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
+        for blob_hash in all_hashes
+    }
 
     db.session.commit()
 
@@ -436,16 +454,10 @@ def package_get(auth_user, owner, package_name, package_hash):
 
     all_hashes = set(find_object_hashes(contents))
 
-    urls = {}
-    for blob_hash in all_hashes:
-        urls[blob_hash] = s3_client.generate_presigned_url(
-            S3_GET_OBJECT,
-            Params=dict(
-                Bucket=PACKAGE_BUCKET_NAME,
-                Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
-            ),
-            ExpiresIn=PACKAGE_URL_EXPIRATION
-        )
+    urls = {
+        blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
+        for blob_hash in all_hashes
+    }
 
     _mp_track(
         type="install",

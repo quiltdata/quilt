@@ -420,3 +420,25 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+
+    def testGetBlob(self):
+        resp = self.app.get(
+            '/api/blob/test_user/%s' % self.HASH1,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        for method in ['head', 'get', 'put']:
+            url = urllib.parse.urlparse(data[method])
+            assert url.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
+
+        resp = self.app.get(
+            '/api/blob/test_user/%s' % self.HASH1,
+            headers={
+                'Authorization': 'bad_user'
+            }
+        )
+        assert resp.status_code == requests.codes.forbidden
