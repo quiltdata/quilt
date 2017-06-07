@@ -39,12 +39,12 @@ class ImportTest(QuiltTestCase):
         assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
 
         assert isinstance(README(), string_types)
-        assert isinstance(README.data(), string_types)
+        assert isinstance(README._data(), string_types)
         assert isinstance(dataframes.csv(), pd.DataFrame)
-        assert isinstance(dataframes.csv.data(), pd.DataFrame)
+        assert isinstance(dataframes.csv._data(), pd.DataFrame)
 
-        assert isinstance(dataframes.data(), pd.DataFrame)
-        
+        assert isinstance(dataframes._data(), pd.DataFrame)
+
         str(package)
         str(dataframes)
         str(README)
@@ -112,7 +112,7 @@ class ImportTest(QuiltTestCase):
         del package1.dataframes
 
         # Modify an existing dataframe
-        csv = package1.dataframes2.csv.data()
+        csv = package1.dataframes2.csv._data()
         csv.set_value(0, 'Int0', 42)
 
         # Add a new dataframe
@@ -137,11 +137,11 @@ class ImportTest(QuiltTestCase):
         assert hasattr(package3, 'dataframes2')
         assert not hasattr(package3, 'dataframes')
 
-        new_csv = package3.dataframes2.csv.data()
+        new_csv = package3.dataframes2.csv._data()
         assert new_csv.xs(0)['Int0'] == 42
 
-        new_df = package3.new.df.data()
+        new_df = package3.new.df._data()
         assert new_df.xs(2)['a'] == 3
 
-        new_file = package3.new.file.data()
+        new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)

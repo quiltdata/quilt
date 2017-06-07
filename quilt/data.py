@@ -52,9 +52,9 @@ class DataNode(Node):
         self.__cached_data = data
 
     def __call__(self):
-        return self.data()
+        return self._data()
 
-    def data(self):
+    def _data(self):
         """
         Returns the contents of the node: a dataframe or a file path.
         """
@@ -65,6 +65,8 @@ class DataNode(Node):
 class GroupNode(DataNode):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
+    Warning: calling data on a large dataset may exceed local memory capacity in Python (Only
+    supported for Parquet packages).
     """
 
     def __repr__(self):
@@ -81,14 +83,6 @@ class GroupNode(DataNode):
         every child key referencing a dataframe
         """
         return [name for name, child in self._items() if not isinstance(child, GroupNode)]
-
-    def data(self):
-        """
-        Returns the contents of all data-children of this group as a dataframe. Warning:
-        calling data on a large dataset may exceed local memory capacity in Python.
-        (Only supported for Parquet packages).
-        """
-        return self._package.get_obj(self._node)
 
     def _group_keys(self):
         """
