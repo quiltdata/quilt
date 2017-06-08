@@ -21,25 +21,33 @@ def main(argv):
     args = parser.parse_args()
 
     s3_client = boto3.client('s3')
-    result = s3_client.list_objects_v2(Bucket=args.s3_bucket)
-    if result['IsTruncated']:
-        print("Too many objects! Need to paginate.")
-        return 1
-
     contents_by_key = dict()
     old_object_keys = set()
 
-    # Collect all of the object keys.
-    for obj in result['Contents']:
-        key = tuple(obj['Key'].split('/'))
-        contents_by_key[key] = obj
+    # Terrible API: ContinuationToken has to be passed into all but the first call.
+    continuation_kw = dict()
+    has_more = True
 
-        if len(key) != 3:
-            print("Unexpected key: %r" % '/'.join(key))
-            return 1
+    while has_more:
+        result = s3_client.list_objects_v2(Bucket=args.s3_bucket, **continuation_kw)
 
-        if key[0] != OBJ_DIR:
-            old_object_keys.add(key)
+        # Collect all of the object keys.
+        for obj in result['Contents']:
+            key = tuple(obj['Key'].split('/'))
+            contents_by_key[key] = obj
+
+            if len(key) != 3:
+                print("Unexpected key: %r" % '/'.join(key))
+                return 1
+
+            if key[0] != OBJ_DIR:
+                old_object_keys.add(key)
+
+        has_more = result['IsTruncated']
+
+        continuation_kw = dict(
+            ContinuationToken=result.get('NextContinuationToken')
+        )
 
     # Collect objects to be copied. Make sure there is nothing unexpected.
     objects_to_copy = dict()
