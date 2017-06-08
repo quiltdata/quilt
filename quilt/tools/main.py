@@ -42,10 +42,8 @@ def main():
 
     push_p = subparsers.add_parser("push")
     push_p.add_argument("package", type=str, help="Owner/Package Name")
-    push_p.set_defaults(func=command.push)
-
-    push_p = subparsers.add_parser("push")
-    push_p.add_argument("package", type=str, help="Owner/Package Name")
+    push_p.add_argument("--reupload", action="store_true",
+                        help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)
 
     version_p = subparsers.add_parser("version")
