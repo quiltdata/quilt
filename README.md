@@ -133,7 +133,7 @@ quilt.build("my_user/wine_modified", wine)
 ```
 
 # Data Groups
-Quilt supports accessing data packages at different granularities when there are groups of DataFrames with matching schemas. Calling _data() on a group node returns a DataFrame with the union of all the member DataFrames.
+Quilt supports accessing data packages at different granularities when there are groups of DataFrames with matching schemas. Calling `_data()` on a group node returns a DataFrame with the union of all the member DataFrames.
 ```yaml
 contents:
   sales2017:
