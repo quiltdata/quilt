@@ -10,6 +10,7 @@ from six import string_types
 from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
+from quilt.tools.package import PackageException
 from .utils import QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -78,13 +79,15 @@ class ImportTest(QuiltTestCase):
         command.build('foo/grppkg', build_path)
 
         # Good imports
-
         from quilt.data.foo.grppkg import dataframes
-
-        # Contents of the imports
         assert isinstance(dataframes, GroupNode)
         assert isinstance(dataframes.csvs.csv, DataNode)
         assert isinstance(dataframes._data(), pd.DataFrame)
+
+        # Incompatible Schema
+        from quilt.data.foo.grppkg import incompatible
+        with self.assertRaises(PackageException):
+            incompatible._data()
 
     def test_multiple_package_dirs(self):
         # First level

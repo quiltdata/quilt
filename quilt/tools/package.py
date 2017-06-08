@@ -217,8 +217,11 @@ class Package(object):
         if isinstance(node, TableNode):
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
-            return self._dataframe(hash_list, PackageFormat.PARQUET)
+            try:
+                hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
+                return self._dataframe(hash_list, PackageFormat.PARQUET)
+            except ValueError:
+                raise PackageException("Incompatible schemas.")
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
         else:
