@@ -21,7 +21,7 @@ from tqdm import tqdm
 
 from .build import build_package, generate_build_file, BuildException
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, GroupNode, TableNode, FileNode, PackageFormat,
+from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, FileNode, PackageFormat,
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore
@@ -296,7 +296,7 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package):
+def push(package, reupload=False):
     """
     Push a Quilt data package to the server
     """
@@ -306,10 +306,44 @@ def push(package):
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    obj_hashes = sorted(set(find_object_hashes(pkgobj.get_contents())))
+    total = len(obj_hashes)
+
+    headers = {
+        'Content-Encoding': 'gzip'
+    }
+
+    for idx, obj_hash in enumerate(obj_hashes):
+        print("Uploading %s (%d/%d)..." % (obj_hash, idx + 1, total))
+
+        response = session.get(
+            "{url}/api/blob/{owner}/{hash}".format(
+                url=QUILT_PKG_URL,
+                owner=owner,
+                hash=obj_hash
+            )
+        )
+        contents = response.json()
+
+        if not reupload:
+            s3_response = requests.head(contents['head'])
+            if s3_response.ok:
+                print("Fragment already uploaded; skipping.")
+                continue  # Next obj_hash
+
+        # Create a temporary gzip'ed file.
+        with pkgobj.tempfile(obj_hash) as temp_file:
+            with FileWithReadProgress(temp_file) as temp_file_with_progress:
+                url = contents['put']
+                response = requests.put(url, data=temp_file_with_progress, headers=headers)
+                if not response.ok:
+                    raise CommandException("Upload failed: error %s" % response.status_code)
+
     pkghash = pkgobj.get_hash()
 
     print("Uploading package metadata...")
-    response = session.put(
+    session.put(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
             url=QUILT_PKG_URL,
             owner=owner,
@@ -322,26 +356,8 @@ def push(package):
         ), default=encode_node)
     )
 
-    dataset = response.json()
-    upload_urls = dataset['upload_urls']
-
-    headers = {
-        'Content-Encoding': 'gzip'
-    }
-
-    total = len(upload_urls)
-    for idx, (objhash, url) in enumerate(iteritems(upload_urls)):
-        # Create a temporary gzip'ed file.
-        print("Uploading %s (%d/%d)..." % (objhash, idx + 1, total))
-        with pkgobj.tempfile(objhash) as temp_file:
-            with FileWithReadProgress(temp_file) as temp_file_with_progress:
-                response = requests.put(url, data=temp_file_with_progress, headers=headers)
-                if not response.ok:
-                    raise CommandException("Upload failed: error %s" % response.status_code)
-
     print("Updating the 'latest' tag...")
-    # Set the "latest" tag.
-    response = session.put(
+    session.put(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
             url=QUILT_PKG_URL,
             owner=owner,
@@ -352,10 +368,9 @@ def push(package):
             hash=pkghash
         ))
     )
-    assert response.ok # other responses handled by _handle_response
 
     url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Push complete. Your package is live:\n%s" % url)
+    print("Push complete. %s/%s is live:\n%s" % (owner, pkg, url))
 
 def version_list(package):
     """

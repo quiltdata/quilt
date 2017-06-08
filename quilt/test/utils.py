@@ -42,7 +42,7 @@ class QuiltTestCase(BasicQuiltTestCase):
         self.session_patcher = patch('quilt.tools.command._get_session', requests.Session)
         self.session_patcher.start()
 
-        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
     def tearDown(self):

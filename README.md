@@ -111,7 +111,7 @@ Use the Pandas API to edit existing dataframes:
 red_df = wine.quality.red._data()
 red_df.set_value(0, 'quality', 6)
 ```
-(The `_data()` method caches the dataframe so it will return the same object each time - however, it's not saved to the disk yet.)
+(The `_data()` method caches the dataframe so it will return the same object each time - however, it's not saved to disk yet.)
 
 Use the standard Python syntax to create or delete attributes:
 ``` python
