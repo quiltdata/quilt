@@ -108,10 +108,10 @@ from quilt.data.akarve import wine
 
 Use the Pandas API to edit existing dataframes:
 ``` python
-red_df = wine.quality.red.data()
+red_df = wine.quality.red._data()
 red_df.set_value(0, 'quality', 6)
 ```
-(The `data()` method caches the dataframe so it will return the same object each time - however, it's not saved to the disk yet.)
+(The `_data()` method caches the dataframe so it will return the same object each time - however, it's not saved to the disk yet.)
 
 Use the standard Python syntax to create or delete attributes:
 ``` python
@@ -124,12 +124,32 @@ Use the `_set` helper method on the top-level package node to create new groups 
 import pandas as pd
 df = pd.DataFrame(dict(x=[1, 2, 3]))
 wine._set(["group", "df"], df)
-assert wine.group.df.data() is df
+assert wine.group.df._data() is df
 ```
 
 Now, build a modified package to save all of the changes:
 ``` python
 quilt.build("my_user/wine_modified", wine)
+```
+
+# Data Groups
+Quilt supports accessing data packages at different granularities when there are groups of DataFrames with matching schemas. Calling _data() on a group node returns a DataFrame with the union of all the member DataFrames.
+```yaml
+contents:
+  sales2017:
+    jan:
+      file:
+        sales_jan_2017.csv
+    feb:
+      file:
+        sales_feb_2017.csv
+    mar:
+      file:
+        sales_mar_2017.csv
+```
+``` python
+    sales2017.jan._data() # Sales data from January 2017
+    sales2017._data()     # Sales data from January-March 2017
 ```
 
 # Developer
