@@ -26,8 +26,9 @@ def main(argv):
 
     # Terrible API: ContinuationToken has to be passed into all but the first call.
     continuation_kw = dict()
+    has_more = True
 
-    while True:
+    while has_more:
         result = s3_client.list_objects_v2(Bucket=args.s3_bucket, **continuation_kw)
 
         # Collect all of the object keys.
@@ -42,11 +43,10 @@ def main(argv):
             if key[0] != OBJ_DIR:
                 old_object_keys.add(key)
 
-        if not result['IsTruncated']:
-            break
+        has_more = result['IsTruncated']
 
         continuation_kw = dict(
-            ContinuationToken=result['NextContinuationToken']
+            ContinuationToken=result.get('NextContinuationToken')
         )
 
     # Collect objects to be copied. Make sure there is nothing unexpected.
