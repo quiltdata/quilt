@@ -14,7 +14,7 @@ def readme():
 
 setup(
     name="quilt",
-    version="2.4.1",
+    version="2.4.2",
     packages=find_packages(),
     description='Quilt is an open-source data frame registry',
     long_description=readme(),
