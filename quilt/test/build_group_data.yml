@@ -1,0 +1,9 @@
+---
+contents:
+  dataframes:
+    csvs:
+      csv: 
+        file: data/10KRows13Cols.csv
+    tsvs:
+      tsv:
+        file: data/10KRows13Cols.tsv

@@ -65,7 +65,7 @@ class DataNode(Node):
 class GroupNode(DataNode):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
-    Warning: calling data on a large dataset may exceed local memory capacity in Python (Only
+    Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
     supported for Parquet packages).
     """
 

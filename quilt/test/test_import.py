@@ -43,8 +43,6 @@ class ImportTest(QuiltTestCase):
         assert isinstance(dataframes.csv(), pd.DataFrame)
         assert isinstance(dataframes.csv._data(), pd.DataFrame)
 
-        assert isinstance(dataframes._data(), pd.DataFrame)
-
         str(package)
         str(dataframes)
         str(README)
@@ -73,6 +71,20 @@ class ImportTest(QuiltTestCase):
 
         with self.assertRaises(ImportError):
             from quilt.data.foo.baz import blah
+
+    def test_import_group_as_data(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_group_data.yml')
+        command.build('foo/grppkg', build_path)
+
+        # Good imports
+
+        from quilt.data.foo.grppkg import dataframes
+
+        # Contents of the imports
+        assert isinstance(dataframes, GroupNode)
+        assert isinstance(dataframes.csvs.csv, DataNode)
+        assert isinstance(dataframes._data(), pd.DataFrame)
 
     def test_multiple_package_dirs(self):
         # First level
