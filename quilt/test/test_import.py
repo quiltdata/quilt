@@ -10,6 +10,7 @@ from six import string_types
 from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
+from quilt.tools.package import PackageException
 from .utils import QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -39,9 +40,9 @@ class ImportTest(QuiltTestCase):
         assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
 
         assert isinstance(README(), string_types)
-        assert isinstance(README.data(), string_types)
+        assert isinstance(README._data(), string_types)
         assert isinstance(dataframes.csv(), pd.DataFrame)
-        assert isinstance(dataframes.csv.data(), pd.DataFrame)
+        assert isinstance(dataframes.csv._data(), pd.DataFrame)
 
         str(package)
         str(dataframes)
@@ -71,6 +72,22 @@ class ImportTest(QuiltTestCase):
 
         with self.assertRaises(ImportError):
             from quilt.data.foo.baz import blah
+
+    def test_import_group_as_data(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_group_data.yml')
+        command.build('foo/grppkg', build_path)
+
+        # Good imports
+        from quilt.data.foo.grppkg import dataframes
+        assert isinstance(dataframes, GroupNode)
+        assert isinstance(dataframes.csvs.csv, DataNode)
+        assert isinstance(dataframes._data(), pd.DataFrame)
+
+        # Incompatible Schema
+        from quilt.data.foo.grppkg import incompatible
+        with self.assertRaises(PackageException):
+            incompatible._data()
 
     def test_multiple_package_dirs(self):
         # First level
@@ -110,7 +127,7 @@ class ImportTest(QuiltTestCase):
         del package1.dataframes
 
         # Modify an existing dataframe
-        csv = package1.dataframes2.csv.data()
+        csv = package1.dataframes2.csv._data()
         csv.set_value(0, 'Int0', 42)
 
         # Add a new dataframe
@@ -135,11 +152,11 @@ class ImportTest(QuiltTestCase):
         assert hasattr(package3, 'dataframes2')
         assert not hasattr(package3, 'dataframes')
 
-        new_csv = package3.dataframes2.csv.data()
+        new_csv = package3.dataframes2.csv._data()
         assert new_csv.xs(0)['Int0'] == 42
 
-        new_df = package3.new.df.data()
+        new_df = package3.new.df._data()
         assert new_df.xs(2)['a'] == 3
 
-        new_file = package3.new.file.data()
+        new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)

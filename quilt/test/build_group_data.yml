@@ -1,0 +1,14 @@
+---
+contents:
+  dataframes:
+    csvs:
+      csv: 
+        file: data/10KRows13Cols.csv
+    tsv:
+      file: data/10KRows13Cols.tsv
+  incompatible:
+    csv: 
+      file: data/10KRows13Cols.csv
+    foo: 
+      file: data/foo.csv
+      

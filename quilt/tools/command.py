@@ -232,11 +232,11 @@ def build_from_node(package, node):
             core_node = node._node
             metadata = core_node.metadata or {}
             if isinstance(core_node, TableNode):
-                df = node.data()
+                df = node._data()
                 package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
                                     'pandas', PackageFormat.default)
             elif isinstance(core_node, FileNode):
-                src_path = node.data()
+                src_path = node._data()
                 package_obj.save_file(src_path, path, metadata.get('q_path'))
             else:
                 assert False, "Unexpected core node type: %r" % core_node

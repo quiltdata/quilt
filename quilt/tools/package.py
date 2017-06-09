@@ -131,7 +131,10 @@ class Package(object):
             if parqlib is ParquetLib.SPARK:
                 return self._read_parquet_spark(hash_list)
             elif parqlib is ParquetLib.ARROW:
-                return self._read_parquet_arrow(hash_list)
+                try:
+                    return self._read_parquet_arrow(hash_list)
+                except ValueError as err:
+                    raise PackageException(str(err))
             else:
                 assert False, "Unimplemented Parquet Library %s" % parqlib
         else:
@@ -216,6 +219,9 @@ class Package(object):
         """
         if isinstance(node, TableNode):
             return self._dataframe(node.hashes, node.format)
+        elif isinstance(node, GroupNode):
+            hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
+            return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):
             return self.file(node.hashes)
         else:

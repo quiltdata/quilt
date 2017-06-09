@@ -41,10 +41,34 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
-class GroupNode(Node):
+class DataNode(Node):
+    """
+    Represents a dataframe or a file. Allows accessing the contents using `()`.
+    """
+    def __init__(self, package, node, data=None):
+        super(DataNode, self).__init__()
+        self._package = package
+        self._node = node
+        self.__cached_data = data
+
+    def __call__(self):
+        return self._data()
+
+    def _data(self):
+        """
+        Returns the contents of the node: a dataframe or a file path.
+        """
+        if self.__cached_data is None:
+            self.__cached_data = self._package.get_obj(self._node)
+        return self.__cached_data
+
+class GroupNode(DataNode):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
+    Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
+    supported for Parquet packages).
     """
+
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
         kinfo = '\n'.join(sorted(self._keys()))
@@ -76,9 +100,6 @@ class PackageNode(GroupNode):
     """
     Represents a package.
     """
-    def __init__(self, package):
-        super(PackageNode, self).__init__()
-        self._package = package
 
     def _class_repr(self):
         finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
@@ -102,7 +123,7 @@ class PackageNode(GroupNode):
                 if not isinstance(child, GroupNode):
                     raise ValueError("Key already %r exists, but is not a group" % key)
             else:
-                child = GroupNode()
+                child = GroupNode(self._package, core.GroupNode({}))
                 setattr(node, key, child)
 
             node = child
@@ -113,27 +134,6 @@ class PackageNode(GroupNode):
             raise ValueError("Key %r already exists" % key)
         data_node = DataNode(self._package, core_node, value)
         setattr(node, path[-1], data_node)
-
-class DataNode(Node):
-    """
-    Represents a dataframe or a file. Allows accessing the contents using `()`.
-    """
-    def __init__(self, package, node, data=None):
-        super(DataNode, self).__init__()
-        self._package = package
-        self._node = node
-        self.__cached_data = data
-
-    def __call__(self):
-        return self.data()
-
-    def data(self):
-        """
-        Returns the contents of the node: a dataframe or a file path.
-        """
-        if self.__cached_data is None:
-            self.__cached_data = self._package.get_obj(self._node)
-        return self.__cached_data
 
 class FakeLoader(object):
     """
@@ -159,9 +159,9 @@ def _from_core_node(package, core_node):
         node = DataNode(package, core_node)
     else:
         if isinstance(core_node, core.RootNode):
-            node = PackageNode(package)
+            node = PackageNode(package, core_node)
         elif isinstance(core_node, core.GroupNode):
-            node = GroupNode()
+            node = GroupNode(package, core_node)
         else:
             assert "Unexpected node: %r" % core_node
 
