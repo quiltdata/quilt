@@ -19,7 +19,7 @@ A data package is an abstraction that encapsulates and automates data preparatio
 # Installation
 ## Mac / Windows
 1. Install [Conda](https://conda.io/docs/install/quick.html)
-1. `conda install -c conda-forge pyarrow=0.3`
+1. `conda install -c conda-forge pyarrow=0.4`
 1. `pip install quilt`
 
 ## Linux
