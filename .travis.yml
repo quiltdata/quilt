@@ -56,9 +56,9 @@ install:
       source activate quilt_env
     else
       pip install -U pip
-      pip install -U pytest
     fi
   # install quilt from setup.py
+  - pip install pytest
   - travis_retry pip install --only-binary 'tables' .
 
 script:
