@@ -48,16 +48,16 @@ before_install:
     fi
 
 install:
+  # debug support
+  - echo $(python --version)
   - |
     if [[ "$USE_CONDA" = true ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip
       source activate quilt_env
+    else
+      pip install -U pip
+      pip install -U pytest
     fi
-  # debug support
-  - echo $(python --version)
-  # pytest
-  - pip install -U pip
-  - pip install -U pytest
   # install quilt from setup.py
   - travis_retry pip install --only-binary 'tables' .
 
