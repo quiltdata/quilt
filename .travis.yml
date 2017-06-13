@@ -59,7 +59,7 @@ install:
       pip install -U pip
     fi
   # install quilt from setup.py
-  - travis_retry pip install --only-binary 'tables' .
+  - travis_retry pip install --only-binary 'tables' -U .
 
 script:
   - python -m pytest
