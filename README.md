@@ -17,15 +17,18 @@ A data package is an abstraction that encapsulates and automates data preparatio
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
 # Installation
-## Mac / Windows
-1. Install [Conda](https://conda.io/docs/install/quick.html)
-1. `conda install -c conda-forge pyarrow=0.4`
+## Mac
 1. `pip install quilt`
 
 ## Linux
 1. Install the OpenSSL headers:
    * Ubuntu: `sudo apt-get install libssl-dev`
    * Fedora: `sudo dnf install openssl-devel`
+1. `pip install quilt`
+
+## Windows
+1. Install [Conda](https://conda.io/docs/install/quick.html)
+1. `conda install -c conda-forge pyarrow=0.4`
 1. `pip install quilt`
 
 # Learn
