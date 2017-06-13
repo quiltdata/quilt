@@ -54,11 +54,12 @@ install:
     if [[ "$USE_CONDA" = true ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip
       source activate quilt_env
+      pip install pytest
     else
       pip install -U pip
+      pip install -U pytest
     fi
   # install quilt from setup.py
-  - pip install pytest
   - travis_retry pip install --only-binary 'tables' .
 
 script:
