@@ -62,4 +62,4 @@ install:
   - travis_retry pip install --only-binary 'tables' -U .
 
 script:
-  - python -m pytest
+  - pytest
