@@ -21,22 +21,18 @@ matrix:
       language: python
       python: "2.7"
       env: USE_CONDA=false
-      sudo: required
     - os: linux
       language: python
       python: "3.4"
       env: USE_CONDA=false
-      sudo: required
     - os: linux
       language: python
       python: "3.5"
       env: USE_CONDA=false
-      sudo: required
     - os: linux
       language: python
       python: "3.6"
       env: USE_CONDA=false
-      sudo: required
 
 before_install:
   - |
@@ -56,12 +52,12 @@ install:
     if [[ "$USE_CONDA" = true ]]; then
       conda create --yes -n quilt_env python=$QPYVER pip
       source activate quilt_env
-      conda install --yes -c conda-forge pyarrow=0.4.0
     fi
   # debug support
   - echo $(python --version)
   # pytest
-  - pip install pytest
+  - pip install -U pip
+  - pip install -U pytest
   # install quilt from setup.py
   - travis_retry pip install --only-binary 'tables' .
 
