@@ -17,19 +17,22 @@ A data package is an abstraction that encapsulates and automates data preparatio
 <img src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png" width="320"/>
 
 # Installation
-## Mac
-1. `pip install quilt`
+## Mac & Windows
+``` bash
+$ pip install quilt
+```
 
-## Linux
-1. Install the OpenSSL headers:
-   * Ubuntu: `sudo apt-get install libssl-dev`
-   * Fedora: `sudo dnf install openssl-devel`
-1. `pip install quilt`
+## Ubuntu Linux
+```bash
+$ sudo apt-get install libssl-dev
+$ pip install quilt
+```
 
-## Windows
-1. Install [Conda](https://conda.io/docs/install/quick.html)
-1. `conda install -c conda-forge pyarrow=0.4`
-1. `pip install quilt`
+## Fedora Linux
+```bash
+$ sudo dnf install openssl-devel
+$ pip install quilt
+```
 
 # Learn
 * [Video demo](https://youtu.be/tLdiDqtnnho)
@@ -67,7 +70,7 @@ So `$ quilt install foo/bar build.yml` is equivalent to `quilt.install("foo/bar"
 * 2.7
 * ~~3.2~~
 * ~~3.3~~
-* 3.4
+* 3.4 (Linux only)
 * 3.5
 * 3.6
 
