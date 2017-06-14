@@ -4,6 +4,7 @@ Access tests
 
 import json
 import time
+import urllib
 
 import requests
 
@@ -433,3 +434,42 @@ class AccessTestCase(QuiltTestCase):
         names = [pkg['name'] for pkg in data['packages']]
         assert len(names) == 4
         assert set(names) == set(['pkg0', 'pkg1', 'pkg2', 'pkg3'])
+
+    def testSearch(self):
+        for i in [1, 2]:
+            pkg = 'public%d' % i
+            self.put_package(self.user, pkg, RootNode(children=dict()))
+            self._share_package(self.user, pkg, PUBLIC)
+
+        def _test_query(query, headers, expected_results):
+            params = dict(q=query)
+            resp = self.app.get(
+                '/api/search/?%s' % urllib.parse.urlencode(params),
+                headers=headers
+            )
+
+            assert resp.status_code == requests.codes.ok
+            data = json.loads(resp.data.decode('utf8'))
+
+            results = ['%(owner)s/%(name)s' % pkg for pkg in data['packages']]
+            assert results == expected_results
+
+        _test_query("test_user/public1", {}, ["test_user/public1"])
+        _test_query("test_user/public", {}, ["test_user/public1", "test_user/public2"])
+        _test_query("test_user/pkgtoshare", {}, [])
+        _test_query("test_user/", {}, ["test_user/public1", "test_user/public2"])
+        _test_query("test_user public1", {}, ["test_user/public1"])
+        _test_query("test user 2", {}, ["test_user/public2"])
+        _test_query("", {}, ["test_user/public1", "test_user/public2"])
+        _test_query("foo", {}, [])
+
+        auth = {'Authorization': self.user}
+
+        _test_query("test_user/public1", auth, ["test_user/public1"])
+        _test_query("share", auth, ["test_user/pkgtoshare"])
+        _test_query("test", auth, [
+            "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
+        ])
+        _test_query("", auth, [
+            "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
+        ])

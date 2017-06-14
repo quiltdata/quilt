@@ -979,3 +979,36 @@ def recent_packages(auth_user):
             ) for package, updated_at in results
         ]
     )
+
+@app.route('/api/search/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def search(auth_user):
+    query = request.args.get('q', '')
+    keywords = query.split()
+
+    if len(keywords) > 5:
+        # Let's not overload the DB with crazy queries.
+        return dict(packages=[])
+
+    filter_list = [
+        sa.func.instr(sa.func.concat(Package.owner, '/', Package.name), keyword) > 0
+        for keyword in keywords
+    ]
+
+    results = (
+        Package.query
+        .filter(sa.and_(*filter_list))
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .all()
+    )
+
+    return dict(
+        packages=[
+            dict(
+                owner=package.owner,
+                name=package.name,
+            ) for package in results
+        ]
+    )
