@@ -16,4 +16,4 @@ PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
 
-MIXPANEL_PROJECT_TOKEN = '247b6756f3a8616f9369351b0e5e1fe9'  # "Debug" project
+MIXPANEL_PROJECT_TOKEN = ''  # Disable mixpanel in dev

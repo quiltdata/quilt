@@ -32,7 +32,16 @@ class AsyncConsumer(object):
         """
         self._executor.shutdown(wait=True)
 
-mp_consumer = AsyncConsumer()
-mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'], mp_consumer)
+class NoopConsumer(object):
+    def send(self, endpoint, json_message):
+        pass
 
-atexit.register(mp_consumer.shutdown)
+mp_token = app.config['MIXPANEL_PROJECT_TOKEN']
+if mp_token:
+    mp_consumer = AsyncConsumer()
+    atexit.register(mp_consumer.shutdown)
+else:
+    # For testing, dev, etc.
+    mp_consumer = NoopConsumer()
+
+mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'], mp_consumer)
