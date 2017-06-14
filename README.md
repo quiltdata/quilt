@@ -18,11 +18,6 @@
         export FLASK_DEBUG=1
         export QUILT_SERVER_CONFIG=dev_config.py
 
-        # TODO: Either switch to limited dev accounts, or set up a fake S3 server.
-        # Get these from the old server:
-        export AWS_ACCESS_KEY_ID=...
-        export AWS_SECRET_ACCESS_KEY=...
-
         # Get this one from the stage API app
         # (https://quilt-heroku.herokuapp.com/admin/oauth2_provider/application/3/)
         export OAUTH_CLIENT_SECRET=...
@@ -31,6 +26,9 @@
 * Initialize the database tables:
 
         flask db upgrade
+* Set up a fake S3 server. Either:
+    * build a docker image from `nginx-s3/Dockerfile`, and run it with port 5001 exposed, or
+    * run `nginx` manually and add `nginx-s3/nginx-s3.conf` to the site configs.
 
 ## Run Flask directly
 
@@ -38,16 +36,7 @@
 
 ## Run the Docker container
 
-    docker build -t quiltdata/server .
-
-    # Needs the dev config and the environment variables.
-    docker run -p 5000:80 \
-      -v $PWD/quilt_server/dev_config.py:/home/quilt/dev_config.py \
-      -e QUILT_SERVER_CONFIG=/home/quilt/dev_config.py \
-      -e AWS_ACCESS_KEY="$AWS_ACCESS_KEY" \
-      -e AWS_SECRET_KEY="$AWS_SECRET_KEY" \
-      -e OAUTH_CLIENT_SECRET="$OAUTH_CLIENT_SECRET" \
-      quiltdata/server
+    TODO
 
 ## DB Migrations
 Create a new migrations file:
