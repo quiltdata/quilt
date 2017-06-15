@@ -508,7 +508,7 @@ def user_packages(auth_user, owner):
             result[pkg_name] = dict(name=pkg_name, is_public=is_public)
 
     return dict(
-        packages=result
+        packages=[result[k] for k in sorted(result.keys())]
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])

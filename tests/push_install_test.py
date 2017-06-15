@@ -125,7 +125,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == {'foo' : {'name': 'foo', 'is_public': False}}
+        assert data['packages'] == [{'name': 'foo', 'is_public': False}]
 
         # List package instances.
         resp = self.app.get(
