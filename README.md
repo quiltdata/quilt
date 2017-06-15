@@ -22,6 +22,9 @@
         # (https://quilt-heroku.herokuapp.com/admin/oauth2_provider/application/3/)
         export OAUTH_CLIENT_SECRET=...
 
+        # Optional: set a Mixpanel token (for the "Debug" project)
+        export MIXPANEL_PROJECT_TOKEN=247b6756f3a8616f9369351b0e5e1fe9
+
 * Activate the environment again - make sure the variables got set
 * Initialize the database tables:
 
