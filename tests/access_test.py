@@ -252,7 +252,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == []
+        assert data['packages'] == {}
 
         # Anonymous users can't see private packages.
         resp = self.app.get(
@@ -261,7 +261,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == []
+        assert data['packages'] == {}
 
         # Share with a user.
         resp = self._share_package(self.user, self.pkg, sharewith)
@@ -277,7 +277,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert self.pkg in data['packages']
 
         # Anonymous users still can't see it.
         resp = self.app.get(
@@ -286,7 +286,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == []
+        assert data['packages'] == {}
 
         # Share publicly.
         resp = self._share_package(self.user, self.pkg, PUBLIC)
@@ -302,7 +302,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert data['packages'] == {self.pkg: {'name': self.pkg, 'is_public': True}}
 
         # Anonymous users can now see it.
         resp = self.app.get(
@@ -311,7 +311,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert data['packages'] == {self.pkg: {'name': self.pkg, 'is_public': True}}
 
     def testListAllPackages(self):
         """
