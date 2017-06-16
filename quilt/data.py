@@ -71,8 +71,9 @@ class GroupNode(DataNode):
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
-        kinfo = '\n'.join(sorted(self._keys()))
-        return "%s\n%s" % (pinfo, kinfo)
+        group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
+        data_info = '\n'.join(sorted(self._data_keys()))
+        return '%s\n%s\n%s' % (pinfo, group_info, data_info)
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
