@@ -37,20 +37,16 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
-    def preorder_tablenodes(self):
+    def preorder(self):
         stack = [self]
         output = []
 
         while stack:
             node = stack.pop()
             for c in node.children.values():
+                output.append(c)
                 if isinstance(c, GroupNode):
                     stack.append(c)
-                elif isinstance(c, TableNode):
-                    output.append(c)
-                else:
-                    pass # Should we throw exception here?
-
         return output
 
 class RootNode(GroupNode):
