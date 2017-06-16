@@ -277,7 +277,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert data['packages'] == [dict(name=self.pkg, is_public=False)]
 
         # Anonymous users still can't see it.
         resp = self.app.get(
@@ -302,7 +302,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
 
         # Anonymous users can now see it.
         resp = self.app.get(
@@ -311,7 +311,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [self.pkg]
+        assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
 
     def testListAllPackages(self):
         """

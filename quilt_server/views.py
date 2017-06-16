@@ -493,15 +493,23 @@ def package_list(auth_user, owner, package_name):
 @as_json
 def user_packages(auth_user, owner):
     packages = (
-        Package.query
+        db.session.query(Package, sa.func.max(Access.user == PUBLIC))
         .filter_by(owner=owner)
         .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
+        .group_by(Package.id)
+        .order_by(Package.name)
         .all()
     )
 
     return dict(
-        packages=[package.name for package in packages]
+        packages=[
+            dict(
+                name=package.name,
+                is_public=is_public
+            )
+            for package, is_public in packages
+        ]
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])

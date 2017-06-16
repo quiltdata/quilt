@@ -5,3 +5,7 @@ __pycache__
 
 # Visual Studio Code
 .vscode
+
+# Test coverage
+.coverage
+cov_html/*
