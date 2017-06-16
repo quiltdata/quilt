@@ -235,22 +235,20 @@ def generate_readme(startpath, outfilename=DEFAULT_README):
             printnode(contents, "", f)
         contents.update({'README' : {'file' : outfilename}})
     return contents
-    
+
 def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build file (yaml) based on the contents of a
     directory tree.
-    """   
+    """
     buildfilepath = os.path.join(startpath, outfilename)
     if os.path.exists(buildfilepath):
         raise BuildException("Build file %s already exists." % buildfilepath)
 
     # Determine package contents from sources and write README if missing
-    contents=generate_readme(startpath)
+    contents = generate_readme(startpath)
 
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(dict(contents=contents), outfile, default_flow_style=False)
 
     return buildfilepath
-
-    
