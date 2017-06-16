@@ -493,22 +493,23 @@ def package_list(auth_user, owner, package_name):
 @as_json
 def user_packages(auth_user, owner):
     packages = (
-        db.session.query(Package, Access)
+        db.session.query(Package, sa.func.max(Access.user == PUBLIC))
         .filter_by(owner=owner)
         .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
+        .group_by(Package.id)
+        .order_by(Package.name)
         .all()
-        )
-
-    result = dict()
-    for pkg, access in packages:
-        pkg_name = pkg.name
-        is_public = (access.user == PUBLIC)
-        if is_public or pkg_name not in result:
-            result[pkg_name] = dict(name=pkg_name, is_public=is_public)
+    )
 
     return dict(
-        packages=[result[k] for k in sorted(result.keys())]
+        packages=[
+            dict(
+                name=package.name,
+                is_public=is_public
+            )
+            for package, is_public in packages
+        ]
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
