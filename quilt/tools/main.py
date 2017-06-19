@@ -106,6 +106,10 @@ def main():
     access_remove_p.add_argument("user", type=str, help="User to remove")
     access_remove_p.set_defaults(func=command.access_remove)
 
+    search_p = subparsers.add_parser("search")
+    search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
+    search_p.set_defaults(func=command.search)
+
     ls_p = subparsers.add_parser("ls")
     ls_p.set_defaults(func=command.ls)
 
