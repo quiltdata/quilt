@@ -997,7 +997,7 @@ def search(auth_user):
 
     if len(keywords) > 5:
         # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many keywords (max is 5)")
+        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
 
     filter_list = [
         sa.func.instr(sa.func.concat(Package.owner, '/', Package.name), keyword) > 0
