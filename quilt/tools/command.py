@@ -627,6 +627,14 @@ def access_remove(package, user):
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
+def search(query):
+    session = _get_session()
+    response = session.get("%s/api/search/" % QUILT_PKG_URL, params=dict(q=query))
+
+    packages = response.json()['packages']
+    for pkg in packages:
+        print("%(owner)s/%(name)s" % pkg)
+
 def ls():
     """
     List all installed Quilt data packages
