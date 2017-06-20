@@ -17,6 +17,9 @@ def CaseSensitiveString(length):
 
 USERNAME_TYPE = CaseSensitiveString(64)
 
+# https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
+STRIPE_ID_TYPE = CaseSensitiveString(255)
+
 class Package(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     owner = db.Column(USERNAME_TYPE, nullable=False)
@@ -120,3 +123,8 @@ class Access(db.Model):
     user = db.Column(USERNAME_TYPE, primary_key=True)
 
     package = db.relationship('Package', back_populates='access')
+
+
+class Customer(db.Model):
+    id = db.Column(USERNAME_TYPE, primary_key=True)
+    stripe_customer_id = db.Column(STRIPE_ID_TYPE, nullable=False)
