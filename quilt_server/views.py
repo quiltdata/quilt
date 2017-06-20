@@ -1005,10 +1005,11 @@ def search(auth_user):
     ]
 
     results = (
-        Package.query
+        db.session.query(Package, sa.func.max(Access.user == PUBLIC))
         .filter(sa.and_(*filter_list))
         .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
+        .group_by(Package.id)
         .order_by(Package.owner, Package.name)
         .all()
     )
@@ -1018,6 +1019,7 @@ def search(auth_user):
             dict(
                 owner=package.owner,
                 name=package.name,
-            ) for package in results
+                is_public=is_public,
+            ) for package, is_public in results
         ]
     )
