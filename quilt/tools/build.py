@@ -130,7 +130,13 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
         failover_args.update(kwargs)
         df = handler(path, **failover_args)
 
-    return df
+    # cast object columns to strings
+    safecols = {}
+    for name, col in df.iteritems():
+        safecols[name] = col.astype(str) if col.dtype == 'object' else col
+
+    safedf = pd.DataFrame(safecols)
+    return safedf
 
 def build_package(username, package, yaml_path):
     """
