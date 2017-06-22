@@ -130,6 +130,11 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
         failover_args.update(kwargs)
         df = handler(path, **failover_args)
 
+    # cast object columns to strings
+    for name, col in df.iteritems():
+        if col.dtype == 'object':
+            df[name] = col.astype(str)
+
     return df
 
 def build_package(username, package, yaml_path):
