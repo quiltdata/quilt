@@ -20,12 +20,13 @@ from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
+import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PUBLIC
+from .const import PaymentPlan, PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, RootNode
-from .models import Access, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
+from .models import Access, Customer, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
 from .schemas import PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -50,6 +51,8 @@ S3_PUT_OBJECT = 'put_object'
 OBJ_DIR = 'objs'
 
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
+
+stripe.api_key = app.config['STRIPE_SECRET_KEY']
 
 
 class QuiltCli(httpagentparser.Browser):
@@ -1023,3 +1026,74 @@ def search(auth_user):
             ) for package, is_public in results
         ]
     )
+
+def _get_or_create_customer(username):
+    db_customer = Customer.query.filter_by(id=username).one_or_none()
+
+    if db_customer is None:
+        plan = PaymentPlan.BASIC.value
+        customer = stripe.Customer.create(
+            description=username,
+        )
+        stripe.Subscription.create(
+            customer=customer.id,
+            plan=plan,
+        )
+        db_customer = Customer(
+            id=username,
+            stripe_customer_id=customer.id,
+        )
+        db.session.add(db_customer)
+        db.session.commit()
+
+    customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
+    assert customer.subscriptions.total_count == 1
+    return customer
+
+@app.route('/api/payments/info', methods=['GET'])
+@api()
+@as_json
+def payments_info(auth_user):
+    customer = _get_or_create_customer(auth_user)
+    subscription = customer.subscriptions.data[0]
+
+    return dict(
+        plan=subscription.plan.id,
+        have_credit_card=customer.sources.total_count > 0,
+    )
+
+@app.route('/api/payments/update_plan', methods=['POST'])
+@api()
+@as_json
+def payments_update_plan(auth_user):
+    plan = request.values.get('plan')
+    try:
+        PaymentPlan(plan)
+    except ValueError:
+        raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
+
+    customer = _get_or_create_customer(auth_user)
+    subscription = customer.subscriptions.data[0]
+
+    subscription.plan = plan
+    subscription.save()
+
+    return dict()
+
+@app.route('/api/payments/update_payment', methods=['POST'])
+@api()
+@as_json
+def payments_update_payment(auth_user):
+    stripe_token = request.values.get('token')
+    if not stripe_token:
+        raise ApiException(requests.codes.bad_request, "Missing token")
+
+    customer = _get_or_create_customer(auth_user)
+    customer.source = stripe_token
+
+    try:
+        customer.save()
+    except stripe.InvalidRequestError as ex:
+        raise ApiException(requests.codes.bad_request, str(ex))
+
+    return dict()
