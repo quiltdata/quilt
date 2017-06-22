@@ -70,7 +70,10 @@ class QuiltTestCase(unittest.TestCase):
             if auth is None:
                 return (401, {}, "Not logged in")
             else:
-                return (200, {}, json.dumps(dict(current_user=auth)))
+                return (200, {}, json.dumps(dict(
+                    current_user=auth,
+                    email='%s@example.com' % auth,
+                )))
 
         self.requests_mock.add_callback(responses.GET, auth_url, callback=cb)
 
