@@ -34,7 +34,7 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        customer_create.assert_called_with(description=user)
+        customer_create.assert_called_with(email='%s@example.com' % user, description=user)
         subscription_create.assert_called_with(customer='cus_1', plan=PaymentPlan.BASIC.value)
         customer_retrieve.assert_called_with('cus_1')
 
@@ -110,7 +110,7 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        get_customer.assert_called_with(user)
+        get_customer.assert_called_with()
         assert subscription.plan == PaymentPlan.PRO.value
         subscription.save.assert_called_with()
 
@@ -147,7 +147,7 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.bad_request
 
-        get_customer.assert_called_with(user)
+        get_customer.assert_called_with()
         customer.save.assert_called_with()
 
         # Good token
@@ -165,6 +165,6 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        get_customer.assert_called_with(user)
+        get_customer.assert_called_with()
         assert customer.source == token
         customer.save.assert_called_with()

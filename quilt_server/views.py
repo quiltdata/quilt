@@ -214,6 +214,7 @@ def api(require_login=True, schema=None):
                 if resp.status_code == requests.codes.ok:
                     data = resp.json()
                     g.user = data['current_user']
+                    g.email = data['email']
                 elif resp.status_code == requests.codes.unauthorized:
                     raise ApiException(
                         requests.codes.unauthorized,
@@ -1027,20 +1028,21 @@ def search(auth_user):
         ]
     )
 
-def _get_or_create_customer(username):
-    db_customer = Customer.query.filter_by(id=username).one_or_none()
+def _get_or_create_customer():
+    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
 
     if db_customer is None:
         plan = PaymentPlan.BASIC.value
         customer = stripe.Customer.create(
-            description=username,
+            email=g.email,
+            description=g.user,
         )
         stripe.Subscription.create(
             customer=customer.id,
             plan=plan,
         )
         db_customer = Customer(
-            id=username,
+            id=g.user,
             stripe_customer_id=customer.id,
         )
         db.session.add(db_customer)
@@ -1054,7 +1056,7 @@ def _get_or_create_customer(username):
 @api()
 @as_json
 def payments_info(auth_user):
-    customer = _get_or_create_customer(auth_user)
+    customer = _get_or_create_customer()
     subscription = customer.subscriptions.data[0]
 
     return dict(
@@ -1072,7 +1074,7 @@ def payments_update_plan(auth_user):
     except ValueError:
         raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
 
-    customer = _get_or_create_customer(auth_user)
+    customer = _get_or_create_customer()
     subscription = customer.subscriptions.data[0]
 
     subscription.plan = plan
@@ -1088,7 +1090,7 @@ def payments_update_payment(auth_user):
     if not stripe_token:
         raise ApiException(requests.codes.bad_request, "Missing token")
 
-    customer = _get_or_create_customer(auth_user)
+    customer = _get_or_create_customer()
     customer.source = stripe_token
 
     try:
