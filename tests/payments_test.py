@@ -8,6 +8,7 @@ from unittest import mock
 import requests
 import stripe
 
+from quilt_server.const import PaymentPlan
 from .utils import QuiltTestCase
 
 
@@ -22,7 +23,7 @@ class PaymentsTestCase(QuiltTestCase):
         subscription_create.return_value.id = 'sub_1'
 
         customer_retrieve.return_value.subscriptions.total_count = 1
-        customer_retrieve.return_value.subscriptions.data[0].plan.id = 'basic'
+        customer_retrieve.return_value.subscriptions.data[0].plan.id = PaymentPlan.BASIC.value
         customer_retrieve.return_value.sources.total_count = 0
 
         resp = self.app.get(
@@ -34,7 +35,7 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         customer_create.assert_called_with(description=user)
-        subscription_create.assert_called_with(customer='cus_1', plan='basic')
+        subscription_create.assert_called_with(customer='cus_1', plan=PaymentPlan.BASIC.value)
         customer_retrieve.assert_called_with('cus_1')
 
     @mock.patch('quilt_server.views._get_or_create_customer')
@@ -44,7 +45,7 @@ class PaymentsTestCase(QuiltTestCase):
         # Basic, no credit card.
 
         get_customer.return_value.subscriptions.total_count = 1
-        get_customer.return_value.subscriptions.data[0].plan.id = 'basic'
+        get_customer.return_value.subscriptions.data[0].plan.id = PaymentPlan.BASIC.value
         get_customer.return_value.sources.total_count = 0
 
         resp = self.app.get(
@@ -56,12 +57,12 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
 
-        assert data['plan'] == 'basic'
+        assert data['plan'] == PaymentPlan.BASIC.value
         assert data['have_credit_card'] is False
 
         # Pro, with credit card.
 
-        get_customer.return_value.subscriptions.data[0].plan.id = 'pro'
+        get_customer.return_value.subscriptions.data[0].plan.id = PaymentPlan.PRO.value
         get_customer.return_value.sources.total_count = 1
 
         resp = self.app.get(
@@ -73,7 +74,7 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
 
-        assert data['plan'] == 'pro'
+        assert data['plan'] == PaymentPlan.PRO.value
         assert data['have_credit_card'] is True
 
     @mock.patch('quilt_server.views._get_or_create_customer')
@@ -101,7 +102,7 @@ class PaymentsTestCase(QuiltTestCase):
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
-                plan='pro'
+                plan=PaymentPlan.PRO.value
             ),
             headers={
                 'Authorization': user,
@@ -110,7 +111,7 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         get_customer.assert_called_with(user)
-        assert subscription.plan == 'pro'
+        assert subscription.plan == PaymentPlan.PRO.value
         subscription.save.assert_called_with()
 
     @mock.patch('quilt_server.views._get_or_create_customer')
