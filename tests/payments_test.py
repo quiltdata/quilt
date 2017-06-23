@@ -9,7 +9,7 @@ import requests
 import stripe
 
 from quilt_server.const import PaymentPlan
-from .utils import QuiltTestCase
+from .utils import mock_customer, QuiltTestCase
 
 
 class PaymentsTestCase(QuiltTestCase):
@@ -27,7 +27,7 @@ class PaymentsTestCase(QuiltTestCase):
         customer_retrieve.return_value.sources.total_count = 0
 
         resp = self.app.get(
-            '/api/payments/info',
+            '/api/profile',
             headers={
                 'Authorization': user,
             }
@@ -38,18 +38,11 @@ class PaymentsTestCase(QuiltTestCase):
         subscription_create.assert_called_with(customer='cus_1', plan=PaymentPlan.BASIC.value)
         customer_retrieve.assert_called_with('cus_1')
 
-    @mock.patch('quilt_server.views._get_or_create_customer')
-    def testInfo(self, get_customer):
+    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    def testBasicInfo(self, customer):
         user = 'test_user'
-
-        # Basic, no credit card.
-
-        get_customer.return_value.subscriptions.total_count = 1
-        get_customer.return_value.subscriptions.data[0].plan.id = PaymentPlan.BASIC.value
-        get_customer.return_value.sources.total_count = 0
-
         resp = self.app.get(
-            '/api/payments/info',
+            '/api/profile',
             headers={
                 'Authorization': user,
             }
@@ -60,13 +53,10 @@ class PaymentsTestCase(QuiltTestCase):
         assert data['plan'] == PaymentPlan.BASIC.value
         assert data['have_credit_card'] is False
 
-        # Pro, with credit card.
-
-        get_customer.return_value.subscriptions.data[0].plan.id = PaymentPlan.PRO.value
-        get_customer.return_value.sources.total_count = 1
-
+    @mock_customer(plan=PaymentPlan.PRO, have_credit_card=True)
+    def testProInfo(self, customer):
         resp = self.app.get(
-            '/api/payments/info',
+            '/api/profile',
             headers={
                 'Authorization': user,
             }
@@ -77,11 +67,10 @@ class PaymentsTestCase(QuiltTestCase):
         assert data['plan'] == PaymentPlan.PRO.value
         assert data['have_credit_card'] is True
 
-    @mock.patch('quilt_server.views._get_or_create_customer')
-    def testUpdatePlan(self, get_customer):
+    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    def testUpdatePlan(self, customer):
         user = 'test_user'
-
-        subscription = get_customer.return_value.subscriptions.data[0]
+        subscription = customer.subscriptions.data[0]
         subscription.save.return_value = None
 
         # Bad plan
@@ -96,8 +85,6 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.bad_request
 
-        get_customer.assert_not_called()
-
         # Good plan
         resp = self.app.post(
             '/api/payments/update_plan',
@@ -110,15 +97,12 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        get_customer.assert_called_with()
         assert subscription.plan == PaymentPlan.PRO.value
         subscription.save.assert_called_with()
 
-    @mock.patch('quilt_server.views._get_or_create_customer')
-    def testUpdatePayment(self, get_customer):
+    @mock_customer()
+    def testUpdatePayment(self, customer):
         user = 'test_user'
-
-        customer = get_customer.return_value
         customer.save.return_value = None
 
         # No token
@@ -131,7 +115,6 @@ class PaymentsTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.bad_request
-        get_customer.assert_not_called()
 
         # Bad token
         customer.save.side_effect = stripe.InvalidRequestError('Bad token!', None)
@@ -147,7 +130,6 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.bad_request
 
-        get_customer.assert_called_with()
         customer.save.assert_called_with()
 
         # Good token
@@ -165,6 +147,5 @@ class PaymentsTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        get_customer.assert_called_with()
         assert customer.source == token
         customer.save.assert_called_with()

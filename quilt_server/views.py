@@ -923,6 +923,7 @@ def access_list(auth_user, owner, package_name):
 @api(require_login=False)
 @as_json
 def all_packages(auth_user):
+    """DEPRECATED; use /api/profile"""
     results = (
         db.session.query(Package, Access)
         .join(Package.access)
@@ -1052,14 +1053,44 @@ def _get_or_create_customer():
     assert customer.subscriptions.total_count == 1
     return customer
 
-@app.route('/api/payments/info', methods=['GET'])
+@app.route('/api/profile', methods=['GET'])
 @api()
 @as_json
-def payments_info(auth_user):
+def profile(auth_user):
     customer = _get_or_create_customer()
     subscription = customer.subscriptions.data[0]
 
+    public_access = sa.orm.aliased(Access)
+
+    packages = (
+        db.session.query(Package, public_access.user.isnot(None))
+        .join(Package.access)
+        .filter(Access.user == auth_user)
+        .outerjoin(public_access, sa.and_(
+            Package.id == public_access.package_id, public_access.user == PUBLIC))
+        .order_by(Package.owner, Package.name)
+        .all()
+    )
+
     return dict(
+        packages=dict(
+            own=[
+                dict(
+                    owner=package.owner,
+                    name=package.name,
+                    is_public=bool(is_public)
+                )
+                for package, is_public in packages if package.owner == auth_user
+            ],
+            shared=[
+                dict(
+                    owner=package.owner,
+                    name=package.name,
+                    is_public=bool(is_public)
+                )
+                for package, is_public in packages if package.owner != auth_user
+            ],
+        ),
         plan=subscription.plan.id,
         have_credit_card=customer.sources.total_count > 0,
     )

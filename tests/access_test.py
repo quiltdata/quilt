@@ -4,6 +4,7 @@ Access tests
 
 import json
 import time
+from unittest import mock
 import urllib
 
 import requests
@@ -11,7 +12,7 @@ import requests
 from quilt_server.const import PUBLIC
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
 
-from .utils import QuiltTestCase
+from .utils import mock_customer, QuiltTestCase
 
 
 class AccessTestCase(QuiltTestCase):
@@ -314,7 +315,8 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
 
-    def testListAllPackages(self):
+    @mock_customer()
+    def testProfile(self, customer):
         """
         List all accessible packages.
         """
@@ -322,41 +324,39 @@ class AccessTestCase(QuiltTestCase):
         self.put_package(self.user, public_pkg, RootNode(children=dict()))
         self._share_package(self.user, public_pkg, PUBLIC)
 
-        # The user can see own packages. Own public packages show up as "own".
+        # The user can see own packages.
         resp = self.app.get(
-            '/api/all_packages/',
+            '/api/profile',
             headers={
                 'Authorization': self.user
             }
         )
 
         assert resp.status_code == requests.codes.ok
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == [
             dict(owner=self.user, name=self.pkg, is_public=False),
             dict(owner=self.user, name=public_pkg, is_public=True),
         ]
         assert data['shared'] == []
-        assert data['public'] == []
 
 
-        # Other users can only see public packages.
+        # Other users can't see anything.
         sharewith = "anotheruser"
 
         resp = self.app.get(
-            '/api/all_packages/',
+            '/api/profile',
             headers={
                 'Authorization': sharewith
             }
         )
 
         assert resp.status_code == requests.codes.ok
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == []
         assert data['shared'] == []
-        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
 
 
         # Users can see shared packages.
@@ -364,37 +364,35 @@ class AccessTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         resp = self.app.get(
-            '/api/all_packages/',
+            '/api/profile',
             headers={
                 'Authorization': sharewith
             }
         )
 
         assert resp.status_code == requests.codes.ok
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False)]
-        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
 
 
-        # If a package is both shared and public, it only shows up as "shared".
+        # Packages that are both public and shared show up under "shared".
         resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
         resp = self.app.get(
-            '/api/all_packages/',
+            '/api/profile',
             headers={
                 'Authorization': sharewith
             }
         )
 
         assert resp.status_code == requests.codes.ok
-        data = json.loads(resp.data.decode('utf8'))
+        data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
-        assert data['public'] == [dict(owner=self.user, name=public_pkg, is_public=True)]
 
     def testRecentPackages(self):
         # Push two public packages.

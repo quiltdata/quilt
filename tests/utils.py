@@ -2,10 +2,11 @@
 Unittest setup.
 """
 
+from functools import wraps
 import json
 import random
 import string
-import unittest
+from unittest import mock, TestCase
 
 from mixpanel import Mixpanel
 import requests
@@ -13,6 +14,7 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
+from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 
 class MockMixpanelConsumer(object):
@@ -25,7 +27,7 @@ class MockMixpanelConsumer(object):
         """
         print("%s: %s" % (endpoint, message))
 
-class QuiltTestCase(unittest.TestCase):
+class QuiltTestCase(TestCase):
     """
     Base class for unittests.
     - Creates a test client
@@ -38,7 +40,7 @@ class QuiltTestCase(unittest.TestCase):
         self._mock_user()
 
         mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
-        self.mp_patcher = unittest.mock.patch('quilt_server.views.mp', mock_mp)
+        self.mp_patcher = mock.patch('quilt_server.views.mp', mock_mp)
         self.mp_patcher.start()
 
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
@@ -124,3 +126,21 @@ class QuiltTestCase(unittest.TestCase):
                 'Authorization': owner
             }
         )
+
+def mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False):
+    def innerdec(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            customer = mock.MagicMock()
+
+            customer.subscriptions.total_count = 1
+            customer.subscriptions.data[0].plan.id = plan.value
+            customer.sources.total_count = 1 if have_credit_card else 0
+
+            args += (customer,)
+
+            with mock.patch('quilt_server.views._get_or_create_customer', return_value=customer):
+                return f(*args, **kwargs)
+
+        return wrapper
+    return innerdec
