@@ -175,5 +175,5 @@ class ImportTest(QuiltTestCase):
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
-        with self.assertRaises(ValueError):
+        with self.assertRaises(AttributeError):
             package1.newdf = df

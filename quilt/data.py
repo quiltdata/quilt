@@ -45,7 +45,7 @@ class Node(object):
         if name.startswith('_') or isinstance(value, Node):
             super(Node, self).__setattr__(name, value)
         else:
-            raise ValueError("{val} is not a valid package node".format(val=value))
+            raise AttributeError("{val} is not a valid package node".format(val=value))
 
 class DataNode(Node):
     """
