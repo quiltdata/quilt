@@ -138,6 +138,10 @@ class ImportTest(QuiltTestCase):
         file_path = os.path.join(mydir, 'data/foo.csv')
         package1._set(['new', 'file'], file_path)
 
+        # Add a new group
+        package1._add_group("newgroup")
+        package1._set(['new', 'newgroup', 'df'], df)
+
         # Can't overwrite things
         with self.assertRaises(ValueError):
             package1._set(['new'], file_path)
@@ -160,3 +164,16 @@ class ImportTest(QuiltTestCase):
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
+
+    def test_set_non_node_attr(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package1', build_path)
+
+        from quilt.data.foo import package1
+
+        # Assign a DataFrame as a node
+        # (should throw exception)
+        df = pd.DataFrame(dict(a=[1, 2, 3]))
+        with self.assertRaises(ValueError):
+            package1.newdf = df

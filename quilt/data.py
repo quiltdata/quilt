@@ -41,6 +41,12 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
+    def __setattr__(self, name, value):
+        if name.startswith('_') or isinstance(value, Node):
+            super(Node, self).__setattr__(name, value)
+        else:
+            raise ValueError("{val} is not a valid package node".format(val=value))
+
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
@@ -96,6 +102,10 @@ class GroupNode(DataNode):
         keys directly accessible on this object via getattr or .
         """
         return [name for name in self.__dict__ if not name.startswith('_')]
+
+    def _add_group(self, groupname):
+        child = GroupNode(self._package, core.GroupNode({}))
+        setattr(self, groupname, child)
 
 class PackageNode(GroupNode):
     """
