@@ -14,7 +14,7 @@ RUN pip3 install uwsgi
 # This is redundant, but it avoids unnecessary image rebuilds
 # and speeds up docker build/push/pull significantly.
 RUN pip3 install boto3 Flask Flask-Cors Flask-JSON Flask-Migrate httpagentparser
-RUN pip3 install jsonschema mixpanel packaging PyMySQL requests-oauthlib
+RUN pip3 install jsonschema mixpanel packaging PyMySQL requests-oauthlib stripe
 
 # Create Quilt user
 RUN useradd -s /bin/bash -m quilt
