@@ -306,6 +306,8 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
+    dry_run = data.get('dry_run', False)
+    public = data.get('public', False)
     contents = data['contents']
 
     if hash_contents(contents) != package_hash:
@@ -346,6 +348,27 @@ def package_put(auth_user, owner, package_name, package_hash):
 
         owner_access = Access(package=package, user=owner)
         db.session.add(owner_access)
+
+        if public:
+            public_access = Access(package=package, user=PUBLIC)
+            db.session.add(public_access)
+    else:
+        if public:
+            public_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == package,
+                    Access.user == PUBLIC
+                ))
+                .one_or_none()
+            )
+            if public_access is None:
+                raise ApiException(
+                    requests.codes.forbidden,
+                    ("%(user)s/%(pkg)s is private. To make it public, " +
+                     "run `quilt access add %(user)s/%(pkg)s public`.") %
+                    dict(user=owner, pkg=package_name)
+                )
 
     # Insert an instance if it doesn't already exist.
     instance = (
@@ -407,12 +430,15 @@ def package_put(auth_user, owner, package_name, package_hash):
         for blob_hash in all_hashes
     }
 
-    db.session.commit()
+    if not dry_run:
+        db.session.commit()
 
     _mp_track(
         type="push",
         package_owner=owner,
         package_name=package_name,
+        public=public,
+        dry_run=dry_run,
     )
 
     return dict(

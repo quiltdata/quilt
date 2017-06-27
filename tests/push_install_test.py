@@ -442,3 +442,95 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.forbidden
+
+    def testCreatePublic(self):
+        # Create a new public package.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that it's public.
+        resp = self.app.get('/api/package/test_user/foo/')
+        assert resp.status_code == requests.codes.ok
+
+        # Create a private package.
+        resp = self.app.put(
+            '/api/package/test_user/bar/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        # Verify that it's private.
+        resp = self.app.get('/api/package/test_user/bar/')
+        assert resp.status_code == requests.codes.not_found
+
+        # Try pushing it again as public, and verify that it fails.
+        resp = self.app.put(
+            '/api/package/test_user/bar/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.forbidden
+
+    def testDryRun(self):
+        # Create a new package.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                dry_run=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that it doesn't actually exist.
+        resp = self.app.get(
+            '/api/package/test_user/bar/',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
+
+        # Check that dry-run errors are useful.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % 'bad hash',
+            data=json.dumps(dict(
+                dry_run=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.bad_request
