@@ -16,5 +16,6 @@ setup(
         'packaging',
         'PyMySQL',
         'requests-oauthlib',
+        'stripe',
     ],
 )
