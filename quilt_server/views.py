@@ -282,6 +282,33 @@ def _generate_presigned_url(method, owner, blob_hash):
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
 
+def _get_or_create_customer():
+    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
+
+    if db_customer is None:
+        plan = PaymentPlan.FREE.value
+        customer = stripe.Customer.create(
+            email=g.email,
+            description=g.user,
+        )
+        stripe.Subscription.create(
+            customer=customer.id,
+            plan=plan,
+        )
+        db_customer = Customer(
+            id=g.user,
+            stripe_customer_id=customer.id,
+        )
+        db.session.add(db_customer)
+        db.session.commit()
+
+    customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
+    assert customer.subscriptions.total_count == 1
+    return customer
+
+def _get_customer_plan(customer):
+    return PaymentPlan(customer.subscriptions.data[0].plan.id)
+
 @app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
 @api()
 @as_json
@@ -342,6 +369,26 @@ def package_put(auth_user, owner, package_name, package_hash):
                 requests.codes.forbidden,
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
+
+        if not public:
+            customer = _get_or_create_customer()
+            plan = _get_customer_plan(customer)
+            if plan == PaymentPlan.FREE:
+                browser = g.user_agent['browser']
+                if (browser['name'] == 'QuiltCli' and
+                        PackagingVersion(browser['version']) <= PackagingVersion('2.5.0')):
+                    # Need 2.5.1 to create public packages.
+                    raise ApiException(
+                        requests.codes.server_error,
+                        "Please upgrade quilt by running 'pip install quilt --upgrade'."
+                    )
+                else:
+                    raise ApiException(
+                        requests.codes.payment_required,
+                        ("Please upgrade your plan to create private packages, or run " +
+                         "'quilt push --public %s/%s' to create a public package.") %
+                        (owner, package_name)
+                    )
 
         package = Package(owner=owner, name=package_name)
         db.session.add(package)
@@ -911,6 +958,15 @@ def access_delete(auth_user, owner, package_name, user):
             "Cannot revoke the owner's access"
         )
 
+    if user == PUBLIC:
+        customer = _get_or_create_customer()
+        plan = _get_customer_plan(customer)
+        if plan == PaymentPlan.FREE:
+            raise ApiException(
+                requests.codes.payment_required,
+                "Please upgrade your plan to make a package private."
+            )
+
     access = (
         Access.query
         .with_for_update()
@@ -1054,30 +1110,6 @@ def search(auth_user):
             ) for package, is_public in results
         ]
     )
-
-def _get_or_create_customer():
-    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
-
-    if db_customer is None:
-        plan = PaymentPlan.FREE.value
-        customer = stripe.Customer.create(
-            email=g.email,
-            description=g.user,
-        )
-        stripe.Subscription.create(
-            customer=customer.id,
-            plan=plan,
-        )
-        db_customer = Customer(
-            id=g.user,
-            stripe_customer_id=customer.id,
-        )
-        db.session.add(db_customer)
-        db.session.commit()
-
-    customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
-    assert customer.subscriptions.total_count == 1
-    return customer
 
 @app.route('/api/profile', methods=['GET'])
 @api()

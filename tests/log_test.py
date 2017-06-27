@@ -5,16 +5,17 @@ Log tests
 import json
 import requests
 
-from quilt_server.const import PUBLIC
+from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import hash_contents, GroupNode, RootNode
-from .utils import QuiltTestCase
+from .utils import mock_customer, QuiltTestCase
 
 
 class LogTestCase(QuiltTestCase):
     """
     Test log endpoint.
     """
-    def setUp(self):
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
+    def setUp(self, customer):
         super(LogTestCase, self).setUp()
 
         self.user = "test_user"
