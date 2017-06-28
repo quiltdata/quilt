@@ -1109,7 +1109,10 @@ def payments_update_plan(auth_user):
     subscription = customer.subscriptions.data[0]
 
     subscription.plan = plan
-    subscription.save()
+    try:
+        subscription.save()
+    except stripe.InvalidRequestError as ex:
+        raise ApiException(requests.codes.bad_request, str(ex))
 
     return dict()
 
