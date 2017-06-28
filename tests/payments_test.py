@@ -55,6 +55,7 @@ class PaymentsTestCase(QuiltTestCase):
 
     @mock_customer(plan=PaymentPlan.PRO, have_credit_card=True)
     def testProInfo(self, customer):
+        user = 'test_user'
         resp = self.app.get(
             '/api/profile',
             headers={
