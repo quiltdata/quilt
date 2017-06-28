@@ -10,6 +10,12 @@ SHA256_PATTERN = r'[0-9a-f]{64}'
 PACKAGE_SCHEMA = {
     'type': 'object',
     'properties': {
+        'dry_run': {
+            'type': 'boolean'
+        },
+        'public': {
+            'type': 'boolean'
+        },
         'description': {
             'type': 'string'
         },
