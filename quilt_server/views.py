@@ -1127,15 +1127,26 @@ def profile(auth_user):
 def payments_update_plan(auth_user):
     plan = request.values.get('plan')
     try:
-        PaymentPlan(plan)
+        plan = PaymentPlan(plan)
     except ValueError:
         raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
 
     customer = _get_or_create_customer()
+
+    if plan != PaymentPlan.BASIC and not customer.sources.total_count:
+        # No payment info.
+        raise ApiException(
+            requests.codes.payment_required,
+            "Payment information required to upgrade to %r" % plan.value
+        )
+
     subscription = customer.subscriptions.data[0]
 
-    subscription.plan = plan
-    subscription.save()
+    subscription.plan = plan.value
+    try:
+        subscription.save()
+    except stripe.InvalidRequestError as ex:
+        raise ApiException(requests.codes.server_error, str(ex))
 
     return dict()
 
