@@ -127,7 +127,7 @@ class QuiltTestCase(TestCase):
             }
         )
 
-def mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False):
+def mock_customer(plan=PaymentPlan.FREE, have_credit_card=False):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):

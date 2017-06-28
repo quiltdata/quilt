@@ -23,7 +23,7 @@ class PaymentsTestCase(QuiltTestCase):
         subscription_create.return_value.id = 'sub_1'
 
         customer_retrieve.return_value.subscriptions.total_count = 1
-        customer_retrieve.return_value.subscriptions.data[0].plan.id = PaymentPlan.BASIC.value
+        customer_retrieve.return_value.subscriptions.data[0].plan.id = PaymentPlan.FREE.value
         customer_retrieve.return_value.sources.total_count = 0
 
         resp = self.app.get(
@@ -35,10 +35,10 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         customer_create.assert_called_with(email='%s@example.com' % user, description=user)
-        subscription_create.assert_called_with(customer='cus_1', plan=PaymentPlan.BASIC.value)
+        subscription_create.assert_called_with(customer='cus_1', plan=PaymentPlan.FREE.value)
         customer_retrieve.assert_called_with('cus_1')
 
-    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=False)
     def testBasicInfo(self, customer):
         user = 'test_user'
         resp = self.app.get(
@@ -50,10 +50,10 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
 
-        assert data['plan'] == PaymentPlan.BASIC.value
+        assert data['plan'] == PaymentPlan.FREE.value
         assert data['have_credit_card'] is False
 
-    @mock_customer(plan=PaymentPlan.PRO, have_credit_card=True)
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL, have_credit_card=True)
     def testProInfo(self, customer):
         user = 'test_user'
         resp = self.app.get(
@@ -65,10 +65,10 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
 
-        assert data['plan'] == PaymentPlan.PRO.value
+        assert data['plan'] == PaymentPlan.INDIVIDUAL.value
         assert data['have_credit_card'] is True
 
-    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=True)
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=True)
     def testUpdatePlan(self, customer):
         user = 'test_user'
         subscription = customer.subscriptions.data[0]
@@ -91,17 +91,17 @@ class PaymentsTestCase(QuiltTestCase):
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
-                plan=PaymentPlan.PRO.value
+                plan=PaymentPlan.INDIVIDUAL.value
             ),
             headers={
                 'Authorization': user,
             }
         )
         assert resp.status_code == requests.codes.ok
-        assert subscription.plan == PaymentPlan.PRO.value
+        assert subscription.plan == PaymentPlan.INDIVIDUAL.value
         subscription.save.assert_called_with()
 
-    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=False)
     def testUpgradeNoPayment(self, customer):
         user = 'test_user'
         subscription = customer.subscriptions.data[0]
@@ -110,7 +110,7 @@ class PaymentsTestCase(QuiltTestCase):
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
-                plan=PaymentPlan.PRO.value
+                plan=PaymentPlan.INDIVIDUAL.value
             ),
             headers={
                 'Authorization': user,
@@ -119,7 +119,7 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.payment_required
         assert not subscription.save.called
 
-    @mock_customer(plan=PaymentPlan.PRO, have_credit_card=False)
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL, have_credit_card=False)
     def testDowngradeNoPayment(self, customer):
         user = 'test_user'
         subscription = customer.subscriptions.data[0]
@@ -128,14 +128,14 @@ class PaymentsTestCase(QuiltTestCase):
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
-                plan=PaymentPlan.BASIC.value
+                plan=PaymentPlan.FREE.value
             ),
             headers={
                 'Authorization': user,
             }
         )
         assert resp.status_code == requests.codes.ok
-        assert subscription.plan == PaymentPlan.BASIC.value
+        assert subscription.plan == PaymentPlan.FREE.value
         subscription.save.assert_called_with()
 
     @mock_customer()

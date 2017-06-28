@@ -1059,7 +1059,7 @@ def _get_or_create_customer():
     db_customer = Customer.query.filter_by(id=g.user).one_or_none()
 
     if db_customer is None:
-        plan = PaymentPlan.BASIC.value
+        plan = PaymentPlan.FREE.value
         customer = stripe.Customer.create(
             email=g.email,
             description=g.user,
@@ -1133,7 +1133,7 @@ def payments_update_plan(auth_user):
 
     customer = _get_or_create_customer()
 
-    if plan != PaymentPlan.BASIC and not customer.sources.total_count:
+    if plan != PaymentPlan.FREE and not customer.sources.total_count:
         # No payment info.
         raise ApiException(
             requests.codes.payment_required,
