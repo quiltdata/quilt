@@ -67,6 +67,8 @@ class PushTest(QuiltTestCase):
 
     def _mock_put_package(self, package, pkg_hash):
         pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
+        # Dry run, then the real thing.
+        self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict()))
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict()))
 
     def _mock_put_tag(self, package, tag):
