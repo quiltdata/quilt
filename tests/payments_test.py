@@ -67,7 +67,7 @@ class PaymentsTestCase(QuiltTestCase):
         assert data['plan'] == PaymentPlan.PRO.value
         assert data['have_credit_card'] is True
 
-    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=True)
     def testUpdatePlan(self, customer):
         user = 'test_user'
         subscription = customer.subscriptions.data[0]
@@ -84,6 +84,7 @@ class PaymentsTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.bad_request
+        assert not subscription.save.called
 
         # Good plan
         resp = self.app.post(
@@ -96,8 +97,44 @@ class PaymentsTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
-
         assert subscription.plan == PaymentPlan.PRO.value
+        subscription.save.assert_called_with()
+
+    @mock_customer(plan=PaymentPlan.BASIC, have_credit_card=False)
+    def testUpgradeNoPayment(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.PRO.value
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        assert resp.status_code == requests.codes.payment_required
+        assert not subscription.save.called
+
+    @mock_customer(plan=PaymentPlan.PRO, have_credit_card=False)
+    def testDowngradeNoPayment(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.BASIC.value
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        assert subscription.plan == PaymentPlan.BASIC.value
         subscription.save.assert_called_with()
 
     @mock_customer()
