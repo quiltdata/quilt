@@ -1,12 +1,16 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
 # Package and version data 
-Quilt is a data package manager.
-Quilt consists of a client-side data compiler (this repository) and a
-[server-side registry](https://quiltdata.com), where packages are stored.
+Quilt is a data package manager. Developers use pip to make their code automatically installable into Python applications. Quilt lets data scientists make datasets automatically installable into Jupyter notebooks and other data analysis tools. Accessing data with Quilt is as easy as:
+
+`quilt install author/package`
 
 ## Data packages
 A data package is an abstraction that encapsulates and automates data preparation. More concretely, a data package is a tree of serialized data wrapped in a Python module. Each data package has a unique handle, a revision history, and a web page. Packages are stored in a server-side registry that enforces access control.
+
+## Quilt Data Registry
+Quilt consists of a client-side data packager/importer (this repository) and a
+[server-side registry](https://quiltdata.com), where packages can be posted for publication or private distribution.
 
 ## Package lifecycle
 * **build** to create a package from files
@@ -40,10 +44,10 @@ $ pip install quilt
 * [Why package data?](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 
 # Future
-Quilt currently supports Python. Spark and R support are in the works.
+Quilt currently supports Python and PySpark. Scala and R support are in the works.
 
 # Questions?
-Chat with us on  [quiltdata.com](https://quiltdata.com/). 
+Chat with us on  [quiltdata.com](https://quiltdata.com/).
 
 # Command summary
 You can use Quilt on the command line or directly in Python. Both interfaces have the same singature.
@@ -88,18 +92,6 @@ contents:
       sep: "\t" # tab separated values
       # or any key-word argument to pandas.read_csv (http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
 ```
-
-## Column types
-Supported Pandas column types (via dtype):
-* int
-* bool
-* float
-* complex
-* str
-* unicode
-* buffer
-
-Everything else becomes type object. See [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
 
 # Package editing
 
@@ -157,6 +149,36 @@ contents:
     sales2017.jan._data() # Sales data from January 2017
     sales2017._data()     # Sales data from January-March 2017
 ```
+
+# Troubleshooting
+
+## Pandas Types
+By default, quilt build treats converts some file types (e.g., csv, tsv) to Pandas DataFrames using pandas.read_csv. Some files break pandas type guessing throwing exceptions. In that case, it's often helpful to include column types in build.yml by adding a `dtype` parameter:
+
+```yaml
+  contents:
+    iris:
+      file: iris.data
+      transform: csv
+      header: null
+      dtype:
+        sepal_length : float
+        sepal_width : float
+        petal_length : float
+        petal_width : float
+        class: str
+```
+
+`dtype` takes a dict where keys are column names and values are valid Pandas column types:
+* int
+* bool
+* float
+* complex
+* str
+* unicode
+* buffer
+
+See [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
 
 # Developer
 - `pip install pylint pytest pytest-cov`
