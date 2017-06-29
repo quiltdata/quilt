@@ -98,6 +98,9 @@ class PaymentsTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['plan'] == PaymentPlan.INDIVIDUAL.value
+
         assert subscription.plan == PaymentPlan.INDIVIDUAL.value
         subscription.save.assert_called_with()
 

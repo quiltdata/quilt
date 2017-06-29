@@ -1148,7 +1148,9 @@ def payments_update_plan(auth_user):
     except stripe.InvalidRequestError as ex:
         raise ApiException(requests.codes.server_error, str(ex))
 
-    return dict()
+    return dict(
+        plan=plan.value
+    )
 
 @app.route('/api/payments/update_payment', methods=['POST'])
 @api()
