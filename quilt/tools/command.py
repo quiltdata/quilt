@@ -296,7 +296,7 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, reupload=False):
+def push(package, public=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
@@ -306,6 +306,26 @@ def push(package, reupload=False):
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    pkghash = pkgobj.get_hash()
+
+    def _push_package(dry_run=False):
+        session.put(
+            "{url}/api/package/{owner}/{pkg}/{hash}".format(
+                url=QUILT_PKG_URL,
+                owner=owner,
+                pkg=pkg,
+                hash=pkghash
+            ),
+            data=json.dumps(dict(
+                dry_run=dry_run,
+                public=public,
+                contents=pkgobj.get_contents(),
+                description=""  # TODO
+            ), default=encode_node)
+        )
+
+    _push_package(dry_run=True)
 
     obj_hashes = sorted(set(find_object_hashes(pkgobj.get_contents())))
     total = len(obj_hashes)
@@ -340,21 +360,8 @@ def push(package, reupload=False):
                 if not response.ok:
                     raise CommandException("Upload failed: error %s" % response.status_code)
 
-    pkghash = pkgobj.get_hash()
-
     print("Uploading package metadata...")
-    session.put(
-        "{url}/api/package/{owner}/{pkg}/{hash}".format(
-            url=QUILT_PKG_URL,
-            owner=owner,
-            pkg=pkg,
-            hash=pkghash
-        ),
-        data=json.dumps(dict(
-            contents=pkgobj.get_contents(),
-            description=""  # TODO
-        ), default=encode_node)
-    )
+    _push_package()
 
     print("Updating the 'latest' tag...")
     session.put(
