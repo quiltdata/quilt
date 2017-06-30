@@ -42,6 +42,9 @@ def main():
 
     push_p = subparsers.add_parser("push")
     push_p.add_argument("package", type=str, help="Owner/Package Name")
+    push_p.add_argument("--public", action="store_true",
+                        help=("Create or update a public package " +
+                              "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",
                         help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)
