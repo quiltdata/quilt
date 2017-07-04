@@ -122,6 +122,39 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.payment_required
         assert not subscription.save.called
 
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=False)
+    def testUpgradeWithToken(self, customer):
+        user = 'test_user'
+        token = '12345'
+
+        def _update_source():
+            assert customer.source == token
+            # Emulate the Stripe API weirdness.
+            del customer.source
+            customer.sources.total_count = 1
+
+        customer.save.return_value = None
+        customer.save.side_effect = _update_source
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.INDIVIDUAL.value,
+                token=token,
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        customer.save.assert_called_with()
+
+        assert subscription.plan == PaymentPlan.INDIVIDUAL.value
+        subscription.save.assert_called_with()
+
     @mock_customer(plan=PaymentPlan.INDIVIDUAL, have_credit_card=False)
     def testDowngradeNoPayment(self, customer):
         user = 'test_user'
