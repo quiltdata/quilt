@@ -1131,7 +1131,19 @@ def payments_update_plan(auth_user):
     except ValueError:
         raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
 
+    stripe_token = request.values.get('token')
+
     customer = _get_or_create_customer()
+
+    if stripe_token is not None:
+        customer.source = stripe_token
+
+        try:
+            customer.save()
+        except stripe.InvalidRequestError as ex:
+            raise ApiException(requests.codes.bad_request, str(ex))
+
+        assert customer.sources.total_count
 
     if plan != PaymentPlan.FREE and not customer.sources.total_count:
         # No payment info.
