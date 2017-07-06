@@ -57,7 +57,7 @@ So `$ quilt install foo/bar build.yml` is equivalent to `quilt.install("foo/bar"
 * `quilt CMD -h` for info about a command
 * `quilt login`
 * `quilt build USER/PACKAGE [SOURCE DIRECTORY or FILE.YML]`
-* `quilt push USER/PACKAGE` stores the package in the registry
+* `quilt push [--public] USER/PACKAGE` stores the package in the registry
 * `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to set access
@@ -130,6 +130,19 @@ Now, build a modified package to save all of the changes:
 quilt.build("my_user/wine_modified", wine)
 ```
 
+# Pushing packages
+Once you've built your package, you can upload it to the Quilt server. Packages can be either public or private (and optionally shared with other users). Create a public package like this:
+``` bash
+$ quilt push --public my_user/wine_modified
+```
+(`--public` is not needed when pushing updates to an existing package.)
+
+Creating private packages requires a paid plan. You can upgrade by clicking the "Upgrade" button on the [profile page](https://quiltdata.com/profile). Then, to upload the package and share it privately, run the following:
+``` bash
+$ quilt push my_user/wine_modified
+$ quilt access add my_user/wine_modified other_user
+```
+
 # Data Groups
 Quilt supports accessing data packages at different granularities when there are groups of DataFrames with matching schemas. Calling `_data()` on a group node returns a DataFrame with the union of all the member DataFrames.
 ```yaml
@@ -153,7 +166,7 @@ contents:
 # Troubleshooting
 
 ## Pandas Types
-By default, quilt build treats converts some file types (e.g., csv, tsv) to Pandas DataFrames using pandas.read_csv. Some files break pandas type guessing throwing exceptions. In that case, it's often helpful to include column types in build.yml by adding a `dtype` parameter:
+By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas DataFrames using `pandas.read_csv`. Some files break Pandas type guessing throwing exceptions. In that case, it's often helpful to include column types in build.yml by adding a `dtype` parameter:
 
 ```yaml
   contents:
@@ -162,10 +175,10 @@ By default, quilt build treats converts some file types (e.g., csv, tsv) to Pand
       transform: csv
       header: null
       dtype:
-        sepal_length : float
-        sepal_width : float
-        petal_length : float
-        petal_width : float
+        sepal_length: float
+        sepal_width: float
+        petal_length: float
+        petal_width: float
         class: str
 ```
 
