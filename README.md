@@ -1,15 +1,13 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
 # Package and version data 
-Quilt is a data package manager. Developers use pip to make their code automatically installable into Python applications. Quilt lets data scientists make datasets automatically installable into Jupyter notebooks and other data analysis tools. Accessing data with Quilt is as easy as:
-
-`quilt install author/package`
+Quilt is a data package manager. Just as you can install versioned building blocks of code with tools like pip and npm, you can install versioned building blocks of data with Quilt. Each Quilt package has a handle of the form `author/package_name`. So, for example, you can `quilt install uciml/iris` to download the Iris data set from the UCI Machine Learning Repository.
 
 ## Data packages
 A data package is an abstraction that encapsulates and automates data preparation. More concretely, a data package is a tree of serialized data wrapped in a Python module. Each data package has a unique handle, a revision history, and a web page. Packages are stored in a server-side registry that enforces access control.
 
 ## Quilt Data Registry
-Quilt consists of a client-side data packager/importer (this repository) and a
+Quilt consists of a client-side data manager (this repository) and a
 [server-side registry](https://quiltdata.com), where packages can be posted for publication or private distribution.
 
 ## Package lifecycle
