@@ -523,7 +523,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.payment_required
         data = json.loads(resp.data.decode('utf8'))
-        assert "upgrade your plan" in data['message']
+        assert "Upgrade your plan" in data['message']
 
         # Old clients: need to upgrade the client first.
         resp = self.app.put(
