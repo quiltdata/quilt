@@ -385,9 +385,9 @@ def package_put(auth_user, owner, package_name, package_hash):
                 else:
                     raise ApiException(
                         requests.codes.payment_required,
-                        ("Insufficient permissions. Upgrade your plan to create private packages: " +
-                         "https://quiltdata.com/profile, or run `quilt push --public %s/%s` " +
-                         "to create a public package.") %
+                        ("Insufficient permissions. Run quilt push --public %s/%s to make " +
+                         "this package public, or upgrade your service plan to create " +
+                         "private packages: https://quiltdata.com/profile.") %
                         (owner, package_name)
                     )
 
@@ -524,7 +524,8 @@ def package_get(auth_user, owner, package_name, package_hash):
             # New package format that requires Quilt CLI newer than 2.4.1.
             raise ApiException(
                 requests.codes.server_error,
-                "Outdated client. Run `pip install quilt --upgrade` to install this package."
+                "Outdated client. Run `pip install quilt --upgrade`, " +
+                "then install this package again."
             )
     except ValueError:
         # Invalid version number? Ignore it.
@@ -966,7 +967,7 @@ def access_delete(auth_user, owner, package_name, user):
             raise ApiException(
                 requests.codes.payment_required,
                 "Insufficient permissions. " +
-                "Upgrade your plan to create private packages: https://quiltdata.com/profile"
+                "Upgrade your plan to create private packages: https://quiltdata.com/profile."
             )
 
     access = (
