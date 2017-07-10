@@ -18,6 +18,6 @@ class IntegrationTest(BasicQuiltTestCase):
         # public package
         command.install('akarve/days') # package exists on both stage and prod
         from quilt.data.akarve import days
-        df = days.names.data()
+        df = days.names._data()
         # check for expected datum
         assert df.loc[3]['Day'] == 'Wednesday', 'unexpected value in days df at loc[3]'
