@@ -385,7 +385,7 @@ def package_put(auth_user, owner, package_name, package_hash):
                 else:
                     raise ApiException(
                         requests.codes.payment_required,
-                        ("Insufficient permissions. Run quilt push --public %s/%s to make " +
+                        ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
                          "this package public, or upgrade your service plan to create " +
                          "private packages: https://quiltdata.com/profile.") %
                         (owner, package_name)
