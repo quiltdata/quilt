@@ -282,6 +282,33 @@ def _generate_presigned_url(method, owner, blob_hash):
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
 
+def _get_or_create_customer():
+    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
+
+    if db_customer is None:
+        plan = PaymentPlan.FREE.value
+        customer = stripe.Customer.create(
+            email=g.email,
+            description=g.user,
+        )
+        stripe.Subscription.create(
+            customer=customer.id,
+            plan=plan,
+        )
+        db_customer = Customer(
+            id=g.user,
+            stripe_customer_id=customer.id,
+        )
+        db.session.add(db_customer)
+        db.session.commit()
+
+    customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
+    assert customer.subscriptions.total_count == 1
+    return customer
+
+def _get_customer_plan(customer):
+    return PaymentPlan(customer.subscriptions.data[0].plan.id)
+
 @app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
 @api()
 @as_json
@@ -342,6 +369,27 @@ def package_put(auth_user, owner, package_name, package_hash):
                 requests.codes.forbidden,
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
+
+        if not public:
+            customer = _get_or_create_customer()
+            plan = _get_customer_plan(customer)
+            if plan == PaymentPlan.FREE:
+                browser = g.user_agent['browser']
+                if (browser['name'] == 'QuiltCli' and
+                        PackagingVersion(browser['version']) <= PackagingVersion('2.5.0')):
+                    # Need 2.5.1 to create public packages.
+                    raise ApiException(
+                        requests.codes.server_error,
+                        "Outdated client. Run `pip install quilt --upgrade` to upgrade."
+                    )
+                else:
+                    raise ApiException(
+                        requests.codes.payment_required,
+                        ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                         "this package public, or upgrade your service plan to create " +
+                         "private packages: https://quiltdata.com/profile.") %
+                        (owner, package_name)
+                    )
 
         package = Package(owner=owner, name=package_name)
         db.session.add(package)
@@ -476,7 +524,8 @@ def package_get(auth_user, owner, package_name, package_hash):
             # New package format that requires Quilt CLI newer than 2.4.1.
             raise ApiException(
                 requests.codes.server_error,
-                "Run 'pip install quilt --upgrade' to install this package."
+                "Outdated client. Run `pip install quilt --upgrade`, " +
+                "then install this package again."
             )
     except ValueError:
         # Invalid version number? Ignore it.
@@ -911,6 +960,16 @@ def access_delete(auth_user, owner, package_name, user):
             "Cannot revoke the owner's access"
         )
 
+    if user == PUBLIC:
+        customer = _get_or_create_customer()
+        plan = _get_customer_plan(customer)
+        if plan == PaymentPlan.FREE:
+            raise ApiException(
+                requests.codes.payment_required,
+                "Insufficient permissions. " +
+                "Upgrade your plan to create private packages: https://quiltdata.com/profile."
+            )
+
     access = (
         Access.query
         .with_for_update()
@@ -1054,30 +1113,6 @@ def search(auth_user):
             ) for package, is_public in results
         ]
     )
-
-def _get_or_create_customer():
-    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
-
-    if db_customer is None:
-        plan = PaymentPlan.FREE.value
-        customer = stripe.Customer.create(
-            email=g.email,
-            description=g.user,
-        )
-        stripe.Subscription.create(
-            customer=customer.id,
-            plan=plan,
-        )
-        db_customer = Customer(
-            id=g.user,
-            stripe_customer_id=customer.id,
-        )
-        db.session.add(db_customer)
-        db.session.commit()
-
-    customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
-    assert customer.subscriptions.total_count == 1
-    return customer
 
 @app.route('/api/profile', methods=['GET'])
 @api()

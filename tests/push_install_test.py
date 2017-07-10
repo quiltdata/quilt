@@ -8,6 +8,7 @@ import urllib
 import requests
 
 from quilt_server import app
+from quilt_server.const import PaymentPlan
 from quilt_server.core import (
     decode_node,
     encode_node,
@@ -19,7 +20,7 @@ from quilt_server.core import (
     PackageFormat,
 )
 
-from .utils import QuiltTestCase
+from .utils import mock_customer, QuiltTestCase
 
 
 class PushInstallTestCase(QuiltTestCase):
@@ -92,6 +93,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -125,7 +127,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [{'name': 'foo', 'is_public': False}]
+        assert data['packages'] == [{'name': 'foo', 'is_public': True}]
 
         # List package instances.
         resp = self.app.get(
@@ -170,6 +172,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -184,6 +187,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS_WITH_METADATA
             ), default=encode_node),
@@ -294,6 +298,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -308,6 +313,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -322,6 +328,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -336,6 +343,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/Foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -361,6 +369,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/new/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -380,6 +389,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/old/%s' % old_hash,
             data=json.dumps(dict(
+                public=True,
                 description="",
                 contents=old_contents
             ), default=encode_node),
@@ -443,7 +453,8 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.forbidden
 
-    def testCreatePublic(self):
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
+    def testCreatePublic(self, customer):
         # Create a new public package.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
@@ -495,12 +506,49 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.forbidden
 
+    @mock_customer()
+    def testCreatePrivateOnFreePlan(self, customer):
+        # New clients: need to upgrade the plan.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user',
+                'User-Agent': 'quilt-cli/2.5.1',
+            }
+        )
+        assert resp.status_code == requests.codes.payment_required
+        data = json.loads(resp.data.decode('utf8'))
+        assert "upgrade your service plan" in data['message']
+
+        # Old clients: need to upgrade the client first.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user',
+                'User-Agent': 'quilt-cli/2.5.0',
+            }
+        )
+        assert resp.status_code == requests.codes.server_error
+        data = json.loads(resp.data.decode('utf8'))
+        assert "pip install quilt --upgrade" in data['message']
+
     def testDryRun(self):
         # Create a new package.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 dry_run=True,
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -525,6 +573,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % 'bad hash',
             data=json.dumps(dict(
                 dry_run=True,
+                public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),

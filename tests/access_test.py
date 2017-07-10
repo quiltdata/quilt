@@ -4,12 +4,11 @@ Access tests
 
 import json
 import time
-from unittest import mock
 import urllib
 
 import requests
 
-from quilt_server.const import PUBLIC
+from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
 
 from .utils import mock_customer, QuiltTestCase
@@ -20,7 +19,8 @@ class AccessTestCase(QuiltTestCase):
     Test access endpoints and access control for
     push/install.
     """
-    def setUp(self):
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
+    def setUp(self, customer):
         super(AccessTestCase, self).setUp()
 
         self.user = "test_user"
@@ -321,8 +321,7 @@ class AccessTestCase(QuiltTestCase):
         List all accessible packages.
         """
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()))
-        self._share_package(self.user, public_pkg, PUBLIC)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
 
         # The user can see own packages.
         resp = self.app.get(
@@ -394,20 +393,19 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
 
-    def testRecentPackages(self):
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
+    def testRecentPackages(self, customer):
         # Push two public packages.
         for i in range(2):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()))
-            self._share_package(self.user, pkg, PUBLIC)
+            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
 
         time.sleep(1)  # This sucks, but package timestamps only have a resolution of 1s.
 
         # Push two more.
         for i in range(2, 4):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()))
-            self._share_package(self.user, pkg, PUBLIC)
+            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
 
         # Update pkg0.
         self.put_package(self.user, 'pkg0', RootNode(children=dict()))
@@ -436,8 +434,7 @@ class AccessTestCase(QuiltTestCase):
     def testSearch(self):
         for i in [1, 2]:
             pkg = 'public%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()))
-            self._share_package(self.user, pkg, PUBLIC)
+            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
 
         def _test_query(query, headers, expected_results):
             params = dict(q=query)
