@@ -1,6 +1,7 @@
 """
 parse build file, serialize package
 """
+from __future__ import print_function
 import os
 import re
 
@@ -8,7 +9,7 @@ import yaml
 import pandas as pd
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, RESERVED, TARGET
+from .const import DEFAULT_BUILDFILE, DEFAULT_README, PACKAGE_DIR_NAME, RESERVED, TARGET
 from .core import PackageFormat
 from .util import FileWithReadProgress
 
@@ -180,57 +181,79 @@ def splitext_no_dot(filename):
     ext.strip('.')
     return name, ext.strip('.')
 
+def _generate_contents(dir_path, startpath):
+    contents = {}
+
+    for name in os.listdir(dir_path):
+        if name.startswith('.') or \
+           name == PACKAGE_DIR_NAME or \
+           name.endswith('~'):
+            continue
+
+        path = os.path.join(dir_path, name)
+
+        if os.path.isdir(path):
+            nodename = name
+            ext = None
+            data = _generate_contents(path, startpath)
+        elif os.path.isfile(path):
+            nodename, ext = splitext_no_dot(name)
+            rel_path = os.path.relpath(path, startpath)
+            data = dict(file=rel_path)
+        else:
+            continue
+
+        try:
+            safename = _pythonize_name(nodename)
+            if safename in contents:
+                if ext:
+                    safename = "{name}_{ext}".format(name=safename, ext=ext)
+                else:
+                    print("Warning: duplicate name %r in %s." % (safename, dir_path))
+                    continue
+            contents[safename] = data
+        except BuildException:
+            warning = "Warning: could not determine a Python-legal name for {path}; skipping."
+            print(warning.format(path=path))
+
+    return contents
+
+def generate_readme(startpath, outfilename=DEFAULT_README):
+    """
+    Generate a README.md file for the package containing a list
+    of the package contents.
+    """
+    def printnode(contents, prefix, f):
+        for k, v in contents.items():
+            if isinstance(v, dict):
+                print("%s* %s" % (prefix, k), file=f)
+                printnode(v, prefix + "   ", f)
+            else:
+                print("%s* %s:%s" % (prefix, k, v), file=f)
+        return
+
+    contents = _generate_contents(startpath, startpath)
+    readme_path = os.path.join(startpath, outfilename)
+    if not os.path.exists(readme_path):
+        with open(readme_path, 'w') as f:
+            print("# Contents:", file=f)
+            printnode(contents, "", f)
+        contents.update({'README' : {'file' : outfilename}})
+    return contents
+
 def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build file (yaml) based on the contents of a
     directory tree.
     """
-    def _generate_contents(dir_path):
-        contents = {}
-
-        for name in os.listdir(dir_path):
-            if name.startswith('.') or \
-               name == PACKAGE_DIR_NAME or \
-               name.endswith('~') or \
-               name == outfilename:
-                continue
-
-            path = os.path.join(dir_path, name)
-
-            if os.path.isdir(path):
-                nodename = name
-                ext = None
-                data = _generate_contents(path)
-            elif os.path.isfile(path):
-                nodename, ext = splitext_no_dot(name)
-                rel_path = os.path.relpath(path, startpath)
-                data = dict(file=rel_path)
-            else:
-                continue
-
-            try:
-                safename = _pythonize_name(nodename)
-                if safename in contents:
-                    if ext:
-                        safename = "{name}_{ext}".format(name=safename, ext=ext)
-                    else:
-                        print("Warning: duplicate name %r in %s." % (safename, dir_path))
-                        continue
-                contents[safename] = data
-            except BuildException:
-                warning = "Warning: could not determine a Python-legal name for {path}; skipping."
-                print(warning.format(path=path))
-
-        return contents
-
     buildfilepath = os.path.join(startpath, outfilename)
     if os.path.exists(buildfilepath):
         raise BuildException("Build file %s already exists." % buildfilepath)
 
-    contents = dict(
-        contents=_generate_contents(startpath)
-    )
+    # Determine package contents from sources and write README if missing
+    contents = generate_readme(startpath)
 
     with open(buildfilepath, 'w') as outfile:
-        yaml.dump(contents, outfile, default_flow_style=False)
+        yaml.dump(dict(contents=contents), outfile, default_flow_style=False)
+
     return buildfilepath
