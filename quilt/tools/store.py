@@ -64,7 +64,7 @@ class PackageStore(object):
         """
         Finds an existing package in one of the package directories.
         """
-        cls._check_name(user, package)
+        cls.check_name(user, package)
 
         dirs = cls.find_store_dirs(start_dir)
         for store_dir in dirs:
@@ -75,7 +75,7 @@ class PackageStore(object):
         return None
 
     @classmethod
-    def _check_name(cls, user, package):
+    def check_name(cls, user, package):
         if not VALID_NAME_RE.match(user):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
@@ -85,7 +85,7 @@ class PackageStore(object):
         """
         Gets a package from this store.
         """
-        self._check_name(user, package)
+        self.check_name(user, package)
 
         path = os.path.join(self._path, user, package + self.PACKAGE_FILE_EXT)
         if os.path.exists(path):
@@ -103,7 +103,7 @@ class PackageStore(object):
         (or in a new `quilt_packages` directory in the current directory)
         and allocates a per-user directory if needed.
         """
-        self._check_name(user, package)
+        self.check_name(user, package)
 
         assert contents is not None
 

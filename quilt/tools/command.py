@@ -24,7 +24,7 @@ from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, FileNode, PackageFormat,
                    decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore
+from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress
 
 from .. import data
@@ -148,6 +148,12 @@ def _parse_package(name):
             raise ValueError
     except ValueError:
         raise CommandException("Specify package as owner/package_name.")
+
+    try:
+        PackageStore.check_name(owner, pkg)
+    except StoreException as ex:
+        raise CommandException(str(ex))
+
     return owner, pkg
 
 def login():
