@@ -9,3 +9,11 @@
 
 * [Installation](installation.md)
 
+## Support
+
+* [Troubleshooting](troubleshooting.md)
+
+## Developer
+
+* [Basics](basics.md)
+
