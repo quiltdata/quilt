@@ -1,3 +1,2 @@
-# My Awesome API
+Quilt is a data package manager, inspired by the likes of `pip` and `npm`. Just as software package managers provide versioned, reusable building blocks for execution, Quilt provides versioned, reusable building blocks for analysis.
 
-This file file serves as your book's preface, a great place to describe your book's content and ideas.
