@@ -9,14 +9,13 @@
   * Users must authenticate to push packages
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to add/remove read-only users
-* `quilt access add public` makes a package world readable
-
+ * `quilt access add public` makes a package world readable
 
 ## Core
 * `quilt ls` to list installed packages
 * `quilt build USER/PACKAGE [SOURCE DIRECTORY or FILE.YML]`
 * `quilt push [--public] USER/PACKAGE` stores the package in the registry
-  * Quilt's Free tier supports `push --public`
+  * Quilt's Free tier supports only `push --public`
 
 * `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 
