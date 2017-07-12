@@ -15,4 +15,7 @@
             ]
         }
     }
+    "styles" : {
+        "website": "styles/custom.css"
+    }
 }
