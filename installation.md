@@ -15,8 +15,3 @@ $ sudo dnf install openssl-devel
 $ pip install quilt
 ```
 
-# Supported Python versions
-* 2.7
-* 3.4 (Linux only)
-* 3.5
-* 3.6

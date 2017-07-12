@@ -4,10 +4,16 @@
 
 * [Overview](README.md)
 * [Concepts](terminology.md)
+* [Languages](supported-languages.md)
 
 ## Get started
 
 * [Installation](installation.md)
+
+## API
+
+* [Shell](shell.md)
+* [Python](python.md)
 
 ## Support
 

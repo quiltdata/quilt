@@ -21,7 +21,7 @@ Quilt's core commands are _build_, _push_, and _install_. To use a data package 
 * **import** exposes your package to code
   * Quilt data packages are wrapped in a Python module so that users can import data like code: `from quilt.data.USER_NAME import PACKAGE_NAME`.
 
-## Lifecycle diagram
+## Diagram
 
 <img width="320" src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true" />
   

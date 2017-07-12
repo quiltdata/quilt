@@ -12,3 +12,6 @@
 1. `git clone https://github.com/quiltdata/quilt.git`
 1. `cd quilt`
 1. From the repository root: `pip install -e .`
+
+# Contribute
+Contributions welcome on [GitHub](https://github.com/quiltdata/quilt).
