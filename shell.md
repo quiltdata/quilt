@@ -23,5 +23,7 @@
 * `quilt version add USER/PACKAGE VERSION HASH` to associate a version with a hash
 * `quilt tag list USER/PACKAGE` to list tags
 * `quilt tag add USER/PACKAGE TAG HASH` to associate a tag with a hash
-  * The tag "latest" is automatically added to the most recent push
+  * The tag `"latest"` is automatically added to the most recent push
 * `quilt tag remove USER/PACKAGE TAG` to remove a tag
+
+***

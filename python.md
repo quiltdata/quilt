@@ -20,5 +20,7 @@
 * `quilt.version_add(USER/PACKAGE, VERSION, HASH)` to associate a version with a hash
 * `quilt.tag_list(USER/PACKAGE)` to list tags
 * `quilt.tag_add(USER/PACKAGE, TAG, HASH)` to associate a tag with a a hash
-  * The tag "latest" is automatically added to the most recent push
+  * The tag `"latest"` is automatically added to the most recent push
 * `quilt.tag_remove(USER/PACKAGE, TAG)` to remove a tag
+
+***
