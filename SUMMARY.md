@@ -2,10 +2,6 @@
 
 ## Introduction
 
-* [Big picture](README.md)
-* [Key concepts](terminology.md)
-
-## Methods
-
-* [Defining Methods](methods.md)
+* [Overview](README.md)
+* [Concepts](terminology.md)
 
