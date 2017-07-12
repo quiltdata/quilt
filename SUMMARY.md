@@ -2,7 +2,8 @@
 
 ## Introduction
 
-* [My Awesome API](README.md)
+* [Motivation](README.md)
+* [Key concepts](terminology.md)
 
 ## Methods
 
