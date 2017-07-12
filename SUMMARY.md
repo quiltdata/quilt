@@ -5,12 +5,12 @@
 * [Overview](README.md)
 * [Concepts](terminology.md)
 * [Languages](supported-languages.md)
-* Make a package
 
 ## Get started
 
 * [Installation](installation.md)
 * [Use a package](use-a-package.md)
+* [Make a package](make-a-package.md)
 
 ## API
 
