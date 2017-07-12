@@ -1,4 +1,4 @@
-# Valid package handles and nodes
+# Valid package handles and package nodes
 Package handles take the form `USER_NAME/PACKAGE_NAME`. The package name and the names of any package subtrees must be valid Python identifiers:
 * Start with a letter
 * Contain only alphanumerics and underscore
