@@ -1,4 +1,4 @@
-# Definition
+# Packages defined
 
 A Quilt data package is a tree of serialized data wrapped in a Python module. You can think of packages as miniature, virtualized filesystems accessible on a variety of languages and platforms.
 
@@ -8,7 +8,7 @@ Packages are stored in a server-side registry, which controls permissions, and s
 
 
 
-# Lifecycle
+# Package lifecycle
 
 Quilt's core commands are _build_, _push_, and _install_. To use a data package you _import_ it.
 

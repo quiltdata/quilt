@@ -3,7 +3,7 @@
 ## Introduction
 
 * [Big picture](README.md)
-* [Packages defined](terminology.md)
+* [Key concepts](terminology.md)
 
 ## Methods
 
