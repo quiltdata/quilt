@@ -2,7 +2,7 @@
 
 ## Introduction
 
-* [Motivation](README.md)
+* [Concepts](README.md)
 * [Key concepts](terminology.md)
 
 ## Methods
