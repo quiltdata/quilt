@@ -1,3 +1,3 @@
-.custom-link {
+li.divider:first-child, .custom-link {
     display: none !important;
 }
