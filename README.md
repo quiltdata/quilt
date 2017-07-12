@@ -9,9 +9,5 @@ Quilt is a data package manager, inspired by the likes of `pip` and `npm`. Just 
 3. **Faster analysis** -** **Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 4. **Collaboration and transparency **- Data likes to be shared. Quilt offers a centralized data warehouse for finding and sharing data sets.
 
-# Packages defined
-
-A Quilt data package is a tree of serialized data wrapped in a Python module. You can think of packages as miniature, virtualized filesystems accessible on a variety of languages and platforms.
-
 
 

@@ -2,8 +2,8 @@
 
 ## Introduction
 
-* [Concepts](README.md)
-* [Key concepts](terminology.md)
+* [Big picture](README.md)
+* [Concepts](terminology.md)
 
 ## Methods
 
