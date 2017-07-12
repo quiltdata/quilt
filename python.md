@@ -1,6 +1,4 @@
-# Python commands
-
-## Permissions
+# Permissions
 * `quilt.login()` to authenticate
   * Users must authenticate to push packages
 * `quilt.access_list(USER/PACKAGE)` to see who has access to a package
@@ -9,14 +7,14 @@
 * `quilt.access_remove(USER/PACKAGE, EXISTING_USER)` to remove read access
 
 
-## Core
+# Core
 * `quilt.ls()` to list installed packages
 * `quilt.build(USER/PACKAGE, PATH_TO_DIR_OR_BUILD_YML)` to build a package
 * `quilt.push(USER/PACKAGE, public=bool)` stores the package in the registry
   * Quilt's Free tier supports only `public == True`
 * `quilt.install(USER/PACKAGE, [hash=HASH, tag=TAG, version=VERSION])` installs a package
 
-## Versioning
+# Versioning
 * `quilt.log(USER/PACKAGE)` to see the push history
 * `quilt.version_list(USER/PACKAGE)` to see versions of a package
 * `quilt.version_add(USER/PACKAGE, VERSION, HASH)` to associate a version with a hash
