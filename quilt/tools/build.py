@@ -210,6 +210,8 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE, copy=False):
                 data = dict(file=rel_path)
                 if copy:
                     data['transform'] = 'id'
+            else:
+                continue
 
             try:
                 safename = _pythonize_name(nodename)
