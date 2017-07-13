@@ -1,5 +1,5 @@
-# Data science, Jupyter
-Version data for reproducibility. Package data for reuse and collaboration. Write less data cleaning code.
+# Data science, Jupyter, Pandas
+Version data for reproducibility. Package data for reuse and collaboration. Write less data cleaning code. The `pandas.DataFrame` is Quilt's native type for columnar data.
 
 ## Articles
   * [Data packages for fast, reproducible Python analysis](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)

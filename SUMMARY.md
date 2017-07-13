@@ -3,7 +3,7 @@
 ## Introduction
 
 * [Overview](README.md)
-* [Concepts](terminology.md)
+* [Packages defined](terminology.md)
 * [Use cases](use-cases.md)
 * [Languages](supported-languages.md)
 
