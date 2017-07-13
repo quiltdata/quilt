@@ -8,7 +8,7 @@ import os
 from six import assertRaisesRegex
 
 from ..tools.package import ParquetLib, Package
-from ..tools import build
+from ..tools import build, command
 from .utils import QuiltTestCase
 
 
@@ -96,3 +96,14 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_failover.yml')
         build.build_package('test_failover', PACKAGE, path)
         from quilt.data.test_failover.groot import bad
+
+    def test_copy(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
+
+        command.build_from_path('test_copy/generated', path)
+        from quilt.data.test_copy.generated import bad, foo, nuts
+
+        assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath
