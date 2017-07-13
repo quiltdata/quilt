@@ -150,6 +150,9 @@ def build_package(username, package, yaml_path):
     if not isinstance(data, dict):
         raise BuildException("Unable to parse YAML: %s" % yaml_path)
 
+    build_package_from_contents(username, package, build_dir, data)
+
+def build_package_from_contents(username, package, build_dir, data):
     contents = data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
@@ -179,7 +182,7 @@ def splitext_no_dot(filename):
     ext = ext.lower()
     return name, ext.strip('.')
 
-def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
+def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE, copy=False):
     """
     Generate a build file (yaml) based on the contents of a
     directory tree.
@@ -235,18 +238,27 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 rel_path = os.path.relpath(path, startpath)
                 data = dict(file=rel_path)
+                if copy:
+                    data['transform'] = 'id'
 
             contents[safename] = data
 
         return contents
 
+    return dict(
+        contents=_generate_contents(startpath)
+    )
+
+def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
+    """
+    Generate a build file (yaml) based on the contents of a
+    directory tree.
+    """
     buildfilepath = os.path.join(startpath, outfilename)
     if os.path.exists(buildfilepath):
         raise BuildException("Build file %s already exists." % buildfilepath)
 
-    contents = dict(
-        contents=_generate_contents(startpath)
-    )
+    contents = generate_contents(startpath, outfilename, copy=False)
 
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
