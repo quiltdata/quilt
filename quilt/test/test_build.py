@@ -6,6 +6,7 @@ Test the build process
 import os
 
 from six import assertRaisesRegex
+import yaml
 
 from ..tools.package import ParquetLib, Package
 from ..tools import build
@@ -96,3 +97,49 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_failover.yml')
         build.build_package('test_failover', PACKAGE, path)
         from quilt.data.test_failover.groot import bad
+
+    def test_duplicates(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'dups_good')
+        buildfilepath = os.path.join(path, 'build.yml')
+        if os.path.exists(buildfilepath):
+            os.remove(buildfilepath)
+
+        build.generate_build_file(path)
+        assert os.path.exists(buildfilepath)
+
+        docs = yaml.load_all(open(buildfilepath))
+        data = next(docs, None)
+        contents = data['contents']
+
+        assert contents == {
+            # File extensions added to "a" due to conflicts
+            'a_txt': {'file': 'a.txt'},
+            'a_csv': {'file': 'a.csv'},
+            # "a" dir stays the same - but it's fine cause other "a"s got renamed
+            'a': {},
+            # "a_txt.csv" didn't have a conflict originally - but does now due to renames above
+            'a_txt_csv': {'file': 'a_txt.csv'},
+            # Directories don't actually have extensions, so include them even with no conficts
+            'dir_ext': {},
+            # Weird characters replaced with a single "_"
+            'a_b_c': {'file': 'a%%b___c'},
+            # Prepend "n" to files that start with a number
+            'n1': {'file': '1'},
+            # ... even if there used to be an underscore there
+            'n123': {'file': '_123'},
+            # Handle conflicts with numbers, too
+            'n1_txt': {'file': '1.txt'},
+        }
+
+        os.remove(buildfilepath)
+
+    def test_duplicates_conflict(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'dups_bad')
+        buildfilepath = os.path.join(path, 'build.yml')
+        if os.path.exists(buildfilepath):
+            os.remove(buildfilepath)
+
+        with self.assertRaises(build.BuildException):
+            build.generate_build_file(path)
