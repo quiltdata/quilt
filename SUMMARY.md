@@ -1,8 +1,8 @@
 # Summary
 
-## Introduction
+## Quilt
 
-* [Overview](README.md)
+* [Introduction](README.md)
 * [Key concepts](terminology.md)
 * [Use cases](use-cases.md)
 * [Languages](supported-languages.md)
