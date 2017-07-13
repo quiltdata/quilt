@@ -25,8 +25,7 @@ def _is_internal_node(node):
     return all(isinstance(x, dict) for x in node.values())
 
 def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9]+', '_', name)
-    safename = safename.strip('_')
+    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
 
     if safename and safename[0].isdigit():
         safename = "n%s" % safename
