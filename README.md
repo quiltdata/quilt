@@ -12,7 +12,7 @@ Quilt is a data package manager, inspired by the likes of `pip` and `npm`. Just 
 # Demo
 <iframe width="560" height="315" src="https://www.youtube.com/embed/tLdiDqtnnho" frameborder="0" allowfullscreen></iframe>
 
-# Learn more
+# Learn more on the Quilt blog
 * [Manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
 * [Data packages for fast, reproducible analysis](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
 
