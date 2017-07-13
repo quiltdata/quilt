@@ -5,7 +5,7 @@ Test the build process
 #the functions that cli calls
 import os
 
-from six import assertRaisesRegex, string_types
+from six import assertRaisesRegex
 
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
@@ -100,11 +100,10 @@ class BuildTest(QuiltTestCase):
     def test_copy(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
 
         command.build_from_path('test_copy/generated', path)
         from quilt.data.test_copy.generated import bad, foo, nuts
 
-        # All of the data is plain files, not dataframes.
-        assert isinstance(bad(), string_types)
-        assert isinstance(foo(), string_types)
-        assert isinstance(nuts(), string_types)
+        assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath

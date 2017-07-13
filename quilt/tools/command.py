@@ -270,7 +270,7 @@ def build_from_path(package, path):
                     "Build file already exists. Run `quilt build %r` instead." % buildpath
                 )
 
-            contents = generate_contents(path, DEFAULT_BUILDFILE, copy=True)
+            contents = generate_contents(path, DEFAULT_BUILDFILE)
             build_package_from_contents(owner, pkg, path, contents)
         else:
             build_package(owner, pkg, path)

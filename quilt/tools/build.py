@@ -183,7 +183,7 @@ def splitext_no_dot(filename):
     ext.strip('.')
     return name, ext.strip('.')
 
-def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE, copy=False):
+def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build file (yaml) based on the contents of a
     directory tree.
@@ -208,8 +208,6 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE, copy=False):
                 nodename, ext = splitext_no_dot(name)
                 rel_path = os.path.relpath(path, startpath)
                 data = dict(file=rel_path)
-                if copy:
-                    data['transform'] = 'id'
             else:
                 continue
 
@@ -241,7 +239,7 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     if os.path.exists(buildfilepath):
         raise BuildException("Build file %s already exists." % buildfilepath)
 
-    contents = generate_contents(startpath, outfilename, copy=False)
+    contents = generate_contents(startpath, outfilename)
 
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
