@@ -51,7 +51,7 @@ That's it. Read more about the `uciml/iris` package on its [landing page](https:
 
 
 
-## Planned
+## Forthcoming
 * Build packages in PySpark
 * Access and build packages in Java and Scala
-* We welcome your contributions on [GitHub] (https://github.com/quiltdata/quilt).
+* We welcome your contributions on [GitHub](https://github.com/quiltdata/quilt).
