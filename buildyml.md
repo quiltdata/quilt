@@ -43,3 +43,6 @@ By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas Da
 * buffer
 
 See also [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
+
+***
+
