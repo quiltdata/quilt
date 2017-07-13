@@ -222,8 +222,8 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
                 if existing_name is not None:
                     raise BuildException(
                         "Duplicate node names. %r was renamed to %r, which overlaps with %r" % (
-                            name, new_safename, existing_name
-                    ))
+                            name, new_safename, existing_name)
+                    )
                 safename_to_name[new_safename] = name
 
         contents = {}
