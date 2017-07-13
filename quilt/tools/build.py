@@ -1,9 +1,11 @@
 """
 parse build file, serialize package
 """
+from collections import defaultdict
 import os
 import re
 
+from six import iteritems
 import yaml
 import pandas as pd
 
@@ -23,15 +25,13 @@ def _is_internal_node(node):
     return all(isinstance(x, dict) for x in node.values())
 
 def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9_]+', '_', name)
-    starts_w_number = re.match('^[0-9].*', safename)
-    if starts_w_number:
-        safename = ("abc%s" % safename)
+    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
 
-    safename = safename.strip('_')
+    if safename and safename[0].isdigit():
+        safename = "n%s" % safename
 
     if not VALID_NAME_RE.match(safename):
-        raise BuildException("Unable to determine a Python-legal name for %s" % name)
+        raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
 def _build_node(build_dir, package, name, node, format, target='pandas'):
@@ -180,7 +180,6 @@ def splitext_no_dot(filename):
     """
     name, ext = os.path.splitext(filename)
     ext = ext.lower()
-    ext.strip('.')
     return name, ext.strip('.')
 
 def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
@@ -188,14 +187,18 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
     Generate a build file (yaml) based on the contents of a
     directory tree.
     """
-    def _generate_contents(dir_path):
-        contents = {}
+    def _ignored_name(name):
+        return (
+            name.startswith('.') or
+            name == PACKAGE_DIR_NAME or
+            name.endswith('~') or
+            name == outfilename
+        )
 
+    def _generate_contents(dir_path):
+        safename_duplicates = defaultdict(list)
         for name in os.listdir(dir_path):
-            if name.startswith('.') or \
-               name == PACKAGE_DIR_NAME or \
-               name.endswith('~') or \
-               name == outfilename:
+            if _ignored_name(name):
                 continue
 
             path = os.path.join(dir_path, name)
@@ -203,26 +206,40 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             if os.path.isdir(path):
                 nodename = name
                 ext = None
-                data = _generate_contents(path)
             elif os.path.isfile(path):
                 nodename, ext = splitext_no_dot(name)
-                rel_path = os.path.relpath(path, startpath)
-                data = dict(file=rel_path)
             else:
                 continue
 
-            try:
-                safename = _pythonize_name(nodename)
-                if safename in contents:
-                    if ext:
-                        safename = "{name}_{ext}".format(name=safename, ext=ext)
-                    else:
-                        print("Warning: duplicate name %r in %s." % (safename, dir_path))
-                        continue
-                contents[safename] = data
-            except BuildException:
-                warning = "Warning: could not determine a Python-legal name for {path}; skipping."
-                print(warning.format(path=path))
+            safename = _pythonize_name(nodename)
+            safename_duplicates[safename].append((name, nodename, ext))
+
+        safename_to_name = {}
+        for safename, duplicates in iteritems(safename_duplicates):
+            for name, nodename, ext in duplicates:
+                if len(duplicates) > 1 and ext:
+                    new_safename = _pythonize_name(name)  # Name with ext
+                else:
+                    new_safename = safename
+                existing_name = safename_to_name.get(new_safename)
+                if existing_name is not None:
+                    raise BuildException(
+                        "Duplicate node names. %r was renamed to %r, which overlaps with %r" % (
+                            name, new_safename, existing_name)
+                    )
+                safename_to_name[new_safename] = name
+
+        contents = {}
+        for safename, name in iteritems(safename_to_name):
+            path = os.path.join(dir_path, name)
+
+            if os.path.isdir(path):
+                data = _generate_contents(path)
+            else:
+                rel_path = os.path.relpath(path, startpath)
+                data = dict(file=rel_path)
+
+            contents[safename] = data
 
         return contents
 
