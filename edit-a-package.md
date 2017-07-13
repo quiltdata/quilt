@@ -1,5 +1,3 @@
-# Package editing
-
 In addition to building a new package from source data, Quilt allows editing of an existing package. You can then save changes back to the original package or build a new one.
 
 Start by installing and importing the package:

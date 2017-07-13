@@ -5,6 +5,7 @@
 * [Overview](README.md)
 * [Concepts](terminology.md)
 * [Languages](supported-languages.md)
+* [Use cases](use-cases.md)
 
 ## Get started
 
