@@ -19,7 +19,7 @@ import requests
 from six import iteritems, string_types
 from tqdm import tqdm
 
-from .build import build_package, generate_build_file, BuildException
+from .build import build_package, build_package_from_contents, generate_build_file, generate_contents, BuildException
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, FileNode, PackageFormat,
                    decode_node, encode_node)
@@ -262,19 +262,19 @@ def build_from_path(package, path):
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
 
-    if os.path.isdir(path):
-        buildpath = os.path.join(path, DEFAULT_BUILDFILE)
-        if not os.path.exists(buildpath):
-            try:
-                generated_buildfile = generate_build_file(path)
-                assert generated_buildfile == buildpath
-            except BuildException as builderror:
-                raise CommandException(str(builderror))
-    else:
-        buildpath = path
-
     try:
-        build_package(owner, pkg, buildpath)
+        if os.path.isdir(path):
+            buildpath = os.path.join(path, DEFAULT_BUILDFILE)
+            if os.path.exists(buildpath):
+                raise CommandException(
+                    "Build file already exists. Run `quilt build %r` instead." % buildpath
+                )
+
+            contents = generate_contents(path, DEFAULT_BUILDFILE, copy=True)
+            build_package_from_contents(owner, pkg, path, contents)
+        else:
+            build_package(owner, pkg, path)
+
         print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
