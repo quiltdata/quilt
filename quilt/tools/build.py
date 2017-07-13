@@ -214,7 +214,7 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
-                if (len(duplicates) > 1 or safename in safename_to_name) and ext:
+                if len(duplicates) > 1 and ext:
                     new_safename = _pythonize_name(name)  # Name with ext
                 else:
                     new_safename = safename

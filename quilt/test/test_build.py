@@ -118,8 +118,6 @@ class BuildTest(QuiltTestCase):
             'a_csv': {'file': 'a.csv'},
             # "a" dir stays the same - but it's fine cause other "a"s got renamed
             'a': {},
-            # "a_txt.csv" didn't have a conflict originally - but does now due to renames above
-            'a_txt_csv': {'file': 'a_txt.csv'},
             # Directories don't actually have extensions, so include them even with no conficts
             'dir_ext': {},
             # Weird characters replaced with a single "_"
