@@ -21,7 +21,7 @@
     ...
     ```
 
-That's it. Read more about the `uciml/iris` on its [landing page](https://quiltdata.com/package/uciml/iris), or [browse  packages on Quilt](https://quiltdata.com/search/?q=).
+That's it. Read more about the `uciml/iris` package on its [landing page](https://quiltdata.com/package/uciml/iris), or [browse  packages on Quilt](https://quiltdata.com/search/?q=).
 
 # PySpark
 
