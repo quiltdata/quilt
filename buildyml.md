@@ -1,20 +1,23 @@
-
 # `build.yml` structure and options
-See the [Tutorial](https://blog.ycombinator.com/data-packages-for-fast-reproducible-python-analysis/) for details on `build.yml`.
+Below is a sample `build.yml` file. `build.yaml` specifies the structure, type, and names for package contents.
+
 ``` yaml
 contents:
   GROUP_NAME:
     DATA_NAME:
-      file: PATH_TO_FILE
-      transform: {id, csv, tsv, ssv, xls, xlsx}
-      sep: "\t" # tab separated values
-      # or any key-word argument to pandas.read_csv (http://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html)
+      file: PATH_TO_FILE # required
+      transform: {id, csv, tsv, ssv, xls, xlsx} # optional
+      # if transform is omitted, Quilt will attempt to find a transform from the file extension, falling back on transform: id, which copies raw data
+      sep: "\t" # optional; implies tab-separated values
+      KEYWORD_ARG: VALUE # optional
+      # Any key-word argument to pandas.read_csv works as a child of DATA_NAME
+    ANOTHER_GROUP_NAME:
+      ...
 ```
+See the [`pandas.read_csv` documentation](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html) for a full list of supported options. User can skip lines, type columns, and much more.
 
-
-
-## Pandas Types
-By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas DataFrames using `pandas.read_csv`. Some files break Pandas type guessing throwing exceptions. In that case, it's often helpful to include column types in build.yml by adding a `dtype` parameter:
+## Column types
+By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas DataFrames using `pandas.read_csv`. Sometimes, usually due to columns of mixed types, pandas will throw an exception during `quilt build`. In such cases it's helpful to include column types in `build.yml` by adding a `dtype` parameter:
 
 ```yaml
   contents:
@@ -39,4 +42,4 @@ By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas Da
 * unicode
 * buffer
 
-See [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
+See also [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).

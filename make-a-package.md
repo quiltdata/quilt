@@ -1,8 +1,9 @@
-There are two ways to create a package:
+There are two ways to build data packages with Quilt:
 
 1. Implicitly with `quilt build DIR`. Implicit builds are good for taking quick snapshots of unstructured data like images or text files. Data in implicit builds builds are not serialized to Parquet.
-1. Explicitly with `quilt build BUILD.yml`. Explicit builds allow fine-grained control over package names, types, and contents. Explicit builds serialize columnar data to Parquet.
+1. Explicitly with `quilt build FILE.YML`. Explicit builds allow fine-grained control over package names, types, and contents. Explicit builds serialize columnar data to Parquet.
 
+Packages can be created directly from [Python](./python.md) or on the [command line](./shell.md).
 
 # Implicit builds
 
@@ -11,7 +12,16 @@ To implicitly build a package of unserialized data:
 ```bash
 quilt build USR/PKG DIRECTORY
 ```
-Everything in `DIR` and it's subdirectories will be packaged into `USR/PKG`. Note that package contents
+Everything in `DIR` and it's subdirectories will be packaged into `USR/PKG`.
+
+# Explicit builds
+Explicit builds take their cues from a YAML file, conventionally called `build.yml`.
+
+```bash
+quilt build USR/PKG BUILD.YML
+```
+
+`build.yml` allows the user to control the structure, naming, and contents of a package. Read more about the syntax of `build.yml` [here](https://docs.quiltdata.com/buildyml.html).
 
 
 Let’s start with some source data. How do we convert source files into a data package? We’ll need a configuration file, conventionally called build.yml. build.yml tells quilt how to structure a package. Fortunately, we don’t need to write build.yml by hand. quilt generate creates a build file that mirrors the contents of any directory:

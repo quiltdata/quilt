@@ -1,8 +1,9 @@
+# Packages defined
 A Quilt data package is a tree of serialized data wrapped in a software module. You can think of a package as a miniature, virtualized filesystem accessible to a variety of languages and platforms.
 
 Each Quilt package has a unique _handle_ of the form `USER_NAME/PACKAGE_NAME`.
 
-Packages are stored in a server-side registry. The registry controls permissions and stores package meta-data, such as the revision history. Each package has a web landing page for documentation, like this: [`uciml/iris`](https://quiltdata.com/package/uciml/iris).
+Packages are stored in a server-side registry. The registry controls permissions and stores package meta-data, such as the revision history. Each package has a web landing page for documentation, like this: [like this one](https://quiltdata.com/package/uciml/iris) for `uciml/iris`.
 
 # Package lifecycle
 
@@ -20,6 +21,7 @@ Quilt's core commands are _build_, _push_, and _install_. To use a data package 
 * **import** exposes your package to code
   * Quilt data packages are wrapped in a Python module so that users can import data like code: `from quilt.data.USER_NAME import PACKAGE_NAME`.
   * Data `import` is lazy to minimize I/O. Data are only loaded from disk if and when the user references the data directly.
+  * Quilt looks for packages in the current directory followed by all ancestors, in ascending order.
 
 ## Diagram
 

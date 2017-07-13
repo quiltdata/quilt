@@ -3,7 +3,7 @@
 ## Introduction
 
 * [Overview](README.md)
-* [Packages defined](terminology.md)
+* [Key concepts](terminology.md)
 * [Use cases](use-cases.md)
 * [Languages](supported-languages.md)
 
@@ -11,8 +11,8 @@
 
 * [Installation](installation.md)
 * [Use a package](use-a-package.md)
-* [Make a package](make-a-package.md)
 * [Edit a package](edit-a-package.md)
+* [Make a package](make-a-package.md)
 * [Tutorial](tutorial.md)
 
 ## API
