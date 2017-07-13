@@ -31,7 +31,7 @@ quilt build USR/PKG BUILD.YML
 `build.yml` specifies the structure and contents of a package.
 
 ## `quilt generate`
-An easy way to get started with `build.yml` is as follows:
+An easy way to create a `build.yml` file is as follows:
 ```bash
 quilt generate DIR
 ```
