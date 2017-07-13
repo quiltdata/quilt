@@ -9,7 +9,7 @@ from six import assertRaisesRegex
 import yaml
 
 from ..tools.package import ParquetLib, Package
-from ..tools import build
+from ..tools import build, command
 from .utils import QuiltTestCase
 
 
@@ -141,3 +141,14 @@ class BuildTest(QuiltTestCase):
 
         with self.assertRaises(build.BuildException):
             build.generate_build_file(path)
+
+    def test_copy(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build.yml')
+        assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
+
+        command.build_from_path('test_copy/generated', path)
+        from quilt.data.test_copy.generated import bad, foo, nuts
+
+        assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath
