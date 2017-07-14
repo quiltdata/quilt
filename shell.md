@@ -2,6 +2,9 @@
 * `quilt -h` for a list of commands
 * `quilt CMD -h` for info about a command
 
+# Search
+* `quilt search "SEARCH STRING"` to search for packages by user or package name
+
 # Permissions
 * `quilt login` to authenticate
  * Users must authenticate to push packages

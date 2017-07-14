@@ -6,6 +6,9 @@
  * `quilt.access_add(USER/PACKAGE, "public")` makes a package world readable
 * `quilt.access_remove(USER/PACKAGE, EXISTING_USER)` to remove read access
 
+# Search
+* `quilt.search("SEARCH STRING")` to search for packages by user or package name
+
 
 # Core
 * `quilt.ls()` to list installed packages
