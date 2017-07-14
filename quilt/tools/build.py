@@ -70,8 +70,14 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
 
             print("Serializing %s..." % path)
             try:
-                df = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+                import pyspark
+                have_pyspark = True
             except ImportError:
+                have_pyspark = False
+
+            if have_pyspark:
+                df = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+            else:
                 df = _file_to_data_frame(transform, path, target, user_kwargs)
 
             # serialize DataFrame to file(s)
