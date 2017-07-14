@@ -26,7 +26,7 @@ wine._set(["group", "df"], df)
 assert wine.group.df._data() is df
 ```
 
-Now, build a modified package to save all of the changes:
+At this point the package owner can build the package in-place (`quilt.build("akarve/wine", wine`), followed by `quilt.push("akarve/wine")` to update the revision history. Alternatively, if you are not the package owner, you can build the modified packing into a new handle as follows:
 ``` python
 quilt.build("my_user/wine_modified", wine)
 ```
