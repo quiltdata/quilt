@@ -449,7 +449,7 @@ def package_put(auth_user, owner, package_name, package_hash):
                 )
             )
             .all()
-        )
+        ) if all_hashes else []
 
         existing_hashes = {blob.hash for blob in blobs}
 
