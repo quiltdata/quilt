@@ -286,21 +286,29 @@ def _get_or_create_customer():
     db_customer = Customer.query.filter_by(id=g.user).one_or_none()
 
     if db_customer is None:
-        plan = PaymentPlan.FREE.value
-        customer = stripe.Customer.create(
-            email=g.email,
-            description=g.user,
-        )
-        stripe.Subscription.create(
-            customer=customer.id,
-            plan=plan,
-        )
-        db_customer = Customer(
-            id=g.user,
-            stripe_customer_id=customer.id,
-        )
-        db.session.add(db_customer)
-        db.session.commit()
+        try:
+            # Insert a placeholder with no Stripe ID just to lock the row.
+            db_customer = Customer(id=g.user)
+            db.session.add(db_customer)
+            db.session.flush()
+        except IntegrityError:
+            # Someone else just created it, so look it up.
+            db.session.rollback()
+            db_customer = Customer.query.filter_by(id=g.user).one()
+        else:
+            # Create a new customer.
+            plan = PaymentPlan.FREE.value
+            customer = stripe.Customer.create(
+                email=g.email,
+                description=g.user,
+            )
+            stripe.Subscription.create(
+                customer=customer.id,
+                plan=plan,
+            )
+
+            db_customer.stripe_customer_id = customer.id
+            db.session.commit()
 
     customer = stripe.Customer.retrieve(db_customer.stripe_customer_id)
     assert customer.subscriptions.total_count == 1
