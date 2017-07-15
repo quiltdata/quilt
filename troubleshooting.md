@@ -6,3 +6,6 @@ When working with virtual environments like `conda create`, `jupyter` can be ins
 
 ## Solution
 Install `quilt` in the `root` environment, or install Jupyter in `foo` (run `which jupyter` in Jupyter's Terminal to ensure that you're using the environment local Jupyter).
+
+# pandas `index_col`
+This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
