@@ -9,3 +9,15 @@ Install `quilt` in the `root` environment, or install Jupyter in `foo` (run `whi
 
 # pandas `index_col`
 This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
+
+# Exception when installing `quilt` on OS X El Capitan
+
+`pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when removing the old version of the package:
+```
+OSError: [Errno 1] Operation not permitted: '/tmp/pip-zFP4QS-uninstall/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/pyOpenSSL-0.13.1-py2.7.egg-info'
+```
+
+## Solutions
+- Use a virtual environment such as [`conda`](https://conda.io/docs/installation.html) or [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/)
+- Upgrade `pyOpenSSL` using `brew` or `easy_install`
+- Upgrade to a more recent version of OS X
