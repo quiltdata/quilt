@@ -567,6 +567,21 @@ def package_list(auth_user, owner, package_name):
         hashes=[instance.hash for instance in instances]
     )
 
+@app.route('/api/package/<owner>/<package_name>/', methods=['DELETE'])
+@api()
+@as_json
+def package_delete(auth_user, owner, package_name):
+    if auth_user != owner:
+        raise ApiException(requests.codes.forbidden,
+                           "Only the package owner can delete packages.")
+
+    package = _get_package(auth_user, owner, package_name)
+
+    db.session.delete(package)
+    db.session.commit()
+
+    return dict()
+
 @app.route('/api/package/<owner>/', methods=['GET'])
 @api(require_login=False)
 @as_json
