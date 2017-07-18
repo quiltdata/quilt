@@ -3,6 +3,10 @@
     ```bash
     $ quilt install uciml/iris
     ```
+Every Quilt command is available both on the command-line and in Python. You could also do the following:
+```python
+quilt.install("uciml/iris")
+```
 
 1. Import the package
     ```python

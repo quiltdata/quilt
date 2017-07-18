@@ -19,6 +19,7 @@
 
 * [Shell](shell.md)
 * [Python](python.md)
+* [R](r.md)
 * [Build.yml](buildyml.md)
 
 ## Support
