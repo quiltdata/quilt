@@ -4,8 +4,10 @@ Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.c
 # Jupyter, virtual environments, `quilt` not found
 When working with virtual environments like `conda create`, `jupyter` can be installed in the `root` environment. If you then install and run `quilt` in another environment, `foo`, Jupyter will not be able to find quilt.
 
-## Solution
+## Solutions
 Install `quilt` in the `root` environment, or install Jupyter in `foo` (run `which jupyter` in Jupyter's Terminal to ensure that you're using the environment local Jupyter).
+
+Alternatively, `pip install quilt` from Jupyter's Terminal.
 
 # pandas `index_col`
 This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
@@ -24,4 +26,4 @@ This problem is not specific to `quilt`, and is caused by outdated packages in O
 - Upgrade `pyOpenSSL` using `brew` or `easy_install`
 - Upgrade to a more recent version of OS X
 
-
+***
