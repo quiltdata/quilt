@@ -132,4 +132,4 @@ class Access(db.Model):
 
 class Customer(db.Model):
     id = db.Column(USERNAME_TYPE, primary_key=True)
-    stripe_customer_id = db.Column(STRIPE_ID_TYPE, nullable=False)
+    stripe_customer_id = db.Column(STRIPE_ID_TYPE)
