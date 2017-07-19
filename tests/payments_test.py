@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
+
 """
 Payments tests
 """

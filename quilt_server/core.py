@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
+
 from enum import Enum
 import hashlib
 import struct

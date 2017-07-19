@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
+
 """
 Default config values the Flask app.
 Shared between dev, stage, and production.
