@@ -59,14 +59,14 @@ class DeleteTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.not_found
 
-    def testDeleteAccessTagVersion(self):
+    def testDeleteAccessTagVersionLog(self):
         hashes = [hash_contents(contents) for contents in self.contents_list]
 
         sharewith = "anotheruser"
         tag = 'tag1'
         version = '1.0'
 
-        def _has_user():
+        def _has_access():
             resp = self.app.get(
                 '/api/access/{owner}/{pkg}/'.format(owner=self.user, pkg=self.pkg),
                 headers={
@@ -102,6 +102,20 @@ class DeleteTestCase(QuiltTestCase):
                 }
             )
             return resp.status_code == requests.codes.ok
+
+        def _has_log():
+            resp = self.app.get(
+                '/api/log/{usr}/{pkg}/'.format(
+                    usr=self.user,
+                    pkg=self.pkg
+                ),
+                headers={
+                    'Authorization': self.user
+                }
+            )
+            assert resp.status_code == requests.codes.ok
+            data = json.loads(resp.data.decode('utf8'))
+            return len(data['logs']) > 1
 
         # Add a user
         resp = self._share_package(self.user, self.pkg, sharewith)
@@ -142,9 +156,10 @@ class DeleteTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         # Verify that everything looks as expected before deleting the package
-        assert _has_user()
+        assert _has_access()
         assert _has_tag()
         assert _has_version()
+        assert _has_log()
 
         # Delete the package
         resp = self.app.delete(
@@ -162,9 +177,10 @@ class DeleteTestCase(QuiltTestCase):
         self.put_package(self.user, self.pkg, self.contents_list[0], True)
 
         # Verify that users, tags, and versions didn't survive
-        assert not _has_user()
+        assert not _has_access()
         assert not _has_tag()
         assert not _has_version()
+        assert not _has_log()
 
     def testNoPackage(self):
         resp = self.app.delete(
