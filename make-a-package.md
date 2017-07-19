@@ -36,7 +36,7 @@ An easy way to create a `build.yml` file is as follows:
 ```bash
 quilt generate DIR
 ```
-This command creates `build.yml` and `README.md` files that you can modify to your liking. A `README.md` file is highly recommended as it populates your package landing page with documentaiton.
+This command creates `build.yml` and `README.md` files that you can modify to your liking. A `README.md` file is highly recommended as it populates your package landing page with documentation. See the API section for more on how README markdown is converted to HTML.
 
 You can read more about the syntax of `build.yml` [here](https://docs.quiltdata.com/buildyml.html) and in the [tutorial](./tutorial.md).
 
