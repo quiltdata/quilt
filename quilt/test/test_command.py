@@ -157,3 +157,33 @@ class CommandTest(QuiltTestCase):
             assert os.path.exists(buildfilepath), "failed to create %s" % buildfilepath
         finally:
             os.remove(buildfilepath)
+
+    @patch('quilt.tools.command.input')
+    def test_delete_not_confirmed(self, mock_input):
+        mock_input.return_value = 'blah'
+
+        command.package_delete('user/test')
+
+    @patch('quilt.tools.command.input')
+    def test_delete_confirmed(self, mock_input):
+        owner = 'foo'
+        package = 'bar'
+
+        mock_input.return_value = '%s/%s' % (owner, package)
+
+        delete_url = "%s/api/package/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
+        self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
+
+        command.package_delete('%s/%s' % (owner, package))
+
+    @patch('quilt.tools.command.input')
+    def test_delete_force(self, mock_input):
+        owner = 'foo'
+        package = 'bar'
+
+        delete_url = "%s/api/package/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
+        self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
+
+        command.package_delete('%s/%s' % (owner, package), force=True)
+
+        mock_input.assert_not_called()

@@ -109,6 +109,12 @@ def main():
     access_remove_p.add_argument("user", type=str, help="User to remove")
     access_remove_p.set_defaults(func=command.access_remove)
 
+    delete_p = subparsers.add_parser(
+        "delete", description="Delete the package (including all of its history) from the server")
+    delete_p.add_argument("package", type=str, help="Owner/Package Name")
+    delete_p.add_argument("--force", action='store_true', help="Don't ask for a confirmation")
+    delete_p.set_defaults(func=command.package_delete)
+
     search_p = subparsers.add_parser("search")
     search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
     search_p.set_defaults(func=command.search)
