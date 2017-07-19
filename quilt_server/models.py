@@ -25,13 +25,18 @@ class Package(db.Model):
     owner = db.Column(USERNAME_TYPE, nullable=False)
     name = db.Column(CaseSensitiveString(64), nullable=False)
 
-    logs = db.relationship('Log', back_populates='package')
+    logs = db.relationship(
+        'Log', back_populates='package', cascade='save-update, merge, delete')
 
-    instances = db.relationship('Instance', back_populates='package')
-    versions = db.relationship('Version', back_populates='package')
-    tags = db.relationship('Tag', back_populates='package')
+    instances = db.relationship(
+        'Instance', back_populates='package', cascade='save-update, merge, delete')
+    versions = db.relationship(
+        'Version', back_populates='package', cascade='save-update, merge, delete')
+    tags = db.relationship(
+        'Tag', back_populates='package', cascade='save-update, merge, delete')
 
-    access = db.relationship('Access', back_populates='package')
+    access = db.relationship(
+        'Access', back_populates='package', cascade='save-update, merge, delete')
 
     def sort_key(self):
         return (self.owner, self.name)
@@ -54,7 +59,7 @@ class Instance(db.Model):
     created_at = db.Column(db.DateTime, default=db.func.utc_timestamp(), nullable=False)
     created_by = db.Column(USERNAME_TYPE, nullable=False)
     updated_at = db.Column(db.DateTime, default=db.func.utc_timestamp(),
-                              onupdate=db.func.utc_timestamp(), nullable=False)
+                           onupdate=db.func.utc_timestamp(), nullable=False)
     updated_by = db.Column(USERNAME_TYPE, nullable=False)
 
     # Contents can be a potentially large JSON blob, so store it as
