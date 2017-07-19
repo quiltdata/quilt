@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (c) 2017 Quilt Data, Inc.
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
 
 """
 Docker entrypoint script.

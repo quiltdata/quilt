@@ -1,4 +1,4 @@
-# Copyright (c) 2017 Quilt Data, Inc.
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
 
 """
 Analytics code: Mixpanel, async consumer.
