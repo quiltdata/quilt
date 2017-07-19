@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc.
+
 """
 Config file for dev. Overrides values in config.py.
 """

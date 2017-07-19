@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc.
+
 from setuptools import setup
 
 setup(

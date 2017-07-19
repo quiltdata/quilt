@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc.
+
 """
 Definition of the package schema, helper functions, etc.
 """

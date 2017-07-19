@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# Copyright (c) 2017 Quilt Data, Inc.
+
 """
 Docker entrypoint script.
 - Determines whether the container is running in dev or EC2

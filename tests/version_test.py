@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Quilt Data, Inc.
+
 """
 Version tests
 """
