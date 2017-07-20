@@ -175,15 +175,3 @@ class CommandTest(QuiltTestCase):
         self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
 
         command.package_delete('%s/%s' % (owner, package))
-
-    @patch('quilt.tools.command.input')
-    def test_delete_force(self, mock_input):
-        owner = 'foo'
-        package = 'bar'
-
-        delete_url = "%s/api/package/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
-        self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
-
-        command.package_delete('%s/%s' % (owner, package), force=True)
-
-        mock_input.assert_not_called()

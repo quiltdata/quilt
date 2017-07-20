@@ -640,7 +640,7 @@ def access_remove(package, user):
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
-def package_delete(package, force=False):
+def package_delete(package):
     """
     Delete a package from the server.
 
@@ -648,15 +648,14 @@ def package_delete(package, force=False):
     """
     owner, pkg = _parse_package(package)
 
-    if not force:
-        answer = input(
-            "This will irreversibly delete the package and all of its history!\n" +
-            "Type '%s/%s' to confirm: " % (owner, pkg)
-        )
+    answer = input(
+        "Are you sure you want to delete this package and its entire history? " +
+        "Type '%s/%s' to confirm: " % (owner, pkg)
+    )
 
-        if answer != '%s/%s' % (owner, pkg):
-            print("Not deleting.")
-            return 1
+    if answer != '%s/%s' % (owner, pkg):
+        print("Not deleting.")
+        return 1
 
     session = _get_session()
 
