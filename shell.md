@@ -25,6 +25,7 @@
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to add/remove read-only users
  * `quilt access add public` makes a package world readable
+* `quilt delete USER/PACKAGE` removes the package from the registry; does not delete local data, so you may still see a local copy in `quilt ls`
 
 # Search
 * `quilt search "SEARCH STRING"` to search for packages by user or package name

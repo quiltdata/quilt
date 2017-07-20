@@ -25,6 +25,10 @@
  * `quilt.access_add(USER/PACKAGE, "public")` makes a package world readable
 * `quilt.access_remove(USER/PACKAGE, EXISTING_USER)` to remove read access
 
+* `quilt.package_delete(USER/PACKAGE)` removes the package from the registry; does not delete local data, so you may still see a local copy in `quilt ls`
+
+
+
 # Search
 * `quilt.search("SEARCH STRING")` to search for packages by user or package name
 
