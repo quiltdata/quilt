@@ -26,4 +26,7 @@ This problem is not specific to `quilt`, and is caused by outdated packages in O
 - Upgrade `pyOpenSSL` using `brew` or `easy_install`
 - Upgrade to a more recent version of OS X
 
+# Website doesn't refresh
+It's often helpful to do a hard reload (Shift + Reload on Chrome). Or, sad to say this in 2017, restart your browser. Quilt uses an offline web service worker that, due to circumstances beyond our control, aggressively caches JavaScript assets and network requests.
+
 ***
