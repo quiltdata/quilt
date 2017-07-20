@@ -640,6 +640,28 @@ def access_remove(package, user):
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
+def package_delete(package):
+    """
+    Delete a package from the server.
+
+    Irreversibly deletes the package along with its history, tags, versions, etc.
+    """
+    owner, pkg = _parse_package(package)
+
+    answer = input(
+        "Are you sure you want to delete this package and its entire history? " +
+        "Type '%s/%s' to confirm: " % (owner, pkg)
+    )
+
+    if answer != '%s/%s' % (owner, pkg):
+        print("Not deleting.")
+        return 1
+
+    session = _get_session()
+
+    session.delete("%s/api/package/%s/%s/" % (QUILT_PKG_URL, owner, pkg))
+    print("Deleted.")
+
 def search(query):
     session = _get_session()
     response = session.get("%s/api/search/" % QUILT_PKG_URL, params=dict(q=query))
