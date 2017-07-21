@@ -162,7 +162,7 @@ class CommandTest(QuiltTestCase):
     def test_delete_not_confirmed(self, mock_input):
         mock_input.return_value = 'blah'
 
-        command.package_delete('user/test')
+        command.delete('user/test')
 
     @patch('quilt.tools.command.input')
     def test_delete_confirmed(self, mock_input):
@@ -174,4 +174,4 @@ class CommandTest(QuiltTestCase):
         delete_url = "%s/api/package/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
         self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
 
-        command.package_delete('%s/%s' % (owner, package))
+        command.delete('%s/%s' % (owner, package))
