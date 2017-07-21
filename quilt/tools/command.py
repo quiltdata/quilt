@@ -210,23 +210,36 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path_or_node):
+def build(package, path=None):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
-    if isinstance(path_or_node, data.PackageNode):
-        build_from_node(package, path_or_node)
-    elif isinstance(path_or_node, string_types):
-        build_from_path(package, path_or_node)
+    # we may have a path, PackageNode, or None
+    if isinstance(path, string_types):
+        build_from_path(package, path)
+    elif isinstance(path, data.PackageNode):
+        build_from_node(package, path)
+    elif path is None:
+        build_empty(package)
     else:
-        raise ValueError("Expected a PackageNode or a path, but got %r" % path_or_node)
+        raise ValueError("Expected a PackageNode or a path, but got %r" % path)
+
+def build_empty(package):
+    """
+    Create an empty package for convenient editing of de novo packages
+    """
+    owner, pkg = _parse_package(package)
+
+    store = PackageStore()
+    new = store.create_package(owner, pkg)
+    new.save_contents()
 
 def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
     owner, pkg = _parse_package(package)
-
+    # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(owner, pkg)
 
@@ -663,6 +676,9 @@ def package_delete(package):
     print("Deleted.")
 
 def search(query):
+    """
+    Search for packages
+    """
     session = _get_session()
     response = session.get("%s/api/search/" % QUILT_PKG_URL, params=dict(q=query))
 
