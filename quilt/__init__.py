@@ -13,6 +13,7 @@ from .tools.command import (
     login,
     logout,
     ls,
+    package_delete,
     push,
     tag_add,
     tag_list,
