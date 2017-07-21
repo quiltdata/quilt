@@ -239,7 +239,7 @@ def build_from_node(package, node):
     Compile a Quilt data package from an existing package node.
     """
     owner, pkg = _parse_package(package)
-
+    # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(owner, pkg)
 
@@ -676,6 +676,9 @@ def package_delete(package):
     print("Deleted.")
 
 def search(query):
+    """
+    Search for packages
+    """
     session = _get_session()
     response = session.get("%s/api/search/" % QUILT_PKG_URL, params=dict(q=query))
 
