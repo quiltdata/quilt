@@ -195,13 +195,7 @@ def api(require_login=True, schema=None):
         def wrapper(*args, **kwargs):
             g.user = PUBLIC
             user_agent_str = request.headers.get('user-agent', '')
-            g.user_agent = httpagentparser.detect(user_agent_str)
-
-            # detect's fill_none=True is broken; do it manually.
-            for key1 in ('os', 'browser'):
-                g.user_agent.setdefault(key1, {})
-                for key2 in ('name', 'version'):
-                    g.user_agent[key1].setdefault(key2, None)
+            g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if validator is not None:
                 try:
