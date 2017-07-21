@@ -640,7 +640,7 @@ def access_remove(package, user):
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
 
-def package_delete(package):
+def delete(package):
     """
     Delete a package from the server.
 

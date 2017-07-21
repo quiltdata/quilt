@@ -112,7 +112,7 @@ def main():
     delete_p = subparsers.add_parser(
         "delete", description="Delete the package (including all of its history) from the server")
     delete_p.add_argument("package", type=str, help="Owner/Package Name")
-    delete_p.set_defaults(func=command.package_delete)
+    delete_p.set_defaults(func=command.delete)
 
     search_p = subparsers.add_parser("search")
     search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
