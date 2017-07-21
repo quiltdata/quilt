@@ -26,7 +26,7 @@ def main():
     logout_p.set_defaults(func=command.logout)
 
     log_p = subparsers.add_parser("log")
-    log_p.add_argument("package", type=str, help="Owner/Package Name")
+    log_p.add_argument("package", type=str, help="owner/package_name")
     log_p.set_defaults(func=command.log)
 
     generate_p = subparsers.add_parser("generate")
@@ -34,14 +34,12 @@ def main():
     generate_p.set_defaults(func=command.generate)
 
     build_p = subparsers.add_parser("build")
-    build_p.add_argument("package", type=str, help="Owner/Package Name")
-    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("path", type=str, nargs='?',
-                                 help="Path to source files (directory) or the Yaml build file")
-    build_p.set_defaults(func=command.build_from_path)
+    build_p.add_argument("package", type=str, help="owner/package_name")
+    build_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
+    build_p.set_defaults(func=command.build)
 
     push_p = subparsers.add_parser("push")
-    push_p.add_argument("package", type=str, help="Owner/Package Name")
+    push_p.add_argument("package", type=str, help="owner/package_name")
     push_p.add_argument("--public", action="store_true",
                         help=("Create or update a public package " +
                               "(fails if the package exists and is private)"))
@@ -54,7 +52,7 @@ def main():
     version_subparsers.required = True
 
     version_list_p = version_subparsers.add_parser("list")
-    version_list_p.add_argument("package", type=str, help="Owner/Package Name")
+    version_list_p.add_argument("package", type=str, help="owner/package_name")
     version_list_p.set_defaults(func=command.version_list)
 
     version_add_p = version_subparsers.add_parser("add")
