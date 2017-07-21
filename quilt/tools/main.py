@@ -11,6 +11,8 @@ import requests
 
 from . import command
 
+HANDLE = "owner/packge_name"
+
 def main():
     """
     Build and run parser
@@ -26,7 +28,7 @@ def main():
     logout_p.set_defaults(func=command.logout)
 
     log_p = subparsers.add_parser("log")
-    log_p.add_argument("package", type=str, help="Owner/Package Name")
+    log_p.add_argument("package", type=str, help=HANDLE)
     log_p.set_defaults(func=command.log)
 
     generate_p = subparsers.add_parser("generate")
@@ -34,14 +36,12 @@ def main():
     generate_p.set_defaults(func=command.generate)
 
     build_p = subparsers.add_parser("build")
-    build_p.add_argument("package", type=str, help="Owner/Package Name")
-    buildpath_group = build_p.add_mutually_exclusive_group(required=True)
-    buildpath_group.add_argument("path", type=str, nargs='?',
-                                 help="Path to source files (directory) or the Yaml build file")
-    build_p.set_defaults(func=command.build_from_path)
+    build_p.add_argument("package", type=str, help=HANDLE)
+    build_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
+    build_p.set_defaults(func=command.build)
 
     push_p = subparsers.add_parser("push")
-    push_p.add_argument("package", type=str, help="Owner/Package Name")
+    push_p.add_argument("package", type=str, help=HANDLE)
     push_p.add_argument("--public", action="store_true",
                         help=("Create or update a public package " +
                               "(fails if the package exists and is private)"))
@@ -54,11 +54,11 @@ def main():
     version_subparsers.required = True
 
     version_list_p = version_subparsers.add_parser("list")
-    version_list_p.add_argument("package", type=str, help="Owner/Package Name")
+    version_list_p.add_argument("package", type=str, help=HANDLE)
     version_list_p.set_defaults(func=command.version_list)
 
     version_add_p = version_subparsers.add_parser("add")
-    version_add_p.add_argument("package", type=str, help="Owner/Package Name")
+    version_add_p.add_argument("package", type=str, help=HANDLE)
     version_add_p.add_argument("version", type=str, help="Version")
     version_add_p.add_argument("pkghash", type=str, help="Package hash")
     version_add_p.set_defaults(func=command.version_add)
@@ -68,22 +68,22 @@ def main():
     tag_subparsers.required = True
 
     tag_list_p = tag_subparsers.add_parser("list")
-    tag_list_p.add_argument("package", type=str, help="Owner/Package Name")
+    tag_list_p.add_argument("package", type=str, help=HANDLE)
     tag_list_p.set_defaults(func=command.tag_list)
 
     tag_add_p = tag_subparsers.add_parser("add")
-    tag_add_p.add_argument("package", type=str, help="Owner/Package Name")
+    tag_add_p.add_argument("package", type=str, help=HANDLE)
     tag_add_p.add_argument("tag", type=str, help="Tag name")
     tag_add_p.add_argument("pkghash", type=str, help="Package hash")
     tag_add_p.set_defaults(func=command.tag_add)
 
     tag_remove_p = tag_subparsers.add_parser("remove")
-    tag_remove_p.add_argument("package", type=str, help="Owner/Package Name")
+    tag_remove_p.add_argument("package", type=str, help=HANDLE)
     tag_remove_p.add_argument("tag", type=str, help="Tag name")
     tag_remove_p.set_defaults(func=command.tag_remove)
 
     install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help="Owner/Package Name")
+    install_p.add_argument("package", type=str, help=HANDLE)
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
@@ -96,23 +96,23 @@ def main():
     access_subparsers.required = True
 
     access_list_p = access_subparsers.add_parser("list")
-    access_list_p.add_argument("package", type=str, help="Owner/Package Name")
+    access_list_p.add_argument("package", type=str, help=HANDLE)
     access_list_p.set_defaults(func=command.access_list)
 
     access_add_p = access_subparsers.add_parser("add")
-    access_add_p.add_argument("package", type=str, help="Owner/Package Name")
+    access_add_p.add_argument("package", type=str, help=HANDLE)
     access_add_p.add_argument("user", type=str, help="User to add")
     access_add_p.set_defaults(func=command.access_add)
 
     access_remove_p = access_subparsers.add_parser("remove")
-    access_remove_p.add_argument("package", type=str, help="Owner/Package Name")
+    access_remove_p.add_argument("package", type=str, help=HANDLE)
     access_remove_p.add_argument("user", type=str, help="User to remove")
     access_remove_p.set_defaults(func=command.access_remove)
 
     delete_p = subparsers.add_parser(
         "delete", description="Delete the package (including all of its history) from the server")
     delete_p.add_argument("package", type=str, help="Owner/Package Name")
-    delete_p.set_defaults(func=command.package_delete)
+    delete_p.set_defaults(func=command.delete)
 
     search_p = subparsers.add_parser("search")
     search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
@@ -122,7 +122,7 @@ def main():
     ls_p.set_defaults(func=command.ls)
 
     inspect_p = subparsers.add_parser("inspect")
-    inspect_p.add_argument("package", type=str, help="Owner/Package Name")
+    inspect_p.add_argument("package", type=str, help=HANDLE)
     inspect_p.set_defaults(func=command.inspect)
 
     args = parser.parse_args()
