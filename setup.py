@@ -14,12 +14,12 @@ def readme():
 
 setup(
     name="quilt",
-    version="2.6.1",
+    version="2.6.2",
     packages=find_packages(),
-    description='Quilt is an open-source data frame registry',
+    description='Quilt is a data package manager',
     long_description=readme(),
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
