@@ -169,13 +169,17 @@ def login():
     # Chrome/Firefox from outputing garbage over the code prompt.
     devnull = os.open(os.devnull, os.O_RDWR)
     old_stdout = os.dup(1)
+    old_stderr = os.dup(2)
     os.dup2(devnull, 1)
+    os.dup2(devnull, 2)
     try:
         webbrowser.open(login_url)
     finally:
         os.close(devnull)
         os.dup2(old_stdout, 1)
+        os.dup2(old_stderr, 2)
         os.close(old_stdout)
+        os.close(old_stderr)
 
     print()
     refresh_token = input("Enter the code from the webpage: ")
