@@ -19,6 +19,7 @@
 
 * [Shell](shell.md)
 * [Python](python.md)
+* [Jupyter](jupyter.md)
 * [R](r.md)
 * [Build.yml](buildyml.md)
 
