@@ -12,7 +12,7 @@
 * [Installation](installation.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
-* [Make a package](make-a-package.md)
+* [Push a package](make-a-package.md)
 * [Tutorial](tutorial.md)
 
 ## API

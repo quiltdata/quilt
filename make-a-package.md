@@ -31,6 +31,9 @@ quilt build USR/PKG BUILD.YML
 
 `build.yml` specifies the structure and contents of a package.
 
+# Building on the fly in Python
+You can 
+
 ## `quilt generate`
 An easy way to create a `build.yml` file is as follows:
 ```bash
