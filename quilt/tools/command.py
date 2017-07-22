@@ -140,6 +140,10 @@ def _get_session():
 
     return _session
 
+def _clear_session():
+    global _session
+    _session = None
+
 def _parse_package(name):
     try:
         owner, pkg = name.split('/')
@@ -187,6 +191,8 @@ def login():
 
     _save_auth(auth)
 
+    _clear_session()
+
 def logout():
     """
     Become anonymous. Useful for testing.
@@ -197,6 +203,8 @@ def logout():
         os.remove(auth_file)
     else:
         print("Already logged out.")
+
+    _clear_session()
 
 def generate(directory):
     """
