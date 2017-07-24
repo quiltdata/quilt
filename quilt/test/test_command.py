@@ -41,7 +41,7 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "not found"):
             command.inspect(package="owner/package")
 
-    @patch('webbrowser.open')
+    @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
     def test_login(self, mock_save, mock_input, mock_open):
@@ -75,7 +75,7 @@ class CommandTest(QuiltTestCase):
             expires_at=expires_at
         ))
 
-    @patch('webbrowser.open')
+    @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
     def test_login_server_error(self, mock_save, mock_input, mock_open):
@@ -92,7 +92,7 @@ class CommandTest(QuiltTestCase):
 
         mock_save.assert_not_called()
 
-    @patch('webbrowser.open')
+    @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
     def test_login_auth_fail(self, mock_save, mock_input, mock_open):
