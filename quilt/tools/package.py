@@ -1,7 +1,7 @@
 from enum import Enum
 import json
 import os
-from shutil import copyfile, rmtree
+from shutil import copyfile, move, rmtree
 import tempfile
 import zlib
 
@@ -173,14 +173,14 @@ class Package(object):
             for obj in files:
                 path = os.path.join(storepath, obj)
                 objhash = digest_file(path)
-                os.rename(path, self._store.object_path(objhash))
+                move(path, self._store.object_path(objhash))
                 hashes.append(objhash)
             self._add_to_contents(buildfile, hashes, ext, path, target, format)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target, format)
-            os.rename(storepath, self._store.object_path(filehash))
+            move(storepath, self._store.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
         """

@@ -108,8 +108,10 @@ class BuildTest(QuiltTestCase):
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
 
-        docs = yaml.load_all(open(buildfilepath))
-        data = next(docs, None)
+        with open(buildfilepath) as fd:
+            docs = yaml.load_all(fd)
+            data = next(docs, None)
+
         contents = data['contents']
 
         assert contents == {

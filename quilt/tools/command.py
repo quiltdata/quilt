@@ -8,6 +8,7 @@ from builtins import input
 from datetime import datetime
 import json
 import os
+from shutil import move
 import stat
 import time
 import webbrowser
@@ -624,7 +625,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
             raise CommandException("Fragment hashes do not match: expected %s, got %s." %
                                    (download_hash, file_hash))
 
-        os.rename(temp_path, local_filename)
+        move(temp_path, local_filename)
 
     pkgobj.save_contents()
 
