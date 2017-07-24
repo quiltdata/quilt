@@ -11,7 +11,7 @@ services:
       timeout: 10s
       retries: 3
   migration:
-    image: quiltdata/server
+    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
