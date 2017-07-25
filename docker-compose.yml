@@ -11,27 +11,32 @@ services:
       timeout: 10s
       retries: 3
   migration:
-    image: quiltdata/server
+    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=test_config.py
       - OAUTH_CLIENT_SECRET=TESTING
-    ports:
-      - "5003:80"
     depends_on:
       db:
         condition: service_healthy
     command:
       flask db upgrade
-  pkg:
-    image: quiltdata/server
+  flask:
+    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=test_config.py
       - OAUTH_CLIENT_SECRET=TESTING
       - OAUTHLIB_INSECURE_TRANSPORT=1
+    ports:
+      - "9000:9000"
+    depends_on:
+      db:
+        condition: service_healthy
+  nginx:
+    image: quiltdata/nginx
     ports:
       - "5000:80"
     depends_on:
