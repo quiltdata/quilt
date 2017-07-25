@@ -11,7 +11,7 @@ Quilt is a data package manager, inspired by the likes of `pip` and `npm`. Just 
 4. **Collaboration and transparency **- Data likes to be shared. Quilt offers a centralized data warehouse for finding and sharing data sets.
 
 # Demo
-<iframe width="560" height="315" src="https://www.youtube.com/embed/tLdiDqtnnho" frameborder="0" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/IBDYC2XdxyQ" frameborder="0" allowfullscreen></iframe>
 
 # Learn more on the Quilt blog
 * [Manage data like code](https://blog.quiltdata.com/its-time-to-manage-data-like-source-code-3df04cd312b8)
