@@ -10,8 +10,8 @@ class TargetType(Enum):
     PANDAS = 'pandas'
     FILE = 'file'
 
-DATEF = '%F'
-TIMEF = '%T'
+DATEF = '%Y-%m-%d'
+TIMEF = '%H:%M:%S'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
 LATEST_TAG = 'latest'
 PACKAGE_DIR_NAME = 'quilt_packages'

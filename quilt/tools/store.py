@@ -29,7 +29,7 @@ class PackageStore(object):
     PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
-    TMP_OBJ_DIR = 'objs/tmp'
+    TMP_OBJ_DIR = os.path.join('objs', 'tmp')
 
     def __init__(self, store_dir=PACKAGE_DIR_NAME):
         assert os.path.basename(os.path.abspath(store_dir)) == PACKAGE_DIR_NAME, \
