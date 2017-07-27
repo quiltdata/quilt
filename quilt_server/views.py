@@ -1115,7 +1115,10 @@ def search(auth_user):
         raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
 
     filter_list = [
-        sa.func.instr(sa.func.concat(Package.owner, '/', Package.name), keyword) > 0
+        sa.func.instr(
+            sa.sql.collate(sa.func.concat(Package.owner, '/', Package.name), UTF8_GENERAL_CI),
+            keyword
+        ) > 0
         for keyword in keywords
     ]
 

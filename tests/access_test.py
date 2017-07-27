@@ -452,6 +452,7 @@ class AccessTestCase(QuiltTestCase):
             assert results == expected_results
 
         _test_query("test_user/public1", {}, ["test_user/public1"])
+        _test_query("Test_User/Public1", {}, ["test_user/public1"])
         _test_query("test_user/public", {}, ["test_user/public1", "test_user/public2"])
         _test_query("test_user/pkgtoshare", {}, [])
         _test_query("test_user/", {}, ["test_user/public1", "test_user/public2"])
