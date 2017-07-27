@@ -65,8 +65,8 @@ class Instance(db.Model):
     updated_by = db.Column(USERNAME_TYPE, nullable=False)
 
     # Contents can be a potentially large JSON blob, so store it as
-    # MEDIUMTEXT rather than VARCHAR, and load lazily.
-    contents = deferred(db.Column(mysql.MEDIUMTEXT(collation=UTF8_BIN), nullable=False))
+    # LONGTEXT rather than VARCHAR, and load lazily.
+    contents = deferred(db.Column(mysql.LONGTEXT(collation=UTF8_BIN), nullable=False))
 
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')

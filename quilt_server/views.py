@@ -52,6 +52,10 @@ S3_PUT_OBJECT = 'put_object'
 
 OBJ_DIR = 'objs'
 
+# Limit the JSON metadata to 100MB.
+# This is mostly a sanity check; nginx already has a limit of 75MB.
+MAX_METADATA_SIZE = 100 * 1024 * 1024
+
 s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
@@ -437,6 +441,13 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
 
     contents_str = json.dumps(contents, default=encode_node)
+
+    if len(contents_str) > MAX_METADATA_SIZE:
+        # Should never actually happen because of nginx limits.
+        raise ApiException(
+            requests.codes.server_error,
+            "Metadata size too large"
+        )
 
     if instance is None:
         instance = Instance(
