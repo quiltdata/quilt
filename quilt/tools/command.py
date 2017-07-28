@@ -143,7 +143,9 @@ def _get_session():
 
 def _clear_session():
     global _session
-    _session = None
+    if _session is not None:
+        _session.close()
+        _session = None
 
 def _parse_package(name):
     try:
@@ -362,31 +364,32 @@ def push(package, public=False, reupload=False):
         'Content-Encoding': 'gzip'
     }
 
-    for idx, obj_hash in enumerate(obj_hashes):
-        print("Uploading %s (%d/%d)..." % (obj_hash, idx + 1, total))
+    with requests.Session() as s3_session:
+        for idx, obj_hash in enumerate(obj_hashes):
+            print("Uploading %s (%d/%d)..." % (obj_hash, idx + 1, total))
 
-        response = session.get(
-            "{url}/api/blob/{owner}/{hash}".format(
-                url=QUILT_PKG_URL,
-                owner=owner,
-                hash=obj_hash
+            response = session.get(
+                "{url}/api/blob/{owner}/{hash}".format(
+                    url=QUILT_PKG_URL,
+                    owner=owner,
+                    hash=obj_hash
+                )
             )
-        )
-        contents = response.json()
+            contents = response.json()
 
-        if not reupload:
-            s3_response = requests.head(contents['head'])
-            if s3_response.ok:
-                print("Fragment already uploaded; skipping.")
-                continue  # Next obj_hash
+            if not reupload:
+                s3_response = s3_session.head(contents['head'])
+                if s3_response.ok:
+                    print("Fragment already uploaded; skipping.")
+                    continue  # Next obj_hash
 
-        # Create a temporary gzip'ed file.
-        with pkgobj.tempfile(obj_hash) as temp_file:
-            with FileWithReadProgress(temp_file) as temp_file_with_progress:
-                url = contents['put']
-                response = requests.put(url, data=temp_file_with_progress, headers=headers)
-                if not response.ok:
-                    raise CommandException("Upload failed: error %s" % response.status_code)
+            # Create a temporary gzip'ed file.
+            with pkgobj.tempfile(obj_hash) as temp_file:
+                with FileWithReadProgress(temp_file) as temp_file_with_progress:
+                    url = contents['put']
+                    response = s3_session.put(url, data=temp_file_with_progress, headers=headers)
+                    if not response.ok:
+                        raise CommandException("Upload failed: error %s" % response.status_code)
 
     print("Uploading package metadata...")
     _push_package()
@@ -584,48 +587,49 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     pkgobj = store.install_package(owner, pkg, response_contents)
 
-    total = len(response_urls)
-    for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
-        print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
+    with requests.Session() as s3_session:
+        total = len(response_urls)
+        for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
+            print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
 
-        local_filename = store.object_path(download_hash)
-        if os.path.exists(local_filename):
-            file_hash = digest_file(local_filename)
-            if file_hash == download_hash:
-                print("Fragment already installed; skipping.")
-                continue
-            else:
-                print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
-                      file_hash)
+            local_filename = store.object_path(download_hash)
+            if os.path.exists(local_filename):
+                file_hash = digest_file(local_filename)
+                if file_hash == download_hash:
+                    print("Fragment already installed; skipping.")
+                    continue
+                else:
+                    print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
+                        file_hash)
 
-        response = requests.get(url, stream=True)
-        if not response.ok:
-            msg = "Download {hash} failed: error {code}"
-            raise CommandException(msg.format(hash=download_hash, code=response.status_code))
+            response = s3_session.get(url, stream=True)
+            if not response.ok:
+                msg = "Download {hash} failed: error {code}"
+                raise CommandException(msg.format(hash=download_hash, code=response.status_code))
 
-        length_remaining = response.raw.length_remaining
+            length_remaining = response.raw.length_remaining
 
-        temp_path = store.temporary_object_path(download_hash)
-        with open(temp_path, 'wb') as output_file:
-            with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
-                # `requests` will automatically un-gzip the content, as long as
-                # the 'Content-Encoding: gzip' header is set.
-                # To report progress, however, we need the length of the original compressed data;
-                # we use the undocumented but technically public `response.raw.length_remaining`.
-                for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                    if chunk: # filter out keep-alive new chunks
-                        output_file.write(chunk)
-                    if response.raw.length_remaining is not None:  # Not set in unit tests.
-                        progress.update(length_remaining - response.raw.length_remaining)
-                        length_remaining = response.raw.length_remaining
+            temp_path = store.temporary_object_path(download_hash)
+            with open(temp_path, 'wb') as output_file:
+                with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
+                    # `requests` will automatically un-gzip the content, as long as
+                    # the 'Content-Encoding: gzip' header is set.
+                    # To report progress, however, we need the length of the original compressed data;
+                    # we use the undocumented but technically public `response.raw.length_remaining`.
+                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
+                        if chunk: # filter out keep-alive new chunks
+                            output_file.write(chunk)
+                        if response.raw.length_remaining is not None:  # Not set in unit tests.
+                            progress.update(length_remaining - response.raw.length_remaining)
+                            length_remaining = response.raw.length_remaining
 
-        file_hash = digest_file(temp_path)
-        if file_hash != download_hash:
-            os.remove(temp_path)
-            raise CommandException("Fragment hashes do not match: expected %s, got %s." %
-                                   (download_hash, file_hash))
+            file_hash = digest_file(temp_path)
+            if file_hash != download_hash:
+                os.remove(temp_path)
+                raise CommandException("Fragment hashes do not match: expected %s, got %s." %
+                                    (download_hash, file_hash))
 
-        move(temp_path, local_filename)
+            move(temp_path, local_filename)
 
     pkgobj.save_contents()
 
