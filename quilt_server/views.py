@@ -56,7 +56,12 @@ OBJ_DIR = 'objs'
 # This is mostly a sanity check; nginx already has a limit of 75MB.
 MAX_METADATA_SIZE = 100 * 1024 * 1024
 
-s3_client = boto3.client('s3', endpoint_url=app.config.get('S3_ENDPOINT'))
+s3_client = boto3.client(
+    's3',
+    endpoint_url=app.config.get('S3_ENDPOINT'),
+    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+)
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 

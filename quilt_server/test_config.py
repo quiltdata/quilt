@@ -13,6 +13,9 @@ OAUTH = dict(
     client_secret=os.getenv('OAUTH_CLIENT_SECRET')
 )
 
+AWS_ACCESS_KEY_ID = 'fake_id'
+AWS_SECRET_ACCESS_KEY = 'fake_secret'
+
 S3_ENDPOINT = 'http://s3:5001'
 PACKAGE_BUCKET_NAME = 'package'
 
