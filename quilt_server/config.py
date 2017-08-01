@@ -13,3 +13,6 @@ SQLALCHEMY_ECHO = False  # Turn it on for debugging.
 PACKAGE_URL_EXPIRATION = 60*60*12 # 12 Hours
 
 JSON_USE_ENCODE_METHODS = True  # Support the __json__ method in Node
+
+# 100MB max for request body.
+MAX_CONTENT_LENGTH = 100 * 1024 * 1024
