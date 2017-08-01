@@ -162,14 +162,17 @@ def _parse_package(name):
     return owner, pkg
 
 def _open_url(url):
-    if sys.platform == 'win32':
-        os.startfile(url)
-    elif sys.platform == 'darwin':
-        devnull = os.open(os.devnull, os.O_RDWR)
-        subprocess.call(['open', url], stdin=devnull, stdout=devnull, stderr=devnull)
-    else:
-        devnull = os.open(os.devnull, os.O_RDWR)
-        subprocess.call(['xdg-open', url], stdin=devnull, stdout=devnull, stderr=devnull)
+    try:
+        if sys.platform == 'win32':
+            os.startfile(url)
+        elif sys.platform == 'darwin':
+            with open(os.devnull, 'r+') as null:
+                subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
+        else:
+            with open(os.devnull, 'r+') as null:
+                subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
+    except (OSError, FileNotFoundError, subprocess.SubprocessError) as ex:
+        print("Failed to launch the browser: %s" % ex)
 
 def login():
     """
