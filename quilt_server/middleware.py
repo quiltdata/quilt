@@ -5,6 +5,7 @@ Middleware: handling gzip encoding, etc.
 """
 
 import gzip
+import zlib
 
 from werkzeug.exceptions import BadRequest
 from werkzeug.wsgi import get_input_stream
@@ -27,7 +28,7 @@ class RequestEncodingMiddleware(object):
 
         try:
             return self.app(environ, start_response)
-        except OSError as ex:
+        except (OSError, zlib.error) as ex:
             # gzip raises OSError on invalid import... blah.
             error = "Failed to decode input: %s" % ex
             return BadRequest(error)(environ, start_response)
