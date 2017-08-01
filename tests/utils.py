@@ -40,6 +40,7 @@ class QuiltTestCase(TestCase):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
         self._mock_user()
+        self._mock_email()
 
         mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
         self.mp_patcher = mock.patch('quilt_server.views.mp', mock_mp)
@@ -64,6 +65,11 @@ class QuiltTestCase(TestCase):
         self.mp_patcher.stop()
 
         self.requests_mock.stop()
+
+    def _mock_email(self):
+        """Mocks the auth API call and just returns the value of the Authorization header"""
+        auth_url = '%s/pkginvite/send/' % quilt_server.app.config['OAUTH']['base_url']
+        self.requests_mock.add(responses.POST, auth_url, json.dumps(dict()))
 
     def _mock_user(self):
         """Mocks the auth API call and just returns the value of the Authorization header"""

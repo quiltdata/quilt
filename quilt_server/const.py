@@ -5,8 +5,10 @@ Constants
 """
 
 from enum import Enum
+import re
 
 PUBLIC = 'public' # This username is blocked by Quilt signup
+EMAILREGEX = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 
 class PaymentPlan(Enum):
     FREE = 'free'

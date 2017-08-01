@@ -26,9 +26,10 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PaymentPlan, PUBLIC
+from .const import EMAILREGEX, PaymentPlan, PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, RootNode
-from .models import Access, Customer, Instance, Log, Package, S3Blob, Tag, UTF8_GENERAL_CI, Version
+from .models import (Access, Customer, Instance, Invitation, Log, Package,
+                     S3Blob, Tag, UTF8_GENERAL_CI, Version)
 from .schemas import PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -161,6 +162,7 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+
 class PackageNotFoundException(ApiException):
     """
     API exception for missing packages.
@@ -170,6 +172,7 @@ class PackageNotFoundException(ApiException):
         if not logged_in:
             message = "%s (do you need to log in?)" % message
         super().__init__(requests.codes.not_found, message)
+
 
 @app.errorhandler(ApiException)
 def handle_api_exception(error):
@@ -213,7 +216,7 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-
+            g.auth = auth
             if auth is None:
                 if require_login:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
@@ -940,28 +943,56 @@ def access_put(auth_user, owner, package_name, user):
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
-    if user != PUBLIC:
-        resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user)
-        if resp.status_code == requests.codes.not_found:
+    if EMAILREGEX.match(user):
+        email = user
+        invitation = Invitation(package=package, email=email)
+        db.session.add(invitation)
+        db.session.commit()
+
+        # Call to Django to send invitation email
+        headers = {
+            AUTHORIZATION_HEADER: g.auth
+            }
+        resp = requests.post(OAUTH_BASE_URL + '/pkginvite/send/',
+                             headers=headers,
+                             data=dict(email=email,
+                                       owner=auth_user,
+                                       package=package.name,
+                                       client_id=OAUTH_CLIENT_ID,
+                                       client_secret=OAUTH_CLIENT_SECRET,
+                                       callback_url=OAUTH_REDIRECT_URI))
+
+        if resp.status_code == requests.codes.unauthorized:
             raise ApiException(
-                requests.codes.not_found,
-                "User %s does not exist" % user
+                requests.codes.unauthorized,
+                "Invalid credentials"
                 )
         elif resp.status_code != requests.codes.ok:
-            print("{code}: {reason}".format(code=resp.status_code, reason=resp.reason))
-            raise ApiException(
-                requests.codes.server_error,
-                "Unknown error"
-                )
+            raise ApiException(requests.codes.server_error, "Server error")
+        return dict()
 
-    try:
-        access = Access(package=package, user=user)
-        db.session.add(access)
-        db.session.commit()
-    except IntegrityError:
-        raise ApiException(requests.codes.conflict, "The user already has access")
+    else:
+        if user != PUBLIC:
+            resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user)
+            if resp.status_code == requests.codes.not_found:
+                raise ApiException(
+                    requests.codes.not_found,
+                    "User %s does not exist" % user
+                    )
+            elif resp.status_code != requests.codes.ok:
+                raise ApiException(
+                    requests.codes.server_error,
+                    "Unknown error"
+                    )
 
-    return dict()
+        try:
+            access = Access(package=package, user=user)
+            db.session.add(access)
+            db.session.commit()
+        except IntegrityError:
+            raise ApiException(requests.codes.conflict, "The user already has access")
+
+        return dict()
 
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['GET'])
 @api()
@@ -1164,8 +1195,21 @@ def search(auth_user):
 def profile(auth_user):
     customer = _get_or_create_customer()
     subscription = customer.subscriptions.data[0]
-
     public_access = sa.orm.aliased(Access)
+
+    # Check for outstanding package sharing invitations
+    invitations = (
+        db.session.query(Invitation, Package)
+        .filter_by(email=g.email)
+        .join(Invitation.package)
+        )
+    for invitation, package in invitations:
+        access = Access(package=package, user=auth_user)
+        db.session.add(access)
+        db.session.delete(invitation)
+
+    if invitations:
+        db.session.commit()
 
     packages = (
         db.session.query(Package, public_access.user.isnot(None))
@@ -1260,3 +1304,37 @@ def payments_update_payment(auth_user):
         raise ApiException(requests.codes.bad_request, str(ex))
 
     return dict()
+
+@app.route('/api/invite/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def invitation_user_list(auth_user):
+    invitations = (
+        db.session.query(Invitation, Package)
+        .filter_by(email=g.email)
+        .join(Invitation.package)
+        .all()
+    )
+    return dict(invitations=[dict(invitation_id=invite.id,
+                                  owner=package.owner,
+                                  package=package.name,
+                                  email=invite.email,
+                                  invited_at=invite.invited_at)
+                             for invite, package in invitations])
+
+@app.route('/api/invite/<owner>/<package_name>/', methods=['GET'])
+@api()
+@as_json
+def invitation_package_list(auth_user, owner, package_name):
+    package = _get_package(auth_user, owner, package_name)
+    invitations = (
+        Invitation.query
+        .filter_by(package_id=package.id)
+    )
+
+    return dict(invitations=[dict(invitation_id=invite.id,
+                                  owner=package.owner,
+                                  package=package.name,
+                                  email=invite.email,
+                                  invited_at=invite.invited_at)
+                             for invite in invitations])

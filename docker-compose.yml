@@ -17,6 +17,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=test_config.py
       - OAUTH_CLIENT_SECRET=TESTING
+      - STRIPE_SECRET_KEY=STRIPETEST
     depends_on:
       db:
         condition: service_healthy

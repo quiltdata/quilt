@@ -53,6 +53,72 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+    @mock_customer()
+    def testShareDatasetByEmail(self, customer):
+        """
+        Push a package, share it and test that the
+        invitation was created.
+        """
+        sharewithuser = "anotheruser"
+        sharewithemail = "{usr}@example.com".format(usr=sharewithuser)
+        resp = self._share_package(self.user, self.pkg, sharewithemail)
+        assert resp.status_code == requests.codes.ok
+
+        # Test that the invitation was created
+        resp = self.app.get(
+            '/api/invite/{owner}/{pkg}/'.format(owner=self.user, pkg=self.pkg),
+            headers={
+                'Authorization': self.user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        invitations = json.loads(resp.data.decode('utf8'))['invitations']
+        assert len(invitations) == 1
+
+        # Test that the invitation is viewable to the recipient
+        resp = self.app.get(
+            '/api/invite/',
+            headers={
+                'Authorization': sharewithuser
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        invitations = json.loads(resp.data.decode('utf8'))['invitations']
+        assert len(invitations) == 1
+
+        # Test that the receiver can claim the invitation
+        resp = self.app.get(
+            '/api/profile'.format(user=sharewithuser),
+            headers={
+                'Authorization': sharewithuser
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Test that after claiming invitation, recipient
+        # can read the package.
+        resp = self.app.get(
+            self.pkgurl,
+            headers={
+                'Authorization': sharewithuser
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Test that the invitation no longer exists after
+        # being claimed
+        resp = self.app.get(
+            '/api/invite/{owner}/{pkg}/'.format(owner=self.user, pkg=self.pkg),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        data = json.loads(resp.data.decode('utf8'))
+        invitations = data['invitations']
+        assert len(invitations) == 0
+
     def testRevokeAccess(self):
         """
         Push a package, grant then revoke access
