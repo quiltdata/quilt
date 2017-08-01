@@ -1,0 +1,24 @@
+language: python
+
+python:
+  - "3.6"
+
+env:
+  global:
+    - FLASK_APP=quilt_server
+    - FLASK_DEBUG=1
+    - QUILT_SERVER_CONFIG=dev_config.py
+
+services:
+  - mysql
+
+os:
+  - linux
+
+install:
+  - pip install -U pip
+  - pip install -U pytest
+  - pip install .
+
+script:
+  - pytest
