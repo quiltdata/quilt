@@ -16,8 +16,10 @@ setup(
         'jsonschema',
         'mixpanel',
         'packaging',
+        'responses',
         'PyMySQL',
         'requests-oauthlib',
+        'sqlalchemy_utils',
         'stripe',
     ],
 )

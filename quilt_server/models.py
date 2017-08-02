@@ -40,6 +40,9 @@ class Package(db.Model):
     access = db.relationship(
         'Access', back_populates='package', cascade='save-update, merge, delete')
 
+    invitation = db.relationship(
+        'Invitation', back_populates='package', cascade='save-update, merge, delete')
+
     def sort_key(self):
         return (self.owner, self.name)
 
@@ -130,6 +133,15 @@ class Access(db.Model):
     user = db.Column(USERNAME_TYPE, primary_key=True)
 
     package = db.relationship('Package', back_populates='access')
+
+
+class Invitation(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'))
+    email = db.Column(db.String(254), nullable=False)
+    invited_at = db.Column(db.DateTime, default=db.func.utc_timestamp(), nullable=False)
+
+    package = db.relationship('Package', back_populates='invitation')
 
 
 class Customer(db.Model):

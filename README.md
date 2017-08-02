@@ -7,6 +7,8 @@
         $ mysql -u root  # No password needed - yay MySQL.
         > create database quilt;
 
+  * Mac OS X & newer mysql versions: You may need to login to the database and set the root password to `''` to complete the above
+
 * Create a virtual env
 * Install the server package and its dependencies:
 
