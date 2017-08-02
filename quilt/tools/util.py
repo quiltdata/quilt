@@ -2,8 +2,10 @@
 Helper functions.
 """
 
+import gzip
+
 from appdirs import user_data_dir
-from six import string_types, Iterator
+from six import BytesIO, string_types, Iterator
 from tqdm import tqdm
 
 APP_NAME = "QuiltCli"
@@ -79,3 +81,12 @@ def file_to_str(fname):
     with open(fname, 'rU') as f:
         data = f.read()
     return data
+
+def gzip_compress(data):
+    """
+    Compress a string. Same as gzip.compress in Python3.
+    """
+    buf = BytesIO()
+    with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
+        fd.write(data)
+    return buf.getvalue()
