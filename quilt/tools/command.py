@@ -30,7 +30,7 @@ from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, File
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
-from .util import BASE_DIR, FileWithReadProgress
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 
 from .. import data
 
@@ -353,6 +353,15 @@ def push(package, public=False, reupload=False):
     pkghash = pkgobj.get_hash()
 
     def _push_package(dry_run=False):
+        data = json.dumps(dict(
+            dry_run=dry_run,
+            public=public,
+            contents=pkgobj.get_contents(),
+            description=""  # TODO
+        ), default=encode_node)
+
+        compressed_data = gzip_compress(data.encode('utf-8'))
+
         session.put(
             "{url}/api/package/{owner}/{pkg}/{hash}".format(
                 url=QUILT_PKG_URL,
@@ -360,12 +369,10 @@ def push(package, public=False, reupload=False):
                 pkg=pkg,
                 hash=pkghash
             ),
-            data=json.dumps(dict(
-                dry_run=dry_run,
-                public=public,
-                contents=pkgobj.get_contents(),
-                description=""  # TODO
-            ), default=encode_node)
+            data=compressed_data,
+            headers={
+                'Content-Encoding': 'gzip'
+            }
         )
 
     _push_package(dry_run=True)
