@@ -10,8 +10,9 @@ import json
 import os
 from shutil import move
 import stat
+import subprocess
+import sys
 import time
-import webbrowser
 
 from packaging.version import Version
 import pandas as pd
@@ -163,6 +164,19 @@ def _parse_package(name):
 
     return owner, pkg
 
+def _open_url(url):
+    try:
+        if sys.platform == 'win32':
+            os.startfile(url)
+        elif sys.platform == 'darwin':
+            with open(os.devnull, 'r+') as null:
+                subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
+        else:
+            with open(os.devnull, 'r+') as null:
+                subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
+    except Exception as ex:
+        print("Failed to launch the browser: %s" % ex)
+
 def login():
     """
     Authenticate.
@@ -172,17 +186,7 @@ def login():
     print("Launching a web browser...")
     print("If that didn't work, please visit the following URL: %s" % login_url)
 
-    # Open the browser. Get rid of stdout while launching the browser to prevent
-    # Chrome/Firefox from outputing garbage over the code prompt.
-    devnull = os.open(os.devnull, os.O_RDWR)
-    old_stdout = os.dup(1)
-    os.dup2(devnull, 1)
-    try:
-        webbrowser.open(login_url)
-    finally:
-        os.close(devnull)
-        os.dup2(old_stdout, 1)
-        os.close(old_stdout)
+    _open_url(login_url)
 
     print()
     refresh_token = input("Enter the code from the webpage: ")
