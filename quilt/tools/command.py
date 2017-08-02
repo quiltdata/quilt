@@ -171,7 +171,7 @@ def _open_url(url):
         else:
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except (OSError, FileNotFoundError, subprocess.SubprocessError) as ex:
+    except Exception as ex:
         print("Failed to launch the browser: %s" % ex)
 
 def login():
