@@ -1,9 +1,9 @@
 from enum import Enum
+import gzip
 import json
 import os
-from shutil import copyfile, move, rmtree
+from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
-import zlib
 
 import pandas as pd
 from six import itervalues
@@ -15,8 +15,6 @@ from .core import (decode_node, encode_node, hash_contents,
 from .hashing import digest_file
 
 ZLIB_LEVEL = 2
-ZLIB_METHOD = zlib.DEFLATED  # The only supported one.
-ZLIB_WBITS = zlib.MAX_WBITS | 16  # Add a gzip header and checksum.
 CHUNK_SIZE = 4096
 
 
@@ -257,10 +255,9 @@ class Package(object):
         def __enter__(self):
             self._temp_file = tempfile.TemporaryFile()
             with open(self._package.get_store().object_path(self._hash), 'rb') as input_file:
-                zlib_obj = zlib.compressobj(ZLIB_LEVEL, ZLIB_METHOD, ZLIB_WBITS)
-                for chunk in iter(lambda: input_file.read(CHUNK_SIZE), b''):
-                    self._temp_file.write(zlib_obj.compress(chunk))
-                self._temp_file.write(zlib_obj.flush())
+                with gzip.GzipFile(fileobj=self._temp_file, mode='wb',
+                                   compresslevel=ZLIB_LEVEL) as gzip_file:
+                    copyfileobj(input_file, gzip_file, CHUNK_SIZE)
             self._temp_file.seek(0)
             return self._temp_file
 
