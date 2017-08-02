@@ -13,7 +13,10 @@ from flask_json import FlaskJSON
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
+from . import middleware
+
 app = Flask(__name__.split('.')[0])
+app.wsgi_app = middleware.RequestEncodingMiddleware(app.wsgi_app)
 app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
 
