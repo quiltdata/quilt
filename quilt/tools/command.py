@@ -180,6 +180,8 @@ def _open_url(url):
 def login():
     """
     Authenticate.
+
+    Launches a web browser and asks the user for a token.
     """
     login_url = "%s/login" % QUILT_PKG_URL
 
@@ -191,9 +193,13 @@ def login():
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    # Get an access token (and a new refresh token).
-    # Technically, we could have the user enter both tokens - but it doesn't
-    # really matter, and this lets us verify that the token actually works.
+    login_with_token(refresh_token)
+
+def login_with_token(refresh_token):
+    """
+    Authenticate using an existing token.
+    """
+    # Get an access token and a new refresh token.
     auth = _update_auth(refresh_token)
 
     _save_auth(auth)

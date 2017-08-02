@@ -11,6 +11,7 @@ from .tools.command import (
     install,
     log,
     login,
+    login_with_token,
     logout,
     ls,
     delete,
