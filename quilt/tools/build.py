@@ -59,7 +59,7 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
             else:
                 transform = ID
-                print("No transform given for %s. Using 'transform: %s'" % (rel_path, transform))
+                print("Using default 'transform: %s'" % (rel_path, transform))
 
         if transform == ID:
             print("Copying %s..." % path)
