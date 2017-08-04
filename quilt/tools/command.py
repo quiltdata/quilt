@@ -362,7 +362,7 @@ def push(package, public=False, reupload=False):
 
         compressed_data = gzip_compress(data.encode('utf-8'))
 
-        session.put(
+        return session.put(
             "{url}/api/package/{owner}/{pkg}/{hash}".format(
                 url=QUILT_PKG_URL,
                 owner=owner,
@@ -375,7 +375,9 @@ def push(package, public=False, reupload=False):
             }
         )
 
-    _push_package(dry_run=True)
+    print("Getting a list of upload URLs...")
+    resp = _push_package(dry_run=True)
+    upload_urls = resp.json()['upload_urls']
 
     obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
     total = len(obj_queue)
@@ -391,22 +393,16 @@ def push(package, public=False, reupload=False):
         'Content-Encoding': 'gzip'
     }
 
-    auth = _create_auth()
-
     print("Uploading %d fragments (%d bytes before compression)..." % (total, total_bytes))
 
     with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
         def _worker_thread():
-            with _create_session(auth) as session, requests.Session() as s3_session:
-                # Don't convert HTTP errors into CommandException.
-                del session.hooks['response']
-
+            with requests.Session() as s3_session:
                 # Retry 500s.
                 retries = Retry(total=3,
                                 backoff_factor=.5,
                                 status_forcelist=[500, 502, 503, 504])
-                session.mount('', HTTPAdapter(max_retries=retries))
-                s3_session.mount('', HTTPAdapter(max_retries=retries))
+                s3_session.mount('https://', HTTPAdapter(max_retries=retries))
 
                 while True:
                     with lock:
@@ -415,19 +411,11 @@ def push(package, public=False, reupload=False):
                         obj_hash = obj_queue.pop()
 
                     try:
-                        response = session.get(
-                            "{url}/api/blob/{owner}/{hash}".format(
-                                url=QUILT_PKG_URL,
-                                owner=owner,
-                                hash=obj_hash
-                            )
-                        )
-                        response.raise_for_status()
-                        contents = response.json()
+                        obj_urls = upload_urls[obj_hash]
 
                         original_size = os.path.getsize(pkgobj.get_store().object_path(obj_hash))
 
-                        if reupload or not s3_session.head(contents['head']).ok:
+                        if reupload or not s3_session.head(obj_urls['head']).ok:
                             # Create a temporary gzip'ed file.
                             with pkgobj.tempfile(obj_hash) as temp_file:
                                 temp_file.seek(0, 2)
@@ -447,7 +435,7 @@ def push(package, public=False, reupload=False):
                                     ctx.original_last_update = original_read
 
                                 with FileWithReadProgress(temp_file, _progress_cb) as fd:
-                                    url = contents['put']
+                                    url = obj_urls['put']
                                     response = s3_session.put(url, data=fd, headers=headers)
                                     response.raise_for_status()
                         else:
@@ -459,7 +447,7 @@ def push(package, public=False, reupload=False):
                             uploaded.append(obj_hash)
                     except requests.exceptions.RequestException as ex:
                         with lock:
-                            tqdm.write("Upload failed: error %s" % ex)
+                            tqdm.write("Upload failed for %s: error %s" % (obj_hash, ex))
 
         threads = [
             Thread(target=_worker_thread, name="upload-worker-%d" % i)
