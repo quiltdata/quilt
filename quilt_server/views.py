@@ -457,6 +457,20 @@ def package_put(auth_user, owner, package_name, package_hash):
             "Metadata size too large"
         )
 
+    # No more error checking at this point, so return from dry-run early.
+    if dry_run:
+        db.session.rollback()
+
+        return dict(
+            upload_urls={
+                blob_hash: dict(
+                    head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
+                    put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
+                )
+                for blob_hash in all_hashes
+            }
+        )
+
     if instance is None:
         instance = Instance(
             package=package,
@@ -501,26 +515,16 @@ def package_put(auth_user, owner, package_name, package_hash):
     )
     db.session.add(log)
 
-    # TODO: Stop returning upload URLs once all clients are upgraded to 2.4.2.
-    upload_urls = {
-        blob_hash: _generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
-        for blob_hash in all_hashes
-    }
-
-    if not dry_run:
-        db.session.commit()
+    db.session.commit()
 
     _mp_track(
         type="push",
         package_owner=owner,
         package_name=package_name,
         public=public,
-        dry_run=dry_run,
     )
 
-    return dict(
-        upload_urls=upload_urls
-    )
+    return dict()
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
