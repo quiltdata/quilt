@@ -605,6 +605,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
     pkgobj = store.install_package(owner, pkg, response_contents)
 
     with requests.Session() as s3_session:
+        # Retry 500s.
+        retries = Retry(total=3,
+                        backoff_factor=.5,
+                        status_forcelist=[500, 502, 503, 504])
+        s3_session.mount('', HTTPAdapter(max_retries=retries))
+
         total = len(response_urls)
         for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
             print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
@@ -616,8 +622,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
                     print("Fragment already installed; skipping.")
                     continue
                 else:
-                    print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
-                        file_hash)
+                    print(
+                        "Fragment already installed, but has the wrong hash (%s); re-downloading." %
+                        file_hash
+                    )
 
             response = s3_session.get(url, stream=True)
             if not response.ok:
@@ -644,7 +652,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
             if file_hash != download_hash:
                 os.remove(temp_path)
                 raise CommandException("Fragment hashes do not match: expected %s, got %s." %
-                                    (download_hash, file_hash))
+                                       (download_hash, file_hash))
 
             move(temp_path, local_filename)
 
