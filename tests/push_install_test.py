@@ -107,17 +107,6 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
-        data = json.loads(resp.data.decode('utf8'))
-        urls = data['upload_urls']
-        assert len(urls) == 3
-
-        url1 = urllib.parse.urlparse(urls[self.HASH1])
-        url2 = urllib.parse.urlparse(urls[self.HASH2])
-        url3 = urllib.parse.urlparse(urls[self.HASH3])
-        assert url1.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
-        assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
-        assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
-
         # List user's packages.
         resp = self.app.get(
             '/api/package/test_user/',
@@ -560,6 +549,18 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+
+        # Check that dry run returned signed URLs.
+        data = json.loads(resp.data.decode('utf8'))
+        urls = data['upload_urls']
+        assert len(urls) == 3
+
+        for obj_hash in (self.HASH1, self.HASH2, self.HASH3):
+            for method in ('head', 'put'):
+                url = urllib.parse.urlparse(urls[obj_hash][method])
+                assert url.path == '/%s/objs/test_user/%s' % (
+                    app.config['PACKAGE_BUCKET_NAME'], obj_hash
+                )
 
         # Verify that it doesn't actually exist.
         resp = self.app.get(
