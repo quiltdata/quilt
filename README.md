@@ -12,7 +12,7 @@ Quilt is a data package manager. Quilt consists of of two components:
     - `push`es packages to the registry
     - `pull`s packages from the registry
     
-For a demo and further information the high-level goals of Quilt, visit [docs.quiltdata.com](https://docs.quiltdata.com/).
+For more on the design goals of Quilt, visit [docs.quiltdata.com](https://docs.quiltdata.com/).
 
 ## Implementationn
 * Flask
