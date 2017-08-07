@@ -6,6 +6,7 @@ setup(
     name='quilt_server',
     packages=['quilt_server'],
     include_package_data=True,
+    python_requires='>=3.4, <4',
     install_requires=[
         'boto3',
         'Flask',
