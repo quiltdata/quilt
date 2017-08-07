@@ -1,6 +1,7 @@
 # Quilt Server
 
 ## Install
+* Make sure you're using Python 3.4+
 * Install and start MySQL
 * Create a `quilt` database:
 
