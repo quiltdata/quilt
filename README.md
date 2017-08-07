@@ -1,7 +1,30 @@
-# Quilt Server
+# Overview
+Quilt is a data package manager. Quilt consists of of two components:
+1. A server-side registry (this repository)
+    - Controls permissions
+    - Manages locations of objects in blob storage
+    - Stores package meta-data
+    - De-duplicates repeated data fragments
+    
+2. A [client-side packager](https://github.com/quiltdata/quilt)
+    - Serializes tabular data to Apache Parquet
+    - `build`s packages locally
+    - `push`es packages to the registry
+    - `pull`s packages from the registry
+    
+To learn more about the high-level goals of Quilt, visit [docs.quiltdata.com](https://docs.quiltdata.com/).
 
+## Implementationn
+* Flask
+* MySQL
+
+## Python support
+- 3.4
+- 3.5
+- 3.6
+
+# Get Started
 ## Install
-* Make sure you're using Python 3.4+
 * Install and start MySQL
 * Create a `quilt` database:
 
