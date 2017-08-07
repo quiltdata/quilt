@@ -6,7 +6,6 @@ import json
 import os
 import time
 
-import pytest
 import responses
 
 from six import assertRaisesRegex
@@ -43,14 +42,24 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        command.login()
+
+        mock_open.assert_called_with('%s/login' % command.QUILT_PKG_URL)
+
+        mock_login_with_token.assert_called_with(old_refresh_token)
+
     @patch('quilt.tools.command._save_auth')
-    def test_login(self, mock_save, mock_input, mock_open):
+    def test_login_token(self, mock_save):
         old_refresh_token = "123"
         refresh_token = "456"
         access_token = "abc"
         expires_at = 1000.0
-
-        mock_input.return_value = old_refresh_token
 
         self.requests_mock.add(
             responses.POST,
@@ -63,9 +72,7 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login()
-
-        mock_open.assert_called_with('%s/login' % command.QUILT_PKG_URL)
+        command.login_with_token(old_refresh_token)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
@@ -75,12 +82,8 @@ class CommandTest(QuiltTestCase):
             expires_at=expires_at
         ))
 
-    @patch('quilt.tools.command._open_url')
-    @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
-    def test_login_server_error(self, mock_save, mock_input, mock_open):
-        mock_input.return_value = "123"
-
+    def test_login_token_server_error(self, mock_save):
         self.requests_mock.add(
             responses.POST,
             '%s/api/token' % command.QUILT_PKG_URL,
@@ -88,16 +91,12 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login()
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 
-    @patch('quilt.tools.command._open_url')
-    @patch('quilt.tools.command.input')
     @patch('quilt.tools.command._save_auth')
-    def test_login_auth_fail(self, mock_save, mock_input, mock_open):
-        mock_input.return_value = "123"
-
+    def test_login_token_auth_fail(self, mock_save):
         self.requests_mock.add(
             responses.POST,
             '%s/api/token' % command.QUILT_PKG_URL,
@@ -108,7 +107,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login()
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 

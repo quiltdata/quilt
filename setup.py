@@ -43,7 +43,7 @@ setup(
         'pyOpenSSL>=16.2.0',
         'pyyaml>=3.12',
         'requests>=2.12.4',
-        'responses>=0.5.1',
+        'responses>=0.5.1,<0.6.1',  # 0.6.1 is broken, but already fixed in master
         'six>=1.10.0',
         'tables>=3.3.0',
         'tqdm>=4.11.2',
