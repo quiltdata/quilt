@@ -54,12 +54,10 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
                                      (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
-            if ext in TARGET[target]:
-                transform = ext
-                print("Inferring 'transform: %s' for %s" % (transform, rel_path))
-            else:
+            transform = ext
+            if transform not in TARGET[target]:
                 transform = ID
-                print("No transform given for %s. Using 'transform: %s'" % (rel_path, transform))
+            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
 
         if transform == ID:
             print("Copying %s..." % path)
