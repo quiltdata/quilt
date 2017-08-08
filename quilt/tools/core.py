@@ -158,14 +158,14 @@ def hash_contents(contents):
 
     return result.hexdigest()
 
-def find_object_hashes(contents):
+def find_object_hashes(obj):
     """
     Iterator that returns hashes of all of the tables.
     """
-    for obj in contents.children.values():
-        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
-            for objhash in obj.hashes:
-                yield objhash
-        elif isinstance(obj, GroupNode):
-            for objhash in find_object_hashes(obj):
+    if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+        for objhash in obj.hashes:
+            yield objhash
+    elif isinstance(obj, GroupNode):
+        for child in obj.children.values():
+            for objhash in find_object_hashes(child):
                 yield objhash

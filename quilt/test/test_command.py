@@ -23,8 +23,6 @@ class CommandTest(QuiltTestCase):
     def test_install_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.install(package="no_user")
-        with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
-            command.install(package="a/b/c")
 
     def test_inspect_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):

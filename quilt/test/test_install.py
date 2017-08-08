@@ -8,6 +8,7 @@ import os
 
 import responses
 from six import assertRaisesRegex
+from six.moves import urllib
 
 from ..tools import command
 from ..tools.const import HASH_TYPE
@@ -51,7 +52,7 @@ class InstallTest(QuiltTestCase):
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
-        self._mock_package('foo/bar', contents_hash, contents, [table_hash, file_hash])
+        self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash])
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
@@ -69,6 +70,37 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == file_data
 
+    def test_install_subpackage(self):
+        """
+        Install a part of a package.
+        """
+        table_data = "table" * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(table_data.encode('utf-8'))
+        table_hash = h.hexdigest()
+
+        contents = RootNode(dict(
+            group=GroupNode(dict(
+                table=TableNode([table_hash]),
+                file=FileNode(['unused'])
+            ))
+        ))
+        contents_hash = hash_contents(contents)
+
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
+        self._mock_s3(table_hash, table_data)
+
+        command.install('foo/bar/group/table')
+
+        with open('quilt_packages/foo/bar.json') as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents
+
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+            contents = fd.read()
+            assert contents == table_data
+
     def test_bad_contents_hash(self):
         """
         Test that a package with a bad contents hash fails installation.
@@ -85,7 +117,7 @@ class InstallTest(QuiltTestCase):
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
-        self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
+        self._mock_package('foo/bar', contents_hash, '', contents, [obj_hash])
 
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install('foo/bar')
@@ -108,7 +140,7 @@ class InstallTest(QuiltTestCase):
         contents_hash = hash_contents(contents)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
-        self._mock_package('foo/bar', contents_hash, contents, [obj_hash])
+        self._mock_package('foo/bar', contents_hash, '', contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
         with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
@@ -149,7 +181,7 @@ class InstallTest(QuiltTestCase):
         # file2 does not exist.
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
-        self._mock_package('foo/bar', contents_hash, contents, file_hash_list)
+        self._mock_package('foo/bar', contents_hash, '', contents, file_hash_list)
         # Don't mock file0, since it's not supposed to be downloaded.
         self._mock_s3(file_hash_list[1], file_data_list[1])
         self._mock_s3(file_hash_list[2], file_data_list[2])
@@ -168,12 +200,14 @@ class InstallTest(QuiltTestCase):
             hash=pkg_hash
         )))
 
-    def _mock_package(self, package, pkg_hash, contents, hashes):
-        pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
+    def _mock_package(self, package, pkg_hash, subpath, contents, hashes):
+        pkg_url = '%s/api/package/%s/%s?%s' % (
+            command.QUILT_PKG_URL, package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+        )
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,
             urls={h: 'https://example.com/%s' % h for h in hashes}
-        ), default=encode_node))
+        ), default=encode_node), match_querystring=True)
 
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash

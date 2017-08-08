@@ -83,7 +83,7 @@ def main():
     tag_remove_p.set_defaults(func=command.tag_remove)
 
     install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help=HANDLE)
+    install_p.add_argument("package", type=str, help="owner/package_name[/path/...]")
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()

@@ -148,21 +148,29 @@ def _clear_session():
         _session.close()
         _session = None
 
-def _parse_package(name):
+def _parse_package(name, allow_subpath=False):
     try:
-        owner, pkg = name.split('/')
+        values = name.split('/')
+        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
+        (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
             # Make sure they're not empty.
             raise ValueError
+        if subpath and not allow_subpath:
+            raise ValueError
     except ValueError:
-        raise CommandException("Specify package as owner/package_name.")
+        pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
+        raise CommandException("Specify package as %s." % pkg_format)
 
     try:
         PackageStore.check_name(owner, pkg)
     except StoreException as ex:
         raise CommandException(str(ex))
 
-    return owner, pkg
+    if allow_subpath:
+        return owner, pkg, subpath
+    else:
+        return owner, pkg
 
 def _open_url(url):
     try:
@@ -549,7 +557,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     assert [hash, version, tag].count(None) == 2
 
-    owner, pkg = _parse_package(package)
+    owner, pkg, subpath = _parse_package(package, allow_subpath=True)
     session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
@@ -590,6 +598,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
             owner=owner,
             pkg=pkg,
             hash=pkghash
+        ),
+        params=dict(
+            subpath='/'.join(subpath)
         )
     )
     assert response.ok # other responses handled by _handle_response
