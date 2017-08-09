@@ -461,15 +461,20 @@ def package_put(auth_user, owner, package_name, package_hash):
     if dry_run:
         db.session.rollback()
 
-        return dict(
-            upload_urls={
-                blob_hash: dict(
+        # List of signed URLs is potentially huge, so stream it.
+
+        def _generate():
+            yield '{"upload_urls":{'
+            for idx, blob_hash in enumerate(all_hashes):
+                comma = ('' if idx == 0 else ',')
+                value = dict(
                     head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
                     put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
                 )
-                for blob_hash in all_hashes
-            }
-        )
+                yield '%s%s:%s' % (comma, json.dumps(blob_hash), json.dumps(value))
+            yield '}}'
+
+        return Response(_generate(), content_type='application/json')
 
     if instance is None:
         instance = Instance(
