@@ -6,19 +6,16 @@ ENV LANG=C.UTF-8
 
 RUN apt-get update -y
 RUN apt-get install -y python3 python3-dev python3-pip build-essential
-RUN pip3 install uwsgi
-
-# Install the requirements from setup.py before copying the server code.
-# This is redundant, but it avoids unnecessary image rebuilds
-# and speeds up docker build/push/pull significantly.
-RUN pip3 install boto3 Flask Flask-Cors Flask-JSON Flask-Migrate httpagentparser
-RUN pip3 install jsonschema mixpanel packaging PyMySQL requests-oauthlib stripe
 
 # Create Quilt user
 RUN useradd -s /bin/bash -m quilt
 
 # Setup uwsgi
 COPY uwsgi.ini /etc/uwsgi.ini
+
+# Install the dependencies
+COPY requirements.txt /usr/src/quilt-server/
+RUN pip3 install -r /usr/src/quilt-server/requirements.txt
 
 # Install the Flask app
 # Do this as the last step to maximize caching.
