@@ -6,6 +6,7 @@ ENV LANG=C.UTF-8
 
 RUN apt-get update -y
 RUN apt-get install -y python3 python3-dev python3-pip build-essential
+RUN pip3 install uwsgi
 
 # Create Quilt user
 RUN useradd -s /bin/bash -m quilt
