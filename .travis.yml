@@ -20,6 +20,7 @@ os:
 install:
   - pip install -U pip
   - pip install -U pytest
+  - pip install -r requirements.txt
   - pip install .
 
 script:
