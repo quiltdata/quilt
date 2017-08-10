@@ -535,6 +535,8 @@ def package_put(auth_user, owner, package_name, package_hash):
 @api(require_login=False)
 @as_json
 def package_get(auth_user, owner, package_name, package_hash):
+    subpath = request.args.get('subpath')
+
     instance = (
         Instance.query
         .filter_by(hash=package_hash)
@@ -569,7 +571,14 @@ def package_get(auth_user, owner, package_name, package_hash):
         # Invalid version number? Ignore it.
         pass
 
-    all_hashes = set(find_object_hashes(contents))
+    subnode = contents
+    for component in subpath.split('/') if subpath else []:
+        try:
+            subnode = subnode.children[component]
+        except (AttributeError, KeyError):
+            raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
+
+    all_hashes = set(find_object_hashes(subnode))
 
     urls = {
         blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
@@ -580,6 +589,7 @@ def package_get(auth_user, owner, package_name, package_hash):
         type="install",
         package_owner=owner,
         package_name=package_name,
+        subpath=subpath,
     )
 
     return dict(

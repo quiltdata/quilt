@@ -586,3 +586,82 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.bad_request
+
+    def testInstallSubpath(self):
+        """
+        Push a package, then install it a subpath.
+        """
+        # Push a package.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Install table "foo".
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s?%s' % (
+                self.CONTENTS_HASH,
+                urllib.parse.urlencode(dict(subpath='foo')),
+            ),
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
+        assert contents == self.CONTENTS
+        urls = data['urls']
+        assert len(urls) == 2  # HASH1 and HASH2
+
+        # Install group "group1/group2".
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s?%s' % (
+                self.CONTENTS_HASH,
+                urllib.parse.urlencode(dict(subpath='group1/group2')),
+            ),
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
+        assert contents == self.CONTENTS
+        urls = data['urls']
+        assert len(urls) == 1  # Just HASH1
+
+        # Install a non-existant group.
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s?%s' % (
+                self.CONTENTS_HASH,
+                urllib.parse.urlencode(dict(subpath='zzz')),
+            ),
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
+
+        # Install a child of a non-group.
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s?%s' % (
+                self.CONTENTS_HASH,
+                urllib.parse.urlencode(dict(subpath='foo/zzz')),
+            ),
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
