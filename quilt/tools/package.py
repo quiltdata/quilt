@@ -138,6 +138,12 @@ class Package(object):
         else:
             assert False, "Unimplemented package format: %s" % enumformat
 
+    def _check_hashes(self, hash_list):
+        for objhash in hash_list:
+            path = self._store.object_path(objhash)
+            if not os.path.exists(path):
+                raise PackageException("Missing object fragments; re-install the package")
+
     def save_df(self, df, name, path, ext, target, format):
         """
         Save a DataFrame to the store.
@@ -216,11 +222,14 @@ class Package(object):
         package tree.
         """
         if isinstance(node, TableNode):
+            self._check_hashes(node.hashes)
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
             hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
+            self._check_hashes(hash_list)
             return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):
+            self._check_hashes(node.hashes)
             return self.file(node.hashes)
         else:
             assert False, "Unhandled Node {node}".format(node=node)
