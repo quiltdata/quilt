@@ -381,7 +381,7 @@ def push(package, public=False, reupload=False):
             }
         )
 
-    print("Getting a list of upload URLs...")
+    print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
     upload_urls = resp.json()['upload_urls']
 
