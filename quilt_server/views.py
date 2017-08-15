@@ -556,21 +556,6 @@ def package_get(auth_user, owner, package_name, package_hash):
 
     contents = json.loads(instance.contents, object_hook=decode_node)
 
-    try:
-        browser = g.user_agent['browser']
-        if (isinstance(contents, RootNode) and contents.format is None
-                and browser['name'] == 'QuiltCli' and
-                PackagingVersion(browser['version']) <= PackagingVersion('2.4.1')):
-            # New package format that requires Quilt CLI newer than 2.4.1.
-            raise ApiException(
-                requests.codes.server_error,
-                "Outdated client. Run `pip install quilt --upgrade`, " +
-                "then install this package again."
-            )
-    except ValueError:
-        # Invalid version number? Ignore it.
-        pass
-
     subnode = contents
     for component in subpath.split('/') if subpath else []:
         try:
