@@ -6,7 +6,6 @@ import gzip
 
 from appdirs import user_data_dir
 from six import BytesIO, string_types, Iterator
-from tqdm import tqdm
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -17,7 +16,7 @@ class FileWithReadProgress(Iterator):
     """
     Acts like a file with mode='rb', but displays a progress bar while the file is read.
     """
-    def __init__(self, path_or_fd):
+    def __init__(self, path_or_fd, progress_cb):
         if isinstance(path_or_fd, string_types):
             self._fd = open(path_or_fd, 'rb')
             self._need_to_close = True
@@ -25,20 +24,12 @@ class FileWithReadProgress(Iterator):
             self._fd = path_or_fd
             self._need_to_close = False
 
-        self._fd.seek(0, 2)
-        size = self._fd.tell()
-        self._fd.seek(0)
-
-        self._progress = tqdm(
-            total=size,
-            unit='B',
-            unit_scale=True
-        )
+        self._progress_cb = progress_cb
 
     def read(self, size=-1):
         """Read bytes and update the progress bar."""
         buf = self._fd.read(size)
-        self._progress.update(len(buf))
+        self._progress_cb(len(buf))
         return buf
 
     def __iter__(self):
@@ -47,7 +38,7 @@ class FileWithReadProgress(Iterator):
     def __next__(self):
         """Read the next line and update the progress bar."""
         buf = next(self._fd)
-        self._progress.update(len(buf))
+        self._progress_cb(len(buf))
         return buf
 
     def tell(self):
@@ -59,8 +50,7 @@ class FileWithReadProgress(Iterator):
         self._fd.seek(offset, whence)
 
     def close(self):
-        """Close the file and the progress bar."""
-        self._progress.close()
+        """Close the file."""
         if self._need_to_close:
             self._fd.close()
 

@@ -14,7 +14,6 @@ except ImportError:
     # Python2 - external dependency.
     from mock import patch
 
-import requests
 import responses
 
 class BasicQuiltTestCase(unittest.TestCase):
@@ -39,8 +38,8 @@ class QuiltTestCase(BasicQuiltTestCase):
     def setUp(self):
         super(QuiltTestCase, self).setUp()
 
-        self.session_patcher = patch('quilt.tools.command._get_session', requests.Session)
-        self.session_patcher.start()
+        self.auth_patcher = patch('quilt.tools.command._create_auth', lambda: None)
+        self.auth_patcher.start()
 
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
@@ -48,6 +47,6 @@ class QuiltTestCase(BasicQuiltTestCase):
     def tearDown(self):
 
         self.requests_mock.stop()
-        self.session_patcher.stop()
+        self.auth_patcher.stop()
 
         super(QuiltTestCase, self).tearDown()

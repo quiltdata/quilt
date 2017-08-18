@@ -8,6 +8,7 @@ import re
 from six import iteritems
 import yaml
 import pandas as pd
+from tqdm import tqdm
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, RESERVED, TARGET
@@ -115,8 +116,12 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
     df = None
     try_again = False
     try:
-        with FileWithReadProgress(path) as fd:
-            df = handler(fd, **kwargs)
+        size = os.path.getsize(path)
+        with tqdm(total=size, unit='B', unit_scale=True) as progress:
+            def _callback(count):
+                progress.update(count)
+            with FileWithReadProgress(path, _callback) as fd:
+                df = handler(fd, **kwargs)
     except UnicodeDecodeError as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path

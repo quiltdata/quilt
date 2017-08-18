@@ -13,11 +13,14 @@ import stat
 import subprocess
 import sys
 import time
+from threading import Thread, Lock
 
 from packaging.version import Version
 import pandas as pd
 import pkg_resources
 import requests
+from requests.packages.urllib3.util.retry import Retry
+from requests.adapters import HTTPAdapter
 from six import iteritems, string_types
 from tqdm import tqdm
 
@@ -42,6 +45,8 @@ else:
     AUTH_FILE_NAME = "auth-%.8s.json" % hashlib.md5(QUILT_PKG_URL.encode('utf-8')).hexdigest()
 
 CHUNK_SIZE = 4096
+
+PARALLEL_UPLOADS = 20
 
 VERSION = pkg_resources.require('quilt')[0].version
 
@@ -90,12 +95,9 @@ def _handle_response(resp, **kwargs):
         except ValueError:
             raise CommandException("Unexpected failure: error %s" % resp.status_code)
 
-def _create_session():
+def _create_auth():
     """
-    Creates a session object to be used for `push`, `install`, etc.
-
-    It reads the credentials, possibly gets an updated access token,
-    and sets the request headers.
+    Reads the credentials, updates the access token if necessary, and returns it.
     """
     file_path = os.path.join(BASE_DIR, AUTH_FILE_NAME)
     if os.path.exists(file_path):
@@ -116,6 +118,12 @@ def _create_session():
         # user hasn't run quilt login yet.
         auth = None
 
+    return auth
+
+def _create_session(auth):
+    """
+    Creates a session object to be used for `push`, `install`, etc.
+    """
     session = requests.Session()
     session.hooks.update(dict(
         response=_handle_response
@@ -138,7 +146,8 @@ def _get_session():
     """
     global _session
     if _session is None:
-        _session = _create_session()
+        auth = _create_auth()
+        _session = _create_session(auth)
 
     return _session
 
@@ -359,7 +368,7 @@ def push(package, public=False, reupload=False):
 
         compressed_data = gzip_compress(data.encode('utf-8'))
 
-        session.put(
+        return session.put(
             "{url}/api/package/{owner}/{pkg}/{hash}".format(
                 url=QUILT_PKG_URL,
                 owner=owner,
@@ -372,41 +381,92 @@ def push(package, public=False, reupload=False):
             }
         )
 
-    _push_package(dry_run=True)
+    print("Fetching upload URLs from the registry...")
+    resp = _push_package(dry_run=True)
+    upload_urls = resp.json()['upload_urls']
 
-    obj_hashes = sorted(set(find_object_hashes(pkgobj.get_contents())))
-    total = len(obj_hashes)
+    obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
+    total = len(obj_queue)
+
+    total_bytes = 0
+    for obj_hash in obj_queue:
+        total_bytes += os.path.getsize(pkgobj.get_store().object_path(obj_hash))
+
+    uploaded = []
+    lock = Lock()
 
     headers = {
         'Content-Encoding': 'gzip'
     }
 
-    with requests.Session() as s3_session:
-        for idx, obj_hash in enumerate(obj_hashes):
-            print("Uploading %s (%d/%d)..." % (obj_hash, idx + 1, total))
+    print("Uploading %d fragments (%d bytes before compression)..." % (total, total_bytes))
 
-            response = session.get(
-                "{url}/api/blob/{owner}/{hash}".format(
-                    url=QUILT_PKG_URL,
-                    owner=owner,
-                    hash=obj_hash
-                )
-            )
-            contents = response.json()
+    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
+        def _worker_thread():
+            with requests.Session() as s3_session:
+                # Retry 500s.
+                retries = Retry(total=3,
+                                backoff_factor=.5,
+                                status_forcelist=[500, 502, 503, 504])
+                s3_session.mount('https://', HTTPAdapter(max_retries=retries))
 
-            if not reupload:
-                s3_response = s3_session.head(contents['head'])
-                if s3_response.ok:
-                    print("Fragment already uploaded; skipping.")
-                    continue  # Next obj_hash
+                while True:
+                    with lock:
+                        if not obj_queue:
+                            break
+                        obj_hash = obj_queue.pop()
 
-            # Create a temporary gzip'ed file.
-            with pkgobj.tempfile(obj_hash) as temp_file:
-                with FileWithReadProgress(temp_file) as temp_file_with_progress:
-                    url = contents['put']
-                    response = s3_session.put(url, data=temp_file_with_progress, headers=headers)
-                    if not response.ok:
-                        raise CommandException("Upload failed: error %s" % response.status_code)
+                    try:
+                        obj_urls = upload_urls[obj_hash]
+
+                        original_size = os.path.getsize(pkgobj.get_store().object_path(obj_hash))
+
+                        if reupload or not s3_session.head(obj_urls['head']).ok:
+                            # Create a temporary gzip'ed file.
+                            with pkgobj.tempfile(obj_hash) as temp_file:
+                                temp_file.seek(0, 2)
+                                compressed_size = temp_file.tell()
+                                temp_file.seek(0)
+
+                                # Workaround for non-local variables in Python 2.7
+                                class ctx:
+                                    compressed_read = 0
+                                    original_last_update = 0
+
+                                def _progress_cb(count):
+                                    ctx.compressed_read += count
+                                    original_read = ctx.compressed_read * original_size // compressed_size
+                                    with lock:
+                                        progress.update(original_read - ctx.original_last_update)
+                                    ctx.original_last_update = original_read
+
+                                with FileWithReadProgress(temp_file, _progress_cb) as fd:
+                                    url = obj_urls['put']
+                                    response = s3_session.put(url, data=fd, headers=headers)
+                                    response.raise_for_status()
+                        else:
+                            with lock:
+                                tqdm.write("Fragment %s already uploaded; skipping." % obj_hash)
+                                progress.update(original_size)
+
+                        with lock:
+                            uploaded.append(obj_hash)
+                    except requests.exceptions.RequestException as ex:
+                        with lock:
+                            tqdm.write("Upload failed for %s: error %s" % (obj_hash, ex))
+
+        threads = [
+            Thread(target=_worker_thread, name="upload-worker-%d" % i)
+            for i in range(PARALLEL_UPLOADS)
+        ]
+        for t in threads:
+            t.daemon = True
+            t.start()
+        for t in threads:
+            t.join()
+
+    if len(uploaded) != total:
+        raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
     _push_package()
