@@ -27,7 +27,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import EMAILREGEX, PaymentPlan, PUBLIC
-from .core import decode_node, encode_node, find_object_hashes, hash_contents, RootNode
+from .core import decode_node, encode_node, find_object_hashes, hash_contents, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, UTF8_GENERAL_CI, Version)
 from .schemas import PACKAGE_SCHEMA
@@ -56,6 +56,9 @@ OBJ_DIR = 'objs'
 # Limit the JSON metadata to 100MB.
 # This is mostly a sanity check; it's already limited by app.config['MAX_CONTENT_LENGTH'].
 MAX_METADATA_SIZE = 100 * 1024 * 1024
+
+PREVIEW_MAX_CHILDREN = 10
+PREVIEW_MAX_DEPTH = 5
 
 s3_client = boto3.client(
     's3',
@@ -531,11 +534,25 @@ def package_put(auth_user, owner, package_name, package_hash):
 
     return dict()
 
+def _truncate_contents(node, max_depth=PREVIEW_MAX_DEPTH):
+    if isinstance(node, GroupNode):
+        max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
+        if len(node.children) > max_children:
+            node.children = {
+                k: v
+                for k, v in sorted(node.children.items())[:max_children]
+            }
+            # HACK: Add a "...", starting with a zero-width space to make it show up at the end.
+            node.children['\u202B...'] = '...'
+        for child in node.children.values():
+            _truncate_contents(child, max_depth - 1)
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
 def package_get(auth_user, owner, package_name, package_hash):
     subpath = request.args.get('subpath')
+    preview = request.args.get('preview') == 'true'
 
     instance = (
         Instance.query
@@ -569,6 +586,9 @@ def package_get(auth_user, owner, package_name, package_hash):
         blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
         for blob_hash in all_hashes
     }
+
+    if preview:
+        _truncate_contents(contents)
 
     _mp_track(
         type="install",
