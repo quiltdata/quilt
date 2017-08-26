@@ -4,6 +4,7 @@
 API routes.
 """
 
+from collections import OrderedDict
 from datetime import timedelta, timezone
 from functools import wraps
 import json
@@ -537,13 +538,11 @@ def package_put(auth_user, owner, package_name, package_hash):
 def _truncate_contents(node, max_depth=PREVIEW_MAX_DEPTH):
     if isinstance(node, GroupNode):
         max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
+        children_preview = OrderedDict(sorted(node.children.items())[:max_children])
         if len(node.children) > max_children:
-            node.children = {
-                k: v
-                for k, v in sorted(node.children.items())[:max_children]
-            }
             # HACK: Add a "...", starting with a zero-width space to make it show up at the end.
-            node.children['\u202B...'] = '...'
+            children_preview['\u202B...'] = '...'
+        node.children = children_preview
         for child in node.children.values():
             _truncate_contents(child, max_depth - 1)
 

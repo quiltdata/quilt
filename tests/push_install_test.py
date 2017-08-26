@@ -636,7 +636,6 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'test_user'
             }
         )
-        print(resp.data)
         assert resp.status_code == requests.codes.ok
 
         # Get preview.
