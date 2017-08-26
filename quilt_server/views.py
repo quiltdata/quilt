@@ -58,7 +58,7 @@ OBJ_DIR = 'objs'
 MAX_METADATA_SIZE = 100 * 1024 * 1024
 
 PREVIEW_MAX_CHILDREN = 10
-PREVIEW_MAX_DEPTH = 5
+PREVIEW_MAX_DEPTH = 4
 
 s3_client = boto3.client(
     's3',

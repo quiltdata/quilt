@@ -654,8 +654,8 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
 
-        assert (contents.children['group1'].children['group2'].children['group3']
-                        .children['group4'].children['group5']) == GroupNode({'\u202B...': '...'})
+        assert (contents.children['group1'].children['group2']
+                        .children['group3'].children['group4']) == GroupNode({'\u202B...': '...'})
         assert len(contents.children['big_group'].children) == 11
         assert contents.children['big_group'].children['\u202B...'] == '...'
 
