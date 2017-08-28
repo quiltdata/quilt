@@ -82,7 +82,7 @@ class PushInstallTestCase(QuiltTestCase):
     ))
 
     HUGE_CONTENTS = RootNode(dict(
-        README=TableNode(
+        README=FileNode(
             hashes=[HASH1]
         ),
         group1=GroupNode(dict(
@@ -97,7 +97,7 @@ class PushInstallTestCase(QuiltTestCase):
             ))
         )),
         big_group=GroupNode({
-            'child%d' % i: GroupNode(dict())
+            'child%02d' % i: GroupNode(dict())
             for i in range(1, 21)
         })
     ))
@@ -640,10 +640,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         # Get preview.
         resp = self.app.get(
-            '/api/package/test_user/foo/%s?%s' % (
-                huge_contents_hash,
-                urllib.parse.urlencode(dict(subpath='README', preview='true')),
-            ),
+            '/api/package_preview/test_user/foo/%s' % huge_contents_hash,
             headers={
                 'Authorization': 'test_user'
             }
@@ -651,12 +648,31 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
-        contents = data['contents']
+        assert data['readme_url']
+        preview = data['preview']
 
-        assert (contents.children['group1'].children['group2']
-                        .children['group3'].children['group4']) == GroupNode({'\u202B...': '...'})
-        assert len(contents.children['big_group'].children) == 11
-        assert contents.children['big_group'].children['\u202B...'] == '...'
-
-        urls = data['urls']
-        assert len(urls) == 1  # HASH1
+        assert preview == [
+            ['README', None],
+            ['big_group', [
+                ['child01', []],
+                ['child02', []],
+                ['child03', []],
+                ['child04', []],
+                ['child05', []],
+                ['child06', []],
+                ['child07', []],
+                ['child08', []],
+                ['child09', []],
+                ['child10', []],
+                ['...', None],
+            ]],
+            ['group1', [
+                ['group2', [
+                    ['group3', [
+                        ['group4', [
+                            ['...', None]
+                        ]]
+                    ]]
+                ]]
+            ]],
+        ]
