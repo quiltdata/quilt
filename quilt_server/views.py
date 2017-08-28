@@ -1099,50 +1099,6 @@ def access_list(auth_user, owner, package_name):
     else:
         raise PackageNotFoundException(owner, package_name)
 
-@app.route('/api/all_packages/', methods=['GET'])
-@api(require_login=False)
-@as_json
-def all_packages(auth_user):
-    """DEPRECATED; use /api/profile"""
-    results = (
-        db.session.query(Package, Access)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
-        .all()
-    )
-
-    # Use sets to dedupe own+public and shared+public.
-
-    own_packages = set()
-    shared_packages = set()
-    public_packages = set()
-
-    for package, access in results:
-        if package.owner == auth_user:
-            own_packages.add(package)
-
-        if access.user == auth_user:
-            shared_packages.add(package)
-        elif access.user == PUBLIC:
-            public_packages.add(package)
-        else:
-            assert False
-
-    def _to_json(packages):
-        return [
-            dict(
-                owner=package.owner,
-                name=package.name,
-                is_public=package in public_packages
-            ) for package in sorted(packages, key=Package.sort_key)
-        ]
-
-    return dict(
-        own=_to_json(own_packages),
-        shared=_to_json(shared_packages - own_packages),
-        public=_to_json(public_packages - shared_packages - own_packages),
-    )
-
 @app.route('/api/recent_packages/', methods=['GET'])
 @api(require_login=False)
 @as_json

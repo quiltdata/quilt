@@ -21,7 +21,8 @@ def api_root():
         abort(requests.codes.forbidden)
 
     return dict(
-        current_user=auth_value
+        current_user=auth_value,
+        email='%s@example.com' % auth_value
     )
 
 if __name__ == '__main__':
