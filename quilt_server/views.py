@@ -4,7 +4,6 @@
 API routes.
 """
 
-from collections import OrderedDict
 from datetime import timedelta, timezone
 from functools import wraps
 import json
