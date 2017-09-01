@@ -81,6 +81,27 @@ class PushInstallTestCase(QuiltTestCase):
         )
     ))
 
+    HUGE_CONTENTS = RootNode(dict(
+        README=FileNode(
+            hashes=[HASH1]
+        ),
+        group1=GroupNode(dict(
+            group2=GroupNode(dict(
+                group3=GroupNode(dict(
+                    group4=GroupNode(dict(
+                        group5=GroupNode(dict(
+                            group6=GroupNode(dict())
+                        ))
+                    ))
+                ))
+            ))
+        )),
+        big_group=GroupNode({
+            'child%02d' % i: GroupNode(dict())
+            for i in range(1, 21)
+        })
+    ))
+
     CONTENTS_HASH = 'a20597100b045f5420de46b7188590e8688bcfe2ac01e9cbefe26f8919b3f44d'
 
     def testContentsHash(self):
@@ -598,3 +619,60 @@ class PushInstallTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.not_found
+
+    def testPreview(self):
+        huge_contents_hash = hash_contents(self.HUGE_CONTENTS)
+
+        # Push.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % huge_contents_hash,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.HUGE_CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Get preview.
+        resp = self.app.get(
+            '/api/package_preview/test_user/foo/%s' % huge_contents_hash,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        assert data['readme_url']
+        preview = data['preview']
+
+        assert preview == [
+            ['README', None],
+            ['big_group', [
+                ['child01', []],
+                ['child02', []],
+                ['child03', []],
+                ['child04', []],
+                ['child05', []],
+                ['child06', []],
+                ['child07', []],
+                ['child08', []],
+                ['child09', []],
+                ['child10', []],
+                ['...', None],
+            ]],
+            ['group1', [
+                ['group2', [
+                    ['group3', [
+                        ['group4', [
+                            ['...', None]
+                        ]]
+                    ]]
+                ]]
+            ]],
+        ]

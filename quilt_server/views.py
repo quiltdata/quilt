@@ -27,7 +27,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import EMAILREGEX, PaymentPlan, PUBLIC
-from .core import decode_node, encode_node, find_object_hashes, hash_contents, RootNode
+from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, UTF8_GENERAL_CI, Version)
 from .schemas import PACKAGE_SCHEMA
@@ -56,6 +56,9 @@ OBJ_DIR = 'objs'
 # Limit the JSON metadata to 100MB.
 # This is mostly a sanity check; it's already limited by app.config['MAX_CONTENT_LENGTH'].
 MAX_METADATA_SIZE = 100 * 1024 * 1024
+
+PREVIEW_MAX_CHILDREN = 10
+PREVIEW_MAX_DEPTH = 4
 
 s3_client = boto3.client(
     's3',
@@ -255,6 +258,24 @@ def _get_package(auth_user, owner, package_name):
     if package is None:
         raise PackageNotFoundException(owner, package_name, auth_user is not PUBLIC)
     return package
+
+def _get_instance(auth_user, owner, package_name, package_hash):
+    instance = (
+        Instance.query
+        .filter_by(hash=package_hash)
+        .options(undefer('contents'))  # Contents is deferred by default.
+        .join(Instance.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .one_or_none()
+    )
+    if instance is None:
+        raise ApiException(
+            requests.codes.not_found,
+            "Package hash does not exist"
+        )
+    return instance
 
 def _utc_datetime_to_ts(dt):
     """
@@ -537,23 +558,7 @@ def package_put(auth_user, owner, package_name, package_hash):
 def package_get(auth_user, owner, package_name, package_hash):
     subpath = request.args.get('subpath')
 
-    instance = (
-        Instance.query
-        .filter_by(hash=package_hash)
-        .options(undefer('contents'))  # Contents is deferred by default.
-        .join(Instance.package)
-        .filter_by(owner=owner, name=package_name)
-        .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
-        .one_or_none()
-    )
-
-    if instance is None:
-        raise ApiException(
-            requests.codes.not_found,
-            "Package hash does not exist"
-        )
-
+    instance = _get_instance(auth_user, owner, package_name, package_hash)
     contents = json.loads(instance.contents, object_hook=decode_node)
 
     subnode = contents
@@ -580,6 +585,50 @@ def package_get(auth_user, owner, package_name, package_hash):
     return dict(
         contents=contents,
         urls=urls,
+        created_by=instance.created_by,
+        created_at=_utc_datetime_to_ts(instance.created_at),
+        updated_by=instance.updated_by,
+        updated_at=_utc_datetime_to_ts(instance.updated_at),
+    )
+
+def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
+    if isinstance(node, GroupNode):
+        max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
+        children_preview = [
+            (name, _generate_preview(child, max_depth - 1))
+            for name, child in sorted(node.children.items())[:max_children]
+        ]
+        if len(node.children) > max_children:
+            children_preview.append(('...', None))
+        return children_preview
+    else:
+        return None
+
+@app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_preview(auth_user, owner, package_name, package_hash):
+    instance = _get_instance(auth_user, owner, package_name, package_hash)
+    contents = json.loads(instance.contents, object_hook=decode_node)
+
+    readme = contents.children.get('README')
+    if isinstance(readme, FileNode):
+        assert len(readme.hashes) == 1
+        readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme.hashes[0])
+    else:
+        readme_url = None
+
+    contents_preview = _generate_preview(contents)
+
+    _mp_track(
+        type="preview",
+        package_owner=owner,
+        package_name=package_name,
+    )
+
+    return dict(
+        preview=contents_preview,
+        readme_url=readme_url,
         created_by=instance.created_by,
         created_at=_utc_datetime_to_ts(instance.created_at),
         updated_by=instance.updated_by,
