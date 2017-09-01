@@ -32,7 +32,7 @@ from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 
-from .. import data
+from .. import nodes
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -255,7 +255,7 @@ def build(package, path=None):
     # we may have a path, PackageNode, or None
     if isinstance(path, string_types):
         build_from_path(package, path)
-    elif isinstance(path, data.PackageNode):
+    elif isinstance(path, nodes.PackageNode):
         build_from_node(package, path)
     elif path is None:
         build_empty(package)
@@ -282,10 +282,10 @@ def build_from_node(package, node):
     package_obj = store.create_package(owner, pkg)
 
     def _process_node(node, path=''):
-        if isinstance(node, data.GroupNode):
+        if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
                 _process_node(child, path + '/' + key)
-        elif isinstance(node, data.DataNode):
+        elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
             if isinstance(core_node, TableNode):
