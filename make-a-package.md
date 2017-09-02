@@ -1,8 +1,8 @@
 There are two ways to build data packages with Quilt:
 
-1. Implicitly with `quilt build DIRECTORY`. Implicit builds are good for taking quick snapshots of unstructured data like images or text files. Quilt serializes columnar formats formats (xls, csv, tsv, etc.) to data frames; all other files will be copied "as is".
+1. Implicitly with `quilt build USR/PKG DIRECTORY`. Implicit builds are good for taking quick snapshots of unstructured data like images or text files. Quilt serializes columnar formats formats (xls, csv, tsv, etc.) to data frames; all other files will be copied "as is".
 
-1. Explicitly with `quilt build FILE.YML`. Explicit builds allow fine-grained control over package names, types, and contents.
+1. Explicitly with `quilt build USR/PKG FILE.YML`. Explicit builds allow fine-grained control over package names, types, and contents.
 
 You can build packages in [Python](./python.md) or on the [command line](./shell.md).
 
