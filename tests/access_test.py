@@ -537,3 +537,18 @@ class AccessTestCase(QuiltTestCase):
         _test_query("", auth, [
             "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
         ])
+
+    def testSearchOrder(self):
+        for pkg in ['a', 'B', 'c', 'D']:
+            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
+
+        params = dict(q=self.user)
+        resp = self.app.get(
+            '/api/search/?%s' % urllib.parse.urlencode(params)
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        names = [pkg['name'] for pkg in data['packages']]
+        assert names == ['a', 'B', 'c', 'D']

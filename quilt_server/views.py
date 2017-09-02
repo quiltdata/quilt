@@ -1184,7 +1184,10 @@ def search(auth_user):
         .join(Package.access)
         .filter(Access.user.in_([auth_user, PUBLIC]))
         .group_by(Package.id)
-        .order_by(Package.owner, Package.name)
+        .order_by(
+            sa.sql.collate(Package.owner, UTF8_GENERAL_CI),
+            sa.sql.collate(Package.name, UTF8_GENERAL_CI)
+        )
         .all()
     )
 
