@@ -3,7 +3,6 @@ parse build file, serialize package
 """
 from collections import defaultdict
 import importlib
-import sys
 from types import ModuleType
 import os
 import re
@@ -38,12 +37,12 @@ def _pythonize_name(name):
         raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
-def _build_node(build_dir, package, name, node, format, target='pandas'):
+def _build_node(build_dir, package, name, node, fmt, target='pandas'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table, format)
+            _build_node(build_dir, package, name + '/' + child_name, child_table, fmt)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
@@ -85,14 +84,14 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
 
             # serialize DataFrame to file(s)
             print("Saving as binary dataframe...")
-            package.save_df(df, name, rel_path, transform, target, format)
+            package.save_df(df, name, rel_path, transform, target, fmt)
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
 
     ext = ext.lower() # ensure that case doesn't matter
     spark = sparksql.SparkSession.builder.getOrCreate()
-    df = spark.read.load(path, format=ext, header=True, **user_kwargs)
+    df = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
     for col in df.columns:
         pcol = _pythonize_name(col)
         if col != pcol:
@@ -101,13 +100,7 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
     logic = PARSERS.get(ext)
-    module_name = logic['module']
-    the_module = None
-    if module_name in sys.modules:
-        the_module = sys.modules[module_name]
-    else:
-        the_module = importlib.import_module(module_name) 
-    
+    the_module = importlib.import_module(logic['module'])
     if not isinstance(the_module, ModuleType):
         raise BuildException("Missing required module: %s." % mod)
     # allow user to specify handler kwargs and override default kwargs
@@ -167,6 +160,9 @@ def build_package(username, package, yaml_path):
     build_package_from_contents(username, package, build_dir, data)
 
 def build_package_from_contents(username, package, build_dir, data):
+    """
+    Builds package according to YAML node
+    """
     contents = data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
