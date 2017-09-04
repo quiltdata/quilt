@@ -16,6 +16,7 @@ DTIMEF = '%s %s' % (DATEF, TIMEF)
 LATEST_TAG = 'latest'
 PACKAGE_DIR_NAME = 'quilt_packages'
 DEFAULT_BUILDFILE = 'build.yml'
+
 # reserved words in build.yml
 RESERVED = {
     'file': 'file',
@@ -32,33 +33,36 @@ kwargs = {'keep_default_na': False, 'na_values': ['nan']}
 # Supported build targets and file types
 # BUILD[target][file_extension]
 # file_extension should be lowercase
-TARGET = {
-    'pandas': {
-        'csv': {
-            'attr': 'read_csv',
-            'failover' : {'engine' : 'python'},
-            'kwargs': kwargs
-        },
-        'ssv': {
-            'attr': 'read_csv',
-            'failover' : {'engine' : 'python'},
-            'kwargs': dict(kwargs, sep=';')
-        },
-        'tsv': {
-            'attr': 'read_csv',
-            'failover' : {'engine' : 'python'},
-            'kwargs': dict(kwargs, sep='\t')
-        },
-        'xls': {
-            'attr': 'read_excel',
-            # TODO set sheetname='None' to get all sheets?
-            # Currently defaults to sheetname=0, which imports first sheet only
-            'kwargs': kwargs
-        },
-        'xlsx': {
-            'attr': 'read_excel',
-            # see comments under 'xls'
-            'kwargs': kwargs
-        }
+PARSERS = {
+    'csv': {
+        'module': 'pandas',
+        'attr': 'read_csv',
+        'failover' : {'engine' : 'python'},
+        'kwargs': kwargs
+    },
+    'ssv': {
+        'module': 'pandas',
+        'attr': 'read_csv',
+        'failover' : {'engine' : 'python'},
+        'kwargs': dict(kwargs, sep=';')
+    },
+    'tsv': {
+        'module': 'pandas',
+        'attr': 'read_csv',
+        'failover' : {'engine' : 'python'},
+        'kwargs': dict(kwargs, sep='\t')
+    },
+    'xls': {
+        'module': 'pandas',
+        'attr': 'read_excel',
+        # TODO set sheetname='None' to get all sheets?
+        # Currently defaults to sheetname=0, which imports first sheet only
+        'kwargs': kwargs
+    },
+    'xlsx': {
+        'module': 'pandas',
+        'attr': 'read_excel',
+        # see comments under 'xls'
+        'kwargs': kwargs
     }
 }

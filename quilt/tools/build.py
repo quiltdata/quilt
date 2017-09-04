@@ -2,6 +2,8 @@
 parse build file, serialize package
 """
 from collections import defaultdict
+import importlib
+from types import ModuleType
 import os
 import re
 
@@ -11,7 +13,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, RESERVED, TARGET
+from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat
 from .util import FileWithReadProgress
 
@@ -35,12 +37,12 @@ def _pythonize_name(name):
         raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
-def _build_node(build_dir, package, name, node, format, target='pandas'):
+def _build_node(build_dir, package, name, node, fmt, target='pandas'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table, format)
+            _build_node(build_dir, package, name + '/' + child_name, child_table, fmt)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
@@ -50,13 +52,14 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
         transform = node.get(RESERVED['transform'])
         ID = 'id'
         if transform:
-            if (transform not in TARGET[target]) and (transform != ID):
+            transform = transform.lower()
+            if (transform not in PARSERS) and (transform != ID):
                 raise BuildException("Unknown transform '%s' for %s @ %s" %
                                      (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
             ignore, ext = splitext_no_dot(rel_path)
             transform = ext
-            if transform not in TARGET[target]:
+            if transform not in PARSERS:
                 transform = ID
             print("Inferring 'transform: %s' for %s" % (transform, rel_path))
 
@@ -81,14 +84,14 @@ def _build_node(build_dir, package, name, node, format, target='pandas'):
 
             # serialize DataFrame to file(s)
             print("Saving as binary dataframe...")
-            package.save_df(df, name, rel_path, transform, target, format)
+            package.save_df(df, name, rel_path, transform, target, fmt)
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
 
     ext = ext.lower() # ensure that case doesn't matter
     spark = sparksql.SparkSession.builder.getOrCreate()
-    df = spark.read.load(path, format=ext, header=True, **user_kwargs)
+    df = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
     for col in df.columns:
         pcol = _pythonize_name(col)
         if col != pcol:
@@ -96,22 +99,17 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     return df
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
-    ext = ext.lower() # ensure that case doesn't matter
-    platform = TARGET.get(target)
-    if platform is None:
-        raise BuildException('Unsupported target platform: %s' % target)
-    logic = platform.get(ext)
-    if logic is None:
-        raise BuildException(
-            "Unsupported transform: %s. Try setting a 'transform' key." % ext)
-    fname = logic['attr']
+    logic = PARSERS.get(ext)
+    the_module = importlib.import_module(logic['module'])
+    if not isinstance(the_module, ModuleType):
+        raise BuildException("Missing required module: %s." % mod)
     # allow user to specify handler kwargs and override default kwargs
     kwargs = dict(logic['kwargs'])
     kwargs.update(user_kwargs)
     failover = logic.get('failover', None)
-    handler = getattr(pd, fname, None)
+    handler = getattr(the_module, logic['attr'], None)
     if handler is None:
-        raise BuildException("Invalid transform: %r" % fname)
+        raise BuildException("Invalid handler: %r" % fname)
 
     df = None
     try_again = False
@@ -162,6 +160,9 @@ def build_package(username, package, yaml_path):
     build_package_from_contents(username, package, build_dir, data)
 
 def build_package_from_contents(username, package, build_dir, data):
+    """
+    Builds package according to YAML node
+    """
     contents = data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
