@@ -21,8 +21,7 @@ class AccessTestCase(QuiltTestCase):
     Test access endpoints and access control for
     push/install.
     """
-    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
-    def setUp(self, customer):
+    def setUp(self):
         super(AccessTestCase, self).setUp()
 
         self.user = "test_user"
@@ -53,8 +52,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
-    @mock_customer()
-    def testShareDatasetByEmail(self, customer):
+    def testShareDatasetByEmail(self):
         """
         Push a package, share it and test that the
         invitation was created.
@@ -384,7 +382,73 @@ class AccessTestCase(QuiltTestCase):
         assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
 
     @mock_customer()
-    def testProfile(self, customer):
+    def testRemovePublicBasicUser(self, customer):
+        public_pkg = "publicpkg"
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+
+        # Try deleting the PUBLIC user
+        resp = self.app.delete(
+            '/api/access/{owner}/{pkg}/{user}'.format(owner=self.user, pkg=public_pkg, user=PUBLIC),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.payment_required
+
+    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
+    def testRemovePublicIndividualUser(self, customer):
+        public_pkg = "publicpkg"
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+
+        # Delete the PUBLIC user
+        resp = self.app.delete(
+            '/api/access/{owner}/{pkg}/{user}'.format(owner=self.user, pkg=public_pkg, user=PUBLIC),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that the package is now private.
+        resp = self.app.get(
+            '/api/access/{owner}/{pkg}/'.format(owner=self.user, pkg=self.pkg),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        can_access = data.get('users')
+        assert can_access == [self.user]
+
+    def testRemovePublicNoPayments(self):
+        public_pkg = "publicpkg"
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+
+        # Delete the PUBLIC user
+        resp = self.app.delete(
+            '/api/access/{owner}/{pkg}/{user}'.format(owner=self.user, pkg=public_pkg, user=PUBLIC),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that the package is now private.
+        resp = self.app.get(
+            '/api/access/{owner}/{pkg}/'.format(owner=self.user, pkg=self.pkg),
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        can_access = data.get('users')
+        assert can_access == [self.user]
+
+    def testProfile(self):
         """
         List all accessible packages.
         """
@@ -461,8 +525,7 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
 
-    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
-    def testRecentPackages(self, customer):
+    def testRecentPackages(self):
         # Push two public packages.
         for i in range(2):
             pkg = 'pkg%d' % i

@@ -15,6 +15,7 @@ from .utils import mock_customer, QuiltTestCase
 
 
 class PaymentsTestCase(QuiltTestCase):
+    @mock.patch('quilt_server.views.HAVE_PAYMENTS', True)
     @mock.patch('stripe.Customer.retrieve')
     @mock.patch('stripe.Subscription.create')
     @mock.patch('stripe.Customer.create')
@@ -54,6 +55,20 @@ class PaymentsTestCase(QuiltTestCase):
 
         assert data['plan'] == PaymentPlan.FREE.value
         assert data['have_credit_card'] is False
+
+    def testBasicInfoNoPayments(self):
+        user = 'test_user'
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': user,
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        assert data['plan'] is None
+        assert data['have_credit_card'] is None
 
     @mock_customer(plan=PaymentPlan.INDIVIDUAL, have_credit_card=True)
     def testProInfo(self, customer):

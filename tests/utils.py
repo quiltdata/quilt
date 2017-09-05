@@ -46,6 +46,9 @@ class QuiltTestCase(TestCase):
         self.mp_patcher = mock.patch('quilt_server.views.mp', mock_mp)
         self.mp_patcher.start()
 
+        self.payments_patcher = mock.patch('quilt_server.views.HAVE_PAYMENTS', False)
+        self.payments_patcher.start()
+
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'mysql+pymysql://root@localhost/test_%s' % random_name
 
@@ -62,6 +65,7 @@ class QuiltTestCase(TestCase):
         quilt_server.db.drop_all()
         sqlalchemy_utils.drop_database(self.db_url)
 
+        self.payments_patcher.stop()
         self.mp_patcher.stop()
 
         self.requests_mock.stop()
@@ -149,7 +153,8 @@ def mock_customer(plan=PaymentPlan.FREE, have_credit_card=False):
             args += (customer,)
 
             with mock.patch('quilt_server.views._get_or_create_customer', return_value=customer):
-                return f(*args, **kwargs)
+                with mock.patch('quilt_server.views.HAVE_PAYMENTS', True):
+                    return f(*args, **kwargs)
 
         return wrapper
     return innerdec
