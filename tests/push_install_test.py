@@ -487,6 +487,21 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert "pip install quilt --upgrade" in data['message']
 
+    def testCreatePrivateNoPayments(self):
+        # Payments disabled; no restrictions on private packages.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user',
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
     def testDryRun(self):
         # Create a new package.
         resp = self.app.put(

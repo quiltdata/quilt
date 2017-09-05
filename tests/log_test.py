@@ -9,15 +9,14 @@ import requests
 
 from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import hash_contents, GroupNode, RootNode
-from .utils import mock_customer, QuiltTestCase
+from .utils import QuiltTestCase
 
 
 class LogTestCase(QuiltTestCase):
     """
     Test log endpoint.
     """
-    @mock_customer(plan=PaymentPlan.INDIVIDUAL)
-    def setUp(self, customer):
+    def setUp(self):
         super(LogTestCase, self).setUp()
 
         self.user = "test_user"

@@ -68,6 +68,7 @@ s3_client = boto3.client(
 )
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
+HAVE_PAYMENTS = stripe.api_key is not None
 
 
 class QuiltCli(httpagentparser.Browser):
@@ -318,6 +319,8 @@ def _generate_presigned_url(method, owner, blob_hash):
     )
 
 def _get_or_create_customer():
+    assert HAVE_PAYMENTS, "Payments are not enabled"
+
     db_customer = Customer.query.filter_by(id=g.user).one_or_none()
 
     if db_customer is None:
@@ -413,7 +416,7 @@ def package_put(auth_user, owner, package_name, package_hash):
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
 
-        if not public:
+        if HAVE_PAYMENTS and not public:
             customer = _get_or_create_customer()
             plan = _get_customer_plan(customer)
             if plan == PaymentPlan.FREE:
@@ -1085,7 +1088,7 @@ def access_delete(auth_user, owner, package_name, user):
             "Cannot revoke the owner's access"
         )
 
-    if user == PUBLIC:
+    if HAVE_PAYMENTS and user == PUBLIC:
         customer = _get_or_create_customer()
         plan = _get_customer_plan(customer)
         if plan == PaymentPlan.FREE:
@@ -1202,8 +1205,14 @@ def search(auth_user):
 @api()
 @as_json
 def profile(auth_user):
-    customer = _get_or_create_customer()
-    subscription = customer.subscriptions.data[0]
+    if HAVE_PAYMENTS:
+        customer = _get_or_create_customer()
+        plan = _get_customer_plan(customer).value
+        have_cc = customer.sources.total_count > 0
+    else:
+        plan = None
+        have_cc = None
+
     public_access = sa.orm.aliased(Access)
 
     # Check for outstanding package sharing invitations
@@ -1249,14 +1258,17 @@ def profile(auth_user):
                 for package, is_public in packages if package.owner != auth_user
             ],
         ),
-        plan=subscription.plan.id,
-        have_credit_card=customer.sources.total_count > 0,
+        plan=plan,
+        have_credit_card=have_cc,
     )
 
 @app.route('/api/payments/update_plan', methods=['POST'])
 @api()
 @as_json
 def payments_update_plan(auth_user):
+    if not HAVE_PAYMENTS:
+        raise ApiException(requests.codes.not_found, "Payments not enabled")
+
     plan = request.values.get('plan')
     try:
         plan = PaymentPlan(plan)
@@ -1300,6 +1312,9 @@ def payments_update_plan(auth_user):
 @api()
 @as_json
 def payments_update_payment(auth_user):
+    if not HAVE_PAYMENTS:
+        raise ApiException(requests.codes.not_found, "Payments not enabled")
+
     stripe_token = request.values.get('token')
     if not stripe_token:
         raise ApiException(requests.codes.bad_request, "Missing token")
