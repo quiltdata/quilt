@@ -40,6 +40,11 @@ def main():
     build_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
     build_p.set_defaults(func=command.build)
 
+    check_p = subparsers.add_parser("check")
+    check_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
+    check_p.add_argument("--env", type=str, help="use which environment (default=default)")
+    check_p.set_defaults(func=command.check)
+
     push_p = subparsers.add_parser("push")
     push_p.add_argument("package", type=str, help=HANDLE)
     push_p.add_argument("--public", action="store_true",

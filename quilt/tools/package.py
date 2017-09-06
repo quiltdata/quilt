@@ -234,6 +234,25 @@ class Package(object):
         else:
             assert False, "Unhandled Node {node}".format(node=node)
 
+# WIP: doesn't work quite right yet.
+#    def find_node_by_name(self, findstr, node=None, prefix=''):
+#        """use / to separate levels"""
+#        if node is None:
+#            node = self.get_contents()
+#        if isinstance(node, GroupNode) or isinstance(node, RootNode):
+#            for child_name, child in node.children.items():
+#                full_child_name = prefix + child_name
+#                #print('findstr={}  prefix={}  child={}'.format(findstr, prefix, child_name))
+#                if findstr == full_child_name:
+#                    return child
+#                if isinstance(child, GroupNode):
+#                    res = self.find_node_by_name(findstr, child, full_child_name + "/")
+#                    if res is not None:
+#                        return res
+#            return None
+#        #print('non-group node?')
+#        return None
+
     def get_hash(self):
         """
         Returns the hash digest of the package data.
@@ -317,3 +336,4 @@ class Package(object):
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
         ptr.children[leaf] = node
+

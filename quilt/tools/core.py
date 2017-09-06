@@ -1,8 +1,21 @@
 from enum import Enum
 import hashlib
 import struct
+from . import check_functions as qc
 
 from six import iteritems, string_types
+
+class BuildException(Exception):
+    """
+    Build-time exception class
+    """
+    pass
+
+class CommandException(Exception):
+    """
+    Exception class for all command-related failures.
+    """
+    pass
 
 
 class PackageFormat(Enum):
@@ -169,3 +182,40 @@ def find_object_hashes(obj):
         for child in obj.children.values():
             for objhash in find_object_hashes(child):
                 yield objhash
+
+def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
+    # TODO False vs Exception...
+    try:
+        # setup for eval
+        qc.nodename = nodename
+        qc.filename = path
+        qc.data = dataframe
+        # single vs multi-line checks - YAML hackery
+        if '\n' in str(chkcode):
+            exec(str(chkcode))
+            res = True
+        else:
+            res = eval(str(chkcode))  # str() to handle True/False
+    except qc.CheckFunctionsReturn as ex:
+        res = ex.result
+    except Exception as ex:
+        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
+    return res
+
+def diff_dataframes(df1, df2):
+    """Identify differences between two pandas DataFrames"""
+    # from https://stackoverflow.com/a/38421614
+    assert(df1.columns == df2.columns).all(), \
+        "DataFrame column names are different"
+    if df1.equals(df2):
+        return None
+    # need to account for numpy.nan != numpy.nan returning True
+    diff_mask = (df1 != df2) & ~(df1.isnull() & df2.isnull())
+    ne_stacked = diff_mask.stack()
+    changed = ne_stacked[ne_stacked]
+    changed.index.names = ['id']
+    difference_locations = numpy.where(diff_mask)
+    changed_from = df1.values[difference_locations]
+    changed_to = df2.values[difference_locations]
+    return pd.DataFrame({'from': changed_from, 'to': changed_to},
+                        index=changed.index)
