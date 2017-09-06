@@ -1,6 +1,10 @@
 from enum import Enum
 import hashlib
 import struct
+
+# for check functions
+import pandas
+from pandas import DataFrame as df
 from . import check_functions as qc
 
 from six import iteritems, string_types

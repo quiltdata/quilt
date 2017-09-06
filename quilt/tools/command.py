@@ -256,7 +256,7 @@ def build(package, path=None, dryrun=False, env='default'):
     # we may have a path, PackageNode, or None
     if isinstance(path, string_types):
         build_from_path(package, path, dryrun=dryrun, env=env)
-    elif isinstance(path, data.PackageNode):
+    elif isinstance(path, nodes.PackageNode):
         assert not dryrun  # TODO?
         build_from_node(package, path)
     elif path is None:

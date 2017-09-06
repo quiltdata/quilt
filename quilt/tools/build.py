@@ -13,7 +13,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED, TARGET
+from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python
 from .util import FileWithReadProgress
 
@@ -127,22 +127,17 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     return df
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
-    ext = ext.lower() # ensure that case doesn't matter
-    platform = TARGET.get(target)
-    if platform is None:
-        raise BuildException('Unsupported target platform: %s' % target)
-    logic = platform.get(ext)
-    if logic is None:
-        raise BuildException(
-            "Unsupported transform: %s. Try setting a 'transform' key." % ext)
-    fname = logic['attr']
+    logic = PARSERS.get(ext)
+    the_module = importlib.import_module(logic['module'])
+    if not isinstance(the_module, ModuleType):
+        raise BuildException("Missing required module: %s." % mod)
     # allow user to specify handler kwargs and override default kwargs
     kwargs = dict(logic['kwargs'])
     kwargs.update(user_kwargs)
     failover = logic.get('failover', None)
-    handler = getattr(pd, fname, None)
+    handler = getattr(the_module, logic['attr'], None)
     if handler is None:
-        raise BuildException("Invalid transform: %r" % fname)
+        raise BuildException("Invalid handler: %r" % fname)
 
     df = None
     try_again = False
