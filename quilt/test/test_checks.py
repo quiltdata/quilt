@@ -94,15 +94,3 @@ class ChecksTest(QuiltTestCase):
             "qc.check_column_regexp('UID1', r'^[0-9a-e]')")
         self.build_fail('lots_uid_errors')
 
-    def test_condensed_specs(self):
-        # TODO: define syntax for build_group_data.xml, which doesn't bloat the yml
-        # e.g. checksgroup: <groupname> ... below ... checkgroups: ...
-        pass
-
-    def test_blob_checking(self):
-        # TODO: test data that's blobs
-        pass
-
-    def test_json_checking(self):
-        # TODO: test data that's json
-        pass
