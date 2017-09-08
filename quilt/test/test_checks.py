@@ -30,17 +30,18 @@ class ChecksTest(QuiltTestCase):
     def tearDown(self):
         super(QuiltTestCase, self).tearDown()
 
-    def build_success(self, check):
-        self.build_contents['foo']['checks'] = check
+    def build_success(self, check, nodename='foo'):
+        self.build_contents[nodename]['checks'] = check
+        if check == 'string':
+            raise Exception(str(self.build_data)+"\n\n"+str(self.checks_contents))
         mydir = os.path.dirname(__file__)
         build.build_package_from_contents(
-            'foo', 'bar', mydir, self.build_data, self.checks_contents,
-            dry_run=True)
+            'foox', 'barx', mydir, self.build_data, self.checks_contents, dry_run=True)
 
-    def build_fail(self, check, regexp=None):
+    def build_fail(self, check, regexp=None, nodename='foo'):
         # explicitly fail if build_success() somehow succeeds when it shouldn't
         try:
-            self.build_success(check)
+            self.build_success(check, nodename=nodename)
             pytest.fail('build_fail() called but test succeeded.')
         except pytest.fail.Exception:
             raise
@@ -49,7 +50,7 @@ class ChecksTest(QuiltTestCase):
         if regexp is None:
             regexp = "Data check failed: %s" % (check)
         with assertRaisesRegex(self, build.BuildException, regexp):
-            self.build_success(check)
+            self.build_success(check, nodename=nodename)
         
     def test_parse_checks_file(self):
         assert str(self.checks_contents['negative']) == 'False'
@@ -94,4 +95,15 @@ class ChecksTest(QuiltTestCase):
         self.checks_contents['lots_uid_errors'] = (
             "qc.check_column_regexp('UID1', r'^[0-9a-e]')")
         self.build_fail('lots_uid_errors')
+
+    def test_string_checks(self):
+        self.build_contents['foo'] = { 'checks': 'stringchecks',
+                                       'file': 'data/10KRows13Cols.tsv' }
+        self.checks_contents['stringchecks'] = """
+qc.check_column_substr('UID.+', '-')  # must contain a dash
+qc.check_column_regexp('UID.+', r'^[0-9a-f-]+$')
+qc.check_column_datetime('Date0', '%Y-%m-%d')
+qc.check_column_datetime('DTime0', '%Y-%m-%d %H:%M:%S.%f')
+        """
+        self.build_success('stringchecks')
 

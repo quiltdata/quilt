@@ -25,5 +25,6 @@ contents:
   enum_list_fail: qc.check_column_enum('x', [999])
   enum_list_fail_empty: qc.check_column_enum('x', [])
   enum_lambda_success: |
-    qc.check_column_enum('x', lambda dfcol: df.all(dfcol.isin([1,2,3,4,5])))
+    qc.check_column_enum('x', lambda dfcol: dfcol.isin([1,2,3,4,5]).all())
+
 

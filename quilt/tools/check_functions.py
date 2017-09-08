@@ -23,11 +23,10 @@ class CheckFunctionsException(Exception):
 def check(expr, envs=None):
     global env                  # pylint:disable=C0103
     if envs is not None:
-        override = envs.get(env)
-        if override:
-            expr = override
-        # TODO: error if env is missing?
-    raise CheckFunctionsReturn(expr)
+        # TODO: error if env not found
+        expr = envs.get(env, expr)
+    if not expr:
+        raise CheckFunctionsReturn(expr)
 
 def print_recnums(msg, expr, maxrecs=30):
     matching_recs = [str(i) for i, val in enumerate(expr) if val]
@@ -50,7 +49,7 @@ def check_column_enum(colrx, lambda_or_listexpr, envs=None):
             if callable(lambda_or_listexpr):
                 check(lambda_or_listexpr(data[colname]))
             else:
-                check(df.all(data[colname].isin(lambda_or_listexpr)))
+                check(data[colname].isin(lambda_or_listexpr).all())
 
 VALRANGE_FUNCS = {
     'mean':     lambda col, minval, maxval: check(minval <= col.mean() <= maxval),
@@ -61,7 +60,7 @@ VALRANGE_FUNCS = {
     'sum':      lambda col, minval, maxval: check(minval <= col.sum() <= maxval),
     'count':    lambda col, minval, maxval: check(minval <= col.count() <= maxval),
     'abs':      lambda col, minval, maxval: check(
-        df.all(col.between(minval, maxval, inclusive=True))),
+        col.between(minval, maxval, inclusive=True).all() )
 }
 VALRANGE_FUNCS['avg'] = VALRANGE_FUNCS['mean']
 VALRANGE_FUNCS['std'] = VALRANGE_FUNCS['stdev'] = VALRANGE_FUNCS['stddev']
@@ -69,7 +68,7 @@ VALRANGE_FUNCS['var'] = VALRANGE_FUNCS['variance']
                 
 def check_column_valrange(colrx, minval=None, maxval=None, lambda_or_name=None, envs=None):
     if envs not in [None, 'default']:
-        check_column_regexp(colrx, envs[env])
+        check_column_valrange(colrx, minval, maxval, lambda_or_name, envs[env])
     for colname in list(data):
         if re.search(colrx, colname):
             col = data[colname]
@@ -90,21 +89,21 @@ def check_column_valrange(colrx, minval=None, maxval=None, lambda_or_name=None, 
 
 def check_column_regexp(colrx, regexp, envs=None):
     if envs not in [None, 'default']:
-        check_column_regexp(colrx, envs[env])
+        check_column_regexp(colrx, regexp, envs[env])
     for colname in list(data):
         if re.search(colrx, colname):
-            check(df.all(data[colname].str.match(regexp)))
+            check(data[colname].str.match(regexp).all())
 
 def check_column_substr(colrx, substr, envs=None):
     if envs not in [None, 'default']:
-        check_column_regexp(colrx, envs[env])
+        check_column_substr(colrx, substr, envs[env])
     for colname in list(data):
         if re.search(colrx, colname):
-            check(df.all(data[colname].str.index(substr) != -1))
+            check( (data[colname].str.index(substr) != -1).all() )
 
 def check_column_datetime(colrx, fmt, envs=None):
     if envs not in [None, 'default']:
-        check_column_regexp(colrx, envs[env])
+        check_column_datetime(colrx, fmt, envs[env])
     for colname in list(data):
         if re.search(colrx, colname):
             try:

@@ -232,10 +232,8 @@ def build_package_from_contents(username, package, build_dir, build_data,
         raise BuildException("HDF5 format is no longer supported; please use PARQUET instead.")
 
     # inline checks take precedence
-    if checks_contents is None:
-        checks_contents = build_data.get('checks', {})
-    else:
-        checks_contents.update(build_data.get('checks', {}))
+    checks_contents = {} if checks_contents is None else checks_contents
+    checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
     newpackage = store.create_package(username, package, dry_run=dry_run)
