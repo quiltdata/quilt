@@ -32,8 +32,9 @@ class ChecksTest(QuiltTestCase):
 
     def build_success(self, check):
         self.build_contents['foo']['checks'] = check
+        mydir = os.path.dirname(__file__)
         build.build_package_from_contents(
-            'foo', 'bar', self._old_dir, self.build_data, self.checks_contents,
+            'foo', 'bar', mydir, self.build_data, self.checks_contents,
             dry_run=True)
 
     def build_fail(self, check, regexp=None):
