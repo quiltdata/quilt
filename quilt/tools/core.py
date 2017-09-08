@@ -1,3 +1,7 @@
+#
+# TODO: shared with backend - DO NOT ADD CLIENT-SPECIFIC CODE HERE
+#
+
 from enum import Enum
 import hashlib
 import struct

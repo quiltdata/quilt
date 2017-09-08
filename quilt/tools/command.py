@@ -16,6 +16,7 @@ import time
 from threading import Thread, Lock
 import yaml
 import getpass
+import tempfile
 
 from packaging.version import Version
 import pandas as pd
@@ -29,7 +30,7 @@ from tqdm import tqdm
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, find_object_hashes, PackageFormat,
+from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
 from .store import PackageStore, parse_package
@@ -37,6 +38,7 @@ from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
 from .. import nodes
+from .. import data
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -246,21 +248,21 @@ def check(path=None, env='default'):
     """
     # TODO: add files=<list of files> to check only a subset...
     # also useful for 'quilt build' to exclude certain files?
-    # (if not, then require dryrun=True if files!=None/all)
-    build("dryrun/dryrun", path=path, dryrun=True, env=env)
+    # (if not, then require dry_run=True if files!=None/all)
+    build("dry_run/dry_run", path=path, dry_run=True, env=env)
 
-def build(package, path=None, dryrun=False, env='default'):
+def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
     # we may have a path, PackageNode, or None
     if isinstance(path, string_types):
-        build_from_path(package, path, dryrun=dryrun, env=env)
+        build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
-        assert not dryrun  # TODO?
+        assert not dry_run  # TODO?
         build_from_node(package, path)
     elif path is None:
-        assert not dryrun  # TODO?
+        assert not dry_run  # TODO?
         build_empty(package)
     else:
         raise ValueError("Expected a PackageNode or a path, but got %r" % path)
@@ -291,11 +293,11 @@ def build_from_node(package, node):
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
-            if isinstance(core_node, nodes.TableNode):
+            if isinstance(core_node, TableNode):
                 dataframe = node._data()
                 package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
                                     'pandas', PackageFormat.default)
-            elif isinstance(core_node, nodes.FileNode):
+            elif isinstance(core_node, FileNode):
                 src_path = node._data()
                 package_obj.save_file(src_path, path, metadata.get('q_path'))
             else:
@@ -306,7 +308,7 @@ def build_from_node(package, node):
     _process_node(node)
     package_obj.save_contents()
 
-def build_from_path(package, path, dryrun=False, env='default'):
+def build_from_path(package, path, dry_run=False, env='default'):
     """
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
@@ -325,11 +327,11 @@ def build_from_path(package, path, dryrun=False, env='default'):
                 )
 
             contents = generate_contents(path, DEFAULT_BUILDFILE)
-            build_package_from_contents(owner, pkg, path, contents, dryrun=dryrun, env=env)
+            build_package_from_contents(owner, pkg, path, contents, dry_run=dry_run, env=env)
         else:
-            build_package(owner, pkg, path, dryrun=dryrun, env=env)
+            build_package(owner, pkg, path, dry_run=dry_run, env=env)
 
-        if not dryrun:
+        if not dry_run:
             print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
@@ -653,7 +655,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
         )
         pkghash = response.json()['hash']
     elif len(hash) < 64:
-        print('matching short hash against logs...')
+        assert len(hash) >= 6   # short is ok, but only to a point...
         response = session.get(
             "{url}/api/log/{owner}/{pkg}/".format(
                 url=QUILT_PKG_URL,
@@ -662,8 +664,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         for entry in reversed(response.json()['logs']):
-            if entry['hash'][:len(hash)] == hash:
+            if entry['hash'].startswith(hash):
                 pkghash = entry['hash']
+                break
     else:
         pkghash = hash
     assert pkghash is not None
@@ -740,14 +743,13 @@ def install(package, hash=None, version=None, tag=None, force=False):
 def _setup_env(env, files):
     """ process data distribution. """
     # TODO: build.yml is not saved in the package system, so re-load it here
-    environments = None
     with open('build.yml') as fd:
         buildfile = next(yaml.load_all(fd), None)
-        environments = buildfile.get('environments')
-    if env != 'default' and (environments is None or env not in environments):
+        environments = buildfile.get('environments', {})
+    if env != 'default' and (env not in environments):
         raise CommandException(
             "environment %s not found in environments: section of build.yml" % env)
-    if environments is None:
+    if len(environments) == 0:
         return files
     if env == 'default' and 'default' not in environments:
         return files
@@ -760,10 +762,10 @@ def _setup_env(env, files):
     dataset = environment.get('dataset')
     for key, val in files.items():
         # TODO: debug mode, where we can see which files were skipped
-        if type(val) == pd.core.frame.DataFrame:
+        if isinstance(val, pd.DataFrame):
             before_len = len(val)
             res = exec_yaml_python(dataset, val, key, '('+key+')')
-            if res == False:
+            if not res and res is not None:
                 raise BuildException("error creating dataset for environment: %s on file %s" % (
                     env, key))
             print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
@@ -786,47 +788,6 @@ def _setup_env(env, files):
             print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
             files[key] = qc.data
     return files
-
-def load_to_dict(pkg, force=False, env='default', **kwargs):
-    import importlib
-    install(pkg, force=force)
-    user, module = pkg.split('/')
-    module = importlib.import_module("quilt.data.{}.{}".format(user, module))
-    files = dict([ (key, getattr(module, val)()) for key, val in kwargs.items() ])
-    files = _setup_env(env, files)
-    return files
-
-def load_to_files(pkg, force=False, fmt='tsv', env='default', **kwargs):
-    resdict = load_to_dict(pkg, force, env, **kwargs)
-    for key, val in resdict.items():
-        # HACK: use the object store?  how to garbage collect?
-        newfn = '/tmp/'+getpass.getuser()+"-"+key
-        if fmt == 'tsv':
-            res = val.to_csv(sep='\t')
-        elif fmt == 'jsonl':
-            # annoyingly, this doesn't work because val.to_json() failed on nested structures
-            #val['annotator_labels'] = val.as_matrix(['label1', 'label2', 'label3', 'label4', 'label5'])
-            #val = val.drop(['label1', 'label2', 'label3', 'label4', 'label5'])
-            json_res = val.to_json(orient='records', lines=True)
-            res_array = []
-            for json_rec in json_res.split('\n'):
-                rec = json.loads(json_rec)
-                rec['annotator_labels'] = [
-                    rec['label1'], rec['label2'], rec['label3'], rec['label4'], rec['label5'] ]
-                del rec['label1']
-                del rec['label2']
-                del rec['label3']
-                del rec['label4']
-                del rec['label5']
-                res_array.append(json.dumps(rec))
-            res = '\n'.join(res_array)
-        else:
-            raise Exception('not implemented: load_to_files format=%s' % (fmt))
-        with open(newfn, 'w') as fn:
-            fn.write(res)
-            fn.write('\n')
-        resdict[key] = newfn
-    return resdict
 
 def access_list(package):
     """

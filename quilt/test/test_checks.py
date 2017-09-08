@@ -14,32 +14,30 @@ from .utils import QuiltTestCase
 
 def read_yml_file(fn):
     mydir = os.path.dirname(__file__)
-    path = os.path.join(mydir, '.')
-    filepath = os.path.join(path, fn)
+    filepath = os.path.join(mydir, fn)
     with open(filepath) as fd:
         return next(yaml.load_all(fd), None)
 
 class ChecksTest(QuiltTestCase):
 
     def setUp(self):
+        super(QuiltTestCase, self).setUp()
         self.checks_data = read_yml_file('checks_simple.yml')
         self.checks_contents = self.checks_data['contents']
         self.build_data = read_yml_file('build_simple_checks.yml')
         self.build_contents = self.build_data['contents']
-        return super(QuiltTestCase, self).setUp()
 
     def tearDown(self):
-        return super(QuiltTestCase, self).tearDown()
+        super(QuiltTestCase, self).tearDown()
 
     def build_success(self, check):
         self.build_contents['foo']['checks'] = check
         build.build_package_from_contents(
             'foo', 'bar', self._old_dir, self.build_data, self.checks_contents,
-            dryrun=True)
+            dry_run=True)
 
     def build_fail(self, check, regexp=None):
-        if regexp is None:
-            regexp = "Data check failed: %s" % (check)
+        # explicitly fail if build_success() somehow succeeds when it shouldn't
         try:
             self.build_success(check)
             pytest.fail('build_fail() called but test succeeded.')
@@ -47,6 +45,8 @@ class ChecksTest(QuiltTestCase):
             raise
         except Exception:
             pass
+        if regexp is None:
+            regexp = "Data check failed: %s" % (check)
         with assertRaisesRegex(self, build.BuildException, regexp):
             self.build_success(check)
         

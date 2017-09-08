@@ -22,7 +22,7 @@ def gen_rsa():
 PATH = os.path.join(BASE_DIR, 'keys')
 PUB_KEY = os.path.join(PATH, 'public.pem')
 PRI_KEY = os.path.join(PATH, 'private.pem')
-def to_pem_files(pk, path=PATH):
+def to_pem_files(pkey, path=PATH):
     """
     Dump an RSA key pair to PEM files at the specified path
     """
@@ -34,10 +34,10 @@ def to_pem_files(pk, path=PATH):
             makedirs(path)
         # write public key
         with open(PUB_KEY, 'w+') as pubfile:
-            pubfile.write(dump_publickey(FILETYPE_PEM, pk).decode('utf-8'))
+            pubfile.write(dump_publickey(FILETYPE_PEM, pkey).decode('utf-8'))
         # write private key
         with open(PRI_KEY, 'w+') as prifile:
-            prifile.write(dump_privatekey(FILETYPE_PEM, pk).decode('utf-8'))
+            prifile.write(dump_privatekey(FILETYPE_PEM, pkey).decode('utf-8'))
 
 def has_private_key(path=PRI_KEY):
     """

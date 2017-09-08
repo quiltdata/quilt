@@ -81,7 +81,10 @@ def check_column_valrange(colrx, minval=None, maxval=None, lambda_or_name=None, 
             minval = col.min() if minval is None else minval
             maxval = col.max() if maxval is None else maxval
             if lambda_or_name in VALRANGE_FUNCS:
-                return VALRANGE_FUNCS[col]
+                if not VALRANGE_FUNCS[lambda_or_name](col, minval, maxval):
+                    raise CheckFunctionsReturn(
+                        "check_column_valrange column {} out of range {} - {}".format(
+                            colname, minval, maxval))
             raise CheckFunctionsException(
                 'check_column_valrange(): unknown func: %s' % (lambda_or_name))
 

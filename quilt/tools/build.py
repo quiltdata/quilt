@@ -45,18 +45,18 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
                              (", ".join(list(unknown_checks)), rel_path, target))
     for check in checks_list:
         res = exec_yaml_python(checks_contents[check], dataframe, nodename, rel_path, target)
-        if res == False:
+        if not res and res is not None:
             raise BuildException("Data check failed: %s on %s @ %s" % (
                 check, rel_path, target))
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
-                dryrun=False, env='default'):
+                dry_run=False, env='default'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dryrun=dryrun, env=env)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
@@ -83,9 +83,10 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         checks = node.get(RESERVED['checks'])
         if transform == ID:
             if checks:
-                data = open(path, 'r').read()
-                _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
-            if not dryrun:
+                with open(path, 'r') as fd:
+                    data = fd.read()
+                    _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
+            if not dry_run:
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
@@ -110,9 +111,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
 
             # serialize DataFrame to file(s)
-            if not dryrun:
+            if not dry_run:
                 print("Saving as binary dataframe...")
-                package.save_df(dataframe, name, rel_path, transform, target, format)
+                package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
@@ -175,13 +176,14 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
 
     return dataframe
 
-def build_package(username, package, yaml_path, checks_path=None, dryrun=False, env='default'):
+def build_package(username, package, yaml_path, checks_path=None, dry_run=False, env='default'):
     """
     Builds a package from a given Yaml file and installs it locally.
 
     Returns the name of the package.
     """
     def find(key, value):
+        """find all nodes transitively"""
         for k, v in value.items():
             if k == key:
                 yield v
@@ -203,17 +205,17 @@ def build_package(username, package, yaml_path, checks_path=None, dryrun=False, 
 
     checks_contents = None
     if checks_path is not None:
-        fd = open(checks_path)
-        docs = yaml.load_all(fd)
+        with open(checks_path) as fd:
+            docs = yaml.load_all(fd)
         contents = next(docs, None)['contents'] # leave other dicts in the generator
         if not isinstance(contents, dict):
             raise BuildException("Unable to parse checks YAML: %s" % yaml_path)
         checks_contents = contents
     build_package_from_contents(username, package, build_dir, build_data,
-                                checks_contents=checks_contents, dryrun=dryrun, env=env)
+                                checks_contents=checks_contents, dry_run=dry_run, env=env)
 
 def build_package_from_contents(username, package, build_dir, build_data,
-                                checks_contents=None, dryrun=False, env='default'):
+                                checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
@@ -230,26 +232,16 @@ def build_package_from_contents(username, package, build_dir, build_data,
         raise BuildException("HDF5 format is no longer supported; please use PARQUET instead.")
 
     # inline checks take precedence
-    if 'checks' in build_data:
-        if checks_contents is None:
-            checks_contents = build_data['checks']
-        else:
-            checks_contents.update(build_data['checks'])
+    if checks_contents is None:
+        checks_contents = build_data.get('checks', {})
+    else:
+        checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    if dryrun:
-        from .core import RootNode
-        from .package import Package
-        newpackage = Package(
-            store,
-            username,
-            package,
-            '.', RootNode(dict()))
-    else:
-        newpackage = store.create_package(username, package)
+    newpackage = store.create_package(username, package, dry_run=dry_run)
     _build_node(build_dir, newpackage, '', contents, pkgformat,
-                checks_contents=checks_contents, dryrun=dryrun, env=env)
-    if not dryrun:
+                checks_contents=checks_contents, dry_run=dry_run, env=env)
+    if not dry_run:
         newpackage.save_contents()
 
 def splitext_no_dot(filename):

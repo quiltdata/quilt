@@ -128,10 +128,12 @@ class PackageStore(object):
             contents=contents
         )
 
-    def create_package(self, user, package):
+    def create_package(self, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.
         """
+        if dry_run:
+            return Package(self, user, package, '.', RootNode(dict()))
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 

@@ -144,11 +144,11 @@ class Package(object):
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
 
-    def save_df(self, df, name, path, ext, target, format):
+    def save_df(self, dataframe, name, path, ext, target, fmt):
         """
         Save a DataFrame to the store.
         """
-        enumformat = PackageFormat(format)
+        enumformat = PackageFormat(fmt)
         buildfile = name.lstrip('/').replace('/', '.')
         storepath = self._store.temporary_object_path(buildfile)
 
@@ -159,12 +159,12 @@ class Package(object):
             if parqlib is ParquetLib.ARROW:
                 import pyarrow as pa
                 from pyarrow import parquet
-                table = pa.Table.from_pandas(df)
+                table = pa.Table.from_pandas(dataframe)
                 parquet.write_table(table, storepath)
             elif parqlib is ParquetLib.SPARK:
                 from pyspark import sql as sparksql
-                assert isinstance(df, sparksql.DataFrame)
-                df.write.parquet(storepath)
+                assert isinstance(dataframe, sparksql.DataFrame)
+                dataframe.write.parquet(storepath)
             else:
                 assert False, "Unimplemented ParquetLib %s" % parqlib
         else:
@@ -179,11 +179,11 @@ class Package(object):
                 objhash = digest_file(path)
                 move(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(buildfile, hashes, ext, path, target, format)
+            self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(buildfile, [filehash], ext, path, target, format)
+            self._add_to_contents(buildfile, [filehash], ext, path, target, fmt)
             move(storepath, self._store.object_path(filehash))
 
     def save_file(self, srcfile, name, path):
@@ -299,7 +299,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target, format):
+    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
         """
         Adds an object (name-hash mapping) to the package's contents.
         """
@@ -320,10 +320,10 @@ class Package(object):
         try:
             target_type = TargetType(target)
             if target_type is TargetType.PANDAS:
-                assert format is not None
+                assert fmt is not None
                 node = TableNode(
                     hashes=hashes,
-                    format=format.value,
+                    format=fmt.value,
                     metadata=metadata
                 )
             elif target_type is TargetType.FILE:

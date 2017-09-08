@@ -22,8 +22,4 @@ from .tools.command import (
     tag_remove,
     version_add,
     version_list,
-
-    # non-command functions
-    load_to_dict,
-    load_to_files,
 )

@@ -57,7 +57,7 @@ class FileWithReadProgress(Iterator):
     def __enter__(self):
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, type, value, traceback): # pylint:disable=W0622
         self.close()
 
 

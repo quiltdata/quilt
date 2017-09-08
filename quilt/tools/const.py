@@ -30,7 +30,7 @@ HASH_TYPE = 'sha256'
 RSA_BITS = 2048
 
 # TODO nan probably not a safe choice and may pollute number cols with strs
-kwargs = {'keep_default_na': False, 'na_values': ['nan']}
+_kwargs = {'keep_default_na': False, 'na_values': ['nan']} # pylint:disable=C0103
 # Supported build targets and file types
 # BUILD[target][file_extension]
 # file_extension should be lowercase
@@ -39,31 +39,31 @@ PARSERS = {
         'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
-        'kwargs': kwargs
+        'kwargs': _kwargs
     },
     'ssv': {
         'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
-        'kwargs': dict(kwargs, sep=';')
+        'kwargs': dict(_kwargs, sep=';')
     },
     'tsv': {
         'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
-        'kwargs': dict(kwargs, sep='\t')
+        'kwargs': dict(_kwargs, sep='\t')
     },
     'xls': {
         'module': 'pandas',
         'attr': 'read_excel',
         # TODO set sheetname='None' to get all sheets?
         # Currently defaults to sheetname=0, which imports first sheet only
-                'kwargs': kwargs
+        'kwargs': _kwargs
     },
     'xlsx': {
         'module': 'pandas',
         'attr': 'read_excel',
         # see comments under 'xls'
-        'kwargs': kwargs
+        'kwargs': _kwargs
     }
 }
