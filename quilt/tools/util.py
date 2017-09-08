@@ -68,8 +68,8 @@ def file_to_str(fname):
     """
     data = None
     # rU = read with Universal line terminator
-    with open(fname, 'rU') as f:
-        data = f.read()
+    with open(fname, 'rU') as fd:
+        data = fd.read()
     return data
 
 def gzip_compress(data):

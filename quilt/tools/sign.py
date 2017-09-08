@@ -1,7 +1,8 @@
 import os.path
 from os import makedirs
 
-from OpenSSL.crypto import  dump_privatekey, dump_publickey, FILETYPE_PEM, load_privatekey, load_publickey, PKey, sign, TYPE_RSA, verify, X509
+from OpenSSL.crypto import (dump_privatekey, dump_publickey, FILETYPE_PEM, load_privatekey,
+                            load_publickey, PKey, sign, TYPE_RSA, verify, X509)
 
 from .const import HASH_TYPE, RSA_BITS
 from .util import BASE_DIR, file_to_str
@@ -13,10 +14,10 @@ def gen_rsa():
     TODO maybe this belongs in server-specific code since server will 
     need to know public and private keys
     """
-    pk = PKey()
-    pk.generate_key(TYPE_RSA, RSA_BITS)
-    pk.check()
-    return pk
+    pkey = PKey()
+    pkey.generate_key(TYPE_RSA, RSA_BITS)
+    pkey.check()
+    return pkey
 
 PATH = os.path.join(BASE_DIR, 'keys')
 PUB_KEY = os.path.join(PATH, 'public.pem')

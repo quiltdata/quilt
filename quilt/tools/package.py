@@ -106,16 +106,16 @@ class Package(object):
         objfiles = [self._store.object_path(h) for h in hash_list]
         dataset = ParquetDataset(objfiles)
         table = dataset.read(nthreads=4)
-        df = table.to_pandas()
-        return df
+        dataframe = table.to_pandas()
+        return dataframe
 
     def _read_parquet_spark(self, hash_list):
         from pyspark import sql as sparksql
 
         spark = sparksql.SparkSession.builder.getOrCreate()
         objfiles = [self._store.object_path(h) for h in hash_list]
-        df = spark.read.parquet(*objfiles)
-        return df
+        dataframe = spark.read.parquet(*objfiles)
+        return dataframe
 
     def _dataframe(self, hash_list, pkgformat):
         """
@@ -234,8 +234,9 @@ class Package(object):
         else:
             assert False, "Unhandled Node {node}".format(node=node)
 
-# WIP: doesn't work quite right yet.
-#    def find_node_by_name(self, findstr, node=None, prefix=''):
+    # WIP: doesn't work quite right yet.
+    def find_node_by_name(self, findstr, node=None, prefix=''):
+        return None
 #        """use / to separate levels"""
 #        if node is None:
 #            node = self.get_contents()
@@ -336,4 +337,3 @@ class Package(object):
             raise PackageException("Unrecognized target {tgt}".format(tgt=target))
 
         ptr.children[leaf] = node
-

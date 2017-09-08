@@ -180,6 +180,4 @@ def parse_package(name, allow_subpath=False):
 
     if allow_subpath:
         return owner, pkg, subpath
-    else:
-        return owner, pkg
-
+    return owner, pkg

@@ -3,9 +3,10 @@ import hashlib
 import struct
 
 # for check functions
-import pandas
-from pandas import DataFrame as df
-from . import check_functions as qc
+import numpy                    # pylint:disable=W0611
+import pandas as pd             # pylint:disable=W0611
+from pandas import DataFrame as df # pylint:disable=W0611
+from . import check_functions as qc # pylint:disable=W0611
 
 from six import iteritems, string_types
 
@@ -60,11 +61,11 @@ class GroupNode(Node):
 
         while stack:
             node = stack.pop()
-            for c in node.children.values():
-                if isinstance(c, GroupNode):
-                    stack.append(c)
-                elif isinstance(c, TableNode):
-                    output.append(c)
+            for child in node.children.values():
+                if isinstance(child, GroupNode):
+                    stack.append(child)
+                elif isinstance(child, TableNode):
+                    output.append(child)
                 else:
                     pass # Should we throw exception here?
 
@@ -157,11 +158,11 @@ def hash_contents(contents):
 
     def _hash_object(obj):
         _hash_str(obj.json_type)
-        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+        if isinstance(obj, (TableNode, FileNode)):
             hashes = obj.hashes
             _hash_int(len(hashes))
-            for h in hashes:
-                _hash_str(h)
+            for hval in hashes:
+                _hash_str(hval)
         elif isinstance(obj, GroupNode):
             children = obj.children
             _hash_int(len(children))
@@ -179,7 +180,7 @@ def find_object_hashes(obj):
     """
     Iterator that returns hashes of all of the tables.
     """
-    if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+    if isinstance(obj, (TableNode, FileNode)):
         for objhash in obj.hashes:
             yield objhash
     elif isinstance(obj, GroupNode):
@@ -196,10 +197,11 @@ def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
         qc.data = dataframe
         # single vs multi-line checks - YAML hackery
         if '\n' in str(chkcode):
-            exec(str(chkcode))
+            exec(str(chkcode))  # pylint:disable=W0122
             res = True
         else:
-            res = eval(str(chkcode))  # str() to handle True/False
+            # str() to handle True/False
+            res = eval(str(chkcode))  # pylint:disable=W0123
     except qc.CheckFunctionsReturn as ex:
         res = ex.result
     except Exception as ex:

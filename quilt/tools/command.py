@@ -4,7 +4,7 @@ Command line parsing and command dispatch
 """
 
 from __future__ import print_function
-from builtins import input
+from builtins import input      # pylint:disable=W0622
 from datetime import datetime
 import json
 import os
@@ -15,11 +15,9 @@ import sys
 import time
 from threading import Thread, Lock
 import yaml
-import json
 import getpass
 
 from packaging.version import Version
-import numpy
 import pandas as pd
 import pkg_resources
 import requests
@@ -28,12 +26,13 @@ from requests.adapters import HTTPAdapter
 from six import iteritems, string_types
 from tqdm import tqdm
 
-from .build import build_package, build_package_from_contents, generate_build_file, generate_contents, BuildException
+from .build import (build_package, build_package_from_contents, generate_build_file,
+                    generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, FileNode, PackageFormat,
+from .core import (hash_contents, find_object_hashes, PackageFormat,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
-from .store import PackageStore, StoreException, parse_package
+from .store import PackageStore, parse_package
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
@@ -84,6 +83,7 @@ def _save_auth(auth):
         json.dump(auth, fd)
 
 def _handle_response(resp, **kwargs):
+    _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
         raise CommandException("Authentication failed. Run `quilt login` again.")
     elif not resp.ok:
@@ -136,13 +136,13 @@ def _create_session(auth):
 
     return session
 
-_session = None
+_session = None                 # pylint:disable=C0103
 
 def _get_session():
     """
     Creates a session or returns an existing session.
     """
-    global _session
+    global _session             # pylint:disable=C0103
     if _session is None:
         auth = _create_auth()
         _session = _create_session(auth)
@@ -150,7 +150,7 @@ def _get_session():
     return _session
 
 def _clear_session():
-    global _session
+    global _session             # pylint:disable=C0103
     if _session is not None:
         _session.close()
         _session = None
@@ -158,14 +158,14 @@ def _clear_session():
 def _open_url(url):
     try:
         if sys.platform == 'win32':
-            os.startfile(url)
+            os.startfile(url)   # pylint:disable=E1101
         elif sys.platform == 'darwin':
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except Exception as ex:
+    except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
 def login():
@@ -237,8 +237,8 @@ def diff_node_dataframe(package, nodename, dataframe):
     node = pkgobj.find_node_by_name(nodename)
     if node is None:
         raise CommandException("Node path not found: {}".format(nodename))
-    df = pkgobj.get_obj(node)
-    return diff_dataframes(df, dataframe)
+    quilt_dataframe = pkgobj.get_obj(node)
+    return diff_dataframes(quilt_dataframe, dataframe)
 
 def check(path=None, env='default'):
     """
@@ -291,11 +291,11 @@ def build_from_node(package, node):
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
-            if isinstance(core_node, TableNode):
-                df = node._data()
-                package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
+            if isinstance(core_node, nodes.TableNode):
+                dataframe = node._data()
+                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
                                     'pandas', PackageFormat.default)
-            elif isinstance(core_node, FileNode):
+            elif isinstance(core_node, nodes.FileNode):
                 src_path = node._data()
                 package_obj.save_file(src_path, path, metadata.get('q_path'))
             else:
@@ -441,16 +441,16 @@ def push(package, public=False, reupload=False):
                                 temp_file.seek(0)
 
                                 # Workaround for non-local variables in Python 2.7
-                                class ctx:
+                                class Context:
                                     compressed_read = 0
                                     original_last_update = 0
 
                                 def _progress_cb(count):
-                                    ctx.compressed_read += count
-                                    original_read = ctx.compressed_read * original_size // compressed_size
+                                    Context.compressed_read += count
+                                    original_read = Content.compressed_read * original_size // compressed_size
                                     with lock:
-                                        progress.update(original_read - ctx.original_last_update)
-                                    ctx.original_last_update = original_read
+                                        progress.update(original_read - Context.original_last_update)
+                                    Context.original_last_update = original_read
 
                                 with FileWithReadProgress(temp_file, _progress_cb) as fd:
                                     url = obj_urls['put']
@@ -471,11 +471,11 @@ def push(package, public=False, reupload=False):
             Thread(target=_worker_thread, name="upload-worker-%d" % i)
             for i in range(PARALLEL_UPLOADS)
         ]
-        for t in threads:
-            t.daemon = True
-            t.start()
-        for t in threads:
-            t.join()
+        for thread in threads:
+            thread.daemon = True
+            thread.start()
+        for thread in threads:
+            thread.join()
 
     if len(uploaded) != total:
         raise CommandException("Failed to upload fragments")
@@ -731,7 +731,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
             if file_hash != download_hash:
                 os.remove(temp_path)
                 raise CommandException("Fragment hashes do not match: expected %s, got %s." %
-                                    (download_hash, file_hash))
+                                       (download_hash, file_hash))
 
             move(temp_path, local_filename)
 
@@ -751,6 +751,10 @@ def _setup_env(env, files):
         return files
     if env == 'default' and 'default' not in environments:
         return files
+
+    # TODO: this should be done during quilt push, not during install/import
+    # (requires server support)
+    # TODO: add a way to dry-run dataset checking
     print('processing environment %s: checking data...' % (env))
     environment = environments[env]
     dataset = environment.get('dataset')
@@ -760,42 +764,46 @@ def _setup_env(env, files):
             before_len = len(val)
             res = exec_yaml_python(dataset, val, key, '('+key+')')
             if res == False:
-                raise BuildException("Data check failed: %s on %s @ %s" % (
-                    check, rel_path, target))
+                raise BuildException("error creating dataset for environment: %s on file %s" % (
+                    env, key))
             print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
             files[key] = qc.data
+
+    # TODO: should be done on the server during quilt install
+    # (requires server support)
     print('processing environment %s: slicing data...' % (env))
     instance_data = environment.get('instance_data')
     for key, val in files.items():
         # TODO: debug mode, where we can see which files were skipped
         if type(val) == pd.core.frame.DataFrame:
             before_len = len(val)
+            # TODO: pass instance identifier, e.g. instance number N of M
             val['.qchash'] = val.apply(lambda x: abs(hash(tuple(x))), axis = 1)
-            res = exec_yaml_python(dataset, val, key, '('+key+')')
+            res = exec_yaml_python(instance_data, val, key, '('+key+')')
             if res == False:
-                raise BuildException("Data check failed: %s on %s @ %s" % (
-                    check, rel_path, target))
+                raise BuildException("error assigning data to instance in environment: %s on file %s" % (
+                    env, key))
             print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
             files[key] = qc.data
     return files
 
 def load_to_dict(pkg, force=False, env='default', **kwargs):
     import importlib
-    install(pkg, force=True)
+    install(pkg, force=force)
     user, module = pkg.split('/')
     module = importlib.import_module("quilt.data.{}.{}".format(user, module))
     files = dict([ (key, getattr(module, val)()) for key, val in kwargs.items() ])
     files = _setup_env(env, files)
     return files
 
-def load_to_files(pkg, force=False, format='tsv', env='default', **kwargs):
+def load_to_files(pkg, force=False, fmt='tsv', env='default', **kwargs):
     resdict = load_to_dict(pkg, force, env, **kwargs)
     for key, val in resdict.items():
         # HACK: use the object store?  how to garbage collect?
         newfn = '/tmp/'+getpass.getuser()+"-"+key
-        if format == 'tsv':
+        if fmt == 'tsv':
             res = val.to_csv(sep='\t')
-        elif format == 'jsonl':
+        elif fmt == 'jsonl':
             # annoyingly, this doesn't work because val.to_json() failed on nested structures
             #val['annotator_labels'] = val.as_matrix(['label1', 'label2', 'label3', 'label4', 'label5'])
             #val = val.drop(['label1', 'label2', 'label3', 'label4', 'label5'])
@@ -813,7 +821,7 @@ def load_to_files(pkg, force=False, format='tsv', env='default', **kwargs):
                 res_array.append(json.dumps(rec))
             res = '\n'.join(res_array)
         else:
-            raise Exception('not implemented: load_to_files format=%s' % (format))
+            raise Exception('not implemented: load_to_files format=%s' % (fmt))
         with open(newfn, 'w') as fn:
             fn.write(res)
             fn.write('\n')
@@ -886,7 +894,7 @@ def search(query):
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
 
-def ls():
+def ls():                       # pylint:disable=C0103
     """
     List all installed Quilt data packages
     """
@@ -905,4 +913,3 @@ def inspect(package):
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-

@@ -9,7 +9,6 @@ import re
 
 from six import iteritems
 import yaml
-import pandas as pd
 from tqdm import tqdm
 
 from .store import PackageStore, VALID_NAME_RE, StoreException
@@ -18,8 +17,9 @@ from .core import PackageFormat, BuildException, exec_yaml_python
 from .util import FileWithReadProgress
 
 # for use by check functions (eval)
-from . import check_functions as qc
-from pandas import DataFrame as df
+import pandas as pd                            # pylint:disable=W0611
+from pandas import DataFrame as df             # pylint:disable=W0611
+from . import check_functions as qc            # pylint:disable=W0611
 
 def _is_internal_node(node):
     # all of an internal nodes children are dicts
@@ -36,6 +36,7 @@ def _pythonize_name(name):
     return safename
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
+    _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
     checks_list = re.split(r'[,\s]+', checks.strip())
     unknown_checks = set(checks_list) - set(checks_contents.keys())
@@ -48,13 +49,13 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
             raise BuildException("Data check failed: %s on %s @ %s" % (
                 check, rel_path, target))
 
-def _build_node(build_dir, package, name, node, format, target='pandas', checks_contents=None,
+def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
                 dryrun=False, env='default'):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table, format,
+            _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
                         checks_contents=checks_contents, dryrun=dryrun, env=env)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
@@ -63,14 +64,14 @@ def _build_node(build_dir, package, name, node, format, target='pandas', checks_
         path = os.path.join(build_dir, rel_path)
 
         transform = node.get(RESERVED['transform'])
-        ID = 'id'
+        ID = 'id'               # pylint:disable=C0103
         if transform:
             transform = transform.lower()
             if (transform not in PARSERS) and (transform != ID):
                 raise BuildException("Unknown transform '%s' for %s @ %s" %
                                      (transform, rel_path, target))
         else: # guess transform if user doesn't provide one
-            ignore, ext = splitext_no_dot(rel_path)
+            _, ext = splitext_no_dot(rel_path)
             transform = ext
             if transform not in PARSERS:
                 transform = ID
@@ -93,7 +94,7 @@ def _build_node(build_dir, package, name, node, format, target='pandas', checks_
 
             print("Serializing %s..." % path)
             try:
-                import pyspark
+                import pyspark  # pylint:disable=W0612
                 have_pyspark = True
             except ImportError:
                 have_pyspark = False
@@ -116,30 +117,32 @@ def _build_node(build_dir, package, name, node, format, target='pandas', checks_
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
+    _ = target  # TODO: why is this unused?
 
     ext = ext.lower() # ensure that case doesn't matter
     spark = sparksql.SparkSession.builder.getOrCreate()
-    df = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
-    for col in df.columns:
+    dataframe = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
+    for col in dataframe.columns:
         pcol = _pythonize_name(col)
         if col != pcol:
-            df = df.withColumnRenamed(col, pcol)
-    return df
+            dataframe = dataframe.withColumnRenamed(col, pcol)
+    return dataframe
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
+    _ = target  # TODO: why is this unused?
     logic = PARSERS.get(ext)
     the_module = importlib.import_module(logic['module'])
     if not isinstance(the_module, ModuleType):
-        raise BuildException("Missing required module: %s." % mod)
+        raise BuildException("Missing required module: %s." % logic['module'])
     # allow user to specify handler kwargs and override default kwargs
     kwargs = dict(logic['kwargs'])
     kwargs.update(user_kwargs)
     failover = logic.get('failover', None)
     handler = getattr(the_module, logic['attr'], None)
     if handler is None:
-        raise BuildException("Invalid handler: %r" % fname)
+        raise BuildException("Invalid handler: %r" % logic['attr'])
 
-    df = None
+    dataframe = None
     try_again = False
     try:
         size = os.path.getsize(path)
@@ -147,7 +150,7 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
             def _callback(count):
                 progress.update(count)
             with FileWithReadProgress(path, _callback) as fd:
-                df = handler(fd, **kwargs)
+                dataframe = handler(fd, **kwargs)
     except UnicodeDecodeError as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path
@@ -163,14 +166,14 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
         failover_args = {}
         failover_args.update(failover)
         failover_args.update(kwargs)
-        df = handler(path, **failover_args)
+        dataframe = handler(path, **failover_args)
 
     # cast object columns to strings
-    for name, col in df.iteritems():
+    for name, col in dataframe.iteritems():
         if col.dtype == 'object':
-            df[name] = col.astype(str)
+            dataframe[name] = col.astype(str)
 
-    return df
+    return dataframe
 
 def build_package(username, package, yaml_path, checks_path=None, dryrun=False, env='default'):
     """
@@ -186,8 +189,8 @@ def build_package(username, package, yaml_path, checks_path=None, dryrun=False, 
                 for result in find(key, v):
                     yield result
             elif isinstance(v, list):
-                for d in v:
-                    for result in find(key, d):
+                for item in v:
+                    for result in find(key, item):
                         yield result
     build_dir = os.path.dirname(yaml_path)
     fd = open(yaml_path)
