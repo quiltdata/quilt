@@ -3,7 +3,7 @@ import pandas as pd
 from pandas import DataFrame as df
 import numpy
 
-# these are defined as globals so importing the library results in clean syntax
+# defined as lowecase globals so importing the library results in clean syntax
 # like this:  qc.data[colname], qc.env, qc.filename, etc.
 filename = None                 # pylint:disable=C0103
 data = None                     # pylint:disable=C0103

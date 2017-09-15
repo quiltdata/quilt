@@ -16,9 +16,6 @@ from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python
 from .util import FileWithReadProgress
 
-# for use by check functions (eval)
-import pandas as pd                            # pylint:disable=W0611
-from pandas import DataFrame as df             # pylint:disable=W0611
 from . import check_functions as qc            # pylint:disable=W0611
 
 def _is_internal_node(node):
@@ -40,7 +37,7 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
     print("Running data integrity checks...")
     checks_list = re.split(r'[,\s]+', checks.strip())
     unknown_checks = set(checks_list) - set(checks_contents.keys())
-    if len(unknown_checks) > 0:
+    if unknown_checks:
         raise BuildException("Unknown check(s) '%s' for %s @ %s" %
                              (", ".join(list(unknown_checks)), rel_path, target))
     for check in checks_list:
@@ -200,11 +197,12 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     build_data = next(docs, None) # leave other dicts in the generator
     if not isinstance(build_data, dict):
         raise BuildException("Unable to parse build YAML: %s" % yaml_path)
-    if len(list(find('checks', build_data['contents']))) > 0 and 'checks' not in build_data:
+    # in-lined checks (in build.yml) take precedence over checks.yml
+    if find('checks', build_data['contents']) and 'checks' not in build_data:
         checks_path = 'checks.yml'
 
     checks_contents = None
-    if checks_path is not None:
+    if checks_path is not None and os.path.isfile(checks_path):
         with open(checks_path) as fd:
             docs = yaml.load_all(fd)
         contents = next(docs, None)['contents'] # leave other dicts in the generator

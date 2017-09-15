@@ -6,11 +6,11 @@ from enum import Enum
 import hashlib
 import struct
 
-# for check functions
-import numpy                    # pylint:disable=W0611
-import pandas as pd             # pylint:disable=W0611
-from pandas import DataFrame as df # pylint:disable=W0611
-from . import check_functions as qc # pylint:disable=W0611
+import re
+import numpy
+import pandas as pd
+from pandas import DataFrame as df
+from . import check_functions as qc
 
 from six import iteritems, string_types
 
@@ -199,13 +199,18 @@ def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
         qc.nodename = nodename
         qc.filename = path
         qc.data = dataframe
+        eval_globals = {
+            'qc': qc, 'numpy': numpy, 'df': df, 'pd': pd, 're': re
+        }
         # single vs multi-line checks - YAML hackery
         if '\n' in str(chkcode):
-            exec(str(chkcode))  # pylint:disable=W0122
+            # note: python2 doesn't support named args for exec()
+            # https://docs.python.org/2/reference/simple_stmts.html#exec
+            exec(str(chkcode), eval_globals, {})  # pylint:disable=W0122
             res = True
         else:
             # str() to handle True/False
-            res = eval(str(chkcode))  # pylint:disable=W0123
+            res = eval(str(chkcode), eval_globals, {})  # pylint:disable=W0123
     except qc.CheckFunctionsReturn as ex:
         res = ex.result
     except Exception as ex:
