@@ -4,7 +4,7 @@ Test the data checking / linting system
 import os
 import re
 
-from six import assertRaisesRegex
+from six import assertRaisesRegex, PY2
 import yaml
 import pytest
 
@@ -31,7 +31,8 @@ class ChecksTest(QuiltTestCase):
         super(QuiltTestCase, self).tearDown()
 
     def build_success(self, check, nodename='foo'):
-        self.build_contents[nodename]['checks'] = check
+        if check is not None:
+            self.build_contents[nodename]['checks'] = check
         if check == 'string':
             raise Exception(str(self.build_data)+"\n\n"+str(self.checks_contents))
         mydir = os.path.dirname(__file__)
@@ -73,8 +74,6 @@ class ChecksTest(QuiltTestCase):
         self.build_success('simple')
         self.build_success('simple_multiline')
         self.build_fail('negative')
-        self.build_success('inline_only')
-        self.build_success('inline_and_external')
         self.build_success('hasrecs')
         self.build_success('hascols')
         self.build_success('cardinality')
@@ -87,6 +86,11 @@ class ChecksTest(QuiltTestCase):
         self.build_success('enum_lambda_success')
         self.build_success('stddev')
         self.build_success('sum')
+
+    def test_inline_vs_external(self):
+        self.build_success('inline_only')
+        self.build_success('inline_and_external')
+        self.build_success('hasrecs')
         
     def test_many_errors(self):
         # TODO: capture details by line number
@@ -106,4 +110,32 @@ qc.check_column_datetime('Date0', '%Y-%m-%d')
 qc.check_column_datetime('DTime0', '%Y-%m-%d %H:%M:%S.%f')
         """
         self.build_success('stringchecks')
+
+    def test_empty_checks(self):
+        self.build_contents = {}
+        self.checks_contents = None
+        self.build_success(None)
+
+    def test_build_package(self):
+        def run_build(build_fn=None, checks_fn=None, expect_error=False):
+            build_fn = os.path.join(os.path.dirname(__file__), build_fn) if build_fn else None
+            checks_fn = os.path.join(os.path.dirname(__file__), checks_fn) if checks_fn else None
+            if expect_error:
+                if PY2:
+                    with assertRaisesRegex(self, IOError, 'doesnt_exist.yml'):
+                        build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+                else:
+                    with assertRaisesRegex(self, FileNotFoundError, 'doesnt_exist.yml'):
+                        build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+            else:
+                build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+        run_build("build_simple_checks.yml", "checks_simple.yml")
+        run_build("doesnt_exist.yml", "checks_simple.yml", True)
+        run_build("build_simple_checks.yml", "doesnt_exist.yml", True)
+        run_build("build_simple_checks.yml", None)
+        # bad yaml files
+        with assertRaisesRegex(self, yaml.parser.ParserError, 'expected'):
+            run_build("build_simple_checks.yml", "test_checks.py")
+        with assertRaisesRegex(self, yaml.parser.ParserError, 'expected'):
+            run_build("test_checks.py", None)
 

@@ -181,7 +181,7 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     """
     def find(key, value):
         """find all nodes transitively"""
-        for k, v in value.items():
+        for k, v in iteritems(value):
             if k == key:
                 yield v
             elif isinstance(v, dict):
@@ -191,25 +191,30 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 for item in v:
                     for result in find(key, item):
                         yield result
-    build_dir = os.path.dirname(yaml_path)
-    fd = open(yaml_path)
-    docs = yaml.load_all(fd)
-    build_data = next(docs, None) # leave other dicts in the generator
-    if not isinstance(build_data, dict):
-        raise BuildException("Unable to parse build YAML: %s" % yaml_path)
-    # in-lined checks (in build.yml) take precedence over checks.yml
-    if find('checks', build_data['contents']) and 'checks' not in build_data:
+    def load_yaml(filename, optional=False):
+        if optional and (filename is None or not os.path.isfile(filename)):
+            return None
+        with open(filename, 'r') as fd:
+            data = fd.read()
+        res = yaml.load(data)
+        if res is None:
+            if optional:
+                return None
+            raise BuildException("Unable to YAML file: %s" % filename)
+        return res
+        
+    build_data = load_yaml(yaml_path)
+    # default to 'checks.yml' if build.yml contents: contains checks, but
+    # there's no inlined checks: defined by build.yml
+    if (checks_path is None and find('checks', build_data['contents']) and
+        'checks' not in build_data):
         checks_path = 'checks.yml'
-
-    checks_contents = None
-    if checks_path is not None and os.path.isfile(checks_path):
-        with open(checks_path) as fd:
-            docs = yaml.load_all(fd)
-        contents = next(docs, None)['contents'] # leave other dicts in the generator
-        if not isinstance(contents, dict):
-            raise BuildException("Unable to parse checks YAML: %s" % yaml_path)
-        checks_contents = contents
-    build_package_from_contents(username, package, build_dir, build_data,
+        checks_contents = load_yaml(checks_path, optional=True)
+    elif checks_path is not None:
+        checks_contents = load_yaml(checks_path)
+    else:
+        checks_contents = None
+    build_package_from_contents(username, package, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
 def build_package_from_contents(username, package, build_dir, build_data,
