@@ -36,7 +36,7 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
     _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
     checks_list = re.split(r'[,\s]+', checks.strip())
-    unknown_checks = set(checks_list) - set(checks_contents.keys())
+    unknown_checks = set(checks_list) - set(checks_contents)
     if unknown_checks:
         raise BuildException("Unknown check(s) '%s' for %s @ %s" %
                              (", ".join(list(unknown_checks)), rel_path, target))
