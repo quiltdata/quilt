@@ -4,7 +4,7 @@ Test the data checking / linting system
 import os
 import re
 
-from six import assertRaisesRegex, PY2
+from six import assertRaisesRegex
 import yaml
 import pytest
 
