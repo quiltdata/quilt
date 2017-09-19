@@ -121,12 +121,8 @@ qc.check_column_datetime('DTime0', '%Y-%m-%d %H:%M:%S.%f')
             build_fn = os.path.join(os.path.dirname(__file__), build_fn) if build_fn else None
             checks_fn = os.path.join(os.path.dirname(__file__), checks_fn) if checks_fn else None
             if expect_error:
-                if PY2:
-                    with assertRaisesRegex(self, IOError, 'doesnt_exist.yml'):
-                        build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
-                else:
-                    with assertRaisesRegex(self, FileNotFoundError, 'doesnt_exist.yml'):
-                        build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+                with assertRaisesRegex(self, IOError, 'doesnt_exist.yml'):
+                    build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
             else:
                 build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
         run_build("build_simple_checks.yml", "checks_simple.yml")
