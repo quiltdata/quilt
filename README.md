@@ -15,7 +15,7 @@ Quilt is a data package manager. Quilt consists of two open source components:
     
 For more on the design goals of Quilt, visit [docs.quiltdata.com](https://docs.quiltdata.com/).
 
-## Implementationn
+## Implementation
 * Flask
 * MySQL
 
