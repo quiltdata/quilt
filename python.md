@@ -8,6 +8,20 @@
  * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
 * `quilt.install(USER/PACKAGE, [hash=HASH, tag=TAG, version=VERSION])` installs a package
 
+# Navigation
+* `NODE._keys()` returns a list of all children
+* `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
+* `NODE._group_keys()` returns a list of all group children (groups are like folders)
+```
+from quilt.data.uciml import wine
+In [7]: wine._keys()
+Out[7]: ['README', 'raw', 'tables']
+In [8]: wine._data_keys()
+Out[8]: ['README']
+In [9]: wine._group_keys()
+Out[9]: ['raw', 'tables']
+```
+
 # Versioning
 * `quilt.log(USER/PACKAGE)` to see the push history
 * `quilt.version_list(USER/PACKAGE)` to see versions of a package
