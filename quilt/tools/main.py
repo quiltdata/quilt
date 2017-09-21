@@ -21,6 +21,11 @@ def main():
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
 
+    def check_hash(group, hashstr):
+        # TODO: add this universally once short hashes are supported in other functions.
+        return (hashstr if 6 <= len(hashstr) <= 64 else
+                group.error('hashes must be 6-64 chars long'))
+
     login_p = subparsers.add_parser("login")
     login_p.set_defaults(func=command.login)
 
@@ -92,7 +97,7 @@ def main():
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
-    install_group.add_argument("-x", "--hash", type=str, help="Package hash")
+    install_group.add_argument("-x", "--hash", help="Package hash", type=lambda val: check_hash(install_p, val))
     install_group.add_argument("-v", "--version", type=str, help="Package version")
     install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
 

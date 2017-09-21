@@ -52,15 +52,13 @@ def check_column_enum(colrx, lambda_or_listexpr, envs=None):
                 check(data[colname].isin(lambda_or_listexpr).all())
 
 VALRANGE_FUNCS = {
-    'mean':     lambda col, minval, maxval: check(minval <= col.mean() <= maxval),
-    'mode':     lambda col, minval, maxval: check(minval <= col.mode() <= maxval),
-    'stddev':   lambda col, minval, maxval: check(minval <= col.std() <= maxval),
-    'variance': lambda col, minval, maxval: check(minval <= col.var() <= maxval),
-    'median':   lambda col, minval, maxval: check(minval <= col.median() <= maxval),
-    'sum':      lambda col, minval, maxval: check(minval <= col.sum() <= maxval),
-    'count':    lambda col, minval, maxval: check(minval <= col.count() <= maxval),
-    'abs':      lambda col, minval, maxval: check(
-        col.between(minval, maxval, inclusive=True).all() )
+    'mean':     lambda col: col.mean(),
+    'mode':     lambda col: col.mode(),
+    'stddev':   lambda col: col.std(),
+    'variance': lambda col: col.var(),
+    'median':   lambda col: col.median(),
+    'sum':      lambda col: col.sum(),
+    'count':    lambda col: col.count(),
 }
 VALRANGE_FUNCS['avg'] = VALRANGE_FUNCS['mean']
 VALRANGE_FUNCS['std'] = VALRANGE_FUNCS['stdev'] = VALRANGE_FUNCS['stddev']
@@ -80,7 +78,7 @@ def check_column_valrange(colrx, minval=None, maxval=None, lambda_or_name=None, 
             minval = col.min() if minval is None else minval
             maxval = col.max() if maxval is None else maxval
             if lambda_or_name in VALRANGE_FUNCS:
-                if not VALRANGE_FUNCS[lambda_or_name](col, minval, maxval):
+                if not check(minval <= VALRANGE_FUNCS[lambda_or_name](col) <= maxval):
                     raise CheckFunctionsReturn(
                         "check_column_valrange column {} out of range {} - {}".format(
                             colname, minval, maxval))

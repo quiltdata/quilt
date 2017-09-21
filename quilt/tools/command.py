@@ -6,17 +6,17 @@ Command line parsing and command dispatch
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from datetime import datetime
+import getpass
 import json
 import os
 from shutil import move
 import stat
 import subprocess
 import sys
-import time
-from threading import Thread, Lock
-import yaml
-import getpass
 import tempfile
+from threading import Thread, Lock
+import time
+import yaml
 
 from packaging.version import Version
 import pandas as pd
@@ -449,7 +449,7 @@ def push(package, public=False, reupload=False):
 
                                 def _progress_cb(count):
                                     Context.compressed_read += count
-                                    original_read = Content.compressed_read * original_size // compressed_size
+                                    original_read = Context.compressed_read * original_size // compressed_size
                                     with lock:
                                         progress.update(original_read - Context.original_last_update)
                                     Context.original_last_update = original_read
@@ -654,8 +654,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         pkghash = response.json()['hash']
-    elif len(hash) < 64:
-        assert len(hash) >= 6   # short is ok, but only to a point...
+    elif len(hash) <= 64:
         response = session.get(
             "{url}/api/log/{owner}/{pkg}/".format(
                 url=QUILT_PKG_URL,
@@ -667,6 +666,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
             if entry['hash'].startswith(hash):
                 pkghash = entry['hash']
                 break
+        else:
+            print("could not find hash {hash} for package {owner}/{pkg}.".format(
+                hash=hash, owner=owner, pkg=pkg))
+            return
     else:
         pkghash = hash
     assert pkghash is not None
