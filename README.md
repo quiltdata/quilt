@@ -1,12 +1,13 @@
 # Overview
-Quilt is a data package manager. Quilt consists of of two components:
-1. A server-side registry (this repository)
+Quilt is a data package manager. Quilt consists of two open source components:
+
+1. A server-side data registry (this repository)
     - Controls permissions
     - Manages locations of objects in blob storage
     - Stores package meta-data
     - De-duplicates repeated data fragments
     
-2. A [client-side packager](https://github.com/quiltdata/quilt)
+2. A [client-side data compiler](https://github.com/quiltdata/quilt-compiler)
     - Serializes tabular data to Apache Parquet
     - `build`s packages locally
     - `push`es packages to the registry
