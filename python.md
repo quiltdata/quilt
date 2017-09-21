@@ -12,6 +12,8 @@
 * `NODE._keys()` returns a list of all children
 * `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
 * `NODE._group_keys()` returns a list of all group children (groups are like folders)
+
+## Example
 ```
 from quilt.data.uciml import wine
 In [7]: wine._keys()
