@@ -667,9 +667,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 pkghash = entry['hash']
                 break
         else:
-            print("could not find hash {hash} for package {owner}/{pkg}.".format(
+            raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
                 hash=hash, owner=owner, pkg=pkg))
-            return
     else:
         pkghash = hash
     assert pkghash is not None
