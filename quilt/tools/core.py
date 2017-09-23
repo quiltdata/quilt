@@ -1,8 +1,30 @@
+#
+# TODO: shared with backend - DO NOT ADD CLIENT-SPECIFIC CODE HERE
+#
+
 from enum import Enum
 import hashlib
 import struct
 
+import re
+import numpy
+import pandas as pd
+from pandas import DataFrame as df
+from . import check_functions as qc
+
 from six import iteritems, string_types
+
+class BuildException(Exception):
+    """
+    Build-time exception class
+    """
+    pass
+
+class CommandException(Exception):
+    """
+    Exception class for all command-related failures.
+    """
+    pass
 
 
 class PackageFormat(Enum):
@@ -43,11 +65,11 @@ class GroupNode(Node):
 
         while stack:
             node = stack.pop()
-            for c in node.children.values():
-                if isinstance(c, GroupNode):
-                    stack.append(c)
-                elif isinstance(c, TableNode):
-                    output.append(c)
+            for child in node.children.values():
+                if isinstance(child, GroupNode):
+                    stack.append(child)
+                elif isinstance(child, TableNode):
+                    output.append(child)
                 else:
                     pass # Should we throw exception here?
 
@@ -140,11 +162,11 @@ def hash_contents(contents):
 
     def _hash_object(obj):
         _hash_str(obj.json_type)
-        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+        if isinstance(obj, (TableNode, FileNode)):
             hashes = obj.hashes
             _hash_int(len(hashes))
-            for h in hashes:
-                _hash_str(h)
+            for hval in hashes:
+                _hash_str(hval)
         elif isinstance(obj, GroupNode):
             children = obj.children
             _hash_int(len(children))
@@ -162,10 +184,53 @@ def find_object_hashes(obj):
     """
     Iterator that returns hashes of all of the tables.
     """
-    if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+    if isinstance(obj, (TableNode, FileNode)):
         for objhash in obj.hashes:
             yield objhash
     elif isinstance(obj, GroupNode):
         for child in obj.children.values():
             for objhash in find_object_hashes(child):
                 yield objhash
+
+def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
+    # TODO False vs Exception...
+    try:
+        # setup for eval
+        qc.nodename = nodename
+        qc.filename = path
+        qc.data = dataframe
+        eval_globals = {
+            'qc': qc, 'numpy': numpy, 'df': df, 'pd': pd, 're': re
+        }
+        # single vs multi-line checks - YAML hackery
+        if '\n' in str(chkcode):
+            # note: python2 doesn't support named args for exec()
+            # https://docs.python.org/2/reference/simple_stmts.html#exec
+            exec(str(chkcode), eval_globals, {})  # pylint:disable=W0122
+            res = True
+        else:
+            # str() to handle True/False
+            res = eval(str(chkcode), eval_globals, {})  # pylint:disable=W0123
+    except qc.CheckFunctionsReturn as ex:
+        res = ex.result
+    except Exception as ex:
+        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
+    return res
+
+def diff_dataframes(df1, df2):
+    """Identify differences between two pandas DataFrames"""
+    # from https://stackoverflow.com/a/38421614
+    assert(df1.columns == df2.columns).all(), \
+        "DataFrame column names are different"
+    if df1.equals(df2):
+        return None
+    # need to account for numpy.nan != numpy.nan returning True
+    diff_mask = (df1 != df2) & ~(df1.isnull() & df2.isnull())
+    ne_stacked = diff_mask.stack()
+    changed = ne_stacked[ne_stacked]
+    changed.index.names = ['id']
+    difference_locations = numpy.where(diff_mask)
+    changed_from = df1.values[difference_locations]
+    changed_to = df2.values[difference_locations]
+    return pd.DataFrame({'from': changed_from, 'to': changed_to},
+                        index=changed.index)

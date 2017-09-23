@@ -123,6 +123,36 @@ class CommandTest(QuiltTestCase):
 
         command.inspect('foo/bar')
 
+# TODO: work in progress
+#    def test_find_node_by_name(self):
+#        mydir = os.path.dirname(__file__)
+#        build_path = os.path.join(mydir, './build.yml')
+#        command.build('foo/bar', build_path)
+#
+#        owner, pkg = store.parse_package('foo/bar')
+#        pkgobj = store.PackageStore.find_package(owner, pkg)
+#        assert pkgobj is not None
+#        assert pkgobj.find_node_by_name('') is None
+#        assert pkgobj.find_node_by_name('bar') is None
+#        assert pkgobj.find_node_by_name('foo') is None
+#        assert pkgobj.find_node_by_name('README.md') is None
+#        assert pkgobj.find_node_by_name('data/README') is None
+#        assert pkgobj.find_node_by_name('data/README.md') is None
+#        assert pkgobj.find_node_by_name('README') is not None
+#        tsvnode = pkgobj.find_node_by_name('dataframes/tsv')
+#        assert tsvnode is not None
+#        tsvdf = pkgobj.get_obj(tsvnode)
+#        assert tsvdf is not None
+#        diff = command.diff_vs_dataframe('foo/bar', 'dataframes/tsv', tsvdf)
+#        assert diff is None
+#        diff = command.diff_vs_dataframe('foo/bar', 'dataframes/csv', tsvdf)
+#        assert diff is None
+#        import random
+#        tsvdf['UID1'] = tsvdf['UID1'].apply(
+#            lambda v: v if random.random()>0.01 else ('val'+str(random.random())))
+#        diff = command.diff_vs_dataframe('foo/bar', 'dataframes/tsv', tsvdf)
+#        assert diff is None
+
     def test_log(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_simple.yml')

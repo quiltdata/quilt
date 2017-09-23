@@ -4,16 +4,19 @@ Command line parsing and command dispatch
 """
 
 from __future__ import print_function
-from builtins import input
+from builtins import input      # pylint:disable=W0622
 from datetime import datetime
+import getpass
 import json
 import os
 from shutil import move
 import stat
 import subprocess
 import sys
-import time
+import tempfile
 from threading import Thread, Lock
+import time
+import yaml
 
 from packaging.version import Version
 import pandas as pd
@@ -24,15 +27,18 @@ from requests.adapters import HTTPAdapter
 from six import iteritems, string_types
 from tqdm import tqdm
 
-from .build import build_package, build_package_from_contents, generate_build_file, generate_contents, BuildException
+from .build import (build_package, build_package_from_contents, generate_build_file,
+                    generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, find_object_hashes, GroupNode, TableNode, FileNode, PackageFormat,
-                   decode_node, encode_node)
+from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode,
+                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
-from .store import PackageStore, StoreException
+from .store import PackageStore, parse_package
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
+from . import check_functions as qc
 
 from .. import nodes
+from .. import data
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -49,13 +55,6 @@ CHUNK_SIZE = 4096
 PARALLEL_UPLOADS = 20
 
 VERSION = pkg_resources.require('quilt')[0].version
-
-class CommandException(Exception):
-    """
-    Exception class for all command-related failures.
-    """
-    pass
-
 
 def _update_auth(refresh_token):
     response = requests.post("%s/api/token" % QUILT_PKG_URL, data=dict(
@@ -86,6 +85,7 @@ def _save_auth(auth):
         json.dump(auth, fd)
 
 def _handle_response(resp, **kwargs):
+    _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
         raise CommandException("Authentication failed. Run `quilt login` again.")
     elif not resp.ok:
@@ -138,13 +138,13 @@ def _create_session(auth):
 
     return session
 
-_session = None
+_session = None                 # pylint:disable=C0103
 
 def _get_session():
     """
     Creates a session or returns an existing session.
     """
-    global _session
+    global _session             # pylint:disable=C0103
     if _session is None:
         auth = _create_auth()
         _session = _create_session(auth)
@@ -152,46 +152,22 @@ def _get_session():
     return _session
 
 def _clear_session():
-    global _session
+    global _session             # pylint:disable=C0103
     if _session is not None:
         _session.close()
         _session = None
 
-def _parse_package(name, allow_subpath=False):
-    try:
-        values = name.split('/')
-        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
-        (owner, pkg), subpath = values[:2], values[2:]
-        if not owner or not pkg:
-            # Make sure they're not empty.
-            raise ValueError
-        if subpath and not allow_subpath:
-            raise ValueError
-    except ValueError:
-        pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
-        raise CommandException("Specify package as %s." % pkg_format)
-
-    try:
-        PackageStore.check_name(owner, pkg)
-    except StoreException as ex:
-        raise CommandException(str(ex))
-
-    if allow_subpath:
-        return owner, pkg, subpath
-    else:
-        return owner, pkg
-
 def _open_url(url):
     try:
         if sys.platform == 'win32':
-            os.startfile(url)
+            os.startfile(url)   # pylint:disable=E1101
         elif sys.platform == 'darwin':
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['open', url], stdin=null, stdout=null, stderr=null)
         else:
             with open(os.devnull, 'r+') as null:
                 subprocess.check_call(['xdg-open', url], stdin=null, stdout=null, stderr=null)
-    except Exception as ex:
+    except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
 def login():
@@ -248,16 +224,45 @@ def generate(directory):
 
     print("Generated build-file %s." % (buildfilepath))
 
-def build(package, path=None):
+def diff_node_dataframe(package, nodename, dataframe):
+    """
+    compare two dataframes and print the result
+
+    WIP: find_node_by_name() doesn't work yet.
+    TODO: higher level API: diff_two_files(filepath1, filepath2)
+    TODO: higher level API: diff_node_file(file, package, nodename, filepath)
+    """
+    owner, pkg = parse_package(package)
+    pkgobj = PackageStore.find_package(owner, pkg)
+    if pkgobj is None:
+        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+    node = pkgobj.find_node_by_name(nodename)
+    if node is None:
+        raise CommandException("Node path not found: {}".format(nodename))
+    quilt_dataframe = pkgobj.get_obj(node)
+    return diff_dataframes(quilt_dataframe, dataframe)
+
+def check(path=None, env='default'):
+    """
+    Execute the checks: rules for a given build.yml file.
+    """
+    # TODO: add files=<list of files> to check only a subset...
+    # also useful for 'quilt build' to exclude certain files?
+    # (if not, then require dry_run=True if files!=None/all)
+    build("dry_run/dry_run", path=path, dry_run=True, env=env)
+
+def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
     # we may have a path, PackageNode, or None
     if isinstance(path, string_types):
-        build_from_path(package, path)
+        build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
+        assert not dry_run  # TODO?
         build_from_node(package, path)
     elif path is None:
+        assert not dry_run  # TODO?
         build_empty(package)
     else:
         raise ValueError("Expected a PackageNode or a path, but got %r" % path)
@@ -266,7 +271,7 @@ def build_empty(package):
     """
     Create an empty package for convenient editing of de novo packages
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
 
     store = PackageStore()
     new = store.create_package(owner, pkg)
@@ -276,7 +281,7 @@ def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(owner, pkg)
@@ -289,8 +294,8 @@ def build_from_node(package, node):
             core_node = node._node
             metadata = core_node.metadata or {}
             if isinstance(core_node, TableNode):
-                df = node._data()
-                package_obj.save_df(df, path, metadata.get('q_path'), metadata.get('q_ext'),
+                dataframe = node._data()
+                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
                                     'pandas', PackageFormat.default)
             elif isinstance(core_node, FileNode):
                 src_path = node._data()
@@ -303,12 +308,12 @@ def build_from_node(package, node):
     _process_node(node)
     package_obj.save_contents()
 
-def build_from_path(package, path):
+def build_from_path(package, path, dry_run=False, env='default'):
     """
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
 
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
@@ -322,11 +327,12 @@ def build_from_path(package, path):
                 )
 
             contents = generate_contents(path, DEFAULT_BUILDFILE)
-            build_package_from_contents(owner, pkg, path, contents)
+            build_package_from_contents(owner, pkg, path, contents, dry_run=dry_run, env=env)
         else:
-            build_package(owner, pkg, path)
+            build_package(owner, pkg, path, dry_run=dry_run, env=env)
 
-        print("Built %s/%s successfully." % (owner, pkg))
+        if not dry_run:
+            print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -334,7 +340,7 @@ def log(package):
     """
     List all of the changes to a package on the server.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -357,7 +363,7 @@ def push(package, public=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     pkgobj = PackageStore.find_package(owner, pkg)
@@ -437,16 +443,16 @@ def push(package, public=False, reupload=False):
                                 temp_file.seek(0)
 
                                 # Workaround for non-local variables in Python 2.7
-                                class ctx:
+                                class Context:
                                     compressed_read = 0
                                     original_last_update = 0
 
                                 def _progress_cb(count):
-                                    ctx.compressed_read += count
-                                    original_read = ctx.compressed_read * original_size // compressed_size
+                                    Context.compressed_read += count
+                                    original_read = Context.compressed_read * original_size // compressed_size
                                     with lock:
-                                        progress.update(original_read - ctx.original_last_update)
-                                    ctx.original_last_update = original_read
+                                        progress.update(original_read - Context.original_last_update)
+                                    Context.original_last_update = original_read
 
                                 with FileWithReadProgress(temp_file, _progress_cb) as fd:
                                     url = obj_urls['put']
@@ -467,11 +473,11 @@ def push(package, public=False, reupload=False):
             Thread(target=_worker_thread, name="upload-worker-%d" % i)
             for i in range(PARALLEL_UPLOADS)
         ]
-        for t in threads:
-            t.daemon = True
-            t.start()
-        for t in threads:
-            t.join()
+        for thread in threads:
+            thread.daemon = True
+            thread.start()
+        for thread in threads:
+            thread.join()
 
     if len(uploaded) != total:
         raise CommandException("Failed to upload fragments")
@@ -499,7 +505,7 @@ def version_list(package):
     """
     List the versions of a package.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -520,7 +526,7 @@ def version_add(package, version, pkghash):
     Version format needs to follow PEP 440.
     Versions are permanent - once created, they cannot be modified or deleted.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     try:
@@ -551,7 +557,7 @@ def tag_list(package):
     """
     List the tags of a package.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -574,7 +580,7 @@ def tag_add(package, tag, pkghash):
 
     When a package is pushed, it gets the "latest" tag.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     session.put(
@@ -593,7 +599,7 @@ def tag_remove(package, tag):
     """
     Delete a tag.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     session.delete(
@@ -617,7 +623,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     assert [hash, version, tag].count(None) == 2
 
-    owner, pkg, subpath = _parse_package(package, allow_subpath=True)
+    owner, pkg, subpath = parse_package(package, allow_subpath=True)
     session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
@@ -648,6 +654,21 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         pkghash = response.json()['hash']
+    elif len(hash) <= 64:
+        response = session.get(
+            "{url}/api/log/{owner}/{pkg}/".format(
+                url=QUILT_PKG_URL,
+                owner=owner,
+                pkg=pkg
+            )
+        )
+        for entry in reversed(response.json()['logs']):
+            if entry['hash'].startswith(hash):
+                pkghash = entry['hash']
+                break
+        else:
+            raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+                hash=hash, owner=owner, pkg=pkg))
     else:
         pkghash = hash
     assert pkghash is not None
@@ -715,17 +736,66 @@ def install(package, hash=None, version=None, tag=None, force=False):
             if file_hash != download_hash:
                 os.remove(temp_path)
                 raise CommandException("Fragment hashes do not match: expected %s, got %s." %
-                                    (download_hash, file_hash))
+                                       (download_hash, file_hash))
 
             move(temp_path, local_filename)
 
     pkgobj.save_contents()
 
+def _setup_env(env, files):
+    """ process data distribution. """
+    # TODO: build.yml is not saved in the package system, so re-load it here
+    with open('build.yml') as fd:
+        buildfile = next(yaml.load_all(fd), None)
+        environments = buildfile.get('environments', {})
+    if env != 'default' and (env not in environments):
+        raise CommandException(
+            "environment %s not found in environments: section of build.yml" % env)
+    if len(environments) == 0:
+        return files
+    if env == 'default' and 'default' not in environments:
+        return files
+
+    # TODO: this should be done during quilt push, not during install/import
+    # (requires server support)
+    # TODO: add a way to dry-run dataset checking
+    print('processing environment %s: checking data...' % (env))
+    environment = environments[env]
+    dataset = environment.get('dataset')
+    for key, val in files.items():
+        # TODO: debug mode, where we can see which files were skipped
+        if isinstance(val, pd.DataFrame):
+            before_len = len(val)
+            res = exec_yaml_python(dataset, val, key, '('+key+')')
+            if not res and res is not None:
+                raise BuildException("error creating dataset for environment: %s on file %s" % (
+                    env, key))
+            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
+            files[key] = qc.data
+
+    # TODO: should be done on the server during quilt install
+    # (requires server support)
+    print('processing environment %s: slicing data...' % (env))
+    instance_data = environment.get('instance_data')
+    for key, val in files.items():
+        # TODO: debug mode, where we can see which files were skipped
+        if type(val) == pd.core.frame.DataFrame:
+            before_len = len(val)
+            # TODO: pass instance identifier, e.g. instance number N of M
+            val['.qchash'] = val.apply(lambda x: abs(hash(tuple(x))), axis = 1)
+            res = exec_yaml_python(instance_data, val, key, '('+key+')')
+            if res == False:
+                raise BuildException("error assigning data to instance in environment: %s on file %s" % (
+                    env, key))
+            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
+            files[key] = qc.data
+    return files
+
 def access_list(package):
     """
     Print list of users who can access a package.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=QUILT_PKG_URL, owner=owner, pkg=pkg)
@@ -740,7 +810,7 @@ def access_add(package, user):
     """
     Add access
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
@@ -749,7 +819,7 @@ def access_remove(package, user):
     """
     Remove access
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     session = _get_session()
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
@@ -760,7 +830,7 @@ def delete(package):
 
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
 
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
@@ -787,7 +857,7 @@ def search(query):
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
 
-def ls():
+def ls():                       # pylint:disable=C0103
     """
     List all installed Quilt data packages
     """
@@ -802,38 +872,7 @@ def inspect(package):
     """
     Inspect package details
     """
-    owner, pkg = _parse_package(package)
+    owner, pkg = parse_package(package)
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-
-    def _print_children(children, prefix, path):
-        for idx, (name, child) in enumerate(children):
-            if idx == len(children) - 1:
-                new_prefix = u"└─"
-                new_child_prefix = u"  "
-            else:
-                new_prefix = u"├─"
-                new_child_prefix = u"│ "
-            _print_node(child, prefix + new_prefix, prefix + new_child_prefix, name, path)
-
-    def _print_node(node, prefix, child_prefix, name, path):
-        name_prefix = u"─ "
-        if isinstance(node, GroupNode):
-            children = list(node.children.items())
-            if children:
-                name_prefix = u"┬ "
-            print(prefix + name_prefix + name)
-            _print_children(children, child_prefix, path + name)
-        elif isinstance(node, TableNode):
-            df = pkgobj.get_obj(node)
-            assert isinstance(df, pd.DataFrame)
-            info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
-            print(prefix + name_prefix + ": " + info)
-        elif isinstance(node, FileNode):
-            print(prefix + name_prefix + name)
-        else:
-            assert False, "node=%s type=%s" % (node, type(node))
-
-    print(pkgobj.get_path())
-    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')

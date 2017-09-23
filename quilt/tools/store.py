@@ -6,7 +6,7 @@ import re
 
 
 from .const import PACKAGE_DIR_NAME
-from .core import RootNode
+from .core import RootNode, CommandException
 from .package import Package
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -128,10 +128,12 @@ class PackageStore(object):
             contents=contents
         )
 
-    def create_package(self, user, package):
+    def create_package(self, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.
         """
+        if dry_run:
+            return Package(self, user, package, '.', RootNode(dict()))
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
@@ -158,3 +160,26 @@ class PackageStore(object):
         Returns the path to a temporary object, before we know its hash.
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
+
+def parse_package(name, allow_subpath=False):
+    try:
+        values = name.split('/')
+        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
+        (owner, pkg), subpath = values[:2], values[2:]
+        if not owner or not pkg:
+            # Make sure they're not empty.
+            raise ValueError
+        if subpath and not allow_subpath:
+            raise ValueError
+    except ValueError:
+        pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    try:
+        PackageStore.check_name(owner, pkg)
+    except StoreException as ex:
+        raise CommandException(str(ex))
+
+    if allow_subpath:
+        return owner, pkg, subpath
+    return owner, pkg

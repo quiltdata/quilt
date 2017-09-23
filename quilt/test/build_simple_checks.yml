@@ -1,0 +1,11 @@
+---
+contents:
+  foo:
+    checks: simple, inline_only, inline_and_external
+    file: data/foo.csv
+
+checks:
+  simple: True
+  inline_only: True
+  inline_and_external: True  # false externally
+

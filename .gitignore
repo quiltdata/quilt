@@ -13,3 +13,7 @@ derby.log
 cov_html
 
 .vscode
+
+### emacs
+*~
+[#]*

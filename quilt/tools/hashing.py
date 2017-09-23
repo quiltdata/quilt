@@ -19,9 +19,9 @@ def digest_file(fname):
       hashing
     """
     #chunk size in bytes
-    SIZE = 4096
-    h = hashlib.new(HASH_TYPE)
-    with open(fname, 'rb') as f:
-        for chunk in iter(lambda: f.read(SIZE), b''):
-            h.update(chunk)
-    return h.hexdigest()
+    size = 4096
+    hval = hashlib.new(HASH_TYPE)
+    with open(fname, 'rb') as fd:
+        for chunk in iter(lambda: fd.read(size), b''):
+            hval.update(chunk)
+    return hval.hexdigest()
