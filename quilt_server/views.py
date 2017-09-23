@@ -1275,9 +1275,19 @@ def payments_update_plan(auth_user):
     except ValueError:
         raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
 
+    if plan not in (PaymentPlan.FREE, PaymentPlan.INDIVIDUAL, PaymentPlan.BUSINESS_ADMIN):
+        # Cannot switch to the BUSINESS_MEMBER plan manually.
+        raise ApiException(requests.codes.forbidden, "Not allowed to switch to plan: %r" % plan)
+
     stripe_token = request.values.get('token')
 
     customer = _get_or_create_customer()
+
+    if _get_customer_plan(customer) == PaymentPlan.BUSINESS_MEMBER:
+        raise ApiException(
+            requests.codes.forbidden,
+            "Not allowed to leave Business plan; contact your admin."
+        )
 
     if stripe_token is not None:
         customer.source = stripe_token
