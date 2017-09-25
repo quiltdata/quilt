@@ -86,12 +86,11 @@ class PaymentsTestCase(QuiltTestCase):
         assert data['have_credit_card'] is True
 
     @mock_customer(plan=PaymentPlan.FREE, have_credit_card=True)
-    def testUpdatePlan(self, customer):
+    def testUpdatePlanInvalid(self, customer):
         user = 'test_user'
         subscription = customer.subscriptions.data[0]
         subscription.save.return_value = None
 
-        # Bad plan
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
@@ -104,7 +103,12 @@ class PaymentsTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.bad_request
         assert not subscription.save.called
 
-        # Good plan
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=True)
+    def testUpdatePlanIndividual(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
         resp = self.app.post(
             '/api/payments/update_plan',
             data=dict(
@@ -120,6 +124,66 @@ class PaymentsTestCase(QuiltTestCase):
 
         assert subscription.plan == PaymentPlan.INDIVIDUAL.value
         subscription.save.assert_called_with()
+
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=True)
+    def testUpdatePlanBusinessAdmin(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.BUSINESS_ADMIN.value
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['plan'] == PaymentPlan.BUSINESS_ADMIN.value
+
+        assert subscription.plan == PaymentPlan.BUSINESS_ADMIN.value
+        subscription.save.assert_called_with()
+
+    @mock_customer(plan=PaymentPlan.FREE, have_credit_card=True)
+    def testUpdatePlanBusinessMember(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.BUSINESS_MEMBER.value
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        # Not allowed - can only be set manually.
+        assert resp.status_code == requests.codes.forbidden
+        assert not subscription.save.called
+
+    @mock_customer(plan=PaymentPlan.BUSINESS_MEMBER, have_credit_card=True)
+    def testUpdatePlanLeaveBusinessMember(self, customer):
+        user = 'test_user'
+        subscription = customer.subscriptions.data[0]
+        subscription.save.return_value = None
+
+        resp = self.app.post(
+            '/api/payments/update_plan',
+            data=dict(
+                plan=PaymentPlan.INDIVIDUAL.value
+            ),
+            headers={
+                'Authorization': user,
+            }
+        )
+        # Can't leave the Business Member plan; can only be changed manually.
+        assert resp.status_code == requests.codes.forbidden
+        assert not subscription.save.called
 
     @mock_customer(plan=PaymentPlan.FREE, have_credit_card=False)
     def testUpgradeNoPayment(self, customer):
