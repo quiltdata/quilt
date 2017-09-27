@@ -72,12 +72,12 @@ class QuiltTestCase(TestCase):
 
     def _mock_email(self):
         """Mocks the auth API call and just returns the value of the Authorization header"""
-        auth_url = '%s/pkginvite/send/' % quilt_server.app.config['OAUTH']['base_url']
-        self.requests_mock.add(responses.POST, auth_url, json.dumps(dict()))
+        invite_url = quilt_server.app.config['INVITE_SEND_URL']
+        self.requests_mock.add(responses.POST, invite_url, json.dumps(dict()))
 
     def _mock_user(self):
         """Mocks the auth API call and just returns the value of the Authorization header"""
-        auth_url = '%s/api-root' % quilt_server.app.config['OAUTH']['base_url']
+        user_url = quilt_server.app.config['OAUTH']['user_api']
 
         def cb(request):
             auth = request.headers.get('Authorization')
@@ -89,11 +89,11 @@ class QuiltTestCase(TestCase):
                     email='%s@example.com' % auth,
                 )))
 
-        self.requests_mock.add_callback(responses.GET, auth_url, callback=cb)
+        self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
 
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""
-        user_url = '%s/profiles/%s' % (quilt_server.app.config['OAUTH']['base_url'], user)
+        user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
     def put_package(self, owner, package, contents, public=False):
