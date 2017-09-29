@@ -14,7 +14,7 @@ contents:
     ANOTHER_GROUP_NAME:
       ...
 ```
-See the [`pandas.read_csv` documentation](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html) for a full list of supported options. User can skip lines, type columns, and much more.
+See the [`pandas.read_csv` documentation](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html) for a full list of supported options. Options allow users to skip lines, type columns, specify delimiters, and much more.
 
 ## Column types
 By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas DataFrames using `pandas.read_csv`. Sometimes, usually due to columns of mixed types, pandas will throw an exception during `quilt build`. In such cases it's helpful to include column types in `build.yml` by adding a `dtype` parameter:
