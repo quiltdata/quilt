@@ -1,7 +1,7 @@
 # Questions?
 Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.com). We can also invite you to our Slack channel.
 
-# `ImportError` on import of data pacakge
+# `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install` and is available in either the current working directory or one of its ancestors. `from quilt.data.foo import bar` will look for `foo.bar` starting in the current working directory, then the parent directory, then the grandparent directory..., until it finds the first match or fails at the root of the directory tree.
 
 
