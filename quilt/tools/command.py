@@ -866,7 +866,7 @@ def ls():                       # pylint:disable=C0103
         packages = PackageStore(pkg_dir).ls_packages()
         for idx, (owner, pkg) in enumerate(packages):
             prefix = u"└── " if idx == len(packages) - 1 else u"├── "
-            print("%s%s/%s" % (prefix, owner, pkg))
+            print(("%s%s/%s" % (prefix, owner, pkg)).encode('utf-8'))
 
 def inspect(package):
     """
