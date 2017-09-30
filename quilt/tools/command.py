@@ -30,7 +30,7 @@ from tqdm import tqdm
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode,
+from .core import (hash_contents, find_object_hashes, GroupNode, PackageFormat, TableNode, FileNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
 from .store import PackageStore, parse_package
