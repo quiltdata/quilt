@@ -4,6 +4,8 @@ Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.c
 # `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install` and is available in either the current working directory or one of its ancestors. `from quilt.data.foo import bar` will look for `foo.bar` starting in the current working directory, then the parent directory, then the grandparent directory..., until it finds the first match or fails at the root of the directory tree.
 
+# (Windows) `ImportError: DLL load failed` when accessing package contents
+Make sure you have installed [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145).
 
 # Jupyter, virtual environments, `quilt` not found
 When working with virtual environments like `conda create`, `jupyter` can be installed in the `root` environment. If you then install and run `quilt` in another environment, `foo`, Jupyter will not be able to find quilt.
