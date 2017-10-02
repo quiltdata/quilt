@@ -4,7 +4,7 @@ Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.c
 # `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install` and is available in either the current working directory or one of its ancestors. `from quilt.data.foo import bar` will look for `foo.bar` starting in the current working directory, then the parent directory, then the grandparent directory..., until it finds the first match or fails at the root of the directory tree.
 
-# (Windows) `ImportError: DLL load failed` when accessing package contents
+# (Windows) `ImportError` when accessing package contents
 `pyarrow` module, used by `quilt`, may fail to import because of missing DLLs:
 ```
   File "C:\Program Files\Python36\lib\site-packages\pyarrow\__init__.py", line 32, in <module>
