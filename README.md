@@ -45,9 +45,16 @@ For more on the design goals of Quilt, visit [docs.quiltdata.com](https://docs.q
         export FLASK_DEBUG=1
         export QUILT_SERVER_CONFIG=dev_config.py
 
+        # 1) Quilt auth:
         # Get this one from the stage API app
         # (https://quilt-heroku.herokuapp.com/admin/oauth2_provider/application/3/)
-        export OAUTH_CLIENT_SECRET=...
+        export OAUTH_CLIENT_SECRET_QUILT=...
+
+        # 2) GitHub auth:
+        export AUTH_PROVIDER=github
+        # Get this one from the GitHub API app
+        # (https://github.com/settings/applications/594774)
+        export OAUTH_CLIENT_SECRET_GITHUB=...
 
         # Optional: set a Mixpanel token (for the "Debug" project)
         export MIXPANEL_PROJECT_TOKEN=247b6756f3a8616f9369351b0e5e1fe9
