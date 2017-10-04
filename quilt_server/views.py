@@ -34,15 +34,19 @@ from .schemas import PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
-OAUTH_BASE_URL = app.config['OAUTH']['base_url']
+OAUTH_ACCESS_TOKEN_URL = app.config['OAUTH']['access_token_url']
+OAUTH_AUTHORIZE_URL = app.config['OAUTH']['authorize_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
 OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
-OAUTH_REDIRECT_URI = app.config['OAUTH']['redirect_uri']
+OAUTH_REDIRECT_URL = app.config['OAUTH']['redirect_url']
 
-ACCESS_TOKEN_URL = '/o/token/'
-AUTHORIZE_URL = '/o/authorize/'
+OAUTH_USER_API = app.config['OAUTH']['user_api']
+OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
+OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 
 AUTHORIZATION_HEADER = 'Authorization'
+
+INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
@@ -83,7 +87,7 @@ httpagentparser.detectorshub.register(QuiltCli())
 def _create_session():
     return OAuth2Session(
         client_id=OAUTH_CLIENT_ID,
-        redirect_uri=OAUTH_REDIRECT_URI
+        redirect_uri=OAUTH_REDIRECT_URL
     )
 
 @app.route('/healthcheck')
@@ -94,7 +98,7 @@ def healthcheck():
 @app.route('/login')
 def login():
     session = _create_session()
-    url, state = session.authorization_url(url=OAUTH_BASE_URL + AUTHORIZE_URL)
+    url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
 
     return redirect(url)
 
@@ -113,13 +117,12 @@ def oauth_callback():
     session = _create_session()
     try:
         resp = session.fetch_token(
-            token_url=OAUTH_BASE_URL + ACCESS_TOKEN_URL,
+            token_url=OAUTH_ACCESS_TOKEN_URL,
             code=code,
             client_secret=OAUTH_CLIENT_SECRET
         )
-        return render_template('oauth_success.html',
-                               code=resp['refresh_token'],
-                               QUILT_CDN=QUILT_CDN)
+        token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
+        return render_template('oauth_success.html', code=token, QUILT_CDN=QUILT_CDN)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
 
@@ -130,11 +133,18 @@ def token():
     if refresh_token is None:
         abort(requests.codes.bad_request)
 
+    if not OAUTH_HAVE_REFRESH_TOKEN:
+        return dict(
+            refresh_token='',
+            access_token=refresh_token,
+            expires_at=float('inf')
+        )
+
     session = _create_session()
 
     try:
         resp = session.refresh_token(
-            token_url=OAUTH_BASE_URL + ACCESS_TOKEN_URL,
+            token_url=OAUTH_ACCESS_TOKEN_URL,
             client_id=OAUTH_CLIENT_ID,  # Why??? The session object already has it!
             client_secret=OAUTH_CLIENT_SECRET,
             refresh_token=refresh_token
@@ -228,10 +238,12 @@ def api(require_login=True, schema=None):
                 headers = {
                     AUTHORIZATION_HEADER: auth
                 }
-                resp = requests.get(OAUTH_BASE_URL + '/api-root', headers=headers)
+                resp = requests.get(OAUTH_USER_API, headers=headers)
                 if resp.status_code == requests.codes.ok:
                     data = resp.json()
-                    g.user = data['current_user']
+                    # TODO(dima): Generalize this.
+                    g.user = data.get('current_user', data.get('login'))
+                    assert g.user
                     g.email = data['email']
                 elif resp.status_code == requests.codes.unauthorized:
                     raise ApiException(
@@ -1009,14 +1021,14 @@ def access_put(auth_user, owner, package_name, user):
         headers = {
             AUTHORIZATION_HEADER: g.auth
             }
-        resp = requests.post(OAUTH_BASE_URL + '/pkginvite/send/',
+        resp = requests.post(INVITE_SEND_URL,
                              headers=headers,
                              data=dict(email=email,
                                        owner=auth_user,
                                        package=package.name,
                                        client_id=OAUTH_CLIENT_ID,
                                        client_secret=OAUTH_CLIENT_SECRET,
-                                       callback_url=OAUTH_REDIRECT_URI))
+                                       callback_url=OAUTH_REDIRECT_URL))
 
         if resp.status_code == requests.codes.unauthorized:
             raise ApiException(
@@ -1029,7 +1041,7 @@ def access_put(auth_user, owner, package_name, user):
 
     else:
         if user != PUBLIC:
-            resp = requests.get(OAUTH_BASE_URL + '/profiles/%s' % user)
+            resp = requests.get(OAUTH_PROFILE_API % user)
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
                     requests.codes.not_found,
