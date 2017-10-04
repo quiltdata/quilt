@@ -30,7 +30,7 @@ from tqdm import tqdm
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode,
+from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
 from .store import PackageStore, parse_package
@@ -38,7 +38,6 @@ from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
 from .. import nodes
-from .. import data
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
@@ -876,3 +875,34 @@ def inspect(package):
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    def _print_children(children, prefix, path):
+        for idx, (name, child) in enumerate(children):
+            if idx == len(children) - 1:
+                new_prefix = u"└─"
+                new_child_prefix = u"  "
+            else:
+                new_prefix = u"├─"
+                new_child_prefix = u"│ "
+            _print_node(child, prefix + new_prefix, prefix + new_child_prefix, name, path)
+
+    def _print_node(node, prefix, child_prefix, name, path):
+        name_prefix = u"─ "
+        if isinstance(node, GroupNode):
+            children = list(node.children.items())
+            if children:
+                name_prefix = u"┬ "
+            print(prefix + name_prefix + name)
+            _print_children(children, child_prefix, path + name)
+        elif isinstance(node, TableNode):
+            df = pkgobj.get_obj(node)
+            assert isinstance(df, pd.DataFrame)
+            info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
+            print(prefix + name_prefix + ": " + info)
+        elif isinstance(node, FileNode):
+            print(prefix + name_prefix + name)
+        else:
+            assert False, "node=%s type=%s" % (node, type(node))
+
+    print(pkgobj.get_path())
+    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
