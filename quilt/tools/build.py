@@ -112,18 +112,31 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Saving as binary dataframe...")
                 package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
-
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
-    from pyspark import sql as sparksql
+    from pyspark import SparkContext, sql as sparksql
     _ = target  # TODO: why is this unused?
-
     ext = ext.lower() # ensure that case doesn't matter
+    logic = PARSERS.get(ext)
+    kwargs = dict(logic['kwargs'])
+    kwargs.update(user_kwargs)
+    
     spark = sparksql.SparkSession.builder.getOrCreate()
-    dataframe = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
-    for col in dataframe.columns:
-        pcol = _pythonize_name(col)
-        if col != pcol:
-            dataframe = dataframe.withColumnRenamed(col, pcol)
+    dataframe = None
+    reader = None
+    # FIXME: Add json support?
+    if logic['attr'] == "read_csv":
+        sep = kwargs.get('sep')
+        reader = spark.read.format("csv").option("header", "true")
+        if sep:
+            reader = reader.option("delimiter", sep)
+        dataframe = reader.load(path)
+
+        for col in dataframe.columns:
+            pcol = _pythonize_name(col)
+            if col != pcol:
+                dataframe = dataframe.withColumnRenamed(col, pcol)
+    else:
+        dataframe = _file_to_data_frame(ext, path, target, user_kwargs)
     return dataframe
 
 def _file_to_data_frame(ext, path, target, user_kwargs):

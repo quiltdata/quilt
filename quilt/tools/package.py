@@ -156,7 +156,8 @@ class Package(object):
         if enumformat is PackageFormat.PARQUET:
             # switch parquet lib
             parqlib = self.get_parquet_lib()
-            if parqlib is ParquetLib.ARROW:
+            if isinstance(dataframe, pd.DataFrame):
+                #parqlib is ParquetLib.ARROW: # other parquet libs are deprecated, remove?
                 import pyarrow as pa
                 from pyarrow import parquet
                 table = pa.Table.from_pandas(dataframe)
