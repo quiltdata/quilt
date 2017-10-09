@@ -95,6 +95,16 @@ def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
     return Response("ok", content_type='text/plain')
 
+ROBOTS_TXT = '''
+User-agent: *
+Disallow: /
+'''.lstrip()
+
+@app.route('/robots.txt')
+def robots():
+    """Disallow crawlers; there's nothing useful for them here."""
+    return Response(ROBOTS_TXT, mimetype='text/plain')
+
 @app.route('/login')
 def login():
     session = _create_session()
