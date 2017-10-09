@@ -9,6 +9,7 @@ from datetime import datetime
 import getpass
 import json
 import os
+import re
 from shutil import move
 import stat
 import subprocess
@@ -27,8 +28,8 @@ from requests.adapters import HTTPAdapter
 from six import iteritems, string_types
 from tqdm import tqdm
 
-from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException)
+from .build import (build_package, build_package_from_contents, clone_git_repo,
+                    generate_build_file, generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
@@ -256,7 +257,17 @@ def build(package, path=None, dry_run=False, env='default'):
     """
     # we may have a path, PackageNode, or None
     if isinstance(path, string_types):
-        build_from_path(package, path, dry_run=dry_run, env=env)
+        # is this a git url?
+        is_git_url = re.match('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.git$', path)
+
+        if is_git_url:
+            tmpdir="tmp_build"
+            #if os.path.exists(tmpdir):
+            #    os.remove(tmpdir)
+            clone_git_repo(path, tmpdir)
+            build_from_path(package, tmpdir, dry_run=dry_run, env=env)
+        else:
+            build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
         assert not dry_run  # TODO?
         build_from_node(package, path)
