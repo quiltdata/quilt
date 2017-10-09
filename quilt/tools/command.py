@@ -10,7 +10,7 @@ import getpass
 import json
 import os
 import re
-from shutil import move
+from shutil import move, rmtree
 import stat
 import subprocess
 import sys
@@ -261,11 +261,10 @@ def build(package, path=None, dry_run=False, env='default'):
         is_git_url = re.match('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.git$', path)
 
         if is_git_url:
-            tmpdir="tmp_build"
-            #if os.path.exists(tmpdir):
-            #    os.remove(tmpdir)
+            tmpdir="tmp_git_clone"
             clone_git_repo(path, tmpdir)
             build_from_path(package, tmpdir, dry_run=dry_run, env=env)
+            rmtree(tmpdir)
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
