@@ -252,6 +252,15 @@ def check(path=None, env='default'):
     # (if not, then require dry_run=True if files!=None/all)
     build("dry_run/dry_run", path=path, dry_run=True, env=env)
 
+def _clone_git_repo(path):
+    tmpdir=tempfile.mkdtemp()
+    cmd = ['git', 'clone', '-q', '--depth=1', path, tmpdir]
+    proc = subprocess.check_call(cmd)
+    return tmpdir
+
+def _rmtree(path):
+    rmtree(path)
+
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
@@ -261,16 +270,14 @@ def build(package, path=None, dry_run=False, env='default'):
         # is this a git url?
         is_git_url = GIT_URL_RE.match(path)
         if is_git_url:
-            tmpdir=tempfile.mkdtemp()
-            cmd = ['git', 'clone', '-q', '--depth=1', path, tmpdir]
-            try:                    
-                proc = subprocess.check_call(cmd)
+            try:
+                tmpdir = _clone_git_repo(path)
                 build_from_path(package, tmpdir, dry_run=dry_run, env=env)
             except Exception as exc:
                 print("Error %s while executing command %s", exc, " ".join(cmd))
                 raise
             finally:
-                rmtree(tmpdir)            
+                _rmtree(tmpdir)            
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
@@ -280,7 +287,7 @@ def build(package, path=None, dry_run=False, env='default'):
         assert not dry_run  # TODO?
         build_empty(package)
     else:
-        raise ValueError("Expected a PackageNode or a path, but got %r" % path)
+        raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
 def build_empty(package):
     """
