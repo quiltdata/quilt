@@ -7,7 +7,9 @@ import os
 import time
 
 import responses
+import shutil
 
+import pandas as pd
 from six import assertRaisesRegex
 
 from quilt.tools import command, store
@@ -203,13 +205,18 @@ class CommandTest(QuiltTestCase):
 
         command.delete('%s/%s' % (owner, package))
 
-    @patch('quilt.tools.command._rmtree')
-    @patch('tempfile.mkdtemp')
-    @patch('quilt.tools.command._clone_git_repo')
-    def test_build_from_git(self, mock_clone_git, mock_temp_file, mock_rmtree):
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, 'data')
-        mock_clone_git.return_value = None
-        mock_temp_file.return_value = path
-        mock_rmtree.return_value = None
-        command.build('user/test', 'https://github.com/quiltdata/testdata.git')
+    @patch('subprocess.check_call')
+    def test_build_from_git(self, mock_subproc):
+        def mock_git_clone(cmd):
+            srcfile = 'foo.csv'
+            mydir = os.path.dirname(__file__)
+            srcpath = os.path.join(mydir, 'data', srcfile)
+            destpath = os.path.join(cmd[-1], srcfile)
+            shutil.copyfile(srcpath, destpath)
+        
+        with patch('subprocess.check_call', mock_git_clone):
+            command.build('user/test', 'https://github.com/quiltdata/testdata.git')
+
+        from quilt.data.user import test
+        assert hasattr(test, 'foo')
+        assert isinstance(test.foo(), pd.DataFrame)
