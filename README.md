@@ -37,6 +37,7 @@ For more on the design goals of Quilt, visit [docs.quiltdata.com](https://docs.q
 * Create a virtual env
 * Install the server package and its dependencies:
 
+        $ pip install -r requirements.txt
         $ pip install -e .
 
 * Add these to the env's `postactivate` script:
