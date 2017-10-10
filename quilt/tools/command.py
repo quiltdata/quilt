@@ -42,7 +42,7 @@ from .. import nodes
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
-GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?P<branch>@[\w_-]+)?')
+GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
 if QUILT_PKG_URL == DEFAULT_QUILT_PKG_URL:
     AUTH_FILE_NAME = "auth.json"
@@ -273,7 +273,6 @@ def build(package, path=None, dry_run=False, env='default'):
         if is_git_url:
             tmpdir=tempfile.mkdtemp()
             url, branch = is_git_url.groups()
-            branch = branch.lstrip('@') if branch else None
             try:
                 _clone_git_repo(url, branch, tmpdir)
                 build_from_path(package, tmpdir, dry_run=dry_run, env=env)
