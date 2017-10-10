@@ -6,7 +6,6 @@ Test the build process
 import os
 
 from six import assertRaisesRegex
-from unittest.mock import MagicMock
 import yaml
 
 from ..tools.package import ParquetLib, Package

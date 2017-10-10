@@ -42,7 +42,7 @@ from .. import nodes
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
-GIT_URL_RE = re.compile(r'http[s]?://(?:[\w./~_-])+\.git$')
+GIT_URL_RE = re.compile(r'http[s]?://(?:[\w./~_-])+(\.git)(?:@[.]+)?')
 
 if QUILT_PKG_URL == DEFAULT_QUILT_PKG_URL:
     AUTH_FILE_NAME = "auth.json"
