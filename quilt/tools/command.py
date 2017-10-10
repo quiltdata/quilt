@@ -28,8 +28,8 @@ from requests.adapters import HTTPAdapter
 from six import iteritems, string_types
 from tqdm import tqdm
 
-from .build import (build_package, build_package_from_contents, clone_git_repo,
-                    generate_build_file, generate_contents, BuildException)
+from .build import (build_package, build_package_from_contents, generate_build_file,
+                    generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
@@ -42,6 +42,7 @@ from .. import nodes
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
+GIT_URL_RE = re.compile(r'http[s]?://(?:[\w./~_-])+\.git$')
 
 if QUILT_PKG_URL == DEFAULT_QUILT_PKG_URL:
     AUTH_FILE_NAME = "auth.json"
@@ -258,13 +259,18 @@ def build(package, path=None, dry_run=False, env='default'):
     # we may have a path, git URL, PackageNode, or None
     if isinstance(path, string_types):
         # is this a git url?
-        is_git_url = re.match('http[s]?://(?:[\w./~_-])+\.git$', path)
-
+        is_git_url = GIT_URL_RE.match(path)
         if is_git_url:
-            tmpdir="tmp_git_clone"
-            clone_git_repo(path, tmpdir)
-            build_from_path(package, tmpdir, dry_run=dry_run, env=env)
-            rmtree(tmpdir)
+            tmpdir=tempfile.mkdtemp()
+            cmd = ['git', 'clone', '-q', '--depth=1', path, tmpdir]
+            try:                    
+                proc = subprocess.check_call(cmd)
+                build_from_path(package, tmpdir, dry_run=dry_run, env=env)
+            except Exception as exc:
+                print("Error %s while executing command %s", exc, " ".join(cmd))
+                raise
+            finally:
+                rmtree(tmpdir)            
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):

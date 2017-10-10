@@ -8,7 +8,6 @@ import os
 import re
 
 from six import iteritems
-import subprocess
 import yaml
 from tqdm import tqdm
 
@@ -334,17 +333,4 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
     return buildfilepath
-
-def clone_git_repo(git_url, destination):
-    cmd = ['git', 'clone', '-q', '--depth=1', git_url, destination]
-    try:
-        proc = subprocess.Popen(cmd, cwd=os.getcwd(), env=os.environ.copy())
-    except Exception as exc:
-        print("Error %s while executing command %s", exc, cmd)
-        raise
-
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
+    
