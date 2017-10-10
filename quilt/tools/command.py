@@ -255,10 +255,10 @@ def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
-    # we may have a path, PackageNode, or None
+    # we may have a path, git URL, PackageNode, or None
     if isinstance(path, string_types):
         # is this a git url?
-        is_git_url = re.match('http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+\.git$', path)
+        is_git_url = re.match('http[s]?://(?:[\w./~_-])+\.git$', path)
 
         if is_git_url:
             tmpdir="tmp_git_clone"
