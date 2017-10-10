@@ -48,7 +48,7 @@ class CommandTest(QuiltTestCase):
 
         command.login()
 
-        mock_open.assert_called_with('%s/login' % command.QUILT_PKG_URL)
+        mock_open.assert_called_with('%s/login' % command.get_registry_url())
 
         mock_login_with_token.assert_called_with(old_refresh_token)
 
@@ -61,7 +61,7 @@ class CommandTest(QuiltTestCase):
 
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.QUILT_PKG_URL,
+            '%s/api/token' % command.get_registry_url(),
             json=dict(
                 status=200,
                 refresh_token=refresh_token,
@@ -84,7 +84,7 @@ class CommandTest(QuiltTestCase):
     def test_login_token_server_error(self, mock_save):
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.QUILT_PKG_URL,
+            '%s/api/token' % command.get_registry_url(),
             status=500
         )
 
@@ -97,7 +97,7 @@ class CommandTest(QuiltTestCase):
     def test_login_token_auth_fail(self, mock_save):
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.QUILT_PKG_URL,
+            '%s/api/token' % command.get_registry_url(),
             json=dict(
                 status=200,
                 error="Bad token!"
@@ -166,7 +166,7 @@ class CommandTest(QuiltTestCase):
         command.log("{owner}/{pkg}".format(owner=owner, pkg=package))
 
     def _mock_logs_list(self, owner, package, pkg_hash):
-        logs_url = "%s/api/log/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
+        logs_url = "%s/api/log/%s/%s/" % (command.get_registry_url(), owner, package)
         resp = dict(logs=[dict(
             hash=pkg_hash,
             created=time.time(),
@@ -198,7 +198,7 @@ class CommandTest(QuiltTestCase):
 
         mock_input.return_value = '%s/%s' % (owner, package)
 
-        delete_url = "%s/api/package/%s/%s/" % (command.QUILT_PKG_URL, owner, package)
+        delete_url = "%s/api/package/%s/%s/" % (command.get_registry_url(), owner, package)
         self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
 
         command.delete('%s/%s' % (owner, package))

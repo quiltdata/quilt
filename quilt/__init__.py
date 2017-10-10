@@ -8,6 +8,7 @@ from .tools.command import (
     access_remove,
     build,
     check,
+    config,
     inspect,
     install,
     log,
