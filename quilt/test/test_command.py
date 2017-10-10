@@ -204,10 +204,12 @@ class CommandTest(QuiltTestCase):
         command.delete('%s/%s' % (owner, package))
 
     @patch('quilt.tools.command._rmtree')
+    @patch('tempfile.mkdtemp')
     @patch('quilt.tools.command._clone_git_repo')
-    def test_build_from_git(self, mock_clone_git, mock_rmtree):
+    def test_build_from_git(self, mock_clone_git, mock_temp_file, mock_rmtree):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
-        mock_clone_git.return_value = path
+        mock_clone_git.return_value = None
+        mock_temp_file.return_value = path
         mock_rmtree.return_value = None
         command.build('user/test', 'https://github.com/quiltdata/testdata.git')
