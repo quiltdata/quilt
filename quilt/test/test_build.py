@@ -154,4 +154,3 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test_copy.generated import bad, foo, nuts
 
         assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath
-        
