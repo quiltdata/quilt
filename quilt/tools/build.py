@@ -333,4 +333,3 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
     return buildfilepath
-    
