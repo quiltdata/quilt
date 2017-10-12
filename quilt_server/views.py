@@ -8,6 +8,7 @@ from datetime import timedelta, timezone
 from functools import wraps
 import json
 import time
+from urllib.parse import urlencode
 
 import boto3
 from flask import abort, g, redirect, render_template, request, Response
@@ -43,6 +44,8 @@ OAUTH_REDIRECT_URL = app.config['OAUTH']['redirect_url']
 OAUTH_USER_API = app.config['OAUTH']['user_api']
 OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
 OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
+
+CATALOG_REDIRECT_URLS = app.config['CATALOG_REDIRECT_URLS']
 
 AUTHORIZATION_HEADER = 'Authorization'
 
@@ -84,10 +87,11 @@ httpagentparser.detectorshub.register(QuiltCli())
 
 ### Web routes ###
 
-def _create_session():
+def _create_session(next=''):
     return OAuth2Session(
         client_id=OAUTH_CLIENT_ID,
-        redirect_uri=OAUTH_REDIRECT_URL
+        redirect_uri=OAUTH_REDIRECT_URL,
+        state=json.dumps(dict(next=next))
     )
 
 @app.route('/healthcheck')
@@ -105,9 +109,17 @@ def robots():
     """Disallow crawlers; there's nothing useful for them here."""
     return Response(ROBOTS_TXT, mimetype='text/plain')
 
+def _valid_catalog_redirect(next):
+    return next is None or any(next.startswith(url) for url in CATALOG_REDIRECT_URLS)
+
 @app.route('/login')
 def login():
-    session = _create_session()
+    next = request.args.get('next')
+
+    if not _valid_catalog_redirect(next):
+        return render_template('oauth_fail.html', error="Invalid redirect", QUILT_CDN=QUILT_CDN)
+
+    session = _create_session(next=next)
     url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
 
     return redirect(url)
@@ -115,6 +127,18 @@ def login():
 @app.route('/oauth_callback')
 def oauth_callback():
     # TODO: Check `state`? Do we need CSRF protection here?
+
+    try:
+        state = json.loads(request.args.get('state', '{}'))
+    except ValueError:
+        abort(requests.codes.bad_request)
+
+    if not isinstance(state, dict):
+        abort(requests.codes.bad_request)
+
+    next = state.get('next')
+    if not _valid_catalog_redirect(next):
+        abort(requests.codes.bad_request)
 
     error = request.args.get('error')
     if error is not None:
@@ -131,8 +155,11 @@ def oauth_callback():
             code=code,
             client_secret=OAUTH_CLIENT_SECRET
         )
-        token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
-        return render_template('oauth_success.html', code=token, QUILT_CDN=QUILT_CDN)
+        if next:
+            return redirect('%s#%s' % (next, urlencode(resp)))
+        else:
+            token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
+            return render_template('oauth_success.html', code=token, QUILT_CDN=QUILT_CDN)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
 

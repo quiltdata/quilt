@@ -22,6 +22,8 @@ OAUTH = dict(
     have_refresh_token=True
 )
 
+CATALOG_REDIRECT_URLS = os.environ['CATALOG_REDIRECT_URLS'].split()
+
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
 
 INVITE_SEND_URL = 'https://%s/pkginvite/send/' % OAUTH_API_HOST
