@@ -257,10 +257,7 @@ def _clone_git_repo(url, branch, dest):
     if branch:
         cmd += ['-b', branch]
     cmd += [url, dest]
-    proc = subprocess.check_call(cmd)
-
-def _rmtree(path):
-    rmtree(path)
+    subprocess.check_call(cmd)
 
 def build(package, path=None, dry_run=False, env='default'):
     """
@@ -271,16 +268,18 @@ def build(package, path=None, dry_run=False, env='default'):
         # is this a git url?
         is_git_url = GIT_URL_RE.match(path)
         if is_git_url:
-            tmpdir=tempfile.mkdtemp()
-            url, branch = is_git_url.groups()
+            tmpdir = tempfile.mkdtemp()
+            url = is_git_url.group('url')
+            branch = is_git_url.group('branch')
             try:
                 _clone_git_repo(url, branch, tmpdir)
                 build_from_path(package, tmpdir, dry_run=dry_run, env=env)
             except Exception as exc:
-                print("Error %s while cloning %s.", exc, path)
-                raise
+                msg = "attempting git clone raised exception: {exc}"
+                raise CommandException(msg.format(exc=exc))
             finally:
-                _rmtree(tmpdir)
+                if os.path.exists(tmpdir):
+                    rmtree(tmpdir)
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
