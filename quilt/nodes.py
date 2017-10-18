@@ -112,11 +112,8 @@ class PackageNode(GroupNode):
         node = self
         for key in path[:-1]:
             assert not key.startswith('_')
-            if hasattr(node, key):
-                child = getattr(node, key)
-                if not isinstance(child, GroupNode):
-                    raise ValueError("Key already %r exists, but is not a group" % key)
-            else:
+            child = getattr(node, key, None)
+            if not isinstance(child, GroupNode):
                 child = GroupNode(self._package, core.GroupNode({}))
                 setattr(node, key, child)
 
@@ -124,7 +121,5 @@ class PackageNode(GroupNode):
 
         key = path[-1]
         assert not key.startswith('_')
-        if hasattr(node, key):
-            raise ValueError("Key %r already exists" % key)
         data_node = DataNode(self._package, core_node, value)
-        setattr(node, path[-1], data_node)
+        setattr(node, key, data_node)
