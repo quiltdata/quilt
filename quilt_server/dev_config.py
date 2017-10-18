@@ -4,6 +4,7 @@
 Config file for dev. Overrides values in config.py.
 """
 import os
+import socket
 
 SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/quilt'
 
@@ -46,6 +47,6 @@ PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
 
-MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN')
-
+MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN', '')
+DEPLOYMENT_ID = socket.gethostname()
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
