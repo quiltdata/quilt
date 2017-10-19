@@ -35,6 +35,8 @@ from .schemas import PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
+DEPLOYMENT_ID = app.config['DEPLOYMENT_ID']
+
 OAUTH_ACCESS_TOKEN_URL = app.config['OAUTH']['access_token_url']
 OAUTH_AUTHORIZE_URL = app.config['OAUTH']['authorize_url']
 OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
@@ -352,6 +354,7 @@ def _mp_track(**kwargs):
         browser_version=g.user_agent['browser']['version'],
         platform_name=g.user_agent['platform']['name'],
         platform_version=g.user_agent['platform']['version'],
+        deployment_id=DEPLOYMENT_ID,
     )
     all_args.update(kwargs)
 

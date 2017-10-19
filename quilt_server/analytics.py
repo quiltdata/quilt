@@ -38,7 +38,7 @@ class NoopConsumer(object):
     def send(self, endpoint, json_message):
         pass
 
-mp_token = app.config['MIXPANEL_PROJECT_TOKEN']
+mp_token = app.config.get('MIXPANEL_PROJECT_TOKEN', 'fd57644e08f13d8e569e5a95a0c81b3b')
 if mp_token:
     mp_consumer = AsyncConsumer()
     atexit.register(mp_consumer.shutdown)
@@ -46,4 +46,4 @@ else:
     # For testing, dev, etc.
     mp_consumer = NoopConsumer()
 
-mp = Mixpanel(app.config['MIXPANEL_PROJECT_TOKEN'], mp_consumer)
+mp = Mixpanel(mp_token, mp_consumer)
