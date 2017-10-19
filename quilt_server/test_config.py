@@ -17,6 +17,8 @@ OAUTH = dict(
     have_refresh_token=True,
 )
 
+CATALOG_REDIRECT_URLS = os.getenv('CATALOG_REDIRECT_URLS', '').split()
+
 INVITE_SEND_URL = 'https://quilt-heroku.herokuapp.com/pkginvite/send/'
 
 AWS_ACCESS_KEY_ID = 'fake_id'
