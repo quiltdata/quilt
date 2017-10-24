@@ -7,7 +7,9 @@ import os
 import time
 
 import responses
+import shutil
 
+import pandas as pd
 from six import assertRaisesRegex
 
 from quilt.tools import command, store
@@ -202,3 +204,64 @@ class CommandTest(QuiltTestCase):
         self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
 
         command.delete('%s/%s' % (owner, package))
+
+    def test_build_from_git(self):
+        git_url = 'https://github.com/quiltdata/testdata.git'
+        def mock_git_clone(cmd):
+            # test git command
+            assert len(cmd) == 6
+            assert cmd[:5] == ['git', 'clone', '-q', '--depth=1', git_url]
+
+            # fake git clone by copying test files into destpath
+            srcfile = 'foo.csv'
+            mydir = os.path.dirname(__file__)
+            srcpath = os.path.join(mydir, 'data', srcfile)
+            destpath = os.path.join(cmd[-1], srcfile)
+            shutil.copyfile(srcpath, destpath)
+        
+        with patch('subprocess.check_call', mock_git_clone):
+            command.build('user/test', git_url)
+
+        from quilt.data.user import test
+        assert hasattr(test, 'foo')
+        assert isinstance(test.foo(), pd.DataFrame)
+
+    def test_build_from_git_branch(self):
+        branch = 'notmaster'
+        git_url = 'https://github.com/quiltdata/testdata.git'
+        def mock_git_clone(cmd):
+            # test git command
+            assert len(cmd) == 8
+            assert cmd[:7] == ['git', 'clone', '-q', '--depth=1', '-b', branch, git_url]
+
+            # fake git clone by copying test files into destpath
+            srcfile = 'foo.csv'
+            mydir = os.path.dirname(__file__)
+            srcpath = os.path.join(mydir, 'data', srcfile)
+            destpath = os.path.join(cmd[-1], srcfile)
+            shutil.copyfile(srcpath, destpath)
+        
+        with patch('subprocess.check_call', mock_git_clone):
+            command.build('user/test', "{url}@{brch}".format(url=git_url, brch=branch))
+
+        from quilt.data.user import test
+        assert hasattr(test, 'foo')
+        assert isinstance(test.foo(), pd.DataFrame)
+
+    def test_git_clone_fail(self):
+        git_url = 'https://github.com/quiltdata/testdata.git'
+        def mock_git_clone(cmd):
+            # test git command
+            assert len(cmd) == 6
+            assert cmd[:5] == ['git', 'clone', '-q', '--depth=1', git_url]
+
+            # fake git clone fail
+            raise Exception()
+        
+        with patch('subprocess.check_call', mock_git_clone):
+            with self.assertRaises(command.CommandException):
+                command.build('user/test', git_url)
+
+        from quilt.data.user import test
+        assert hasattr(test, 'foo')
+        assert isinstance(test.foo(), pd.DataFrame)

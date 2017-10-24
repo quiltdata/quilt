@@ -9,7 +9,8 @@ from datetime import datetime
 import getpass
 import json
 import os
-from shutil import move
+import re
+from shutil import move, rmtree
 import stat
 import subprocess
 import sys
@@ -41,6 +42,7 @@ from .. import nodes
 
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
+GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
 if QUILT_PKG_URL == DEFAULT_QUILT_PKG_URL:
     AUTH_FILE_NAME = "auth.json"
@@ -250,13 +252,36 @@ def check(path=None, env='default'):
     # (if not, then require dry_run=True if files!=None/all)
     build("dry_run/dry_run", path=path, dry_run=True, env=env)
 
+def _clone_git_repo(url, branch, dest):
+    cmd = ['git', 'clone', '-q', '--depth=1']
+    if branch:
+        cmd += ['-b', branch]
+    cmd += [url, dest]
+    subprocess.check_call(cmd)
+
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
-    # we may have a path, PackageNode, or None
+    # we may have a path, git URL, PackageNode, or None
     if isinstance(path, string_types):
-        build_from_path(package, path, dry_run=dry_run, env=env)
+        # is this a git url?
+        is_git_url = GIT_URL_RE.match(path)
+        if is_git_url:
+            tmpdir = tempfile.mkdtemp()
+            url = is_git_url.group('url')
+            branch = is_git_url.group('branch')
+            try:
+                _clone_git_repo(url, branch, tmpdir)
+                build_from_path(package, tmpdir, dry_run=dry_run, env=env)
+            except Exception as exc:
+                msg = "attempting git clone raised exception: {exc}"
+                raise CommandException(msg.format(exc=exc))
+            finally:
+                if os.path.exists(tmpdir):
+                    rmtree(tmpdir)
+        else:
+            build_from_path(package, path, dry_run=dry_run, env=env)
     elif isinstance(path, nodes.PackageNode):
         assert not dry_run  # TODO?
         build_from_node(package, path)
@@ -264,7 +289,7 @@ def build(package, path=None, dry_run=False, env='default'):
         assert not dry_run  # TODO?
         build_empty(package)
     else:
-        raise ValueError("Expected a PackageNode or a path, but got %r" % path)
+        raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
 def build_empty(package):
     """
