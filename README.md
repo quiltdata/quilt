@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
+[![Build Status](https://travis-ci.org/quiltdata/quilt-compiler.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
 
 # Quilt is a package manager for data
 With Quilt you can build, push, and install data packages.
