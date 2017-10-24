@@ -40,6 +40,17 @@ from . import check_functions as qc
 
 from .. import nodes
 
+# pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
+# So... We disable it. That's what boto does.
+# https://github.com/boto/botocore/issues/760
+# https://github.com/boto/botocore/pull/803
+try:
+    from urllib3.contrib import pyopenssl
+    pyopenssl.extract_from_urllib3()
+except ImportError:
+    pass
+
+
 DEFAULT_QUILT_PKG_URL = 'https://pkg.quiltdata.com'
 QUILT_PKG_URL = os.environ.get('QUILT_PKG_URL', DEFAULT_QUILT_PKG_URL)
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
