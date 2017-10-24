@@ -41,6 +41,7 @@ setup(
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pyarrow>=0.4.0',
+        'pyOpenSSL>=16.2.0',  # Note: not actually used at the moment.
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'responses>=0.5.1,<0.6.1',  # 0.6.1 is broken, but already fixed in master
