@@ -36,11 +36,11 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
+        'enum34; python_version<"3.4"',
         'future>=0.16.0',
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pyarrow>=0.4.0',
-        'pyOpenSSL>=16.2.0',
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'responses>=0.5.1,<0.6.1',  # 0.6.1 is broken, but already fixed in master
