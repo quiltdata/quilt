@@ -72,9 +72,45 @@ For more on the design goals of Quilt, visit [docs.quiltdata.com](https://docs.q
 
     flask run
 
-## Run the Docker container
+## Run with Docker
 
-    TODO
+Run a local Quilt registry for testing and development using `docker-compose`. This starts a collection of docker containers to run the various services needed to run the registry: database, storage, and flask. By default, this local registry will use GitHub as its authentication service (OAuth2Provider) <b>see Setting up GitHub Authentication</b> below.
+
+### Set up GitHub Authentication
+Create a new OAuth Application on GitHub at:
+https://github.com/settings/applications/new
+
+Authorization callback URL: 
+http://flask:5000/oauth_callback
+
+Homepage URL:
+http://localhost:3000
+
+Save your new application's client ID and client secret to the local environment:
+```bash
+export OAUTH_CLIENT_ID_GITHUB=<OAUTH_APP_CLIENT_ID>
+export OAUTH_CLIENT_SECRET_GITHUB=<OAUTH_APP_CLIENT_SECRET>
+```
+
+### Run the registry with docker-compose
+
+    docker-compose up
+
+Tear down the containers by running:
+
+    docker-compose down
+
+Connect to the local registry in the Quilt compiler by setting `QUILT_PKG_URL=http://localhost:5000`
+
+Connect to the local Quilt catalog by pointing your browser to: http://localhost:3000
+
+It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package stage is reset every time the services are restarted.
+
+In developement, it's often useful to leave the database and storage service running, and only restart the flask container.
+
+    docker-compose create --force-recreate --build flask
+
+
 
 ## DB Migrations
 Create a new migrations file:
