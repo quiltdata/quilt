@@ -1,19 +1,24 @@
 # Quilt CLI Local Storage
 
+## Motivation
+The primary motivation for unifying the local package store is that any Python process will be able to access any locally installed Quilt package. A common point of friction for Quilt users has been that packages built on the command line aren't visible inside Jupyter notebooks if the Jupyter server is running in a different directory. Unifiying the local storage by adopting the Docker storage model solves that problem and also enables useful future features like comparing (diff) package versions and tracking revision history locally without pushing to a registry.
+
 ## Directory Structure
+This change proposes changing from a hierarchy of separate local package stores(quilt_packages) like npm, to a single store like Docker.
+
 ```bash
-objs/
+BASE_DIR/objs/
 ```
 Stores binary data objects identified by hash. These objects include compressed raw files and Parquet files. Object hashes are verified and objects are stored only once (deduplication).
 
 ```bash
-pkgs/
+BASE_DIR/pkgs/
 ```
 
 Stores package manifest files (JSON format) for all package instances. Package manifests are identified by the hash of the package.
 
 ```bash
-contents.json
+BASE_DIR/contents.json
 ```
 
 Catalog of locally resident packages. The contents manfiest maps identifiers including package name, tags and versions to package instances.
@@ -22,12 +27,11 @@ Catalog of locally resident packages. The contents manfiest maps identifiers inc
 The contents manifest file ```contents.json``` contains a mapping of package names, versions and tags to locally installed package instances.
 
 ```json
-package:
-    <pkgname>:
-        tags:
-            tag:    <hash>
-        versions:
-            version:    <hash>
+<pkgname>:
+    tags:
+        tag:        <hash>
+    versions:
+        version:    <hash>
 ```
 
 ## Commands
