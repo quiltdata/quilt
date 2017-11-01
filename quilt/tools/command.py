@@ -41,6 +41,17 @@ from . import check_functions as qc
 
 from .. import nodes
 
+# pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
+# So... We disable it. That's what boto does.
+# https://github.com/boto/botocore/issues/760
+# https://github.com/boto/botocore/pull/803
+try:
+    from urllib3.contrib import pyopenssl
+    pyopenssl.extract_from_urllib3()
+except ImportError:
+    pass
+
+
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
@@ -545,8 +556,11 @@ def push(package, public=False, reupload=False):
                         with lock:
                             uploaded.append(obj_hash)
                     except requests.exceptions.RequestException as ex:
+                        message = "Upload failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                            obj_hash, ex.request.url, ex.response.status_code, ex.response.text
+                        )
                         with lock:
-                            tqdm.write("Upload failed for %s: error %s" % (obj_hash, ex))
+                            tqdm.write(message)
 
         threads = [
             Thread(target=_worker_thread, name="upload-worker-%d" % i)
@@ -792,8 +806,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
             response = s3_session.get(url, stream=True)
             if not response.ok:
-                msg = "Download {hash} failed: error {code}"
-                raise CommandException(msg.format(hash=download_hash, code=response.status_code))
+                message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                    download_hash, response.request.url, response.status_code, response.text
+                )
+                raise CommandException(message)
 
             length_remaining = response.raw.length_remaining
 
