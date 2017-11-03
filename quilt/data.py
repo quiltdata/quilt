@@ -27,7 +27,8 @@ from .tools.store import PackageStore
 
 __path__ = []  # Required for submodules to work
 
-
+# NO CHANGE
+# Path is now in contents directory
 class FakeLoader(object):
     """
     Fake module loader used to create intermediate user and package modules.
@@ -88,6 +89,9 @@ class PackageLoader(object):
         sys.modules[fullname] = mod
         return mod
 
+
+# NO CHANGE:
+# find_store_dirs always returns one directory
 class ModuleFinder(object):
     """
     Looks up submodules.

@@ -54,6 +54,8 @@ class Package(object):
     def set_parquet_lib(cls, parqlib):
         cls.__parquet_lib = ParquetLib(parqlib)
 
+    # NO CHANGE
+    # path is now based on hash
     def __init__(self, store, user, package, path, contents=None):
         self._store = store
         self._user = user
@@ -209,6 +211,9 @@ class Package(object):
         """
         self._contents = contents
 
+    # CHANGE:
+    # Saving the contents now creates a new file (by hash)
+    # and must update self._path
     def save_contents(self):
         """
         Saves the in-memory contents to the package file.
@@ -254,6 +259,8 @@ class Package(object):
 #        #print('non-group node?')
 #        return None
 
+    # CHANGE?
+    # Add assertion that contents matches file ID?
     def get_hash(self):
         """
         Returns the hash digest of the package data.
@@ -299,6 +306,10 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
+    # CHANGE?
+    # Recalculate hash and auto-save?
+    # If not, we should probably flag that the package has unsaved state
+    # and its hash no longer matches its id.
     def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
         """
         Adds an object (name-hash mapping) to the package's contents.

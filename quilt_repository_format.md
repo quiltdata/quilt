@@ -18,21 +18,26 @@ BASE_DIR/pkgs/
 Stores package manifest files (JSON format) for all package instances. Package manifests are identified by the hash of the package.
 
 ```bash
-BASE_DIR/contents.json
+BASE_DIR/contents/
+
+<hash>
 ```
 
 Catalog of locally resident packages. The contents manfiest maps identifiers including package name, tags and versions to package instances.
 
-## Contents Manifest
-The contents manifest file ```contents.json``` contains a mapping of package names, versions and tags to locally installed package instances.
+## Contents
+The contents directory ```contents``` uses the file system to store thread-safe mapping of package names, versions and tags to locally installed package instances.
 
-```json
-<pkgname>:
-    tags:
-        tag:        <hash>
-    versions:
-        version:    <hash>
+```bash
+<pkgname>/
+    hashes/
+        <hash> (empty)
+    tags/
+        <tag>:        <hash>
+    versions/
+        <version>:    <hash>
 ```
+Using the file system is expected to be slower than a single-file lookup, but will be thread-safe and still human-readable. There is a redundancy in this structure. Each hash for a package exists as an empty file and may also be in the contents of a tag or version file--potentially allowing for inconsistency. A cleaner, but slower alternative would be to make each hash a directory that optionally contains hashes tags. That feels a bit cumbersome and likely slow in the common case of looking up a hash from a tag (e.g., latest)
 
 ## Commands
 
@@ -84,15 +89,15 @@ Installs a package from the Quilt registry and records any tags or versions asso
 ### push
 - find instance:
     - by pkg/tag
-        - lookup hash in pkgname->tags->tag->hash in contents manfiest
+        - lookup hash in pkgname/tags/tag->hash in contents
     - by pkg/version
-            - lookup hash in pkgname->versions->version->hash in contents manfiest
+            - lookup hash in pkgname/versions/version->hash in contents
     - by hash (direct lookup)
 - upload binary objects
 - post compressed package manifest to registry
 
 ### install
-- lookup pkg in contents manifest to check for local copy
+- lookup pkg in contents to check for local copy
 - warn if present and not force
 - lookup hash from registry
 - download package manifest
@@ -103,7 +108,7 @@ Installs a package from the Quilt registry and records any tags or versions asso
 ### ls
 - read all local package instances and build map of metadata:
     - hash: (size, created, etc.)
-- read contents manifest and sort by package
+- read contents and sort by package
 - foreach package:
     - lookup versions:
         - list all instances with versions, ordered by version
@@ -115,9 +120,9 @@ Installs a package from the Quilt registry and records any tags or versions asso
 
 ### import
 - eliminate search for quilt_packages directory
-- lookup package hash in contents manifest
-    - by tag: package->tags->tag->hash
-    - by version: package->versions->version->hash
+- lookup package hash in contents
+    - by tag: package/tags/tag->hash
+    - by version: package/versions/version->hash
     - by hash (verify hash is associated with package)
 - read package manifest (find by hash)
 - parse package tree (as before)

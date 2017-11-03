@@ -58,15 +58,15 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar')
 
-        with open('quilt_packages/foo/bar.json') as fd:
+        with open(os.path.join(self._store_dir, 'foo/bar.json')) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
             contents = fd.read()
             assert contents == table_data
 
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash)) as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash))) as fd:
             contents = fd.read()
             assert contents == file_data
 
@@ -93,11 +93,11 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar/group/table')
 
-        with open('quilt_packages/foo/bar.json') as fd:
+        with open(os.path.join(self._store_dir, 'foo/bar.json')) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
             contents = fd.read()
             assert contents == table_data
 
@@ -122,7 +122,7 @@ class InstallTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install('foo/bar')
 
-        assert not os.path.exists('quilt_packages/foo/bar.json')
+        assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
 
     def test_bad_object_hash(self):
         """
@@ -146,7 +146,7 @@ class InstallTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
             command.install('foo/bar')
 
-        assert not os.path.exists('quilt_packages/foo/bar.json')
+        assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
 
     def test_resume_download(self):
         """
@@ -168,14 +168,14 @@ class InstallTest(QuiltTestCase):
         ), format=PackageFormat.HDF5)
         contents_hash = hash_contents(contents)
 
-        os.makedirs('quilt_packages/objs')
+        os.makedirs(os.path.join(self._store_dir, 'objs'))
 
         # file0 already exists.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[0]), 'w') as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[0])), 'w') as fd:
             fd.write(file_data_list[0])
 
         # file1 exists, but has the wrong contents.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1]), 'w') as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[1])), 'w') as fd:
             fd.write("Garbage")
 
         # file2 does not exist.
@@ -189,7 +189,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
 
         # Verify that file1 got redownloaded.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1])) as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[1]))) as fd:
             contents = fd.read()
             assert contents == file_data_list[1]
 

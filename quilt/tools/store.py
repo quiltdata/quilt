@@ -4,14 +4,24 @@ Build: parse and add user-supplied files to store
 import os
 import re
 
+from distutils.dir_util import mkpath
 
 from .const import PACKAGE_DIR_NAME
 from .core import RootNode, CommandException
 from .package import Package
+from .util import BASE_DIR
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 CHUNK_SIZE = 4096
+
+# Helper function to return the default package store path
+def default_store_dir():
+    path=os.path.realpath(BASE_DIR)
+    package_dir = os.path.join(path, PACKAGE_DIR_NAME)
+    mkpath(package_dir)
+    return package_dir
+
 
 class StoreException(Exception):
     """
@@ -31,42 +41,33 @@ class PackageStore(object):
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
 
-    def __init__(self, store_dir=PACKAGE_DIR_NAME):
+    def __init__(self, store_dir=None):
+        if store_dir is None:
+            store_dir = default_store_dir()
+        
         assert os.path.basename(os.path.abspath(store_dir)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % store_dir
         self._path = store_dir
 
+    # CHANGE:
+    # hard-code this to return exactly one directory, the package store in BASE_DIR.
+    # Leave the mechanism so we can support read-only package directories (e.g. as
+    # shared caches) later.
     @classmethod
-    def find_store_dirs(cls, start_dir='.'):
+    def find_store_dirs(cls):
         """
-        Walks up the directory tree and looks for `quilt_packages` directories
-        in the ancestors of the starting directory.
-
-        The algorithm is the same as Node's `node_modules` algorithm
-        ( https://nodejs.org/docs/v7.4.0/api/modules.html#modules_all_together ),
-        except that it doesn't stop at the top-level `quilt_packages` directory.
-
-        Returns a (possibly empty) generator.
+        Returns a list with one entry.
         """
-        path = os.path.realpath(start_dir)
-        while True:
-            parent_path, name = os.path.split(path)
-            if name != PACKAGE_DIR_NAME:
-                package_dir = os.path.join(path, PACKAGE_DIR_NAME)
-                if os.path.isdir(package_dir):
-                    yield package_dir
-            if parent_path == path:  # The only reliable way to detect the root.
-                break
-            path = parent_path
-
+        package_dir = default_store_dir()
+        return [package_dir]
+        
     @classmethod
-    def find_package(cls, user, package, start_dir='.'):
+    def find_package(cls, user, package, store_dir=None):
         """
         Finds an existing package in one of the package directories.
         """
         cls.check_name(user, package)
-
-        dirs = cls.find_store_dirs(start_dir)
+        dirs = cls.find_store_dirs()
         for store_dir in dirs:
             store = PackageStore(store_dir)
             pkg = store.get_package(user, package)
@@ -81,7 +82,10 @@ class PackageStore(object):
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
 
-    def get_package(self, user, package):
+    # CHANGE:
+    # - lookup hash in contents based on tag or version
+    # - load package manifest from contents dir
+    def get_package(self, user, package, tag='latest', version=None):
         """
         Gets a package from this store.
         """
@@ -97,6 +101,10 @@ class PackageStore(object):
             )
         return None
 
+    # CHANGE:
+    # - check if pacakge already exists
+    # - save new manifest as hash
+    # - update contents
     def install_package(self, user, package, contents):
         """
         Creates a new package in the innermost `quilt_packages` directory
@@ -137,6 +145,18 @@ class PackageStore(object):
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
+    # CHANGE:
+    # read all local package instances and build map of metadata:
+    # hash: (size, created, etc.)
+    # read contents and sort by package
+    # foreach package:
+    #     lookup versions:
+    #         list all instances with versions, ordered by version
+    #     lookup tags:
+    #         list all instances with tags, ordered by tag
+    # Alternate: order instances by reverse creation date
+    # mark each instance printed in metadata map
+    # list all untagged, unversioned instances for the package
     def ls_packages(self):
         """
         List packages in this store.

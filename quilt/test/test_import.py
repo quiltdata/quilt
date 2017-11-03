@@ -118,8 +118,8 @@ class ImportTest(QuiltTestCase):
 
         # Build an identical package
         command.build('foo/package2', package1)
-        contents1 = open('quilt_packages/foo/package1.json').read()
-        contents2 = open('quilt_packages/foo/package2.json').read()
+        contents1 = open(os.path.join(self._store_dir, 'foo/package1.json')).read()
+        contents2 = open(os.path.join(self._store_dir, 'foo/package2.json')).read()
         assert contents1 == contents2
 
         # Rename an attribute
