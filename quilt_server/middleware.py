@@ -29,6 +29,6 @@ class RequestEncodingMiddleware(object):
         try:
             return self.app(environ, start_response)
         except (OSError, zlib.error) as ex:
-            # gzip raises OSError on invalid import... blah.
+            # gzip raises OSError on invalid input... blah.
             error = "Failed to decode input: %s" % ex
             return BadRequest(error)(environ, start_response)
