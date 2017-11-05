@@ -341,6 +341,9 @@ def _mp_track(**kwargs):
     else:
         source = 'web'
 
+    # Use the user ID if the user is logged in; otherwise, let MP use the IP address.
+    distinct_id = g.user if g.user != PUBLIC else None
+
     # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
     ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
 
@@ -358,7 +361,7 @@ def _mp_track(**kwargs):
     )
     all_args.update(kwargs)
 
-    mp.track(g.user, MIXPANEL_EVENT, all_args)
+    mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
 def _generate_presigned_url(method, owner, blob_hash):
     return s3_client.generate_presigned_url(
