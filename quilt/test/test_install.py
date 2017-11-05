@@ -22,6 +22,7 @@ from ..tools.core import (
     TableNode,
     RootNode,
 )
+from ..tools.package import Package
 
 from .utils import QuiltTestCase
 
@@ -58,7 +59,10 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar')        
 
-        with open(os.path.join(self._store_dir, 'foo/bar', contents_hash)) as fd:
+        with open(os.path.join(self._store_dir,
+                               'foo/bar',
+                               Package.CONTENTS_DIR,
+                               contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
@@ -93,7 +97,7 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar/group/table')
 
-        with open(os.path.join(self._store_dir, 'foo/bar', contents_hash)) as fd:
+        with open(os.path.join(self._store_dir, 'foo/bar', Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 

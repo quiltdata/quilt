@@ -32,6 +32,10 @@ class PackageException(Exception):
 
 class Package(object):
     DF_NAME = 'df'
+    CONTENTS_DIR = 'contents'
+    TAGS_DIR = 'tags'
+    VERSIONS_DIR = 'versions'
+    LATEST = 'latest'
 
     __parquet_lib = None
 
@@ -64,8 +68,9 @@ class Package(object):
 
         if not os.path.isdir(self._path):
             os.mkdir(self._path)
-            os.mkdir(os.path.join(self._path, 'tags'))
-            os.mkdir(os.path.join(self._path, 'versions'))
+            os.mkdir(os.path.join(self._path, self.CONTENTS_DIR))
+            os.mkdir(os.path.join(self._path, self.TAGS_DIR))
+            os.mkdir(os.path.join(self._path, self.VERSIONS_DIR))
 
         if contents is None:
             contents = self._load_contents()
@@ -74,11 +79,11 @@ class Package(object):
 
     def _load_contents(self):
         instance_hash = None
-        latest_tag = os.path.join(self._path, 'tags', 'latest')
+        latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
         with open (latest_tag, 'r') as tagfile:
             instance_hash = tagfile.read()
 
-        contents_path = os.path.join(self._path, instance_hash)
+        contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
         print("PKG_CONTENTS=%s" % contents_path)
         with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
@@ -231,15 +236,15 @@ class Package(object):
         Saves the in-memory contents to the package file.
         """
         instance_hash = self.get_hash()
-        dest = os.path.join(self._path, instance_hash)
+        dest = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
         with open(dest, 'w') as contents_file:
             json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
 
-        tag_dir = os.path.join(self._path, 'tags')
+        tag_dir = os.path.join(self._path, self.TAGS_DIR)
         if not os.path.isdir(tag_dir):
             os.mkdir(tag_dir)
             
-        latest_tag = os.path.join(self._path, 'tags', 'latest')
+        latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
         with open (latest_tag, 'w') as tagfile:
             tagfile.write("{hsh}".format(hsh=instance_hash))
 

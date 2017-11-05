@@ -16,10 +16,9 @@ VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 CHUNK_SIZE = 4096
 
 # Helper function to return the default package store path
-def default_store_dir():
+def default_store_location():
     path=os.path.realpath(BASE_DIR)
     package_dir = os.path.join(path, PACKAGE_DIR_NAME)
-    mkpath(package_dir)
     return package_dir
 
 
@@ -40,14 +39,17 @@ class PackageStore(object):
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
+    
+    def __init__(self, location=None):
+        if location is None:
+            location = default_store_location()
 
-    def __init__(self, store_dir=None):
-        if store_dir is None:
-            store_dir = default_store_dir()
+        if not os.path.isdir(location):
+            mkpath(location)
         
-        assert os.path.basename(os.path.abspath(store_dir)) == PACKAGE_DIR_NAME, \
-            "Unexpected package directory: %s" % store_dir
-        self._path = store_dir
+        assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
+            "Unexpected package directory: %s" % location
+        self._path = location
 
     # CHANGE:
     # hard-code this to return exactly one directory, the package store in BASE_DIR.
@@ -58,7 +60,7 @@ class PackageStore(object):
         """
         Returns a list with one entry.
         """
-        package_dir = default_store_dir()
+        package_dir = default_store_location()
         return [package_dir]
         
     @classmethod
