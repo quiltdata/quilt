@@ -62,13 +62,25 @@ class Package(object):
         self._package = package
         self._path = path
 
+        if not os.path.isdir(self._path):
+            os.mkdir(self._path)
+            os.mkdir(os.path.join(self._path, 'tags'))
+            os.mkdir(os.path.join(self._path, 'versions'))
+
         if contents is None:
             contents = self._load_contents()
 
         self._contents = contents
 
     def _load_contents(self):
-        with open(self._path, 'r') as contents_file:
+        instance_hash = None
+        latest_tag = os.path.join(self._path, 'tags', 'latest')
+        with open (latest_tag, 'r') as tagfile:
+            instance_hash = tagfile.read()
+
+        contents_path = os.path.join(self._path, instance_hash)
+        print("PKG_CONTENTS=%s" % contents_path)
+        with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
                 # Really old package: no root node.
@@ -211,15 +223,25 @@ class Package(object):
         """
         self._contents = contents
 
-    # CHANGE:
-    # Saving the contents now creates a new file (by hash)
-    # and must update self._path
+    # CHANGED:
+    # Path (self._path) now refers to a directory. Saving contents now creates
+    # a new file (id'd by hash). Updates latest tag with current hash.
     def save_contents(self):
         """
         Saves the in-memory contents to the package file.
         """
-        with open(self._path, 'w') as contents_file:
+        instance_hash = self.get_hash()
+        dest = os.path.join(self._path, instance_hash)
+        with open(dest, 'w') as contents_file:
             json.dump(self._contents, contents_file, default=encode_node, indent=2, sort_keys=True)
+
+        tag_dir = os.path.join(self._path, 'tags')
+        if not os.path.isdir(tag_dir):
+            os.mkdir(tag_dir)
+            
+        latest_tag = os.path.join(self._path, 'tags', 'latest')
+        with open (latest_tag, 'w') as tagfile:
+            tagfile.write("{hsh}".format(hsh=instance_hash))
 
     def get_obj(self, node):
         """

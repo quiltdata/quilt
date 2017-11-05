@@ -6,41 +6,31 @@ The primary motivation for unifying the local package store is that any Python p
 ## Directory Structure
 This change proposes changing from a hierarchy of separate local package stores(quilt_packages) like npm, to a single store like Docker.
 
+Using the file system is expected to be slower than a database or single-file lookup, but will be thread-safe and still human-readable.
+
+### Objects
+
 ```bash
 BASE_DIR/objs/
 ```
 Stores binary data objects identified by hash. These objects include compressed raw files and Parquet files. Object hashes are verified and objects are stored only once (deduplication).
 
+### Contents
 ```bash
-BASE_DIR/pkgs/
+BASE_DIR/<owner>/<pkg>/contents/
 ```
+The per-package contents directory ```contents``` uses the file system to store thread-safe mapping of package names, versions and tags to locally installed package instances.
 
-Stores package manifest files (JSON format) for all package instances. Package manifests are identified by the hash of the package.
-
+### Tags and Versions
 ```bash
-BASE_DIR/contents/
-
-<hash>
+BASE_DIR/<owner>/<pkg>/tags/
+    <tag>:        <hash>
+    
+BASE_DIR/<owner>/<pkg>/versions/
+    <version>:    <hash>
 ```
-
-Catalog of locally resident packages. The contents manfiest maps identifiers including package name, tags and versions to package instances.
-
-## Contents
-The contents directory ```contents``` uses the file system to store thread-safe mapping of package names, versions and tags to locally installed package instances.
-
-```bash
-<pkgname>/
-    hashes/
-        <hash> (empty)
-    tags/
-        <tag>:        <hash>
-    versions/
-        <version>:    <hash>
-```
-Using the file system is expected to be slower than a single-file lookup, but will be thread-safe and still human-readable. There is a redundancy in this structure. Each hash for a package exists as an empty file and may also be in the contents of a tag or version file--potentially allowing for inconsistency. A cleaner, but slower alternative would be to make each hash a directory that optionally contains hashes tags. That feels a bit cumbersome and likely slow in the common case of looking up a hash from a tag (e.g., latest)
 
 ## Commands
-
 ```bash
 quilt ls
 

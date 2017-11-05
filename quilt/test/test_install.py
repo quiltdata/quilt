@@ -56,9 +56,9 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        command.install('foo/bar')
+        command.install('foo/bar')        
 
-        with open(os.path.join(self._store_dir, 'foo/bar.json')) as fd:
+        with open(os.path.join(self._store_dir, 'foo/bar', contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
@@ -93,7 +93,7 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar/group/table')
 
-        with open(os.path.join(self._store_dir, 'foo/bar.json')) as fd:
+        with open(os.path.join(self._store_dir, 'foo/bar', contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 

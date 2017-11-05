@@ -91,8 +91,8 @@ class PackageStore(object):
         """
         self.check_name(user, package)
 
-        path = os.path.join(self._path, user, package + self.PACKAGE_FILE_EXT)
-        if os.path.exists(path):
+        path = os.path.join(self._path, user, package)
+        if os.path.isdir(path):
             return Package(
                 store=self,
                 user=user,
@@ -120,7 +120,7 @@ class PackageStore(object):
             if not os.path.isdir(path):
                 os.makedirs(path)
 
-        path = os.path.join(self._path, user, package + self.PACKAGE_FILE_EXT)
+        path = os.path.join(self._path, user, package)
 
         # Delete any existing data.
         try:
