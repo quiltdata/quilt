@@ -23,6 +23,7 @@ from ..tools.core import (
     RootNode,
 )
 from ..tools.package import Package
+from ..tools.store import PackageStore
 
 from .utils import QuiltTestCase
 
@@ -58,9 +59,9 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(file_hash, file_data)
 
         command.install('foo/bar')        
+        teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(self._store_dir,
-                               'foo/bar',
+        with open(os.path.join(teststore.package_path('foo', 'bar'),
                                Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -97,11 +98,12 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar/group/table')
 
-        with open(os.path.join(self._store_dir, 'foo/bar', Package.CONTENTS_DIR, contents_hash)) as fd:
+        teststore = PackageStore(self._store_dir)
+        with open(os.path.join(teststore.package_path('foo', 'bar'), Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
+        with open(teststore.object_path(objhash=table_hash)) as fd:
             contents = fd.read()
             assert contents == table_data
 
@@ -172,14 +174,15 @@ class InstallTest(QuiltTestCase):
         ), format=PackageFormat.HDF5)
         contents_hash = hash_contents(contents)
 
-        os.makedirs(os.path.join(self._store_dir, 'objs'))
+        # Create a package store object to use its path helpers
+        teststore = PackageStore(self._store_dir)
 
         # file0 already exists.
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[0])), 'w') as fd:
+        with open(teststore.object_path(objhash=file_hash_list[0]), 'w') as fd:
             fd.write(file_data_list[0])
 
         # file1 exists, but has the wrong contents.
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[1])), 'w') as fd:
+        with open(teststore.object_path(objhash=file_hash_list[1]), 'w') as fd:
             fd.write("Garbage")
 
         # file2 does not exist.
@@ -193,7 +196,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
 
         # Verify that file1 got redownloaded.
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash_list[1]))) as fd:
+        with open(teststore.object_path(objhash=file_hash_list[1])) as fd:
             contents = fd.read()
             assert contents == file_data_list[1]
 

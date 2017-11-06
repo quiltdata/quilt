@@ -5,6 +5,7 @@ import os
 from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
 
+from distutils.dir_util import mkpath
 import pandas as pd
 from six import itervalues
 
@@ -67,7 +68,7 @@ class Package(object):
         self._path = path
 
         if not os.path.isdir(self._path):
-            os.mkdir(self._path)
+            mkpath(self._path)
             os.mkdir(os.path.join(self._path, self.CONTENTS_DIR))
             os.mkdir(os.path.join(self._path, self.TAGS_DIR))
             os.mkdir(os.path.join(self._path, self.VERSIONS_DIR))
@@ -286,8 +287,6 @@ class Package(object):
 #        #print('non-group node?')
 #        return None
 
-    # CHANGE?
-    # Add assertion that contents matches file ID?
     def get_hash(self):
         """
         Returns the hash digest of the package data.

@@ -39,20 +39,32 @@ class PackageStore(object):
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
+    PKG_DIR = 'pkgs'
     
     def __init__(self, location=None):
         if location is None:
             location = default_store_location()
-
-        if not os.path.isdir(location):
-            mkpath(location)
-        
+            
         assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % location
         self._path = location
 
-    # CHANGE:
-    # hard-code this to return exactly one directory, the package store in BASE_DIR.
+        objdir = os.path.join(self._path, self.OBJ_DIR)
+        tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
+        pkgdir = os.path.join(self._path, self.PKG_DIR)
+
+        if not os.path.isdir(location):
+            mkpath(location)
+            os.mkdir(objdir)
+            os.mkdir(tmpobjdir)
+            os.mkdir(pkgdir)
+    
+        assert os.path.isdir(objdir)
+        assert os.path.isdir(tmpobjdir)
+        assert os.path.isdir(pkgdir)
+
+    # CHANGED:
+    # hard-coded this to return exactly one directory, the package store in BASE_DIR.
     # Leave the mechanism so we can support read-only package directories (e.g. as
     # shared caches) later.
     @classmethod
@@ -84,16 +96,13 @@ class PackageStore(object):
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
 
-    # CHANGE:
-    # - lookup hash in contents based on tag or version
-    # - load package manifest from contents dir
-    def get_package(self, user, package, tag='latest', version=None):
+    # TODO: lookup hash in contents based on tag or version
+    def get_package(self, user, package):
         """
         Gets a package from this store.
         """
         self.check_name(user, package)
-
-        path = os.path.join(self._path, user, package)
+        path = self.package_path(user, package)
         if os.path.isdir(path):
             return Package(
                 store=self,
@@ -103,8 +112,8 @@ class PackageStore(object):
             )
         return None
 
-    # CHANGE:
-    # - check if pacakge already exists
+    # CHANGED:
+    # - creates new package directory if needed
     # - save new manifest as hash
     # - update contents
     def install_package(self, user, package, contents):
@@ -116,13 +125,7 @@ class PackageStore(object):
         self.check_name(user, package)
 
         assert contents is not None
-
-        for name in [user, self.OBJ_DIR, self.TMP_OBJ_DIR]:
-            path = os.path.join(self._path, name)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-
-        path = os.path.join(self._path, user, package)
+        path = self.package_path(user, package)
 
         # Delete any existing data.
         try:
@@ -147,15 +150,11 @@ class PackageStore(object):
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
-    # CHANGE:
-    # read all local package instances and build map of metadata:
-    # hash: (size, created, etc.)
-    # read contents and sort by package
-    # foreach package:
-    #     lookup versions:
-    #         list all instances with versions, ordered by version
-    #     lookup tags:
-    #         list all instances with tags, ordered by tag
+    # CHANGED:
+    # reads all local package instances and displays metadata:
+    # hash, tag, version
+    # future: add: size, created, etc.
+    # 
     # Alternate: order instances by reverse creation date
     # mark each instance printed in metadata map
     # list all untagged, unversioned instances for the package
@@ -163,13 +162,32 @@ class PackageStore(object):
         """
         List packages in this store.
         """
-        packages = [
-            (user, pkg[:-len(self.PACKAGE_FILE_EXT)])
-            for user in os.listdir(self._path)
-            if os.path.isdir(os.path.join(self._path, user))
-            for pkg in os.listdir(os.path.join(self._path, user))
-            if pkg.endswith(self.PACKAGE_FILE_EXT)]
+        packages = []
+        pkgdir = os.path.join(self._path, self.PKG_DIR)
+        for user in os.listdir(pkgdir):
+            for pkg in os.listdir(os.path.join(pkgdir, user)):
+                pkgpath = os.path.join(pkgdir, user, pkg)           
+                pkgmap = {h : None for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
+                for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
+                    with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
+                        pkghash = tagfile.read()
+                        pkgmap[pkghash] = tag
+                for pkghash, tag in pkgmap.items():
+                    packages.append((user, ":".join([pkg, str(tag)]), pkghash))
+                        
         return packages
+
+    def user_path(self, user):
+        """
+        Returns the path to directory with the user's package repositories.
+        """
+        return os.path.join(self._path, self.PKG_DIR, user)
+
+    def package_path(self, user, package):
+        """
+        Returns the path to a package repository.
+        """
+        return os.path.join(self.user_path(user), package)
 
     def object_path(self, objhash):
         """

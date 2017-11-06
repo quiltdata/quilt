@@ -7,8 +7,6 @@ import shutil
 import tempfile
 import unittest
 
-from distutils.dir_util import mkpath
-
 from ..tools.const import PACKAGE_DIR_NAME
 
 try:
@@ -23,7 +21,6 @@ import responses
 def test_store_dir():
     test_dir = tempfile.mkdtemp(prefix='quilt-test-')
     package_dir = os.path.join(test_dir, PACKAGE_DIR_NAME)
-    mkpath(package_dir)
     return package_dir
 
 class BasicQuiltTestCase(unittest.TestCase):
