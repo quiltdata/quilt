@@ -31,7 +31,7 @@ from .const import EMAILREGEX, PaymentPlan, PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, UTF8_GENERAL_CI, Version)
-from .schemas import PACKAGE_SCHEMA
+from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -1430,3 +1430,14 @@ def invitation_package_list(auth_user, owner, package_name):
                                   email=invite.email,
                                   invited_at=invite.invited_at)
                              for invite in invitations])
+
+@app.route('/api/log', methods=['POST'])
+@api(require_login=False, schema=LOG_SCHEMA)
+@as_json
+def client_log(auth_user):
+    # TODO(dima): Prevent the client from abusing this.
+    data = request.get_json()
+    for event in data:
+        _mp_track(**event)
+
+    return dict()

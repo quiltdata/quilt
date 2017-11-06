@@ -100,3 +100,10 @@ PACKAGE_SCHEMA = {
     'required': ['description', 'contents'],
     'additionalProperties': False
 }
+
+LOG_SCHEMA = {
+    'type': 'array',
+    'items': {
+        'type': 'object',
+    }
+}
