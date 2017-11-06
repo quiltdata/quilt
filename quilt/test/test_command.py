@@ -6,6 +6,7 @@ import json
 import os
 import time
 
+import requests
 import responses
 import shutil
 
@@ -265,3 +266,43 @@ class CommandTest(QuiltTestCase):
         from quilt.data.user import test
         assert hasattr(test, 'foo')
         assert isinstance(test.foo(), pd.DataFrame)
+
+    def test_logging(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+
+        log_url = '%s/api/log' % (command.get_registry_url(),)
+
+        # Successful logging response.
+        with patch('quilt.tools.command._load_config', return_value={}):
+            def callback(request):
+                data = json.loads(request.body)
+                assert data == [dict(
+                    type='build',
+                    package='foo/bar',
+                    path=build_path,
+                    dry_run=False,
+                    env='default',
+                )]
+                return (200, {}, '')
+
+            self.requests_mock.add_callback(responses.POST, log_url, callback)
+
+            command.build('foo/bar', build_path)
+
+        # Failed logging response.
+        with patch('quilt.tools.command._load_config', return_value={}):
+            self.requests_mock.add(responses.POST, log_url, status=500)
+            command.build('foo/bar', build_path)
+
+        # ConnectionError
+        with patch('quilt.tools.command._load_config', return_value={}):
+            self.requests_mock.add(responses.POST, log_url, body=requests.exceptions.ConnectionError())
+            command.build('foo/bar', build_path)
+
+        # Disabled logging.
+        with patch('quilt.tools.command._load_config', return_value={'disable_analytics': True}):
+            self.requests_mock.add(responses.POST, log_url, body=AssertionError('Unexpected logging!'))
+            command.build('foo/bar', build_path)
+
+            self.requests_mock.reset()  # Prevent the "not all requests ..." assert.
