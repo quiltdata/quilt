@@ -42,7 +42,7 @@ def main():
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help=HANDLE)
-    build_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
+    build_p.add_argument("path", type=str, help="Path to source directory or YAML file")
     build_p.set_defaults(func=command.build)
 
     check_p = subparsers.add_parser("check")
