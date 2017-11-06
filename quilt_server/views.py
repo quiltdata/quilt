@@ -277,19 +277,24 @@ def api(require_login=True, schema=None):
                 headers = {
                     AUTHORIZATION_HEADER: auth
                 }
-                resp = requests.get(OAUTH_USER_API, headers=headers)
-                if resp.status_code == requests.codes.ok:
+                try:
+                    resp = requests.get(OAUTH_USER_API, headers=headers)
+                    resp.raise_for_status()
+
                     data = resp.json()
                     # TODO(dima): Generalize this.
                     g.user = data.get('current_user', data.get('login'))
                     assert g.user
                     g.email = data['email']
-                elif resp.status_code == requests.codes.unauthorized:
-                    raise ApiException(
-                        requests.codes.unauthorized,
-                        "Invalid credentials"
-                    )
-                else:
+                except requests.HTTPError as ex:
+                    if resp.status_code == requests.codes.unauthorized:
+                        raise ApiException(
+                            requests.codes.unauthorized,
+                            "Invalid credentials"
+                        )
+                    else:
+                        raise ApiException(requests.codes.server_error, "Server error")
+                except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
             return f(g.user, *args, **kwargs)
         return wrapper
