@@ -59,8 +59,6 @@ class Package(object):
     def set_parquet_lib(cls, parqlib):
         cls.__parquet_lib = ParquetLib(parqlib)
 
-    # NO CHANGE
-    # path is now based on hash
     def __init__(self, store, user, package, path, contents=None):
         self._store = store
         self._user = user
@@ -229,12 +227,10 @@ class Package(object):
         """
         self._contents = contents
 
-    # CHANGED:
-    # Path (self._path) now refers to a directory. Saving contents now creates
-    # a new file (id'd by hash). Updates latest tag with current hash.
     def save_contents(self):
         """
-        Saves the in-memory contents to the package file.
+        Saves the in-memory contents to a file in the local
+        package repository.
         """
         instance_hash = self.get_hash()
         dest = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
@@ -332,10 +328,6 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    # CHANGE?
-    # Recalculate hash and auto-save?
-    # If not, we should probably flag that the package has unsaved state
-    # and its hash no longer matches its id.
     def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
         """
         Adds an object (name-hash mapping) to the package's contents.

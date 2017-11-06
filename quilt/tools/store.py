@@ -112,14 +112,9 @@ class PackageStore(object):
             )
         return None
 
-    # CHANGED:
-    # - creates new package directory if needed
-    # - save new manifest as hash
-    # - update contents
     def install_package(self, user, package, contents):
         """
-        Creates a new package in the innermost `quilt_packages` directory
-        (or in a new `quilt_packages` directory in the current directory)
+        Creates a new package in the default package store
         and allocates a per-user directory if needed.
         """
         self.check_name(user, package)
@@ -150,14 +145,6 @@ class PackageStore(object):
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
-    # CHANGED:
-    # reads all local package instances and displays metadata:
-    # hash, tag, version
-    # future: add: size, created, etc.
-    # 
-    # Alternate: order instances by reverse creation date
-    # mark each instance printed in metadata map
-    # list all untagged, unversioned instances for the package
     def ls_packages(self):
         """
         List packages in this store.
