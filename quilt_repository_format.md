@@ -30,7 +30,7 @@ BASE_DIR/<owner>/<pkg>/versions/
     <version>:    <hash>
 ```
 
-## Commands
+## Command Updates
 ```bash
 quilt ls
 
@@ -40,31 +40,6 @@ user/package    <version>   <tag>   <hash>  <date>      <bytes on disk>
 
 Lists all locally installed package instances. The output of ls shows the package name and any tags or versions associated with the instance.
 
-```bash
-quilt tag add <hash> <tag>
-quilt tag rm <hash> <tag>
-```
-
-Adds or removes a tag from a package instance.
-
-```bash
-quilt version add <hash> <tag>
-quilt version rm <hash> <tag>
-```
-
-Adds or removes a version from a package instance. Note: once pushed to a Quilt registry, there is no way to remove a version without deleting the package.
-
-```bash
-quilt push <package>
-```
-
-Pushes a package instance to the Quilt registry. Quilt push will record any local tags or versions to the registry.
-
-```bash
-quilt install <package>[:tag:version]
-```
-
-Installs a package from the Quilt registry and records any tags or versions associated with it.
 
 ## Implementation Sketch
 
@@ -118,6 +93,35 @@ Installs a package from the Quilt registry and records any tags or versions asso
 - parse package tree (as before)
 
 ## Future
+
+### Local Add/Remove Tags
+```bash
+quilt tag add <hash> <tag>
+quilt tag rm <hash> <tag>
+```
+
+Adds or removes a tag from a package instance in the local store. Adding or removing a local tag has no effect on tags at the registry.
+
+```bash
+quilt version add <hash> <version>
+quilt version rm <hash> <version>
+```
+
+Adds or removes a version from a package instance in the local store. Note: once pushed to a Quilt registry, there is no way to remove a version without deleting the package.
+
+### Propagate Tags and Versions to the Registry on Push
+```bash
+quilt push <package>
+```
+
+Pushes a package instance to the Quilt registry and applies any local tags or versions to the newly pushed instance at the registry.
+
+### Install by Hash, Tag or Version Populates Local Tags & Versions
+```bash
+quilt install <package> [-t tag] [-v version]
+```
+
+Installing a package instance from the Quilt registry will records in the local store any tags or versions associated with the installed instance at the registry.
 
 ### quilt rm
 Remove local package instances

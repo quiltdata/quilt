@@ -96,7 +96,8 @@ class PackageStore(object):
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
 
-    # TODO: lookup hash in contents based on tag or version
+    # TODO: find a package instance other than 'latest', e.g. by
+    # looking-up by hash, tag or version in the local store.
     def get_package(self, user, package):
         """
         Gets a package from this store.
