@@ -557,9 +557,14 @@ def push(package, public=False, reupload=False):
                         with lock:
                             uploaded.append(obj_hash)
                     except requests.exceptions.RequestException as ex:
-                        message = "Upload failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                            obj_hash, ex.request.url, ex.response.status_code, ex.response.text
-                        )
+                        message = "Upload failed for %s:\n" % obj_hash
+                        if ex.response is not None:
+                            message += "URL: %s\nStatus code: %s\nResponse: %r\n" % (
+                                ex.request.url, ex.response.status_code, ex.response.text
+                            )
+                        else:
+                            message += "%s\n" % ex
+
                         with lock:
                             tqdm.write(message)
 
