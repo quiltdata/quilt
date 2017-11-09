@@ -9,10 +9,11 @@ from ..tools import command
 from .utils import BasicQuiltTestCase
 from .integration import skip
 
-ENV = pytest.config.getoption("--integration")
+def _mock_url():
+    return pytest.config.getoption("--integration")
 
 @skip
-@patch('quilt.tools.command.QUILT_PKG_URL', ENV)
+@patch('quilt.tools.command.get_registry_url', _mock_url)
 class IntegrationTest(BasicQuiltTestCase):
     def test_env_install(self):
         # public package

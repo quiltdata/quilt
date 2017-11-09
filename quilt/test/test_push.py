@@ -60,11 +60,11 @@ class PushTest(QuiltTestCase):
         command.push('foo/bar')
 
     def _mock_put_package(self, package, pkg_hash, upload_urls):
-        pkg_url = '%s/api/package/%s/%s' % (command.QUILT_PKG_URL, package, pkg_hash)
+        pkg_url = '%s/api/package/%s/%s' % (command.get_registry_url(), package, pkg_hash)
         # Dry run, then the real thing.
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(upload_urls=upload_urls)))
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict()))
 
     def _mock_put_tag(self, package, tag):
-        tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
         self.requests_mock.add(responses.PUT, tag_url, json.dumps(dict()))

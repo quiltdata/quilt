@@ -26,6 +26,9 @@ def main():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
+    config_p = subparsers.add_parser("config")
+    config_p.set_defaults(func=command.config)
+
     login_p = subparsers.add_parser("login")
     login_p.set_defaults(func=command.login)
 
