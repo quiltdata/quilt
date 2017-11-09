@@ -36,7 +36,7 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
 from .hashing import digest_file
 from .store import PackageStore, parse_package
-from .util import BASE_DIR, CONFIG_DIR, FileWithReadProgress, gzip_compress
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
 from .. import nodes
@@ -65,16 +65,16 @@ VERSION = pkg_resources.require('quilt')[0].version
 _registry_url = None
 
 def _load_config():
-    config_path = os.path.join(CONFIG_DIR, 'config.json')
+    config_path = os.path.join(BASE_DIR, 'config.json')
     if os.path.exists(config_path):
         with open(config_path) as fd:
             return json.load(fd)
     return {}
 
 def _save_config(cfg):
-    if not os.path.exists(CONFIG_DIR):
-        os.makedirs(CONFIG_DIR)
-    config_path = os.path.join(CONFIG_DIR, 'config.json')
+    if not os.path.exists(BASE_DIR):
+        os.makedirs(BASE_DIR)
+    config_path = os.path.join(BASE_DIR, 'config.json')
     with open(config_path, 'w') as fd:
         json.dump(cfg, fd)
 

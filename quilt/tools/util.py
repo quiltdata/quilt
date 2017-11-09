@@ -10,7 +10,6 @@ from six import BytesIO, string_types, Iterator
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
-CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
 
 
 class FileWithReadProgress(Iterator):
