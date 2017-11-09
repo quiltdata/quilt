@@ -19,8 +19,9 @@ from .util import FileWithReadProgress
 from . import check_functions as qc            # pylint:disable=W0611
 
 def _is_internal_node(node):
-    # all of an internal nodes children are dicts
-    return all(isinstance(x, dict) for x in node.values())
+    # at least one of an internal nodes children are dicts
+    # some (group args) may not be dicts
+    return any(isinstance(x, dict) for x in node.values())
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -47,20 +48,27 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
                 check, rel_path, target))
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
-                dry_run=False, env='default'):
+                dry_run=False, env='default', group_args={}):
     if _is_internal_node(node):
+        local_args = group_args.copy()
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
+            # add anything whose value is not a dict to the group_arg stack
+            # TODO: there *might* be some pandas kwargs that take dictionaries as values
+            # so HACK this would break them
+            if type(child_table) is not dict:
+                local_args[child_name] = child_table
+                continue # don't descend arg nodes
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, group_args=local_args)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
             raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
         path = os.path.join(build_dir, rel_path)
-
-        transform = node.get(RESERVED['transform'])
+        # get either the locally defined transform or one from a parent
+        transform = node.get(RESERVED['transform']) or group_args.get(RESERVED['transform'])
         ID = 'id'               # pylint:disable=C0103
         if transform:
             transform = transform.lower()
