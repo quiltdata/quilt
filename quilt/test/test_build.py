@@ -8,6 +8,7 @@ import os
 from six import assertRaisesRegex
 import yaml
 
+from .. import nodes
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
 from .utils import QuiltTestCase
@@ -40,6 +41,31 @@ class BuildTest(QuiltTestCase):
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
         # TODO add more integrity checks, incl. negative test cases
+    
+    def test_build_parquet_syntax(self):
+        """
+        Test build syntax more deeply.
+        Created on introduction of 'group arguments'
+        """
+        Package.reset_parquet_lib()
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_group_args.yml')
+        build.build_package('test_syntax', 'tree', path)
+
+        from quilt.data.test_syntax import tree
+        # ensure we get a DF of the expected size
+        assert tree.group_a.csv().shape == (1, 2)
+        assert tree.group_a.tsv().shape == (2, 3)
+        assert type(tree.group_b) == nodes.GroupNode
+        # should be a path, not a DF
+        assert type(tree.group_b.txt()) == str
+        assert tree.group_b.tsv().shape == (10000, 13)
+        assert tree.group_b.subgroup.tsv().shape == (1, 3)
+        # this is a 1 x 1 because it's a CSV force-parsed as TSV
+        assert tree.group_b.subgroup.csv().shape == (0, 2)
+        # should be a string; explicitly specified transform: id
+        assert type(tree.group_b.txt()) == str
+        assert type(tree.group_b.subgroup.csv2()) == str
 
     def test_build_parquet_pyarrow(self):
         """

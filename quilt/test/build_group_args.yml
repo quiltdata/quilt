@@ -1,0 +1,36 @@
+# test build file for group args
+# group args allow the user to apply transforms and build kwargs to an entire
+# sub-tree
+---
+contents:
+  group_a:
+    transform: csv
+    csv: 
+      # should be csv
+      file: data/csv.txt
+    tsv:
+      file: data/tsv.txt
+      # override grp1 transform
+      transform: tsv
+  group_b:
+    # these should be unpolluted by grp1 transform
+    txt:
+      # should be txt
+      file: data/csv.txt
+    tsv:
+      # should auto-infer as TSV
+      file: data/10KRows13Cols.tsv
+    subgroup:
+      transform: tsv
+      # should apply to all files in this subgroup
+      skiprows: 1
+      # inherits xform from parent
+      tsv:
+        file: data/tsv.txt # should be TSV
+      csv:
+        file: data/csv.txt
+        transform: csv
+      csv2:
+        file: data/csv.txt
+        transform: id
+...

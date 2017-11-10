@@ -48,27 +48,41 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
                 check, rel_path, target))
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
-                dry_run=False, env='default', group_args={}):
+                dry_run=False, env='default', ancestor_args={}):
+    """
+    Parameters
+    ----------
+    ancestor_args : dict
+      Any key:value pairs inherited from an ancestor. Users can this define kwargs
+      that affect entire subtrees (e.g. transform: csv for 500 .txt files)
+      Position of definition in file also matters and allows for composition
+      and overriding of ancestor or peer values.
+    """
     if _is_internal_node(node):
-        local_args = group_args.copy()
+        self_args = ancestor_args.copy()
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
+            if child_name == RESERVED['file']:
+                raise StoreException("Reserved word 'file' not permitted on group node")
             # add anything whose value is not a dict to the group_arg stack
-            # TODO: there *might* be some pandas kwargs that take dictionaries as values
-            # so HACK this would break them
+            # TODO: there might be some pandas kwargs that take dictionaries as values
+            # in which case this code will break by treating a kwarg as a leaf node
             if type(child_table) is not dict:
-                local_args[child_name] = child_table
+                # YAML doesn't allow duplicate peer keys, so this will never over-write
+                self_args[child_name] = child_table
                 continue # don't descend arg nodes
+
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env, group_args=local_args)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=self_args)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
             raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
         path = os.path.join(build_dir, rel_path)
-        # get either the locally defined transform or one from a parent
-        transform = node.get(RESERVED['transform']) or group_args.get(RESERVED['transform'])
+        # get either the locally defined transform or inherit from an ancestor
+        transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
+
         ID = 'id'               # pylint:disable=C0103
         if transform:
             transform = transform.lower()
@@ -87,6 +101,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
         checks = node.get(RESERVED['checks'])
         if transform == ID:
+            #TODO move this to a separate function
             if checks:
                 with open(path, 'r') as fd:
                     data = fd.read()
@@ -95,8 +110,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
-            user_kwargs = {k: node[k] for k in node if k not in RESERVED}
-            # read source file into DataFrame
+            handler_args = _remove_keywords(ancestor_args)
+            # merge ancestor args with local args (local wins if conflict)
+            handler_args.update(_remove_keywords(node))
 
             print("Serializing %s..." % path)
             try:
@@ -106,9 +122,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 have_pyspark = False
 
             if have_pyspark:
-                dataframe = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+                dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
             else:
-                dataframe = _file_to_data_frame(transform, path, target, user_kwargs)
+                dataframe = _file_to_data_frame(transform, path, target, handler_args)
 
             if checks:
                 # TODO: test that design works for internal nodes... e.g. iterating
@@ -120,29 +136,38 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Saving as binary dataframe...")
                 package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
+def _remove_keywords(d):
+    """
+    copy the dict, filter_keywords
 
-def _file_to_spark_data_frame(ext, path, target, user_kwargs):
+    Parameters
+    ----------
+    d : dict
+    """
+    return { k:d[k] for k in d if k not in RESERVED }
+
+def _file_to_spark_data_frame(ext, path, target, handler_args):
     from pyspark import sql as sparksql
     _ = target  # TODO: why is this unused?
 
     ext = ext.lower() # ensure that case doesn't matter
     spark = sparksql.SparkSession.builder.getOrCreate()
-    dataframe = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
+    dataframe = spark.read.load(path, fmt=ext, header=True, **handler_args)
     for col in dataframe.columns:
         pcol = _pythonize_name(col)
         if col != pcol:
             dataframe = dataframe.withColumnRenamed(col, pcol)
     return dataframe
 
-def _file_to_data_frame(ext, path, target, user_kwargs):
+def _file_to_data_frame(ext, path, target, handler_args):
     _ = target  # TODO: why is this unused?
     logic = PARSERS.get(ext)
     the_module = importlib.import_module(logic['module'])
     if not isinstance(the_module, ModuleType):
         raise BuildException("Missing required module: %s." % logic['module'])
     # allow user to specify handler kwargs and override default kwargs
-    kwargs = dict(logic['kwargs'])
-    kwargs.update(user_kwargs)
+    kwargs = dict(logic['kwargs']).copy()
+    kwargs.update(handler_args)
     failover = logic.get('failover', None)
     handler = getattr(the_module, logic['attr'], None)
     if handler is None:
@@ -199,12 +224,14 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 for item in v:
                     for result in find(key, item):
                         yield result
+
     def load_yaml(filename, optional=False):
         if optional and (filename is None or not os.path.isfile(filename)):
             return None
         with open(filename, 'r') as fd:
             data = fd.read()
         res = yaml.load(data)
+        print(filename)
         if res is None:
             if optional:
                 return None
