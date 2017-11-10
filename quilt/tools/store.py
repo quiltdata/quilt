@@ -161,7 +161,8 @@ class PackageStore(object):
                         pkghash = tagfile.read()
                         pkgmap[pkghash] = tag
                 for pkghash, tag in pkgmap.items():
-                    packages.append((user, ":".join([pkg, str(tag)]), pkghash))
+                    fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
+                    packages.append((fullpkg, str(tag), pkghash))
                         
         return packages
 
