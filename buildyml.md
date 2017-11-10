@@ -12,6 +12,12 @@ contents:
       KEYWORD_ARG: VALUE # optional
       # Any key-word argument to pandas.read_csv works as a child of DATA_NAME
     ANOTHER_GROUP_NAME:
+      transform: csv # set transform for all sub-children
+      header: # there's no header rows
+      child:
+        file: data/foo.txt # parsed as CSV, no header
+      another_child:
+        file: data/bar.txt # parsed as CSV, no header
       ...
 ```
 See the [`pandas.read_csv` documentation](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html) for a full list of supported options. Options allow users to skip lines, type columns, specify delimiters, and much more.
