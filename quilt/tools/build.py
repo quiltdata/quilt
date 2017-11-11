@@ -249,7 +249,7 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
         with open(filename, 'r') as fd:
             data = fd.read()
         res = yaml.load(data)
-        print(filename)
+
         if res is None:
             if optional:
                 return None
