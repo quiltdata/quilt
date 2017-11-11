@@ -60,22 +60,21 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
       and overriding of ancestor or peer values.
     """
     if _is_internal_node(node):
-        self_args = ancestor_args.copy()
-        for child_name, child_table in node.items():
+        # add anything whose value is not a dict to the group_arg stack
+        # TODO: there might be some pandas kwargs that take dictionaries as values
+        # in which case this code will break by treating a kwarg as a package node
+        # NOTE: YAML parsing does not guarantee key order so we have to set all
+        # of the group args in one shot for consistent application to subtrees
+        group_args = ancestor_args.copy()
+        group_args.update({k:node[k] for k in node if type(node[k]) is not dict})
+        groups = {k:node[k] for k in node if type(node[k]) is dict}
+        for child_name, child_table in groups.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
             if child_name == RESERVED['file']:
                 raise StoreException("Reserved word 'file' not permitted on group node")
-            # add anything whose value is not a dict to the group_arg stack
-            # TODO: there might be some pandas kwargs that take dictionaries as values
-            # in which case this code will break by treating a kwarg as a leaf node
-            if type(child_table) is not dict:
-                # YAML doesn't allow duplicate peer keys, so this will never over-write
-                self_args[child_name] = child_table
-                continue # don't descend arg nodes
-
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=self_args)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:

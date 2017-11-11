@@ -9,11 +9,11 @@ contents:
       # should be csv
       file: data/csv.txt
     tsv:
-      file: data/tsv.txt
-      # override grp1 transform
+      # override group_a transform
       transform: tsv
+      # should be tsv
+      file: data/tsv.txt
   group_b:
-    # these should be unpolluted by grp1 transform
     txt:
       # should be txt
       file: data/csv.txt
@@ -21,16 +21,24 @@ contents:
       # should auto-infer as TSV
       file: data/10KRows13Cols.tsv
     subgroup:
+      # transform and skiprows apply to all children, unless overidden
       transform: tsv
-      # should apply to all files in this subgroup
       skiprows: 1
-      # inherits xform from parent
       tsv:
-        file: data/tsv.txt # should be TSV
+        # should be tsv
+        file: data/tsv.txt
       csv:
         file: data/csv.txt
         transform: csv
-      csv2:
-        file: data/csv.txt
+      txt:
         transform: id
+        file: data/csv.txt
+      many_tsv:
+        # all of the following should inherit transform: csv
+        one:
+          file: data/tsv.txt
+        two:
+          file: data/tsv.txt
+        three:
+          file: data/tsv.txt
 ...
