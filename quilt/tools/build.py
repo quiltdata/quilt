@@ -140,7 +140,6 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Saving as binary dataframe...")
                 package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
-<<<<<<< HEAD
 def _remove_keywords(d):
     """
     copy the dict, filter_keywords
@@ -152,9 +151,6 @@ def _remove_keywords(d):
     return { k:d[k] for k in d if k not in RESERVED }
 
 def _file_to_spark_data_frame(ext, path, target, handler_args):
-=======
-def _file_to_spark_data_frame(ext, path, target, user_kwargs):
->>>>>>> master
     from pyspark import sql as sparksql
     _ = target  # TODO: why is this unused?
     ext = ext.lower() # ensure that case doesn't matter
@@ -163,13 +159,6 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     kwargs.update(user_kwargs)
     
     spark = sparksql.SparkSession.builder.getOrCreate()
-<<<<<<< HEAD
-    dataframe = spark.read.load(path, fmt=ext, header=True, **handler_args)
-    for col in dataframe.columns:
-        pcol = _pythonize_name(col)
-        if col != pcol:
-            dataframe = dataframe.withColumnRenamed(col, pcol)
-=======
     dataframe = None
     reader = None
     # FIXME: Add json support?
@@ -186,7 +175,6 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
         dataframe = _file_to_data_frame(ext, path, target, user_kwargs)
->>>>>>> master
     return dataframe
 
 def _file_to_data_frame(ext, path, target, handler_args):

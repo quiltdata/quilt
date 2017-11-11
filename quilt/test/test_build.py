@@ -61,9 +61,8 @@ class BuildTest(QuiltTestCase):
         assert type(tree.group_b.txt()) == str
         assert tree.group_b.tsv().shape == (10000, 13)
         assert tree.group_b.subgroup.tsv().shape == (1, 3)
-        # this is a 1 x 1 because it's a CSV force-parsed as TSV
         assert tree.group_b.subgroup.csv().shape == (0, 2)
-        # should be a string; explicitly specified transform: id
+        # string, as explicitly specified transform: id, or implicit .txt conversion
         assert type(tree.group_b.txt()) == str
         assert type(tree.group_b.subgroup.csv2()) == str
 
