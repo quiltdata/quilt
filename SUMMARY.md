@@ -30,4 +30,5 @@
 ## Developer
 
 * [Basics](basics.md)
+* [Local Storage](quilt_repository_format.md)
 
