@@ -18,10 +18,6 @@ except ImportError:
 
 import responses
 
-def test_store_dir():
-    test_dir = tempfile.mkdtemp(prefix='quilt-test-')
-    package_dir = os.path.join(test_dir, PACKAGE_DIR_NAME)
-    return package_dir
 
 class BasicQuiltTestCase(unittest.TestCase):
     """
@@ -48,7 +44,7 @@ class QuiltTestCase(BasicQuiltTestCase):
         self.auth_patcher = patch('quilt.tools.command._create_auth', lambda: None)
         self.auth_patcher.start()
 
-        self._store_dir = test_store_dir()
+        self._store_dir = os.path.join(self._test_dir, PACKAGE_DIR_NAME)
         self.store_patcher = patch('quilt.tools.store.default_store_location', lambda: self._store_dir)
         self.store_patcher.start()
 
@@ -56,7 +52,6 @@ class QuiltTestCase(BasicQuiltTestCase):
         self.requests_mock.start()
 
     def tearDown(self):
-
         self.requests_mock.stop()
         self.auth_patcher.stop()
         self.store_patcher.stop()
