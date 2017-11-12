@@ -161,8 +161,13 @@ class PackageStore(object):
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
 
-def parse_package(name, allow_subpath=False):
+def parse_package(name, allow_subpath=False, allow_versioninfo=False):
+    hash = version = tag = subpath = None
     try:
+        if allow_versioninfo and ':' in name:
+            name, versioninfo = name.split(':', 1)
+        else:
+            versioninfo = None
         values = name.split('/')
         # Can't do "owner, pkg, *subpath = ..." in Python2 :(
         (owner, pkg), subpath = values[:2], values[2:]
@@ -171,8 +176,22 @@ def parse_package(name, allow_subpath=False):
             raise ValueError
         if subpath and not allow_subpath:
             raise ValueError
+
+        if allow_versioninfo:
+            info = name.split(':')
+            if len(info) == 3 and info[2][0] == 'v':
+                version = info[3]
+            elif len(info) == 3 and info[2][0] == 't':
+                tag = info[3]
+            elif len(info) == 3 and info[2][0] == 'h':
+                hash = info[3]
+            elif len(info) > 1:
+                hash = info[2]
+        
     except ValueError:
         pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
+        if allow_versioninfo:
+            pkg_format = pkg_format + ':[v:<version> or tag or hash]'
         raise CommandException("Specify package as %s." % pkg_format)
 
     try:
@@ -180,6 +199,5 @@ def parse_package(name, allow_subpath=False):
     except StoreException as ex:
         raise CommandException(str(ex))
 
-    if allow_subpath:
-        return owner, pkg, subpath
-    return owner, pkg
+    return owner, pkg, subpath, hash, version, tag
+

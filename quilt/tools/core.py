@@ -192,6 +192,18 @@ def find_object_hashes(obj):
             for objhash in find_object_hashes(child):
                 yield objhash
 
+def load_yaml(filename, optional=False):
+    if optional and (filename is None or not os.path.isfile(filename)):
+        return None
+    with open(filename, 'r') as fd:
+        data = fd.read()
+    res = yaml.load(data)
+    if res is None:
+        if optional:
+            return None
+        raise BuildException("Unable to YAML file: %s" % filename)
+    return res
+
 def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
     # TODO False vs Exception...
     try:

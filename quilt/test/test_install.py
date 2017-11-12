@@ -26,6 +26,32 @@ from ..tools.core import (
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
+    @staticmethod
+    def make_table_data(string="table"):
+        table_data = string * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(table_data.encode('utf-8'))
+        table_hash = h.hexdigest()
+        return table_data, table_hash
+
+    @staticmethod
+    def make_file_data(string="file"):
+        file_data = string * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(file_data.encode('utf-8'))
+        file_hash = h.hexdigest()
+        return file_data, file_hash
+    
+    @staticmethod
+    def make_contents(**args):
+        contents = RootNode(dict(
+            group=GroupNode(dict([
+                (key, TableNode([val]) if 'table' in key else FileNode([val]))
+                for key, val in args.items()]
+            ))
+        ))
+        return contents, hash_contents(contents)
+        
     """
     Unit tests for quilt install.
     """
@@ -33,23 +59,9 @@ class InstallTest(QuiltTestCase):
         """
         Install the latest update of a package.
         """
-        table_data = "table" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(table_data.encode('utf-8'))
-        table_hash = h.hexdigest()
-
-        file_data = "file" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(file_data.encode('utf-8'))
-        file_hash = h.hexdigest()
-
-        contents = GroupNode(dict(
-            foo=GroupNode(dict(
-                bar=TableNode([table_hash]),
-                blah=FileNode([file_hash])
-            ))
-        ))
-        contents_hash = hash_contents(contents)
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash])
@@ -74,18 +86,8 @@ class InstallTest(QuiltTestCase):
         """
         Install a part of a package.
         """
-        table_data = "table" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(table_data.encode('utf-8'))
-        table_hash = h.hexdigest()
-
-        contents = RootNode(dict(
-            group=GroupNode(dict(
-                table=TableNode([table_hash]),
-                file=FileNode(['unused'])
-            ))
-        ))
-        contents_hash = hash_contents(contents)
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
@@ -100,6 +102,38 @@ class InstallTest(QuiltTestCase):
         with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
             contents = fd.read()
             assert contents == table_data
+
+
+    def test_install_dependencies(self):
+        """
+        Install multiple packages via requirements file
+        """
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        table_data2, table_hash2 = self.make_table_data('table2')
+        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
+
+        self._mock_tag('foo/bar', 'latest', contents_hash1)
+        self._mock_package('foo/bar', contents_hash1, 'group/table', contents1, [table_hash1])
+        self._mock_s3(table_hash1, table_data1)
+        self._mock_tag('baz/bat', 'nexttag', contents_hash2)
+        self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
+        self._mock_s3(table_hash1, table_data1)
+
+        command.install('''
+packages:
+- foo/bar:t:latest   # comment
+- baz/bat:t:nexttag
+        ''')
+
+# asah         with open('quilt_packages/foo/bar.json') as fd: asah
+# asah             file_contents = json.load(fd, object_hook=decode_node) asah
+# asah             assert file_contents == contents asah
+
+# asah         with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd: asah
+# asah             contents = fd.read() asah
+# asah             assert contents == table_data asah
+
 
     def test_bad_contents_hash(self):
         """

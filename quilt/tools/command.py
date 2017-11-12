@@ -32,7 +32,8 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
+                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
+                   load_yaml)
 from .hashing import digest_file
 from .store import PackageStore, parse_package
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
@@ -244,7 +245,7 @@ def diff_node_dataframe(package, nodename, dataframe):
     TODO: higher level API: diff_two_files(filepath1, filepath2)
     TODO: higher level API: diff_node_file(file, package, nodename, filepath)
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
@@ -306,7 +307,7 @@ def build_empty(package):
     """
     Create an empty package for convenient editing of de novo packages
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
 
     store = PackageStore()
     new = store.create_package(owner, pkg)
@@ -316,7 +317,7 @@ def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(owner, pkg)
@@ -348,7 +349,7 @@ def build_from_path(package, path, dry_run=False, env='default'):
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
 
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
@@ -375,7 +376,7 @@ def log(package):
     """
     List all of the changes to a package on the server.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -398,7 +399,7 @@ def push(package, public=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     pkgobj = PackageStore.find_package(owner, pkg)
@@ -543,7 +544,7 @@ def version_list(package):
     """
     List the versions of a package.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -564,7 +565,7 @@ def version_add(package, version, pkghash):
     Version format needs to follow PEP 440.
     Versions are permanent - once created, they cannot be modified or deleted.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     try:
@@ -595,7 +596,7 @@ def tag_list(package):
     """
     List the tags of a package.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     response = session.get(
@@ -618,7 +619,7 @@ def tag_add(package, tag, pkghash):
 
     When a package is pushed, it gets the "latest" tag.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     session.put(
@@ -637,7 +638,7 @@ def tag_remove(package, tag):
     """
     Delete a tag.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     session.delete(
@@ -649,6 +650,24 @@ def tag_remove(package, tag):
         )
     )
 
+def install_via_requirements(requirements_str, force=False):
+    """
+    Download multiple Quilt data packages via quilt.xml requirements file.
+    """
+    if requirements_str[0] == '@':
+        yaml_data = load_yaml(requirements_str[0])
+    else:
+        yaml_data = yaml.load(requirements_str)
+    for pkginfo in yaml_data['packages']:
+        owner, pkg, subpath, hash, version, tag = parse_package(
+            pkginfo, allow_subpath=True, allow_versioninfo=True)
+        print('{}: o={} p={} s={} h={} v={} t={}'.format(
+            pkginfo, owner, pkg, subpath, hash, version, tag))
+        package = owner + '/' + pkg
+        if subpath is None:
+            package += '/' + subpath
+        install(package, hash, version, tag, force=False)
+    
 def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
@@ -659,9 +678,15 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if hash is version is tag is None:
         tag = LATEST_TAG
 
+    # @filename ==> read from file
+    # newline = multiple lines ==> multiple requirements
+    package = package.strip()
+    if package[0] == '@' or '\n' in package:
+        return install_via_requirements(package, force=force)
+        
     assert [hash, version, tag].count(None) == 2
 
-    owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    owner, pkg, subpath, _, _, _ = parse_package(package, allow_subpath=True)
     session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
@@ -835,7 +860,7 @@ def access_list(package):
     """
     Print list of users who can access a package.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=QUILT_PKG_URL, owner=owner, pkg=pkg)
@@ -850,7 +875,7 @@ def access_add(package, user):
     """
     Add access
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     session.put("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
@@ -859,7 +884,7 @@ def access_remove(package, user):
     """
     Remove access
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     session = _get_session()
 
     session.delete("%s/api/access/%s/%s/%s" % (QUILT_PKG_URL, owner, pkg, user))
@@ -870,7 +895,7 @@ def delete(package):
 
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
 
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
@@ -912,7 +937,7 @@ def inspect(package):
     """
     Inspect package details
     """
-    owner, pkg = parse_package(package)
+    owner, pkg, _, _, _, _ = parse_package(package)
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
