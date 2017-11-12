@@ -358,13 +358,13 @@ def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
-    path_str = str(path) if path else None
+    package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
         _build_internal(package, path, dry_run, env)
     except Exception as ex:
-        _log(type='build', package=package, path=path_str, dry_run=dry_run, env=env, error=str(ex))
+        _log(type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
         raise
-    _log(type='build', package=package, path=path_str, dry_run=dry_run, env=env)
+    _log(type='build', package=package_hash, dry_run=dry_run, env=env)
 
 def _build_internal(package, path, dry_run, env):
     # we may have a path, git URL, PackageNode, or None

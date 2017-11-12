@@ -2,6 +2,7 @@
 Tests for commands.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -279,8 +280,7 @@ class CommandTest(QuiltTestCase):
                 data = json.loads(request.body)
                 assert data == [dict(
                     type='build',
-                    package='foo/bar',
-                    path=build_path,
+                    package=hashlib.md5(b'foo/bar').hexdigest(),
                     dry_run=False,
                     env='default',
                 )]
