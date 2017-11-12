@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Quilt Login - Success{% endblock %}
+
+{% block content %}
+  <div class='container-fluid' style='margin-top: 30px'>
+    <div class='row-fluid'>
+      <div class='well' style='width: 400px; max-width: 400px; margin-left: auto; margin-right: auto'>
+        <div class='row-fluid'>
+          <a href='https://beta.quiltdata.com/'>
+            <img
+              height='48'
+              src="{{QUILT_CDN}}img/logo-128-beta.png"
+              style='margin: 0 auto 1em auto; display: block;'/>
+          </a>
+        </div>
+        <div class='row-fluid'>
+          <h3>Enter the following code into the quilt prompt:</h3>
+          <pre style="font-size: 100%">{{ code }}</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

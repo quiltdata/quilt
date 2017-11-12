@@ -1,0 +1,85 @@
+version: '2.1'
+services:
+  db:
+    image: mysql
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=True
+      - MYSQL_DATABASE=quilt
+    healthcheck:
+      test: ["CMD", "mysql", "-u", "root", "-e", "select 1"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+  migration:
+    image: quiltdata/flask
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=docker_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+      - STRIPE_SECRET_KEY=STRIPETEST
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      flask db upgrade
+  flask:
+    build: .
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=docker_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+      - OAUTHLIB_INSECURE_TRANSPORT=1
+      - AUTH_PROVIDER=quilt
+    depends_on:
+      db:
+        condition: service_healthy
+  nginxflask:
+    image: nginx:latest
+    ports:
+      - "5000:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./nginx/nginx-quilt.conf:/etc/nginx/nginx-quilt.template
+    environment:
+      - UWSGI_HOST=flask
+      - UWSGI_PORT=9000
+      - NGINX_PORT=80
+    command: /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+  s3:
+    image: quiltdata/nginx-s3-proxy
+    ports:
+      - "5001:5001"
+  auth:
+    image: nginx:latest
+    ports:
+      - "5002:5002"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./nginx/nginx-quilt.conf:/etc/nginx/conf.d/nginx-quilt.template
+    environment:
+      - UWSGI_HOST=django
+      - UWSGI_PORT=9000
+      - NGINX_PORT=5002
+    command: /bin/bash -c "envsubst < /etc/nginx/conf.d/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+  django:
+    image: quiltdata/django
+    environment:
+      - USE_CONSOLE_EMAIL=True
+      - LOGFILE=/tmp/debug.log
+      - DATABASE_URL=${DJANGO_DATABASE_URL}
+      - ALLOW_HTTP=1
+  catalog:
+    image: quiltdata/catalog
+    environment:
+      - REGISTRY_URL=http://flask:5000
+      - USER_API=http://auth:5002/api-root
+      - SIGN_OUT_URL=http://auth:5002/api-auth/logout?next=%2F
+      - STRIPE_KEY=NOSTRIPE
+    ports:
+      - "3000:80"
