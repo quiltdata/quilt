@@ -5,7 +5,6 @@ import os
 from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
 
-from distutils.dir_util import mkpath
 import pandas as pd
 from six import itervalues
 
@@ -66,7 +65,7 @@ class Package(object):
         self._path = path
 
         if not os.path.isdir(self._path):
-            mkpath(self._path)
+            os.makedirs(self._path)
             os.mkdir(os.path.join(self._path, self.CONTENTS_DIR))
             os.mkdir(os.path.join(self._path, self.TAGS_DIR))
             os.mkdir(os.path.join(self._path, self.VERSIONS_DIR))
