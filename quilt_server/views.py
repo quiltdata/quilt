@@ -347,8 +347,9 @@ def _mp_track(**kwargs):
     # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
     ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
 
-    # Set common attributes sent with each event. They can be overridden by `args`.
+    # Set common attributes sent with each event. kwargs cannot override these.
     all_args = dict(
+        kwargs,
         time=time.time(),
         ip=ip_addr,
         user=g.user,
@@ -359,7 +360,6 @@ def _mp_track(**kwargs):
         platform_version=g.user_agent['platform']['version'],
         deployment_id=DEPLOYMENT_ID,
     )
-    all_args.update(kwargs)
 
     mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
@@ -1435,7 +1435,6 @@ def invitation_package_list(auth_user, owner, package_name):
 @api(require_login=False, schema=LOG_SCHEMA)
 @as_json
 def client_log(auth_user):
-    # TODO(dima): Prevent the client from abusing this.
     data = request.get_json()
     for event in data:
         _mp_track(**event)

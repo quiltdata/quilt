@@ -104,6 +104,17 @@ PACKAGE_SCHEMA = {
 LOG_SCHEMA = {
     'type': 'array',
     'items': {
-        'type': 'object',
+        'oneOf': [
+            # 'build' event; the only one currently supported.
+            {
+                'type': 'object',
+                'properties': {
+                    'type': {
+                        'enum': ['build']
+                    },
+                },
+                'required': ['type']
+            }
+        ]
     }
 }
