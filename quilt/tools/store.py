@@ -40,6 +40,7 @@ class PackageStore(object):
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
     PKG_DIR = 'pkgs'
+    VERSION = '1.0'
     
     def __init__(self, location=None):
         if location is None:
@@ -53,8 +54,18 @@ class PackageStore(object):
         tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
         pkgdir = os.path.join(self._path, self.PKG_DIR)
 
-        if not os.path.isdir(location):
-            mkpath(location)
+        if os.path.isdir(self._path):
+            # Verify existing package store is compatible
+            if self.VERSION != self._read_format_version():
+                msg = "The package repository at {0} is not compatible"
+                msg += " with this version of quilt. Revert to an"
+                msg += " earlier version of quilt or remove the existing"
+                msg += " package repository."
+                raise StoreException(msg.format(self._path))            
+        else:
+            # Create a new package store
+            mkpath(self._path)
+            self._write_format_version()
             os.mkdir(objdir)
             os.mkdir(tmpobjdir)
             os.mkdir(pkgdir)
@@ -95,6 +106,21 @@ class PackageStore(object):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
+
+    def _version_path(self):
+        return os.path.join(self._path, '.format')
+    
+    def _read_format_version(self):
+        if os.path.exists(self._version_path()):
+            with open(self._version_path(), 'r') as versionfile:
+                version = versionfile.read()
+                return version
+        else:
+            return "0.0"
+
+    def _write_format_version(self):
+        with open(self._version_path(), 'w') as versionfile:
+            versionfile.write(self.VERSION)
 
     # TODO: find a package instance other than 'latest', e.g. by
     # looking-up by hash, tag or version in the local store.
