@@ -166,6 +166,16 @@ def parse_package(name, allow_subpath=False, allow_versioninfo=False):
     try:
         if allow_versioninfo and ':' in name:
             name, versioninfo = name.split(':', 1)
+            if ':' in versioninfo:
+                info = versioninfo.split(':')
+                if len(info) == 2 and info[0][0] == 'v':
+                    version = info[1]
+                elif len(info) == 2 and info[0][0] == 't':
+                    tag = info[1]
+                elif len(info) == 2 and info[0][0] == 'h':
+                    hash = info[1]
+            else:
+                hash = versioninfo
         else:
             versioninfo = None
         values = name.split('/')
@@ -177,17 +187,6 @@ def parse_package(name, allow_subpath=False, allow_versioninfo=False):
         if subpath and not allow_subpath:
             raise ValueError
 
-        if allow_versioninfo:
-            info = name.split(':')
-            if len(info) == 3 and info[2][0] == 'v':
-                version = info[3]
-            elif len(info) == 3 and info[2][0] == 't':
-                tag = info[3]
-            elif len(info) == 3 and info[2][0] == 'h':
-                hash = info[3]
-            elif len(info) > 1:
-                hash = info[2]
-        
     except ValueError:
         pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
         if allow_versioninfo:

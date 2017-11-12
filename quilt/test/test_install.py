@@ -118,7 +118,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash1, table_data1)
         self._mock_tag('baz/bat', 'nexttag', contents_hash2)
         self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
-        self._mock_s3(table_hash1, table_data1)
+        self._mock_s3(table_hash2, table_data2)
 
         command.install('''
 packages:
@@ -126,13 +126,18 @@ packages:
 - baz/bat:t:nexttag
         ''')
 
-# asah         with open('quilt_packages/foo/bar.json') as fd: asah
-# asah             file_contents = json.load(fd, object_hook=decode_node) asah
-# asah             assert file_contents == contents asah
-
-# asah         with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd: asah
-# asah             contents = fd.read() asah
-# asah             assert contents == table_data asah
+        with open('quilt_packages/foo/bar.json') as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents1
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash1)) as fd:
+            contents = fd.read()
+            assert contents == table_data1
+        with open('quilt_packages/baz/bat.json') as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents2
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash2)) as fd:
+            contents = fd.read()
+            assert contents == table_data2
 
 
     def test_bad_contents_hash(self):
