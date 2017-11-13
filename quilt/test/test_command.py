@@ -131,7 +131,7 @@ class CommandTest(QuiltTestCase):
 #        build_path = os.path.join(mydir, './build.yml')
 #        command.build('foo/bar', build_path)
 #
-#        owner, pkg, subpath = store.parse_package('foo/bar')
+#        owner, pkg = store.parse_package('foo/bar')
 #        pkgobj = store.PackageStore.find_package(owner, pkg)
 #        assert pkgobj is not None
 #        assert pkgobj.find_node_by_name('') is None
