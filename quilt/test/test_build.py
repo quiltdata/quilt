@@ -5,9 +5,10 @@ Test the build process
 #the functions that cli calls
 import os
 
-from six import assertRaisesRegex
+from six import assertRaisesRegex, string_types
 import yaml
 
+from .. import nodes
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
 from .utils import QuiltTestCase
@@ -40,6 +41,40 @@ class BuildTest(QuiltTestCase):
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
         # TODO add more integrity checks, incl. negative test cases
+    
+    def test_build_parquet_syntax(self):
+        """
+        Test build syntax more deeply.
+        Created on introduction of 'group arguments'
+        """
+        Package.reset_parquet_lib()
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_group_args.yml')
+        build.build_package('test_syntax', 'tree', path)
+        from quilt.data.test_syntax import tree
+        # ensure we get a DF of the expected size
+        assert tree.group_a.csv().shape == (1, 2),\
+            'Expected a 1x2 DataFrame'
+        assert tree.group_a.tsv().shape == (2, 3),\
+            'Expected a 2x3 DataFrame'
+        assert type(tree.group_b) == nodes.GroupNode,\
+            'Expected a GroupNode'
+        assert isinstance(tree.group_b.txt(), string_types),\
+            'Expected a string path to a txt object'
+        assert tree.group_b.tsv().shape == (10000, 13),\
+            'Expected a 10000x13 DataFrame'
+        assert tree.group_b.subgroup.tsv().shape == (1, 3),\
+            'Expected a 1x3 DataFrame'
+        assert tree.group_b.subgroup.csv().shape == (0, 2),\
+            'Expected  a 0x2 DataFrame'
+        assert isinstance(tree.group_b.subgroup.txt(), string_types),\
+            'Expected a string path to a txt object'
+        assert tree.group_b.subgroup.many_tsv.one().shape == (1, 3),\
+            'Expected a 1x3 DataFrame'
+        assert tree.group_b.subgroup.many_tsv.two().shape == (1, 3),\
+            'Expected a 1x3 DataFrame'
+        assert tree.group_b.subgroup.many_tsv.three().shape == (1, 3),\
+            'Expected a 1x3 DataFrame'
 
     def test_build_parquet_pyarrow(self):
         """
