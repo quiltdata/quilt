@@ -1,8 +1,0 @@
-packages:
-  - asah/snli # takes 'latest' tag
-  - akarve/HADS:9a0dbcd431dd1e56d8b7ddf27df1196ed1ba71ef707dca8b264dd7cf863b5b68 # specify specific version
-  - akarve/calls_911:tag:cleaned # specific tag, 'cleaned'
-  - akarve/examples:t:latest # t for tag, use of latest
-  - akarve/dogscats:version:2.14.5 # specific version
-  - pearson/ece408:51b82cbc2c  # short hash
- 

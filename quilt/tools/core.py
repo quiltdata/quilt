@@ -5,6 +5,7 @@
 from enum import Enum
 import hashlib
 import struct
+import yaml
 
 import re
 import numpy
@@ -201,7 +202,7 @@ def load_yaml(filename, optional=False):
     if res is None:
         if optional:
             return None
-        raise BuildException("Unable to YAML file: %s" % filename)
+        raise BuildException("Unable to open YAML file: %s" % filename)
     return res
 
 def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):

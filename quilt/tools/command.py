@@ -655,7 +655,7 @@ def install_via_requirements(requirements_str, force=False):
     Download multiple Quilt data packages via quilt.xml requirements file.
     """
     if requirements_str[0] == '@':
-        yaml_data = load_yaml(requirements_str[0])
+        yaml_data = load_yaml(requirements_str[1:])
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:

@@ -152,6 +152,19 @@ packages:
         self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
         self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
 
+        table_data5, table_hash5 = self.make_table_data('table5')
+        contents5, contents_hash5 = self.make_contents(table5=table_hash5)
+        self._mock_tag('usr3/pkgc', 'latest', contents_hash5)
+        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
+        self._mock_s3(table_hash5, table_data5)
+
+        # test reading from file
+        with open('tmp_quilt.yml', 'w') as fd:
+            fd.write("packages:\n- usr3/pkgc")
+            fd.close()
+        command.install('@tmp_quilt.yml')
+            
+
     def test_bad_install_dependencies(self):
         """
         Install multiple packages via requirements file
