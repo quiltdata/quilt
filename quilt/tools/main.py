@@ -103,7 +103,8 @@ def main():
     # can also use @filename to load from a file
     install_group.add_argument("-r", "--requirements-file", action="store_true", dest='reqfile',
                                help="force treatment of package name as requirements filename")
-    install_group.add_argument("-x", "--hash", help="Package hash", type=lambda val: check_hash(install_p, val))
+    install_group.add_argument("-x", "--hash", help="Package hash",
+                               type=lambda val: check_hash(install_p, val))
     install_group.add_argument("-v", "--version", type=str, help="Package version")
     install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
 

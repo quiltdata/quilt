@@ -27,24 +27,24 @@ from ..tools.core import (
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
-    @staticmethod
-    def make_table_data(string="table"):
+    @classmethod
+    def make_table_data(cls, string="table"):
         table_data = string * 10
         h = hashlib.new(HASH_TYPE)
         h.update(table_data.encode('utf-8'))
         table_hash = h.hexdigest()
         return table_data, table_hash
 
-    @staticmethod
-    def make_file_data(string="file"):
+    @classmethod
+    def make_file_data(cls, string="file"):
         file_data = string * 10
         h = hashlib.new(HASH_TYPE)
         h.update(file_data.encode('utf-8'))
         file_hash = h.hexdigest()
         return file_data, file_hash
     
-    @staticmethod
-    def make_contents(**args):
+    @classmethod
+    def make_contents(cls, **args):
         contents = RootNode(dict(
             group=GroupNode(dict([
                 (key, TableNode([val]) if 'table' in key else FileNode([val]))

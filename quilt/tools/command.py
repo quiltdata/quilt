@@ -105,7 +105,8 @@ def config():
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
     else:
-        canonical_url = ''  # When saving the config, store '' instead of the actual URL in case we ever change it.
+        # When saving the config, store '' instead of the actual URL in case we ever change it.
+        canonical_url = ''
 
     cfg = _load_config()
     cfg['registry_url'] = canonical_url
@@ -750,7 +751,7 @@ def install_via_requirements(requirements_str, force=False):
         package = owner + '/' + pkg
         if subpath is None:
             package += '/' + subpath
-        install(package, hash, version, tag, force=False)
+        install(package, hash, version, tag, force=force)
     
 def install(package, hash=None, version=None, tag=None, force=False):
     """

@@ -3,6 +3,7 @@
 #
 
 from enum import Enum
+import os
 import hashlib
 import struct
 import yaml
