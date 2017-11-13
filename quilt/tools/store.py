@@ -209,5 +209,7 @@ def parse_package(name, allow_subpath=False):
     except StoreException as ex:
         raise CommandException(str(ex))
 
-    return owner, pkg, subpath
+    if allow_subpath:
+        return owner, pkg, subpath
+    return owner, pkg
 
