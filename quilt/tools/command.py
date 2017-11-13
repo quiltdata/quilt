@@ -239,6 +239,29 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
+def _match_hash(session, owner, pkg, hash, raise_exception=True):
+    # short-circuit for exact length
+    if len(hash) == 64:
+        return hash
+    
+    response = session.get(
+        "{url}/api/log/{owner}/{pkg}/".format(
+            url=get_registry_url(),
+            owner=owner,
+            pkg=pkg
+        )
+    )
+    for entry in reversed(response.json()['logs']):
+        # support short hashes
+        if entry['hash'].startswith(hash):
+            return entry['hash']
+
+    if raise_exception:
+        raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+            hash=hash, owner=owner, pkg=pkg))
+    return None
+
+        
 def login():
     """
     Authenticate.
@@ -649,7 +672,7 @@ def version_add(package, version, pkghash):
             version=version
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -691,7 +714,7 @@ def tag_add(package, tag, pkghash):
             tag=tag
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -780,23 +803,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         pkghash = response.json()['hash']
-    elif len(hash) <= 64:
-        response = session.get(
-            "{url}/api/log/{owner}/{pkg}/".format(
-                url=get_registry_url(),
-                owner=owner,
-                pkg=pkg
-            )
-        )
-        for entry in reversed(response.json()['logs']):
-            if entry['hash'].startswith(hash):
-                pkghash = entry['hash']
-                break
-        else:
-            raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
-                hash=hash, owner=owner, pkg=pkg))
     else:
-        pkghash = hash
+        pkghash = _match_hash(session, owner, pkg, hash)
     assert pkghash is not None
 
     response = session.get(

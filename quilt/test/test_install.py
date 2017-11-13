@@ -5,6 +5,7 @@ Tests for the install command.
 import hashlib
 import json
 import os
+import time
 
 import responses
 from six import assertRaisesRegex
@@ -82,6 +83,18 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == file_data
 
+    def test_short_hashes(self):
+        """
+        Test various functions that use short hashes
+        """
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
+        self._mock_log('foo/bar', contents_hash)
+        command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
+
     def test_install_subpackage(self):
         """
         Install a part of a package.
@@ -140,27 +153,34 @@ class InstallTest(QuiltTestCase):
         self._mock_package('usr2/pkgb', contents_hash4, 'group/table', contents4, [table_hash4])
         self._mock_s3(table_hash4, table_data4)
 
+        table_data5, table_hash5 = self.make_table_data('table5')
+        contents5, contents_hash5 = self.make_contents(table5=table_hash5)
+        self._mock_log('usr3/pkgc', contents_hash5)
+        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
+        self._mock_s3(table_hash5, table_data5)
+
         command.install('''
 packages:
 - foo/bar:t:latest   # comment
 - baz/bat:t:nexttag
 - usr1/pkga:version:v1
 - usr2/pkgb
-        ''')
+- usr3/pkgc:h:SHORTHASH5
+        '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
         self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
         self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
         self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
         self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
-
-        table_data5, table_hash5 = self.make_table_data('table5')
-        contents5, contents_hash5 = self.make_contents(table5=table_hash5)
-        self._mock_tag('usr3/pkgc', 'latest', contents_hash5)
-        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
-        self._mock_s3(table_hash5, table_data5)
+        self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
 
         # test reading from file
+        table_data6, table_hash6 = self.make_table_data('table6')
+        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash6)
+        self._mock_package('usr4/pkgd', contents_hash6, 'group/table', contents6, [table_hash6])
+        self._mock_s3(table_hash6, table_data6)
         with open('tmp_quilt.yml', 'w') as fd:
-            fd.write("packages:\n- usr3/pkgc")
+            fd.write("packages:\n- usr4/pkgd")
             fd.close()
         command.install('@tmp_quilt.yml')
             
@@ -275,15 +295,22 @@ packages:
             contents = fd.read()
             assert contents == file_data_list[1]
 
-    def _mock_tag(self, package, tag, pkg_hash):
+    def _mock_log(self, package, pkg_hash):
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)
+        self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
+            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
+        ]}))
+
+    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET):
         tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
 
-        self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
+
+        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
             hash=pkg_hash
         )))
 
     def _mock_version(self, package, version, pkg_hash):
-        tag_url = '%s/api/version/%s/%s' % (command.QUILT_PKG_URL, package, version)
+        tag_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
 
         self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
             hash=pkg_hash
