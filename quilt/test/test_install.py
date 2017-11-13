@@ -103,6 +103,14 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
+    @staticmethod
+    def validate_file(filename, contents, table_hash, table_data):
+        with open('quilt_packages/'+filename) as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+            contents = fd.read()
+            assert contents == table_data
 
     def test_install_dependencies(self):
         """
@@ -139,18 +147,28 @@ packages:
 - usr1/pkga:version:v1
 - usr2/pkgb
         ''')
+        self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+        self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
+        self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
+        self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
 
-        def validate_file(filename, contents, table_hash, table_data):
-            with open('quilt_packages/'+filename) as fd:
-                file_contents = json.load(fd, object_hook=decode_node)
-                assert file_contents == contents
-            with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
-                contents = fd.read()
-                assert contents == table_data
-        validate_file('foo/bar.json', contents1, table_hash1, table_data1)
-        validate_file('baz/bat.json', contents2, table_hash2, table_data2)
-        validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
-        validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
+    def test_bad_install_dependencies(self):
+        """
+        Install multiple packages via requirements file
+        """
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+
+        with assertRaisesRegex(self, command.CommandException, "package name is empty"):
+            command.install(" ")
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.install("packages:\n")
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.install("packages:\n- foo")
+        with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
+            command.install("packages:\n- foo/bar:xxx:bar")
+        with assertRaisesRegex(self, Exception, "No such file or directory"):
+            self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
 
     def test_bad_contents_hash(self):
         """

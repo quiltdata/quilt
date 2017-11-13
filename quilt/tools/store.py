@@ -168,12 +168,15 @@ def parse_package(name, allow_subpath=False, allow_versioninfo=False):
             name, versioninfo = name.split(':', 1)
             if ':' in versioninfo:
                 info = versioninfo.split(':')
-                if len(info) == 2 and info[0][0] == 'v':
-                    version = info[1]
-                elif len(info) == 2 and info[0][0] == 't':
-                    tag = info[1]
-                elif len(info) == 2 and info[0][0] == 'h':
-                    hash = info[1]
+                if len(info) == 2:
+                    if info[0][0] == 'v':
+                        version = info[1]
+                    elif info[0][0] == 't':
+                        tag = info[1]
+                    elif info[0][0] == 'h':
+                        hash = info[1]
+                    else:
+                        raise CommandException("invalid versioninfo: %s." % info)
             else:
                 hash = versioninfo
         else:

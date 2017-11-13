@@ -681,6 +681,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
     # @filename ==> read from file
     # newline = multiple lines ==> multiple requirements
     package = package.strip()
+    if len(package) == 0:
+        raise CommandException("package name is empty.")
+
     if package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
         
