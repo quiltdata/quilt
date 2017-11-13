@@ -244,7 +244,7 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                         for result in find(key, item):
                             yield result
         except AttributeError:
-          yield None
+            yield None
 
     def load_yaml(filename, optional=False):
         if optional and (filename is None or not os.path.isfile(filename)):
