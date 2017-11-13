@@ -161,26 +161,36 @@ class PackageStore(object):
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
 
-def parse_package(name, allow_subpath=False, allow_versioninfo=False):
-    hash = version = tag = subpath = None
+def parse_package_extended(name):
+    hash = version = tag = None
     try:
-        if allow_versioninfo and ':' in name:
+        if ':' in name:
             name, versioninfo = name.split(':', 1)
             if ':' in versioninfo:
-                info = versioninfo.split(':')
+                info = versioninfo.split(':', 1)
                 if len(info) == 2:
                     if info[0][0] == 'v':
+                        # usr/pkg:version:<string>
                         version = info[1]
                     elif info[0][0] == 't':
+                        # usr/pkg:tag:<tag>
                         tag = info[1]
                     elif info[0][0] == 'h':
+                        # usr/pkg:hash:<hash>
                         hash = info[1]
                     else:
                         raise CommandException("invalid versioninfo: %s." % info)
-            else:
-                hash = versioninfo
-        else:
-            versioninfo = None
+                else:
+                    # usr/pkg:hashval
+                    hash = versioninfo
+        owner, pkg, subpath = parse_package(name, allow_subpath=True)
+    except ValueError:
+        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+        raise CommandException("Specify package as %s." % pkg_format)
+    return owner, pkg, subpath, hash, version, tag
+
+def parse_package(name, allow_subpath=False):
+    try:
         values = name.split('/')
         # Can't do "owner, pkg, *subpath = ..." in Python2 :(
         (owner, pkg), subpath = values[:2], values[2:]
@@ -192,8 +202,6 @@ def parse_package(name, allow_subpath=False, allow_versioninfo=False):
 
     except ValueError:
         pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
-        if allow_versioninfo:
-            pkg_format = pkg_format + ':[v:<version> or tag or hash]'
         raise CommandException("Specify package as %s." % pkg_format)
 
     try:
@@ -201,5 +209,5 @@ def parse_package(name, allow_subpath=False, allow_versioninfo=False):
     except StoreException as ex:
         raise CommandException(str(ex))
 
-    return owner, pkg, subpath, hash, version, tag
+    return owner, pkg, subpath
 
