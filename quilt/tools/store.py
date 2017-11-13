@@ -169,14 +169,14 @@ def parse_package_extended(name):
             if ':' in versioninfo:
                 info = versioninfo.split(':', 1)
                 if len(info) == 2:
-                    if info[0][0] == 'v':
-                        # usr/pkg:version:<string>
+                    if 'version'.startswith(info[0]):
+                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
                         version = info[1]
-                    elif info[0][0] == 't':
-                        # usr/pkg:tag:<tag>
+                    elif 'tag'.startswith(info[0]):
+                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
                         tag = info[1]
-                    elif info[0][0] == 'h':
-                        # usr/pkg:hash:<hash>
+                    elif 'hash'.startswith(info[0]):
+                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
                         hash = info[1]
                     else:
                         raise CommandException("invalid versioninfo: %s." % info)
