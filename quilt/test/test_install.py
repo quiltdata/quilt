@@ -163,6 +163,7 @@ class InstallTest(QuiltTestCase):
         self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
         self._mock_s3(table_hash5, table_data5)
 
+        # inline test of quilt.yml
         command.install('''
 packages:
 - foo/bar:t:latest   # comment
@@ -176,6 +177,12 @@ packages:
         self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
         self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
         self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
+        # check that installation happens in the order listed in quilt.yml
+        assert (os.path.getmtime('quilt_packages/foo/bar.json') <=
+                os.path.getmtime('quilt_packages/baz/bat.json') <=
+                os.path.getmtime('quilt_packages/usr1/pkga.json') <=
+                os.path.getmtime('quilt_packages/usr2/pkgb.json') <=
+                os.path.getmtime('quilt_packages/usr3/pkgc.json'))
 
         # test reading from file
         table_data6, table_hash6 = self.make_table_data('table6')
