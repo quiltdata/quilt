@@ -276,7 +276,7 @@ packages:
             assert contents == file_data_list[1]
 
     def _mock_tag(self, package, tag, pkg_hash):
-        tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
 
         self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
             hash=pkg_hash
@@ -291,7 +291,7 @@ packages:
 
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.QUILT_PKG_URL, package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,
