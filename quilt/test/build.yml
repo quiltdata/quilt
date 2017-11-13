@@ -6,7 +6,6 @@ contents:
     tsv:
       file: data/10KRows13Cols.tsv
     xls:
-      skiprows: [1,2]
       file: data/10KRows13Cols.xlsx
   README:
     file: data/README.md

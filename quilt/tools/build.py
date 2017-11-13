@@ -231,16 +231,20 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     """
     def find(key, value):
         """find all nodes transitively"""
-        for k, v in iteritems(value):
-            if k == key:
-                yield v
-            elif isinstance(v, dict):
-                for result in find(key, v):
-                    yield result
-            elif isinstance(v, list):
-                for item in v:
-                    for result in find(key, item):
+        try:
+            vals = iteritems(value)
+            for k, v in vals:
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
                         yield result
+                elif isinstance(v, list):
+                    for item in v:
+                        for result in find(key, item):
+                            yield result
+        except AttributeError:
+          yield None
 
     def load_yaml(filename, optional=False):
         if optional and (filename is None or not os.path.isfile(filename)):
@@ -268,6 +272,9 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
         checks_contents = None
     build_package_from_contents(username, package, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
+
+def _children_iterable(k):
+    return all
 
 def build_package_from_contents(username, package, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):

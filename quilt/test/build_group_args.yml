@@ -23,7 +23,7 @@ contents:
     subgroup:
       # transform and skiprows apply to all children, unless overidden
       transform: tsv
-      skiprows: 1
+      skiprows: [0]
       tsv:
         # should be tsv
         file: data/tsv.txt
