@@ -110,35 +110,47 @@ class InstallTest(QuiltTestCase):
         """
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
-        table_data2, table_hash2 = self.make_table_data('table2')
-        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
-
         self._mock_tag('foo/bar', 'latest', contents_hash1)
         self._mock_package('foo/bar', contents_hash1, 'group/table', contents1, [table_hash1])
         self._mock_s3(table_hash1, table_data1)
+
+        table_data2, table_hash2 = self.make_table_data('table2')
+        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
         self._mock_tag('baz/bat', 'nexttag', contents_hash2)
         self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
         self._mock_s3(table_hash2, table_data2)
+
+        table_data3, table_hash3 = self.make_table_data('table3')
+        contents3, contents_hash3 = self.make_contents(table3=table_hash3)
+        self._mock_version('usr1/pkga', 'v1', contents_hash3)
+        self._mock_package('usr1/pkga', contents_hash3, 'group/table', contents3, [table_hash3])
+        self._mock_s3(table_hash3, table_data3)
+
+        table_data4, table_hash4 = self.make_table_data('table4')
+        contents4, contents_hash4 = self.make_contents(table4=table_hash4)
+        self._mock_tag('usr2/pkgb', 'latest', contents_hash4)
+        self._mock_package('usr2/pkgb', contents_hash4, 'group/table', contents4, [table_hash4])
+        self._mock_s3(table_hash4, table_data4)
 
         command.install('''
 packages:
 - foo/bar:t:latest   # comment
 - baz/bat:t:nexttag
+- usr1/pkga:version:v1
+- usr2/pkgb
         ''')
 
-        with open('quilt_packages/foo/bar.json') as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents1
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash1)) as fd:
-            contents = fd.read()
-            assert contents == table_data1
-        with open('quilt_packages/baz/bat.json') as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents2
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash2)) as fd:
-            contents = fd.read()
-            assert contents == table_data2
-
+        def validate_file(filename, contents, table_hash, table_data):
+            with open('quilt_packages/'+filename) as fd:
+                file_contents = json.load(fd, object_hook=decode_node)
+                assert file_contents == contents
+            with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+                contents = fd.read()
+                assert contents == table_data
+        validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+        validate_file('baz/bat.json', contents2, table_hash2, table_data2)
+        validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
+        validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
 
     def test_bad_contents_hash(self):
         """
@@ -234,6 +246,13 @@ packages:
 
     def _mock_tag(self, package, tag, pkg_hash):
         tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
+
+        self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
+            hash=pkg_hash
+        )))
+
+    def _mock_version(self, package, version, pkg_hash):
+        tag_url = '%s/api/version/%s/%s' % (command.QUILT_PKG_URL, package, version)
 
         self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
             hash=pkg_hash
