@@ -642,7 +642,7 @@ def version_list(package):
     for version in response.json()['versions']:
         print("%s: %s" % (version['version'], version['hash']))
 
-def version_add(package, version, pkghash):
+def version_add(package, version, pkghash, force=False):
     """
     Add a new version for a given package hash.
 
@@ -660,9 +660,10 @@ def version_add(package, version, pkghash):
             "Invalid version format; see %s" % url
         )
 
-    answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
-    if answer.lower() != 'y':
-        return
+    if not force:
+        answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
+        if answer.lower() != 'y':
+            return
 
     session.put(
         "{url}/api/version/{owner}/{pkg}/{version}".format(

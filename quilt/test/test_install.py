@@ -95,6 +95,10 @@ class InstallTest(QuiltTestCase):
         self._mock_log('foo/bar', contents_hash)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
+        self._mock_log('foo/bar', contents_hash)
+        command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
+
     def test_install_subpackage(self):
         """
         Install a part of a package.
@@ -303,16 +307,13 @@ packages:
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET):
         tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
-
-
         self.requests_mock.add(cmd, tag_url, json.dumps(dict(
             hash=pkg_hash
         )))
 
-    def _mock_version(self, package, version, pkg_hash):
+    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET):
         tag_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
-
-        self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
+        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
             hash=pkg_hash
         )))
 
