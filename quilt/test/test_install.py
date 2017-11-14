@@ -126,14 +126,25 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
-    @staticmethod
-    def validate_file(filename, contents, table_hash, table_data):
-        with open('quilt_packages/'+filename) as fd:
+    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
+        teststore = PackageStore(self._store_dir)
+
+        with open(os.path.join(teststore.package_path(user, package),
+                               Package.CONTENTS_DIR,
+                               contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
             contents = fd.read()
             assert contents == table_data
+
+    def getmtime(self, user, package, contents_hash):
+        teststore = PackageStore(self._store_dir)
+
+        return os.path.getmtime(os.path.join(teststore.package_path(user, package),
+                                             Package.CONTENTS_DIR,
+                                             contents_hash))
 
     def test_install_dependencies(self):
         """
@@ -178,17 +189,17 @@ packages:
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
-        self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
-        self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
-        self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
-        self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
-        self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
+        self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
+        self.validate_file('baz','bat', contents_hash2, contents2, table_hash2, table_data2)
+        self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
+        self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
+        self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
         # check that installation happens in the order listed in quilt.yml
-        assert (os.path.getmtime('quilt_packages/foo/bar.json') <=
-                os.path.getmtime('quilt_packages/baz/bat.json') <=
-                os.path.getmtime('quilt_packages/usr1/pkga.json') <=
-                os.path.getmtime('quilt_packages/usr2/pkgb.json') <=
-                os.path.getmtime('quilt_packages/usr3/pkgc.json'))
+        assert (self.getmtime('foo','bar', contents_hash1) <=
+                self.getmtime('baz','bat', contents_hash2) <=
+                self.getmtime('usr1','pkga', contents_hash3) <=
+                self.getmtime('usr2','pkgb', contents_hash4) <=
+                self.getmtime('usr3','pkgc', contents_hash5))
 
         # test reading from file
         table_data6, table_hash6 = self.make_table_data('table6')
@@ -218,7 +229,7 @@ packages:
         with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
-            self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+            self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
     def test_bad_contents_hash(self):
         """
