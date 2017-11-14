@@ -273,9 +273,6 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     build_package_from_contents(username, package, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
-def _children_iterable(k):
-    return all
-
 def build_package_from_contents(username, package, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
