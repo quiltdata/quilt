@@ -104,12 +104,39 @@ class ChecksTest(QuiltTestCase):
         self.build_contents['foo'] = { 'checks': 'stringchecks',
                                        'file': 'data/10KRows13Cols.tsv' }
         self.checks_contents['stringchecks'] = """
-qc.check_column_substr('UID.+', '-')  # must contain a dash
 qc.check_column_regexp('UID.+', r'^[0-9a-f-]+$')
+qc.check_column_substr('UID.+', '-')  # must contain a dash
 qc.check_column_datetime('Date0', '%Y-%m-%d')
 qc.check_column_datetime('DTime0', '%Y-%m-%d %H:%M:%S.%f')
         """
         self.build_success('stringchecks')
+
+    def test_not_checks(self):
+        self.build_contents['foo'] = { 'checks': 'notchecks',
+                                       'file': 'data/10KRows13Cols.tsv' }
+        self.checks_contents['notchecks'] = """
+qc.check_not_column_enum('UID.+', 'a b c'.split())
+qc.check_not_column_enum('UID.+', lambda val: False)
+qc.check_not_column_valrange('Double.+', minval=0.000001, maxval=0.000002)
+qc.check_not_column_valrange('Double.+', 0, 1, 'sum')
+qc.check_not_column_valrange('Double.+', 0, 1, lambda val: False)
+qc.check_not_column_regexp('UID.+', r'^   $')
+qc.check_not_column_substr('UID.+', '%')  # must not contain a percent
+qc.check_not_column_datetime('Date0', '%Y-%m-%d-%d')
+        """
+        self.build_success('notchecks')
+
+    def test_row_checks(self):
+        self.build_contents['foo'] = { 'checks': 'rowchecks',
+                                       'file': 'data/10KRows13Cols.tsv' }
+        self.checks_contents['rowchecks'] = """
+qc.check_not_row_enum(["\1", "\2"])
+qc.check_not_row_enum(lambda val: False)
+qc.check_row_regexp(r'.*')  # always passes
+qc.check_not_row_regexp(r'^   $')
+qc.check_not_row_substr("\1")  # bad char
+        """
+        self.build_success('rowchecks')
 
     def test_empty_checks(self):
         self.build_contents = {}
