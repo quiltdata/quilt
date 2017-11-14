@@ -1,4 +1,6 @@
 [![Build Status](https://travis-ci.org/quiltdata/quilt-compiler.svg?branch=master)](https://travis-ci.org/quiltdata/quilt)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)]()
+[![Python](https://img.shields.io/pypi/pyversions/quilt.svg)](https://pypi.python.org/pypi/quilt)
 
 # Quilt is a package manager for data
 With Quilt you can build, push, and install data packages.

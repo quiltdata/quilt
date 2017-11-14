@@ -26,6 +26,9 @@ def main():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
+    config_p = subparsers.add_parser("config")
+    config_p.set_defaults(func=command.config)
+
     login_p = subparsers.add_parser("login")
     login_p.set_defaults(func=command.login)
 
@@ -42,7 +45,7 @@ def main():
 
     build_p = subparsers.add_parser("build")
     build_p.add_argument("package", type=str, help=HANDLE)
-    build_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
+    build_p.add_argument("path", type=str, help="Path to source directory or YAML file")
     build_p.set_defaults(func=command.build)
 
     check_p = subparsers.add_parser("check")
@@ -97,7 +100,11 @@ def main():
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
-    install_group.add_argument("-x", "--hash", help="Package hash", type=lambda val: check_hash(install_p, val))
+    # can also use @filename to load from a file
+    install_group.add_argument("-r", "--requirements-file", action="store_true", dest='reqfile',
+                               help="force treatment of package name as requirements filename")
+    install_group.add_argument("-x", "--hash", help="Package hash",
+                               type=lambda val: check_hash(install_p, val))
     install_group.add_argument("-v", "--version", type=str, help="Package version")
     install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
 

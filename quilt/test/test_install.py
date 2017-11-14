@@ -5,6 +5,7 @@ Tests for the install command.
 import hashlib
 import json
 import os
+import time
 
 import responses
 from six import assertRaisesRegex
@@ -28,6 +29,32 @@ from ..tools.store import PackageStore
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
+    @classmethod
+    def make_table_data(cls, string="table"):
+        table_data = string * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(table_data.encode('utf-8'))
+        table_hash = h.hexdigest()
+        return table_data, table_hash
+
+    @classmethod
+    def make_file_data(cls, string="file"):
+        file_data = string * 10
+        h = hashlib.new(HASH_TYPE)
+        h.update(file_data.encode('utf-8'))
+        file_hash = h.hexdigest()
+        return file_data, file_hash
+    
+    @classmethod
+    def make_contents(cls, **args):
+        contents = RootNode(dict(
+            group=GroupNode(dict([
+                (key, TableNode([val]) if 'table' in key else FileNode([val]))
+                for key, val in args.items()]
+            ))
+        ))
+        return contents, hash_contents(contents)
+        
     """
     Unit tests for quilt install.
     """
@@ -35,23 +62,9 @@ class InstallTest(QuiltTestCase):
         """
         Install the latest update of a package.
         """
-        table_data = "table" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(table_data.encode('utf-8'))
-        table_hash = h.hexdigest()
-
-        file_data = "file" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(file_data.encode('utf-8'))
-        file_hash = h.hexdigest()
-
-        contents = GroupNode(dict(
-            foo=GroupNode(dict(
-                bar=TableNode([table_hash]),
-                blah=FileNode([file_hash])
-            ))
-        ))
-        contents_hash = hash_contents(contents)
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash])
@@ -75,22 +88,28 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == file_data
 
+    def test_short_hashes(self):
+        """
+        Test various functions that use short hashes
+        """
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
+        self._mock_log('foo/bar', contents_hash)
+        command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
+
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
+        self._mock_log('foo/bar', contents_hash)
+        command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
+
     def test_install_subpackage(self):
         """
         Install a part of a package.
         """
-        table_data = "table" * 10
-        h = hashlib.new(HASH_TYPE)
-        h.update(table_data.encode('utf-8'))
-        table_hash = h.hexdigest()
-
-        contents = RootNode(dict(
-            group=GroupNode(dict(
-                table=TableNode([table_hash]),
-                file=FileNode(['unused'])
-            ))
-        ))
-        contents_hash = hash_contents(contents)
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
@@ -106,6 +125,100 @@ class InstallTest(QuiltTestCase):
         with open(teststore.object_path(objhash=table_hash)) as fd:
             contents = fd.read()
             assert contents == table_data
+
+    @staticmethod
+    def validate_file(filename, contents, table_hash, table_data):
+        with open('quilt_packages/'+filename) as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents
+        with open('quilt_packages/objs/{hash}'.format(hash=table_hash)) as fd:
+            contents = fd.read()
+            assert contents == table_data
+
+    def test_install_dependencies(self):
+        """
+        Install multiple packages via requirements file
+        """
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_tag('foo/bar', 'latest', contents_hash1)
+        self._mock_package('foo/bar', contents_hash1, 'group/table', contents1, [table_hash1])
+        self._mock_s3(table_hash1, table_data1)
+
+        table_data2, table_hash2 = self.make_table_data('table2')
+        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
+        self._mock_tag('baz/bat', 'nexttag', contents_hash2)
+        self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
+        self._mock_s3(table_hash2, table_data2)
+
+        table_data3, table_hash3 = self.make_table_data('table3')
+        contents3, contents_hash3 = self.make_contents(table3=table_hash3)
+        self._mock_version('usr1/pkga', 'v1', contents_hash3)
+        self._mock_package('usr1/pkga', contents_hash3, 'group/table', contents3, [table_hash3])
+        self._mock_s3(table_hash3, table_data3)
+
+        table_data4, table_hash4 = self.make_table_data('table4')
+        contents4, contents_hash4 = self.make_contents(table4=table_hash4)
+        self._mock_tag('usr2/pkgb', 'latest', contents_hash4)
+        self._mock_package('usr2/pkgb', contents_hash4, 'group/table', contents4, [table_hash4])
+        self._mock_s3(table_hash4, table_data4)
+
+        table_data5, table_hash5 = self.make_table_data('table5')
+        contents5, contents_hash5 = self.make_contents(table5=table_hash5)
+        self._mock_log('usr3/pkgc', contents_hash5)
+        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
+        self._mock_s3(table_hash5, table_data5)
+
+        # inline test of quilt.yml
+        command.install('''
+packages:
+- foo/bar:t:latest   # comment
+- baz/bat:t:nexttag
+- usr1/pkga:version:v1
+- usr2/pkgb
+- usr3/pkgc:h:SHORTHASH5
+        '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
+        self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+        self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
+        self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
+        self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
+        self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
+        # check that installation happens in the order listed in quilt.yml
+        assert (os.path.getmtime('quilt_packages/foo/bar.json') <=
+                os.path.getmtime('quilt_packages/baz/bat.json') <=
+                os.path.getmtime('quilt_packages/usr1/pkga.json') <=
+                os.path.getmtime('quilt_packages/usr2/pkgb.json') <=
+                os.path.getmtime('quilt_packages/usr3/pkgc.json'))
+
+        # test reading from file
+        table_data6, table_hash6 = self.make_table_data('table6')
+        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash6)
+        self._mock_package('usr4/pkgd', contents_hash6, 'group/table', contents6, [table_hash6])
+        self._mock_s3(table_hash6, table_data6)
+        with open('tmp_quilt.yml', 'w') as fd:
+            fd.write("packages:\n- usr4/pkgd")
+            fd.close()
+        command.install('@tmp_quilt.yml')
+            
+
+    def test_bad_install_dependencies(self):
+        """
+        Install multiple packages via requirements file
+        """
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+
+        with assertRaisesRegex(self, command.CommandException, "package name is empty"):
+            command.install(" ")
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.install("packages:\n")
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.install("packages:\n- foo")
+        with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
+            command.install("packages:\n- foo/bar:xxx:bar")
+        with assertRaisesRegex(self, Exception, "No such file or directory"):
+            self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
 
     def test_bad_contents_hash(self):
         """
@@ -200,16 +313,27 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == file_data_list[1]
 
-    def _mock_tag(self, package, tag, pkg_hash):
-        tag_url = '%s/api/tag/%s/%s' % (command.QUILT_PKG_URL, package, tag)
+    def _mock_log(self, package, pkg_hash):
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)
+        self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
+            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
+        ]}))
 
-        self.requests_mock.add(responses.GET, tag_url, json.dumps(dict(
+    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET):
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
+        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
+            hash=pkg_hash
+        )))
+
+    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET):
+        tag_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
+        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
             hash=pkg_hash
         )))
 
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.QUILT_PKG_URL, package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
             contents=contents,

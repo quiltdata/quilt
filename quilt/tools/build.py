@@ -11,9 +11,10 @@ from six import iteritems
 import yaml
 from tqdm import tqdm
 
-from .store import PackageStore, VALID_NAME_RE, StoreException
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat, BuildException, exec_yaml_python
+from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
+from .package import Package, ParquetLib
+from .store import PackageStore, VALID_NAME_RE, StoreException
 from .util import FileWithReadProgress
 
 from . import check_functions as qc            # pylint:disable=W0611
@@ -92,8 +93,11 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
             print("Serializing %s..." % path)
             try:
-                import pyspark  # pylint:disable=W0612
-                have_pyspark = True
+                if Package.get_parquet_lib() is ParquetLib.SPARK:
+                    import pyspark  # pylint:disable=W0612
+                    have_pyspark = True
+                else:
+                    have_pyspark = False
             except ImportError:
                 have_pyspark = False
 
@@ -112,18 +116,31 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Saving as binary dataframe...")
                 package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
-
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
     _ = target  # TODO: why is this unused?
-
     ext = ext.lower() # ensure that case doesn't matter
+    logic = PARSERS.get(ext)
+    kwargs = dict(logic['kwargs'])
+    kwargs.update(user_kwargs)
+    
     spark = sparksql.SparkSession.builder.getOrCreate()
-    dataframe = spark.read.load(path, fmt=ext, header=True, **user_kwargs)
-    for col in dataframe.columns:
-        pcol = _pythonize_name(col)
-        if col != pcol:
-            dataframe = dataframe.withColumnRenamed(col, pcol)
+    dataframe = None
+    reader = None
+    # FIXME: Add json support?
+    if logic['attr'] == "read_csv":
+        sep = kwargs.get('sep')
+        reader = spark.read.format("csv").option("header", "true")
+        if sep:
+            reader = reader.option("delimiter", sep)
+        dataframe = reader.load(path)
+
+        for col in dataframe.columns:
+            pcol = _pythonize_name(col)
+            if col != pcol:
+                dataframe = dataframe.withColumnRenamed(col, pcol)
+    else:
+        dataframe = _file_to_data_frame(ext, path, target, user_kwargs)
     return dataframe
 
 def _file_to_data_frame(ext, path, target, user_kwargs):
@@ -191,17 +208,6 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 for item in v:
                     for result in find(key, item):
                         yield result
-    def load_yaml(filename, optional=False):
-        if optional and (filename is None or not os.path.isfile(filename)):
-            return None
-        with open(filename, 'r') as fd:
-            data = fd.read()
-        res = yaml.load(data)
-        if res is None:
-            if optional:
-                return None
-            raise BuildException("Unable to YAML file: %s" % filename)
-        return res
         
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but

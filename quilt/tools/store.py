@@ -216,6 +216,34 @@ class PackageStore(object):
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
 
+def parse_package_extended(name):
+    hash = version = tag = None
+    try:
+        if ':' in name:
+            name, versioninfo = name.split(':', 1)
+            if ':' in versioninfo:
+                info = versioninfo.split(':', 1)
+                if len(info) == 2:
+                    if 'version'.startswith(info[0]):
+                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
+                        version = info[1]
+                    elif 'tag'.startswith(info[0]):
+                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
+                        tag = info[1]
+                    elif 'hash'.startswith(info[0]):
+                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
+                        hash = info[1]
+                    else:
+                        raise CommandException("invalid versioninfo: %s." % info)
+                else:
+                    # usr/pkg:hashval
+                    hash = versioninfo
+        owner, pkg, subpath = parse_package(name, allow_subpath=True)
+    except ValueError:
+        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+        raise CommandException("Specify package as %s." % pkg_format)
+    return owner, pkg, subpath, hash, version, tag
+
 def parse_package(name, allow_subpath=False):
     try:
         values = name.split('/')
@@ -226,6 +254,7 @@ def parse_package(name, allow_subpath=False):
             raise ValueError
         if subpath and not allow_subpath:
             raise ValueError
+
     except ValueError:
         pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
         raise CommandException("Specify package as %s." % pkg_format)
@@ -238,3 +267,4 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return owner, pkg, subpath
     return owner, pkg
+
