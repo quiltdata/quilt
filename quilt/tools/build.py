@@ -203,17 +203,17 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
         only descend iterables
         """
         if(isinstance(value, Iterable)):
-          for k, v in iteritems(value):
-              if k == key:
-                  yield v
-              elif isinstance(v, dict):
-                  for result in find(key, v):
-                      yield result
-              elif isinstance(v, list):
-                  for item in v:
-                      for result in find(key, item):
-                          yield result
-      
+            for k, v in iteritems(value):
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
+                        yield result
+                elif isinstance(v, list):
+                    for item in v:
+                        for result in find(key, item):
+                            yield result
+        
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
     # there's no inlined checks: defined by build.yml
