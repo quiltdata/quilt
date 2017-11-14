@@ -12,7 +12,7 @@ import yaml
 from tqdm import tqdm
 
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat, BuildException, exec_yaml_python
+from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .package import Package, ParquetLib
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .util import FileWithReadProgress
@@ -208,17 +208,6 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 for item in v:
                     for result in find(key, item):
                         yield result
-    def load_yaml(filename, optional=False):
-        if optional and (filename is None or not os.path.isfile(filename)):
-            return None
-        with open(filename, 'r') as fd:
-            data = fd.read()
-        res = yaml.load(data)
-        if res is None:
-            if optional:
-                return None
-            raise BuildException("Unable to YAML file: %s" % filename)
-        return res
         
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
