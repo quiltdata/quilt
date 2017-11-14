@@ -198,16 +198,20 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     """
     def find(key, value):
         """find all nodes transitively"""
-        for k, v in iteritems(value):
-            if k == key:
-                yield v
-            elif isinstance(v, dict):
-                for result in find(key, v):
-                    yield result
-            elif isinstance(v, list):
-                for item in v:
-                    for result in find(key, item):
+        try:
+            vals = iteritems(value)
+            for k, v in vals:
+                if k == key:
+                    yield v
+                elif isinstance(v, dict):
+                    for result in find(key, v):
                         yield result
+                elif isinstance(v, list):
+                    for item in v:
+                        for result in find(key, item):
+                            yield result
+        except AttributeError:
+            yield None
         
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
