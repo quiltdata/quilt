@@ -6,12 +6,12 @@
 - View coverage results by opening cov_html/index.html
 
 ## Install latest from `master`
-- `pip install git+https://github.com/quiltdata/quilt.git`
+- `pip install git+https://github.com/quiltdata/quilt-compiler.git`
 
 ## Local installation
-1. `git clone https://github.com/quiltdata/quilt.git`
+1. `git clone https://github.com/quiltdata/quilt-compiler.git`
 1. `cd quilt`
 1. From the repository root: `pip install -e .`
 
 # Contribute
-Contributions welcome on [GitHub](https://github.com/quiltdata/quilt).
+Contributions welcome on [GitHub](https://github.com/quiltdata/quilt-compiler).
