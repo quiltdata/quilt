@@ -29,6 +29,9 @@ from ..tools.store import PackageStore
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
+    """
+    Unit tests for quilt install.
+    """
     @classmethod
     def make_table_data(cls, string="table"):
         table_data = string * 10
@@ -55,9 +58,6 @@ class InstallTest(QuiltTestCase):
         ))
         return contents, hash_contents(contents)
         
-    """
-    Unit tests for quilt install.
-    """
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -118,7 +118,8 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar/group/table')
 
         teststore = PackageStore(self._store_dir)
-        with open(os.path.join(teststore.package_path('foo', 'bar'), Package.CONTENTS_DIR, contents_hash)) as fd:
+        with open(os.path.join(teststore.package_path('foo', 'bar'),
+                               Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
