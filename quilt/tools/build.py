@@ -7,6 +7,7 @@ from types import ModuleType
 import os
 import re
 
+from pandas.errors import ParserError
 from six import iteritems
 import yaml
 from tqdm import tqdm
@@ -166,7 +167,7 @@ def _file_to_data_frame(ext, path, target, user_kwargs):
                 progress.update(count)
             with FileWithReadProgress(path, _callback) as fd:
                 dataframe = handler(fd, **kwargs)
-    except UnicodeDecodeError as error:
+    except (UnicodeDecodeError, ParserError) as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path
             warning += "Switching to Python engine."
