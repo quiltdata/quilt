@@ -1,7 +1,7 @@
 """
 parse build file, serialize package
 """
-from collections import defaultdict
+from collections import defaultdict, Iterable
 import importlib
 from types import ModuleType
 import os
@@ -198,22 +198,22 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     Returns the name of the package.
     """
     def find(key, value):
-        """find all nodes transitively"""
-        try:
-            vals = iteritems(value)
-            for k, v in vals:
-                if k == key:
-                    yield v
-                elif isinstance(v, dict):
-                    for result in find(key, v):
-                        yield result
-                elif isinstance(v, list):
-                    for item in v:
-                        for result in find(key, item):
-                            yield result
-        except AttributeError:
-            yield None
-        
+        """
+        find matching nodes recursively;
+        only descend iterables
+        """
+        if(isinstance(value, Iterable)):
+          for k, v in iteritems(value):
+              if k == key:
+                  yield v
+              elif isinstance(v, dict):
+                  for result in find(key, v):
+                      yield result
+              elif isinstance(v, list):
+                  for item in v:
+                      for result in find(key, item):
+                          yield result
+      
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
     # there's no inlined checks: defined by build.yml
