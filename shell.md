@@ -7,7 +7,7 @@
 * `quilt build USER/PACKAGE [SOURCE DIRECTORY or FILE.YML]`
 * `quilt push [--public] USER/PACKAGE` stores the package in the registry
  * Quilt's Free tier supports only `push --public`
- * A `README.md` file is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
+ * A `README.md` file is recommended at the root of your package. README files use markdown syntax via [remarkable](https://jonschlinkert.github.io/remarkable/demo/).
 * `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
 
 # Versioning

@@ -12,16 +12,16 @@
 * [Installation](installation.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
+ * [Build.yml](buildyml.md)
 * [Push a package](make-a-package.md)
 * [Tutorial](tutorial.md)
 
-## API
+## Reference
 
-* [Shell](shell.md)
-* [Python](python.md)
-* [Jupyter](jupyter.md)
-* [R](r.md)
-* [Build.yml](buildyml.md)
+* [Linux command-line CLI](shell.md)
+* [Python API](python.md)
+* [Jupyter API](jupyter.md)
+* [R API](r.md)
 
 ## Support
 
