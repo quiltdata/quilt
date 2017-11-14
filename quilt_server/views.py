@@ -31,7 +31,7 @@ from .const import EMAILREGEX, PaymentPlan, PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, UTF8_GENERAL_CI, Version)
-from .schemas import PACKAGE_SCHEMA
+from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -352,8 +352,9 @@ def _mp_track(**kwargs):
     # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
     ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
 
-    # Set common attributes sent with each event. They can be overridden by `args`.
+    # Set common attributes sent with each event. kwargs cannot override these.
     all_args = dict(
+        kwargs,
         time=time.time(),
         ip=ip_addr,
         user=g.user,
@@ -364,7 +365,6 @@ def _mp_track(**kwargs):
         platform_version=g.user_agent['platform']['version'],
         deployment_id=DEPLOYMENT_ID,
     )
-    all_args.update(kwargs)
 
     mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
@@ -1435,3 +1435,13 @@ def invitation_package_list(auth_user, owner, package_name):
                                   email=invite.email,
                                   invited_at=invite.invited_at)
                              for invite in invitations])
+
+@app.route('/api/log', methods=['POST'])
+@api(require_login=False, schema=LOG_SCHEMA)
+@as_json
+def client_log(auth_user):
+    data = request.get_json()
+    for event in data:
+        _mp_track(**event)
+
+    return dict()

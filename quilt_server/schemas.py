@@ -100,3 +100,21 @@ PACKAGE_SCHEMA = {
     'required': ['description', 'contents'],
     'additionalProperties': False
 }
+
+LOG_SCHEMA = {
+    'type': 'array',
+    'items': {
+        'oneOf': [
+            # 'build' event; the only one currently supported.
+            {
+                'type': 'object',
+                'properties': {
+                    'type': {
+                        'enum': ['build']
+                    },
+                },
+                'required': ['type']
+            }
+        ]
+    }
+}
