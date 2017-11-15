@@ -9,7 +9,7 @@ from six import assertRaisesRegex
 import yaml
 
 from ..tools.package import ParquetLib, Package
-from ..tools import build, command
+from ..tools import build, command, store
 from .utils import QuiltTestCase
 
 PACKAGE = 'groot'
@@ -28,6 +28,33 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_parquet.groot import dataframes, README
+        self._test_dataframes(dataframes)
+        assert os.path.exists(README())
+
+    def test_build_from_cache(self):
+        """
+        Build the same package twice and verify that the cache is used and
+        that the package is successfully generated.
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build.yml')
+        teststore = store.PackageStore()
+
+        # Build once to populate cache
+        build.build_package('test_cache', PACKAGE, path)
+
+        # Verify cache contents
+        srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
+        path_hash = build._path_hash(srcpath, 'csv', {})
+        assert os.path.exists(teststore.cache_path(path_hash))
+        
+        # Build again using the cache
+        build.build_package('test_cache', PACKAGE, path)
+        
+        # TODO load DFs based on contents of .yml file at PATH
+        # not hardcoded vals (this will require loading modules from variable
+        # names, probably using __module__)
+        from quilt.data.test_cache.groot import dataframes, README
         self._test_dataframes(dataframes)
         assert os.path.exists(README())
 

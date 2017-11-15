@@ -22,8 +22,10 @@ from .util import FileWithReadProgress
 
 from . import check_functions as qc            # pylint:disable=W0611
 
-# Check if we're running Pyspark
 def _have_pyspark():
+    """
+    Check if we're running Pyspark
+    """
     if _have_pyspark.flag is None:
         try:
             if Package.get_parquet_lib() is ParquetLib.SPARK:
@@ -35,6 +37,15 @@ def _have_pyspark():
             _have_pyspark.flag = False
     return _have_pyspark.flag
 _have_pyspark.flag = None
+
+def _path_hash(path, transform, kwargs):
+    """
+    Generate a hash of source file path + transform + args
+    """
+    srcinfo = "{path}:{transform}:{kwargs}".format(path=os.path.abspath(path),
+                                                   transform=transform,
+                                                   kwargs=kwargs)
+    return digest_string(srcinfo)
 
 def _is_internal_node(node):
     # all of an internal nodes children are dicts
@@ -108,11 +119,8 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
 
             # Check Cache
-            store = package._store
-            srcinfo = "{path}:{transform}:{kwargs}".format(path=path,
-                                                           transform=transform,
-                                                           kwargs=user_kwargs)
-            path_hash = digest_string(srcinfo)
+            store = PackageStore()
+            path_hash = _path_hash(path, transform, user_kwargs)
             source_hash = digest_file(path)
 
             cachedobjs = []
