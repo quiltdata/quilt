@@ -33,10 +33,11 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
+                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
+                   load_yaml)
 from .hashing import digest_file
-from .store import PackageStore, parse_package
-from .util import BASE_DIR, CONFIG_DIR, FileWithReadProgress, gzip_compress
+from .store import PackageStore, parse_package, parse_package_extended
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
 from .. import nodes
@@ -67,16 +68,16 @@ VERSION = pkg_resources.require('quilt')[0].version
 _registry_url = None
 
 def _load_config():
-    config_path = os.path.join(CONFIG_DIR, 'config.json')
+    config_path = os.path.join(BASE_DIR, 'config.json')
     if os.path.exists(config_path):
         with open(config_path) as fd:
             return json.load(fd)
     return {}
 
 def _save_config(cfg):
-    if not os.path.exists(CONFIG_DIR):
-        os.makedirs(CONFIG_DIR)
-    config_path = os.path.join(CONFIG_DIR, 'config.json')
+    if not os.path.exists(BASE_DIR):
+        os.makedirs(BASE_DIR)
+    config_path = os.path.join(BASE_DIR, 'config.json')
     with open(config_path, 'w') as fd:
         json.dump(cfg, fd)
 
@@ -106,7 +107,8 @@ def config():
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
     else:
-        canonical_url = ''  # When saving the config, store '' instead of the actual URL in case we ever change it.
+        # When saving the config, store '' instead of the actual URL in case we ever change it.
+        canonical_url = ''
 
     cfg = _load_config()
     cfg['registry_url'] = canonical_url
@@ -240,6 +242,29 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
+def _match_hash(session, owner, pkg, hash, raise_exception=True):
+    # short-circuit for exact length
+    if len(hash) == 64:
+        return hash
+    
+    response = session.get(
+        "{url}/api/log/{owner}/{pkg}/".format(
+            url=get_registry_url(),
+            owner=owner,
+            pkg=pkg
+        )
+    )
+    for entry in reversed(response.json()['logs']):
+        # support short hashes
+        if entry['hash'].startswith(hash):
+            return entry['hash']
+
+    if raise_exception:
+        raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+            hash=hash, owner=owner, pkg=pkg))
+    return None
+
+        
 def login():
     """
     Authenticate.
@@ -594,9 +619,14 @@ def push(package, public=False, reupload=False):
                         with lock:
                             uploaded.append(obj_hash)
                     except requests.exceptions.RequestException as ex:
-                        message = "Upload failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                            obj_hash, ex.request.url, ex.response.status_code, ex.response.text
-                        )
+                        message = "Upload failed for %s:\n" % obj_hash
+                        if ex.response is not None:
+                            message += "URL: %s\nStatus code: %s\nResponse: %r\n" % (
+                                ex.request.url, ex.response.status_code, ex.response.text
+                            )
+                        else:
+                            message += "%s\n" % ex
+
                         with lock:
                             tqdm.write(message)
 
@@ -650,7 +680,7 @@ def version_list(package):
     for version in response.json()['versions']:
         print("%s: %s" % (version['version'], version['hash']))
 
-def version_add(package, version, pkghash):
+def version_add(package, version, pkghash, force=False):
     """
     Add a new version for a given package hash.
 
@@ -668,9 +698,10 @@ def version_add(package, version, pkghash):
             "Invalid version format; see %s" % url
         )
 
-    answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
-    if answer.lower() != 'y':
-        return
+    if not force:
+        answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
+        if answer.lower() != 'y':
+            return
 
     session.put(
         "{url}/api/version/{owner}/{pkg}/{version}".format(
@@ -680,7 +711,7 @@ def version_add(package, version, pkghash):
             version=version
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -722,7 +753,7 @@ def tag_add(package, tag, pkghash):
             tag=tag
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -742,6 +773,23 @@ def tag_remove(package, tag):
         )
     )
 
+def install_via_requirements(requirements_str, force=False):
+    """
+    Download multiple Quilt data packages via quilt.xml requirements file.
+    """
+    if requirements_str[0] == '@':
+        yaml_data = load_yaml(requirements_str[1:])
+    else:
+        yaml_data = yaml.load(requirements_str)
+    for pkginfo in yaml_data['packages']:
+        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+        print('{}: o={} p={} s={} h={} v={} t={}'.format(
+            pkginfo, owner, pkg, subpath, hash, version, tag))
+        package = owner + '/' + pkg
+        if subpath is None:
+            package += '/' + subpath
+        install(package, hash, version, tag, force=force)
+    
 def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
@@ -752,6 +800,15 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if hash is version is tag is None:
         tag = LATEST_TAG
 
+    # @filename ==> read from file
+    # newline = multiple lines ==> multiple requirements
+    package = package.strip()
+    if len(package) == 0:
+        raise CommandException("package name is empty.")
+
+    if package[0] == '@' or '\n' in package:
+        return install_via_requirements(package, force=force)
+        
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)
@@ -785,23 +842,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         pkghash = response.json()['hash']
-    elif len(hash) <= 64:
-        response = session.get(
-            "{url}/api/log/{owner}/{pkg}/".format(
-                url=get_registry_url(),
-                owner=owner,
-                pkg=pkg
-            )
-        )
-        for entry in reversed(response.json()['logs']):
-            if entry['hash'].startswith(hash):
-                pkghash = entry['hash']
-                break
-        else:
-            raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
-                hash=hash, owner=owner, pkg=pkg))
     else:
-        pkghash = hash
+        pkghash = _match_hash(session, owner, pkg, hash)
     assert pkghash is not None
 
     response = session.get(

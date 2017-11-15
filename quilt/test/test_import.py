@@ -35,9 +35,9 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
-        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)
@@ -133,20 +133,27 @@ class ImportTest(QuiltTestCase):
         # Add a new dataframe
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         package1._set(['new', 'df'], df)
+        assert package1.new.df._data() is df
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
         package1._set(['new', 'file'], file_path)
+        assert package1.new.file._data() == file_path
 
         # Add a new group
-        package1._add_group("newgroup")
-        package1._set(['new', 'newgroup', 'df'], df)
+        package1._add_group('newgroup')
+        assert isinstance(package1.newgroup, GroupNode)
+        package1.newgroup._add_group('foo')
+        assert isinstance(package1.newgroup.foo, GroupNode)
 
-        # Can't overwrite things
-        with self.assertRaises(ValueError):
-            package1._set(['new'], file_path)
-        with self.assertRaises(ValueError):
-            package1._set(['new', 'file'], file_path)
+        # Overwrite a leaf node
+        new_path = os.path.join(mydir, 'data/nuts.csv')
+        package1._set(['newgroup', 'foo'], new_path)
+        assert package1.newgroup.foo._data() == new_path
+
+        # Overwrite the whole group
+        package1._set(['newgroup'], new_path)
+        assert package1.newgroup._data() == new_path
 
         # Built a new package and verify the new contents
         command.build('foo/package3', package1)
