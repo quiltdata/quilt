@@ -10,9 +10,11 @@ env:
   global:
     - USE_CONDA=true
   matrix:
-    - QPYVER=2.7
-    - QPYVER=3.5
-    - QPYVER=3.6
+    fast_finish: true
+    include:
+      - QPYVER=2.7
+      - QPYVER=3.5
+      - QPYVER=3.6
 
 matrix:
   fast_finish: true
