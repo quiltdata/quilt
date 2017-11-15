@@ -35,9 +35,9 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
-        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)

@@ -13,10 +13,10 @@ from ..tools.package import ParquetLib, Package
 from ..tools import build, command
 from .utils import QuiltTestCase
 
-
 PACKAGE = 'groot'
 
 class BuildTest(QuiltTestCase):
+
     def test_build_parquet_default(self):
         """
         Test compilation to Parquet via the default library
@@ -29,52 +29,8 @@ class BuildTest(QuiltTestCase):
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
         from quilt.data.test_parquet.groot import dataframes, README
-        csv = dataframes.csv()
-        tsv = dataframes.csv()
-        xls = dataframes.xls()
-        rows = len(csv.index)
-        assert rows == len(tsv.index) and rows == len(xls.index), \
-            'Expected dataframes to have same # rows'
+        self._test_dataframes(dataframes)
         assert os.path.exists(README())
-        cols = len(csv.columns)
-        print(csv.columns, xls.columns, tsv.columns)
-        assert cols == len(tsv.columns) and cols == len(xls.columns), \
-            'Expected dataframes to have same # columns'
-        # TODO add more integrity checks, incl. negative test cases
-    
-    def test_build_parquet_syntax(self):
-        """
-        Test build syntax more deeply.
-        Created on introduction of 'group arguments'
-        """
-        Package.reset_parquet_lib()
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build_group_args.yml')
-        build.build_package('test_syntax', 'tree', path)
-        from quilt.data.test_syntax import tree
-        # ensure we get a DF of the expected size
-        assert tree.group_a.csv().shape == (1, 2),\
-            'Expected a 1x2 DataFrame'
-        assert tree.group_a.tsv().shape == (2, 3),\
-            'Expected a 2x3 DataFrame'
-        assert type(tree.group_b) == nodes.GroupNode,\
-            'Expected a GroupNode'
-        assert isinstance(tree.group_b.txt(), string_types),\
-            'Expected a string path to a txt object'
-        assert tree.group_b.tsv().shape == (10000, 13),\
-            'Expected a 10000x13 DataFrame'
-        assert tree.group_b.subgroup.tsv().shape == (1, 3),\
-            'Expected a 1x3 DataFrame'
-        assert tree.group_b.subgroup.csv().shape == (0, 2),\
-            'Expected  a 0x2 DataFrame'
-        assert isinstance(tree.group_b.subgroup.txt(), string_types),\
-            'Expected a string path to a txt object'
-        assert tree.group_b.subgroup.many_tsv.one().shape == (1, 3),\
-            'Expected a 1x3 DataFrame'
-        assert tree.group_b.subgroup.many_tsv.two().shape == (1, 3),\
-            'Expected a 1x3 DataFrame'
-        assert tree.group_b.subgroup.many_tsv.three().shape == (1, 3),\
-            'Expected a 1x3 DataFrame'
 
     def test_build_parquet_pyarrow(self):
         """
@@ -85,24 +41,27 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build.yml')
         build.build_package('test_arrow', PACKAGE, path)
-        # TODO load DFs based on contents of .yml file at path
-        # not hardcoded vals (this will require loading modules from variable
-        # names, probably using __module__)
         from quilt.data.test_arrow.groot import dataframes, README
+        self._test_dataframes(dataframes)
+        assert os.path.exists(README())
+        assert Package.get_parquet_lib() is ParquetLib.ARROW
+        del os.environ["QUILT_PARQUET_LIBRARY"]
+
+    # shared testing logic between pyarrow and default env
+    def _test_dataframes(self, dataframes):
         csv = dataframes.csv()
         tsv = dataframes.csv()
         xls = dataframes.xls()
+        xls_skip = dataframes.xls_skip()
         rows = len(csv.index)
         assert rows == len(tsv.index) and rows == len(xls.index), \
             'Expected dataframes to have same # rows'
         cols = len(csv.columns)
-        print(csv.columns, xls.columns, tsv.columns)
         assert cols == len(tsv.columns) and cols == len(xls.columns), \
             'Expected dataframes to have same # columns'
-        assert os.path.exists(README())
+        assert xls_skip.shape == (9997, 13), \
+            'Expected 9,997 Rows and 13 Columns'
         # TODO add more integrity checks, incl. negative test cases
-        assert Package.get_parquet_lib() is ParquetLib.ARROW
-        del os.environ["QUILT_PARQUET_LIBRARY"]
 
     def test_build_hdf5(self):
         mydir = os.path.dirname(__file__)

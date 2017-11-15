@@ -7,12 +7,14 @@ from types import ModuleType
 import os
 import re
 
+from pandas.errors import ParserError
 from six import iteritems, itervalues
+
 import yaml
 from tqdm import tqdm
 
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat, BuildException, exec_yaml_python
+from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .package import Package, ParquetLib
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .util import FileWithReadProgress
@@ -199,7 +201,7 @@ def _file_to_data_frame(ext, path, target, handler_args):
                 progress.update(count)
             with FileWithReadProgress(path, _callback) as fd:
                 dataframe = handler(fd, **kwargs)
-    except UnicodeDecodeError as error:
+    except (UnicodeDecodeError, ParserError) as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path
             warning += "Switching to Python engine."
@@ -241,7 +243,7 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 for item in v:
                     for result in find(key, item):
                         yield result
-
+                        
     def load_yaml(filename, optional=False):
         if optional and (filename is None or not os.path.isfile(filename)):
             return None
