@@ -753,7 +753,7 @@ def install_via_requirements(requirements_str, force=False):
             package += '/' + subpath
         install(package, hash, version, tag, force=force)
     
-def install(package, hash=None, version=None, tag=None, force=False):
+def install(package, hash=None, version=None, tag=None, force=False, reqfile=False):
     """
     Download a Quilt data package from the server and install locally.
 
@@ -769,7 +769,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if len(package) == 0:
         raise CommandException("package name is empty.")
 
-    if package[0] == '@' or '\n' in package:
+    if reqfile or package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
         
     assert [hash, version, tag].count(None) == 2
