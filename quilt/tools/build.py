@@ -109,10 +109,10 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
             # Check Cache
             store = PackageStore()
-            srcinfo = dict(path=path,
-                           transform=transform,
-                           kwargs=user_kwargs)
-            path_hash = digest_string(json.dumps(srcinfo))
+            srcinfo = "{path}:{transform}:{kwargs}".format(path=path,
+                                                           transform=transform,
+                                                           kwargs=user_kwargs)
+            path_hash = digest_string(srcinfo)
             source_hash = digest_file(path)
 
             skip = False
