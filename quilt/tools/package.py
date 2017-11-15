@@ -82,7 +82,6 @@ class Package(object):
             instance_hash = tagfile.read()
 
         contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
-        print("PKG_CONTENTS=%s" % contents_path)
         with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
@@ -160,6 +159,13 @@ class Package(object):
             path = self._store.object_path(objhash)
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
+
+    def save_cached_df(self, hashes, name, path, ext, target, fmt):
+        """
+        Save a DataFrame to the store.
+        """
+        buildfile = name.lstrip('/').replace('/', '.')
+        self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
 
     def save_df(self, dataframe, name, path, ext, target, fmt):
         """

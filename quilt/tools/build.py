@@ -108,21 +108,25 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
 
             # Check Cache
-            store = PackageStore()
+            store = package._store
             srcinfo = "{path}:{transform}:{kwargs}".format(path=path,
                                                            transform=transform,
                                                            kwargs=user_kwargs)
             path_hash = digest_string(srcinfo)
             source_hash = digest_file(path)
 
-            skip = False
+            cachedobjs = []
             if os.path.exists(store.cache_path(path_hash)):
                 with open(store.cache_path(path_hash), 'r') as entry:
                     cache_entry = json.load(entry)
                     if cache_entry['source_hash'] == source_hash:
-                        skip = True
+                        cachedobjs = cache_entry['obj_hashes']
+                        assert isinstance(cachedobjs, list)
 
-            if not skip:
+            if cachedobjs:
+                # FIXME: Add already present object to the package
+                package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+            else:
                 # read source file into DataFrame
                 print("Serializing %s..." % path)
                 if _have_pyspark():
