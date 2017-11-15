@@ -243,26 +243,10 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                 elif isinstance(v, dict):
                     for result in find(key, v):
                         yield result
-<<<<<<< HEAD
-                        
-    def load_yaml(filename, optional=False):
-        if optional and (filename is None or not os.path.isfile(filename)):
-            return None
-        with open(filename, 'r') as fd:
-            data = fd.read()
-        res = yaml.load(data)
-
-        if res is None:
-            if optional:
-                return None
-            raise BuildException("Unable to YAML file: %s" % filename)
-        return res
-=======
                 elif isinstance(v, list):
                     for item in v:
                         for result in find(key, item):
                             yield result
->>>>>>> master
         
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
