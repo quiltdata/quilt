@@ -40,6 +40,7 @@ class PackageStore(object):
     OBJ_DIR = 'objs'
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
     PKG_DIR = 'pkgs'
+    CACHE_DIR = 'cache'
     VERSION = '1.0'
     
     def __init__(self, location=None):
@@ -53,6 +54,7 @@ class PackageStore(object):
         objdir = os.path.join(self._path, self.OBJ_DIR)
         tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
         pkgdir = os.path.join(self._path, self.PKG_DIR)
+        cachedir = os.path.join(self._path, self.CACHE_DIR)
 
         if os.path.isdir(self._path):
             # Verify existing package store is compatible
@@ -69,6 +71,7 @@ class PackageStore(object):
             os.mkdir(objdir)
             os.mkdir(tmpobjdir)
             os.mkdir(pkgdir)
+            os.mkdir(cachedir)
     
         assert os.path.isdir(objdir)
         assert os.path.isdir(tmpobjdir)
@@ -215,6 +218,12 @@ class PackageStore(object):
         Returns the path to a temporary object, before we know its hash.
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
+
+    def cache_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._path, self.CACHE_DIR, name)
 
 def parse_package_extended(name):
     hash = version = tag = None

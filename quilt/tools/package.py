@@ -199,10 +199,12 @@ class Package(object):
                 hashes.append(objhash)
             self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
             rmtree(storepath)
+            return hashes
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target, fmt)
             move(storepath, self._store.object_path(filehash))
+            return [filehash]
 
     def save_file(self, srcfile, name, path):
         """

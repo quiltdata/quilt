@@ -3,6 +3,7 @@ parse build file, serialize package
 """
 from collections import defaultdict
 import importlib
+import json
 from types import ModuleType
 import os
 import re
@@ -14,6 +15,7 @@ from tqdm import tqdm
 
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
+from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .util import FileWithReadProgress
@@ -49,19 +51,24 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
                 check, rel_path, target))
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
-                dry_run=False, env='default'):
+                dry_run=False, env='default', have_pyspark=False):
     if _is_internal_node(node):
         for child_name, child_table in node.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env,
+                        have_pyspark=have_pyspark)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
             raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
         path = os.path.join(build_dir, rel_path)
 
+        store = PackageStore()
+        path_hash = digest_string(path)
+        source_hash = digest_file(path)
+        
         transform = node.get(RESERVED['transform'])
         ID = 'id'               # pylint:disable=C0103
         if transform:
@@ -89,33 +96,43 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
+            # Check Cache
+            # TODO: Check that transform and kwargs are the samex
+            skip = False
+            if os.path.exists(store.cache_path(path_hash)):
+                with open(store.cache_path(path_hash), 'r') as entry:
+                    cache_entry = json.load(entry)
+                    if cache_entry['source_hash'] == source_hash:
+                        skip = True
+
             user_kwargs = {k: node[k] for k in node if k not in RESERVED}
-            # read source file into DataFrame
 
-            print("Serializing %s..." % path)
-            try:
-                if Package.get_parquet_lib() is ParquetLib.SPARK:
-                    import pyspark  # pylint:disable=W0612
-                    have_pyspark = True
+            if not skip:
+                # read source file into DataFrame
+                print("Serializing %s..." % path)
+                if have_pyspark:
+                    dataframe = _file_to_spark_data_frame(transform, path, target, user_kwargs)
                 else:
-                    have_pyspark = False
-            except ImportError:
-                have_pyspark = False
+                    dataframe = _file_to_data_frame(transform, path, target, user_kwargs)
 
-            if have_pyspark:
-                dataframe = _file_to_spark_data_frame(transform, path, target, user_kwargs)
-            else:
-                dataframe = _file_to_data_frame(transform, path, target, user_kwargs)
+                if checks:
+                    # TODO: test that design works for internal nodes... e.g. iterating
+                    # over the children and getting/checking the data, err msgs, etc.
+                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
 
-            if checks:
-                # TODO: test that design works for internal nodes... e.g. iterating
-                # over the children and getting/checking the data, err msgs, etc.
-                _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                # serialize DataFrame to file(s)
+                if not dry_run:
+                    print("Saving as binary dataframe...")
+                    obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
-            # serialize DataFrame to file(s)
-            if not dry_run:
-                print("Saving as binary dataframe...")
-                package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                    # Add to cache
+                    path_hash = digest_string(path)
+                    cache_entry = dict(
+                        source_hash = source_hash,
+                        obj_hashes = obj_hashes
+                        )
+                    with open(store.cache_path(path_hash), 'w') as entry:
+                        entry.write(json.dumps(cache_entry))
 
 def _file_to_spark_data_frame(ext, path, target, user_kwargs):
     from pyspark import sql as sparksql
@@ -226,6 +243,16 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
 
 def build_package_from_contents(username, package, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
+    # Check if we're running Pyspark
+    try:
+        if Package.get_parquet_lib() is ParquetLib.SPARK:
+            import pyspark  # pylint:disable=W0612
+            have_pyspark = True
+        else:
+            have_pyspark = False
+    except ImportError:
+        have_pyspark = False
+        
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
@@ -248,7 +275,8 @@ def build_package_from_contents(username, package, build_dir, build_data,
     store = PackageStore()
     newpackage = store.create_package(username, package, dry_run=dry_run)
     _build_node(build_dir, newpackage, '', contents, pkgformat,
-                checks_contents=checks_contents, dry_run=dry_run, env=env)
+                checks_contents=checks_contents, dry_run=dry_run, env=env,
+                have_pyspark=have_pyspark)
     if not dry_run:
         newpackage.save_contents()
 
