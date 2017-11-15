@@ -202,7 +202,7 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
         find matching nodes recursively;
         only descend iterables
         """
-        if(isinstance(value, Iterable)):
+        if isinstance(value, Iterable):
             for k, v in iteritems(value):
                 if k == key:
                     yield v
