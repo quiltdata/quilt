@@ -60,6 +60,8 @@ CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
 
+LOG_TIMEOUT = 3  # 3 seconds
+
 VERSION = pkg_resources.require('quilt')[0].version
 
 
@@ -351,10 +353,45 @@ def _clone_git_repo(url, branch, dest):
     cmd += [url, dest]
     subprocess.check_call(cmd)
 
+def _log(**kwargs):
+    # TODO(dima): Save logs to a file, then send them when we get a chance.
+
+    cfg = _load_config()
+    if cfg.get('disable_analytics'):
+        return
+
+    session = _get_session()
+
+    # Disable error handling.
+    session.hooks.update(dict(
+        response=None
+    ))
+
+    try:
+        session.post(
+            "{url}/api/log".format(
+                url=get_registry_url(),
+            ),
+            data=json.dumps([kwargs]),
+            timeout=LOG_TIMEOUT,
+        )
+    except requests.exceptions.RequestException:
+        # Ignore logging errors.
+        pass
+
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
+    package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
+    try:
+        _build_internal(package, path, dry_run, env)
+    except Exception as ex:
+        _log(type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
+        raise
+    _log(type='build', package=package_hash, dry_run=dry_run, env=env)
+
+def _build_internal(package, path, dry_run, env):
     # we may have a path, git URL, PackageNode, or None
     if isinstance(path, string_types):
         # is this a git url?
