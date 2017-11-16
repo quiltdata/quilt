@@ -5,9 +5,10 @@ Test the build process
 #the functions that cli calls
 import os
 
-from six import assertRaisesRegex
+from six import assertRaisesRegex, string_types
 import yaml
 
+from .. import nodes
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
 from .utils import QuiltTestCase
