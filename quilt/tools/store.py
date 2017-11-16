@@ -4,8 +4,6 @@ Build: parse and add user-supplied files to store
 import os
 import re
 
-from distutils.dir_util import mkpath
-
 from .const import PACKAGE_DIR_NAME
 from .core import RootNode, CommandException
 from .package import Package
@@ -64,7 +62,7 @@ class PackageStore(object):
                 raise StoreException(msg.format(self._path))            
         else:
             # Create a new package store
-            mkpath(self._path)
+            os.makedirs(self._path)
             self._write_format_version()
             os.mkdir(objdir)
             os.mkdir(tmpobjdir)
@@ -131,12 +129,15 @@ class PackageStore(object):
         self.check_name(user, package)
         path = self.package_path(user, package)
         if os.path.isdir(path):
-            return Package(
-                store=self,
-                user=user,
-                package=package,
-                path=path
-            )
+            try:
+                return Package(
+                    store=self,
+                    user=user,
+                    package=package,
+                    path=path
+                    )
+            except PackageException:
+                pass
         return None
 
     def install_package(self, user, package, contents):

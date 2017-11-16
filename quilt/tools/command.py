@@ -1003,6 +1003,7 @@ def ls():                       # pylint:disable=C0103
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
         for idx, (package, tag, pkghash) in enumerate(packages):
+            tag = "" if tag is None else tag
             print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):

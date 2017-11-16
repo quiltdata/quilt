@@ -78,11 +78,14 @@ class Package(object):
     def _load_contents(self):
         instance_hash = None
         latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
+        if not os.path.exists(latest_tag):
+            msg = "Could not find latest tag for package {0}/{1}"
+            raise PackageException(msg.format(self._user, self._package))
+        
         with open (latest_tag, 'r') as tagfile:
             instance_hash = tagfile.read()
 
         contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
-        print("PKG_CONTENTS=%s" % contents_path)
         with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
