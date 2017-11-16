@@ -4,12 +4,13 @@ Helper functions.
 
 import gzip
 
-from appdirs import user_data_dir
+from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
+CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
 
 
 class FileWithReadProgress(Iterator):

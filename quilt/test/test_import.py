@@ -136,7 +136,7 @@ class ImportTest(QuiltTestCase):
 
         # Modify an existing dataframe
         csv = package1.dataframes2.csv._data()
-        csv.set_value(0, 'Int0', 42)
+        csv.at[0, 'Int0'] = 42
 
         # Add a new dataframe
         df = pd.DataFrame(dict(a=[1, 2, 3]))
