@@ -202,14 +202,14 @@ packages:
         self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
         self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
         self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
-        self.validate_file('danWebster/sgRNAs.json', contents_hash6, contents6, table_hash6, table_data6)
+        self.validate_file('danWebster', 'sgRNAs', contents_hash6, contents6, table_hash6, table_data6)
         # check that installation happens in the order listed in quilt.yml
         assert (self.getmtime('foo','bar', contents_hash1) <=
                 self.getmtime('baz','bat', contents_hash2) <=
                 self.getmtime('usr1','pkga', contents_hash3) <=
                 self.getmtime('usr2','pkgb', contents_hash4) <=
                 self.getmtime('usr3','pkgc', contents_hash5) <=
-                self.getmtime('quilt_packages/danWebster/sgRNAs.json'))
+                self.getmtime('danWebster', 'sgRNAs', contents_hash6))
 
         # test reading from file
         table_data7, table_hash7 = self.make_table_data('table7')
