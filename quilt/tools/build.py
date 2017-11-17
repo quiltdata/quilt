@@ -8,7 +8,8 @@ import os
 import re
 
 from pandas.errors import ParserError
-from six import iteritems
+from six import iteritems, itervalues
+
 import yaml
 from tqdm import tqdm
 
@@ -21,8 +22,9 @@ from .util import FileWithReadProgress
 from . import check_functions as qc            # pylint:disable=W0611
 
 def _is_internal_node(node):
-    # all of an internal nodes children are dicts
-    return all(isinstance(x, dict) for x in node.values())
+    # at least one of an internal nodes children are dicts
+    # some (group args) may not be dicts
+    return any(isinstance(x, dict) for x in itervalues(node))
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -49,20 +51,40 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
                 check, rel_path, target))
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
-                dry_run=False, env='default'):
+                dry_run=False, env='default', ancestor_args={}):
+    """
+    Parameters
+    ----------
+    ancestor_args : dict
+      Any key:value pairs inherited from an ancestor. Users can this define kwargs
+      that affect entire subtrees (e.g. transform: csv for 500 .txt files)
+      Position of definition in file also matters and allows for composition
+      and overriding of ancestor or peer values.
+    """
     if _is_internal_node(node):
-        for child_name, child_table in node.items():
+        # add anything whose value is not a dict to the group_arg stack
+        # TODO: there might be some pandas kwargs that take dictionaries as values
+        # in which case this code will break by treating a kwarg as a package node
+        # NOTE: YAML parsing does not guarantee key order so we have to set all
+        # of the group args in one shot for consistent application to subtrees
+        group_args = ancestor_args.copy()
+        group_args.update({ k: v for k, v in iteritems(node) if not isinstance(v, dict) })
+        groups = { k: v for k, v in iteritems(node) if isinstance(v, dict) }
+        for child_name, child_table in groups.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
+            if child_name == RESERVED['file']:
+                raise StoreException("Reserved word 'file' not permitted on group node")
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env)
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else: # leaf node
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
             raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
         path = os.path.join(build_dir, rel_path)
+        # get either the locally defined transform or inherit from an ancestor
+        transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
 
-        transform = node.get(RESERVED['transform'])
         ID = 'id'               # pylint:disable=C0103
         if transform:
             transform = transform.lower()
@@ -81,6 +103,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
         checks = node.get(RESERVED['checks'])
         if transform == ID:
+            #TODO move this to a separate function
             if checks:
                 with open(path, 'r') as fd:
                     data = fd.read()
@@ -89,8 +112,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
-            user_kwargs = {k: node[k] for k in node if k not in RESERVED}
-            # read source file into DataFrame
+            handler_args = _remove_keywords(ancestor_args)
+            # merge ancestor args with local args (local wins if conflict)
+            handler_args.update(_remove_keywords(node))
 
             print("Serializing %s..." % path)
             try:
@@ -103,9 +127,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 have_pyspark = False
 
             if have_pyspark:
-                dataframe = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+                dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
             else:
-                dataframe = _file_to_data_frame(transform, path, target, user_kwargs)
+                dataframe = _file_to_data_frame(transform, path, target, handler_args)
 
             if checks:
                 # TODO: test that design works for internal nodes... e.g. iterating
@@ -117,7 +141,17 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Saving as binary dataframe...")
                 package.save_df(dataframe, name, rel_path, transform, target, fmt)
 
-def _file_to_spark_data_frame(ext, path, target, user_kwargs):
+def _remove_keywords(d):
+    """
+    copy the dict, filter_keywords
+
+    Parameters
+    ----------
+    d : dict
+    """
+    return { k:v for k, v in iteritems(d) if k not in RESERVED }
+
+def _file_to_spark_data_frame(ext, path, target, handler_args):
     from pyspark import sql as sparksql
     _ = target  # TODO: why is this unused?
     ext = ext.lower() # ensure that case doesn't matter
@@ -144,15 +178,15 @@ def _file_to_spark_data_frame(ext, path, target, user_kwargs):
         dataframe = _file_to_data_frame(ext, path, target, user_kwargs)
     return dataframe
 
-def _file_to_data_frame(ext, path, target, user_kwargs):
+def _file_to_data_frame(ext, path, target, handler_args):
     _ = target  # TODO: why is this unused?
     logic = PARSERS.get(ext)
     the_module = importlib.import_module(logic['module'])
     if not isinstance(the_module, ModuleType):
         raise BuildException("Missing required module: %s." % logic['module'])
     # allow user to specify handler kwargs and override default kwargs
-    kwargs = dict(logic['kwargs'])
-    kwargs.update(user_kwargs)
+    kwargs = logic['kwargs'].copy()
+    kwargs.update(handler_args)
     failover = logic.get('failover', None)
     handler = getattr(the_module, logic['attr'], None)
     if handler is None:
