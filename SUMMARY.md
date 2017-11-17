@@ -10,11 +10,11 @@
 ## Get started (Python)
 
 * [Installation](installation.md)
+* [Tutorial](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
-    * [Build.yml](buildyml.md) specification
 * [Push a package](make-a-package.md)
-* [Tutorial](tutorial.md)
+* [Build.yml](buildyml.md) specification
 
 ## API Reference
 
