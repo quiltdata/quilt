@@ -786,8 +786,8 @@ def install_via_requirements(requirements_str, force=False):
         print('{}: o={} p={} s={} h={} v={} t={}'.format(
             pkginfo, owner, pkg, subpath, hash, version, tag))
         package = owner + '/' + pkg
-        if subpath is None:
-            package += '/' + subpath
+        if subpath is not None:
+            package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
     
 def install(package, hash=None, version=None, tag=None, force=False):

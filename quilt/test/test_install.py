@@ -163,6 +163,12 @@ class InstallTest(QuiltTestCase):
         self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
         self._mock_s3(table_hash5, table_data5)
 
+        table_data6, table_hash6 = self.make_table_data('table6')
+        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
+        self._mock_tag('danWebster/sgRNAs', 'latest', contents_hash6)
+        self._mock_package('danWebster/sgRNAs', contents_hash6, 'libraries/brunello', contents6, [table_hash6])
+        self._mock_s3(table_hash6, table_data6)
+
         # inline test of quilt.yml
         command.install('''
 packages:
@@ -171,18 +177,21 @@ packages:
 - usr1/pkga:version:v1
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
+- danWebster/sgRNAs/libraries/brunello:a972d92
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
         self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
         self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
         self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
         self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
         self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
+        self.validate_file('danWebster/sgRNAs.json', contents6, table_hash6, table_data6)
         # check that installation happens in the order listed in quilt.yml
         assert (os.path.getmtime('quilt_packages/foo/bar.json') <=
                 os.path.getmtime('quilt_packages/baz/bat.json') <=
                 os.path.getmtime('quilt_packages/usr1/pkga.json') <=
                 os.path.getmtime('quilt_packages/usr2/pkgb.json') <=
-                os.path.getmtime('quilt_packages/usr3/pkgc.json'))
+                os.path.getmtime('quilt_packages/usr3/pkgc.json') <=
+                os.path.getmtime('quilt_packages/danWebster/sgRNAs.json'))
 
         # test reading from file
         table_data6, table_hash6 = self.make_table_data('table6')
@@ -203,6 +212,7 @@ packages:
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
 
+        # missing/malformed requests
         with assertRaisesRegex(self, command.CommandException, "package name is empty"):
             command.install(" ")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
@@ -213,6 +223,28 @@ packages:
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+
+        # unknown hash/tag/version/subpath
+        self._mock_log('akarve/sales', contents_hash1)
+        with assertRaisesRegex(self, command.CommandException, "could not find hash"):
+            command.install("packages:\n- akarve/sales:h:123456")
+        self._mock_tag('akarve/sales', 'unknown', contents_hash1)
+        self._mock_package('akarve/sales', contents_hash1, 'group/table', contents1, [table_hash1],
+                           status=404, message='Tag unknown does not exist')
+        with assertRaisesRegex(self, command.CommandException, "Tag unknown does not exist"):
+            command.install("packages:\n- akarve/sales:t:unknown")
+        self._mock_version('akarve/sales', '99.99', contents_hash1)
+        self._mock_package('akarve/sales', contents_hash1, 'group/table', contents1, [table_hash1],
+                           status=404, message='Version 99.99 does not exist')
+        with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
+            command.install("packages:\n- akarve/sales:v:99.99")
+        table_data2, table_hash2 = self.make_table_data('table2')
+        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
+        self._mock_tag('baz/bat', 'latest', contents_hash2)
+        self._mock_package('baz/bat', contents_hash2, 'badsubpath', contents2, [table_hash2],
+                           status=404, message='Invalid subpath')
+        with assertRaisesRegex(self, command.CommandException, "Invalid subpath"):
+            command.install("packages:\n- baz/bat/badsubpath")
 
     def test_bad_contents_hash(self):
         """
@@ -324,14 +356,15 @@ packages:
             hash=pkg_hash
         )))
 
-    def _mock_package(self, package, pkg_hash, subpath, contents, hashes):
+    def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
+                      status=200, message=None):
         pkg_url = '%s/api/package/%s/%s?%s' % (
             command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
-        self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
-            contents=contents,
-            urls={h: 'https://example.com/%s' % h for h in hashes}
-        ), default=encode_node), match_querystring=True)
+        self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
+            dict(message=message) if message else 
+            dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
+        , default=encode_node), match_querystring=True, status=status)
 
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash
