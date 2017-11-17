@@ -14,11 +14,11 @@
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
 * [Push a package](make-a-package.md)
-* [Build.yml](buildyml.md) specification
+* [Build.yml specification](buildyml.md)
 
 ## API Reference
 
-* [Command-line Interface (CLI)](cli.md) for Linux and MacOSX
+* [Command-line Interface (CLI)](cli.md)
 * [Python API](api-python.md)
 * [Jupyter API](api-jupyter.md)
 * [R API](api-r.md)
