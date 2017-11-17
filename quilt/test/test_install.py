@@ -23,11 +23,16 @@ from ..tools.core import (
     TableNode,
     RootNode,
 )
+from ..tools.package import Package
+from ..tools.store import PackageStore
 from ..tools.util import gzip_compress
 
 from .utils import QuiltTestCase
 
 class InstallTest(QuiltTestCase):
+    """
+    Unit tests for quilt install.
+    """
     @classmethod
     def make_table_data(cls, string="table"):
         table_data = (string * 10).encode('utf-8')
@@ -54,9 +59,6 @@ class InstallTest(QuiltTestCase):
         ))
         return contents, hash_contents(contents)
         
-    """
-    Unit tests for quilt install.
-    """
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -70,17 +72,20 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        command.install('foo/bar')
+        command.install('foo/bar')        
+        teststore = PackageStore(self._store_dir)
 
-        with open('quilt_packages/foo/bar.json') as fd:
+        with open(os.path.join(teststore.package_path('foo', 'bar'),
+                               Package.CONTENTS_DIR,
+                               contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash), 'rb') as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash)), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash), 'rb') as fd:
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash)), 'rb') as fd:
             contents = fd.read()
             assert contents == file_data
 
@@ -113,22 +118,35 @@ class InstallTest(QuiltTestCase):
 
         command.install('foo/bar/group/table')
 
-        with open('quilt_packages/foo/bar.json') as fd:
+        teststore = PackageStore(self._store_dir)
+        with open(os.path.join(teststore.package_path('foo', 'bar'),
+                               Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash), 'rb') as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
-    @staticmethod
-    def validate_file(filename, contents, table_hash, table_data):
-        with open('quilt_packages/'+filename, 'rb') as fd:
+    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
+        teststore = PackageStore(self._store_dir)
+
+        with open(os.path.join(teststore.package_path(user, package),
+                               Package.CONTENTS_DIR,
+                               contents_hash), 'rb') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
-        with open('quilt_packages/objs/{hash}'.format(hash=table_hash), 'rb') as fd:
+
+        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash)), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
+
+    def getmtime(self, user, package, contents_hash):
+        teststore = PackageStore(self._store_dir)
+
+        return os.path.getmtime(os.path.join(teststore.package_path(user, package),
+                                             Package.CONTENTS_DIR,
+                                             contents_hash))
 
     def test_install_dependencies(self):
         """
@@ -173,17 +191,17 @@ packages:
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
-        self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
-        self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
-        self.validate_file('usr1/pkga.json', contents3, table_hash3, table_data3)
-        self.validate_file('usr2/pkgb.json', contents4, table_hash4, table_data4)
-        self.validate_file('usr3/pkgc.json', contents5, table_hash5, table_data5)
+        self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
+        self.validate_file('baz','bat', contents_hash2, contents2, table_hash2, table_data2)
+        self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
+        self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
+        self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
         # check that installation happens in the order listed in quilt.yml
-        assert (os.path.getmtime('quilt_packages/foo/bar.json') <=
-                os.path.getmtime('quilt_packages/baz/bat.json') <=
-                os.path.getmtime('quilt_packages/usr1/pkga.json') <=
-                os.path.getmtime('quilt_packages/usr2/pkgb.json') <=
-                os.path.getmtime('quilt_packages/usr3/pkgc.json'))
+        assert (self.getmtime('foo','bar', contents_hash1) <=
+                self.getmtime('baz','bat', contents_hash2) <=
+                self.getmtime('usr1','pkga', contents_hash3) <=
+                self.getmtime('usr2','pkgb', contents_hash4) <=
+                self.getmtime('usr3','pkgc', contents_hash5))
 
         # test reading from file
         table_data6, table_hash6 = self.make_table_data('table6')
@@ -213,7 +231,7 @@ packages:
         with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
-            self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
+            self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
     def test_bad_contents_hash(self):
         """
@@ -236,7 +254,7 @@ packages:
         with assertRaisesRegex(self, command.CommandException, "Mismatched hash"):
             command.install('foo/bar')
 
-        assert not os.path.exists('quilt_packages/foo/bar.json')
+        assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
 
     def test_bad_object_hash(self):
         """
@@ -260,7 +278,7 @@ packages:
         with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
             command.install('foo/bar')
 
-        assert not os.path.exists('quilt_packages/foo/bar.json')
+        assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
 
     def test_resume_download(self):
         """
@@ -280,15 +298,16 @@ packages:
         ), format=PackageFormat.HDF5)
         contents_hash = hash_contents(contents)
 
-        os.makedirs('quilt_packages/objs')
+        # Create a package store object to use its path helpers
+        teststore = PackageStore(self._store_dir)
 
         # file0 already exists.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[0]), 'wb') as fd:
+        with open(teststore.object_path(objhash=file_hash_list[0]), 'wb') as fd:
             fd.write(file_data_list[0])
 
         # file1 exists, but has the wrong contents.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1]), 'wb') as fd:
-            fd.write(b"Garbage")
+        with open(teststore.object_path(objhash=file_hash_list[1]), 'wb') as fd:
+            fd.write("Garbage")
 
         # file2 does not exist.
 
@@ -301,7 +320,7 @@ packages:
         command.install('foo/bar')
 
         # Verify that file1 got redownloaded.
-        with open('quilt_packages/objs/{hash}'.format(hash=file_hash_list[1]), 'rb') as fd:
+        with open(teststore.object_path(objhash=file_hash_list[1]), 'rb') as fd:
             contents = fd.read()
             assert contents == file_data_list[1]
 
