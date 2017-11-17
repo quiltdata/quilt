@@ -6,7 +6,7 @@ import re
 
 from .const import PACKAGE_DIR_NAME
 from .core import RootNode, CommandException
-from .package import Package
+from .package import Package, PackageException
 from .util import BASE_DIR
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
