@@ -182,14 +182,18 @@ class PackageStore(object):
         for user in os.listdir(pkgdir):
             for pkg in os.listdir(os.path.join(pkgdir, user)):
                 pkgpath = os.path.join(pkgdir, user, pkg)           
-                pkgmap = {h : None for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
+                pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
                 for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
                     with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
                         pkghash = tagfile.read()
-                        pkgmap[pkghash] = tag
-                for pkghash, tag in pkgmap.items():
+                        pkgmap[pkghash].append(tag)
+                for pkghash, tags in pkgmap.items():
                     fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
-                    packages.append((fullpkg, str(tag), pkghash))
+                    # Add an empty string tag for untagged hashes
+                    displaytags = tags if tags else [""]
+                    # Display a separate full line per tag like Docker
+                    for tag in displaytags:
+                        packages.append((fullpkg, str(tag), pkghash))
                         
         return packages
 
@@ -268,4 +272,3 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return owner, pkg, subpath
     return owner, pkg
-
