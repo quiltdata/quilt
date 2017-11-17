@@ -177,7 +177,7 @@ packages:
 - usr1/pkga:version:v1
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
-- danWebster/sgRNAs/libraries/brunello:a972d92
+- danWebster/sgRNAs/libraries/brunello  # subpath
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
         self.validate_file('foo/bar.json', contents1, table_hash1, table_data1)
         self.validate_file('baz/bat.json', contents2, table_hash2, table_data2)
@@ -194,11 +194,11 @@ packages:
                 os.path.getmtime('quilt_packages/danWebster/sgRNAs.json'))
 
         # test reading from file
-        table_data6, table_hash6 = self.make_table_data('table6')
-        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
-        self._mock_tag('usr4/pkgd', 'latest', contents_hash6)
-        self._mock_package('usr4/pkgd', contents_hash6, 'group/table', contents6, [table_hash6])
-        self._mock_s3(table_hash6, table_data6)
+        table_data7, table_hash7 = self.make_table_data('table7')
+        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash7)
+        self._mock_package('usr4/pkgd', contents_hash7, 'group/table', contents7, [table_hash7])
+        self._mock_s3(table_hash7, table_data7)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
             fd.close()
