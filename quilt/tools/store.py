@@ -4,11 +4,9 @@ Build: parse and add user-supplied files to store
 import os
 import re
 
-from distutils.dir_util import mkpath
-
 from .const import PACKAGE_DIR_NAME
 from .core import RootNode, CommandException
-from .package import Package
+from .package import Package, PackageException
 from .util import BASE_DIR
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
@@ -50,7 +48,6 @@ class PackageStore(object):
         assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % location
         self._path = location
-
         objdir = os.path.join(self._path, self.OBJ_DIR)
         tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
         pkgdir = os.path.join(self._path, self.PKG_DIR)
@@ -66,7 +63,7 @@ class PackageStore(object):
                 raise StoreException(msg.format(self._path))            
         else:
             # Create a new package store
-            mkpath(self._path)
+            os.makedirs(self._path)
             self._write_format_version()
             os.mkdir(objdir)
             os.mkdir(tmpobjdir)
@@ -76,6 +73,7 @@ class PackageStore(object):
         assert os.path.isdir(objdir)
         assert os.path.isdir(tmpobjdir)
         assert os.path.isdir(pkgdir)
+
 
     # CHANGED:
     # hard-coded this to return exactly one directory, the package store in BASE_DIR.
@@ -134,12 +132,15 @@ class PackageStore(object):
         self.check_name(user, package)
         path = self.package_path(user, package)
         if os.path.isdir(path):
-            return Package(
-                store=self,
-                user=user,
-                package=package,
-                path=path
-            )
+            try:
+                return Package(
+                    store=self,
+                    user=user,
+                    package=package,
+                    path=path
+                    )
+            except PackageException:
+                pass
         return None
 
     def install_package(self, user, package, contents):
@@ -184,14 +185,18 @@ class PackageStore(object):
         for user in os.listdir(pkgdir):
             for pkg in os.listdir(os.path.join(pkgdir, user)):
                 pkgpath = os.path.join(pkgdir, user, pkg)           
-                pkgmap = {h : None for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
+                pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
                 for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
                     with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
                         pkghash = tagfile.read()
-                        pkgmap[pkghash] = tag
-                for pkghash, tag in pkgmap.items():
+                        pkgmap[pkghash].append(tag)
+                for pkghash, tags in pkgmap.items():
                     fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
-                    packages.append((fullpkg, str(tag), pkghash))
+                    # Add an empty string tag for untagged hashes
+                    displaytags = tags if tags else [""]
+                    # Display a separate full line per tag like Docker
+                    for tag in displaytags:
+                        packages.append((fullpkg, str(tag), pkghash))
                         
         return packages
 
@@ -276,4 +281,3 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return owner, pkg, subpath
     return owner, pkg
-
