@@ -7,21 +7,21 @@
 * [Use cases](use-cases.md)
 * [Languages](supported-languages.md)
 
-## Get started
+## Get started (Python)
 
 * [Installation](installation.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
-* [Build.yml](buildyml.md)
+    * [Build.yml](buildyml.md) specification
 * [Push a package](make-a-package.md)
 * [Tutorial](tutorial.md)
 
-## Reference
+## API Reference
 
-* [Linux command-line CLI](shell.md)
-* [Python API](python.md)
-* [Jupyter API](jupyter.md)
-* [R API](r.md)
+* [Command-line Interface (CLI)](cli.md) for Linux and MacOSX
+* [Python API](api-python.md)
+* [Jupyter API](api-jupyter.md)
+* [R API](api-r.md)
 
 ## Support
 
@@ -29,5 +29,4 @@
 
 ## Developer
 
-* [Basics](basics.md)
-
+* [How to contribute](developer-basics.md)

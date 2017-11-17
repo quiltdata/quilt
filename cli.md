@@ -8,7 +8,7 @@
 * `quilt push [--public] USER/PACKAGE` stores the package in the registry
  * Quilt's Free tier supports only `push --public`
  * A `README.md` file is recommended at the root of your package. README files use markdown syntax via [remarkable](https://jonschlinkert.github.io/remarkable/demo/).
-* `quilt install [-x HASH | -v VERSION | -t TAG] USER/PACKAGE` installs a package
+* `quilt install [-x HASH | -v VERSION | -t TAG] [USER/PACKAGE or @FILENAME]` installs a package.
 
 # Versioning
 * `quilt log USER/PACKAGE` to see the push history
@@ -29,5 +29,23 @@
 
 # Search
 * `quilt search "SEARCH STRING"` to search for packages by user or package name
+
+# Short hashes
+
+All commands such as `quilt install` support "short hashes," i.e. any unique prefix of a hash will be matched against the longer hash.  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e can be shortened to `quilt install akarve/examples -x 4594b5` assuming there's no other hashes that start with this sequence.  In practice, 6-8 characters is usually sufficient to achieve uniqueness.
+
+# Installing via requirements file
+
+`quilt install @filename` (quilt.yml is the default) installs a list of packages specified by a YAML file containing one package per line:   USER/PACKAGE[/SUBPACKAGE][:version]   where version is specified via [h|hash]:<hash> or <t|tag>:<tag> or <v|version>:<version>.  Here is an example:
+
+```
+packages:
+  - vgauthier/DynamicPopEstimate   # get the latest version
+  - danWebster/sgRNAs:a972d92      # get a specific version via hash (short hash)
+  - akarve/sales:tag:latest        # get a specific version via tag
+  - asah/snli:v:1.0                # get a specific version via version
+
+```
+
 
 ***
