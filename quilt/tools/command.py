@@ -861,6 +861,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
             subpath='/'.join(subpath)
         )
     )
+    # TODO: for some reason, test_import.py is causing _handle_response to not get called.
+    if not response.ok:
+        _handle_response(response)
     assert response.ok # other responses handled by _handle_response
 
     dataset = response.json(object_hook=decode_node)
