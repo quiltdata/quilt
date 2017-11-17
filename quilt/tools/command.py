@@ -1046,9 +1046,9 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for idx, (owner, pkg) in enumerate(packages):
-            prefix = u"└── " if idx == len(packages) - 1 else u"├── "
-            print("%s%s/%s" % (prefix, owner, pkg))
+        for idx, (package, tag, pkghash) in enumerate(packages):
+            tag = "" if tag is None else tag
+            print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
     """

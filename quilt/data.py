@@ -88,6 +88,7 @@ class PackageLoader(object):
         sys.modules[fullname] = mod
         return mod
 
+
 class ModuleFinder(object):
     """
     Looks up submodules.
@@ -106,8 +107,9 @@ class ModuleFinder(object):
 
         if len(parts) == 1:
             for store_dir in PackageStore.find_store_dirs():
+                store = PackageStore(store_dir)
                 # find contents
-                file_path = os.path.join(store_dir, parts[0])
+                file_path = store.user_path(parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
         elif len(parts) == 2:
