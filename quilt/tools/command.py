@@ -63,6 +63,7 @@ PARALLEL_UPLOADS = 20
 
 S3_CONNECT_TIMEOUT = 30
 S3_READ_TIMEOUT = 30
+CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3  # 3 seconds
 
@@ -793,7 +794,7 @@ def install_via_requirements(requirements_str, force=False):
         if subpath is None:
             package += '/' + subpath
         install(package, hash, version, tag, force=force)
-    
+
 def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
@@ -915,17 +916,17 @@ def install(package, hash=None, version=None, tag=None, force=False):
                     response.raw.headers.pop('Content-Encoding', None)
 
                     # Make sure we're getting the expected range.
-                    assert response.headers.get('Content-Range', '').startswith('bytes %d-' % starting_length)
+                    content_range = response.headers.get('Content-Range', '')
+                    match = CONTENT_RANGE_RE.match(content_range)
+                    if not match or not int(match.group(1)) == starting_length:
+                        raise CommandException("Unexpected Content-Range: %s" % content_range)
 
-                    length_remaining = response.raw.length_remaining
-                    total_length = starting_length + length_remaining
+                    total_length = int(match.group(3))
 
                     with tqdm(initial=starting_length, total=total_length, unit='B', unit_scale=True) as progress:
                         for chunk in response.iter_content(CHUNK_SIZE):
                             output_file.write(chunk)
-                            if response.raw.length_remaining is not None:  # Not set in unit tests.
-                                progress.update(length_remaining - response.raw.length_remaining)
-                                length_remaining = response.raw.length_remaining
+                            progress.update(len(chunk))
 
             # Ungzip the downloaded fragment.
             temp_path = store.temporary_object_path(download_hash)

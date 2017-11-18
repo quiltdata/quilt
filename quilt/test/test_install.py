@@ -81,11 +81,11 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash)), 'rb') as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash)), 'rb') as fd:
+        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == file_data
 
@@ -137,7 +137,7 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash)), 'rb') as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
@@ -307,7 +307,7 @@ packages:
 
         # file1 exists, but has the wrong contents.
         with open(teststore.object_path(objhash=file_hash_list[1]), 'wb') as fd:
-            fd.write("Garbage")
+            fd.write(b"Garbage")
 
         # file2 does not exist.
 
