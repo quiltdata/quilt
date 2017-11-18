@@ -7,21 +7,21 @@
 * [Use cases](use-cases.md)
 * [Languages](supported-languages.md)
 
-## Get started
+## Get started (Python)
 
 * [Installation](installation.md)
+* [Tutorial](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
 * [Push a package](make-a-package.md)
-* [Tutorial](tutorial.md)
+* [Build.yml specification](buildyml.md)
 
-## API
+## API Reference
 
-* [Shell](shell.md)
-* [Python](python.md)
-* [Jupyter](jupyter.md)
-* [R](r.md)
-* [Build.yml](buildyml.md)
+* [Command-line Interface (CLI)](cli.md)
+* [Python API](api-python.md)
+* [Jupyter API](api-jupyter.md)
+* [R API](api-r.md)
 
 ## Support
 
@@ -29,6 +29,6 @@
 
 ## Developer
 
-* [Basics](basics.md)
+* [How to contribute](developer-basics.md)
 * [Local Storage](quilt_repository_format.md)
 
