@@ -25,6 +25,7 @@ from ..tools.core import (
 )
 from ..tools.package import Package
 from ..tools.store import PackageStore
+from ..tools.util import gzip_compress
 
 from .utils import QuiltTestCase
 
@@ -34,17 +35,17 @@ class InstallTest(QuiltTestCase):
     """
     @classmethod
     def make_table_data(cls, string="table"):
-        table_data = string * 10
+        table_data = (string * 10).encode('utf-8')
         h = hashlib.new(HASH_TYPE)
-        h.update(table_data.encode('utf-8'))
+        h.update(table_data)
         table_hash = h.hexdigest()
         return table_data, table_hash
 
     @classmethod
     def make_file_data(cls, string="file"):
-        file_data = string * 10
+        file_data = (string * 10).encode('utf-8')
         h = hashlib.new(HASH_TYPE)
-        h.update(file_data.encode('utf-8'))
+        h.update(file_data)
         file_hash = h.hexdigest()
         return file_data, file_hash
     
@@ -80,11 +81,11 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=file_hash))) as fd:
+        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == file_data
 
@@ -123,7 +124,7 @@ class InstallTest(QuiltTestCase):
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(teststore.object_path(objhash=table_hash)) as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
@@ -132,11 +133,11 @@ class InstallTest(QuiltTestCase):
 
         with open(os.path.join(teststore.package_path(user, package),
                                Package.CONTENTS_DIR,
-                               contents_hash)) as fd:
+                               contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
-        with open(os.path.join(self._store_dir, 'objs/{hash}'.format(hash=table_hash))) as fd:
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
             contents = fd.read()
             assert contents == table_data
 
@@ -236,9 +237,9 @@ packages:
         """
         Test that a package with a bad contents hash fails installation.
         """
-        tabledata = 'Bad package'
+        tabledata = b'Bad package'
         h = hashlib.new(HASH_TYPE)
-        h.update(tabledata.encode('utf-8'))
+        h.update(tabledata)
         obj_hash = h.hexdigest()
         contents = GroupNode(dict(
             foo=GroupNode(dict(
@@ -259,9 +260,9 @@ packages:
         """
         Test that a package with a file hash mismatch fails installation.
         """
-        tabledata = 'Bad package'
+        tabledata = b'Bad package'
         h = hashlib.new(HASH_TYPE)
-        h.update(tabledata.encode('utf-8'))
+        h.update(tabledata)
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
         contents = GroupNode(dict(
             foo=GroupNode(dict(
@@ -286,11 +287,9 @@ packages:
         file_data_list = []
         file_hash_list = []
         for i in range(3):
-            file_data = "file%d" % i
-            h = hashlib.new(HASH_TYPE)
-            h.update(file_data.encode('utf-8'))
+            file_data, file_hash = self.make_file_data('file%d' % i)
             file_data_list.append(file_data)
-            file_hash_list.append(h.hexdigest())
+            file_hash_list.append(file_hash)
 
         contents = RootNode(dict(
             file0=FileNode([file_hash_list[0]]),
@@ -303,12 +302,12 @@ packages:
         teststore = PackageStore(self._store_dir)
 
         # file0 already exists.
-        with open(teststore.object_path(objhash=file_hash_list[0]), 'w') as fd:
+        with open(teststore.object_path(objhash=file_hash_list[0]), 'wb') as fd:
             fd.write(file_data_list[0])
 
         # file1 exists, but has the wrong contents.
-        with open(teststore.object_path(objhash=file_hash_list[1]), 'w') as fd:
-            fd.write("Garbage")
+        with open(teststore.object_path(objhash=file_hash_list[1]), 'wb') as fd:
+            fd.write(b"Garbage")
 
         # file2 does not exist.
 
@@ -321,7 +320,7 @@ packages:
         command.install('foo/bar')
 
         # Verify that file1 got redownloaded.
-        with open(teststore.object_path(objhash=file_hash_list[1])) as fd:
+        with open(teststore.object_path(objhash=file_hash_list[1]), 'rb') as fd:
             contents = fd.read()
             assert contents == file_data_list[1]
 
@@ -354,4 +353,8 @@ packages:
 
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash
-        self.requests_mock.add(responses.GET, s3_url, contents)
+        headers = {
+            'Content-Range': 'bytes 0-%d/%d' % (len(contents) - 1, len(contents))
+        }
+        body = gzip_compress(contents)
+        self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
