@@ -133,7 +133,7 @@ class InstallTest(QuiltTestCase):
 
         with open(os.path.join(teststore.package_path(user, package),
                                Package.CONTENTS_DIR,
-                               contents_hash), 'rb') as fd:
+                               contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
 
