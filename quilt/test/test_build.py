@@ -5,9 +5,11 @@ Test the build process
 #the functions that cli calls
 import os
 
+import pytest
 from six import assertRaisesRegex, string_types
 import yaml
 
+from ..tools.core import load_yaml
 from .. import nodes
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
@@ -79,9 +81,19 @@ class BuildTest(QuiltTestCase):
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
-        build.build_package('test_generated', 'generated', buildfilepath)
+
+        tree = load_yaml(buildfilepath)
+        assert 'empty' not in tree, \
+            "Empty directories should not appear in generated buildfile"
+
+        empty_dir = os.path.join(path, 'empty')
+        os.makedirs(empty_dir)
+        with pytest.raises(build.BuildException):
+            # ensure that quilt generate in an empty directory throws
+            build.generate_build_file(empty_dir)
+        os.rmdir(empty_dir)
+
         os.remove(buildfilepath)
-        from quilt.data.test_generated.generated import bad, foo, nuts, README
 
     def test_failover(self):
         """
