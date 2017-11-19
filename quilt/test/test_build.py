@@ -9,7 +9,6 @@ import pytest
 from six import assertRaisesRegex, string_types
 import yaml
 
-from ..tools.core import load_yaml
 from .. import nodes
 from ..tools.package import ParquetLib, Package
 from ..tools import build, command
