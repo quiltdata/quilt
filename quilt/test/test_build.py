@@ -85,9 +85,15 @@ class BuildTest(QuiltTestCase):
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
 
-        tree = load_yaml(buildfilepath)
-        assert 'empty' not in tree, \
-            "Empty directories should not appear in generated buildfile"
+        build.build_package('test_generated', 'generated', buildfilepath)
+
+        from quilt.data.test_generated import generated
+
+        assert all(k in generated._keys() for k in ['bad', 'foo', 'nuts', 'README']), \
+            'Missing expected keys'
+
+        assert 'empty' not in generated._keys(), \
+            'Empty directories should not appear in generated buildfile'
 
         with pytest.raises(build.BuildException):
             # ensure that quilt generate in an empty directory throws
