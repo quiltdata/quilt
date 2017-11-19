@@ -492,7 +492,7 @@ def build_from_path(package, path, dry_run=False, env='default'):
         if not dry_run:
             print("Built %s/%s successfully." % (owner, pkg))
     except BuildException as ex:
-        raise CommandException("Failed to build the package: %s" % ex)
+        raise CommandException("Build failed: %s" % ex)
 
 def log(package):
     """

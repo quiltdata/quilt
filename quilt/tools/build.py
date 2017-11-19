@@ -312,13 +312,20 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             name == outfilename
         )
 
+    def _is_empty_dir(dir_path):
+        return os.path.isdir(dir_path) and not os.listdir(dir_path)
+
     def _generate_contents(dir_path):
         safename_duplicates = defaultdict(list)
-        for name in os.listdir(dir_path):
-            if _ignored_name(name):
-                continue
+        children = os.listdir(dir_path)
+        if not children:
+            raise BuildException("Cannot generate from empty directory: %r" % dir_path)
 
+        for name in children:
             path = os.path.join(dir_path, name)
+
+            if _ignored_name(name) or _is_empty_dir(path):
+                continue
 
             if os.path.isdir(path):
                 nodename = name
