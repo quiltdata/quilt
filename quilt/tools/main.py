@@ -13,10 +13,8 @@ from . import command
 
 HANDLE = "owner/packge_name"
 
-def main():
-    """
-    Build and run parser
-    """
+
+def argument_parser():
     parser = argparse.ArgumentParser(description="Quilt Command Line")
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
@@ -139,6 +137,13 @@ def main():
     inspect_p.add_argument("package", type=str, help=HANDLE)
     inspect_p.set_defaults(func=command.inspect)
 
+    return parser
+
+
+def main():
+    """Build and run parser.
+    """
+    parser = argument_parser()
     args = parser.parse_args()
 
     # Convert argparse.Namespace into dict and clean it up.
