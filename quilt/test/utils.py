@@ -4,6 +4,7 @@ Unittest setup.
 
 import os
 import shutil
+import inspect
 import tempfile
 import unittest
 import collections
@@ -18,6 +19,10 @@ except ImportError:
     from mock import patch
 
 import responses
+
+
+_TEST_DIR = os.path.abspath(inspect.stack()[0][1])
+PACKAGE_DIR = os.path.join('/', *_TEST_DIR.split(os.path.sep)[:-3])
 
 
 class BasicQuiltTestCase(unittest.TestCase):

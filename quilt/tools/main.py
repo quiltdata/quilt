@@ -6,10 +6,15 @@ from __future__ import print_function
 
 import argparse
 import sys
+import os
 
 import requests
 
 from . import command
+
+if os.environ.get('QUILT_CLI_TEST') == "True":
+    from ..test.test_cli import MockCommand
+    command = MockCommand()
 
 HANDLE = "owner/packge_name"
 
