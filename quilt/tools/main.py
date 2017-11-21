@@ -13,8 +13,8 @@ import requests
 from . import command
 
 if os.environ.get('QUILT_CLI_TEST') == "True":
-    from ..test.test_cli import MockCommand
-    command = MockCommand()
+    from ..test.test_cli import MockObject
+    command = MockObject(command)
 
 HANDLE = "owner/packge_name"
 
@@ -145,11 +145,13 @@ def argument_parser():
     return parser
 
 
-def main():
-    """Build and run parser.
+def main(args=None):
+    """Build and run parser
+
+    :param args: cli args from tests
     """
     parser = argument_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(args) if args else parser.parse_args()
 
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
