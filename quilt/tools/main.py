@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import argparse
 import sys
+import re
 
 import requests
 
@@ -153,7 +154,10 @@ def main():
         func(**kwargs)
         return 0
     except command.CommandException as ex:
-        print(ex, file=sys.stderr)
+        if re.search(r'Requirements file quilt.yml not found', str(ex)):
+            parser.print_help()
+        else:
+            print(ex, file=sys.stderr)
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)
