@@ -141,11 +141,6 @@ class ArgparseIntrospector(collections.Mapping):
 
 
 class RecursiveMappingWrapper(collections.MutableMapping):
-    ### Notice:  This class is generic code I use whenever a project
-    ### warrants it.  It's a part of my personal library, and use is
-    ### granted permanently and without restriction, but also without
-    ### ownership (all rights reserved).
-    ###    -- Brian Ealdwine, aeon.descriptor@gmail.com
     """Wrap a mapping, providing recursive access to items via key lists
 
     allows:
