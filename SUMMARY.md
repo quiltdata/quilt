@@ -30,3 +30,5 @@
 ## Developer
 
 * [How to contribute](developer-basics.md)
+* [Local Storage](quilt_repository_format.md)
+
