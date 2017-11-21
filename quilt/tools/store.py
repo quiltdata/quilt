@@ -39,7 +39,7 @@ class PackageStore(object):
     TMP_OBJ_DIR = os.path.join('objs', 'tmp')
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
-    VERSION = '1.0'
+    VERSION = '1.1'
     
     def __init__(self, location=None):
         if location is None:
@@ -73,6 +73,7 @@ class PackageStore(object):
         assert os.path.isdir(objdir)
         assert os.path.isdir(tmpobjdir)
         assert os.path.isdir(pkgdir)
+        assert os.path.isdir(cachedir)
 
 
     # CHANGED:

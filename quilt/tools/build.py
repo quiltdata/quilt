@@ -43,9 +43,10 @@ def _path_hash(path, transform, kwargs):
     """
     Generate a hash of source file path + transform + args
     """
-    srcinfo = "{path}:{transform}:{kwargs}".format(path=os.path.abspath(path),
+    sortedargs = ["{k}:{v}".format(k=key, v=value) for key, value in sorted(iteritems(kwargs))]
+    srcinfo = "{path}:{transform}:{{{kwargs}}}".format(path=os.path.abspath(path),
                                                    transform=transform,
-                                                   kwargs=kwargs)
+                                                   kwargs=",".join(sortedargs))
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
@@ -139,11 +140,13 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
-            user_kwargs = {k: node[k] for k in node if k not in RESERVED}
+            handler_args = _remove_keywords(ancestor_args)
+            # merge ancestor args with local args (local wins if conflict)
+            handler_args.update(_remove_keywords(node))
 
             # Check Cache
             store = PackageStore()
-            path_hash = _path_hash(path, transform, user_kwargs)
+            path_hash = _path_hash(path, transform, handler_args)
             source_hash = digest_file(path)
 
             cachedobjs = []
@@ -161,9 +164,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 # read source file into DataFrame
                 print("Serializing %s..." % path)
                 if _have_pyspark():
-                    dataframe = _file_to_spark_data_frame(transform, path, target, user_kwargs)
+                    dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
                 else:
-                    dataframe = _file_to_data_frame(transform, path, target, user_kwargs)
+                    dataframe = _file_to_data_frame(transform, path, target, handler_args)
 
                 if checks:
                     # TODO: test that design works for internal nodes... e.g. iterating
