@@ -183,7 +183,7 @@ def get_all_param_paths():
     :returns: list of lists (list of key paths)
     :rtype: list
     """
-    return get_missing_key_paths(get_current_param_tree, {})
+    return get_missing_key_paths(get_current_param_tree(), {}, exhaustive=True)
 
 
 def get_current_param_tree():
