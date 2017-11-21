@@ -4,10 +4,10 @@
 * 3.5
 * 3.6
 
-# PySpark
-* See here
+# R
+* Community contribution on [GitHub](https://github.com/stillmatic/quiltr).
 
-# R, Scala
-* Planned. We welcome your  contributions on [GitHub](https://github.com/quiltdata/quilt).
+Scala
+* Planned. We welcome your contributions on [GitHub](https://github.com/quiltdata/quilt).
 
 ***
