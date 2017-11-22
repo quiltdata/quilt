@@ -6,11 +6,12 @@ Command line parsing and command dispatch
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from datetime import datetime
+import gzip
 import hashlib
 import json
 import os
 import re
-from shutil import move, rmtree
+from shutil import copyfileobj, move, rmtree
 import stat
 import subprocess
 import sys
@@ -33,9 +34,10 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes)
+                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
+                   load_yaml)
 from .hashing import digest_file
-from .store import PackageStore, parse_package
+from .store import PackageStore, parse_package, parse_package_extended
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
@@ -58,6 +60,12 @@ GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
+
+S3_CONNECT_TIMEOUT = 30
+S3_READ_TIMEOUT = 30
+CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
+
+LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
@@ -104,7 +112,8 @@ def config():
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
     else:
-        canonical_url = ''  # When saving the config, store '' instead of the actual URL in case we ever change it.
+        # When saving the config, store '' instead of the actual URL in case we ever change it.
+        canonical_url = ''
 
     cfg = _load_config()
     cfg['registry_url'] = canonical_url
@@ -238,6 +247,29 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
+def _match_hash(session, owner, pkg, hash, raise_exception=True):
+    # short-circuit for exact length
+    if len(hash) == 64:
+        return hash
+    
+    response = session.get(
+        "{url}/api/log/{owner}/{pkg}/".format(
+            url=get_registry_url(),
+            owner=owner,
+            pkg=pkg
+        )
+    )
+    for entry in reversed(response.json()['logs']):
+        # support short hashes
+        if entry['hash'].startswith(hash):
+            return entry['hash']
+
+    if raise_exception:
+        raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+            hash=hash, owner=owner, pkg=pkg))
+    return None
+
+        
 def login():
     """
     Authenticate.
@@ -326,10 +358,45 @@ def _clone_git_repo(url, branch, dest):
     cmd += [url, dest]
     subprocess.check_call(cmd)
 
+def _log(**kwargs):
+    # TODO(dima): Save logs to a file, then send them when we get a chance.
+
+    cfg = _load_config()
+    if cfg.get('disable_analytics'):
+        return
+
+    session = _get_session()
+
+    # Disable error handling.
+    session.hooks.update(dict(
+        response=None
+    ))
+
+    try:
+        session.post(
+            "{url}/api/log".format(
+                url=get_registry_url(),
+            ),
+            data=json.dumps([kwargs]),
+            timeout=LOG_TIMEOUT,
+        )
+    except requests.exceptions.RequestException:
+        # Ignore logging errors.
+        pass
+
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
+    package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
+    try:
+        _build_internal(package, path, dry_run, env)
+    except Exception as ex:
+        _log(type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
+        raise
+    _log(type='build', package=package_hash, dry_run=dry_run, env=env)
+
+def _build_internal(package, path, dry_run, env):
     # we may have a path, git URL, PackageNode, or None
     if isinstance(path, string_types):
         # is this a git url?
@@ -618,7 +685,7 @@ def version_list(package):
     for version in response.json()['versions']:
         print("%s: %s" % (version['version'], version['hash']))
 
-def version_add(package, version, pkghash):
+def version_add(package, version, pkghash, force=False):
     """
     Add a new version for a given package hash.
 
@@ -636,9 +703,10 @@ def version_add(package, version, pkghash):
             "Invalid version format; see %s" % url
         )
 
-    answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
-    if answer.lower() != 'y':
-        return
+    if not force:
+        answer = input("Versions cannot be modified or deleted; are you sure? (y/n) ")
+        if answer.lower() != 'y':
+            return
 
     session.put(
         "{url}/api/version/{owner}/{pkg}/{version}".format(
@@ -648,7 +716,7 @@ def version_add(package, version, pkghash):
             version=version
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -690,7 +758,7 @@ def tag_add(package, tag, pkghash):
             tag=tag
         ),
         data=json.dumps(dict(
-            hash=pkghash
+            hash=_match_hash(session, owner, pkg, pkghash)
         ))
     )
 
@@ -710,6 +778,23 @@ def tag_remove(package, tag):
         )
     )
 
+def install_via_requirements(requirements_str, force=False):
+    """
+    Download multiple Quilt data packages via quilt.xml requirements file.
+    """
+    if requirements_str[0] == '@':
+        yaml_data = load_yaml(requirements_str[1:])
+    else:
+        yaml_data = yaml.load(requirements_str)
+    for pkginfo in yaml_data['packages']:
+        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+        print('{}: o={} p={} s={} h={} v={} t={}'.format(
+            pkginfo, owner, pkg, subpath, hash, version, tag))
+        package = owner + '/' + pkg
+        if subpath is None:
+            package += '/' + subpath
+        install(package, hash, version, tag, force=force)
+
 def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
@@ -720,6 +805,15 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if hash is version is tag is None:
         tag = LATEST_TAG
 
+    # @filename ==> read from file
+    # newline = multiple lines ==> multiple requirements
+    package = package.strip()
+    if len(package) == 0:
+        raise CommandException("package name is empty.")
+
+    if package[0] == '@' or '\n' in package:
+        return install_via_requirements(package, force=force)
+        
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)
@@ -753,23 +847,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
         )
         pkghash = response.json()['hash']
-    elif len(hash) <= 64:
-        response = session.get(
-            "{url}/api/log/{owner}/{pkg}/".format(
-                url=get_registry_url(),
-                owner=owner,
-                pkg=pkg
-            )
-        )
-        for entry in reversed(response.json()['logs']):
-            if entry['hash'].startswith(hash):
-                pkghash = entry['hash']
-                break
-        else:
-            raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
-                hash=hash, owner=owner, pkg=pkg))
     else:
-        pkghash = hash
+        pkghash = _match_hash(session, owner, pkg, hash)
     assert pkghash is not None
 
     response = session.get(
@@ -810,29 +889,55 @@ def install(package, hash=None, version=None, tag=None, force=False):
                     print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
                         file_hash)
 
-            response = s3_session.get(url, stream=True)
-            if not response.ok:
-                message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                    download_hash, response.request.url, response.status_code, response.text
+            temp_path_gz = store.temporary_object_path(download_hash + '.gz')
+            with open(temp_path_gz, 'ab') as output_file:
+                starting_length = output_file.tell()
+                response = s3_session.get(
+                    url,
+                    headers={
+                        'Range': 'bytes=%d-' % starting_length
+                    },
+                    stream=True,
+                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
                 )
-                raise CommandException(message)
 
-            length_remaining = response.raw.length_remaining
+                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
+                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                    if not response.ok:
+                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                            download_hash, response.request.url, response.status_code, response.text
+                        )
+                        raise CommandException(message)
 
-            temp_path = store.temporary_object_path(download_hash)
-            with open(temp_path, 'wb') as output_file:
-                with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
-                    # `requests` will automatically un-gzip the content, as long as
-                    # the 'Content-Encoding: gzip' header is set.
-                    # To report progress, however, we need the length of the original compressed data;
-                    # we use the undocumented but technically public `response.raw.length_remaining`.
-                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                        if chunk: # filter out keep-alive new chunks
+                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip them
+                    # automatically - but that turned out to be a bad idea because it makes resuming downloads
+                    # impossible.
+                    # HACK: For now, just delete the header. Eventually, update the data in S3.
+                    response.raw.headers.pop('Content-Encoding', None)
+
+                    # Make sure we're getting the expected range.
+                    content_range = response.headers.get('Content-Range', '')
+                    match = CONTENT_RANGE_RE.match(content_range)
+                    if not match or not int(match.group(1)) == starting_length:
+                        raise CommandException("Unexpected Content-Range: %s" % content_range)
+
+                    total_length = int(match.group(3))
+
+                    with tqdm(initial=starting_length, total=total_length, unit='B', unit_scale=True) as progress:
+                        for chunk in response.iter_content(CHUNK_SIZE):
                             output_file.write(chunk)
-                        if response.raw.length_remaining is not None:  # Not set in unit tests.
-                            progress.update(length_remaining - response.raw.length_remaining)
-                            length_remaining = response.raw.length_remaining
+                            progress.update(len(chunk))
 
+            # Ungzip the downloaded fragment.
+            temp_path = store.temporary_object_path(download_hash)
+            try:
+                with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
+                    copyfileobj(f_in, f_out)
+            finally:
+                # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
+                os.remove(temp_path_gz)
+
+            # Check the hash of the result.
             file_hash = digest_file(temp_path)
             if file_hash != download_hash:
                 os.remove(temp_path)
@@ -965,9 +1070,9 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for idx, (owner, pkg) in enumerate(packages):
-            prefix = u"└── " if idx == len(packages) - 1 else u"├── "
-            print("%s%s/%s" % (prefix, owner, pkg))
+        for idx, (package, tag, pkghash) in enumerate(packages):
+            tag = "" if tag is None else tag
+            print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
     """

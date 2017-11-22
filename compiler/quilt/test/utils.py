@@ -7,6 +7,8 @@ import shutil
 import tempfile
 import unittest
 
+from ..tools.const import PACKAGE_DIR_NAME
+
 try:
     # Python3
     from unittest.mock import patch
@@ -15,6 +17,7 @@ except ImportError:
     from mock import patch
 
 import responses
+
 
 class BasicQuiltTestCase(unittest.TestCase):
     """
@@ -41,12 +44,16 @@ class QuiltTestCase(BasicQuiltTestCase):
         self.auth_patcher = patch('quilt.tools.command._create_auth', lambda: None)
         self.auth_patcher.start()
 
+        self._store_dir = os.path.join(self._test_dir, PACKAGE_DIR_NAME)
+        self.store_patcher = patch('quilt.tools.store.default_store_location', lambda: self._store_dir)
+        self.store_patcher.start()
+
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)
         self.requests_mock.start()
 
     def tearDown(self):
-
         self.requests_mock.stop()
         self.auth_patcher.stop()
+        self.store_patcher.stop()
 
         super(QuiltTestCase, self).tearDown()

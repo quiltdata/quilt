@@ -10,7 +10,8 @@ from six import string_types
 from quilt.data import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import PackageException
+from quilt.tools.package import Package, PackageException
+from quilt.tools.store import PackageStore
 from .utils import QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -35,9 +36,9 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
-        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv'}
+        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv', 'xls_skip'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)
@@ -118,8 +119,15 @@ class ImportTest(QuiltTestCase):
 
         # Build an identical package
         command.build('foo/package2', package1)
-        contents1 = open('quilt_packages/foo/package1.json').read()
-        contents2 = open('quilt_packages/foo/package2.json').read()
+
+        from quilt.data.foo import package2
+        teststore = PackageStore(self._store_dir)
+        contents1 = open(os.path.join(teststore.package_path('foo', 'package1'),
+                                      Package.CONTENTS_DIR,
+                                      package1._package.get_hash())).read()
+        contents2 = open(os.path.join(teststore.package_path('foo', 'package2'),
+                                      Package.CONTENTS_DIR,
+                                      package2._package.get_hash())).read()
         assert contents1 == contents2
 
         # Rename an attribute
@@ -128,7 +136,7 @@ class ImportTest(QuiltTestCase):
 
         # Modify an existing dataframe
         csv = package1.dataframes2.csv._data()
-        csv.set_value(0, 'Int0', 42)
+        csv.at[0, 'Int0'] = 42
 
         # Add a new dataframe
         df = pd.DataFrame(dict(a=[1, 2, 3]))
