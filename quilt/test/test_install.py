@@ -97,12 +97,12 @@ class InstallTest(QuiltTestCase):
         file_data, file_hash = self.make_file_data()
         contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
-        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         self._mock_log('foo/bar', contents_hash)
+
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
-        self._mock_log('foo/bar', contents_hash)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
     def test_install_subpackage(self):
@@ -155,31 +155,31 @@ class InstallTest(QuiltTestCase):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_tag('foo/bar', 'latest', contents_hash1)
-        self._mock_package('foo/bar', contents_hash1, 'group/table', contents1, [table_hash1])
+        self._mock_package('foo/bar', contents_hash1, '', contents1, [table_hash1])
         self._mock_s3(table_hash1, table_data1)
 
         table_data2, table_hash2 = self.make_table_data('table2')
         contents2, contents_hash2 = self.make_contents(table2=table_hash2)
         self._mock_tag('baz/bat', 'nexttag', contents_hash2)
-        self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
+        self._mock_package('baz/bat', contents_hash2, '', contents2, [table_hash2])
         self._mock_s3(table_hash2, table_data2)
 
         table_data3, table_hash3 = self.make_table_data('table3')
         contents3, contents_hash3 = self.make_contents(table3=table_hash3)
         self._mock_version('usr1/pkga', 'v1', contents_hash3)
-        self._mock_package('usr1/pkga', contents_hash3, 'group/table', contents3, [table_hash3])
+        self._mock_package('usr1/pkga', contents_hash3, '', contents3, [table_hash3])
         self._mock_s3(table_hash3, table_data3)
 
         table_data4, table_hash4 = self.make_table_data('table4')
         contents4, contents_hash4 = self.make_contents(table4=table_hash4)
         self._mock_tag('usr2/pkgb', 'latest', contents_hash4)
-        self._mock_package('usr2/pkgb', contents_hash4, 'group/table', contents4, [table_hash4])
+        self._mock_package('usr2/pkgb', contents_hash4, '', contents4, [table_hash4])
         self._mock_s3(table_hash4, table_data4)
 
         table_data5, table_hash5 = self.make_table_data('table5')
         contents5, contents_hash5 = self.make_contents(table5=table_hash5)
         self._mock_log('usr3/pkgc', contents_hash5)
-        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
+        self._mock_package('usr3/pkgc', contents_hash5, '', contents5, [table_hash5])
         self._mock_s3(table_hash5, table_data5)
 
         # inline test of quilt.yml
@@ -207,7 +207,7 @@ packages:
         table_data6, table_hash6 = self.make_table_data('table6')
         contents6, contents_hash6 = self.make_contents(table6=table_hash6)
         self._mock_tag('usr4/pkgd', 'latest', contents_hash6)
-        self._mock_package('usr4/pkgd', contents_hash6, 'group/table', contents6, [table_hash6])
+        self._mock_package('usr4/pkgd', contents_hash6, '', contents6, [table_hash6])
         self._mock_s3(table_hash6, table_data6)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
