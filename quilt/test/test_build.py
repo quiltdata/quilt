@@ -5,6 +5,7 @@ Test the build process
 #the functions that cli calls
 import os
 
+import pandas.api.types as ptypes
 from six import assertRaisesRegex, string_types
 import yaml
 
@@ -61,6 +62,15 @@ class BuildTest(QuiltTestCase):
             'Expected dataframes to have same # columns'
         assert xls_skip.shape == (9997, 13), \
             'Expected 9,997 Rows and 13 Columns'
+        nulls = dataframes.nulls()
+        assert ptypes.is_string_dtype(nulls['strings']), \
+            'Expected column of strings to deserialize as strings'
+        assert ptypes.is_integer_dtype(nulls['integers']), \
+            'Expected column of integers to deserialize as integers'
+        assert ptypes.is_float_dtype(nulls['floats']), \
+            'Expected column of floats to deserialize as floats'
+        assert ptypes.is_numeric_dtype(nulls['integers_nulled']), \
+            'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
 
     def test_build_hdf5(self):
