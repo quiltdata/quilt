@@ -2,6 +2,14 @@
 Tests for CLI
 
 === Adding/Removing Params ===
+Terminology:
+    param tree: nested dicts or other mappings containing param info
+    keypath: A list, containing indexes into a nested mapping. A
+        keypath can be used directly to get an item from a
+        `RecursiveMappingWrapper` object, for example:
+            keypath = ['a', 0, 'b']
+            obj = RecursiveMappingKeyWrapper({'a': {0: {'b': 'foo'}}})
+            obj[keypath]  # returns 'foo'
 
 When a new param is created or deleted in main.py's ArgumentParser,
 a test will fail.  The failed test will show the key paths for which
@@ -16,20 +24,6 @@ breaking change.
 
 Key paths take the form:
     [0, 'version', 0, 'add', 0]
-..where numbers indicate a positional param, and text indicates either
-a permitted argument for a positional, or an option.
-
-This currently leaves some ambiguity as to whether [0, 'foo', 'bar']
-indicates:
-    Anonymous positional argument 0
-    Followed by required argument 'foo'
-    Followed by required or optional argument 'bar'
-or indicates:
-    Positional 0, when 'foo' is given
-    Followed by required or optional argument "bar"
-
-This means if the argument order is restructured in a particular way,
-a change may not be noticed.
 
 
 === CLI <--> Python API Testing ===
@@ -53,6 +47,24 @@ the following steps occur:
 The binding step should prevent any CLI parameters from changes or
 removal (or incompatible additions) on the API side.
 """
+#TODO: More tests!
+#TODO: remove xfail from test_coverage() once coverage is complete
+# BUG: add args/kwargs items into param trees.
+# It's not very easy to do this, but it fixes the issue that
+# we currently leave some ambiguity as to whether [0, 'foo', 'bar']
+# indicates:
+#     Anonymous positional argument 0
+#     Followed by required argument 'foo'
+#     Followed by required or optional argument 'bar'
+# or indicates:
+#     Positional 0, when 'foo' is given
+#     Followed by required or optional argument "bar"
+#
+# This means if the argument order is restructured in a particular way,
+# a change may not be noticed.  And, as we all know, if it's possible,
+# it will eventually occur.
+# Fixing this improves our coverage, but might be somewhat complex.
+
 import os
 import sys
 import json
@@ -76,113 +88,79 @@ except ImportError:
 _TEST_DIR = os.path.abspath(inspect.stack()[0][1])
 PACKAGE_DIR = os.path.join('/', *_TEST_DIR.split(os.path.sep)[:-3])
 
-# When a test for CLI params is made, append the param key paths that
+# When a test for CLI params is called, append the param key paths that
 # the test addresses to this variable.
 # Get an example key path by calling get_all_param_paths()
 TESTED_PARAMS = []
 
-
 ## KNOWN_PARAMS
+# This is a list of keypaths.
 # When adding a new param to the cli, add the param here.
-# New or missing cli params can be found in test errors as keypaths,
-# which are simply lists of dict keys.  These can be added to or
-# removed from KNOWN_PARAMS as befits your situation.
-# The end value should be the argparse 'dest' arg (if present, or None.
-
-#TODO: KNOWN_PARAMS could potentially be a path list instead of a dict tree.
-#      This has the benefit of being easier to understand at a glance, and of
-#      being easy to update from failed test copypasta.
-#      A nested list wouldn't really do -- this needs to represent both
-#      positional and keyword arguments.
-KNOWN_PARAMS = {
-    0: {
-        "access": {
-            0: {
-                "list": {
-                    0: "package"
-                },
-                "add": {
-                    0: "package",
-                    1: "user"
-                },
-                "remove": {
-                    0: "package",
-                    1: "user",
-                }
-            }
-        },
-        "build": {
-            0: "package",
-            1: "path"
-        },
-        "check": {
-            0: "path",
-            "--env": "env"
-        },
-        "config": None,
-        "delete": {
-            0: "package"
-        },
-        "generate": {
-            0: "directory"
-        },
-        "inspect": {
-            0: "package"
-        },
-        "install": {
-            0: "package",
-            "-v": "version",
-            "-x": "hash",
-            "-f": "force",
-            "-t": "tag"
-        },
-        "log": {
-            0: "package"
-        },
-        "login": None,
-        "logout": None,
-        "ls": None,
-        "push": {
-            0: "package",
-            "--public": "public",
-            "--reupload": "reupload"
-        },
-        "search": {
-            0: "query"
-        },
-        "tag": {
-            0: {
-                "list": {
-                    0: "package"
-                },
-                "add": {
-                    0: "package",
-                    1: "tag",
-                    2: "pkghash"
-                },
-                "remove": {
-                    0: "package",
-                    1: "tag"
-                }
-            }
-        },
-        "version": {
-            0: {
-                "list": {
-                    0: "package"
-                },
-                "add": {
-                    0: "package",
-                    1: "version",
-                    2: "pkghash"
-                }
-            }
-        },
-    }
-}
-
-
-#TODO: Fix ambiguity of positional options vs anonymous positionals with separate options following them
+# New or missing cli param keypaths can be found in test errors,
+# These can be directly added or removed from the KNOWN_PARAMS
+# variable, as befits your situation.
+KNOWN_PARAMS = [
+    [0],
+    [0, 'access'],
+    [0, 'access', 0],
+    [0, 'access', 0, 'add'],
+    [0, 'access', 0, 'add', 0],
+    [0, 'access', 0, 'add', 1],
+    [0, 'access', 0, 'list'],
+    [0, 'access', 0, 'list', 0],
+    [0, 'access', 0, 'remove'],
+    [0, 'access', 0, 'remove', 0],
+    [0, 'access', 0, 'remove', 1],
+    [0, 'build'],
+    [0, 'build', 0],
+    [0, 'build', 1],
+    [0, 'check'],
+    [0, 'check', '--env'],
+    [0, 'check', 0],
+    [0, 'config'],
+    [0, 'delete'],
+    [0, 'delete', 0],
+    [0, 'generate'],
+    [0, 'generate', 0],
+    [0, 'inspect'],
+    [0, 'inspect', 0],
+    [0, 'install'],
+    [0, 'install', '-f'],
+    [0, 'install', '-t'],
+    [0, 'install', '-v'],
+    [0, 'install', '-x'],
+    [0, 'install', 0],
+    [0, 'log'],
+    [0, 'log', 0],
+    [0, 'login'],
+    [0, 'logout'],
+    [0, 'ls'],
+    [0, 'push'],
+    [0, 'push', '--public'],
+    [0, 'push', '--reupload'],
+    [0, 'push', 0],
+    [0, 'search'],
+    [0, 'search', 0],
+    [0, 'tag'],
+    [0, 'tag', 0],
+    [0, 'tag', 0, 'add'],
+    [0, 'tag', 0, 'add', 0],
+    [0, 'tag', 0, 'add', 1],
+    [0, 'tag', 0, 'add', 2],
+    [0, 'tag', 0, 'list'],
+    [0, 'tag', 0, 'list', 0],
+    [0, 'tag', 0, 'remove'],
+    [0, 'tag', 0, 'remove', 0],
+    [0, 'tag', 0, 'remove', 1],
+    [0, 'version'],
+    [0, 'version', 0],
+    [0, 'version', 0, 'add'],
+    [0, 'version', 0, 'add', 0],
+    [0, 'version', 0, 'add', 1],
+    [0, 'version', 0, 'add', 2],
+    [0, 'version', 0, 'list'],
+    [0, 'version', 0, 'list', 0],
+]
 
 
 ## Helper functions
@@ -228,23 +206,20 @@ def get_missing_key_paths(a, b, exhaustive=False):
         then with `exhaustive` set, both will be returned.  With `exhaustive`
         not set, only ['x', 'y'] will be returned.
 
-    :param a: Mapping to acquire paths from
-    :param b: Mapping to be tested
+    :param a: Mapping or list of paths to acquire paths from
+    :param b: Mapping to list of paths be tested
     :param exhaustive: Include children of paths missing from b as well
     :rtype: list
     """
-    a = RecursiveMappingWrapper(a) if not isinstance(a, RecursiveMappingWrapper) else a
-    b = RecursiveMappingWrapper(b) if not isinstance(b, RecursiveMappingWrapper) else b
+    if not isinstance(a, list):
+        a = list(RecursiveMappingWrapper(a).iterpaths()) if not isinstance(a, RecursiveMappingWrapper) else a
+    if not isinstance(b, list):
+        b = list(RecursiveMappingWrapper(b).iterpaths()) if not isinstance(b, RecursiveMappingWrapper) else b
+    b_set = set(tuple(kp) for kp in b)
 
     results = []
-    for kpath in a.iterpaths():
-        try:
-            b[kpath]
-        except KeyError:
-            if exhaustive:
-                results.append(kpath)
-            if any(result == kpath[:len(result)] for result in results):
-                continue
+    for kpath in a:
+        if tuple(kpath) not in b_set:
             results.append(kpath)
     return results
 
@@ -493,8 +468,9 @@ class MockObject(object):
     _target = None
     __result = {}
 
-    def __init__(self, target):
+    def __init__(self, target, use_stdout=False):
         self._target = target
+        self._use_stdout = use_stdout
 
     @property
     def _result(self):
@@ -515,7 +491,8 @@ class MockObject(object):
                 'args': args,
                 'kwargs': kwargs
                 }
-            print(json.dumps(result, indent=4))
+            if self._use_stdout:
+                print(json.dumps(result, indent=4))
             self._result = result
         return dummy_func
 
@@ -650,9 +627,7 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs']['public'] is True
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
 
-#TODO: Explore fast-test option by skipping subprocess call, acting on ArgumentParser directly.
-#TODO: More tests!
-#TODO: remove xfail once coverage is complete
+
 @pytest.mark.xfail
 def test_coverage():
     result = get_paramtest_coverage()
