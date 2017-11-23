@@ -32,7 +32,7 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException)
-from .const import DEFAULT_BUILDFILE, LATEST_TAG, DEFAULT_QUILT_YML
+from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
                    load_yaml)
@@ -68,9 +68,6 @@ CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
-
-QUILT_YML_NOT_FOUND_FMT = "Requirements file not found: {filename}."
-DEFAULT_QUILT_YML_NOT_FOUND_MSG = QUILT_YML_NOT_FOUND_FMT.format(filename=DEFAULT_QUILT_YML)
 
 _registry_url = None
 
@@ -789,7 +786,7 @@ def install_via_requirements(requirements_str, force=False):
         if os.path.isfile(path):
             yaml_data = load_yaml(path)
         else:
-            raise CommandException(QUILT_YML_NOT_FOUND_FMT.format(filename=path))
+            raise CommandException("Requirements file not found: {filename}".format(filename=path))
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:

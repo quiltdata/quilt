@@ -234,6 +234,8 @@ packages:
         # missing/malformed requests
         with assertRaisesRegex(self, command.CommandException, "package name is empty"):
             command.install(" ")
+        with assertRaisesRegex(self, command.CommandException, "file not found: quilt.yml"):
+            command.install("@quilt.yml")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):

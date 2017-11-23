@@ -154,10 +154,9 @@ def main():
         func(**kwargs)
         return 0
     except command.CommandException as ex:
-        if str(ex) == command.DEFAULT_QUILT_YML_NOT_FOUND_MSG:
-            parser.print_help()
-        else:
-            print(ex, file=sys.stderr)
+        print(ex, file=sys.stderr)
+        print()
+        parser.print_help()
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)
