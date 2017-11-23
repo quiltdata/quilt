@@ -154,7 +154,7 @@ def main():
         func(**kwargs)
         return 0
     except command.CommandException as ex:
-        if re.search(r'Requirements file quilt.yml not found', str(ex)):
+        if str(ex) == command.DEFAULT_QUILT_YML_NOT_FOUND_MSG:
             parser.print_help()
         else:
             print(ex, file=sys.stderr)

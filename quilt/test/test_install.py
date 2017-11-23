@@ -237,14 +237,14 @@ packages:
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
+        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
         # unknown hash/tag/version/subpath
         self._mock_log('akarve/sales', contents_hash1)
-        with assertRaisesRegex(self, command.CommandException, "could not find hash"):
+        with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
         self._mock_tag('akarve/sales', 'unknown', contents_hash1)
         self._mock_package('akarve/sales', contents_hash1, 'group/table', contents1, [table_hash1],

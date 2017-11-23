@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException)
-from .const import DEFAULT_BUILDFILE, LATEST_TAG
+from .const import DEFAULT_BUILDFILE, LATEST_TAG, DEFAULT_QUILT_YML
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
                    load_yaml)
@@ -64,6 +64,8 @@ LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
+QUILT_YML_NOT_FOUND_FMT = "Requirements file not found: {filename}."
+DEFAULT_QUILT_YML_NOT_FOUND_MSG = QUILT_YML_NOT_FOUND_FMT.format(filename=DEFAULT_QUILT_YML)
 
 _registry_url = None
 
@@ -260,7 +262,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             return entry['hash']
 
     if raise_exception:
-        raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(
             hash=hash, owner=owner, pkg=pkg))
     return None
 
@@ -782,13 +784,11 @@ def install_via_requirements(requirements_str, force=False):
         if os.path.isfile(path):
             yaml_data = load_yaml(path)
         else:
-            raise CommandException("Requirements file {filename} not found.".format(filename=path))
+            raise CommandException(QUILT_YML_NOT_FOUND_FMT.format(filename=path))
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
         owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-        print('{}: o={} p={} s={} h={} v={} t={}'.format(
-            pkginfo, owner, pkg, subpath, hash, version, tag))
         package = owner + '/' + pkg
         if subpath is not None:
             package += '/' + "/".join(subpath)
@@ -819,12 +819,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
     session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
-
-    if existing_pkg is not None and not force:
-        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-        overwrite = input("Overwrite? (y/n) ")
-        if overwrite.lower() != 'y':
-            return
 
     if version is not None:
         response = session.get(
@@ -865,6 +859,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if not response.ok:
         _handle_response(response)
     assert response.ok # other responses handled by _handle_response
+
+    if existing_pkg is not None and not force:
+        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+        overwrite = input("Overwrite? (y/n) ")
+        if overwrite.lower() != 'y':
+            return
 
     dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
