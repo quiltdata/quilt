@@ -6,11 +6,12 @@ Command line parsing and command dispatch
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from datetime import datetime
+import gzip
 import hashlib
 import json
 import os
 import re
-from shutil import move, rmtree
+from shutil import copyfileobj, move, rmtree
 import stat
 import subprocess
 import sys
@@ -59,6 +60,10 @@ GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
+
+S3_CONNECT_TIMEOUT = 30
+S3_READ_TIMEOUT = 30
+CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3  # 3 seconds
 
@@ -793,7 +798,7 @@ def install_via_requirements(requirements_str, force=False):
         if subpath is not None:
             package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
-    
+
 def install(package, hash=None, version=None, tag=None, force=False):
     """
     Download a Quilt data package from the server and install locally.
@@ -891,29 +896,55 @@ def install(package, hash=None, version=None, tag=None, force=False):
                     print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
                         file_hash)
 
-            response = s3_session.get(url, stream=True)
-            if not response.ok:
-                message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                    download_hash, response.request.url, response.status_code, response.text
+            temp_path_gz = store.temporary_object_path(download_hash + '.gz')
+            with open(temp_path_gz, 'ab') as output_file:
+                starting_length = output_file.tell()
+                response = s3_session.get(
+                    url,
+                    headers={
+                        'Range': 'bytes=%d-' % starting_length
+                    },
+                    stream=True,
+                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
                 )
-                raise CommandException(message)
 
-            length_remaining = response.raw.length_remaining
+                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
+                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                    if not response.ok:
+                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                            download_hash, response.request.url, response.status_code, response.text
+                        )
+                        raise CommandException(message)
 
-            temp_path = store.temporary_object_path(download_hash)
-            with open(temp_path, 'wb') as output_file:
-                with tqdm(total=length_remaining, unit='B', unit_scale=True) as progress:
-                    # `requests` will automatically un-gzip the content, as long as
-                    # the 'Content-Encoding: gzip' header is set.
-                    # To report progress, however, we need the length of the original compressed data;
-                    # we use the undocumented but technically public `response.raw.length_remaining`.
-                    for chunk in response.iter_content(chunk_size=CHUNK_SIZE):
-                        if chunk: # filter out keep-alive new chunks
+                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip them
+                    # automatically - but that turned out to be a bad idea because it makes resuming downloads
+                    # impossible.
+                    # HACK: For now, just delete the header. Eventually, update the data in S3.
+                    response.raw.headers.pop('Content-Encoding', None)
+
+                    # Make sure we're getting the expected range.
+                    content_range = response.headers.get('Content-Range', '')
+                    match = CONTENT_RANGE_RE.match(content_range)
+                    if not match or not int(match.group(1)) == starting_length:
+                        raise CommandException("Unexpected Content-Range: %s" % content_range)
+
+                    total_length = int(match.group(3))
+
+                    with tqdm(initial=starting_length, total=total_length, unit='B', unit_scale=True) as progress:
+                        for chunk in response.iter_content(CHUNK_SIZE):
                             output_file.write(chunk)
-                        if response.raw.length_remaining is not None:  # Not set in unit tests.
-                            progress.update(length_remaining - response.raw.length_remaining)
-                            length_remaining = response.raw.length_remaining
+                            progress.update(len(chunk))
 
+            # Ungzip the downloaded fragment.
+            temp_path = store.temporary_object_path(download_hash)
+            try:
+                with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
+                    copyfileobj(f_in, f_out)
+            finally:
+                # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
+                os.remove(temp_path_gz)
+
+            # Check the hash of the result.
             file_hash = digest_file(temp_path)
             if file_hash != download_hash:
                 os.remove(temp_path)
