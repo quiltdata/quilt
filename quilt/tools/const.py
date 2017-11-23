@@ -30,9 +30,8 @@ HASH_TYPE = 'sha256'
 RSA_BITS = 2048
 
 # TODO nan probably not a safe choice and may pollute number cols with strs
-_kwargs = {'keep_default_na': False, 'na_values': ['nan']} # pylint:disable=C0103
+_kwargs = {} # default kwargs pylint:disable=C0103
 # Supported build targets and file types
-# BUILD[target][file_extension]
 # file_extension should be lowercase
 PARSERS = {
     'csv': {
