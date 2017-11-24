@@ -216,7 +216,7 @@ packages:
         table_data7, table_hash7 = self.make_table_data('table7')
         contents7, contents_hash7 = self.make_contents(table7=table_hash7)
         self._mock_tag('usr4/pkgd', 'latest', contents_hash7)
-        self._mock_package('usr4/pkgd', contents_hash7, 'group/table', contents7, [table_hash7])
+        self._mock_package('usr4/pkgd', contents_hash7, '', contents7, [table_hash7])
         self._mock_s3(table_hash7, table_data7)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
