@@ -101,7 +101,6 @@ class InstallTest(QuiltTestCase):
         self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
-        self._mock_log('foo/bar', contents_hash)
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
@@ -245,24 +244,35 @@ packages:
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
-        # unknown hash/tag/version/subpath
+    def test_quilt_yml_unknown_tag(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_log('akarve/sales', contents_hash1)
         with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
         self._mock_tag('akarve/sales', 'unknown', contents_hash1)
-        self._mock_package('akarve/sales', contents_hash1, 'group/table', contents1, [table_hash1],
-                           status=404, message='Tag unknown does not exist')
+
+    def test_quilt_yml_unknown_tag(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_tag('akarve/sales', 'unknown', contents_hash1,
+                       status=404, message='Tag unknown does not exist')
         with assertRaisesRegex(self, command.CommandException, "Tag unknown does not exist"):
             command.install("packages:\n- akarve/sales:t:unknown")
-        self._mock_version('akarve/sales', '99.99', contents_hash1)
-        self._mock_package('akarve/sales', contents_hash1, 'group/table', contents1, [table_hash1],
+
+    def test_quilt_yml_unknown_version(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_version('akarve/sales', '99.99', contents_hash1,
                            status=404, message='Version 99.99 does not exist')
         with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
             command.install("packages:\n- akarve/sales:v:99.99")
-        table_data2, table_hash2 = self.make_table_data('table2')
-        contents2, contents_hash2 = self.make_contents(table2=table_hash2)
-        self._mock_tag('baz/bat', 'latest', contents_hash2)
-        self._mock_package('baz/bat', contents_hash2, 'badsubpath', contents2, [table_hash2],
+
+    def test_quilt_yml_unknown_subpath(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_tag('baz/bat', 'latest', contents_hash1)
+        self._mock_package('baz/bat', contents_hash1, 'badsubpath', contents1, [table_hash1],
                            status=404, message='Invalid subpath')
         with assertRaisesRegex(self, command.CommandException, "Invalid subpath"):
             command.install("packages:\n- baz/bat/badsubpath")
@@ -364,17 +374,19 @@ packages:
             {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
         ]}))
 
-    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET):
+    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
+                      status=200, message=None):
         tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
-        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
-            hash=pkg_hash
-        )))
+        self.requests_mock.add(cmd, tag_url, json.dumps(
+            dict(message=message) if message else dict(hash=pkg_hash)
+        ), status=status)
 
-    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET):
-        tag_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
-        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
-            hash=pkg_hash
-        )))
+    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET,
+                      status=200, message=None):
+        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
+        self.requests_mock.add(cmd, version_url, json.dumps(
+            dict(message=message) if message else dict(hash=pkg_hash)
+        ), status=status)
 
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
                       status=200, message=None):
