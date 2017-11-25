@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+from inspect import stack
 from shutil import copyfileobj, move, rmtree
 import stat
 import subprocess
@@ -67,8 +68,19 @@ CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3  # 3 seconds
 
-VERSION = pkg_resources.require('quilt')[0].version
-
+try:
+    VERSION = pkg_resources.require('quilt')[0].version
+except pkg_resources.DistributionNotFound:
+    # Not installed, so we'll get the version manually.
+    try:
+        mydir = os.path.abspath(stack()[0][1])
+        pkgdir = os.path.join('/', *mydir.split(os.path.sep)[:-3])
+        text = open(os.path.join(pkgdir, 'setup.py')).read()
+        text = text.split('\nQUILT_VERSION = ', 1)[1]
+        VERSION = text.split('\n', 1)[0].strip(' \'"')
+        del mydir, pkgdir, text
+    except (OSError, IndexError):
+        raise RuntimeError("Failed discovery of quilt version.")
 
 _registry_url = None
 
@@ -251,7 +263,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
-    
+
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
             url=get_registry_url(),
@@ -269,7 +281,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             hash=hash, owner=owner, pkg=pkg))
     return None
 
-        
+
 def login():
     """
     Authenticate.
@@ -813,7 +825,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
-        
+
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)

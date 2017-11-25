@@ -6,17 +6,20 @@ from __future__ import print_function
 
 import argparse
 import sys
+import os
 
 import requests
 
 from . import command
 
+if os.environ.get('QUILT_CLI_TEST') == "True":
+    from ..test.test_cli import MockObject
+    command = MockObject(command)
+
 HANDLE = "owner/packge_name"
 
-def main():
-    """
-    Build and run parser
-    """
+
+def argument_parser():
     parser = argparse.ArgumentParser(description="Quilt Command Line")
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
@@ -139,7 +142,16 @@ def main():
     inspect_p.add_argument("package", type=str, help=HANDLE)
     inspect_p.set_defaults(func=command.inspect)
 
-    args = parser.parse_args()
+    return parser
+
+
+def main(args=None):
+    """Build and run parser
+
+    :param args: cli args from tests
+    """
+    parser = argument_parser()
+    args = parser.parse_args(args) if args else parser.parse_args()
 
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
