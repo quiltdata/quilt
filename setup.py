@@ -12,9 +12,14 @@ def readme():
     """
     return readme_short
 
+
+# Used by tools/command.py to extract version when not installed.
+# Must be first occurrence of '\nQUILT_VERSION = '
+QUILT_VERSION = "2.7.1"
+
 setup(
     name="quilt",
-    version="2.7.1",
+    version=QUILT_VERSION,
     packages=find_packages(),
     description='Quilt is a data package manager',
     long_description=readme(),
