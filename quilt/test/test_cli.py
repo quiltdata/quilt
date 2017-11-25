@@ -34,8 +34,8 @@ the following steps occur:
     * params for the specific commands tested are marked as tested
       in TESTED_PARAMS.
     * quilt is called as a subprocess with the specified options
-      and QUILT_CLI_TEST="True" in the environment
-    * QUILT_CLI_TEST is read and MockCommand is used
+      and QUILT_TEST_CLI_SUBPROC="True" in the environment
+    * QUILT_TEST_CLI_SUBPROC is read and MockCommand is used
     * MockCommand emits JSON to stdout
     * JSON is read from subprocess
     * Function is verified to exist in actual command module
@@ -75,7 +75,6 @@ from subprocess import call, check_output, PIPE, CalledProcessError
 import pytest
 
 from .utils import BasicQuiltTestCase
-from ..tools import command, main
 
 # inspect.argspec is deprecated, so
 try:
@@ -189,6 +188,7 @@ def get_current_param_tree():
 
     :rtype: ArgparseIntrospector
     """
+    from ..tools import main
     return ArgparseIntrospector(main.argument_parser())
 
 
@@ -485,12 +485,19 @@ class MockObject(object):
 
     def __getattr__(self, funcname):
         def dummy_func(*args, **kwargs):
+            matched = hasattr(self._target, funcname)
+            func = getattr(self._target, funcname, None)
+            if matched and callable(func):
+                bind_failure = fails_binding(func, args=args, kwargs=kwargs)
+
             result = {
                 'func': funcname,
-                'matched': hasattr(self._target, funcname),
+                'matched': matched,
                 'args': args,
-                'kwargs': kwargs
-                }
+                'kwargs': kwargs,
+                'bind failure': bind_failure,
+            }
+
             if self._use_stdout:
                 print(json.dumps(result, indent=4))
             self._result = result
@@ -499,41 +506,51 @@ class MockObject(object):
 
 class TestCLI(BasicQuiltTestCase):
     def setUp(self):
+        # must be imported from within functions to avoid circular import
+        from ..tools import main, command
+
         self.mock_command = MockObject(command)
         main.command = self.mock_command
+        self._main = main
+
         self.param_tree = get_current_param_tree()
         self.parser = self.param_tree.data
 
-        # if using subprocess calls
+        # used when using subprocess calls
         self.env = os.environ.copy()
-        self.env['QUILT_CLI_TEST'] = "True"
         self.env['PYTHON_PATH'] = PACKAGE_DIR
 
         self.quilt_command = [sys.executable, '-c', 'from quilt.tools import main; main.main()']
 
     def tearDown(self):
-        main.command = self.mock_command._target
+        # restore the real 'command' module back to the 'main' module
+        self._main.command = self.mock_command._target
 
     def execute(self, cli_args):
-
-        #TODO: Enable switching between direct and subprocess modes
-
-        # Subprocess mode -- snippets, untested, may not work
-        # quilt = self.quilt_command
-        # env = self.env
-        # cmd = quilt + ['config']
-        # result = json.loads(check_output(cmd, env=env).decode())  # Terminal default decoding
-
-        # direct mode -- uses quilt.tools.main.main()
         result = {}
-        try:
-            main.main(cli_args)
-        except SystemExit as error:
-            result['return code'] = error.args[0] if error.args else 0
+
+        # CLI mode -- actually executes "quilt <cli args>"
+        # This mode is preferable, once quilt load times improve.
+        if self.env.get('QUILT_TEST_CLI_SUBPROC', '').lower() == 'true':
+            quilt = self.quilt_command
+            env = self.env
+            cmd = quilt + cli_args
+            try:
+                result = json.loads(check_output(cmd, env=env).decode())
+                result['return code'] = 0
+            except CalledProcessError as error:
+                result['return code'] = error.returncode
+            return result
+        # Fast mode -- calls main.main(cli_args) instead of actually executing quilt
         else:
-            result['return code'] = 0
-        result.update(self.mock_command._result)
-        return result
+            try:
+                self._main.main(cli_args)
+            except SystemExit as error:
+                result['return code'] = error.args[0] if error.args else 0
+            else:
+                result['return code'] = 0
+            result.update(self.mock_command._result)
+            return result
 
     def test_cli_new_param(self):
         missing_paths = get_missing_key_paths(self.param_tree, KNOWN_PARAMS, exhaustive=True)
@@ -568,8 +585,7 @@ class TestCLI(BasicQuiltTestCase):
         # General tests
         assert result['return code'] == 0
         assert result['matched'] is True  # func name recognized by MockCommand class?
-        func = getattr(command, result['func'])
-        assert not fails_binding(func, args=result['args'], kwargs=result['kwargs'])
+        assert not result['bind failure']
 
         # Specific tests
         assert result['func'] == 'config'
@@ -600,9 +616,9 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        assert result['matched'] is True    # func name recognized by MockCommand class?
-        func = getattr(command, result['func'])
-        assert not fails_binding(func, args=result['args'], kwargs=result['kwargs'])
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockCommand class?
+        assert not result['bind failure']
 
         # Specific tests
         assert not result['args']
@@ -616,9 +632,9 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        assert result['matched'] is True    # func name recognized by MockCommand class?
-        func = getattr(command, result['func'])
-        assert not fails_binding(func, args=result['args'], kwargs=result['kwargs'])
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockCommand class?
+        assert not result['bind failure']
 
         # Specific tests
         assert not result['args']

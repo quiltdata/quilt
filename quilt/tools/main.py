@@ -12,9 +12,9 @@ import requests
 
 from . import command
 
-if os.environ.get('QUILT_CLI_TEST') == "True":
+if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
     from ..test.test_cli import MockObject
-    command = MockObject(command)
+    command = MockObject(command, use_stdout=True)
 
 HANDLE = "owner/packge_name"
 
