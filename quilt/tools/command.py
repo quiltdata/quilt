@@ -831,6 +831,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 version=version
             )
         )
+        # TODO: for some reason, test_import.py is causing _handle_response to not get called.
+        if not response.ok:
+            _handle_response(response)
         pkghash = response.json()['hash']
     elif tag is not None:
         response = session.get(
@@ -841,6 +844,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 tag=tag
             )
         )
+        # TODO: for some reason, test_import.py is causing _handle_response to not get called.
+        if not response.ok:
+            _handle_response(response)
         pkghash = response.json()['hash']
     else:
         pkghash = _match_hash(session, owner, pkg, hash)
