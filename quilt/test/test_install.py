@@ -101,7 +101,6 @@ class InstallTest(QuiltTestCase):
         self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
-        self._mock_log('foo/bar', contents_hash)
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
