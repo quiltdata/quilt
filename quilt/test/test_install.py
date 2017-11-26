@@ -222,7 +222,6 @@ packages:
             fd.close()
         command.install('@tmp_quilt.yml')
 
-
     def test_bad_install_dependencies(self):
         """
         Install multiple packages via requirements file
