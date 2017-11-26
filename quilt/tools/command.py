@@ -250,7 +250,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
-    
+
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
             url=get_registry_url(),
@@ -268,7 +268,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             hash=hash, owner=owner, pkg=pkg))
     return None
 
-        
+
 def login():
     """
     Authenticate.
@@ -367,6 +367,7 @@ def _log(**kwargs):
     session = _get_session()
 
     # Disable error handling.
+    orig_response_hooks = session.hooks.get('response')
     session.hooks.update(dict(
         response=None
     ))
@@ -382,6 +383,8 @@ def _log(**kwargs):
     except requests.exceptions.RequestException:
         # Ignore logging errors.
         pass
+    # restore disabled error-handling
+    session.hooks['response'] = orig_response_hooks
 
 def build(package, path=None, dry_run=False, env='default'):
     """
@@ -814,7 +817,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
-        
+
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)
@@ -831,9 +834,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 version=version
             )
         )
-        # TODO: for some reason, test_import.py is causing _handle_response to not get called.
-        if not response.ok:
-            _handle_response(response)
         pkghash = response.json()['hash']
     elif tag is not None:
         response = session.get(
@@ -844,9 +844,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
                 tag=tag
             )
         )
-        # TODO: for some reason, test_import.py is causing _handle_response to not get called.
-        if not response.ok:
-            _handle_response(response)
         pkghash = response.json()['hash']
     else:
         pkghash = _match_hash(session, owner, pkg, hash)
@@ -863,9 +860,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
             subpath='/'.join(subpath)
         )
     )
-    # TODO: for some reason, test_import.py is causing _handle_response to not get called.
-    if not response.ok:
-        _handle_response(response)
     assert response.ok # other responses handled by _handle_response
 
     if existing_pkg is not None and not force:
