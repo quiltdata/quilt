@@ -144,6 +144,7 @@ def main():
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
     kwargs = vars(args)
+    cmd = kwargs['cmd']
     del kwargs['cmd']
 
     func = kwargs.pop('func')
@@ -154,7 +155,7 @@ def main():
     except command.CommandException as ex:
         print(ex, file=sys.stderr)
         print()
-        parser.print_help()
+        print(subparsers.choices[cmd].format_help())
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)
