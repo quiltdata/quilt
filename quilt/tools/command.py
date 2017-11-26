@@ -251,7 +251,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
-    
+
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
             url=get_registry_url(),
@@ -269,7 +269,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             hash=hash, owner=owner, pkg=pkg))
     return None
 
-        
+
 def login():
     """
     Authenticate.
@@ -813,7 +813,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
-        
+
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)

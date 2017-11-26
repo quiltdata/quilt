@@ -48,7 +48,7 @@ class InstallTest(QuiltTestCase):
         h.update(file_data)
         file_hash = h.hexdigest()
         return file_data, file_hash
-    
+
     @classmethod
     def make_contents(cls, **args):
         contents = RootNode(dict(
@@ -58,7 +58,7 @@ class InstallTest(QuiltTestCase):
             ))
         ))
         return contents, hash_contents(contents)
-        
+
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -72,7 +72,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        command.install('foo/bar')        
+        command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
         with open(os.path.join(teststore.package_path('foo', 'bar'),
@@ -213,7 +213,6 @@ packages:
             fd.write("packages:\n- usr4/pkgd")
             fd.close()
         command.install('@tmp_quilt.yml')
-            
 
     def test_bad_install_dependencies(self):
         """
@@ -228,7 +227,7 @@ packages:
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
+        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)

@@ -239,7 +239,7 @@ def parse_package_extended(name):
                         # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
                         hash = info[1]
                     else:
-                        raise CommandException("invalid versioninfo: %s." % info)
+                        raise CommandException("Invalid versioninfo: %s." % info)
                 else:
                     # usr/pkg:hashval
                     hash = versioninfo
