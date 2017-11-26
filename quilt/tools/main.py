@@ -6,8 +6,6 @@ from __future__ import print_function
 
 import argparse
 import sys
-import re
-
 import requests
 
 from . import command
