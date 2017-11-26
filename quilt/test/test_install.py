@@ -48,7 +48,7 @@ class InstallTest(QuiltTestCase):
         h.update(file_data)
         file_hash = h.hexdigest()
         return file_data, file_hash
-    
+
     @classmethod
     def make_contents(cls, **args):
         contents = RootNode(dict(
@@ -58,7 +58,7 @@ class InstallTest(QuiltTestCase):
             ))
         ))
         return contents, hash_contents(contents)
-        
+
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -72,7 +72,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        command.install('foo/bar')        
+        command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
         with open(os.path.join(teststore.package_path('foo', 'bar'),
@@ -101,6 +101,7 @@ class InstallTest(QuiltTestCase):
         self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
+        self._mock_log('foo/bar', contents_hash)
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
@@ -221,7 +222,7 @@ packages:
             fd.write("packages:\n- usr4/pkgd")
             fd.close()
         command.install('@tmp_quilt.yml')
-            
+
 
     def test_bad_install_dependencies(self):
         """
@@ -394,7 +395,7 @@ packages:
             command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
-            dict(message=message) if message else 
+            dict(message=message) if message else
             dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
         , default=encode_node), match_querystring=True, status=status)
 
