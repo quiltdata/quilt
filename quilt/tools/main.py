@@ -140,6 +140,10 @@ def main():
     inspect_p.add_argument("package", type=str, help=HANDLE)
     inspect_p.set_defaults(func=command.inspect)
 
+    rm_p = subparsers.add_parser("rm")
+    rm_p.add_argument("package", type=str, help=HANDLE)
+    rm_p.set_defaults(func=command.rm)
+
     args = parser.parse_args()
 
     # Convert argparse.Namespace into dict and clean it up.

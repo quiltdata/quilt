@@ -58,7 +58,7 @@ class Package(object):
     def set_parquet_lib(cls, parqlib):
         cls.__parquet_lib = ParquetLib(parqlib)
 
-    def __init__(self, store, user, package, path, contents=None):
+    def __init__(self, store, user, package, path, contents=None, pkghash=None):
         self._store = store
         self._user = user
         self._package = package
@@ -71,21 +71,25 @@ class Package(object):
             os.mkdir(os.path.join(self._path, self.VERSIONS_DIR))
 
         if contents is None:
-            contents = self._load_contents()
+            contents = self._load_contents(pkghash)
 
         self._contents = contents
 
-    def _load_contents(self):
-        instance_hash = None
-        latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
-        if not os.path.exists(latest_tag):
-            msg = "Could not find latest tag for package {0}/{1}"
-            raise PackageException(msg.format(self._user, self._package))
-        
-        with open (latest_tag, 'r') as tagfile:
-            instance_hash = tagfile.read()
+    def _load_contents(self, instance_hash=None):
+        if instance_hash is None:
+            latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
+            if not os.path.exists(latest_tag):
+                msg = "Could not find latest tag for package {0}/{1}"
+                raise PackageException(msg.format(self._user, self._package))
+
+            with open (latest_tag, 'r') as tagfile:
+                instance_hash = tagfile.read()
 
         contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
+        if not os.path.isfile(contents_path):
+            msg = "{h} is not a valid hash for package {u}/{p}"
+            raise PackageException(msg.format(h=instance_hash, u=self._user, p=self._package))
+        
         with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
             if not isinstance(contents, RootNode):
@@ -257,7 +261,8 @@ class Package(object):
             self._check_hashes(node.hashes)
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            hash_list = [h for c in node.preorder_tablenodes() for h in c.hashes]
+            hash_list = [h for c in node.preorder() if isinstance(c, TableNode)
+                         for h in c.hashes]
             self._check_hashes(hash_list)
             return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):

@@ -1117,3 +1117,12 @@ def inspect(package):
 
     print(pkgobj.get_path())
     _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
+
+def rm(package):
+    """
+    Remove a package (all instances) from the local store.
+    """
+    owner, pkg = parse_package(package)
+    store = PackageStore()
+    store.remove_package(owner, pkg)
+    store.prune()
