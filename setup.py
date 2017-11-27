@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages
+import os
+
 
 def readme():
     readme_short = """
@@ -13,13 +15,14 @@ def readme():
     return readme_short
 
 
-# Used by tools/command.py to extract version when not installed.
-# Must be first occurrence of '\nQUILT_VERSION = '
-QUILT_VERSION = "2.7.1"
+def quilt_version():
+    pkgdir = os.path.split(os.path.abspath(__file__))[0]
+    return open(os.path.join(pkgdir, 'VERSION')).read().strip()
+
 
 setup(
     name="quilt",
-    version=QUILT_VERSION,
+    version=quilt_version(),
     packages=find_packages(),
     description='Quilt is a data package manager',
     long_description=readme(),

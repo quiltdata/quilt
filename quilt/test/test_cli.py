@@ -1,55 +1,76 @@
 """
 Tests for CLI
 
+Quick reference:
+    When adding a new test, the test should append the specific param
+        key paths it covers to TESTED_PARAMS.
+    When test_cli_new_param or test_cli_missing_param fails, add or
+        remove the param key paths from KNOWN_PARAMS, and add/remove
+        related tests, which should be easily findable by the key path.
+    When test_coverage fails, the path is present in KNOWN_PARAMS, but
+        no test has added the key path to TESTED_PARAMS.
+
 === Adding/Removing Params ===
 Terminology:
-    param tree: nested dicts or other mappings containing param info
-    keypath: A list, containing indexes into a nested mapping. A
-        keypath can be used directly to get an item from a
-        `RecursiveMappingWrapper` object, for example:
-            keypath = ['a', 0, 'b']
-            obj = RecursiveMappingKeyWrapper({'a': {0: {'b': 'foo'}}})
-            obj[keypath]  # returns 'foo'
+    param tree: param info represented by an `ArgparseIntrospector`
+    keypath: A list, containing indexes into a nested mapping.
+        A keypath can be used directly to get an item from an
+        `ArgparseIntrospector` object, for example:
+            keypath = [0, 'access', 0, 'add', 0]
+            params = get_all_param_paths()
+            # returns 'package', which is the name of the first param
+            # for 'quilt access add <package>, <user>'
+            params[keypath]
 
-When a new param is created or deleted in main.py's ArgumentParser,
-a test will fail.  The failed test will show the key paths for which
-a test must be added or removed.
+Usage:
+    When a new param is created or deleted in main.py's ArgumentParser,
+    a test will fail.  The failed test will show the key paths for which
+    a test must be added or removed.
 
-This indicates that there should be a test written for the specific
-combination of arguments that has been created, and/or that tests
-for arguments that no longer exist should be removed (or verified).
+    This indicates that there should be a test written for the specific
+    combination of arguments that has been created, and/or that tests
+    for arguments that no longer exist should be removed (or verified).
 
-This helps to recognize when a change has been made that might be a
-breaking change.
+    This helps to recognize when a change has been made that might be a
+    breaking change.
 
-Key paths take the form:
-    [0, 'version', 0, 'add', 0]
+    Key paths take the form:
+        [0, 'version', 0, 'add', 0]
 
 
 === CLI <--> Python API Testing ===
 
 To test that the CLI is calling the API correctly, we mock the
-command module using the MockCommand class.  During this process,
+command module using the MockObject class.  During this process,
 the following steps occur:
-    * params for the specific commands tested are marked as tested
-      in TESTED_PARAMS.
-    * quilt is called as a subprocess with the specified options
-      and QUILT_TEST_CLI_SUBPROC="True" in the environment
-    * QUILT_TEST_CLI_SUBPROC is read and MockCommand is used
-    * MockCommand emits JSON to stdout
-    * JSON is read from subprocess
+    * params for the specific commands to be tested are marked as
+      tested in TESTED_PARAMS.
+    * If the OS environment has QUILT_TEST_CLI_SUBPROC=True
+      * Quilt is called as a subprocess with the specified options
+        and QUILT_TEST_CLI_SUBPROC="True" in the environment
+      * QUILT_TEST_CLI_SUBPROC is read and MockObject is used
+        by tools/main.py
+      * MockObject emits JSON to stdout
+      * JSON is read from subprocess
+    * Otherwise:
+      * quilt.tools.main.command is mocked with MockObject
+      * quilt.tools.main.argument_parser() is called
+      * quilt.tools.main.main() is called with parsed args
+    * Function calls are read from MockObject instance
     * Function is verified to exist in actual command module
-    * args and kwargs from CLI JSON are bound to the function
-      (without calling it) to ensure that the arguments work.
-    * Types, values, or other conditions may be checked by the test
-      function as well.
+    * args and kwargs are bound to the function (without calling it)
+      to ensure that the arguments work.
+    * Types, values, or other conditions to be sent to the command
+      function may be checked by the specific test as well.
 
 The binding step should prevent any CLI parameters from changes or
 removal (or incompatible additions) on the API side.
 """
+#NOTE: This is slow in subproc mode due to frequent quilt executions (see #194)
 #TODO: More tests!
 #TODO: remove xfail from test_coverage() once coverage is complete
-# BUG: add args/kwargs items into param trees.
+
+# BUG: (minor) add args/kwargs items into param trees.
 # It's not very easy to do this, but it fixes the issue that
 # we currently leave some ambiguity as to whether [0, 'foo', 'bar']
 # indicates:
@@ -84,8 +105,9 @@ except ImportError:
 
 
 ## "Static" vars
-_TEST_DIR = os.path.abspath(inspect.stack()[0][1])
-PACKAGE_DIR = os.path.join('/', *_TEST_DIR.split(os.path.sep)[:-3])
+_TEST_DIR = os.path.split(os.path.abspath(__file__))[0]
+_QUILT_DIR = os.path.split(_TEST_DIR)[0]
+PACKAGE_DIR = os.path.split(_QUILT_DIR)[0]
 
 # When a test for CLI params is called, append the param key paths that
 # the test addresses to this variable.
@@ -206,15 +228,15 @@ def get_missing_key_paths(a, b, exhaustive=False):
         then with `exhaustive` set, both will be returned.  With `exhaustive`
         not set, only ['x', 'y'] will be returned.
 
-    :param a: Mapping or list of paths to acquire paths from
-    :param b: Mapping to list of paths be tested
+    :param a: ArgparseIntrospector or list of paths to acquire paths from
+    :param b: ArgparseIntrospector or list of paths be tested
     :param exhaustive: Include children of paths missing from b as well
     :rtype: list
     """
-    if not isinstance(a, list):
-        a = list(RecursiveMappingWrapper(a).iterpaths()) if not isinstance(a, RecursiveMappingWrapper) else a
-    if not isinstance(b, list):
-        b = list(RecursiveMappingWrapper(b).iterpaths()) if not isinstance(b, RecursiveMappingWrapper) else b
+    if isinstance(a, ArgparseIntrospector):
+        a = list(a.iterpaths())
+    if isinstance(b, ArgparseIntrospector):
+        b = list(b.iterpaths())
     b_set = set(tuple(kp) for kp in b)
 
     results = []
@@ -229,16 +251,16 @@ def get_paramtest_coverage():
 
     Returns a dict with `'missing'` and `'percentage'` keys.
     """
-    param_tree = RecursiveMappingWrapper(get_current_param_tree())
-    ideal_data = [tuple(v) for v in param_tree.iterpaths()]
+    ideal_data = [tuple(v) for v in get_all_param_paths()]
     ideal = set(ideal_data)
     tested = set(tuple(v) for v in TESTED_PARAMS)
     # remove covered test cases that aren't in the main argparser
-    tested = tested - tested.difference(ideal)
+    tested &= ideal
     missing = ideal - tested
     covered = ideal - missing
     return {'missing': [list(v) for v in ideal_data if v in missing],
             'percentage': len(covered) / len(ideal)}
+
 
 def fails_binding(func, args, kwargs):
     """Check if the given `args` and `kwargs` fails binding to `func`.
@@ -277,7 +299,22 @@ class ArgparseIntrospector(collections.Mapping):
         self.ignored = ignore
         self.leaf_func = leaf_func
 
-    def __getitem__(self, k):
+    def __getitem__(self, key):
+        """Fetch value by key or key path."""
+        if not isinstance(key, list):
+            return self._getitem(key)
+        key_path = key
+        if not key_path:
+            raise KeyError("empty key path list")
+        value = self
+        for k in key_path:
+            try:
+                value = value[k]
+            except (KeyError, TypeError):
+                raise KeyError("Invalid key path", key_path)
+        return value
+
+    def _getitem(self, k):
         if k in self.ignored:
             raise KeyError("Ignored: {!r}".format(k))
 
@@ -322,141 +359,28 @@ class ArgparseIntrospector(collections.Mapping):
             return new
         return _mcopy(self)
 
-    def __repr__(self):
-        args = '\n'.join(repr(x) for x in self)
-        return 'ArgparseIntrospector with args:\n' + args
-
-
-class RecursiveMappingWrapper(collections.MutableMapping):
-    """Wrap a mapping, providing recursive access to items via key lists
-
-    allows:
-    >>> x = RecursiveMappingWrapper({'a': {'b': 'c'}})
-    >>> x[['a', 'b']]
-    'c'
-    >>> x[['a', 'n']] = 9
-    >>> x.obj
-    {'a': {'b': 'c', 'n': 9}}
-
-    It does not implicitly add new dicts/mappings by default, so:
-    >>> x = RecursiveMappingWrapper({})
-    >>> x[['foo', 'bar']] = 'baz'
-    <raises KeyError('Invalid key path', ['foo'])>
-    >>> x['foo'] = {}
-    >>> x[['foo', 'bar']] = 'baz'
-    >>> x.obj
-    {'foo': {'bar': 'baz'}}
-
-    However, if `implicit_fill` is truthy, then the following occurs:
-    >>> x = RecursiveMappingWrapper({}, implicit_fill=True)
-    >>> x[['foo', 'bar']]
-    <raises KeyError('Invalid key path', ['foo'])>
-    >>> x[['foo', 'bar']] = 'baz'
-    >>> x.obj
-    {'foo': {'bar': 'baz'}}
-
-    :param obj: mapping/dict to wrap
-    :param implicit_fill: implicitly resolve interim keys to new dict objects
-    """
-    def __init__(self, obj, implicit_fill=False):
-        if not isinstance(obj, collections.Mapping):
-            raise TypeError("`obj` must be a mapping.")
-        super(RecursiveMappingWrapper, self).__init__()
-        self.obj = obj
-        self.implicit_fill = implicit_fill
-
-    def __delitem__(self, key):
-        """Delete by key or key path."""
-        if not isinstance(key, list):
-            del self.obj[key]
-            return
-        keys = key
-        try:
-            key = keys[-1]
-        except IndexError:
-            raise KeyError("empty key list")
-        obj = self._get_next_to_last(keys)
-        try:
-            del obj[key]
-        except KeyError:
-            raise KeyError("Invalid key path", keys)
-
-    def __eq__(self, other):
-        if isinstance(other, self.__class__):
-            return self.obj == other.obj
-        return self.obj == other
-
-    def __getitem__(self, key):
-        """Fetch value by key or key path."""
-        if not isinstance(key, list):
-            return self.obj[key]
-        keys = key
-        try:
-            key = keys[-1]
-        except IndexError:
-            raise KeyError("empty key list")
-        obj = self._get_next_to_last(keys)
-        try:
-            return obj[key]
-        except KeyError:
-            raise KeyError("Invalid key path", keys)
-
-    def __iter__(self):
-        """Iterate over keys (not key paths)."""
-        return iter(self.obj)
-
-    def __len__(self):
-        return len(self.obj)
-
-    def __repr__(self):
-        return "{}({})".format(type(self).__name__, self.obj)
-
-    def __setitem__(self, key, value):
-        if not isinstance(key, list):
-            self.obj[key] = value
-            return
-        keys = key
-        try:
-            key = keys[-1]
-        except IndexError:
-            raise KeyError("empty key list")
-        obj = self._get_next_to_last(keys, implicit_fill=self.implicit_fill)
-        obj[key] = value
-
-    def _get_next_to_last(self, keys, implicit_fill=False):
-        # list is our recursive type, because it is mutable, and can't be
-        # used for a key, anyways.
-        if not isinstance(keys, list):
-            raise TypeError('`keys` must be a list')
-        obj = self.obj
-        path = []
-        try:
-            for k in keys[:-1]:
-                path.append(k)
-                if implicit_fill:
-                    obj[k] = obj.get(k, {})
-                obj = obj[k]
-        except KeyError:
-            raise KeyError("Invalid key path", path)
-        return obj
-
-    def __getattr__(self, item):
-        return getattr(self.obj, item)
-
-    def iterpaths(self, sortkey=lambda x: repr(x)):
+    @classmethod
+    def _iterpaths(cls, mapping, sortkey=lambda x: repr(x)):
         """Iterate recursively over contained keys and key paths"""
         if sortkey:
-            keys = sorted(self, key=sortkey)
+            keys = sorted(mapping, key=sortkey)
         else:
-            keys = self.keys()
+            keys = mapping.keys()
         for key in keys:
-            value = self[key]
+            value = mapping[key]
             yield [key]
             if isinstance(value, collections.Mapping):
-                if not isinstance(value, self.__class__):
-                    value = self.__class__(value)
-                for path in value.iterpaths():
+                for path in cls._iterpaths(value, sortkey):
                     yield [key] + path
+
+    def iterpaths(self, sortkey=lambda x: repr(x)):
+        for x in self._iterpaths(self, sortkey):
+            yield x
+
+    def __repr__(self):
+        message = "ArgparseIntrospector with args: [\n    {}\n]"
+        args = '\n    '.join(repr(x) for x in self.iterpaths())
+        return message.format(args)
 
 
 class MockObject(object):
@@ -555,13 +479,13 @@ class TestCLI(BasicQuiltTestCase):
     def test_cli_new_param(self):
         missing_paths = get_missing_key_paths(self.param_tree, KNOWN_PARAMS, exhaustive=True)
         if missing_paths:
-            message = "Unknown/new CLI params:\n\t{}"
+            message = "Unknown/new CLI param key paths:\n\t{}"
             pytest.fail(message.format('\n\t'.join(repr(x) for x in missing_paths)))
 
     def test_cli_missing_param(self):
         missing_paths = get_missing_key_paths(KNOWN_PARAMS, self.param_tree, exhaustive=True)
         if missing_paths:
-            message = "Missing CLI params:\n\t{}"
+            message = "Missing CLI param key paths:\n\t{}"
             pytest.fail(message.format('\n\t'.join(repr(x) for x in missing_paths)))
 
     def test_cli_command_config(self):
@@ -584,7 +508,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # General tests
         assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockCommand class?
+        assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
 
         # Specific tests
@@ -617,7 +541,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # General tests
         assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockCommand class?
+        assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
 
         # Specific tests
@@ -633,7 +557,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # General tests
         assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockCommand class?
+        assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
 
         # Specific tests

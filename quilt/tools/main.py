@@ -151,7 +151,7 @@ def main(args=None):
     :param args: cli args from tests
     """
     parser = argument_parser()
-    args = parser.parse_args(args) if args is not None else parser.parse_args()
+    args = parser.parse_args(args)
 
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.

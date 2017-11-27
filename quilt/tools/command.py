@@ -73,12 +73,11 @@ try:
 except pkg_resources.DistributionNotFound:
     # Not installed, so we'll get the version manually.
     try:
-        mydir = os.path.abspath(stack()[0][1])
-        pkgdir = os.path.join('/', *mydir.split(os.path.sep)[:-3])
-        text = open(os.path.join(pkgdir, 'setup.py')).read()
-        text = text.split('\nQUILT_VERSION = ', 1)[1]
-        VERSION = text.split('\n', 1)[0].strip(' \'"')
-        del mydir, pkgdir, text
+        filedir = os.path.split(os.path.abspath(__file__))[0]
+        quiltdir = os.path.split(filedir)[0]
+        pkgdir = os.path.split(quiltdir)[0]
+        VERSION = open(os.path.join(pkgdir, 'VERSION')).read().strip()
+        del filedir, quiltdir, pkgdir
     except (OSError, IndexError):
         raise RuntimeError("Failed discovery of quilt version.")
 
