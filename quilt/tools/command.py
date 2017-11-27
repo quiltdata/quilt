@@ -476,7 +476,7 @@ def build_from_path(package, path, dry_run=False, env='default'):
     owner, pkg = parse_package(package)
 
     if not os.path.exists(path):
-        raise CommandException("%s does not exist." % path)
+        raise CommandException("%s does not exist." % path, show_help=False)
 
     try:
         if os.path.isdir(path):
