@@ -11,6 +11,7 @@ import os
 import requests
 
 from . import command
+from .const import DEFAULT_QUILT_YML
 
 if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
     from ..test.test_cli import MockObject
@@ -99,7 +100,8 @@ def argument_parser():
     tag_remove_p.set_defaults(func=command.tag_remove)
 
     install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help="owner/package_name[/path/...]")
+    install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
+                           nargs="?", default="@"+DEFAULT_QUILT_YML)
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
@@ -156,6 +158,7 @@ def main(args=None):
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
     kwargs = vars(args)
+    cmd = kwargs['cmd']
     del kwargs['cmd']
 
     func = kwargs.pop('func')
@@ -165,6 +168,8 @@ def main(args=None):
         return 0
     except command.CommandException as ex:
         print(ex, file=sys.stderr)
+        print()
+        print(subparsers.choices[cmd].format_help())
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)

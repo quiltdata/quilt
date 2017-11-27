@@ -16,6 +16,8 @@ DTIMEF = '%s %s' % (DATEF, TIMEF)
 LATEST_TAG = 'latest'
 PACKAGE_DIR_NAME = 'quilt_packages'
 DEFAULT_BUILDFILE = 'build.yml'
+DEFAULT_QUILT_YML = 'quilt.yml'
+
 # reserved words in build.yml
 RESERVED = {
     'file': 'file',
@@ -30,9 +32,8 @@ HASH_TYPE = 'sha256'
 RSA_BITS = 2048
 
 # TODO nan probably not a safe choice and may pollute number cols with strs
-_kwargs = {'keep_default_na': False, 'na_values': ['nan']} # pylint:disable=C0103
+_kwargs = {} # default kwargs pylint:disable=C0103
 # Supported build targets and file types
-# BUILD[target][file_extension]
 # file_extension should be lowercase
 PARSERS = {
     'csv': {

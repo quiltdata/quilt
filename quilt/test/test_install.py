@@ -48,7 +48,7 @@ class InstallTest(QuiltTestCase):
         h.update(file_data)
         file_hash = h.hexdigest()
         return file_data, file_hash
-    
+
     @classmethod
     def make_contents(cls, **args):
         contents = RootNode(dict(
@@ -58,7 +58,7 @@ class InstallTest(QuiltTestCase):
             ))
         ))
         return contents, hash_contents(contents)
-        
+
     def test_install_latest(self):
         """
         Install the latest update of a package.
@@ -72,7 +72,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
-        command.install('foo/bar')        
+        command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
         with open(os.path.join(teststore.package_path('foo', 'bar'),
@@ -97,12 +97,11 @@ class InstallTest(QuiltTestCase):
         file_data, file_hash = self.make_file_data()
         contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
-        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         self._mock_log('foo/bar', contents_hash)
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
-        self._mock_log('foo/bar', contents_hash)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
     def test_install_subpackage(self):
@@ -155,32 +154,38 @@ class InstallTest(QuiltTestCase):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_tag('foo/bar', 'latest', contents_hash1)
-        self._mock_package('foo/bar', contents_hash1, 'group/table', contents1, [table_hash1])
+        self._mock_package('foo/bar', contents_hash1, '', contents1, [table_hash1])
         self._mock_s3(table_hash1, table_data1)
 
         table_data2, table_hash2 = self.make_table_data('table2')
         contents2, contents_hash2 = self.make_contents(table2=table_hash2)
         self._mock_tag('baz/bat', 'nexttag', contents_hash2)
-        self._mock_package('baz/bat', contents_hash2, 'group/table', contents2, [table_hash2])
+        self._mock_package('baz/bat', contents_hash2, '', contents2, [table_hash2])
         self._mock_s3(table_hash2, table_data2)
 
         table_data3, table_hash3 = self.make_table_data('table3')
         contents3, contents_hash3 = self.make_contents(table3=table_hash3)
         self._mock_version('usr1/pkga', 'v1', contents_hash3)
-        self._mock_package('usr1/pkga', contents_hash3, 'group/table', contents3, [table_hash3])
+        self._mock_package('usr1/pkga', contents_hash3, '', contents3, [table_hash3])
         self._mock_s3(table_hash3, table_data3)
 
         table_data4, table_hash4 = self.make_table_data('table4')
         contents4, contents_hash4 = self.make_contents(table4=table_hash4)
         self._mock_tag('usr2/pkgb', 'latest', contents_hash4)
-        self._mock_package('usr2/pkgb', contents_hash4, 'group/table', contents4, [table_hash4])
+        self._mock_package('usr2/pkgb', contents_hash4, '', contents4, [table_hash4])
         self._mock_s3(table_hash4, table_data4)
 
         table_data5, table_hash5 = self.make_table_data('table5')
         contents5, contents_hash5 = self.make_contents(table5=table_hash5)
         self._mock_log('usr3/pkgc', contents_hash5)
-        self._mock_package('usr3/pkgc', contents_hash5, 'group/table', contents5, [table_hash5])
+        self._mock_package('usr3/pkgc', contents_hash5, '', contents5, [table_hash5])
         self._mock_s3(table_hash5, table_data5)
+
+        table_data6, table_hash6 = self.make_table_data('table6')
+        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
+        self._mock_tag('danWebster/sgRNAs', 'latest', contents_hash6)
+        self._mock_package('danWebster/sgRNAs', contents_hash6, 'libraries/brunello', contents6, [table_hash6])
+        self._mock_s3(table_hash6, table_data6)
 
         # inline test of quilt.yml
         command.install('''
@@ -190,30 +195,32 @@ packages:
 - usr1/pkga:version:v1
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
+- danWebster/sgRNAs/libraries/brunello  # subpath
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
         self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
         self.validate_file('baz','bat', contents_hash2, contents2, table_hash2, table_data2)
         self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
         self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
         self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
+        self.validate_file('danWebster', 'sgRNAs', contents_hash6, contents6, table_hash6, table_data6)
         # check that installation happens in the order listed in quilt.yml
         assert (self.getmtime('foo','bar', contents_hash1) <=
                 self.getmtime('baz','bat', contents_hash2) <=
                 self.getmtime('usr1','pkga', contents_hash3) <=
                 self.getmtime('usr2','pkgb', contents_hash4) <=
-                self.getmtime('usr3','pkgc', contents_hash5))
+                self.getmtime('usr3','pkgc', contents_hash5) <=
+                self.getmtime('danWebster', 'sgRNAs', contents_hash6))
 
         # test reading from file
-        table_data6, table_hash6 = self.make_table_data('table6')
-        contents6, contents_hash6 = self.make_contents(table6=table_hash6)
-        self._mock_tag('usr4/pkgd', 'latest', contents_hash6)
-        self._mock_package('usr4/pkgd', contents_hash6, 'group/table', contents6, [table_hash6])
-        self._mock_s3(table_hash6, table_data6)
+        table_data7, table_hash7 = self.make_table_data('table7')
+        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash7)
+        self._mock_package('usr4/pkgd', contents_hash7, '', contents7, [table_hash7])
+        self._mock_s3(table_hash7, table_data7)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
             fd.close()
         command.install('@tmp_quilt.yml')
-            
 
     def test_bad_install_dependencies(self):
         """
@@ -222,16 +229,52 @@ packages:
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
 
+        # missing/malformed requests
         with assertRaisesRegex(self, command.CommandException, "package name is empty"):
             command.install(" ")
+        with assertRaisesRegex(self, command.CommandException, "file not found: quilt.yml"):
+            command.install("@quilt.yml")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "invalid versioninfo"):
+        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
+
+    def test_quilt_yml_unknown_tag(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_log('akarve/sales', contents_hash1)
+        with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
+            command.install("packages:\n- akarve/sales:h:123456")
+        self._mock_tag('akarve/sales', 'unknown', contents_hash1)
+
+    def test_quilt_yml_unknown_tag(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_tag('akarve/sales', 'unknown', contents_hash1,
+                       status=404, message='Tag unknown does not exist')
+        with assertRaisesRegex(self, command.CommandException, "Tag unknown does not exist"):
+            command.install("packages:\n- akarve/sales:t:unknown")
+
+    def test_quilt_yml_unknown_version(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_version('akarve/sales', '99.99', contents_hash1,
+                           status=404, message='Version 99.99 does not exist')
+        with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
+            command.install("packages:\n- akarve/sales:v:99.99")
+
+    def test_quilt_yml_unknown_subpath(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_tag('baz/bat', 'latest', contents_hash1)
+        self._mock_package('baz/bat', contents_hash1, 'badsubpath', contents1, [table_hash1],
+                           status=404, message='Invalid subpath')
+        with assertRaisesRegex(self, command.CommandException, "Invalid subpath"):
+            command.install("packages:\n- baz/bat/badsubpath")
 
     def test_bad_contents_hash(self):
         """
@@ -330,26 +373,29 @@ packages:
             {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
         ]}))
 
-    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET):
+    def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
+                      status=200, message=None):
         tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
-        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
-            hash=pkg_hash
-        )))
+        self.requests_mock.add(cmd, tag_url, json.dumps(
+            dict(message=message) if message else dict(hash=pkg_hash)
+        ), status=status)
 
-    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET):
-        tag_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
-        self.requests_mock.add(cmd, tag_url, json.dumps(dict(
-            hash=pkg_hash
-        )))
+    def _mock_version(self, package, version, pkg_hash, cmd=responses.GET,
+                      status=200, message=None):
+        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
+        self.requests_mock.add(cmd, version_url, json.dumps(
+            dict(message=message) if message else dict(hash=pkg_hash)
+        ), status=status)
 
-    def _mock_package(self, package, pkg_hash, subpath, contents, hashes):
+    def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
+                      status=200, message=None):
         pkg_url = '%s/api/package/%s/%s?%s' % (
             command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
-        self.requests_mock.add(responses.GET, pkg_url, json.dumps(dict(
-            contents=contents,
-            urls={h: 'https://example.com/%s' % h for h in hashes}
-        ), default=encode_node), match_querystring=True)
+        self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
+            dict(message=message) if message else
+            dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
+        , default=encode_node), match_querystring=True, status=status)
 
     def _mock_s3(self, pkg_hash, contents):
         s3_url = 'https://example.com/%s' % pkg_hash
