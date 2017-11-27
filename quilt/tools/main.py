@@ -142,6 +142,7 @@ def main():
 
     rm_p = subparsers.add_parser("rm")
     rm_p.add_argument("package", type=str, help=HANDLE)
+    rm_p.add_argument("-f", "--force", action="store_true", help="Remove without prompting")
     rm_p.set_defaults(func=command.rm)
 
     args = parser.parse_args()
