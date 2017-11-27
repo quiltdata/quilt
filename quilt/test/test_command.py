@@ -250,6 +250,18 @@ class CommandTest(QuiltTestCase):
         assert hasattr(test, 'foo')
         assert isinstance(test.foo(), pd.DataFrame)
 
+    def test_build_yaml_syntax_error(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
+        try:
+            command.build('user/test', buildfilepath)
+        except command.CommandException as error:
+            message = error.args[0]
+            assert message.startswith('Syntax error while reading')
+        else:
+            assert not "Didn't raise command.CommandException"
+
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
         def mock_git_clone(cmd):
