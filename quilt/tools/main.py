@@ -153,6 +153,7 @@ def main(args=None):
     :param args: cli args from tests
     """
     parser = argument_parser()
+    subparsers = parser._get_positional_actions()[0]
     args = parser.parse_args(args)
 
     # Convert argparse.Namespace into dict and clean it up.
