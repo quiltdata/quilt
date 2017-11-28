@@ -254,7 +254,7 @@ class CommandTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
         buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
-        with self.assertRaisesRegex(command.CommandException, 'Syntax error .*'):
+        with assertRaisesRegex(self, command.CommandException, 'Syntax error .*'):
             command.build('user/test', buildfilepath)
 
     def test_git_clone_fail(self):
