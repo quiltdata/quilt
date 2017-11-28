@@ -254,13 +254,8 @@ class CommandTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
         buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
-        try:
+        with self.assertRaisesRegex(command.CommandException, 'Syntax error .*'):
             command.build('user/test', buildfilepath)
-        except command.CommandException as error:
-            message = error.args[0]
-            assert message.startswith('Syntax error while reading')
-        else:
-            assert not "Didn't raise command.CommandException"
 
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
