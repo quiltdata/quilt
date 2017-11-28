@@ -96,7 +96,7 @@ class PackageNode(GroupNode):
     """
 
     def _class_repr(self):
-        finfo = self._package.get_path()[:-len(PackageStore.PACKAGE_FILE_EXT)]
+        finfo = self._package.get_path()
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
     def _set(self, path, value):
