@@ -220,7 +220,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', git_url)
 
@@ -242,13 +242,20 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', "{url}@{brch}".format(url=git_url, brch=branch))
 
         from quilt.data.user import test
         assert hasattr(test, 'foo')
         assert isinstance(test.foo(), pd.DataFrame)
+
+    def test_build_yaml_syntax_error(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, 'data')
+        buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
+        with assertRaisesRegex(self, command.CommandException, 'Syntax error .*'):
+            command.build('user/test', buildfilepath)
 
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
@@ -259,7 +266,7 @@ class CommandTest(QuiltTestCase):
 
             # fake git clone fail
             raise Exception()
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
                 command.build('user/test', git_url)
