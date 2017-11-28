@@ -3,6 +3,8 @@ contents:
   dataframes:
     csv: 
       file: data/10KRows13Cols.csv
+    nulls:
+      file: data/nulls.csv
     tsv:
       file: data/10KRows13Cols.tsv
     xls:

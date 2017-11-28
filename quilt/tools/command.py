@@ -69,7 +69,6 @@ LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
-
 _registry_url = None
 
 def _load_config():
@@ -251,7 +250,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
-    
+
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
             url=get_registry_url(),
@@ -265,11 +264,11 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             return entry['hash']
 
     if raise_exception:
-        raise CommandException("could not find hash {hash} for package {owner}/{pkg}.".format(
+        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(
             hash=hash, owner=owner, pkg=pkg))
     return None
 
-        
+
 def login():
     """
     Authenticate.
@@ -368,6 +367,7 @@ def _log(**kwargs):
     session = _get_session()
 
     # Disable error handling.
+    orig_response_hooks = session.hooks.get('response')
     session.hooks.update(dict(
         response=None
     ))
@@ -383,6 +383,8 @@ def _log(**kwargs):
     except requests.exceptions.RequestException:
         # Ignore logging errors.
         pass
+    # restore disabled error-handling
+    session.hooks['response'] = orig_response_hooks
 
 def build(package, path=None, dry_run=False, env='default'):
     """
@@ -783,16 +785,18 @@ def install_via_requirements(requirements_str, force=False):
     Download multiple Quilt data packages via quilt.xml requirements file.
     """
     if requirements_str[0] == '@':
-        yaml_data = load_yaml(requirements_str[1:])
+        path = requirements_str[1:]
+        if os.path.isfile(path):
+            yaml_data = load_yaml(path)
+        else:
+            raise CommandException("Requirements file not found: {filename}".format(filename=path))
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
         owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-        print('{}: o={} p={} s={} h={} v={} t={}'.format(
-            pkginfo, owner, pkg, subpath, hash, version, tag))
         package = owner + '/' + pkg
-        if subpath is None:
-            package += '/' + subpath
+        if subpath is not None:
+            package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
@@ -813,19 +817,13 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if package[0] == '@' or '\n' in package:
         return install_via_requirements(package, force=force)
-        
+
     assert [hash, version, tag].count(None) == 2
 
     owner, pkg, subpath = parse_package(package, allow_subpath=True)
     session = _get_session()
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
-
-    if existing_pkg is not None and not force:
-        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
-        overwrite = input("Overwrite? (y/n) ")
-        if overwrite.lower() != 'y':
-            return
 
     if version is not None:
         response = session.get(
@@ -863,6 +861,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
         )
     )
     assert response.ok # other responses handled by _handle_response
+
+    if existing_pkg is not None and not force:
+        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+        overwrite = input("Overwrite? (y/n) ")
+        if overwrite.lower() != 'y':
+            return
 
     dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
