@@ -319,6 +319,14 @@ class CommandTest(QuiltTestCase):
         teststore = store.PackageStore(self._store_dir)
         assert not os.path.isdir(teststore.package_path('foo', 'bar'))
 
+    def test_rm_non_existent_package(self):
+        """
+        Test removing a non-existent package.
+        """
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        command.rm('foo/bar', force=True)    
+
     def test_rm_package_w_shared_obj(self):
         """
         Test removing a package that shares an object with another. The
@@ -336,4 +344,9 @@ class CommandTest(QuiltTestCase):
         from quilt.data.foo import bar2
         assert isinstance(bar2.foo(), pd.DataFrame)
 
-    
+    def test_rm_subpackage(self):
+        """
+        Test removing a sub-package (not supported).
+        """
+        with self.assertRaisesRegex(command.CommandException, "Specify package as"):
+            command.rm('foo/bar/baz', force=True)     

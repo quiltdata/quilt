@@ -259,7 +259,7 @@ class PackageStore(object):
             for node in pkg.get_contents().preorder():
                 # TODO: the or below isn't scalable. Add a common baseclass for
                 # File and Table nodes like DataNode in nodes.py.
-                if isinstance(node, TableNode) or isinstance(node, FileNode):
+                if isinstance(node, (FileNode, TableNode)):
                     for objhash in node.hashes:
                         all_obj.remove(objhash)
 

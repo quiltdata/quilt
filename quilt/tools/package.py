@@ -87,8 +87,8 @@ class Package(object):
 
         contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
         if not os.path.isfile(contents_path):
-            msg = "{h} is not a valid hash for package {u}/{p}"
-            raise PackageException(msg.format(h=instance_hash, u=self._user, p=self._package))
+            msg = "Invalid hash for package {owner}/{pkg}: {hash}"
+            raise PackageException(msg.format(hash=instance_hash, owner=self._user, pkg=self._package))
         
         with open(contents_path, 'r') as contents_file:
             contents = json.load(contents_file, object_hook=decode_node)
@@ -261,8 +261,8 @@ class Package(object):
             self._check_hashes(node.hashes)
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            hash_list = [h for c in node.preorder() if isinstance(c, TableNode)
-                         for h in c.hashes]
+            hash_list = [hsh for child in node.preorder() if isinstance(child, TableNode)
+                         for hsh in child.hashes]
             self._check_hashes(hash_list)
             return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):
