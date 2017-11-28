@@ -43,7 +43,7 @@ def _path_hash(path, transform, kwargs):
     """
     Generate a hash of source file path + transform + args
     """
-    sortedargs = ["{k}:{v}:{t}".format(k=key, v=value, t=type(value))
+    sortedargs = ["%s:%r:%s" % (key, value, type(value))
                   for key, value in sorted(iteritems(kwargs))]
     srcinfo = "{path}:{transform}:{{{kwargs}}}".format(path=os.path.abspath(path),
                                                    transform=transform,
