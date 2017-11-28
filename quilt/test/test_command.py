@@ -348,5 +348,5 @@ class CommandTest(QuiltTestCase):
         """
         Test removing a sub-package (not supported).
         """
-        with self.assertRaisesRegex(command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.rm('foo/bar/baz', force=True)     
