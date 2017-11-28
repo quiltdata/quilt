@@ -81,7 +81,6 @@ class Package(object):
         if not os.path.exists(latest_tag):
             msg = "Could not find latest tag for package {0}/{1}"
             raise PackageException(msg.format(self._user, self._package))
-        
         with open (latest_tag, 'r') as tagfile:
             instance_hash = tagfile.read()
 
@@ -164,6 +163,13 @@ class Package(object):
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
 
+    def save_cached_df(self, hashes, name, path, ext, target, fmt):
+        """
+        Save a DataFrame to the store.
+        """
+        buildfile = name.lstrip('/').replace('/', '.')
+        self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
+
     def save_df(self, dataframe, name, path, ext, target, fmt):
         """
         Save a DataFrame to the store.
@@ -202,10 +208,12 @@ class Package(object):
                 hashes.append(objhash)
             self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
             rmtree(storepath)
+            return hashes
         else:
             filehash = digest_file(storepath)
             self._add_to_contents(buildfile, [filehash], ext, path, target, fmt)
             move(storepath, self._store.object_path(filehash))
+            return [filehash]
 
     def save_file(self, srcfile, name, path):
         """
