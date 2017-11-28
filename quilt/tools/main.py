@@ -13,6 +13,30 @@ from .const import DEFAULT_QUILT_YML
 
 HANDLE = "owner/packge_name"
 
+def get_full_version():
+    version = "quilt {}".format(command.VERSION)
+    import pip
+
+    dists = pip.get_installed_distributions()
+    quilt = [d for d in dists if d.key=='quilt']
+    if not quilt:
+        return version + " (package not found)"
+    quilt = quilt[0]
+
+    if quilt.version != command.VERSION:
+        version = "Version mismatch!\n" + version + ", installed as " + quilt.version
+
+    version_extra = []
+    if pip.utils.dist_is_editable(quilt):
+        version = version + " (editable)"
+
+    git = pip.git.Git()
+    try:
+        git_info = git.get_info(quilt.location)
+    except pip.InstallationError:
+        return version
+    return version + ": {}".format(git_info[1])
+
 def main():
     """
     Build and run parser
@@ -25,6 +49,8 @@ def main():
         # TODO: add this universally once short hashes are supported in other functions.
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
+
+    parser.add_argument('--version', action='version', version=get_full_version())
 
     config_p = subparsers.add_parser("config")
     config_p.set_defaults(func=command.config)
