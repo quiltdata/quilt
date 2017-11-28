@@ -12,7 +12,7 @@ Using files in the file system to store quilt metadata is perhaps slower than in
 ```bash
 quilt_packages/objs/
 ```
-Stores binary data objects identified by hash. These objects include compressed raw files and Parquet files. Object hashes are verified and objects are stored only once (deduplication).
+Stores binary data objects (a.k.a. "fragments") identified by hash. These objects include compressed raw files and Parquet files. Object hashes are verified and objects are stored only once (de-duplication).
 
 ### Contents
 ```bash
@@ -68,9 +68,10 @@ Here are quick outlines of how the basic Quilt commands interact with local stor
         - list all instances with versions, ordered by version
     - lookup tags:
         - list all instances with tags, ordered by tag
-    - #Alternate: order instances by reverse creation date
-    - mark each instance printed in metadata map
-    - list all untagged, unversioned instances for the package
+    - alternate:
+        - order instances by reverse creation date
+        - mark each instance printed in metadata map
+        - list all untagged, unversioned instances for the package
 
 ### import
 - lookup package hash in contents
@@ -79,3 +80,5 @@ Here are quick outlines of how the basic Quilt commands interact with local stor
     - by hash (verify hash is associated with package)
 - read package manifest (find by hash)
 - parse package tree
+
+________
