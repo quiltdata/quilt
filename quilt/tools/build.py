@@ -3,6 +3,7 @@ parse build file, serialize package
 """
 from collections import defaultdict, Iterable
 import importlib
+import json
 from types import ModuleType
 import os
 import re
@@ -15,11 +16,39 @@ from tqdm import tqdm
 
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
+from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, VALID_NAME_RE, StoreException
 from .util import FileWithReadProgress
 
 from . import check_functions as qc            # pylint:disable=W0611
+
+def _have_pyspark():
+    """
+    Check if we're running Pyspark
+    """
+    if _have_pyspark.flag is None:
+        try:
+            if Package.get_parquet_lib() is ParquetLib.SPARK:
+                import pyspark  # pylint:disable=W0612
+                _have_pyspark.flag = True
+            else:
+                _have_pyspark.flag = False
+        except ImportError:
+            _have_pyspark.flag = False
+    return _have_pyspark.flag
+_have_pyspark.flag = None
+
+def _path_hash(path, transform, kwargs):
+    """
+    Generate a hash of source file path + transform + args
+    """
+    sortedargs = ["%s:%r:%s" % (key, value, type(value))
+                  for key, value in sorted(iteritems(kwargs))]
+    srcinfo = "{path}:{transform}:{{{kwargs}}}".format(path=os.path.abspath(path),
+                                                   transform=transform,
+                                                   kwargs=",".join(sortedargs))
+    return digest_string(srcinfo)
 
 def _is_internal_node(node):
     # at least one of an internal nodes children are dicts
@@ -116,30 +145,47 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             # merge ancestor args with local args (local wins if conflict)
             handler_args.update(_remove_keywords(node))
 
-            print("Serializing %s..." % path)
-            try:
-                if Package.get_parquet_lib() is ParquetLib.SPARK:
-                    import pyspark  # pylint:disable=W0612
-                    have_pyspark = True
-                else:
-                    have_pyspark = False
-            except ImportError:
-                have_pyspark = False
+            # Check Cache
+            store = PackageStore()
+            path_hash = _path_hash(path, transform, handler_args)
+            source_hash = digest_file(path)
 
-            if have_pyspark:
-                dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+            cachedobjs = []
+            if os.path.exists(store.cache_path(path_hash)):
+                with open(store.cache_path(path_hash), 'r') as entry:
+                    cache_entry = json.load(entry)
+                    if cache_entry['source_hash'] == source_hash:
+                        cachedobjs = cache_entry['obj_hashes']
+                        assert isinstance(cachedobjs, list)
+
+            if cachedobjs:
+                # FIXME: Add already present object to the package
+                package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
             else:
-                dataframe = _file_to_data_frame(transform, path, target, handler_args)
+                # read source file into DataFrame
+                print("Serializing %s..." % path)
+                if _have_pyspark():
+                    dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+                else:
+                    dataframe = _file_to_data_frame(transform, path, target, handler_args)
 
-            if checks:
-                # TODO: test that design works for internal nodes... e.g. iterating
-                # over the children and getting/checking the data, err msgs, etc.
-                _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                if checks:
+                    # TODO: test that design works for internal nodes... e.g. iterating
+                    # over the children and getting/checking the data, err msgs, etc.
+                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
 
-            # serialize DataFrame to file(s)
-            if not dry_run:
-                print("Saving as binary dataframe...")
-                package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                # serialize DataFrame to file(s)
+                if not dry_run:
+                    print("Saving as binary dataframe...")
+                    obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+
+                    # Add to cache
+                    cache_entry = dict(
+                        source_hash=source_hash,
+                        obj_hashes=obj_hashes
+                        )
+                    with open(store.cache_path(path_hash), 'w') as entry:
+                        json.dump(cache_entry, entry)
 
 def _remove_keywords(d):
     """
@@ -157,8 +203,8 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
     ext = ext.lower() # ensure that case doesn't matter
     logic = PARSERS.get(ext)
     kwargs = dict(logic['kwargs'])
-    kwargs.update(user_kwargs)
-    
+    kwargs.update(handler_args)
+
     spark = sparksql.SparkSession.builder.getOrCreate()
     dataframe = None
     reader = None
@@ -175,7 +221,7 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
-        dataframe = _file_to_data_frame(ext, path, target, user_kwargs)
+        dataframe = _file_to_data_frame(ext, path, target, handler_args)
     return dataframe
 
 def _file_to_data_frame(ext, path, target, handler_args):
@@ -287,6 +333,7 @@ def build_package_from_contents(username, package, build_dir, build_data,
     newpackage = store.create_package(username, package, dry_run=dry_run)
     _build_node(build_dir, newpackage, '', contents, pkgformat,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
+
     if not dry_run:
         newpackage.save_contents()
 

@@ -25,3 +25,8 @@ def digest_file(fname):
         for chunk in iter(lambda: fd.read(size), b''):
             hval.update(chunk)
     return hval.hexdigest()
+
+def digest_string(value):
+    hval = hashlib.new(HASH_TYPE)
+    hval.update(value.encode('utf8'))
+    return hval.hexdigest()
