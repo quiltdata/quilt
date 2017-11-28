@@ -39,4 +39,48 @@ This problem is not specific to `quilt`, and is caused by outdated packages in O
 - Upgrade `pyOpenSSL` using `brew` or `easy_install`
 - Upgrade to a more recent version of OS X
 
+# `ArrowNotImplementedError` when saving a large dataframe
+
+Unfortunately, this is caused by a [bug in pyarrow](https://github.com/apache/arrow/issues/1300).
+
+There does not appear to be a way to save a dataframe with a string column whose size is over 2GB. It is possible, however, to split it up into multiple dataframes - which will then get merged into one when accessed.
+
+## Workaround
+
+Suppose the problematic dataframe is called `big_data`, it comes from `big_data.csv`, and the root of your package is in `my_dir`.
+
+First, delete the dataframe from the build file, `my_dir/build.yml`. (If you were building directly from a directory, then run `quilt generate my_dir` first.)
+
+Build a temporary package that contains the rest of the data:
+```
+quilt build user/pkg_partial my_dir/build.yml
+```
+
+Open a Python shell or write a script, and manually build the final package:
+```python
+import quilt
+import pandas as pd
+from quilt.data.user import pkg_partial
+
+# Read the dataframe.
+data = pd.read_csv('my_dir/big_data.csv')
+
+# Add it to the partial package.
+# You will need to adjust the number of pieces and number of rows per piece
+pkg_partial._set(['big_data', 'part1'], data[0:1500000])
+pkg_partial._set(['big_data', 'part2'], data[1500000:])
+
+# Build the final package.
+quilt.build('user/pkg', pkg_partial)
+
+# Import the new package.
+from quilt.data.user import pkg
+
+# Get a merged dataframe. You can also access pkg.big_data.part1(), etc. if needed.
+new_data = pkg.big_data()
+
+# Make sure the dataframe in the package is in fact the same as the original.
+assert new_data.equals(data)
+```
+
 ***
