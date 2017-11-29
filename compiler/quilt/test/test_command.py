@@ -251,8 +251,7 @@ class CommandTest(QuiltTestCase):
         assert isinstance(test.foo(), pd.DataFrame)
 
     def test_build_yaml_syntax_error(self):
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, 'data')
+        path = os.path.dirname(__file__)
         buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
         with assertRaisesRegex(self, command.CommandException, 'Syntax error'):
             command.build('user/test', buildfilepath)
