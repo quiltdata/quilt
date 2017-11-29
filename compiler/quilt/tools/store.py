@@ -33,12 +33,12 @@ class PackageStore(object):
     class and its subclasses abstract file formats, file naming and
     reading and writing to/from data files.
     """
-    PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
-    TMP_OBJ_DIR = os.path.join('objs', 'tmp')
+    TMP_OBJ_DIR = 'tmp'
     PKG_DIR = 'pkgs'
-    VERSION = '1.0'
+    CACHE_DIR = 'cache'
+    VERSION = '1.2'
     
     def __init__(self, location=None):
         if location is None:
@@ -47,10 +47,10 @@ class PackageStore(object):
         assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % location
         self._path = location
-
         objdir = os.path.join(self._path, self.OBJ_DIR)
         tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
         pkgdir = os.path.join(self._path, self.PKG_DIR)
+        cachedir = os.path.join(self._path, self.CACHE_DIR)
 
         if os.path.isdir(self._path):
             # Verify existing package store is compatible
@@ -67,10 +67,13 @@ class PackageStore(object):
             os.mkdir(objdir)
             os.mkdir(tmpobjdir)
             os.mkdir(pkgdir)
+            os.mkdir(cachedir)
     
         assert os.path.isdir(objdir)
         assert os.path.isdir(tmpobjdir)
         assert os.path.isdir(pkgdir)
+        assert os.path.isdir(cachedir)
+
 
     # CHANGED:
     # hard-coded this to return exactly one directory, the package store in BASE_DIR.
@@ -220,6 +223,12 @@ class PackageStore(object):
         Returns the path to a temporary object, before we know its hash.
         """
         return os.path.join(self._path, self.TMP_OBJ_DIR, name)
+
+    def cache_path(self, name):
+        """
+        Returns the path to a temporary object, before we know its hash.
+        """
+        return os.path.join(self._path, self.CACHE_DIR, name)
 
 def parse_package_extended(name):
     hash = version = tag = None
