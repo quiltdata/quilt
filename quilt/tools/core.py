@@ -27,7 +27,7 @@ class CommandException(Exception):
     Exception class for all command-related failures.
     """
     def __init__(self, *args, **kwargs):
-        self.show_help = kwargs.pop('show_help', True)
+        self.show_help = kwargs.pop('show_help', False)
         super(CommandException, self).__init__(*args, **kwargs)
 
 class PackageFormat(Enum):
