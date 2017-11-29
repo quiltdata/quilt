@@ -9,6 +9,12 @@ os:
 env:
   global:
     - USE_CONDA=true
+    # Registry supports only a subset of the matrix
+    - TEST_REGISTRY=false
+    # Registry configs
+    - FLASK_APP=quilt_server
+    - FLASK_DEBUG=1
+    - QUILT_SERVER_CONFIG=dev_config.py
   matrix:
     - QPYVER=2.7
     - QPYVER=3.5
@@ -24,15 +30,27 @@ matrix:
     - os: linux
       language: python
       python: "3.4"
-      env: USE_CONDA=false
+      env:
+        USE_CONDA=false
+        TEST_REGISTRY=true
+      services:
+        - mysql
     - os: linux
       language: python
       python: "3.5"
-      env: USE_CONDA=false
+      env:
+        USE_CONDA=false
+        TEST_REGISTRY=true
+      services:
+        - mysql
     - os: linux
       language: python
       python: "3.6"
-      env: USE_CONDA=false
+      env:
+        USE_CONDA=false
+        TEST_REGISTRY=true
+      services:
+        - mysql
 
 before_install:
   - |
@@ -60,7 +78,16 @@ install:
       pip install -U numpy pytest
     fi
   # install quilt from setup.py
-  - travis_retry pip install --only-binary 'tables' .
+  - travis_retry pip install --only-binary 'tables' ./compiler
+  - |
+    if [[ "$TEST_REGISTRY" = true ]]; then
+      travis_retry pip install -r registry/requirements.txt
+      pip install registry
+    fi
 
 script:
-  - pytest
+  - pytest compiler
+  - |
+    if [[ "$TEST_REGISTRY" = true ]]; then
+      pytest ./registry
+    fi
