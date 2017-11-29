@@ -26,9 +26,19 @@ class CommandException(Exception):
     """
     Exception class for all command-related failures.
     """
-    def __init__(self, *args, **kwargs):
-        self.show_help = kwargs.pop('show_help', False)
-        super(CommandException, self).__init__(*args, **kwargs)
+#TODO: Solution should be a required param.
+    def __init__(self, problem, solution='', returncode=1, show_help=False, **kwargs):
+        super(CommandException, self).__init__(problem, **kwargs)
+        self.problem = problem
+        self.solution = solution
+        self.returncode = returncode
+        self.show_help = show_help
+
+    def __str__(self):
+        if self.problem and self.solution:
+            return '\n---\n'.join((self.problem, self.solution))
+        return self.problem
+
 
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
