@@ -6,36 +6,26 @@ from __future__ import print_function
 
 import argparse
 import sys
+import pkg_resources
+
 import requests
 
 from . import command
 from .const import DEFAULT_QUILT_YML
 
 HANDLE = "owner/packge_name"
+VERSION = command.VERSION
+
+
 
 def get_full_version():
-    version = "quilt {}".format(command.VERSION)
-    import pip
-
-    dists = pip.get_installed_distributions()
-    quilt = [d for d in dists if d.key=='quilt']
-    if not quilt:
-        return version + " (package not found)"
-    quilt = quilt[0]
-
-    if quilt.version != command.VERSION:
-        version = "Version mismatch!\n" + version + ", installed as " + quilt.version
-
-    version_extra = []
-    if pip.utils.dist_is_editable(quilt):
-        version = version + " (editable)"
-
-    git = pip.git.Git()
     try:
-        git_info = git.get_info(quilt.location)
-    except pip.InstallationError:
-        return version
-    return version + ": {}".format(git_info[1])
+        quilt = pkg_resources.get_distribution('quilt')
+    except pkg_resources.DistributionNotFound:
+        pass
+    else:
+        return "quilt {} ({})".format(VERSION, quilt.egg_name())
+    return "quilt " + VERSION
 
 def main():
     """
