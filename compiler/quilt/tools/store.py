@@ -35,13 +35,12 @@ class PackageStore(object):
     class and its subclasses abstract file formats, file naming and
     reading and writing to/from data files.
     """
-    PACKAGE_FILE_EXT = '.json'
     BUILD_DIR = 'build'
     OBJ_DIR = 'objs'
-    TMP_OBJ_DIR = os.path.join('objs', 'tmp')
+    TMP_OBJ_DIR = 'tmp'
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
-    VERSION = '1.1'
+    VERSION = '1.2'
     
     def __init__(self, location=None):
         if location is None:

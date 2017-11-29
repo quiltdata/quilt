@@ -63,6 +63,7 @@ PARALLEL_UPLOADS = 20
 
 S3_CONNECT_TIMEOUT = 30
 S3_READ_TIMEOUT = 30
+S3_TIMEOUT_RETRIES = 3
 CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3  # 3 seconds
@@ -895,42 +896,54 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
             temp_path_gz = store.temporary_object_path(download_hash + '.gz')
             with open(temp_path_gz, 'ab') as output_file:
-                starting_length = output_file.tell()
-                response = s3_session.get(
-                    url,
-                    headers={
-                        'Range': 'bytes=%d-' % starting_length
-                    },
-                    stream=True,
-                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
-                )
-
-                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
-                    if not response.ok:
-                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                            download_hash, response.request.url, response.status_code, response.text
+                for attempt in range(S3_TIMEOUT_RETRIES):
+                    try:
+                        starting_length = output_file.tell()
+                        response = s3_session.get(
+                            url,
+                            headers={
+                                'Range': 'bytes=%d-' % starting_length
+                            },
+                            stream=True,
+                            timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
                         )
-                        raise CommandException(message)
 
-                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip them
-                    # automatically - but that turned out to be a bad idea because it makes resuming downloads
-                    # impossible.
-                    # HACK: For now, just delete the header. Eventually, update the data in S3.
-                    response.raw.headers.pop('Content-Encoding', None)
+                        # RANGE_NOT_SATISFIABLE means, we already have the whole file.
+                        if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                            if not response.ok:
+                                message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                                    download_hash, response.request.url, response.status_code, response.text
+                                )
+                                raise CommandException(message)
 
-                    # Make sure we're getting the expected range.
-                    content_range = response.headers.get('Content-Range', '')
-                    match = CONTENT_RANGE_RE.match(content_range)
-                    if not match or not int(match.group(1)) == starting_length:
-                        raise CommandException("Unexpected Content-Range: %s" % content_range)
+                            # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
+                            # them automatically - but that turned out to be a bad idea because it makes
+                            # resuming downloads impossible.
+                            # HACK: For now, just delete the header. Eventually, update the data in S3.
+                            response.raw.headers.pop('Content-Encoding', None)
 
-                    total_length = int(match.group(3))
+                            # Make sure we're getting the expected range.
+                            content_range = response.headers.get('Content-Range', '')
+                            match = CONTENT_RANGE_RE.match(content_range)
+                            if not match or not int(match.group(1)) == starting_length:
+                                raise CommandException("Unexpected Content-Range: %s" % content_range)
 
-                    with tqdm(initial=starting_length, total=total_length, unit='B', unit_scale=True) as progress:
-                        for chunk in response.iter_content(CHUNK_SIZE):
-                            output_file.write(chunk)
-                            progress.update(len(chunk))
+                            total_length = int(match.group(3))
+
+                            with tqdm(initial=starting_length,
+                                      total=total_length,
+                                      unit='B',
+                                      unit_scale=True) as progress:
+                                for chunk in response.iter_content(CHUNK_SIZE):
+                                    output_file.write(chunk)
+                                    progress.update(len(chunk))
+
+                        break  # Done!
+                    except requests.exceptions.ConnectionError:
+                        if attempt < S3_TIMEOUT_RETRIES - 1:
+                            print("Timed out; retrying...")
+                        else:
+                            raise
 
             # Ungzip the downloaded fragment.
             temp_path = store.temporary_object_path(download_hash)
