@@ -9,11 +9,15 @@ quilt_packages
 metastore_db
 derby.log
 
-.coverage
-cov_html
-
+# Visual Studio Code
 .vscode
+
+# Test coverage
+.coverage
+cov_html/*
 
 ### emacs
 *~
 [#]*
+
+
