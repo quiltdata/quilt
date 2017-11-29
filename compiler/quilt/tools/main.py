@@ -154,9 +154,10 @@ def main():
         func(**kwargs)
         return 0
     except command.CommandException as ex:
+        if ex.show_help:
+            print()
+            print(subparsers.choices[cmd].format_help())
         print(ex, file=sys.stderr)
-        print()
-        print(subparsers.choices[cmd].format_help())
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)

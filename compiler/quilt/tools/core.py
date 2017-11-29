@@ -26,7 +26,18 @@ class CommandException(Exception):
     """
     Exception class for all command-related failures.
     """
-    pass
+#TODO: Solution should be a required param.
+    def __init__(self, problem, solution='', returncode=1, show_help=False, **kwargs):
+        super(CommandException, self).__init__(problem, **kwargs)
+        self.problem = problem
+        self.solution = solution
+        self.returncode = returncode
+        self.show_help = show_help
+
+    def __str__(self):
+        if self.problem and self.solution:
+            return '\n---\n'.join((self.problem, self.solution))
+        return self.problem
 
 
 class PackageFormat(Enum):
