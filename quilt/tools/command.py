@@ -410,8 +410,6 @@ def _build_internal(package, path, dry_run, env):
             try:
                 _clone_git_repo(url, branch, tmpdir)
                 build_from_path(package, tmpdir, dry_run=dry_run, env=env)
-            except CommandException:
-                raise
             except Exception as exc:
                 msg = "attempting git clone raised exception: {exc}"
                 raise CommandException(msg.format(exc=exc))
