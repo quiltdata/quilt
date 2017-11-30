@@ -22,10 +22,8 @@ fi
 # Checking pylint version, (easy to parse pip freeze than pylint --version)
 #
 pylint_version=$(pip freeze | grep pylint | awk -F'==' '{ print $2 }')
-if [[ $pylint_version == $PYLINT_VERSION ]]
+if [[ $pylint_version != $PYLINT_VERSION ]]
 then
-	echo "pylint exist with specified version"
-else
 	echo "$0: Pylint version mismatch!"
 	echo "$0: Do pip install pylint==$PYLINT_VERSION"
 	exit 1
