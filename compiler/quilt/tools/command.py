@@ -494,10 +494,6 @@ def build_from_path(package, path, dry_run=False, env='default'):
 
         if not dry_run:
             print("Built %s/%s successfully." % (owner, pkg))
-    except yaml.scanner.ScannerError as ex:
-        message_parts = str(ex).split('\n')
-        message_parts.insert(0, "Syntax error while building {!r}".format(path))
-        raise CommandException('\n  '.join(message_parts))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
