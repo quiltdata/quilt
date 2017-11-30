@@ -7,12 +7,25 @@ from __future__ import print_function
 import argparse
 import sys
 import os
+import pkg_resources
 import requests
 
 from . import command
 from .const import DEFAULT_QUILT_YML
 
 HANDLE = "owner/packge_name"
+VERSION = command.VERSION
+
+
+
+def get_full_version():
+    try:
+        quilt = pkg_resources.get_distribution('quilt')
+    except pkg_resources.DistributionNotFound:
+        pass
+    else:
+        return "quilt {} ({})".format(VERSION, quilt.egg_name())
+    return "quilt " + VERSION
 
 def main():
     """
@@ -26,6 +39,8 @@ def main():
         # TODO: add this universally once short hashes are supported in other functions.
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
+
+    parser.add_argument('--version', action='version', version=get_full_version())
 
     config_p = subparsers.add_parser("config")
     config_p.set_defaults(func=command.config)
