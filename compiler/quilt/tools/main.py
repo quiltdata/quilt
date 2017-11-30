@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import argparse
 import sys
+import os
 import requests
 
 from . import command
@@ -96,8 +97,12 @@ def main():
     tag_remove_p.set_defaults(func=command.tag_remove)
 
     install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
-                           nargs="?", default="@"+DEFAULT_QUILT_YML)
+    if os.path.exists(DEFAULT_QUILT_YML):
+        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
+                               nargs="?", default="@"+DEFAULT_QUILT_YML)
+    else:
+        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
+                               nargs="+")
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
