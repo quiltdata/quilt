@@ -18,6 +18,106 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
+    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_urls_default(self, mock_input, mock_load_config, mock_save_config):
+        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
+                         "or leave this line blank to use the default registry: ")
+        # test setting default URL with blank string -- result should be default
+        mock_load_config.return_value = {}
+        mock_input.return_value = ''
+        command.config()
+
+        mock_input.assert_called_with(config_prompt)
+
+        args, kwargs = mock_save_config.call_args
+        mock_load_config.return_value = args[0] if args else kwargs['cmd']
+        assert command.get_registry_url() == command.DEFAULT_REGISTRY_URL
+
+    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_good_urls(self, mock_input, mock_load_config, mock_save_config):
+        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
+                         "or leave this line blank to use the default registry: ")
+        test_urls = [
+            'https://foo.com',
+            'http://foo.com',
+            'https://foo.bar.net',
+#REVIEW: is this style of URL intentionally invalid?
+#            'https://foo.bar.net/baz',
+            ]
+        # test general URL setting -- result should match input
+        for test_url in test_urls:
+                mock_load_config.return_value = {}
+                mock_input.return_value = test_url
+
+                command.config()
+
+                mock_input.assert_called_with(config_prompt)
+                args, kwargs = mock_save_config.call_args
+                mock_load_config.return_value = args[0] if args else kwargs['cmd']
+                assert test_url == command.get_registry_url()
+
+    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_bad_urls(self, mock_input, mock_load_config, mock_save_config):
+        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
+                         "or leave this line blank to use the default registry: ")
+        test_urls = [
+            'foo.com',
+            'ftp://foo.com',
+            'blah://bar.com',
+#REVIEW: is this style of URL intentionally invalid?
+            'http://foo.bar.com/baz',
+            ]
+        # test general URL setting -- result should match input
+        for test_url in test_urls:
+                mock_load_config.return_value = {}
+                mock_input.return_value = test_url
+
+                with assertRaisesRegex(self, command.CommandException, 'Invalid URL'):
+                    command.config()
+
+                mock_input.assert_called_with(config_prompt)
+                assert mock_save_config.call_args is None
+                assert command.get_registry_url() != test_url
+
+    @patch('requests.Session.put')
+    def test_version_add_badversion(self, mock_put):
+        with assertRaisesRegex(self, command.CommandException, 'Invalid version format'):
+            command.version_add('user/test', '2.9.12.2error', 'fabc123', force=True)
+        assert mock_put.call_args is None
+
+    @patch('quilt.tools.command._match_hash')
+    @patch('quilt.tools.command.input')
+    @patch('requests.Session.put')
+    def test_version_add_confirmed(self, mock_put, mock_input, mock_match_hash):
+        testsite = command.get_registry_url()
+        mock_input.return_value = 'y'
+        mock_match_hash.return_value = 'fabc123'
+
+        command.version_add('user/test', '2.9.12', 'fabc123')
+
+        assert mock_put.call_args
+        args, kwargs = mock_put.call_args
+
+        assert args[0] == testsite + '/api/version/user/test/2.9.12'
+        assert kwargs == {'data': '{"hash": "fabc123"}'}
+
+    @patch('quilt.tools.command.input')
+    @patch('requests.Session.put')
+    def test_version_add_declined(self, mock_put, mock_input):
+        mock_input.return_value = 'n'
+
+        command.version_add('user/test', '2.9.12', 'fabc123')
+        assert mock_put.call_args is None
+
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.push(package="no_user")
