@@ -118,8 +118,7 @@ def main():
         install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
                                nargs="?", default="@"+DEFAULT_QUILT_YML)
     else:
-        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
-                               nargs="+")
+        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename")
 
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
