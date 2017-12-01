@@ -6,8 +6,8 @@ from __future__ import print_function
 
 import argparse
 import sys
+import os
 import pkg_resources
-
 import requests
 
 from . import command
@@ -112,8 +112,14 @@ def main():
     tag_remove_p.set_defaults(func=command.tag_remove)
 
     install_p = subparsers.add_parser("install")
-    install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
-                           nargs="?", default="@"+DEFAULT_QUILT_YML)
+
+    # Require the "package" arg for "install" when default quilt yml file isn't present.
+    if os.path.exists(DEFAULT_QUILT_YML):
+        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename",
+                               nargs="?", default="@"+DEFAULT_QUILT_YML)
+    else:
+        install_p.add_argument("package", type=str, help="owner/package_name[/path/...] or @filename")
+
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
@@ -171,8 +177,6 @@ def main():
         return 0
     except command.CommandException as ex:
         print(ex, file=sys.stderr)
-        print()
-        print(subparsers.choices[cmd].format_help())
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)
