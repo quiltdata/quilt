@@ -13,9 +13,9 @@ import requests
 from . import command
 from .const import DEFAULT_QUILT_YML
 
+
 HANDLE = "owner/packge_name"
 VERSION = command.VERSION
-
 
 
 def get_full_version():
@@ -27,22 +27,43 @@ def get_full_version():
         return "quilt {} ({})".format(VERSION, quilt.egg_name())
     return "quilt " + VERSION
 
+
+class UsageAction(argparse.Action):
+    """Argparse action to print usage (short help)"""
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser.print_usage()
+        exit()
+
+
+class CustomHelpParser(argparse.ArgumentParser):
+    def __init__(self, *args, **kwargs):
+        kwargs['add_help'] = False
+        super(CustomHelpParser, self).__init__(*args, **kwargs)
+        self.add_argument('--help', action='help', help="Show full help")
+        self.add_argument('-h', action=UsageAction, help="Show usage only",
+                          nargs=0, default=argparse.SUPPRESS)
+
+
 def main():
     """
     Build and run parser
     """
-    parser = argparse.ArgumentParser(description="Quilt Command Line")
-    subparsers = parser.add_subparsers(title="Commands", dest='cmd')
-    subparsers.required = True
-
     def check_hash(group, hashstr):
         # TODO: add this universally once short hashes are supported in other functions.
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
+    parser = CustomHelpParser(description="Quilt Command Line", add_help=False)
     parser.add_argument('--version', action='version', version=get_full_version())
 
-    config_p = subparsers.add_parser("config")
+    subparsers = parser.add_subparsers(title="Commands", dest='cmd')
+    subparsers.required = True
+
+    help_p = subparsers.add_parser("help", description="Show help for any given Quilt command", add_help=False)
+    help_p.add_argument('command', nargs="*", help="Optional -- any Quilt command")
+    help_p.set_defaults(func=lambda command: parser.parse_args(command + ['--help']))
+
+    config_p = subparsers.add_parser("config", description="Configure Quilt")
     config_p.set_defaults(func=command.config)
 
     login_p = subparsers.add_parser("login")
