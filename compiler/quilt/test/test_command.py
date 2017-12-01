@@ -257,8 +257,6 @@ class CommandTest(QuiltTestCase):
             command.build('user/test', buildfilepath)
 
     def test_build_check_yaml_syntax_error(self):
-        #TODO: This test may fail silently.  Add checks-file support to command.py, then use here
-        #      Meanwhile, a similar (and less fragile) test exists in test_build.py.
         path = os.path.abspath(os.path.dirname(__file__))
         buildfilepath = os.path.join(path, 'build_checks_bad_syntax.yml')
         checksorigpath = os.path.join(path, 'checks_bad_syntax.yml')
