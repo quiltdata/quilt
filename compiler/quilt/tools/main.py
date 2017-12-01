@@ -14,7 +14,7 @@ from . import command
 from .const import DEFAULT_QUILT_YML
 
 
-HANDLE = "owner/packge_name"
+HANDLE = "owner/package_name"
 VERSION = command.VERSION
 
 
@@ -37,11 +37,15 @@ class UsageAction(argparse.Action):
 
 class CustomHelpParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
+        full_help_only = kwargs.pop('full_help_only', False)
         kwargs['add_help'] = False
         super(CustomHelpParser, self).__init__(*args, **kwargs)
-        self.add_argument('--help', action='help', help="Show full help")
-        self.add_argument('-h', action=UsageAction, help="Show usage only",
-                          nargs=0, default=argparse.SUPPRESS)
+        if full_help_only:
+            self.add_argument('-h', '--help', action='help', help="Show help")
+        else:
+            self.add_argument('--help', action='help', help="Show full help for given command")
+            self.add_argument('-h', action=UsageAction, help="Show short help (usage) for given command",
+                              nargs=0, default=argparse.SUPPRESS)
 
 
 def main():
@@ -53,8 +57,8 @@ def main():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
-    parser = CustomHelpParser(description="Quilt Command Line", add_help=False)
-    parser.add_argument('--version', action='version', version=get_full_version())
+    parser = CustomHelpParser(description="Quilt Command Line", add_help=False, full_help_only=True)
+    parser.add_argument('--version', action='version', version=get_full_version(), help="Show version number and exit")
 
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
@@ -92,7 +96,7 @@ def main():
     check_p.add_argument("--env", type=str, help="use which environment (default=default)")
     check_p.set_defaults(func=command.check)
 
-    push_p = subparsers.add_parser("push", description="Push a Quilt data package to the server")
+    push_p = subparsers.add_parser("push", description="Push a data package to the server")
     push_p.add_argument("package", type=str, help=HANDLE)
     push_p.add_argument("--public", action="store_true",
                         help=("Create or update a public package " +
@@ -109,32 +113,33 @@ def main():
     version_list_p.add_argument("package", type=str, help=HANDLE)
     version_list_p.set_defaults(func=command.version_list)
 
-    version_add_p = version_subparsers.add_parser("add", description="Permanently add a version to the server")
+    version_add_p = version_subparsers.add_parser("add",
+        description="Permanently add a version of a package to the server")
     version_add_p.add_argument("package", type=str, help=HANDLE)
     version_add_p.add_argument("version", type=str, help="Version")
     version_add_p.add_argument("pkghash", type=str, help="Package hash")
     version_add_p.set_defaults(func=command.version_add)
 
-    tag_p = subparsers.add_parser("tag", description="List, add, or remove tags from the Quilt server")
+    tag_p = subparsers.add_parser("tag", description="List, add, or remove tags for a package on the server")
     tag_subparsers = tag_p.add_subparsers(title="Tag", dest='cmd')
     tag_subparsers.required = True
 
-    tag_list_p = tag_subparsers.add_parser("list", description="List tags on quilt server for a given package")
+    tag_list_p = tag_subparsers.add_parser("list", description="List tags for a given package on the server")
     tag_list_p.add_argument("package", type=str, help=HANDLE)
     tag_list_p.set_defaults(func=command.tag_list)
 
-    tag_add_p = tag_subparsers.add_parser("add", description="Add a new tag for given package hash to Quilt server")
+    tag_add_p = tag_subparsers.add_parser("add", description="Add a new tag to the server for given package hash")
     tag_add_p.add_argument("package", type=str, help=HANDLE)
     tag_add_p.add_argument("tag", type=str, help="Tag name")
     tag_add_p.add_argument("pkghash", type=str, help="Package hash")
     tag_add_p.set_defaults(func=command.tag_add)
 
-    tag_remove_p = tag_subparsers.add_parser("remove", description="Remove a tag from the Quilt server")
+    tag_remove_p = tag_subparsers.add_parser("remove", description="Remove a tag from the server")
     tag_remove_p.add_argument("package", type=str, help=HANDLE)
     tag_remove_p.add_argument("tag", type=str, help="Tag name")
     tag_remove_p.set_defaults(func=command.tag_remove)
 
-    install_p = subparsers.add_parser("install", description="Install a package from the quilt server")
+    install_p = subparsers.add_parser("install", description="Install a package from the server")
 
     # Require the "package" arg for "install" when default quilt yml file isn't present, showing
     # argparse error otherwise
