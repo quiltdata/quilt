@@ -220,7 +220,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', git_url)
 
@@ -242,7 +242,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', "{url}@{brch}".format(url=git_url, brch=branch))
 
@@ -265,7 +265,7 @@ class CommandTest(QuiltTestCase):
 
             # fake git clone fail
             raise Exception()
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
                 command.build('user/test', git_url)
