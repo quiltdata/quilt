@@ -185,3 +185,26 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test_copy.generated import bad, foo, nuts
 
         assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath
+
+    def test_build_yaml_syntax_error(self):
+        """
+        Attempt to build a yml file with a syntax error
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_bad_syntax.yml')
+
+        # Build once to populate cache
+        with assertRaisesRegex(self, build.BuildException, 'Syntax error while building'):
+            build.build_package('test_syntax_error', PACKAGE, path)
+
+    def test_build_checks_yaml_syntax_error(self):
+        """
+        Attempt to build a yml file with a syntax error
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_checks_bad_syntax.yml')
+        checks_path = os.path.join(mydir, './checks_bad_syntax.yml')
+
+        # Build once to populate cache
+        with assertRaisesRegex(self, build.BuildException, 'Syntax error while building'):
+            build.build_package('test_syntax_error', PACKAGE, path, checks_path=checks_path)

@@ -256,6 +256,26 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, 'Syntax error'):
             command.build('user/test', buildfilepath)
 
+    def test_build_check_yaml_syntax_error(self):
+        #TODO: This test may fail silently.  Add checks-file support to command.py, then use here
+        #      Meanwhile, a similar (and less fragile) test exists in test_build.py.
+        path = os.path.abspath(os.path.dirname(__file__))
+        buildfilepath = os.path.join(path, 'build_checks_bad_syntax.yml')
+        checksorigpath = os.path.join(path, 'checks_bad_syntax.yml')
+        checksfilepath = os.path.join(path, 'checks.yml')
+
+        try:
+            origdir = os.curdir
+            os.chdir(path)
+            assert not os.path.exists(checksfilepath)
+            shutil.copy(checksorigpath, checksfilepath)
+            with assertRaisesRegex(self, command.CommandException, 'Syntax error'):
+                command.build('user/test', buildfilepath)
+        finally:
+            os.remove(checksfilepath)
+            os.chdir(origdir)
+
+
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
         def mock_git_clone(cmd):
