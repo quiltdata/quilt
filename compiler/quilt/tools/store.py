@@ -256,13 +256,8 @@ class PackageStore(object):
         """
         Clean up all objects not referenced by any packages.
         """
-
         objdir = os.path.join(self._path, self.OBJ_DIR)
         all_obj = os.listdir(objdir)
-        # TODO: the temporary object directory probably shouldn't
-        # live inside the objects directory. Remove the hard-coded
-        # 'tmp' below.
-        all_obj.remove('tmp')
 
         for pkg in self.iterpackages():
             for node in pkg.get_contents().preorder():
