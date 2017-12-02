@@ -168,20 +168,22 @@ class BuildTest(QuiltTestCase):
     def test_duplicates_conflict(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'dups_bad')
-        buildfilepath = os.path.join(path, 'build.yml')
+        buildfilename = 'build_test_duplicates_conflict.yml'
+        buildfilepath = os.path.join(path, buildfilename)
         if os.path.exists(buildfilepath):
             os.remove(buildfilepath)
 
         with self.assertRaises(build.BuildException):
-            build.generate_build_file(path)
+            build.generate_build_file(path, outfilename=buildfilename)
 
     def test_copy(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
-        buildfilepath = os.path.join(path, 'build.yml')
+        buildfilename = 'build_test_copy.yml'
+        buildfilepath = os.path.join(path, buildfilename)
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
 
-        command.build_from_path('test_copy/generated', path)
+        command.build_from_path('test_copy/generated', path, outfilename=buildfilename)
         from quilt.data.test_copy.generated import bad, foo, nuts
 
         assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath

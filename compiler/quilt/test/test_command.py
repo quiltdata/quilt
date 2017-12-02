@@ -181,10 +181,11 @@ class CommandTest(QuiltTestCase):
     def test_generate_buildfile_wo_building(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
-        buildfilepath = os.path.join(path, 'build.yml')
+        buildfilename = 'build_test_generate_buildfile_wo_building.yml'
+        buildfilepath = os.path.join(path, buildfilename)
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         try:
-            command.generate(path)
+            command.generate(path, outfilename=buildfilename)
             assert os.path.exists(buildfilepath), "failed to create %s" % buildfilepath
         finally:
             os.remove(buildfilepath)
@@ -266,7 +267,7 @@ class CommandTest(QuiltTestCase):
 
         # TODO: running -n (pytest-xdist) there's leaky state and can throw
         # either ImportError: cannot import name or ModuleNotFoundError
-        with assertRaisesRegex(self, Exception, r'cannot import|not found'):
+        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named'):
             from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):

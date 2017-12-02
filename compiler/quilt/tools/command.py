@@ -312,13 +312,13 @@ def logout():
 
     _clear_session()
 
-def generate(directory):
+def generate(directory, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build-file for quilt build from a directory of
     source files.
     """
     try:
-        buildfilepath = generate_build_file(directory)
+        buildfilepath = generate_build_file(directory, outfilename=outfilename)
     except BuildException as builderror:
         raise CommandException(str(builderror))
 
@@ -469,7 +469,7 @@ def build_from_node(package, node):
     _process_node(node)
     package_obj.save_contents()
 
-def build_from_path(package, path, dry_run=False, env='default'):
+def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
     """
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
@@ -481,13 +481,13 @@ def build_from_path(package, path, dry_run=False, env='default'):
 
     try:
         if os.path.isdir(path):
-            buildpath = os.path.join(path, DEFAULT_BUILDFILE)
+            buildpath = os.path.join(path, outfilename)
             if os.path.exists(buildpath):
                 raise CommandException(
                     "Build file already exists. Run `quilt build %r` instead." % buildpath
                 )
 
-            contents = generate_contents(path, DEFAULT_BUILDFILE)
+            contents = generate_contents(path, outfilename)
             build_package_from_contents(owner, pkg, path, contents, dry_run=dry_run, env=env)
         else:
             build_package(owner, pkg, path, dry_run=dry_run, env=env)
