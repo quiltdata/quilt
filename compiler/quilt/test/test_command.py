@@ -262,10 +262,12 @@ class CommandTest(QuiltTestCase):
         
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
-                command.build('user/test', git_url)
+                command.build('user/pkg__test_git_clone_fail', git_url)
 
-        with self.assertRaises(ModuleNotFoundError):
-            from quilt.data.user import test
+        # TODO: running -n (pytest-xdist) there's leaky state and can throw
+        # either ImportError: cannot import name or ModuleNotFoundError
+        with assertRaisesRegex(self, Exception, r'cannot import|not found'):
+            from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):
         mydir = os.path.dirname(__file__)
