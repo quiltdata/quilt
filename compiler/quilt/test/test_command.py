@@ -264,9 +264,8 @@ class CommandTest(QuiltTestCase):
             with self.assertRaises(command.CommandException):
                 command.build('user/test', git_url)
 
-        from quilt.data.user import test
-        assert hasattr(test, 'foo')
-        assert isinstance(test.foo(), pd.DataFrame)
+        with self.assertRaises(ModuleNotFoundError):
+            from quilt.data.user import test
 
     def test_logging(self):
         mydir = os.path.dirname(__file__)
