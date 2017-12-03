@@ -63,11 +63,7 @@ install:
         pip install "$env:APPVEYOR_BUILD_FOLDER\\registry"
       }
   
-#build_script:
-#  - TODO: 
-#
-
-test_script:
+script:
   - ECHO "Test quilt compiler"
   - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: |
@@ -77,14 +73,3 @@ test_script:
         pytest "$env:APPVEYOR_BUILD_FOLDER\\registry\\requirements.txt"
       }
 
-#after_test:
-#  - TODO: 
-#
-
-#artifacts:
-#  - TODO: 
-#
-
-#on_success:
-#  - TODO: 
-#
