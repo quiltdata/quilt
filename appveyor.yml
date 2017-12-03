@@ -42,9 +42,8 @@ install:
       if($env:PYTHON -match "conda")
       {
         conda update -y conda
-        conda install -y pip wheel numpy scipy pyflakes matplotlib flask
         conda create --yes -n quilt_env python=$QPYVER pip
-        source activate quilt_env
+        #source activate quilt_env
         pip install pytest
       }
       else
