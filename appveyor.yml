@@ -53,7 +53,8 @@ install:
         pip install -U numpy pytest
       }
 
-  - ECHO "Insall quilt compiler"
+  - ECHO "Install quilt compiler"
+  - ps: pip install pyarrow=0.4.0"
   - ps: pip install --only-binary 'tables' "$env:APPVEYOR_BUILD_FOLDER\compiler"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
