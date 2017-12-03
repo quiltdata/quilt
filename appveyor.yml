@@ -71,7 +71,7 @@ test_script:
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
-        Write-Host "Install quilt registry"
-        pytest "$env:APPVEYOR_BUILD_FOLDER\\registry\\requirements.txt"
+        Write-Host "Test registry"
+        pytest "$env:APPVEYOR_BUILD_FOLDER\\registry"
       }
 
