@@ -293,27 +293,20 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
                     for item in v:
                         for result in find(key, item):
                             yield result
-
-    try:
-        build_data = load_yaml(yaml_path)
-        # default to 'checks.yml' if build.yml contents: contains checks, but
-        # there's no inlined checks: defined by build.yml
-        if (checks_path is None and list(find('checks', build_data['contents'])) and
-                'checks' not in build_data):
-            checks_path = 'checks.yml'
-            checks_contents = load_yaml(checks_path, optional=True)
-        elif checks_path is not None:
-            checks_contents = load_yaml(checks_path)
-        else:
-            checks_contents = None
-    except yaml.scanner.ScannerError as ex:
-        message_parts = str(ex).split('\n')
-        message_parts.insert(0, "Syntax error while building {!r}".format(yaml_path))
-        raise BuildException('\n  '.join(message_parts))
         
+    build_data = load_yaml(yaml_path)
+    # default to 'checks.yml' if build.yml contents: contains checks, but
+    # there's no inlined checks: defined by build.yml
+    if (checks_path is None and list(find('checks', build_data['contents'])) and
+        'checks' not in build_data):
+        checks_path = 'checks.yml'
+        checks_contents = load_yaml(checks_path, optional=True)
+    elif checks_path is not None:
+        checks_contents = load_yaml(checks_path)
+    else:
+        checks_contents = None
     build_package_from_contents(username, package, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
-
 
 def build_package_from_contents(username, package, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):

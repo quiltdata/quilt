@@ -199,7 +199,15 @@ def load_yaml(filename, optional=False):
         return None
     with open(filename, 'r') as fd:
         data = fd.read()
-    res = yaml.load(data)
+    try:
+        res = yaml.load(data)
+    except yaml.scanner.ScannerError as error:
+        mark = error.problem_mark
+        message = ["Bad yaml syntax in {!r}".format(filename),
+                   "  Line {}, column {}:".format(mark.line, mark.column)]
+        message.extend(error.problem_mark.get_snippet().split(os.linesep))
+        message.append("  " + error.problem)
+        raise BuildException('\n'.join(message))
     if res is None:
         if optional:
             return None
