@@ -281,8 +281,7 @@ class PackageStore(object):
                 # File and Table nodes like DataNode in nodes.py.
                 if isinstance(node, (FileNode, TableNode)):
                     for objhash in node.hashes:
-                        if objhash in remove_objs:
-                            remove_objs.remove(objhash)
+                        remove_objs.discard(objhash)
 
         removed = []
         for obj in remove_objs:
