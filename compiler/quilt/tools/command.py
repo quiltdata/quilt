@@ -1144,4 +1144,4 @@ def rm(package, force=False):
     store = PackageStore()
     deleted = store.remove_package(owner, pkg)
     for obj in deleted:
-        print("Removing: {0}".format(obj))
+        print("Removed: {0}".format(obj))
