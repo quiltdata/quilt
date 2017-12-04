@@ -61,20 +61,20 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
-    def preorder_tablenodes(self):
+    def preorder(self):
+        """
+        Performs a pre-order walk of the package tree starting at this node.
+        It returns a list of the nodes in the order visited.
+        """
         stack = [self]
         output = []
 
         while stack:
             node = stack.pop()
             for child in node.children.values():
+                output.append(child)
                 if isinstance(child, GroupNode):
                     stack.append(child)
-                elif isinstance(child, TableNode):
-                    output.append(child)
-                else:
-                    pass # Should we throw exception here?
-
         return output
 
 class RootNode(GroupNode):

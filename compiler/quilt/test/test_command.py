@@ -308,3 +308,67 @@ class CommandTest(QuiltTestCase):
             command.build('foo/bar', build_path)
 
             self.requests_mock.reset()  # Prevent the "not all requests ..." assert.
+
+    def test_rm(self):
+        """
+        Test removing a package.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+    def test_rm_non_existent_package(self):
+        """
+        Test removing a non-existent package.
+        """
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        command.rm('foo/bar', force=True)    
+
+    def test_rm_package_w_shared_obj(self):
+        """
+        Test removing a package that shares an object with another. The
+        other package should still remain.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+        command.build('foo/bar2', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        from quilt.data.foo import bar2
+        assert isinstance(bar2.foo(), pd.DataFrame)
+
+    def test_rm_subpackage(self):
+        """
+        Test removing a sub-package (not supported).
+        """
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.rm('foo/bar/baz', force=True)     
+
+    def test_rm_doesnt_break_cache(self):
+        """
+        Test building, removing then rebuilding a package. The package
+        should be correctly rebuilt.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        from quilt.data.foo import bar
+        assert isinstance(bar.foo(), pd.DataFrame)
