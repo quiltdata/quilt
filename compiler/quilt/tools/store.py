@@ -183,9 +183,22 @@ class PackageStore(object):
         Removes a package (all instances) from this store.
         """
         self.check_name(user, package)
+
         path = self.package_path(user, package)
+        remove_objs = set()
         if os.path.isdir(path):
+            # Collect objects from all instances for potential cleanup
+            contents_path = os.path.join(path, Package.CONTENTS_DIR)
+            for instance in os.listdir(contents_path):
+                pkg = Package(self, user, package, path, pkghash=instance)
+                for node in pkg.get_contents().preorder():
+                    if isinstance(node, (FileNode, TableNode)):
+                        for objhash in node.hashes:
+                            remove_objs.add(objhash)
+            # Remove package manifests
             rmtree(path)
+        
+        return self.prune(remove_objs)        
 
     def iterpackages(self):
         """
@@ -252,12 +265,15 @@ class PackageStore(object):
         """
         return os.path.join(self._path, self.CACHE_DIR, name)
 
-    def prune(self):
+    def prune(self, objs=None):
         """
-        Clean up all objects not referenced by any packages.
+        Clean up objects not referenced by any packages. Try to prune all
+        objects by default.
         """
-        objdir = os.path.join(self._path, self.OBJ_DIR)
-        all_obj = os.listdir(objdir)
+        if objs is None:
+            objdir = os.path.join(self._path, self.OBJ_DIR)
+            objs = os.listdir(objdir)
+        remove_objs = set(objs)
 
         for pkg in self.iterpackages():
             for node in pkg.get_contents().preorder():
@@ -265,11 +281,13 @@ class PackageStore(object):
                 # File and Table nodes like DataNode in nodes.py.
                 if isinstance(node, (FileNode, TableNode)):
                     for objhash in node.hashes:
-                        all_obj.remove(objhash)
+                        remove_objs.remove(objhash)
 
-        for obj in all_obj:
-            print("Removing: {0}".format(obj))
+        removed = []
+        for obj in remove_objs:
             os.remove(self.object_path(obj))
+            removed.append(obj)
+        return removed
             
 ########################################
 # Helper Functions
