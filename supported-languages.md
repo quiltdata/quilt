@@ -7,7 +7,7 @@
 # R
 * Community contribution on [GitHub](https://github.com/stillmatic/quiltr).
 
-Scala
+# Scala
 * Planned. We welcome your contributions on [GitHub](https://github.com/quiltdata/quilt).
 
 ***
