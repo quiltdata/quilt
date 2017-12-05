@@ -145,6 +145,8 @@ class BuildTest(QuiltTestCase):
             'Expected `transform: tsv` from ancestor' 
         assert type(pkg.group_b.subgroup.many_tsv.three()) is DataFrame, \
             'Expected `transform: tsv` from ancestor' 
+        assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
+        assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
 
     def test_build_hdf5(self):
         mydir = os.path.dirname(__file__)
