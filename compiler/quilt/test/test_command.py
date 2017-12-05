@@ -45,17 +45,17 @@ class CommandTest(QuiltTestCase):
             ]
         # test general URL setting -- result should match input
         for test_url in test_urls:
-                mock_load_config.return_value = {}
-                mock_input.return_value = test_url
+            mock_load_config.return_value = {}
+            mock_input.return_value = test_url
 
-                command.config()
+            command.config()
 
-                assert mock_input.called
-                mock_input.reset_mock()
+            assert mock_input.called
+            mock_input.reset_mock()
 
-                args, kwargs = mock_save_config.call_args
-                mock_load_config.return_value = args[0] if args else kwargs['cfg']
-                assert test_url == command.get_registry_url()
+            args, kwargs = mock_save_config.call_args
+            mock_load_config.return_value = args[0] if args else kwargs['cfg']
+            assert test_url == command.get_registry_url()
 
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
@@ -67,49 +67,48 @@ class CommandTest(QuiltTestCase):
             'blah://bar.com',
             'http://foo.bar.com/baz',
             ]
-        # test general URL setting -- result should match input
+        # test general URL setting -- result should match initial state
+        mock_load_config.return_value = {}
+        initial_url = command.get_registry_url()
+
         for test_url in test_urls:
-                mock_load_config.return_value = {}
-                mock_input.return_value = test_url
+            mock_input.return_value = test_url
 
-                with assertRaisesRegex(self, command.CommandException, 'Invalid URL'):
-                    command.config()
+            with assertRaisesRegex(self, command.CommandException, 'Invalid URL'):
+                command.config()
 
-                assert mock_input.called
-                mock_input.reset_mock()
+            assert mock_input.called
+            mock_input.reset_mock()
 
-                assert mock_save_config.call_args is None
-                assert command.get_registry_url() != test_url
+            mock_save_config.assert_not_called()
 
-    @patch('requests.Session.put')
-    def test_version_add_badversion(self, mock_put):
+            assert command.get_registry_url() == initial_url
+
+    def test_version_add_badversion(self):
         with assertRaisesRegex(self, command.CommandException, 'Invalid version format'):
             command.version_add('user/test', '2.9.12.2error', 'fabc123', force=True)
-        assert mock_put.call_args is None
 
     @patch('quilt.tools.command._match_hash')
     @patch('quilt.tools.command.input')
-    @patch('requests.Session.put')
-    def test_version_add_confirmed(self, mock_put, mock_input, mock_match_hash):
-        testsite = command.get_registry_url()
+    def test_version_add_confirmed(self, mock_input, mock_match_hash):
+        registry_url = command.get_registry_url()
         mock_input.return_value = 'y'
         mock_match_hash.return_value = 'fabc123'
 
+        # Response content is not checked by version_add, so
+        # status ok and URL verification are enough
+        self.requests_mock.add(
+            responses.PUT,
+            registry_url + "/api/version/user/test/2.9.12",
+            status=200,
+        )
+
         command.version_add('user/test', '2.9.12', 'fabc123')
-
-        assert mock_put.call_args
-        args, kwargs = mock_put.call_args
-
-        assert args[0] == testsite + '/api/version/user/test/2.9.12'
-        assert kwargs == {'data': '{"hash": "fabc123"}'}
 
     @patch('quilt.tools.command.input')
-    @patch('requests.Session.put')
-    def test_version_add_declined(self, mock_put, mock_input):
+    def test_version_add_declined(self, mock_input):
         mock_input.return_value = 'n'
-
-        command.version_add('user/test', '2.9.12', 'fabc123')
-        assert mock_put.call_args is None
+        command.version_add('user/test', '2.9.12', 'fabc123')  # should produce no mock network activity
 
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
