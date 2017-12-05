@@ -4,8 +4,10 @@ Build: parse and add user-supplied files to store
 import os
 import re
 
+from shutil import rmtree
+
 from .const import PACKAGE_DIR_NAME
-from .core import RootNode, CommandException
+from .core import FileNode, RootNode, TableNode, CommandException
 from .package import Package, PackageException
 from .util import BASE_DIR
 
@@ -176,6 +178,39 @@ class PackageStore(object):
         contents = RootNode(dict())
         return self.install_package(user, package, contents)
 
+    def remove_package(self, user, package):
+        """
+        Removes a package (all instances) from this store.
+        """
+        self.check_name(user, package)
+
+        path = self.package_path(user, package)
+        remove_objs = set()
+        if os.path.isdir(path):
+            # Collect objects from all instances for potential cleanup
+            contents_path = os.path.join(path, Package.CONTENTS_DIR)
+            for instance in os.listdir(contents_path):
+                pkg = Package(self, user, package, path, pkghash=instance)
+                for node in pkg.get_contents().preorder():
+                    if isinstance(node, (FileNode, TableNode)):
+                        for objhash in node.hashes:
+                            remove_objs.add(objhash)
+            # Remove package manifests
+            rmtree(path)
+        
+        return self.prune(remove_objs)        
+
+    def iterpackages(self):
+        """
+        Return an iterator over all the packages in the PackageStore.
+        """
+        pkgdir = os.path.join(self._path, self.PKG_DIR)
+        for user in os.listdir(pkgdir):
+            for pkg in os.listdir(os.path.join(pkgdir, user)):
+                pkgpath = os.path.join(pkgdir, user, pkg)
+                for hsh in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR)):
+                    yield Package(self, user, pkg, pkgpath, pkghash=hsh)
+
     def ls_packages(self):
         """
         List packages in this store.
@@ -229,6 +264,34 @@ class PackageStore(object):
         Returns the path to a temporary object, before we know its hash.
         """
         return os.path.join(self._path, self.CACHE_DIR, name)
+
+    def prune(self, objs=None):
+        """
+        Clean up objects not referenced by any packages. Try to prune all
+        objects by default.
+        """
+        if objs is None:
+            objdir = os.path.join(self._path, self.OBJ_DIR)
+            objs = os.listdir(objdir)
+        remove_objs = set(objs)
+
+        for pkg in self.iterpackages():
+            for node in pkg.get_contents().preorder():
+                # TODO: the or below isn't scalable. Add a common baseclass for
+                # File and Table nodes like DataNode in nodes.py.
+                if isinstance(node, (FileNode, TableNode)):
+                    for objhash in node.hashes:
+                        remove_objs.discard(objhash)
+
+        removed = []
+        for obj in remove_objs:
+            os.remove(self.object_path(obj))
+            removed.append(obj)
+        return removed
+            
+########################################
+# Helper Functions
+########################################
 
 def parse_package_extended(name):
     hash = version = tag = None

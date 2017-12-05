@@ -172,8 +172,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                         cachedobjs = cache_entry['obj_hashes']
                         assert isinstance(cachedobjs, list)
 
-            if cachedobjs:
-                # FIXME: Add already present object to the package
+            # Check to see that cached objects actually exist in the store
+            if cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
+                # Use existing objects instead of rebuilding
                 package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
             else:
                 # read source file into DataFrame

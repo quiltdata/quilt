@@ -18,6 +18,98 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_urls_default(self, mock_input, mock_load_config, mock_save_config):
+        # test setting default URL with blank string -- result should be default
+        mock_load_config.return_value = {}
+        mock_input.return_value = ''
+
+        command.config()
+
+        assert mock_input.called
+
+        args, kwargs = mock_save_config.call_args
+        mock_load_config.return_value = args[0] if args else kwargs['cfg']
+        assert command.get_registry_url() == command.DEFAULT_REGISTRY_URL
+
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_good_urls(self, mock_input, mock_load_config, mock_save_config):
+        test_urls = [
+            'https://foo.com',
+            'http://foo.com',
+            'https://foo.bar.net',
+            ]
+        # test general URL setting -- result should match input
+        for test_url in test_urls:
+            mock_load_config.return_value = {}
+            mock_input.return_value = test_url
+
+            command.config()
+
+            assert mock_input.called
+            mock_input.reset_mock()
+
+            args, kwargs = mock_save_config.call_args
+            mock_load_config.return_value = args[0] if args else kwargs['cfg']
+            assert test_url == command.get_registry_url()
+
+    @patch('quilt.tools.command._save_config')
+    @patch('quilt.tools.command._load_config')
+    @patch('quilt.tools.command.input')
+    def test_config_bad_urls(self, mock_input, mock_load_config, mock_save_config):
+        test_urls = [
+            'foo.com',
+            'ftp://foo.com',
+            'blah://bar.com',
+            'http://foo.bar.com/baz',
+            ]
+        # test general URL setting -- result should match initial state
+        mock_load_config.return_value = {}
+        initial_url = command.get_registry_url()
+
+        for test_url in test_urls:
+            mock_input.return_value = test_url
+
+            with assertRaisesRegex(self, command.CommandException, 'Invalid URL'):
+                command.config()
+
+            assert mock_input.called
+            mock_input.reset_mock()
+
+            mock_save_config.assert_not_called()
+
+            assert command.get_registry_url() == initial_url
+
+    def test_version_add_badversion(self):
+        with assertRaisesRegex(self, command.CommandException, 'Invalid version format'):
+            command.version_add('user/test', '2.9.12.2error', 'fabc123', force=True)
+
+    @patch('quilt.tools.command._match_hash')
+    @patch('quilt.tools.command.input')
+    def test_version_add_confirmed(self, mock_input, mock_match_hash):
+        registry_url = command.get_registry_url()
+        mock_input.return_value = 'y'
+        mock_match_hash.return_value = 'fabc123'
+
+        # Response content is not checked by version_add, so
+        # status ok and URL verification are enough
+        self.requests_mock.add(
+            responses.PUT,
+            registry_url + "/api/version/user/test/2.9.12",
+            status=200,
+        )
+
+        command.version_add('user/test', '2.9.12', 'fabc123')
+
+    @patch('quilt.tools.command.input')
+    def test_version_add_declined(self, mock_input):
+        mock_input.return_value = 'n'
+        command.version_add('user/test', '2.9.12', 'fabc123')  # should produce no mock network activity
+
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.push(package="no_user")
@@ -221,7 +313,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', git_url)
 
@@ -243,7 +335,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', "{url}@{brch}".format(url=git_url, brch=branch))
 
@@ -260,7 +352,7 @@ class CommandTest(QuiltTestCase):
 
             # fake git clone fail
             raise Exception()
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
                 command.build('user/pkg__test_git_clone_fail', git_url)
@@ -308,3 +400,67 @@ class CommandTest(QuiltTestCase):
             command.build('foo/bar', build_path)
 
             self.requests_mock.reset()  # Prevent the "not all requests ..." assert.
+
+    def test_rm(self):
+        """
+        Test removing a package.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+    def test_rm_non_existent_package(self):
+        """
+        Test removing a non-existent package.
+        """
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        command.rm('foo/bar', force=True)    
+
+    def test_rm_package_w_shared_obj(self):
+        """
+        Test removing a package that shares an object with another. The
+        other package should still remain.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+        command.build('foo/bar2', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        from quilt.data.foo import bar2
+        assert isinstance(bar2.foo(), pd.DataFrame)
+
+    def test_rm_subpackage(self):
+        """
+        Test removing a sub-package (not supported).
+        """
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.rm('foo/bar/baz', force=True)     
+
+    def test_rm_doesnt_break_cache(self):
+        """
+        Test building, removing then rebuilding a package. The package
+        should be correctly rebuilt.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        from quilt.data.foo import bar
+        assert isinstance(bar.foo(), pd.DataFrame)
