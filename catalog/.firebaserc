@@ -1,0 +1,7 @@
+{
+  "projects": {
+    "production": "packages-c0c70",
+    "stage": "packages-stage",
+    "default": "packages-stage"
+  }
+}
