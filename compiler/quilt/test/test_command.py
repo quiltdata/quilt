@@ -18,31 +18,26 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
     def test_config_urls_default(self, mock_input, mock_load_config, mock_save_config):
-        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
-                         "or leave this line blank to use the default registry: ")
         # test setting default URL with blank string -- result should be default
         mock_load_config.return_value = {}
         mock_input.return_value = ''
+
         command.config()
 
-        mock_input.assert_called_with(config_prompt)
+        assert mock_input.called
 
         args, kwargs = mock_save_config.call_args
-        mock_load_config.return_value = args[0] if args else kwargs['cmd']
+        mock_load_config.return_value = args[0] if args else kwargs['cfg']
         assert command.get_registry_url() == command.DEFAULT_REGISTRY_URL
 
-    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
     def test_config_good_urls(self, mock_input, mock_load_config, mock_save_config):
-        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
-                         "or leave this line blank to use the default registry: ")
         test_urls = [
             'https://foo.com',
             'http://foo.com',
@@ -57,18 +52,17 @@ class CommandTest(QuiltTestCase):
 
                 command.config()
 
-                mock_input.assert_called_with(config_prompt)
+                assert mock_input.called
+                mock_input.reset_mock()
+
                 args, kwargs = mock_save_config.call_args
-                mock_load_config.return_value = args[0] if args else kwargs['cmd']
+                mock_load_config.return_value = args[0] if args else kwargs['cfg']
                 assert test_url == command.get_registry_url()
 
-    # no counterpart to command.get_registry_url, so we mock _save_config and _load_config
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
     def test_config_bad_urls(self, mock_input, mock_load_config, mock_save_config):
-        config_prompt = ("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
-                         "or leave this line blank to use the default registry: ")
         test_urls = [
             'foo.com',
             'ftp://foo.com',
@@ -84,7 +78,9 @@ class CommandTest(QuiltTestCase):
                 with assertRaisesRegex(self, command.CommandException, 'Invalid URL'):
                     command.config()
 
-                mock_input.assert_called_with(config_prompt)
+                assert mock_input.called
+                mock_input.reset_mock()
+
                 assert mock_save_config.call_args is None
                 assert command.get_registry_url() != test_url
 
@@ -320,7 +316,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', git_url)
 
@@ -342,7 +338,7 @@ class CommandTest(QuiltTestCase):
             srcpath = os.path.join(mydir, 'data', srcfile)
             destpath = os.path.join(cmd[-1], srcfile)
             shutil.copyfile(srcpath, destpath)
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             command.build('user/test', "{url}@{brch}".format(url=git_url, brch=branch))
 
@@ -359,7 +355,7 @@ class CommandTest(QuiltTestCase):
 
             # fake git clone fail
             raise Exception()
-        
+
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
                 command.build('user/test', git_url)
