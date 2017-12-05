@@ -23,7 +23,8 @@ contents:
     subgroup:
       # transform and skiprows apply to all children, unless overidden
       transform: tsv
-      skiprows: 1
+      kwargs:
+        skiprows: 1
       tsv:
         # should be tsv
         file: data/tsv.txt
@@ -41,5 +42,8 @@ contents:
           file: data/tsv.txt
         three:
           file: data/tsv.txt
+  group_empty:
+  group_x:
+    empty_child:
 ...
 
