@@ -101,6 +101,17 @@ class BuildTest(QuiltTestCase):
             'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
 
+    def test_build_empty(self):
+        """
+        test building from build_empty.yml
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_empty.yml')
+        build.build_package('empty', 'pkg', path)
+
+        from quilt.data.empty import pkg
+        assert not pkg._keys(), 'Expected package to be empty'
+
     def test_build_group_args(self):
         """
         test building from build_group_args.yml
