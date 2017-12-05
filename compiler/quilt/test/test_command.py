@@ -42,8 +42,6 @@ class CommandTest(QuiltTestCase):
             'https://foo.com',
             'http://foo.com',
             'https://foo.bar.net',
-#REVIEW: is this style of URL intentionally invalid?
-#            'https://foo.bar.net/baz',
             ]
         # test general URL setting -- result should match input
         for test_url in test_urls:
@@ -67,7 +65,6 @@ class CommandTest(QuiltTestCase):
             'foo.com',
             'ftp://foo.com',
             'blah://bar.com',
-#REVIEW: is this style of URL intentionally invalid?
             'http://foo.bar.com/baz',
             ]
         # test general URL setting -- result should match input
