@@ -51,9 +51,13 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    # at least one of an internal nodes children are dicts
-    # some (group args) may not be dicts
-    return any(isinstance(x, dict) for x in itervalues(node))
+    return not _is_leaf_node(node)
+
+def _is_leaf_node(node):
+    """
+    A leaf node either has no children or defines a `file` key
+    """
+    return not node or node.get(RESERVED['file'])
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -85,28 +89,39 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
     Parameters
     ----------
     ancestor_args : dict
-      Any key:value pairs inherited from an ancestor. Users can this define kwargs
-      that affect entire subtrees (e.g. transform: csv for 500 .txt files)
-      Position of definition in file also matters and allows for composition
+      any transform inherited from an ancestor
+      plus any inherited handler kwargs
+      Users can thus define kwargs that affect entire subtrees
+      (e.g. transform: csv for 500 .txt files)
       and overriding of ancestor or peer values.
+      Child transform or kwargs override ancestor k:v pairs.
     """
     if _is_internal_node(node):
-        # add anything whose value is not a dict to the group_arg stack
-        # TODO: there might be some pandas kwargs that take dictionaries as values
-        # in which case this code will break by treating a kwarg as a package node
-        # NOTE: YAML parsing does not guarantee key order so we have to set all
-        # of the group args in one shot for consistent application to subtrees
+        # NOTE: YAML parsing does not guarantee key order
+        # fetch local transform and kwargs values; we do it using ifs
+        # to prevent `key: None` from polluting the update
+        local_args = {}
+        if node.get(RESERVED['transform']):
+            local_args[RESERVED['transform']] = node.get(RESERVED['transform'])
+        if node.get(RESERVED['kwargs']):
+            local_args[RESERVED['kwargs']] = node.get(RESERVED['kwargs'])
         group_args = ancestor_args.copy()
-        group_args.update({ k: v for k, v in iteritems(node) if not isinstance(v, dict) })
-        groups = { k: v for k, v in iteritems(node) if isinstance(v, dict) }
+        group_args.update({ k: v for k, v in iteritems(local_args) })
+        # if it's not a reserved word it's a group that we can descend
+        groups = { k: v for k, v in iteritems(node) if k not in RESERVED }
         for child_name, child_table in groups.items():
             if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
-            if child_name == RESERVED['file']:
-                raise StoreException("Reserved word 'file' not permitted on group node")
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else: # leaf node
+        # handle group leaf nodes (empty groups)
+        if not node:
+            if not dry_run:
+                if name: # an empty package is not a group
+                    package.save_group(name)
+            return
+        # handle remaining leaf nodes types
         rel_path = node.get(RESERVED['file'])
         if not rel_path:
             raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
@@ -114,7 +129,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # get either the locally defined transform or inherit from an ancestor
         transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
 
-        ID = 'id'               # pylint:disable=C0103
+        ID = 'id' # pylint:disable=C0103
         if transform:
             transform = transform.lower()
             if (transform not in PARSERS) and (transform != ID):
@@ -125,8 +140,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             transform = ext
             if transform not in PARSERS:
                 transform = ID
-            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
-
+            print("Inferring 'transform: %s' for %s" % (transform, rel_path)) 
         # TODO: parse/check environments:
         # environments = node.get(RESERVED['environments'])
 
@@ -141,10 +155,10 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                 print("Copying %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
-            handler_args = _remove_keywords(ancestor_args)
-            # merge ancestor args with local args (local wins if conflict)
-            handler_args.update(_remove_keywords(node))
-
+            # copy so we don't modify shared ancestor_args
+            handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
+            # local kwargs win the update
+            handler_args.update(node.get(RESERVED['kwargs'], {}))
             # Check Cache
             store = PackageStore()
             path_hash = _path_hash(path, transform, handler_args)
@@ -265,6 +279,7 @@ def _file_to_data_frame(ext, path, target, handler_args):
         dataframe = handler(path, **failover_args)
 
     # cast object columns to strings
+    # TODO does pyarrow finally support objects?
     for name, col in dataframe.iteritems():
         if col.dtype == 'object':
             dataframe[name] = col.astype(str)
