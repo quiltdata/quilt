@@ -121,6 +121,7 @@ TESTED_PARAMS = []
 # These can be directly added or removed from the KNOWN_PARAMS
 # variable, as befits your situation.
 KNOWN_PARAMS = [
+    ['--version'],
     [0],
     [0, 'access'],
     [0, 'access', 0],
@@ -143,6 +144,8 @@ KNOWN_PARAMS = [
     [0, 'delete', 0],
     [0, 'generate'],
     [0, 'generate', 0],
+    [0, 'help'],
+    [0, 'help', 0],
     [0, 'inspect'],
     [0, 'inspect', 0],
     [0, 'install'],
@@ -160,6 +163,9 @@ KNOWN_PARAMS = [
     [0, 'push', '--public'],
     [0, 'push', '--reupload'],
     [0, 'push', 0],
+    [0, 'rm'],
+    [0, 'rm', '-f'],
+    [0, 'rm', 0],
     [0, 'search'],
     [0, 'search', 0],
     [0, 'tag'],
@@ -574,3 +580,10 @@ def test_coverage():
 
     assert not result['missing']  # cli params not tested yet
     assert result['percentage'] == 1
+
+
+## Monkey Patch main if imported when QUILT_TEST_CLI_SUBPROC is set.
+if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
+    from ..tools import main
+    from ..tools import command
+    main.command = MockObject(command, use_stdout=True)
