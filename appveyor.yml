@@ -17,7 +17,7 @@ environment:
     - PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
-      TEST_REGISTRY: true
+      TEST_REGISTRY: false
     
     - PYTHON: "C:\\Python34-x64"
       PYTHON_VERSION: "3.4.x"
