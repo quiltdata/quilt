@@ -324,13 +324,13 @@ def logout():
 
     _clear_session()
 
-def generate(directory):
+def generate(directory, outfilename=DEFAULT_BUILDFILE):
     """
     Generate a build-file for quilt build from a directory of
     source files.
     """
     try:
-        buildfilepath = generate_build_file(directory)
+        buildfilepath = generate_build_file(directory, outfilename=outfilename)
     except BuildException as builderror:
         raise CommandException(str(builderror))
 
@@ -481,7 +481,7 @@ def build_from_node(package, node):
     _process_node(node)
     package_obj.save_contents()
 
-def build_from_path(package, path, dry_run=False, env='default'):
+def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
     """
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
@@ -493,13 +493,13 @@ def build_from_path(package, path, dry_run=False, env='default'):
 
     try:
         if os.path.isdir(path):
-            buildpath = os.path.join(path, DEFAULT_BUILDFILE)
+            buildpath = os.path.join(path, outfilename)
             if os.path.exists(buildpath):
                 raise CommandException(
                     "Build file already exists. Run `quilt build %r` instead." % buildpath
                 )
 
-            contents = generate_contents(path, DEFAULT_BUILDFILE)
+            contents = generate_contents(path, outfilename)
             build_package_from_contents(owner, pkg, path, contents, dry_run=dry_run, env=env)
         else:
             build_package(owner, pkg, path, dry_run=dry_run, env=env)
@@ -1141,3 +1141,19 @@ def inspect(package):
 
     print(pkgobj.get_path())
     _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
+
+def rm(package, force=False):
+    """
+    Remove a package (all instances) from the local store.
+    """
+    owner, pkg = parse_package(package)
+
+    if not force:
+        confirmed = input("Remove {0}? (y/n)".format(package))
+        if confirmed.lower() != 'y':
+            return
+
+    store = PackageStore()
+    deleted = store.remove_package(owner, pkg)
+    for obj in deleted:
+        print("Removed: {0}".format(obj))

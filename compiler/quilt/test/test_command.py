@@ -181,10 +181,11 @@ class CommandTest(QuiltTestCase):
     def test_generate_buildfile_wo_building(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, 'data')
-        buildfilepath = os.path.join(path, 'build.yml')
+        buildfilename = 'build_test_generate_buildfile_wo_building.yml'
+        buildfilepath = os.path.join(path, buildfilename)
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         try:
-            command.generate(path)
+            command.generate(path, outfilename=buildfilename)
             assert os.path.exists(buildfilepath), "failed to create %s" % buildfilepath
         finally:
             os.remove(buildfilepath)
@@ -262,11 +263,12 @@ class CommandTest(QuiltTestCase):
         
         with patch('subprocess.check_call', mock_git_clone):
             with self.assertRaises(command.CommandException):
-                command.build('user/test', git_url)
+                command.build('user/pkg__test_git_clone_fail', git_url)
 
-        from quilt.data.user import test
-        assert hasattr(test, 'foo')
-        assert isinstance(test.foo(), pd.DataFrame)
+        # TODO: running -n (pytest-xdist) there's leaky state and can throw
+        # either ImportError: cannot import name or ModuleNotFoundError
+        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named'):
+            from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):
         mydir = os.path.dirname(__file__)
@@ -306,3 +308,67 @@ class CommandTest(QuiltTestCase):
             command.build('foo/bar', build_path)
 
             self.requests_mock.reset()  # Prevent the "not all requests ..." assert.
+
+    def test_rm(self):
+        """
+        Test removing a package.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+    def test_rm_non_existent_package(self):
+        """
+        Test removing a non-existent package.
+        """
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        command.rm('foo/bar', force=True)    
+
+    def test_rm_package_w_shared_obj(self):
+        """
+        Test removing a package that shares an object with another. The
+        other package should still remain.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+        command.build('foo/bar2', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        from quilt.data.foo import bar2
+        assert isinstance(bar2.foo(), pd.DataFrame)
+
+    def test_rm_subpackage(self):
+        """
+        Test removing a sub-package (not supported).
+        """
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+            command.rm('foo/bar/baz', force=True)     
+
+    def test_rm_doesnt_break_cache(self):
+        """
+        Test building, removing then rebuilding a package. The package
+        should be correctly rebuilt.
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        command.rm('foo/bar', force=True)
+        teststore = store.PackageStore(self._store_dir)
+        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/bar', build_path)
+
+        from quilt.data.foo import bar
+        assert isinstance(bar.foo(), pd.DataFrame)
