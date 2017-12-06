@@ -195,7 +195,7 @@ def filepatch(module_name, func_name, action_func):
 
     module = importlib.import_module(module_name)
     patcher = None
-    def patch_func(filename, *args, **kwargs):
+    def open_func(filename, mode='r', patcher=patcher, module=module, *args, **kwargs):
         patcher.stop()
         try:
             filename = action_func(filename)
@@ -203,11 +203,11 @@ def filepatch(module_name, func_name, action_func):
             for piece in func_name.split('.'):
                 node = getattr(node, piece)
             #print(func); print(filename);
-            res = node(filename, *args, **kwargs)
+            res = node(filename, mode=mode, *args, **kwargs)
         finally:
             patcher.start()
         return res
-    patcher = patch(module_name+'.'+func_name, patch_func)
+    patcher = patch(module_name+'.'+func_name, open_func)
     patcher.start()
     return patcher
 
@@ -331,6 +331,4 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
 def teardown(patchers):
     for patcher in patchers:
         patcher.stop()
-
-
 
