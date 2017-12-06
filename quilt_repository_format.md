@@ -1,4 +1,8 @@
 # Quilt Local Storage
+Quilt stores local package state in a directory `quilt_packages` in your system's user data directory. To find the location of your `quilt_packages` directory, run:
+```bash
+quilt ls
+```
 
 ## Directory Structure
 ```bash
