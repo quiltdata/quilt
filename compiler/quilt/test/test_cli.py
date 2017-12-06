@@ -105,9 +105,9 @@ except ImportError:
 
 
 ## "Static" vars
-_TEST_DIR = os.path.split(os.path.abspath(__file__))[0]
-_QUILT_DIR = os.path.split(_TEST_DIR)[0]
-PACKAGE_DIR = os.path.split(_QUILT_DIR)[0]
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+_QUILT_DIR = os.path.dirname(_TEST_DIR)
+PACKAGE_DIR = os.path.dirname(_QUILT_DIR)
 
 # When a test for CLI params is called, append the param key paths that
 # the test addresses to this variable.

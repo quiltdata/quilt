@@ -74,9 +74,9 @@ try:
 except pkg_resources.DistributionNotFound:
     # Not installed, so we'll get the version manually.
     try:
-        filedir = os.path.split(os.path.abspath(__file__))[0]
-        quiltdir = os.path.split(filedir)[0]
-        pkgdir = os.path.split(quiltdir)[0]
+        filedir = os.path.dirname(os.path.abspath(__file__))
+        quiltdir = os.path.dirname(filedir)
+        pkgdir = os.path.dirname(quiltdir)
         VERSION = open(os.path.join(pkgdir, 'VERSION')).read().strip()
         del filedir, quiltdir, pkgdir
     except (OSError, IndexError):

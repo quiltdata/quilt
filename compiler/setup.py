@@ -16,7 +16,7 @@ def readme():
 
 
 def quilt_version():
-    pkgdir = os.path.split(os.path.abspath(__file__))[0]
+    pkgdir = os.path.dirname(__file__)
     return open(os.path.join(pkgdir, 'VERSION')).read().strip()
 
 
