@@ -118,8 +118,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                if name: # an empty package is not a group
-                    package.save_group(name)
+                package.save_group(name)
             return
         # handle remaining leaf nodes types
         rel_path = node.get(RESERVED['file'])
