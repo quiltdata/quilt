@@ -195,7 +195,7 @@ def filepatch(module_name, func_name, action_func):
 
     module = importlib.import_module(module_name)
     patcher = None
-    def open_func(filename, mode='r', patcher=patcher, module=module, *args, **kwargs):
+    def open_func(filename, mode='r', module=module, *args, **kwargs):
         patcher.stop()
         try:
             filename = action_func(filename)
