@@ -10,8 +10,6 @@ from quilt.data.akarve import wine
 You can also build packages on the fly:
 ```python
 import pandas as pd
-import quilt
-
 df = pd.DataFrame(data=[1,2,3])
 ```
 
@@ -24,7 +22,7 @@ hue = df['Hue']
 df['HueNormalized'] = (hue - hue.min())/(hue.max() - hue.min())
 ```
 
-Use the standard Python syntax to create or delete attributes:
+Use `del` to delete attributes:
 ``` python
 del wine.raw.wine
 ```
