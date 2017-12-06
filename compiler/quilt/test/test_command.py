@@ -253,10 +253,10 @@ class CommandTest(QuiltTestCase):
     def test_build_yaml_syntax_error(self):
         path = os.path.dirname(__file__)
         buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
-        with assertRaisesRegex(self, command.CommandException, 'Bad yaml syntax'):
+        with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
             command.build('user/test', buildfilepath)
 
-    def test_build_check_yaml_syntax_error(self):
+    def test_build_checks_yaml_syntax_error(self):      # pylint: disable=C0103
         path = os.path.abspath(os.path.dirname(__file__))
         buildfilepath = os.path.join(path, 'build_checks_bad_syntax.yml')
         checksorigpath = os.path.join(path, 'checks_bad_syntax.yml')
@@ -267,12 +267,11 @@ class CommandTest(QuiltTestCase):
             os.chdir(path)
             assert not os.path.exists(checksfilepath)
             shutil.copy(checksorigpath, checksfilepath)
-            with assertRaisesRegex(self, command.CommandException, 'Bad yaml syntax'):
+            with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*checks\.yml'):
                 command.build('user/test', buildfilepath)
         finally:
             os.remove(checksfilepath)
             os.chdir(origdir)
-
 
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
