@@ -235,20 +235,24 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     module = importlib.import_module("quilt.data."+owner+"."+pkg)
     # expand/clean dir mappings, e.g.
     # {"~asah/../foo": "."} ==> {"/Users/foo": ["uciml","raw"]}
-    # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": ["uciml","raw", "foo]}  # cwd=/Users/asah
+    # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": ["uciml", "raw", "foo"]}  # cwd=/Users/asah
     expanded_mappings = {}
     for fromdir, topath in mappings.items():
         expanded_path = os.path.abspath(os.path.expanduser(fromdir)).rstrip("/")
         #print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
         node = module
-        for piece in topath.strip(".").split("."):
-            keys = node._keys()
-            #print('keys={} piece={}'.format(keys, piece))
-            if piece not in keys:
-                raise Exception("Invalid mapping: Quilt node path not found: {}  ({} not found in {})".format(
-                    topath, piece, keys))
-            node = getattr(node, piece)
-            #print('node={}'.format(node))
+        keys = None
+        topath = topath.strip() # just in case
+        if topath not in [ "", "." ]:
+            for piece in topath.strip().strip(".").split("."):
+                print('piece={}'.format(piece))
+                keys = node._keys()
+                print('keys={}'.format(keys))
+                if piece not in keys:
+                    raise Exception("Invalid mapping: Quilt node path not found: {}  ({} not found in {})".format(
+                        topath, piece, keys))
+                node = getattr(node, piece)
+                #print('node={}'.format(node))
         if isinstance(keys, GroupNode):
             # TODO: improve errmsg to be more useful
             raise Exception("Invalid mapping: Quilt node is not a Group: {}".format(piece))
