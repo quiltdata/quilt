@@ -51,13 +51,8 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    return not _is_leaf_node(node)
-
-def _is_leaf_node(node):
-    """
-    A leaf node either has no children or defines a `file` key
-    """
-    return not node or node.get(RESERVED['file'])
+    is_leaf = not node or node.get(RESERVED['file'])
+    return not is_leaf 
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
