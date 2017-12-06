@@ -36,8 +36,6 @@ wine._set(["mygroup", "blob"], "localpath/file.txt") # add a file to the package
 ```
 
 Now you can rebuild the package to save the changes and then push the result to Quilt. (Note that only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
-
-At this point the package owner can build the package in-place and push to update the package.
 ```python
 quilt.build("USR/PKG", wine)
 quilt.push("USR/PKG")
