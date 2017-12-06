@@ -886,13 +886,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
             local_filename = store.object_path(download_hash)
             if os.path.exists(local_filename):
-                file_hash = digest_file(local_filename)
-                if file_hash == download_hash:
-                    print("Fragment already installed; skipping.")
-                    continue
-                else:
-                    print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
-                        file_hash)
+                print("Fragment already installed; skipping.")
+                continue
 
             temp_path_gz = store.temporary_object_path(download_hash + '.gz')
             with open(temp_path_gz, 'ab') as output_file:
