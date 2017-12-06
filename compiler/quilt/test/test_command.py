@@ -253,7 +253,7 @@ class CommandTest(QuiltTestCase):
     def test_build_yaml_syntax_error(self):
         path = os.path.dirname(__file__)
         buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
-        with assertRaisesRegex(self, command.CommandException, 'Syntax error'):
+        with assertRaisesRegex(self, command.CommandException, 'Bad yaml syntax'):
             command.build('user/test', buildfilepath)
 
     def test_build_check_yaml_syntax_error(self):
@@ -267,7 +267,7 @@ class CommandTest(QuiltTestCase):
             os.chdir(path)
             assert not os.path.exists(checksfilepath)
             shutil.copy(checksorigpath, checksfilepath)
-            with assertRaisesRegex(self, command.CommandException, 'Syntax error'):
+            with assertRaisesRegex(self, command.CommandException, 'Bad yaml syntax'):
                 command.build('user/test', buildfilepath)
         finally:
             os.remove(checksfilepath)
