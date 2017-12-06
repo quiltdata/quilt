@@ -233,7 +233,7 @@ class Package(object):
 
     def save_group(self, name):
         """
-        Save a (raw) file to the store.
+        Save a group to the store.
         """
         fullname = name.lstrip('/').replace('/', '.')
         if fullname:
