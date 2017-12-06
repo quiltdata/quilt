@@ -60,6 +60,7 @@ GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
+PARALLEL_DOWNLOADS = 20
 
 S3_CONNECT_TIMEOUT = 30
 S3_READ_TIMEOUT = 30
@@ -233,6 +234,17 @@ def _clear_session():
     if _session is not None:
         _session.close()
         _session = None
+
+def _create_s3_session():
+    """
+    Creates a session with automatic retries on 5xx errors.
+    """
+    sess = requests.Session()
+    retries = Retry(total=3,
+                    backoff_factor=.5,
+                    status_forcelist=[500, 502, 503, 504])
+    sess.mount('https://', HTTPAdapter(max_retries=retries))
+    return sess
 
 def _open_url(url):
     try:
@@ -578,13 +590,7 @@ def push(package, public=False, reupload=False):
 
     with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
         def _worker_thread():
-            with requests.Session() as s3_session:
-                # Retry 500s.
-                retries = Retry(total=3,
-                                backoff_factor=.5,
-                                status_forcelist=[500, 502, 503, 504])
-                s3_session.mount('https://', HTTPAdapter(max_retries=retries))
-
+            with _create_s3_session() as s3_session:
                 while True:
                     with lock:
                         if not obj_queue:
@@ -826,6 +832,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
     store = PackageStore()
     existing_pkg = store.get_package(owner, pkg)
 
+    print("Downloading package metadata...")
+
     if version is not None:
         response = session.get(
             "{url}/api/version/{owner}/{pkg}/{version}".format(
@@ -879,89 +887,125 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     pkgobj = store.install_package(owner, pkg, response_contents)
 
-    with requests.Session() as s3_session:
-        total = len(response_urls)
-        for idx, (download_hash, url) in enumerate(sorted(iteritems(response_urls))):
-            print("Downloading %s (%d/%d)..." % (download_hash, idx + 1, total))
+    obj_queue = sorted(iteritems(response_urls), reverse=True)
+    total = len(obj_queue)
 
-            local_filename = store.object_path(download_hash)
-            if os.path.exists(local_filename):
-                file_hash = digest_file(local_filename)
-                if file_hash == download_hash:
-                    print("Fragment already installed; skipping.")
-                    continue
-                else:
-                    print("Fragment already installed, but has the wrong hash (%s); re-downloading." %
-                        file_hash)
+    downloaded = []
+    lock = Lock()
 
-            temp_path_gz = store.temporary_object_path(download_hash + '.gz')
-            with open(temp_path_gz, 'ab') as output_file:
-                for attempt in range(S3_TIMEOUT_RETRIES):
-                    try:
-                        starting_length = output_file.tell()
-                        response = s3_session.get(
-                            url,
-                            headers={
-                                'Range': 'bytes=%d-' % starting_length
-                            },
-                            stream=True,
-                            timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
-                        )
+    print("Downloading %d fragments..." % total)
 
-                        # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                        if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
-                            if not response.ok:
-                                message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                    download_hash, response.request.url, response.status_code, response.text
+    with tqdm(total=total, unit='obj') as progress:
+        def _worker_thread():
+            with _create_s3_session() as s3_session:
+                while True:
+                    with lock:
+                        if not obj_queue:
+                            break
+                        obj_hash, url = obj_queue.pop()
+
+                    local_filename = store.object_path(obj_hash)
+                    if os.path.exists(local_filename):
+                        with lock:
+                            progress.update(1)
+                            downloaded.append(obj_hash)
+                        continue
+
+                    success = False
+
+                    temp_path_gz = store.temporary_object_path(obj_hash + '.gz')
+                    with open(temp_path_gz, 'ab') as output_file:
+                        for attempt in range(S3_TIMEOUT_RETRIES):
+                            try:
+                                starting_length = output_file.tell()
+                                response = s3_session.get(
+                                    url,
+                                    headers={
+                                        'Range': 'bytes=%d-' % starting_length
+                                    },
+                                    stream=True,
+                                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
                                 )
-                                raise CommandException(message)
 
-                            # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
-                            # them automatically - but that turned out to be a bad idea because it makes
-                            # resuming downloads impossible.
-                            # HACK: For now, just delete the header. Eventually, update the data in S3.
-                            response.raw.headers.pop('Content-Encoding', None)
+                                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
+                                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                                    if not response.ok:
+                                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                                            obj_hash, response.request.url, response.status_code, response.text
+                                        )
+                                        with lock:
+                                            tqdm.write(message)
+                                        break
 
-                            # Make sure we're getting the expected range.
-                            content_range = response.headers.get('Content-Range', '')
-                            match = CONTENT_RANGE_RE.match(content_range)
-                            if not match or not int(match.group(1)) == starting_length:
-                                raise CommandException("Unexpected Content-Range: %s" % content_range)
+                                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
+                                    # them automatically - but that turned out to be a bad idea because it makes
+                                    # resuming downloads impossible.
+                                    # HACK: For now, just delete the header. Eventually, update the data in S3.
+                                    response.raw.headers.pop('Content-Encoding', None)
 
-                            total_length = int(match.group(3))
+                                    # Make sure we're getting the expected range.
+                                    content_range = response.headers.get('Content-Range', '')
+                                    match = CONTENT_RANGE_RE.match(content_range)
+                                    if not match or not int(match.group(1)) == starting_length:
+                                        with lock:
+                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
+                                        break
 
-                            with tqdm(initial=starting_length,
-                                      total=total_length,
-                                      unit='B',
-                                      unit_scale=True) as progress:
-                                for chunk in response.iter_content(CHUNK_SIZE):
-                                    output_file.write(chunk)
-                                    progress.update(len(chunk))
+                                    for chunk in response.iter_content(CHUNK_SIZE):
+                                        output_file.write(chunk)
 
-                        break  # Done!
-                    except requests.exceptions.ConnectionError:
-                        if attempt < S3_TIMEOUT_RETRIES - 1:
-                            print("Timed out; retrying...")
-                        else:
-                            raise
+                                success = True
+                                break  # Done!
+                            except requests.exceptions.ConnectionError as ex:
+                                if attempt < S3_TIMEOUT_RETRIES - 1:
+                                    with lock:
+                                        tqdm.write("Download for %s timed out; retrying..." % obj_hash)
+                                else:
+                                    with lock:
+                                        tqdm.write("Download failed for %s: %s" % (obj_hash, ex))
+                                break
 
-            # Ungzip the downloaded fragment.
-            temp_path = store.temporary_object_path(download_hash)
-            try:
-                with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
-                    copyfileobj(f_in, f_out)
-            finally:
-                # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
-                os.remove(temp_path_gz)
+                    if not success:
+                        # We've already printed an error, so not much to do - just move on to the next object.
+                        continue
 
-            # Check the hash of the result.
-            file_hash = digest_file(temp_path)
-            if file_hash != download_hash:
-                os.remove(temp_path)
-                raise CommandException("Fragment hashes do not match: expected %s, got %s." %
-                                       (download_hash, file_hash))
+                    # Ungzip the downloaded fragment.
+                    temp_path = store.temporary_object_path(obj_hash)
+                    try:
+                        with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
+                            copyfileobj(f_in, f_out)
+                    finally:
+                        # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
+                        os.remove(temp_path_gz)
 
-            move(temp_path, local_filename)
+                    # Check the hash of the result.
+                    file_hash = digest_file(temp_path)
+                    if file_hash != obj_hash:
+                        os.remove(temp_path)
+                        with lock:
+                            tqdm.write("Fragment hashes do not match: expected %s, got %s." %
+                                       (obj_hash, file_hash))
+                            continue
+
+                    move(temp_path, local_filename)
+
+                    # Success.
+                    with lock:
+                        progress.update(1)
+                        downloaded.append(obj_hash)
+
+        threads = [
+            Thread(target=_worker_thread, name="download-worker-%d" % i)
+            for i in range(PARALLEL_DOWNLOADS)
+        ]
+        for thread in threads:
+            thread.daemon = True
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+    if len(downloaded) != total:
+        raise CommandException("Failed to download fragments")
 
     pkgobj.save_contents()
 
