@@ -35,6 +35,14 @@
       File "<stdin>", line 1, in <module>
     FileNotFoundError: [Errno 2] No such file or directory: 'foo/bar/iris_names'
 
+
+    # --------------------------------------------------------------------------------
+    # TODO: get this to work:
+    # https://github.com/xuetsing/image-classification-tensorflow/blob/master/classify.py#L13
+    >>> import quilt.vfs; import tensorflow as tf
+    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}): len(tf.gfile.FastGFile('foo/bar/iris_names').read())
+    ==> errors on not finding tf or tf.gfile
+
 """
 
 # ---------------------------------------------------------------------------
@@ -186,15 +194,16 @@ def filepatch(module_name, func_name, action_func):
             module_name = '__builtin__'
 
     module = importlib.import_module(module_name)
-    original_func = getattr(module, func_name)
     patcher = None
     def patch_func(filename, *args, **kwargs):
         patcher.stop()
         try:
             filename = action_func(filename)
-            func = getattr(module, func_name)
+            node = module
+            for piece in func_name.split('.'):
+                node = getattr(node, piece)
             #print(func); print(filename);
-            res = func(filename, *args, **kwargs)
+            res = node(filename, *args, **kwargs)
         finally:
             patcher.start()
         return res
@@ -203,7 +212,9 @@ def filepatch(module_name, func_name, action_func):
     return patcher
 
 DEFAULT_MODULE_MAPPINGS = {
-    'builtins': 'open', 'bz2': 'BZ2File', 'gzip': 'GzipFile', 'h5py': 'File' # for keras/tensorflow
+    'builtins': 'open', 'bz2': 'BZ2File', 'gzip': 'GzipFile'
+    # for keras/tensorflow
+    ,'h5py': 'File', 'tensorflow': 'gfile.FastGFile', 'tensorflow': 'gfile.GFile'
 }
 
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
