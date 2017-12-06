@@ -9,21 +9,11 @@ environment:
 
   matrix:
 
-    - PYTHON: "C:\\Python27.10-x64"
-      PYTHON_VERSION: "2.7.10"
-      PYTHON_ARCH: "64"
-      TEST_REGISTRY: true
-
     - PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
     
-    - PYTHON: "C:\\Python34-x64"
-      PYTHON_VERSION: "3.4.x"
-      PYTHON_ARCH: "64"
-      TEST_REGISTRY: true
-
     # Enable this if want to use conda
     #- PYTHON: "C:\\Miniconda3"
     #  PYTHON_VERSION: "3"
