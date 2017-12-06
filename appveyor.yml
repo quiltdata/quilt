@@ -14,6 +14,14 @@ environment:
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
     
+
+    - PYTHON: "C:\\Python36-x64"
+      PYTHON_VERSION: "3.6.0"
+      PYTHON_ARCH: "64"
+      TEST_REGISTRY: false
+    
+
+
     # Enable this if want to use conda
     #- PYTHON: "C:\\Miniconda3"
     #  PYTHON_VERSION: "3"
