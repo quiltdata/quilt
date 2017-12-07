@@ -9,6 +9,7 @@ class TargetType(Enum):
     """
     PANDAS = 'pandas'
     FILE = 'file'
+    GROUP = 'group'
 
 DATEF = '%Y-%m-%d'
 TIMEF = '%H:%M:%S'
@@ -20,9 +21,10 @@ DEFAULT_QUILT_YML = 'quilt.yml'
 
 # reserved words in build.yml
 RESERVED = {
-    'file': 'file',
     'checks': 'checks',
     'environments': 'environments',
+    'file': 'file',
+    'kwargs': 'kwargs',
     'transform': 'transform'
 }
 
