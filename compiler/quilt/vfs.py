@@ -36,6 +36,29 @@
     FileNotFoundError: [Errno 2] No such file or directory: 'foo/bar/iris_names'
 
 
+    # ---------------------------------------------------------------------------
+    # various character mapping scenarios
+    #
+    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}):
+       assert(len(open('foo/bar/raw/iris_names').read()) > 100)
+
+    # ---------------------------------------------------------------------------
+    # various character mapping scenarios
+    #
+    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}, charmap=
+                           lambda name: name.replace('.', '_')):
+       assert(len(open('foo/bar/raw/iris.names').read()) > 100)
+
+    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}):
+       assert(len(open('foo/bar/raw/iris.names').read()) > 100)
+
+    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}, charmap={'.':'_'}):
+       assert(len(open('foo/bar/raw/iris.names').read()) > 100)
+
+    # default charmapping changes . to _
+    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
+       assert(len(open('foo/bar/iris_names').read()) > 100)
+
     # --------------------------------------------------------------------------------
     # TODO: get this to work:
     # https://github.com/xuetsing/image-classification-tensorflow/blob/master/classify.py#L13
