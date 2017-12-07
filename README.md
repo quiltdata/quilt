@@ -1,6 +1,6 @@
 |           |           |
 | --------- | --------- |
-| **Build** | [![linux/mac](https://travis-ci.org/quiltdata/quilt-compiler.svg?branch=master)](https://travis-ci.org/quiltdata/quilt-compiler) [![windows](https://ci.appveyor.com/api/projects/status/github/mhassan102/quilt-compiler?svg=true)](https://ci.appveyor.com/project/mhassan102/quilt-compiler) |
+| **Build** | [![linux/mac](https://travis-ci.org/quiltdata/quilt-compiler.svg?branch=master)](https://travis-ci.org/quiltdata/quilt-compiler) [![windows](https://ci.appveyor.com/api/projects/status/github/quiltdata/quilt-compiler?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler) |
 | **Gitter** | [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby) |
 | **Python** | [![Python](https://img.shields.io/pypi/pyversions/quilt.svg)](https://pypi.python.org/pypi/quilt) |
 
