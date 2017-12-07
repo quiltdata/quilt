@@ -69,6 +69,7 @@ in ancestors of the current directory.
 import imp
 import os.path
 import sys
+import string
 
 from six import iteritems
 import importlib
@@ -214,11 +215,17 @@ def filepatch(module_name, func_name, action_func):
 DEFAULT_MODULE_MAPPINGS = {
     'builtins': 'open', 'bz2': 'BZ2File', 'gzip': 'GzipFile'
     # for keras/tensorflow
-    ,'h5py': 'File', 'tensorflow': 'gfile.FastGFile', 'tensorflow': 'gfile.GFile'
+    ,'h5py': 'File',
+    # manually add tensorflow because it's a heavyweight library
+    #'tensorflow': 'gfile.FastGFile', 'tensorflow': 'gfile.GFile'
 }
 
+# simple mapping of illegal chars to underscores.
+# TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
+DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
+
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
-                 mappings=None, install=True, **kwargs):
+                 mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """core support for mapping filepaths to objects in quilt local objs/ datastore.
        TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
     """
@@ -230,7 +237,12 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     if mappings is None:
         mappings = { ".": "" }  # TODO: test this case
     pkgname = "quilt.data."+owner+"."+pkg
-
+    if not callable(charmap):
+        fromstr = tostr = ""
+        for fromchar, tochar in charmap.items():
+            fromstr += fromchar
+            tostr += tochar
+        charmap = str.maketrans(fromstr, tostr)
     #print(pkgname)
     module = importlib.import_module("quilt.data."+owner+"."+pkg)
     # expand/clean dir mappings, e.g.
@@ -245,9 +257,8 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
         topath = topath.strip() # just in case
         if topath not in [ "", "." ]:
             for piece in topath.strip().strip(".").split("."):
-                print('piece={}'.format(piece))
                 keys = node._keys()
-                print('keys={}'.format(keys))
+                #print('keys={}'.format(keys))
                 if piece not in keys:
                     raise Exception("Invalid mapping: Quilt node path not found: {}  ({} not found in {})".format(
                         topath, piece, keys))
@@ -258,7 +269,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
             raise Exception("Invalid mapping: Quilt node is not a Group: {}".format(piece))
         expanded_mappings[expanded_path] = node
 
-    def mapfunc(filename, mappings=mappings):
+    def mapfunc(filename, mappings=mappings, charmap=charmap):
         # TODO: disallow trailing slash - not allowed to open directories...
         abspath = os.path.abspath(os.path.expanduser(filename))
         # map subtrees:
@@ -270,8 +281,9 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
             #print('{}: checking {} => {}'.format(abspath, fromdir, topath))
             if abspath.startswith(fromdir):
                 relpath = abspath[len(fromdir)+1:] # drop trailing slash
-                for piece in relpath.split("/"):
-                    #print('  {} => {} {}'.format(relpath, piece, node))
+                for raw_piece in relpath.split("/"):
+                    piece = charmap(raw_piece) if callable(charmap) else raw_piece.translate(charmap)
+                    #print('  {} => {}   raw_piece={}  piece={}'.format(relpath, node, raw_piece, piece))
                     keys = node._keys()
                     #print('keys={} piece={}'.format(keys, piece))
                     if piece not in keys:
@@ -289,7 +301,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
 
 @contextmanager
 def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
-            mappings=None, install=True, **kwargs):
+            mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """context-based virtual file support:
 
          with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
@@ -302,7 +314,7 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
     try:
         # in case of interruption/exception, patchers will contain a subset that can be backed-out
         mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                               mappings=mappings, install=install, **kwargs)
+                               mappings=mappings, install=install, charmap=charmap, **kwargs)
         for key, val in kwargs.items():
             patchers.append(filepatch(key, val, mapfunc))
         yield
@@ -311,7 +323,7 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
             patcher.stop()
 
 def setup(pkg, hash=None, version=None, tag=None, force=False,
-          mappings=None, install=True, **kwargs):
+          mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """continuation-based virtual file support:
 
          patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
@@ -329,7 +341,7 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
     if len(kwargs) == 0:
         kwargs = DEFAULT_MODULE_MAPPINGS
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                           mappings=mappings, install=install, **kwargs)
+                           mappings=mappings, install=install, charmap=charmap, **kwargs)
     return [filepatch(key, val, mapfunc) for key, val in kwargs.items()]
 
 def teardown(patchers):
