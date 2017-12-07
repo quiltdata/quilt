@@ -248,6 +248,7 @@ def _open_url(url):
         print("Failed to launch the browser: %s" % ex)
 
 def _match_hash(session, owner, pkg, hash, raise_exception=True):
+    hash = hash.lower()
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
@@ -259,14 +260,20 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             pkg=pkg
         )
     )
-    for entry in reversed(response.json()['logs']):
-        # support short hashes
-        if entry['hash'].startswith(hash):
-            return entry['hash']
 
+    logs = reversed(response.json()['logs'])
+    matches = [entry for entry in logs if entry['hash'].startswith(hash)]
+
+    if len(matches) == 1:
+        return matches[0]['hash']
+    if len(matches) > 1:
+        ambiguous = [entry['hash'] for entry in matches]
+        ambiguous = '\n'.join(ambiguous)
+        raise CommandException(
+            "Ambiguous hash for package {owner}/{pkg}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
+            .format(**locals()))
     if raise_exception:
-        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(
-            hash=hash, owner=owner, pkg=pkg))
+        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
     return None
 
 
