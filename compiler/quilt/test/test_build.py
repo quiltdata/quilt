@@ -193,7 +193,6 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_bad_syntax.yml')
 
-        # Build once to populate cache
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
             build.build_package('test_syntax_error', PACKAGE, path)
 
@@ -205,6 +204,5 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_checks_bad_syntax.yml')
         checks_path = os.path.join(mydir, './checks_bad_syntax.yml')
 
-        # Build once to populate cache
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
             build.build_package('test_syntax_error', PACKAGE, path, checks_path=checks_path)
