@@ -89,9 +89,8 @@ removal (or incompatible additions) on the API side.
 import os
 import sys
 import json
-import inspect
 import collections
-from subprocess import call, check_output, PIPE, CalledProcessError
+from subprocess import check_output, CalledProcessError
 
 import pytest
 
@@ -577,6 +576,13 @@ class TestCLI(BasicQuiltTestCase):
 @pytest.mark.xfail
 def test_coverage():
     result = get_paramtest_coverage()
+
+    # this display can be removed once this function isn't xfailed anymore
+    if result['missing']:
+        msg = ("\nThe following param paths aren't tested,\n"
+               "except for change notification and signature matching:\n  {}")
+        print(msg.format("\n  ".join(repr(x) for x in result['missing'])))
+    print("Param-path specific test coverage: {:.0f}%".format(result['percentage'] * 100))
 
     assert not result['missing']  # cli params not tested yet
     assert result['percentage'] == 1
