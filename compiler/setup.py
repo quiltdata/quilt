@@ -15,14 +15,9 @@ def readme():
     return readme_short
 
 
-def quilt_version():
-    pkgdir = os.path.dirname(__file__)
-    return open(os.path.join(pkgdir, 'VERSION')).read().strip()
-
-
 setup(
     name="quilt",
-    version=quilt_version(),
+    version='2.8.0',
     packages=find_packages(),
     description='Quilt is a data package manager',
     long_description=readme(),

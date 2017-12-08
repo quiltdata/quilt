@@ -70,18 +70,7 @@ CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3  # 3 seconds
 
-try:
-    VERSION = pkg_resources.require('quilt')[0].version
-except pkg_resources.DistributionNotFound:
-    # Not installed, so we'll get the version manually.
-    try:
-        filedir = os.path.dirname(os.path.abspath(__file__))
-        quiltdir = os.path.dirname(filedir)
-        pkgdir = os.path.dirname(quiltdir)
-        VERSION = open(os.path.join(pkgdir, 'VERSION')).read().strip()
-        del filedir, quiltdir, pkgdir
-    except (OSError, IndexError):
-        raise RuntimeError("Failed discovery of quilt version.")
+VERSION = pkg_resources.require('quilt')[0].version
 
 _registry_url = None
 
