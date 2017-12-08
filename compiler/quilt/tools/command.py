@@ -261,14 +261,14 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
         )
     )
 
-    logs = reversed(response.json()['logs'])
-    matches = [entry for entry in logs if entry['hash'].startswith(hash)]
+    matches = set(entry['hash'] for entry in response.json()['logs']
+                  if entry['hash'].startswith(hash))
 
     if len(matches) == 1:
-        return matches[0]['hash']
+        return matches.pop()
     if len(matches) > 1:
-        ambiguous = [entry['hash'] for entry in matches]
-        ambiguous = '\n'.join(ambiguous)
+        # Sorting for consistency in testing, as well as visual comparison of hashes
+        ambiguous = '\n'.join(sorted(matches))
         raise CommandException(
             "Ambiguous hash for package {owner}/{pkg}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
             .format(**locals()))
