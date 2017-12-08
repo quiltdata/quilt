@@ -318,7 +318,7 @@ packages:
         self._mock_package('foo/bar', contents_hash, '', contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
-        with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
+        with self.assertRaises(command.CommandException):
             command.install('foo/bar')
 
         assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
@@ -329,7 +329,7 @@ packages:
         """
         file_data_list = []
         file_hash_list = []
-        for i in range(3):
+        for i in range(2):
             file_data, file_hash = self.make_file_data('file%d' % i)
             file_data_list.append(file_data)
             file_hash_list.append(file_hash)
@@ -337,7 +337,6 @@ packages:
         contents = RootNode(dict(
             file0=FileNode([file_hash_list[0]]),
             file1=FileNode([file_hash_list[1]]),
-            file2=FileNode([file_hash_list[2]]),
         ), format=PackageFormat.HDF5)
         contents_hash = hash_contents(contents)
 
@@ -348,24 +347,14 @@ packages:
         with open(teststore.object_path(objhash=file_hash_list[0]), 'wb') as fd:
             fd.write(file_data_list[0])
 
-        # file1 exists, but has the wrong contents.
-        with open(teststore.object_path(objhash=file_hash_list[1]), 'wb') as fd:
-            fd.write(b"Garbage")
-
-        # file2 does not exist.
+        # file1 does not exist.
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, '', contents, file_hash_list)
         # Don't mock file0, since it's not supposed to be downloaded.
         self._mock_s3(file_hash_list[1], file_data_list[1])
-        self._mock_s3(file_hash_list[2], file_data_list[2])
 
         command.install('foo/bar')
-
-        # Verify that file1 got redownloaded.
-        with open(teststore.object_path(objhash=file_hash_list[1]), 'rb') as fd:
-            contents = fd.read()
-            assert contents == file_data_list[1]
 
     def _mock_log(self, package, pkg_hash):
         log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)

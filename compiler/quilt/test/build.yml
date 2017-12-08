@@ -10,7 +10,8 @@ contents:
     xls:
       file: data/10KRows13Cols.xlsx
     xls_skip:
-      skiprows: [0,10,100]
+      kwargs:
+        skiprows: [0,10,100]
       file: data/10KRows13Cols.xlsx
   README:
     file: data/README.md

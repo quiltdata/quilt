@@ -231,6 +231,14 @@ class Package(object):
         if not os.path.exists(objpath):
             copyfile(srcfile, objpath)
 
+    def save_group(self, name):
+        """
+        Save a group to the store.
+        """
+        fullname = name.lstrip('/').replace('/', '.')
+        if fullname:
+            self._add_to_contents(fullname, None, '', None, 'group', None)
+
     def get_contents(self):
         """
         Returns a dictionary with the contents of the package.
@@ -347,7 +355,7 @@ class Package(object):
 
     def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
         """
-        Adds an object (name-hash mapping) to the package's contents.
+        Adds an object (name-hash mapping) or group to package contents.
         """
         contents = self.get_contents()
         ipath = fullname.split('.')
@@ -365,7 +373,9 @@ class Package(object):
 
         try:
             target_type = TargetType(target)
-            if target_type is TargetType.PANDAS:
+            if target_type is TargetType.GROUP:
+                node = GroupNode(dict())
+            elif target_type is TargetType.PANDAS:
                 assert fmt is not None
                 node = TableNode(
                     hashes=hashes,
