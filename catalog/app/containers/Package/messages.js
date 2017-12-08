@@ -1,0 +1,54 @@
+/* Package Messages */
+import { defineMessages } from 'react-intl';
+
+export default defineMessages({
+  access: {
+    id: 'app.components.Package.access',
+    defaultMessage: 'Import',
+  },
+  author: {
+    id: 'app.components.Package.author',
+    defaultMessage: 'author',
+  },
+  contents: {
+    id: 'app.components.Package.contents',
+    defaultMessage: 'Contents',
+  },
+  date: {
+    id: 'app.components.Package.date',
+    defaultMessage: 'date',
+  },
+  getData: {
+    id: 'app.components.Package.getData',
+    defaultMessage: 'Download',
+  },
+  install: {
+    id: 'app.components.Package.install',
+    defaultMessage: 'First,',
+  },
+  installLink: {
+    id: 'app.components.Package.installLink',
+    defaultMessage: 'install quilt.',
+  },
+  installThen: {
+    id: 'app.components.Package.installThen',
+    defaultMessage: 'Then:',
+  },
+  latest: {
+    id: 'app.components.Package.latest',
+    defaultMessage: 'Latest update',
+  },
+  learn: {
+    id: 'app.components.Package.learn',
+    defaultMessage: 'Learn more about Quilt',
+  },
+  sell: {
+    id: 'app.components.Package.sell',
+    defaultMessage: `Quilt packages import in one line of code
+      and load five to twenty times faster than files.`,
+  },
+  version: {
+    id: 'app.components.Package.version',
+    defaultMessage: 'version',
+  },
+});
