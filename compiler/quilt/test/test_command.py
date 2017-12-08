@@ -382,7 +382,7 @@ class CommandTest(QuiltTestCase):
 
         # TODO: running -n (pytest-xdist) there's leaky state and can throw
         # either ImportError: cannot import name or ModuleNotFoundError
-        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named'):
+        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named|Could not find'):
             from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):
