@@ -391,8 +391,13 @@ class ArgparseIntrospector(collections.Mapping):
 class MockObject(object):
     """Mocks objects with callables.
 
-    For any attribute that is accessed, it gives a function that prints
-    JSON information to stdout instead.
+    For any attribute that is accessed, if that attribute is callable
+    or doesn't exist, it retrieves a fake callabe.
+    The fake callable does the following:
+      * asserts that self._result is empty
+      * records the call args as self._result
+      * records whether or not the function existed
+      * if use_stdout is True, it prints json of _result to stdout
     """
     _target = None
     __result = {}
@@ -410,17 +415,19 @@ class MockObject(object):
 
     @_result.setter
     def _result(self, v):
+        assert not self.__result
         self.__result = v
 
-    def __getattr__(self, funcname):
+    def __getattr__(self, attrname):
+        matched = hasattr(self._target, attrname)
+        attr = getattr(self._target, attrname, None)
+        if matched and not callable(attr):
+            return attr
         def dummy_func(*args, **kwargs):
-            matched = hasattr(self._target, funcname)
-            func = getattr(self._target, funcname, None)
-            if matched and callable(func):
-                bind_failure = fails_binding(func, args=args, kwargs=kwargs)
+            bind_failure = fails_binding(attr, args=args, kwargs=kwargs)
 
             result = {
-                'func': funcname,
+                'func': attrname,
                 'matched': matched,
                 'args': args,
                 'kwargs': kwargs,

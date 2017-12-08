@@ -13,7 +13,7 @@ import requests
 from . import command
 from .const import DEFAULT_QUILT_YML
 
-# Monkey-patches the command module if testing CLI in subprocess mode
+# Importing this monkey-patches `command` if testing the CLI in subprocess mode
 from ..test import test_cli     # pylint:disable=W0611
 
 
@@ -22,12 +22,14 @@ VERSION = command.VERSION
 
 
 def get_full_version():
+    # attempt to return egg name with version
     try:
         quilt = pkg_resources.get_distribution('quilt')
     except pkg_resources.DistributionNotFound:
         pass
     else:
         return "quilt {} ({})".format(VERSION, quilt.egg_name())
+    # ..otherwise, just the version
     return "quilt " + VERSION
 
 
