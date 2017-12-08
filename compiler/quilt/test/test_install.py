@@ -318,7 +318,7 @@ packages:
         self._mock_package('foo/bar', contents_hash, '', contents, [obj_hash])
         self._mock_s3(obj_hash, tabledata)
 
-        with assertRaisesRegex(self, command.CommandException, "hashes do not match"):
+        with self.assertRaises(command.CommandException):
             command.install('foo/bar')
 
         assert not os.path.exists(os.path.join(self._store_dir, 'foo/bar.json'))
