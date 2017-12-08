@@ -3,7 +3,7 @@ Start by installing and importing the package you wish to modify:
 ``` python
 import quilt
 quilt.install("uciml/wine")
-from quilt.data.akarve import wine
+from quilt.data.uciml import wine
 ```
 
 # New package
