@@ -112,12 +112,20 @@ class ModuleFinder(object):
                 file_path = store.user_path(parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
+                else:
+                    raise ImportError('Could not find any installed packages by user {user!r}.\n  '
+                                      'Check the name, or use "quilt install {user}/<packagename>" to install'
+                                      .format(user=parts[0]))
         elif len(parts) == 2:
             user, package = parts
             pkgobj = PackageStore.find_package(user, package)
             if pkgobj:
                 file_path = pkgobj.get_path()
                 return PackageLoader(file_path, pkgobj)
+            else:
+                raise ImportError('Could not find package by user {user!r} named {package!r}.\n  '
+                                  'Check the name, or use "quilt install {user}/{package}" to install'
+                                  .format(**locals()))
 
         return None
 
