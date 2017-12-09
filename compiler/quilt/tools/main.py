@@ -13,7 +13,7 @@ import requests
 from . import command
 from .const import DEFAULT_QUILT_YML
 
-## Monkey Patch command if imported when QUILT_TEST_CLI_SUBPROC is set.
+## Mock `command` when running as a subprocess during testing
 if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
     from ..test import test_cli
     command = test_cli.MockObject(command, use_stdout=True)

@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 import re
-from inspect import stack
 from shutil import copyfileobj, move, rmtree
 import stat
 import subprocess
