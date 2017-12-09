@@ -247,7 +247,7 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
-def _match_hash(session, owner, pkg, hash, raise_exception=True):
+def _match_hash(session, owner, pkg, hash):
     hash = hash.lower()
 
     if not (6 <= len(hash) <= 64):
@@ -278,9 +278,7 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
         raise CommandException(
             "Ambiguous hash for package {owner}/{pkg}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
             .format(**locals()))
-    if raise_exception:
-        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
-    return None
+    raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
 def login():
