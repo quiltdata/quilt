@@ -13,7 +13,7 @@ import requests
 from . import command
 from .const import DEFAULT_QUILT_YML
 
-## Mock `command` when running as a subprocess during testing
+# Mock `command` when running as a subprocess during testing
 if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
     from ..test import test_cli
     command = test_cli.MockObject(command, use_stdout=True)
@@ -161,8 +161,7 @@ def argument_parser():
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
     install_group = install_p.add_mutually_exclusive_group()
-    install_group.add_argument("-x", "--hash", help="Package hash",
-                               type=lambda val: check_hash(install_p, val))
+    install_group.add_argument("-x", "--hash", help="Package hash", type=str)
     install_group.add_argument("-v", "--version", type=str, help="Package version")
     install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
 

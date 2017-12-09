@@ -259,7 +259,14 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
-def _match_hash(session, owner, pkg, hash, raise_exception=True):
+def _match_hash(session, owner, pkg, hash):
+    hash = hash.lower()
+
+    if not (6 <= len(hash) <= 64):
+        raise CommandException('Invalid hash of length {}: {!r}\n  '
+                               'Ensure that the hash is between 6 and 64 characters.'
+                               .format(len(hash), hash))
+
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
@@ -271,15 +278,19 @@ def _match_hash(session, owner, pkg, hash, raise_exception=True):
             pkg=pkg
         )
     )
-    for entry in reversed(response.json()['logs']):
-        # support short hashes
-        if entry['hash'].startswith(hash):
-            return entry['hash']
 
-    if raise_exception:
-        raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(
-            hash=hash, owner=owner, pkg=pkg))
-    return None
+    matches = set(entry['hash'] for entry in response.json()['logs']
+                  if entry['hash'].startswith(hash))
+
+    if len(matches) == 1:
+        return matches.pop()
+    if len(matches) > 1:
+        # Sorting for consistency in testing, as well as visual comparison of hashes
+        ambiguous = '\n'.join(sorted(matches))
+        raise CommandException(
+            "Ambiguous hash for package {owner}/{pkg}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
+            .format(**locals()))
+    raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
 def login():
