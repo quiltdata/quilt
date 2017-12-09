@@ -136,7 +136,7 @@ class CommandTest(QuiltTestCase):
                                if entry['hash'].startswith(ambiguous_token))
         # this will match each ambiguous hash, in order, separated by anything.
         # ..it allows for formatting changes in the error, but requires the same order.
-        fake_data_regexp = '[\s\S]+'.join(fake_data_ambiguous)
+        fake_data_regexp = r'(.|\n)+'.join(fake_data_ambiguous)
         with assertRaisesRegex(self, command.CommandException, fake_data_regexp):
             command._match_hash(session, owner='user', pkg='test', hash='795a7b')
 
