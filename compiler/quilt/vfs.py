@@ -5,8 +5,6 @@
     >>> import quilt.vfs
     >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}): print(open('foo/bar/iris_names').read()[0:100])
     ...
-    uciml/iris already installed.
-    Overwrite? (y/n)
     1. Title: Iris Plants Database
     	Updated Sept 21 by C.Blake - Added discrepency information
     
@@ -22,8 +20,6 @@
 
     >>> import quilt.vfs
     >>> patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
-    uciml/iris already installed.
-    Overwrite? (y/n)
     >>> print(open('foo/bar/iris_names').read()[0:100])
     1. Title: Iris Plants Database
     	Updated Sept 21 by C.Blake - Added discrepency information
@@ -65,6 +61,7 @@
     >>> import quilt.vfs; import tensorflow as tf
     >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}): len(tf.gfile.FastGFile('foo/bar/iris_names').read())
     ==> errors on not finding tf or tf.gfile
+
 
 """
 
@@ -248,7 +245,7 @@ DEFAULT_MODULE_MAPPINGS = {
 DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
 
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
-                 mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+                 mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """core support for mapping filepaths to objects in quilt local objs/ datastore.
        TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
     """
@@ -324,7 +321,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
 
 @contextmanager
 def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
-            mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+            mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """context-based virtual file support:
 
          with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
@@ -346,7 +343,7 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
             patcher.stop()
 
 def setup(pkg, hash=None, version=None, tag=None, force=False,
-          mappings=None, install=True, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """continuation-based virtual file support:
 
          patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
