@@ -1,27 +1,8 @@
-# Environments
-- stage https://packages-stage.firebaseapp.com/
-- production https://packages-c0c70.firebaseapp.com or beta.quiltdata.com
-
 # Development
 1. `npm start` to fire up a local web server (or `npm run start:production`)
 1. `npm run lint` to lint
     - You can [customize ES6-lint behavior](http://eslint.org/docs/user-guide/configuring)
     - // es-line-disable-line error-code
-
-# Deployment
-1. `npm run build` = code splitting, name mangling, asset minification, etc.
-  - Most of the magic happens in `app.js`
-  - Occassionally (e.g. you need a new importer) you may need to look into
-`internals/webpack/webpack.base.babe.js`. See also [Where is webpack.config.js]
-(https://github.com/react-boilerplate/react-boilerplate/issues/407)
-1. `firebase use ALIAS` (select project)
-1. `firebase deploy` = place assets (from `/buid/`) on CDN
-
-# TODO
-* add Sentry error logging
-* analytics see [history notes](https://github.com/react-boilerplate/react-boilerplate/blob/8407cf05c4f1d43ca6c78625b7b8fee7627fdedb/docs/general/introduction.md#appappjs)
-* meta tags for SEO (helmet?)
-* OG tags on home and package pages for thumbnailing
 
 # Developer notes
 - As a rule all UI component classes should return react-bootstrap `Row`s;
