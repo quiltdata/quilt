@@ -593,10 +593,3 @@ def test_coverage():
 
     assert not result['missing']  # cli params not tested yet
     assert result['percentage'] == 1
-
-
-## Monkey Patch main if imported when QUILT_TEST_CLI_SUBPROC is set.
-if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
-    from ..tools import main
-    from ..tools import command
-    main.command = MockObject(command, use_stdout=True)
