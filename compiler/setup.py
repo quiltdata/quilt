@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 def readme():
     readme_short = """
     ``quilt`` is a command-line utility that builds, pushes, and installs
@@ -12,9 +13,10 @@ def readme():
     """
     return readme_short
 
+
 setup(
     name="quilt",
-    version="2.7.1",
+    version="2.8.0",
     packages=find_packages(),
     description='Quilt is a data package manager',
     long_description=readme(),
@@ -32,7 +34,7 @@ setup(
     author_email='contact@quiltdata.io',
     license='LICENSE',
     url='https://github.com/quiltdata/quilt',
-    download_url='https://github.com/quiltdata/quilt/releases/tag/2.7.1',
+    download_url='https://github.com/quiltdata/quilt/releases/tag/2.8.0',
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',

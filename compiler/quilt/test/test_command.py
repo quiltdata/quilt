@@ -373,6 +373,29 @@ class CommandTest(QuiltTestCase):
         assert hasattr(test, 'foo')
         assert isinstance(test.foo(), pd.DataFrame)
 
+    def test_build_yaml_syntax_error(self):
+        path = os.path.dirname(__file__)
+        buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
+        with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
+            command.build('user/test', buildfilepath)
+
+    def test_build_checks_yaml_syntax_error(self):      # pylint: disable=C0103
+        path = os.path.abspath(os.path.dirname(__file__))
+        buildfilepath = os.path.join(path, 'build_checks_bad_syntax.yml')
+        checksorigpath = os.path.join(path, 'checks_bad_syntax.yml')
+        checksfilepath = os.path.join(path, 'checks.yml')
+
+        try:
+            origdir = os.curdir
+            os.chdir(path)
+            assert not os.path.exists(checksfilepath)
+            shutil.copy(checksorigpath, checksfilepath)
+            with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*checks\.yml'):
+                command.build('user/test', buildfilepath)
+        finally:
+            os.remove(checksfilepath)
+            os.chdir(origdir)
+
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
         def mock_git_clone(cmd):
@@ -389,7 +412,7 @@ class CommandTest(QuiltTestCase):
 
         # TODO: running -n (pytest-xdist) there's leaky state and can throw
         # either ImportError: cannot import name or ModuleNotFoundError
-        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named'):
+        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named|Could not find'):
             from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):

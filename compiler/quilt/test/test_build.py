@@ -6,6 +6,7 @@ Test the build process
 import os
 
 import pandas.api.types as ptypes
+from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
@@ -100,6 +101,53 @@ class BuildTest(QuiltTestCase):
             'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
 
+    def test_build_empty(self):
+        """
+        test building from build_empty.yml
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_empty.yml')
+        build.build_package('empty', 'pkg', path)
+
+        from quilt.data.empty import pkg
+        assert not pkg._keys(), 'Expected package to be empty'
+
+    def test_build_group_args(self):
+        """
+        test building from build_group_args.yml
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_group_args.yml')
+        build.build_package('groups', 'pkg', path)
+
+        from quilt.data.groups import pkg
+        
+        assert isinstance(pkg.group_a.csv(), DataFrame), \
+            'Expected parent `transform: csv` to affect group_a.csv()'
+        assert isinstance(pkg.group_a.tsv(), DataFrame), \
+            'Expected local `transform: tsv` to affect group_a.tsv()'
+        # TODO these tests should really test the node type and verify it as a file node
+        # but currently both raw files and DFs are DataNode instances
+        assert isinstance(pkg.group_b.txt(), string_types), \
+            'Expected `transform: id` to be inferred from file extension'
+        assert isinstance(pkg.group_b.subgroup.txt(), string_types), \
+            'Expected `transform: id` to be inferred from file extension'
+        # ENDTODO
+        assert isinstance(pkg.group_b.tsv(), DataFrame), \
+            'Expected `transform: tsv` to be inferred from file extension'
+        assert pkg.group_b.subgroup.tsv().shape == (1, 3), \
+            'Expected `transform: tsv` and one skipped row from group args'
+        assert pkg.group_b.subgroup.csv().shape == (0, 2), \
+            'Expected local `transform: csv` and one skipped row from group args'
+        assert pkg.group_b.subgroup.many_tsv.one().shape == (1, 3), \
+            'Expected local `transform: csv` and one skipped row from group args'
+        assert isinstance(pkg.group_b.subgroup.many_tsv.two(), DataFrame), \
+            'Expected `transform: tsv` from ancestor' 
+        assert isinstance(pkg.group_b.subgroup.many_tsv.three(), DataFrame), \
+            'Expected `transform: tsv` from ancestor' 
+        assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
+        assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
+
     def test_build_hdf5(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_hdf5.yml')
@@ -187,3 +235,24 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test_copy.generated import bad, foo, nuts
 
         assert not os.path.exists(buildfilepath), "%s should not have been created!" % buildfilepath
+
+    def test_build_yaml_syntax_error(self):
+        """
+        Attempt to build a yml file with a syntax error
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_bad_syntax.yml')
+
+        with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
+            build.build_package('test_syntax_error', PACKAGE, path)
+
+    def test_build_checks_yaml_syntax_error(self):    # pylint: disable=C0103
+        """
+        Attempt to build a yml file with a syntax error
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_checks_bad_syntax.yml')
+        checks_path = os.path.join(mydir, './checks_bad_syntax.yml')
+
+        with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
+            build.build_package('test_syntax_error', PACKAGE, path, checks_path=checks_path)
