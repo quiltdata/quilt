@@ -110,6 +110,36 @@ class CommandTest(QuiltTestCase):
         mock_input.return_value = 'n'
         command.version_add('user/test', '2.9.12', 'fabc123')  # should produce no mock network activity
 
+    def test_ambiguous_hash(self):
+        registry_url = command.get_registry_url()
+        session = command._get_session()
+        ambiguous_token = "795a7b"
+        # There should be at least two results that start with the ambiguous_token, plus some non-ambiguous
+        # results in fake_data to test against.
+        fake_data = {'logs': [
+            {'author': 'user', 'created': 1490816524.0,
+             'hash': '885696c6e40613b3c601e95037caf4e43bda58c39f67ab5d5e56beefb3662ff4'},
+            {'author': 'user', 'created': 1490816507.0,
+             'hash': '795a7bc9e40613b3c601e95037caf4e43bda58c39f67ab5d5e56beefb3662ff4'},
+            {'author': 'user', 'created': 1490816473.0,
+             'hash': '795a7bc6e40613b3c601e95037caf4e43bda58c39f67ab5d5e56beefb3662ff4'},
+            {'author': 'user', 'created': 1490816524.0,
+             'hash': '2501a6c6e40a7b355901fc5037caf4e43bda58c39f67ab5d5e56beefb3662ff4'},
+        ]}
+        self.requests_mock.add(
+            responses.GET,
+            registry_url + "/api/log/user/test/",
+            json=fake_data
+        )
+        # Ambiguous hashes in _match_hash's exception will be sorted -- sorted here to match.
+        fake_data_ambiguous = sorted(entry['hash'] for entry in fake_data['logs']
+                               if entry['hash'].startswith(ambiguous_token))
+        # this will match each ambiguous hash, in order, separated by anything.
+        # ..it allows for formatting changes in the error, but requires the same order.
+        fake_data_regexp = r'(.|\n)+'.join(fake_data_ambiguous)
+        with assertRaisesRegex(self, command.CommandException, fake_data_regexp):
+            command._match_hash(session, owner='user', pkg='test', hash='795a7b')
+
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
             command.push(package="no_user")
@@ -343,6 +373,29 @@ class CommandTest(QuiltTestCase):
         assert hasattr(test, 'foo')
         assert isinstance(test.foo(), pd.DataFrame)
 
+    def test_build_yaml_syntax_error(self):
+        path = os.path.dirname(__file__)
+        buildfilepath = os.path.join(path, 'build_bad_syntax.yml')
+        with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
+            command.build('user/test', buildfilepath)
+
+    def test_build_checks_yaml_syntax_error(self):      # pylint: disable=C0103
+        path = os.path.abspath(os.path.dirname(__file__))
+        buildfilepath = os.path.join(path, 'build_checks_bad_syntax.yml')
+        checksorigpath = os.path.join(path, 'checks_bad_syntax.yml')
+        checksfilepath = os.path.join(path, 'checks.yml')
+
+        try:
+            origdir = os.curdir
+            os.chdir(path)
+            assert not os.path.exists(checksfilepath)
+            shutil.copy(checksorigpath, checksfilepath)
+            with assertRaisesRegex(self, command.CommandException, r'Bad yaml syntax.*checks\.yml'):
+                command.build('user/test', buildfilepath)
+        finally:
+            os.remove(checksfilepath)
+            os.chdir(origdir)
+
     def test_git_clone_fail(self):
         git_url = 'https://github.com/quiltdata/testdata.git'
         def mock_git_clone(cmd):
@@ -359,7 +412,7 @@ class CommandTest(QuiltTestCase):
 
         # TODO: running -n (pytest-xdist) there's leaky state and can throw
         # either ImportError: cannot import name or ModuleNotFoundError
-        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named'):
+        with assertRaisesRegex(self, Exception, r'cannot import|not found|No module named|Could not find'):
             from quilt.data.user import pkg__test_git_clone_fail
 
     def test_logging(self):
@@ -419,7 +472,7 @@ class CommandTest(QuiltTestCase):
         """
         teststore = store.PackageStore(self._store_dir)
         assert not os.path.isdir(teststore.package_path('foo', 'bar'))
-        command.rm('foo/bar', force=True)    
+        command.rm('foo/bar', force=True)
 
     def test_rm_package_w_shared_obj(self):
         """
@@ -443,7 +496,7 @@ class CommandTest(QuiltTestCase):
         Test removing a sub-package (not supported).
         """
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
-            command.rm('foo/bar/baz', force=True)     
+            command.rm('foo/bar/baz', force=True)
 
     def test_rm_doesnt_break_cache(self):
         """
