@@ -249,6 +249,12 @@ def _open_url(url):
 
 def _match_hash(session, owner, pkg, hash, raise_exception=True):
     hash = hash.lower()
+
+    if not (6 <= len(hash) <= 64):
+        raise CommandException('Invalid hash of length {}: {!r}\n  '
+                               'Ensure that the hash is between 6 and 64 characters.'
+                               .format(len(hash), hash))
+
     # short-circuit for exact length
     if len(hash) == 64:
         return hash
