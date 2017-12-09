@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 def readme():
     readme_short = """
     ``quilt`` is a command-line utility that builds, pushes, and installs
@@ -11,6 +12,7 @@ def readme():
     Visit `quiltdata.com <https://quiltdata.com>`_ for docs and more.
     """
     return readme_short
+
 
 setup(
     name="quilt",
