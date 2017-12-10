@@ -1,0 +1,21 @@
+{
+    "plugins": [ "theme-api" ],
+    "pluginsConfig": {
+        "theme-api": {
+            "languages": [
+                {
+                    "lang": "python",
+                    "name": "Python",
+                    "default": true
+                },
+                {
+                    "lang": "bash",
+                    "name": "Bash"
+                }
+            ]
+        }
+    },
+    "styles" : {
+        "website": "styles/custom.css"
+    }
+}
