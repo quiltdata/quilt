@@ -120,6 +120,7 @@ TESTED_PARAMS = []
 # These can be directly added or removed from the KNOWN_PARAMS
 # variable, as befits your situation.
 KNOWN_PARAMS = [
+    ['--dev'],
     ['--version'],
     [0],
     [0, 'access'],
