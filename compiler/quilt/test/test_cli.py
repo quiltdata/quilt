@@ -636,7 +636,7 @@ class TestCLI(BasicQuiltTestCase):
 
         result = self.execute(cmd)
 
-        # --dev arg was accepted by argparse?
+        # was the --dev arg accepted by argparse?
         assert result['return code'] == 0
 
         # We need to run a command that blocks.  To do so, I'm disabling the
@@ -656,6 +656,9 @@ class TestCLI(BasicQuiltTestCase):
         # Return code should indicate keyboard interrupt
         assert proc.returncode == EXIT_KB_INTERRUPT
 
+        if os.name == 'nt':
+            pytest.xfail("This test causes appveyor to freeze.")
+            
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
