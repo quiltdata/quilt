@@ -8,7 +8,14 @@ Makes functions in .tools.command accessible directly from quilt.
 _DEV_MODE = None
 
 
-# By doing this early in the load process, we also catch ctrl-c while external libs are loading.
+# Normally a try: except: block on or in main() would be better and simpler,
+# but we load a bunch of external modules that take a lot of time, during which
+# ctrl-c will cause an exception that misses that block. ..so, we catch the
+# signal instead of using try:except, and we catch it here, early during load.
+#
+# Note: This doesn't *guarantee* that a traceback won't occur, and there's no
+#   real way to do so, because if it happens early enough (during parsing, for
+#   example, or inside the entry point file) we have no way to stop it.
 def _install_interrupt_handler():
     """Suppress KeyboardInterrupt traceback display in specific situations
 
