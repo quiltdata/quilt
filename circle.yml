@@ -26,6 +26,7 @@ dependencies:
     - sudo pip install -U pip
     - pip install --user
     - pip install numpy pytest --user -U
+    - pip install -U setuptools
 
   post:
     - echo -r "Installing dependency"
