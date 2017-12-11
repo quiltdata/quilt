@@ -8,7 +8,6 @@ import argparse
 import sys
 import os
 import pkg_resources
-import importlib
 
 import requests
 
