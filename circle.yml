@@ -13,7 +13,7 @@ machine:
     - cd "$(brew --repository)" && git fetch && git reset --hard origin/master
     - brew update
     - brew install pyenv
-    #- brew install python3
+    - brew install python3
     - pyenv install 3.5.1
     - pyenv install 3.6.1
 
@@ -24,7 +24,8 @@ dependencies:
   override:
     - echo $(python --version)
     - sudo pip install -U pip
-    - sudo pip install -U numpy pytest
+    - pip install --user
+    - pip install -U numpy pytest
 
   post:
     - echo -r "Installing dependency"
