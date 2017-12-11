@@ -623,50 +623,50 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs']['public'] is True
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
 
-    def test_cli_option_dev(self):
-        TESTED_PARAMS.append(['--dev'])
-
-        cmd = ['--dev', 'install', 'user/test']
-        if os.name == 'posix':
-            SIGINT = signal.SIGINT
-        elif os.name == 'nt':
-            SIGINT = signal.CTRL_C_EVENT
-        else:
-            raise ValueError("Unknown OS type: " + os.name)
-
-        result = self.execute(cmd)
-
-        # --dev arg was accepted by argparse?
-        assert result['return code'] == 0
-
-        # We need to run a command that blocks.  To do so, I'm disabling the
-        # test mocking of the command module, and executing a command that
-        # blocks waiting for input ('config').
-        no_mock = os.environ.copy()
-        no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
-
-        # With no '--dev' arg, the process should exit without a traceback
-        cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
-        proc.send_signal(SIGINT)
-        stdout, stderr = (b.decode() for b in proc.communicate())
-        assert 'Traceback' not in stderr
-        # Return code should indicate keyboard interrupt
-        assert proc.returncode == EXIT_KB_INTERRUPT
-
-        # With the '--dev' arg, the process should display a traceback
-        cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
-        proc.send_signal(SIGINT)
-        stdout, stderr = (b.decode() for b in proc.communicate())
-        print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
-        assert 'Traceback (most recent call last)' in stderr
-        # Return code should be the generic exit code '1' for unhandled exception
-        assert proc.returncode == 1
+    # def test_cli_option_dev(self):
+    #     TESTED_PARAMS.append(['--dev'])
+    #
+    #     cmd = ['--dev', 'install', 'user/test']
+    #     if os.name == 'posix':
+    #         SIGINT = signal.SIGINT
+    #     elif os.name == 'nt':
+    #         SIGINT = signal.CTRL_C_EVENT
+    #     else:
+    #         raise ValueError("Unknown OS type: " + os.name)
+    #
+    #     result = self.execute(cmd)
+    #
+    #     # --dev arg was accepted by argparse?
+    #     assert result['return code'] == 0
+    #
+    #     # We need to run a command that blocks.  To do so, I'm disabling the
+    #     # test mocking of the command module, and executing a command that
+    #     # blocks waiting for input ('config').
+    #     no_mock = os.environ.copy()
+    #     no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
+    #
+    #     # With no '--dev' arg, the process should exit without a traceback
+    #     cmd = self.quilt_command + ['config']
+    #     proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+    #     # if interrupt is sent too fast, the files won't even be parsed.
+    #     sleep(3)
+    #     proc.send_signal(SIGINT)
+    #     stdout, stderr = (b.decode() for b in proc.communicate())
+    #     assert 'Traceback' not in stderr
+    #     # Return code should indicate keyboard interrupt
+    #     assert proc.returncode == EXIT_KB_INTERRUPT
+    #
+    #     # With the '--dev' arg, the process should display a traceback
+    #     cmd = self.quilt_command + ['--dev', 'config']
+    #     proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+    #     # if interrupt is sent too fast, the files won't even be parsed.
+    #     sleep(3)
+    #     proc.send_signal(SIGINT)
+    #     stdout, stderr = (b.decode() for b in proc.communicate())
+    #     print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
+    #     assert 'Traceback (most recent call last)' in stderr
+    #     # Return code should be the generic exit code '1' for unhandled exception
+    #     assert proc.returncode == 1
 
 
 @pytest.mark.xfail
