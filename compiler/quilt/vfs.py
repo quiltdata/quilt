@@ -107,7 +107,6 @@ def filepatch(module_name, func_name, action_func):
     return patcher
 
 
-# Note: To test this, uninstall h5py, then run your quilt_vfs_test.py.
 def scrub_patchmap(patchmap, verbose=False, strict=False):
     """Return a version of patchmap with missing modules/callables removed.
 
@@ -125,13 +124,13 @@ def scrub_patchmap(patchmap, verbose=False, strict=False):
             continue
         if not hasattr(module, funcname):
             if verbose:
-                print("Dropped {}.{} from the patch map (func/class not present)")
+                print("Dropped {}.{} from the patch map (func/class not present)".format(module, funcname))
             if strict:
                 raise AttributeError("{} is missing from module {}".format(funcname, modname))
             continue
         if not callable(getattr(module, funcname)):
             if verbose:
-                print("Dropped {}.{} from the patch map (not callable)")
+                print("Dropped {}.{} from the patch map (not callable)".format(module, funcname))
             if strict:
                 raise TypeError("{}.{} is not callable".format(funcname, modname))
             continue
@@ -161,17 +160,12 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     """core support for mapping filepaths to objects in quilt local objs/ datastore.
        TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
     """
-#XXX: Unused
-    # if len(kwargs) == 0:
-    #     kwargs = DEFAULT_MODULE_MAPPINGS
     if install:
         command.install(pkg, hash=hash, version=version, tag=tag, force=force)
     owner, pkg = parse_package(pkg)
 
     if mappings is None:
         mappings = { ".": "" }  # TODO: test this case
-#XXX: Unused/debug
-#    pkgname = "quilt.data."+owner+"."+pkg
 
     if not callable(charmap):
         fromstr = tostr = ""
