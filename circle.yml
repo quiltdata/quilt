@@ -7,8 +7,9 @@ machine:
     TEST_REGISTRY: false
 
   pre:
+    - brew update
     - brew install pyenv
-    - brew install python3
+    #- brew install python3
     - pyenv install 3.5.1
     - pyenv install 3.6.1
 
