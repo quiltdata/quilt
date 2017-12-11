@@ -25,11 +25,11 @@ dependencies:
     - echo $(python --version)
     - sudo pip install -U pip
     - pip install --user
-    - pip install -U numpy pytest
+    - pip install numpy pytest --user -U
 
   post:
     - echo -r "Installing dependency"
-    - sudo pip install --only-binary 'tables' ./compiler
+    - pip install --only-binary 'tables' ./compiler
     - if [[ "$TEST_REGISTRY" = true ]]; then
           pip install registry
       fi
@@ -37,7 +37,7 @@ dependencies:
 test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
-    - sudo pytest compiler
+    - pytest compiler
     - if [[ "$TEST_REGISTRY" = true ]]; then
-          sudo pytest ./registry
+          pytest ./registry
       fi
