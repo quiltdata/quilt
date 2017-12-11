@@ -73,11 +73,7 @@ def _install_interrupt_handler():
         print()
         exit(const.EXIT_KB_INTERRUPT)
 
-    if os.name == 'posix':
-        SIGINT = signal.SIGINT
-    elif os.name == 'nt':
-        SIGINT = signal.CTRL_C_EVENT
-    return signal.signal(SIGINT, handle_interrupt)
+    return signal.signal(signal.SIGINT, handle_interrupt)
 
 # This should be called as early in the execution process as is possible.
 # ..original handler saved in case someone wants it, but it's probably just signal.default_int_handler.

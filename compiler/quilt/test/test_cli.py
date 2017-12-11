@@ -624,6 +624,9 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
 
     def test_cli_option_dev(self):
+        if os.name == 'nt':
+            pytest.xfail("This test causes appveyor to freeze in windows.")
+
         TESTED_PARAMS.append(['--dev'])
 
         cmd = ['--dev', 'install', 'user/test']
@@ -656,9 +659,6 @@ class TestCLI(BasicQuiltTestCase):
         # Return code should indicate keyboard interrupt
         assert proc.returncode == EXIT_KB_INTERRUPT
 
-        if os.name == 'nt':
-            pytest.xfail("This test causes appveyor to freeze.")
-            
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
