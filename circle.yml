@@ -1,0 +1,31 @@
+machine:
+
+  xcode:
+    version: 8.2
+
+  environment:
+    TEST_REGISTRY: false
+
+  post:
+    - pyenv global 3.5.1 3.6.1
+
+dependencies:
+  override:
+    - echo $(python --version)
+    - pip install -U pip
+    - pip install -U numpy pytest
+
+  post:
+    - echo -r "Installing dependency"
+    - pip install --only-binary 'tables' ./compiler
+    - if [[ "$TEST_REGISTRY" = true ]]; then
+          pip install registry
+      fi
+
+test:
+  override:
+    - echo -r "Running Compiler/Registry Test with $(python --version)"
+    - pytest compiler
+    - if [[ "$TEST_REGISTRY" = true ]]; then
+          pytest ./registry
+      fi
