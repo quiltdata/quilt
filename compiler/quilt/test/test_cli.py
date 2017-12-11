@@ -627,6 +627,12 @@ class TestCLI(BasicQuiltTestCase):
         TESTED_PARAMS.append(['--dev'])
 
         cmd = ['--dev', 'install', 'user/test']
+        if os.name == 'posix':
+            SIGINT = signal.SIGINT
+        elif os.name == 'nt':
+            SIGINT = signal.CTRL_C_EVENT
+        else:
+            raise ValueError("Unknown OS type: " + os.name)
 
         result = self.execute(cmd)
 
@@ -644,7 +650,7 @@ class TestCLI(BasicQuiltTestCase):
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
         # if interrupt is sent too fast, the files won't even be parsed.
         sleep(3)
-        proc.send_signal(signal.SIGINT)
+        proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
@@ -655,7 +661,7 @@ class TestCLI(BasicQuiltTestCase):
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
         # if interrupt is sent too fast, the files won't even be parsed.
         sleep(3)
-        proc.send_signal(signal.SIGINT)
+        proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
         print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
         assert 'Traceback (most recent call last)' in stderr
