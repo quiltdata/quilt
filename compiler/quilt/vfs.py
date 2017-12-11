@@ -106,31 +106,73 @@ def filepatch(module_name, func_name, action_func):
     patcher.start()
     return patcher
 
+
+# Note: To test this, uninstall h5py, then run your quilt_vfs_test.py.
+def scrub_patchmap(patchmap, verbose=False, strict=False):
+    """Return a version of patchmap with missing modules/callables removed.
+
+    :param verbose: Mention each dropped module and/or function
+    :param strict: Raise an error if module exists but func doesn't
+    """
+    result = {}
+
+    for modname, funcname in patchmap.items():
+        try:
+            module = importlib.import_module(modname)
+        except ImportError:
+            if verbose:
+                print("Dropped {} from the patch map (module not present)".format(modname))
+            continue
+        if not hasattr(module, funcname):
+            if verbose:
+                print("Dropped {}.{} from the patch map (func/class not present)")
+            if strict:
+                raise AttributeError("{} is missing from module {}".format(funcname, modname))
+            continue
+        if not callable(getattr(module, funcname)):
+            if verbose:
+                print("Dropped {}.{} from the patch map (not callable)")
+            if strict:
+                raise TypeError("{}.{} is not callable".format(funcname, modname))
+            continue
+        result[modname] = funcname
+    return result
+
+
 DEFAULT_MODULE_MAPPINGS = {
-    'builtins': 'open', 'bz2': 'BZ2File', 'gzip': 'GzipFile'
-    # for keras/tensorflow
-    ,'h5py': 'File',
+    'builtins': 'open',
+    'bz2': 'BZ2File',
+    'gzip': 'GzipFile',
+    'h5py': 'File',    # for keras/tensorflow
     # manually add tensorflow because it's a heavyweight library
-    #'tensorflow': 'gfile.FastGFile', 'tensorflow': 'gfile.GFile'
+    #'tensorflow': 'gfile.FastGFile', 
+    #'tensorflow': 'gfile.GFile',
 }
+DEFAULT_MODULE_MAPPINGS = scrub_patchmap(DEFAULT_MODULE_MAPPINGS, True)
+
 
 # simple mapping of illegal chars to underscores.
 # TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
 DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
+
 
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
                  mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """core support for mapping filepaths to objects in quilt local objs/ datastore.
        TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
     """
-    if len(kwargs) == 0:
-        kwargs = DEFAULT_MODULE_MAPPINGS
+#XXX: Unused
+    # if len(kwargs) == 0:
+    #     kwargs = DEFAULT_MODULE_MAPPINGS
     if install:
         command.install(pkg, hash=hash, version=version, tag=tag, force=force)
     owner, pkg = parse_package(pkg)
+
     if mappings is None:
         mappings = { ".": "" }  # TODO: test this case
-    pkgname = "quilt.data."+owner+"."+pkg
+#XXX: Unused/debug
+#    pkgname = "quilt.data."+owner+"."+pkg
+
     if not callable(charmap):
         fromstr = tostr = ""
         for fromchar, tochar in charmap.items():
@@ -209,8 +251,8 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
         # in case of interruption/exception, patchers will contain a subset that can be backed-out
         mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
                                mappings=mappings, install=install, charmap=charmap, **kwargs)
-        for key, val in kwargs.items():
-            patchers.append(filepatch(key, val, mapfunc))
+        for module_name, func_name in kwargs.items():
+            patchers.append(filepatch(module_name, func_name, mapfunc))
         yield
     finally:
         for patcher in patchers:
@@ -236,7 +278,7 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
         kwargs = DEFAULT_MODULE_MAPPINGS
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
                            mappings=mappings, install=install, charmap=charmap, **kwargs)
-    return [filepatch(key, val, mapfunc) for key, val in kwargs.items()]
+    return [filepatch(modname, fname, mapfunc) for modname, fname in kwargs.items()]
 
 def teardown(patchers):
     for patcher in patchers:
