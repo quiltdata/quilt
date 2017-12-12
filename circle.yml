@@ -5,35 +5,24 @@ machine:
 
   environment:
     TEST_REGISTRY: false
+    QPYVER: 2.7
 
   pre:
-    - export PATH=/usr/local/bin:$PATH:/Users/distiller/Library/Python/2.7/bin
-    - pip install --user --ignore-installed --upgrade virtualenv
-    - ln -s $HOME/Library/Python/2.7/bin/virtualenv /usr/local/bin/virtualenv
-    - cd "$(brew --repository)" && git fetch && git reset --hard origin/master
-    - brew update
-    - brew install pyenv
-    - brew install python3
-    - eval "$(pyenv init -)"
-    - exec $SHELL
-    - pyenv install 2.7.10
-    - pyenv install 3.5.1
-
-  post:
-    - pyenv local 2.7.10 3.5.1
+    - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
+    - chmod +x mconda.sh
+    - ./mconda.sh -b
+    - export PATH="$HOME/miniconda3/bin:$PATH"
+    - echo $(python --version)
+    - conda create --yes -n quilt_env python=$QPYVER pip
+    - source activate quilt_env
+    - pip install pytest
 
 dependencies:
-  override:
-    - pyenv local 3.5.1
-    - echo $(python --version)
-    - pip install --user -U pip
-    - pip install numpy pytest --user -U
-    - pip install --upgrade --user --ignore-installed setuptools wheel
-
 
   post:
     - echo -r "Installing dependency"
-    - pip install --use-wheel --user 'tables' ./compiler
+    - echo $(python --version)
+    - pip install 'tables' ./compiler
     - if [[ "$TEST_REGISTRY" = true ]]; then
           pip install registry
       fi
