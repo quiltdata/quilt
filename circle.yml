@@ -5,7 +5,7 @@ machine:
 
   environment:
     TEST_REGISTRY: false
-    QPYVER: 2.7
+    QPYVER: 3.5
 
   pre:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
@@ -14,7 +14,7 @@ machine:
     - export PATH="$HOME/miniconda/bin:$PATH"
     - echo $SHELL
     - echo $(python --version)
-    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=$QPYVER pip
+    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5 pip
     - source activate quilt_env
     - pip install pytest
 
