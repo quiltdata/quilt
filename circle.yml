@@ -13,7 +13,9 @@ machine:
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - echo $PATH
-    - echo $(python --version)
+    - export PATH="/Users/distiller/miniconda/bin:$PATH"
+    - echo $PATH
+    - python --version
     - $HOME/miniconda/bin/conda search "^python$"
     - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5.1 pip
     - source $HOME/miniconda/bin/activate quilt_env
@@ -23,7 +25,7 @@ dependencies:
 
   post:
     - echo -r "Installing dependency"
-    - echo $(python --version)
+    - python --version
     - pip install 'tables' ./compiler
     - if [[ "$TEST_REGISTRY" = true ]]; then
           pip install registry
