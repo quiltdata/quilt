@@ -12,7 +12,7 @@ machine:
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda3/bin:$PATH"
-    - export $PATH
+    - echo $PATH
     - ls $HOME/miniconda3
     - echo $(python --version)
     - conda create --yes -n quilt_env python=$QPYVER pip
