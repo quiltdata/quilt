@@ -14,6 +14,8 @@ machine:
     - export PATH="$HOME/miniconda/bin:$PATH"
     - echo $PATH
     - echo $(python --version)
+    - $HOME/miniconda/bin/conda update conda 
+    - $HOME/miniconda/bin/conda install python=3.5
     - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5 pip
     - source $HOME/miniconda/bin/activate quilt_env
     - pip install pytest --user
