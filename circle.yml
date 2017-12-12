@@ -2,8 +2,6 @@ machine:
 
   xcode:
     version: 8.2
-  python:
-    version: 3.5
 
   environment:
     TEST_REGISTRY: false
@@ -24,6 +22,7 @@ machine:
 
 dependencies:
   override:
+    - pyenv local 3.5.1
     - echo $(python --version)
     - sudo pip install -U pip
     - pip install numpy pytest --user -U
