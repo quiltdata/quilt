@@ -2,6 +2,8 @@ machine:
 
   xcode:
     version: 8.2
+  python:
+    version: 3.5
 
   environment:
     TEST_REGISTRY: false
