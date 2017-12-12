@@ -12,9 +12,9 @@ machine:
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
-    - ls $HOME
+    - echo $SHELL
     - echo $(python --version)
-    - conda create --yes -n quilt_env python=$QPYVER pip
+    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=$QPYVER pip
     - source activate quilt_env
     - pip install pytest
 
