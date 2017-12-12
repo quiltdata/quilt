@@ -11,9 +11,8 @@ machine:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda3/bin:$PATH"
-    - echo $PATH
-    - ls $HOME/miniconda3
+    - export PATH="$HOME/miniconda/bin:$PATH"
+    - ls $HOME
     - echo $(python --version)
     - conda create --yes -n quilt_env python=$QPYVER pip
     - source activate quilt_env
