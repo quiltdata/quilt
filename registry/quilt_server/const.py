@@ -8,6 +8,7 @@ from enum import Enum
 import re
 
 PUBLIC = 'public' # This username is blocked by Quilt signup
+TEAM = 'team'
 EMAILREGEX = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 
 class PaymentPlan(Enum):

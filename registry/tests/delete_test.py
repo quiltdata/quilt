@@ -35,7 +35,7 @@ class DeleteTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, True)
+            self.put_package(self.user, self.pkg, contents, public=True)
 
     def testSimpleDelete(self):
         resp = self.app.delete(
@@ -176,7 +176,7 @@ class DeleteTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         # Create a new package with the same name
-        self.put_package(self.user, self.pkg, self.contents_list[0], True)
+        self.put_package(self.user, self.pkg, self.contents_list[0], public=True)
 
         # Verify that users, tags, and versions didn't survive
         assert not _has_access()
