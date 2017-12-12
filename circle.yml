@@ -12,10 +12,10 @@ machine:
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
-    - echo $SHELL
+    - echo $PATH
     - echo $(python --version)
     - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5 pip
-    - source activate quilt_env
+    - source $HOME/miniconda/bin/activate quilt_env
     - pip install pytest
 
 dependencies:
