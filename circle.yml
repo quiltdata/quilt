@@ -6,14 +6,13 @@ machine:
   environment:
     TEST_REGISTRY: false
     QPYVER: 3.5
+    PATH: PATH="$HOME/miniconda/bin:$PATH"
 
   pre:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
-    - echo $PATH
-    - export PATH="/Users/distiller/miniconda/bin:$PATH"
     - echo $PATH
     - python --version
     - $HOME/miniconda/bin/conda search "^python$"
