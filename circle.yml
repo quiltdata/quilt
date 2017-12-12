@@ -24,14 +24,14 @@ dependencies:
   override:
     - pyenv local 3.5.1
     - echo $(python --version)
-    - sudo pip install -U pip
+    - pip install --user -U pip
     - pip install numpy pytest --user -U
     - pip install --upgrade --user --ignore-installed setuptools wheel
 
 
   post:
     - echo -r "Installing dependency"
-    - pip install --use-wheel --user --only-binary 'tables' ./compiler
+    - pip install --use-wheel --user 'tables' ./compiler
     - if [[ "$TEST_REGISTRY" = true ]]; then
           pip install registry
       fi
