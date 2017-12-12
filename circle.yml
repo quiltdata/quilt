@@ -15,7 +15,7 @@ machine:
     - echo $PATH
     - echo $(python --version)
     - $HOME/miniconda/bin/conda search "^python$"
-    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5 pip
+    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5.1 pip
     - source $HOME/miniconda/bin/activate quilt_env
     - pip install pytest --user
 
