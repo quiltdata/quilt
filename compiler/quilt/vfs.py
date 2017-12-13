@@ -444,12 +444,17 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
              quilt.vfs.teardown(patchers)
     """
     if len(kwargs) == 0:
-        kwargs = DEFAULT_MODULE_MAPPINGS
+        kwargs = DEFAULT_OBJECT_PARAM_PATCHES
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                           mappings=mappings, install=install, charmap=charmap, **kwargs)
-    return [filepatch(modname, fname, mapfunc) for modname, fname in kwargs.items()]
+                           mappings=mappings, install=install, charmap=charmap)
+
+    patched = []
+    for obj_path, params in kwargs.items():
+        patch_objpath_with_map(obj_path, {p: mapfunc for p in params})
+        patched.append(obj_path)
+    return patched
 
 
 def teardown(patchers):
-    for patcher in patchers:
-        patcher.stop()
+    for obj_path in patchers:
+        unpatch_objpath(obj_path)
