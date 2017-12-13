@@ -16,7 +16,7 @@ machine:
     - $HOME/miniconda/bin/conda search "^python$"
     - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env python=3.5.1 pip
     - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env
-    - export PATH="$HOME/miniconda/bin:$PATH" && pip install pytest --user
+    - find / -name pytest*
 
 dependencies:
 
