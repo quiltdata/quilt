@@ -12,24 +12,22 @@ machine:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda/bin:$PATH"
-    - echo $PATH
+    - export PATH="$HOME/miniconda/bin:$PATH" echo $PATH
     - $HOME/miniconda/bin/conda search "^python$"
     - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5.1 pip
     - source $HOME/miniconda/bin/activate quilt_env
-    - pip install pytest --user
-    - whereis pytest
+    - export PATH="$HOME/miniconda/bin:$PATH" pip install pytest --user
 
 dependencies:
 
   post:
     - echo -r "Installing dependency"
-    - python --version
+    - export PATH="$HOME/miniconda/bin:$PATH" python --version
     - pip install 'tables' ./compiler --user
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pip install registry ; fi
 
 test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
-    - pytest compiler
+    - export PATH="$HOME/miniconda/bin:$PATH" pytest compiler
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pytest ./registry ; fi
