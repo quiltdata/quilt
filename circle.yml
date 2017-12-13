@@ -23,6 +23,8 @@ dependencies:
   post:
     - echo -r "Installing dependency"
     - export PATH="$HOME/miniconda/bin:$PATH" && python --version
+    - export PATH="$HOME/miniconda/bin:$PATH" && ls $HOME/miniconda/lib/python3.6/site-packages
+    - export PATH="$HOME/miniconda/bin:$PATH" && which pytest
     - export PATH="$HOME/miniconda/bin:$PATH" && pip install 'tables' ./compiler --user
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pip install registry ; fi
 
