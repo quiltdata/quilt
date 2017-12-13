@@ -14,8 +14,8 @@ machine:
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH" && echo $PATH
     - $HOME/miniconda/bin/conda search "^python$"
-    - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5.1 pip
-    - source $HOME/miniconda/bin/activate quilt_env
+    - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env python=3.5.1 pip
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env
     - export PATH="$HOME/miniconda/bin:$PATH" && pip install pytest --user
 
 dependencies:
@@ -23,7 +23,7 @@ dependencies:
   post:
     - echo -r "Installing dependency"
     - export PATH="$HOME/miniconda/bin:$PATH" && python --version
-    - pip install 'tables' ./compiler --user
+    - export PATH="$HOME/miniconda/bin:$PATH" && pip install 'tables' ./compiler --user
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pip install registry ; fi
 
 test:
