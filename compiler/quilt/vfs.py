@@ -81,6 +81,7 @@ from six.moves import builtins
 from .nodes import GroupNode
 from .tools import command
 from .tools.store import parse_package
+from .tools.package import PackageException
 
 
 ## Vars and "constants"
@@ -103,12 +104,36 @@ DEFAULT_OBJECT_PARAM_PATCHES = {
     # manually add tensorflow because it's a heavyweight library
     'tensorflow.python.lib.io.file_io.FileIO': ['name'],
     # 'tensorflow': 'tensorflow.gfile.GFile',
-    }
+}
 
+# simple mapping of illegal chars to underscores.
+# TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
+DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
+
+# debug mode
 _DEBUG = True
 
 
 ## Code
+def generate_tensorflow_patch_map(
+        pkg, hash=None, version=None, tag=None,
+        install=False, force=False,
+        mappings=None,
+        charmap=DEFAULT_CHAR_MAPPINGS):
+    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, install=install, force=force,
+                           mappings=mappings, charmap=charmap)
+    file_exists = make_file_exists(mapfunc)
+    result = {
+        # param lists for params that can be replaced by mapfunc
+        'tensorflow.python.lib.io.file_io.FileIO': ['name'],
+        'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
+        # specific param-function replacement maps
+        # <none>
+        # specific full-function replacements
+        'tensorflow.python.lib.io.file_io.file_exists': file_exists,
+    }
+    return result
+
 def debug(string, *format_args, **format_kwargs):
     """Useful if you want to mass enable/disable formatting.
 
@@ -308,11 +333,6 @@ def unpatch_full_module(module_path_or_module):
             setattr(module, name, attr.original)
 
 
-# simple mapping of illegal chars to underscores.
-# TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
-DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
-
-
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
                  mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS):
     """core support for mapping filepaths to objects in quilt local objs/ datastore.
@@ -366,7 +386,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
                     keys = node._keys()
                     #print('keys={} piece={}'.format(keys, piece))
                     if piece not in keys:
-                        raise Exception("Quilt node path not found: {}  ({} not found in {})".format(
+                        raise FileNotFoundError("Quilt node path not found: {}  ({} not found in {})".format(
                             abspath, piece, keys))
                     node = getattr(node, piece)
                     #print('node={}'.format(node))
@@ -379,6 +399,23 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     return mapfunc
 
 
+def make_file_exists(mapfunc):
+    def file_exists(filename):
+        try:
+            mapfunc(filename)
+            return True
+        except FileNotFoundError:
+            return False
+        except PackageException as ex:
+            if str(ex) == "Must pass at least one file path":
+                return True
+        else:
+            pass
+        raise Exception("Unknown condition in file_exists() for filename {!r}".format(filename))
+
+    return file_exists
+
+
 def _expand_dir_node_mapping(dir_node_mapping, base_node):
     result = {}
     for dirpath, nodepath in dir_node_mapping.items():
@@ -389,8 +426,8 @@ def _expand_dir_node_mapping(dir_node_mapping, base_node):
             for key in nodepath.strip().strip(".").split("."):
                 keys = node._keys()
                 if key not in keys:
-                    raise Exception("Invalid mapping: Quilt node path not found: {}  ({} not found in {})".format(
-                        nodepath, key, keys))
+                    message = "Invalid mapping: Quilt node path not found: {}  ({} not found in {})"
+                    raise FileNotFoundError(message.format(nodepath, key, keys))
                 node = getattr(node, key)
         if isinstance(keys, GroupNode):
             # TODO: improve errmsg to be more useful
@@ -428,7 +465,8 @@ def mapdirs(pkg, hash=None, version=None, tag=None,
 
 
 def setup(pkg, hash=None, version=None, tag=None, force=False,
-          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, mapfunc=None,
+          **kwargs):
     """continuation-based virtual file support:
 
          patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
@@ -445,12 +483,18 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
     """
     if len(kwargs) == 0:
         kwargs = DEFAULT_OBJECT_PARAM_PATCHES
-    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                           mappings=mappings, install=install, charmap=charmap)
+    if mapfunc is None:
+        mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
+                               mappings=mappings, install=install, charmap=charmap)
 
     patched = []
-    for obj_path, params in kwargs.items():
-        patch_objpath_with_map(obj_path, {p: mapfunc for p in params})
+    for obj_path, patch in kwargs.items():
+        if isinstance(patch, dict):
+            patch_objpath_with_map(obj_path, patch)
+        elif inspect.isfunction(patch):
+            patch_objpath_with_func(patch)
+        else:
+            patch_objpath_with_map(obj_path, {param: mapfunc for param in patch})
         patched.append(obj_path)
     return patched
 
