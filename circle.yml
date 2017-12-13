@@ -6,7 +6,10 @@ machine:
   environment:
     TEST_REGISTRY: true
     QPYVER: 3.5
-    PATH: PATH="$HOME/miniconda/bin:$PATH"
+    QUILT_SERVER_CONFIG: dev_config.py
+    FLASK_APP: quilt_server
+    FLASK_DEBUG: 1
+
 
   pre:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
