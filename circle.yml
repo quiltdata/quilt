@@ -26,14 +26,10 @@ dependencies:
     - echo -r "Installing dependency"
     - python --version
     - pip install 'tables' ./compiler --user
-    - if [[ "$TEST_REGISTRY" = true ]]; then
-          pip install registry
-      fi
+    - if [[ "$TEST_REGISTRY" = "true" ]] ; then pip install registry ; fi
 
 test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
     - pytest compiler
-    - if [[ "$TEST_REGISTRY" = true ]]; then
-          pytest ./registry
-      fi
+    - if [[ "$TEST_REGISTRY" = "true" ]] ; then pytest ./registry ; fi
