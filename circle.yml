@@ -16,20 +16,17 @@ machine:
     - $HOME/miniconda/bin/conda search "^python$"
     - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env python=3.5.1 pip
     - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env
-    - sudo find / -name pytest*
 
 dependencies:
 
   post:
     - echo -r "Installing dependency"
     - export PATH="$HOME/miniconda/bin:$PATH" && python --version
-    - export PATH="$HOME/miniconda/bin:$PATH" && ls $HOME/miniconda/lib/python3.6/site-packages
-    - export PATH="$HOME/miniconda/bin:$PATH" && which pytest
     - export PATH="$HOME/miniconda/bin:$PATH" && pip install 'tables' ./compiler --user
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pip install registry ; fi
 
 test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
-    - export PATH="$HOME/miniconda/bin:$PATH" && pytest compiler
+    - export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest compiler
     - if [[ "$TEST_REGISTRY" = "true" ]] ; then pytest ./registry ; fi
