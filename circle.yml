@@ -4,7 +4,7 @@ machine:
     version: 9.0
 
   environment:
-    TEST_REGISTRY: false
+    TEST_REGISTRY: true
     QPYVER: 3.5
     PATH: PATH="$HOME/miniconda/bin:$PATH"
 
@@ -30,4 +30,4 @@ test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
     - export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest compiler
-    - if [[ "$TEST_REGISTRY" = "true" ]] ; then pytest ./registry ; fi
+    - if [[ "$TEST_REGISTRY" = "true" ]] ; then python -m pytest ./registry ; fi
