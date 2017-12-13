@@ -14,11 +14,11 @@ machine:
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"
     - echo $PATH
-    - python --version
     - $HOME/miniconda/bin/conda search "^python$"
     - $HOME/miniconda/bin/conda create --yes -n quilt_env python=3.5.1 pip
     - source $HOME/miniconda/bin/activate quilt_env
     - pip install pytest --user
+    - whereis pytest
 
 dependencies:
 
