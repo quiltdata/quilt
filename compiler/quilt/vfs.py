@@ -115,24 +115,21 @@ _DEBUG = True
 
 
 ## Code
-def generate_tensorflow_patch_map(
-        pkg, hash=None, version=None, tag=None,
-        install=False, force=False,
-        mappings=None,
-        charmap=DEFAULT_CHAR_MAPPINGS):
-    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, install=install, force=force,
-                           mappings=mappings, charmap=charmap)
+def generate_tensorflow_patch_map(mapfunc):
     file_exists = make_file_exists(mapfunc)
+    result = DEFAULT_OBJECT_PARAM_PATCHES.copy()
     result = {
         # param lists for params that can be replaced by mapfunc
         'tensorflow.python.lib.io.file_io.FileIO': ['name'],
         'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
+        'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
         # specific param-function replacement maps
         # <none>
         # specific full-function replacements
         'tensorflow.python.lib.io.file_io.file_exists': file_exists,
     }
     return result
+
 
 def debug(string, *format_args, **format_kwargs):
     """Useful if you want to mass enable/disable formatting.
@@ -401,16 +398,25 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
 
 def make_file_exists(mapfunc):
     def file_exists(filename):
+        debug(filename)
         try:
             mapfunc(filename)
+            debug('true')
             return True
         except FileNotFoundError:
+            debug('false 1')
             return False
         except PackageException as ex:
             if str(ex) == "Must pass at least one file path":
+                debug('true 2')
                 return True
+        except Exception as ex:
+            print()
+            print(ex)
+            print()
         else:
             pass
+        debug('whoops!')
         raise Exception("Unknown condition in file_exists() for filename {!r}".format(filename))
 
     return file_exists
@@ -492,7 +498,7 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
         if isinstance(patch, dict):
             patch_objpath_with_map(obj_path, patch)
         elif inspect.isfunction(patch):
-            patch_objpath_with_func(patch)
+            patch_objpath_with_func(obj_path, patch)
         else:
             patch_objpath_with_map(obj_path, {param: mapfunc for param in patch})
         patched.append(obj_path)
