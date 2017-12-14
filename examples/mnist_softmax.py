@@ -29,19 +29,18 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
-# fake tensorflow to read MNIST data from Quilt
-import quilt.vfs
-import re
-mnist_mappings = {'/tmp/tensorflow/mnist/input_data':'.'}
-mnist_charmap = lambda fn: re.sub(r'.gz', '', re.sub(r'-', '_', fn)))
-quilt.vfs.DEFAULT_MODULE_MAPPINGS['tensorflow.python.platform.gfile'] = 'Open'
-quilt.vfs.setup('asah/mnist', mappings=mnist_mappings, charmap=mnist_charmap)
-mapfunc = quilt.vfs.make_mapfunc('asah/mnist', mappings=mnist_mappings, charmap=mnist_charmap)
-quilt.vfs.patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
-                lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
-
 FLAGS = None
 
+# ---------------------------------------------------------------------------
+# fake TensorFlow file API to read MNIST data from Quilt
+# tensorflow is horribly behaved.
+#
+import quilt.vfs
+mnist_mappings = {'/tmp/tensorflow/mnist/input_data':'.'}
+def mnist_charmap(filename):
+  print(filename)
+  return filename.replace('.gz', '').replace('-', '_')
+quilt.vfs.setup_tensorflow('asah/mnist', mappings=mnist_mappings, charmap=mnist_charmap)
 
 def main(_):
   # Import data

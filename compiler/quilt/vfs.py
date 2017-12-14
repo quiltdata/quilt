@@ -289,3 +289,22 @@ def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     patcher = patch(module_name+'.'+func_name, action_func)
     patcher.start()
     return patcher
+
+def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False,
+                     mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+    """TensorFlow is a special case - badly behaved Python API."""
+    import tensorflow
+    tensorflow.python = tensorflow  # hack: needs to be a module
+    tensorflow.python.platform = tensorflow  # hack: needs to be a module
+    module_mappings = DEFAULT_MODULE_MAPPINGS.copy()
+    # unpatch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
+    del module_mappings['gzip']
+    # patch gfile.Open()
+    module_mappings['tensorflow.python.platform.gfile'] = 'Open'
+    setup(pkg, hash=hash, version=version, tag=tag, force=force,
+          mappings=mappings, install=install, charmap=charmap, **module_mappings)
+    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
+          mappings=mappings, install=install, charmap=charmap, **module_mappings)
+    # patch maybe_download() to return the Quilt filename
+    patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
+          lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
