@@ -210,10 +210,9 @@ class Auth:
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email, header):
+    def __init__(self, user, email):
         self.user = user
         self.email = email
-        self.header = header
 
 
 class ApiException(Exception):
@@ -268,7 +267,7 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(PUBLIC, None, None)
+            g.auth = Auth(PUBLIC, None)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -280,6 +279,7 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
+            g.auth_header = auth
             if auth is None:
                 if require_login:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
@@ -297,7 +297,7 @@ def api(require_login=True, schema=None):
                     assert user
                     email = data['email']
 
-                    g.auth = Auth(user, email, auth)
+                    g.auth = Auth(user, email)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
                         raise ApiException(
@@ -1080,7 +1080,7 @@ def access_put(owner, package_name, user):
 
         # Call to Django to send invitation email
         headers = {
-            AUTHORIZATION_HEADER: g.auth.header
+            AUTHORIZATION_HEADER: g.auth_header
             }
         resp = requests.post(INVITE_SEND_URL,
                              headers=headers,
