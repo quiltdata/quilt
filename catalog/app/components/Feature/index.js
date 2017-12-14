@@ -25,7 +25,7 @@ const Feature = () => (
       <TakeAction />
       <div className="framer">
         <iframe
-          src="https://ghbtns.com/github-btn.html?user=quiltdata&repo=quilt-compiler&type=star&count=true&size=large"
+          src="https://ghbtns.com/github-btn.html?user=quiltdata&repo=quilt&type=star&count=true&size=large"
           frameBorder="0"
           scrolling="0"
           width="160px"
