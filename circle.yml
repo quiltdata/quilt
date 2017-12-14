@@ -4,7 +4,7 @@ machine:
     version: 9.0
 
   environment:
-    TEST_REGISTRY: true
+    TEST_REGISTRY: false
     QPYVER: 3.5
     QUILT_SERVER_CONFIG: dev_config.py
     FLASK_APP: quilt_server
