@@ -241,3 +241,15 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
 def teardown(patchers):
     for patcher in patchers:
         patcher.stop()
+
+def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
+    """wrapper for unittest.mock.patch supporting py2 and py3 and default action func."""
+    try:
+        from unittest.mock import patch   # Python3
+    except:
+        from mock import patch  # Python2
+        if module_name == 'builtins':
+            module_name = '__builtin__'
+    patcher = patch(module_name+'.'+func_name, action_func)
+    patcher.start()
+    return patcher
