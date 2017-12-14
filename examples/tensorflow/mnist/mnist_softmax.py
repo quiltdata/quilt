@@ -37,9 +37,7 @@ FLAGS = None
 #
 import quilt.vfs
 mnist_mappings = {'/tmp/tensorflow/mnist/input_data':'.'}
-def mnist_charmap(filename):
-  print(filename)
-  return filename.replace('.gz', '').replace('-', '_')
+mnist_charmap = lambda filename: filename.replace('.gz', '').replace('-', '_')
 quilt.vfs.setup_tensorflow('asah/mnist', mappings=mnist_mappings, charmap=mnist_charmap)
 
 def main(_):
