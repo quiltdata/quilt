@@ -1,6 +1,6 @@
 # Quilt MNIST Example
 
-The famous MNIST handwriting dataset and Google's example classifier for it.
+The famous [MNIST handwriting dataset](http://yann.lecun.com/exdb/mnist/) ([Quilt repository copy](https://quiltdata.com/package/asah/mnist)) and Google's [example classifier](https://www.tensorflow.org/get_started/mnist/beginners) for it.  
 
 To run, `python mnist_softmax.py`.
 

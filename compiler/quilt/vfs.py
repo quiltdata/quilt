@@ -303,8 +303,9 @@ def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False,
     module_mappings['tensorflow.python.platform.gfile'] = 'Open'
     setup(pkg, hash=hash, version=version, tag=tag, force=force,
           mappings=mappings, install=install, charmap=charmap, **module_mappings)
+    # patch maybe_download() to return the Quilt filename
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
           mappings=mappings, install=install, charmap=charmap, **module_mappings)
-    # patch maybe_download() to return the Quilt filename
     patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
           lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
+

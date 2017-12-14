@@ -1,12 +1,12 @@
 # Quilt CIFAR-10 Example
 
-Originally from https://github.com/exelban/tensorflow-cifar-10  (that readme is below)
+The famous [CIFAR image dataset](https://www.cs.toronto.edu/~kriz/cifar.html) ([Quilt repository copy](https://quiltdata.com/package/asah/cifar_test)) and [exelban's tensorflow classifier](https://github.com/exelban/tensorflow-cifar-10)
 
 To run, `python mnist_softmax.py`.
 
 Output should look like this:
 ```sh
-(jlab) asah@noguchi:~/quiltdata/quilt-compiler/examples/tensorflow/tensorflow-cifar-10$ python train.py
+$ python train.py
 /Users/asah/miniconda3/envs/jlab/lib/python3.6/importlib/_bootstrap.py:219: RuntimeWarning: compiletime version 3.5 of module 'tensorflow.python.framework.fast_tensor_util' does not match runtime version 3.6
   return f(*args, **kwds)
 2017-12-14 04:34:32.363851: I tensorflow/core/platform/cpu_feature_guard.cc:137] Your CPU supports instructions that this TensorFlow binary was not compiled to use: SSE4.1 SSE4.2 AVX
@@ -16,6 +16,7 @@ Global Step:     10, accuracy:  10.2%, loss = 2.30 (132.1 examples/sec, 0.97 sec
 ```
 
 
+# exelban's original README file
 
 # tensorflow-cifar-10
 Cifar-10 convolutional network implementation example using TensorFlow library.
