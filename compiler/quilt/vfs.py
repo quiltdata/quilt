@@ -64,6 +64,8 @@
 
 
 """
+from __future__ import print_function
+
 ## Imports
 # System imports
 import os
@@ -75,7 +77,7 @@ import importlib
 from contextlib import contextmanager
 
 # Third-party immports
-from six.moves import builtins
+import six
 
 # Our imports
 from .nodes import GroupNode
@@ -85,106 +87,25 @@ from .tools.package import PackageException
 
 
 ## Vars and "constants"
-DEFAULT_MODULE_MAPPINGS = {
-    'builtins': 'open',
-    'bz2': 'BZ2File',
-    'gzip': 'GzipFile',
-    'h5py': 'File',    # for keras/tensorflow
-    # manually add tensorflow because it's a heavyweight library
-    'tensorflow.python.lib.io.file_io': 'FileIO',
-    # 'tensorflow': 'tensorflow.gfile.GFile',
-}
-
 # each listed object will have the specific param modified by mapfunc.
-DEFAULT_OBJECT_PARAM_PATCHES = {
-    'builtins.open': ['file'],
+# {'module.object': <patches>}, where <patches> is one of the following:
+#   ['frompath', 'topath'] -- list of params to replace args using mapfunc(arg)
+#   {'filename': <function mapfunc>, 'mode': lambda x: 'r'} -- dict of params: arg_replacer_funcs
+#   <function mapped_file_exists> -- a func to completely replace the object with.
+DEFAULT_OBJECT_PATCHES = {
+    'builtins.open': ['file', 'name'],
     'bz2.BZ2File': ['filename'],
     'gzip.GzipFile': ['filename'],
     'h5py.File': ['name'],    # for keras/tensorflow
     # manually add tensorflow because it's a heavyweight library
-    'tensorflow.python.lib.io.file_io.FileIO': ['name'],
-    # 'tensorflow': 'tensorflow.gfile.GFile',
 }
 
 # simple mapping of illegal chars to underscores.
 # TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
 DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
 
-# debug mode
-_DEBUG = True
-
 
 ## Code
-def generate_tensorflow_patch_map(mapfunc):
-    file_exists = make_file_exists(mapfunc)
-    result = DEFAULT_OBJECT_PARAM_PATCHES.copy()
-    result = {
-        # param lists for params that can be replaced by mapfunc
-        'tensorflow.python.lib.io.file_io.FileIO': ['name'],
-        'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
-        'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
-        # specific param-function replacement maps
-        # <none>
-        # specific full-function replacements
-        'tensorflow.python.lib.io.file_io.file_exists': file_exists,
-    }
-    return result
-
-
-def debug(string, *format_args, **format_kwargs):
-    """Useful if you want to mass enable/disable formatting.
-
-    This basically just works as a print+format call, but prefixes
-    each line with the caller's name.
-    """
-
-    if not _DEBUG:
-        return
-    stack = inspect.stack().copy()
-    caller_name = stack[1][3]
-
-    prefix = caller_name + ':\t'
-    string = string.format(*format_args, **format_kwargs)
-    string = string.replace('\n', '\n...\t')
-
-    print(prefix + string)
-
-
-if not _DEBUG:
-    del debug
-    del _DEBUG
-
-
-def import_object(full_path):
-    """Resolve foo.bar.baz notation into a module, object, and object name
-
-    This requires at least two elements, module and object, and returns the
-    module, object, and object name.
-
-    example:
-        import_object('foo.bar.baz')
-        # returns (<module at foo.bar>, <baz object>, 'baz')
-
-    :returns: module, object, object_name
-    """
-    full_path = full_path.split('.')
-
-    if len(full_path) == 1:
-        raise ValueError('Expected full_path to at least include two parts, in the form "module.callable"')
-
-    # If 'builtins' is being used, we should use the six.moves.builtins module.
-    if full_path[0] == 'builtins':
-        full_path.insert(0, 'six')
-        full_path.insert(1, 'moves')
-
-    modpath = '.'.join(full_path[:-1])
-    obj_name = full_path[-1]
-
-    module = importlib.import_module(modpath)
-    obj = getattr(module, obj_name)
-    return module, obj, obj_name
-
-
 def scrub_patchmap(patchmap, verbose=False):
     """Return a version of a patchmap with missing modules/callables removed.
 
@@ -194,85 +115,155 @@ def scrub_patchmap(patchmap, verbose=False):
     result = {}
 
     for path, value in patchmap.items():
+        modpath, obj_name = path.rsplit('.', 1)
         try:
-            import_object(path)
+            module = importlib.import_module(modpath)
+            getattr(module, obj_name)
             result[path] = value
         except ImportError:
             if verbose:
-                print("Dropped {} from patchmap (ImportError)".format(path), file=sys.stderr)
-            continue
+                print("Dropped {!r} from patchmap (module {!r} not found)".format(path, modpath),
+                      file=sys.stderr)
+        except AttributeError:
+            if verbose:
+                print("Dropped {!r} from patchmap ({!r} not found in {!r})".format(path, obj_name, modpath),
+                      file=sys.stderr)
     return result
-DEFAULT_OBJECT_PARAM_PATCHES = scrub_patchmap(DEFAULT_OBJECT_PARAM_PATCHES, verbose=True)
+DEFAULT_OBJECT_PATCHES = scrub_patchmap(DEFAULT_OBJECT_PATCHES, verbose=True)
 
 
-def create_patched_params_func(obj, param_func_map):
-    """Creates a function that filters args through function calls first
+def arg_replacement_wrapper(obj, arg_replacer_map, inject_args=False, numeric=False):
+    """Creates a wrapper that replaces args, then calls obj().
 
-    This is similar to a decorator (and can be used as one).  It returns
-    a patched version of the original `obj`, which may be a class or
-    function.
+    This returns a wrapped version of the original `obj` (which may be a class
+    or function).
 
-    The replacement function has the same signature as `obj`.  When the
-    replacement is called:
-        * For each `{param_name, func}` pair in param_func_map
+    The wrapper function has the same signature as `obj`.  When the wrapper is
+    called:
+        * For each `{param_name, func}` pair in arg_replacer_map
             * Argument for the specific param is replaced with `func(arg)`
         * `obj` is called with the modified arguments.
 
-    Works for functions or classes.
+    If `inject_args` is True, args in arg_replacer_map are inserted if missing,
+    and the arg_replacer func is called with `None`.
 
+    Example:
+    >>> func = arg_replacement_wrapper(open, {'file': lambda x: x + '.txt'})
+    >>> func('example')  # returns open('example.txt')
+
+    Works for functions (or class objects, to modify __init__() args).
+
+    Note: an arg replacer map may contain numeric keys to indicate positional
+        args if the signature of `obj` can't be introspected, (as for some
+        builtin functions).  If both a numeric and named key match an arg, the
+        replacer function associated with the numeric key is used.  if
+        `inject_args` is set, then the argnums are added until a gap is found.
+        So if you only have {2: lambda x: 'foo'}, it won't be injected unless
+        args 0 and 1 have been given by the user.
+
+    :param obj: Callable object to decorate
+    :param arg_replacer_map:
     :returns: Decorated `obj` that replaces params using mapped functions
     :rtype: function
     """
-    params = inspect.signature(obj).parameters
-    params_list = list(params)
+    params = _get_params(obj)  # can be None if function params couldn't be detected
+    used_params = params if params else []
 
     @functools.wraps(obj)
     def replacement(*args, **kwargs):
         args = list(args)
-        for pos, value in enumerate(args):
-            argname = params_list[pos]
-            if argname in param_func_map:
-                args[pos] = param_func_map[argname](value)
-        for argname, value in kwargs.items():
-            if argname in param_func_map:
-                args[pos] = param_func_map[argname](value)
+        used_kwargs = list(arg_replacer_map) if inject_args else list(kwargs)
+        inject_argnums = []
+
+        for position, value in enumerate(args):
+            if position in arg_replacer_map:
+                args[position] = arg_replacer_map[position](value)
+                continue
+            if position >= len(used_params):
+                continue  # don't replace positionals
+            argname = params[position]
+            if argname in arg_replacer_map:
+                args[position] = arg_replacer_map[argname](value)
+        for argname in used_kwargs:
+            if isinstance(argname, int):
+                inject_argnums.append(argname)
+                continue
+            if argname in arg_replacer_map:
+                value = kwargs.get(argname)
+                kwargs[argname] = arg_replacer_map[argname](value)
+        for argnum in sorted(inject_argnums):
+            if argnum == len(args):
+                # argnum 0 when list is 0 will inject arg 0
+                args[argnum] = arg_replacer_map[argnum](None)
         return obj(*args, **kwargs)
-    replacement.original = obj
     return replacement
 
 
-def patch_objpath_with_func(full_path, func):
-    """Replace callable at `full_path` with `func`"""
-    module, obj, obj_name = import_object(full_path)
-    func.original = obj
-    setattr(module, obj_name, func)
-    debug("module: {}\nreplacement: {}\noriginal: {}\n", module, func, obj)
+def _get_params(obj):
+    """Python2 doesn't have inspect.signature, so we get params other ways
+    """
+    if six.PY3:
+        # Add whatever funcs are necessary
+        py3_sigs = {'any': ['iterable']}
+        if inspect.isbuiltin(obj) and obj.__name__ in py3_sigs:
+            return py3_sigs[obj.__name__][:]
+        try:
+            if inspect.isclass(obj):
+                return list(inspect.signature(obj.__init__).parameters)
+            return list(inspect.signature(obj).parameters)
+        except (TypeError, ValueError):
+            return None
+    # PY2
+    py2_sigs = {
+        # Add whatever func sigs are necessary
+        'open': ['name', 'mode', 'buffering'],
+        'file': ['name', 'mode', 'buffering'],
+        }
+    if inspect.isbuiltin(obj) and obj.__name__ in py2_sigs:
+        return py2_sigs[obj.__name__][:]
+
+    try:
+        if inspect.isclass(obj):
+            argspec = inspect.getargspec(obj.__init__)
+        else:
+            argspec = inspect.getargspec(obj)
+        params = argspec.args
+        if argspec.varargs:
+            params.append(argspec.varargs)
+        if argspec.keywords:
+            params.append(argspec.keywords)
+        return params
+    except (TypeError, ValueError):
+        pass
+    return None
 
 
-def patch_objpath_with_map(full_path, param_func_map):
-    """patch the object given in `full_path` using a func generated from `param_func_map`.
+def patch_objpath_with_argmap(full_path, arg_replacer_map, inject_args=False):
+    """patch the object given in `full_path` using a func generated from `arg_replacer_map`.
 
-    See create_patched_params_func() docstring for details.
+    See arg_replacement_wrapper() docstring for details.
 
     :param full_object_path: module path to object (foo.bar)
     :param map: replacement parameters map as in patch_callable_params()
     """
-    module, obj, obj_name = import_object(full_path)
-    replacement = create_patched_params_func(obj, param_func_map)
-    setattr(module, obj_name, replacement)
+    modpath, obj_name = full_path.rsplit('.', 1)
+    module = importlib.import_module(modpath)
+    obj = getattr(module, obj_name)
+    assert callable(obj)
+    replacement = arg_replacement_wrapper(obj, arg_replacer_map, inject_args=inject_args)
+    return Patch(full_path, replacement)
 
 
-def patch_full_module(module_path, param_func_map, exclude=tuple(), include=tuple()):
+def patch_full_module(module_path, arg_replacer_map, exclude=tuple(), include=tuple()):
     """Patch every callable with matching params in specified module
 
     In the root of the module specified by module_path, all attributes are checked.
     If the name starts with "__", it is skipped.
     If the name is in 'exclude', it is skipped.
     If `include` exists and the name is not in `include`, it is skipped.
-    If the callable has no params matched in `param_func_map`, it is skipped.
+    If the callable has no params matched in `arg_replacer_map`, it is skipped.
 
-    Remaining callables are patched so that any args sent to the callable
-    are first modified via `param_func_map[param](arg)`.
+    Remaining callables are patched using `patch_objpath_with_argmap()`.
 
     A list of patched object paths is returned.
 
@@ -280,11 +271,11 @@ def patch_full_module(module_path, param_func_map, exclude=tuple(), include=tupl
     :param params_map: {param: action_func} map to apply to incoming arguments
     :param exclude: exclude these names
     :param include: only include these names
-    :returns: a list of patched object paths.
+    :returns: a list of patchers (start called)
     """
     module = importlib.import_module(module_path)
-    patched = []
-    param_names = set(param_func_map)
+    patchers = []
+    param_names = set(arg_replacer_map)
 
     for name in dir(module):
         if name.startswith('__'):
@@ -298,36 +289,55 @@ def patch_full_module(module_path, param_func_map, exclude=tuple(), include=tupl
 
         if not callable(obj):
             continue
-        params = inspect.signature(obj).parameters
+        params = _get_params(obj)
         matching_params = set(params) & param_names
 
         if not matching_params:
             continue
         objpath = module_path + '.' + name
-        patch_objpath_with_map(objpath, {p: param_func_map[p] for p in matching_params})
-        patched.append(objpath)
-    return patched
+        patch_map = {param: arg_replacer_map[param] for param in matching_params}
+        patchers.append(patch_objpath_with_argmap(objpath, patch_map))
+    return patchers
 
 
-def unpatch_objpath(full_objpath, raise_exc=False):
-    """Restore original callable"""
-    module, obj, obj_name = import_object(full_objpath)
-    if not hasattr(obj, 'original') and not raise_exc:
-        return
-    setattr(module, obj_name, obj.original)
+def apply_patchmap(patch_map, arg_replacer=lambda x: x, inject_args=False):
+    """Apply a patch map
 
+    Takes a patch map with the following form:
+        {'modpath.to.object': <patch>}
+        ..where <patch> is one of:
+            * function to replace object with
+            * list of param names for `object` to send as a map of
+              {param name: arg_replacer} to `arg_replacement_wrapper`
+            * map of {param_name: some_replacer_func} pairs to send to
+              `arg_replacement_wrapper` with `object`
 
-def unpatch_full_module(module_path_or_module):
-    """For each attribute, unpatch any patched callables."""
-    if isinstance(module_path_or_module, str):
-        module = importlib.import_module(module_path)
-    else:
-        module = module
-
-    for name in dir(module):
-        attr = getattr(module, name)
-        if callable(attr) and hasattr(attr, 'original'):
-            setattr(module, name, attr.original)
+    Example:
+    >>> patchmap = {
+        # replace maybe_download_and_extract
+        'include.data.maybe_download_and_extract': lambda x: None,
+        # replace open('myfile') with function that calls open(arg_replacer('myfile'))
+        'six.moves.importlib.open': ['file'],
+        # replace BZ2File('myfile', compresslevel=3) with a function that calls
+        #         BZ2File(mapfunc('myfile'), compresslevel=5)
+        'bz2.BZ2File': {'filename': <mapfunc>, 'compresslevel': lambda x: 5},
+    }
+    Lastly, `inject` is passed directly into `patch_objpath_with_argmap`.  It causes
+    missing args to be injected as "None", then passed to the arg_replacer func, and
+    ultimately to the original callable object.
+    """
+    patchers = []
+    for obj_path, patch in patch_map.items():
+        if inspect.isfunction(patch):
+            patcher = Patch(obj_path, patch)
+        elif isinstance(patch, dict):
+            patcher = patch_objpath_with_argmap(obj_path, patch, inject_args=inject_args)
+        else:
+            assert callable(arg_replacer)
+            arg_replacer_map = {param: arg_replacer for param in patch}
+            patcher = patch_objpath_with_argmap(obj_path, arg_replacer_map, inject_args=inject_args)
+        patchers.append(patcher)
+    return patchers
 
 
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
@@ -353,11 +363,12 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
         mappings = {".": ""}  # TODO: test this case
 
     if not callable(charmap):
-        fromstr = tostr = ""
-        for fromchar, tochar in charmap.items():
-            fromstr += fromchar
-            tostr += tochar
-        charmap = str.maketrans(fromstr, tostr)
+        # changed to be Py2 compatible
+        table = list(range(256))
+        for ordinal in table:
+            char = chr(ordinal)
+            table[ordinal] = charmap.get(char, char)
+        charmap = ''.join(table)
 
     # expand/clean dir mappings, e.g.
     # {"~asah/../foo": "."} ==> {"/Users/foo": ["uciml","raw"]}
@@ -372,54 +383,22 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
         #   make_mapfunc("uciml/iris", mappings={".": "raw"}); open("bezdek_iris")
         #   make_mapfunc("uciml/iris"); open("raw/bezdek_iris")
         #   make_mapfunc("foo/bar", "baz/bat"); open("myfile")
-        debug('checking {}... mappings={}', filename, mappings)
         for dirpath, node in expanded_mappings.items():
-            #print('{}: checking {} => {}'.format(abspath, dirpath, nodepath))
             if abspath.startswith(dirpath):
                 relpath = abspath[len(dirpath)+1:] # drop trailing slash
                 for raw_piece in relpath.split(os.path.sep):
                     piece = charmap(raw_piece) if callable(charmap) else raw_piece.translate(charmap)
-                    #print('  {} => {}   raw_piece={}  piece={}'.format(relpath, node, raw_piece, piece))
                     keys = node._keys()
-                    #print('keys={} piece={}'.format(keys, piece))
                     if piece not in keys:
                         raise FileNotFoundError("Quilt node path not found: {}  ({} not found in {})".format(
                             abspath, piece, keys))
                     node = getattr(node, piece)
-                    #print('node={}'.format(node))
                 if isinstance(keys, GroupNode):
                     raise Exception("Quilt node is a Group, not a Node/file: {}  ({} not found in {})".format(
                         abspath, piece, keys))
                 return node()  # node's data is filename
         return filename
-
     return mapfunc
-
-
-def make_file_exists(mapfunc):
-    def file_exists(filename):
-        debug(filename)
-        try:
-            mapfunc(filename)
-            debug('true')
-            return True
-        except FileNotFoundError:
-            debug('false 1')
-            return False
-        except PackageException as ex:
-            if str(ex) == "Must pass at least one file path":
-                debug('true 2')
-                return True
-        except Exception as ex:
-            print()
-            print(ex)
-            print()
-        else:
-            pass
-        debug('whoops!')
-        raise Exception("Unknown condition in file_exists() for filename {!r}".format(filename))
-
-    return file_exists
 
 
 def _expand_dir_node_mapping(dir_node_mapping, base_node):
@@ -443,12 +422,31 @@ def _expand_dir_node_mapping(dir_node_mapping, base_node):
     return result
 
 
+def make_file_exists(mapfunc):
+    """Using mapfunc, determine if a file exists."""
+    def file_exists(filename):
+        try:
+            mapfunc(filename)
+            return True
+        except FileNotFoundError:
+            return False
+        except PackageException as ex:
+            if str(ex) == "Must pass at least one file path":
+                return True
+        except Exception as ex:
+            print()
+            print(ex)
+            print()
+        else:
+            pass
+        raise Exception("Unknown condition in file_exists() for filename {!r}".format(filename))
+
+    return file_exists
+
+
 @contextmanager
-def mapdirs(pkg, hash=None, version=None, tag=None,
-            install=False, force=False,
-            mappings=None,
-            charmap=DEFAULT_CHAR_MAPPINGS,
-            patchmap=None):
+def mapdirs(pkg, hash=None, version=None, tag=None, install=False, force=False, mappings=None,
+            charmap=DEFAULT_CHAR_MAPPINGS, patchmap=None, mapfunc=None):
     """context-based virtual file support:
 
          with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
@@ -456,18 +454,17 @@ def mapdirs(pkg, hash=None, version=None, tag=None,
 
     """
     if patchmap is None:
-        patchmap = DEFAULT_OBJECT_PARAM_PATCHES
-    patches = []
+        patchmap = DEFAULT_OBJECT_PATCHES
+    patchers = []
     try:
         # in case of interruption/exception, patchers will contain a subset that can be backed-out
         mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
                                mappings=mappings, install=install, charmap=charmap)
-        for object_path, params in patchmap.items():
-            patch_objpath_with_map(object_path, {p: mapfunc for p in params})
+        patchers.extend(apply_patchmap(patchmap, arg_replacer=mapfunc))
         yield
     finally:
-        for object_path in patches:
-            unpatch_objpath(object_path)
+        for patcher in patchers:
+            patcher.stop()
 
 
 def setup(pkg, hash=None, version=None, tag=None, force=False,
@@ -488,23 +485,112 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
              quilt.vfs.teardown(patchers)
     """
     if len(kwargs) == 0:
-        kwargs = DEFAULT_OBJECT_PARAM_PATCHES
+        kwargs = DEFAULT_OBJECT_PATCHES
+    if mapfunc is None:
+        mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
+                               mappings=mappings, install=install, charmap=charmap)
+    return apply_patchmap(kwargs, arg_replacer=mapfunc)
+
+
+
+def teardown(patchers):
+    for patcher in patchers:
+        patcher.stop()
+
+
+def setup_tensorflow_b(mapfunc):
+    file_exists = make_file_exists(mapfunc)
+    result = DEFAULT_OBJECT_PATCHES.copy()
+    result = {
+        # param lists for params that can be replaced by mapfunc
+        'tensorflow.python.lib.io.file_io.Fil1eIO': ['name'],
+        'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
+        #TODO: This ends up calling a low-level function that does direct FS access.
+        # 'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
+        # specific param-function replacement maps
+        # <none>
+        # specific full-function replacements
+        'tensorflow.python.lib.io.file_io.file_exists': file_exists,
+    }
+
+
+class Patch(object):
+    """Call to patch object at `object_path` with `replacement`.
+
+    call p.stop() to unpatch.
+    """
+    def __init__(self, object_path, replacement):
+        self.module_name, self.name = object_path.rsplit('.', 1)
+        if self.module_name == 'builtins':
+            self.module_name = 'six.moves.builtins'
+        self.module = importlib.import_module(self.module_name)
+        self.obj = getattr(self.module, self.name)
+        self.replacement = replacement
+        replacement.replaced_original = self.obj
+        setattr(self.module, self.name, self.replacement)
+
+    def stop(self):
+        setattr(self.module, self.name, self.obj)
+
+
+# def patch(object_path, action_func=lambda *args, **kwargs: None):
+#     """wrapper for unittest.mock.patch supporting py2 and py3 and default action func."""
+#     try:
+#         from unittest.mock import patch   # Python3
+#     except:
+#         from mock import patch  # Python2
+#
+#         module_name, tail = object_path.split('.', 1)
+#
+#         if module_name == 'builtins':
+#             module_name = '__builtin__'
+#             object_path = module_name + '.' + tail
+#     patcher = patch(object_path, action_func)
+#     patcher.start()
+#     return patcher
+
+
+def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False, mappings=None,
+                     install=False, charmap=DEFAULT_CHAR_MAPPINGS, mapfunc=None, **kwargs):
+    """TensorFlow is a special case - badly behaved Python API."""
+    import tensorflow
+
     if mapfunc is None:
         mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
                                mappings=mappings, install=install, charmap=charmap)
 
-    patched = []
-    for obj_path, patch in kwargs.items():
-        if isinstance(patch, dict):
-            patch_objpath_with_map(obj_path, patch)
-        elif inspect.isfunction(patch):
-            patch_objpath_with_func(obj_path, patch)
-        else:
-            patch_objpath_with_map(obj_path, {param: mapfunc for param in patch})
-        patched.append(obj_path)
-    return patched
+    #TODO: checkpoints -- low-level access
+    # My roadblock is when tensorflow calls tensorflow.python.pywrap_tensorflow.GetMatchingFiles.
+    # I think we would need to match the functionality of whatever's happening in C there,
+    # and patch over that function -- and potentially others.
+    #
+    # patching file_exists gets us further along in having tf read checkpoints from quilt, but
+    # ultimately tf does that on a lower level, so it may be moot.
+    #file_exists = make_file_exists(mapfunc)
 
+    patchmap = DEFAULT_OBJECT_PATCHES.copy()
+    patchmap.update({
+        ## param specifications for params that can be replaced by mapfunc
+        # Patch object that GFile and and FastGFile are based on
+        'tensorflow.python.lib.io.file_io.Fil1eIO': ['name'],
 
-def teardown(patchers):
-    for obj_path in patchers:
-        unpatch_objpath(obj_path)
+        # see TODO: checkpoints -- low-level access
+        #'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
+        #'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
+
+        ## objects with specific per-param function replacements
+        # 'example.class.func': {'some_wrapped_param': lambda arg: arg + '.txt'}
+
+        ## specific full-function replacements
+        # see TODO: checkpoints -- low-level access
+        #'tensorflow.python.lib.io.file_io.file_exists': file_exists,
+
+        # patch maybe_download() to return the Quilt filename
+        'tensorflow.contrib.learn.datasets.base.maybe_download':
+            lambda fn, fndir, url: mapfunc(fndir + '/' + fn),
+    })
+
+    # don't patch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
+    patchmap.pop('gzip.GzipFile', None)
+
+    setup(pkg, mapfunc=mapfunc, **kwargs)
