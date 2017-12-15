@@ -87,11 +87,11 @@ from .tools.package import PackageException
 
 
 ## Vars and "constants"
-# each listed object will have the specific param modified by mapfunc.
-# {'module.object': <patches>}, where <patches> is one of the following:
-#   ['frompath', 'topath'] -- list of params to replace args using mapfunc(arg)
-#   {'filename': <function mapfunc>, 'mode': lambda x: 'r'} -- dict of params: arg_replacer_funcs
+# Default object patches
+# {'module.object': <patch>}, where <patch> is one of the following (see `patch` function):
 #   <function mapped_file_exists> -- a func to completely replace the object with.
+#   ['param1', 'param2'] -- list of params to replace args of using replacer(arg) (generally mapfunc(arg))
+#   {'filename': <function mapfunc>, 'mode': lambda x: 'r'} -- dict of params: arg_replacer_funcs
 DEFAULT_OBJECT_PATCHES = {
     'builtins.open': ['file', 'name'],
     'bz2.BZ2File': ['filename'],
@@ -173,28 +173,32 @@ def arg_replacement_wrapper(obj, arg_replacer_map, inject_args=False, numeric=Fa
     def replacement(*args, **kwargs):
         args = list(args)
         used_kwargs = list(arg_replacer_map) if inject_args else list(kwargs)
-        inject_argnums = []
+        paramnums_to_inject = []
 
         for position, value in enumerate(args):
             if position in arg_replacer_map:
+                # param name matched by position number
                 args[position] = arg_replacer_map[position](value)
                 continue
             if position >= len(used_params):
-                continue  # don't replace positionals
-            argname = params[position]
-            if argname in arg_replacer_map:
-                args[position] = arg_replacer_map[argname](value)
-        for argname in used_kwargs:
-            if isinstance(argname, int):
-                inject_argnums.append(argname)
+                # we have no param name for position
                 continue
-            if argname in arg_replacer_map:
-                value = kwargs.get(argname)
-                kwargs[argname] = arg_replacer_map[argname](value)
-        for argnum in sorted(inject_argnums):
-            if argnum == len(args):
+            paramname = params[position]
+            if paramname in arg_replacer_map:
+                args[position] = arg_replacer_map[paramname](value)
+        for paramname in used_kwargs:
+            if isinstance(paramname, int):
+                paramnums_to_inject.append(paramname)
+                continue
+            if paramname in arg_replacer_map:
+                # if injecting, paramname may not be present in kwargs.
+                value = kwargs.get(paramname)   # default to None
+                kwargs[paramname] = arg_replacer_map[paramname](value)  # replace arg
+        # `parmnums_to_inject` is empty when `inject_args` is `False`
+        for paramnum in sorted(paramnums_to_inject):
+            if paramnum == len(args):
                 # argnum 0 when list is 0 will inject arg 0
-                args[argnum] = arg_replacer_map[argnum](None)
+                args[paramnum] = arg_replacer_map[paramnum](None)  # injecting, defaults to None
         return obj(*args, **kwargs)
     return replacement
 
@@ -326,17 +330,12 @@ def apply_patchmap(patch_map, arg_replacer=lambda x: x, inject_args=False):
     missing args to be injected as "None", then passed to the arg_replacer func, and
     ultimately to the original callable object.
     """
+    # minor name conflict
+    apply_patch = globals()['patch']
+
     patchers = []
     for obj_path, patch in patch_map.items():
-        if inspect.isfunction(patch):
-            patcher = Patch(obj_path, patch)
-        elif isinstance(patch, dict):
-            patcher = patch_objpath_with_argmap(obj_path, patch, inject_args=inject_args)
-        else:
-            assert callable(arg_replacer)
-            arg_replacer_map = {param: arg_replacer for param in patch}
-            patcher = patch_objpath_with_argmap(obj_path, arg_replacer_map, inject_args=inject_args)
-        patchers.append(patcher)
+        patchers.append(apply_patch(obj_path, patch, arg_replacer, inject_args))
     return patchers
 
 
@@ -498,26 +497,15 @@ def teardown(patchers):
         patcher.stop()
 
 
-def setup_tensorflow_b(mapfunc):
-    file_exists = make_file_exists(mapfunc)
-    result = DEFAULT_OBJECT_PATCHES.copy()
-    result = {
-        # param lists for params that can be replaced by mapfunc
-        'tensorflow.python.lib.io.file_io.Fil1eIO': ['name'],
-        'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
-        #TODO: This ends up calling a low-level function that does direct FS access.
-        # 'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
-        # specific param-function replacement maps
-        # <none>
-        # specific full-function replacements
-        'tensorflow.python.lib.io.file_io.file_exists': file_exists,
-    }
-
-
 class Patch(object):
     """Call to patch object at `object_path` with `replacement`.
 
     call p.stop() to unpatch.
+
+    This object does not attempt to read from parent module's path
+    like the `mock` lib does.  This allows it to handle badly-formed
+    packages that don't update modules along the imported path (like
+    tensorflow).
     """
     def __init__(self, object_path, replacement):
         self.module_name, self.name = object_path.rsplit('.', 1)
@@ -533,21 +521,22 @@ class Patch(object):
         setattr(self.module, self.name, self.obj)
 
 
-# def patch(object_path, action_func=lambda *args, **kwargs: None):
-#     """wrapper for unittest.mock.patch supporting py2 and py3 and default action func."""
-#     try:
-#         from unittest.mock import patch   # Python3
-#     except:
-#         from mock import patch  # Python2
-#
-#         module_name, tail = object_path.split('.', 1)
-#
-#         if module_name == 'builtins':
-#             module_name = '__builtin__'
-#             object_path = module_name + '.' + tail
-#     patcher = patch(object_path, action_func)
-#     patcher.start()
-#     return patcher
+def patch(object_path, patch, arg_replacer=None, inject_args=False):
+    """Patch a single specified object with the given patch.
+
+    `patch` can be:
+        * replacement func
+        * list of params to replace args for using arg_replacer(arg)
+        * dict of params and arg replacer functions so param's argument
+          is replaced by patch[param](arg)
+    """
+    if inspect.isfunction(patch):
+        return Patch(object_path, patch)
+    if isinstance(patch, list):
+        if not callable(arg_replacer):
+            raise TypeError("Expected `arg_replacer` to be callable when `patch` is a param list.")
+        patch = {param_name: arg_replacer for param_name in patch}
+    return patch_objpath_with_argmap(object_path, patch, inject_args=inject_args)
 
 
 def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False, mappings=None,
