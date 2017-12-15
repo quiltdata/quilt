@@ -593,4 +593,4 @@ def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False, mappin
     # don't patch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
     patchmap.pop('gzip.GzipFile', None)
 
-    setup(pkg, mapfunc=mapfunc, **kwargs)
+    return setup(pkg, mapfunc=mapfunc, **kwargs)
