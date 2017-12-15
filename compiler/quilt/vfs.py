@@ -555,31 +555,32 @@ def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False, mappin
     #
     # patching file_exists gets us further along in having tf read checkpoints from quilt, but
     # ultimately tf does that on a lower level, so it may be moot.
-    #file_exists = make_file_exists(mapfunc)
+    file_exists = make_file_exists(mapfunc)
 
     patchmap = DEFAULT_OBJECT_PATCHES.copy()
     patchmap.update({
         ## param specifications for params that can be replaced by mapfunc
         # Patch object that GFile and and FastGFile are based on
-        'tensorflow.python.lib.io.file_io.Fil1eIO': ['name'],
+        'tensorflow.python.lib.io.file_io.FileIO': ['name'],
 
         # see TODO: checkpoints -- low-level access
-        #'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
-        #'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
+        'tensorflow.python.lib.io.file_io.read_file_to_string': ['filename'],
+        'tensorflow.python.lib.io.file_io.get_matching_files': ['filename'],
 
         ## objects with specific per-param function replacements
-        # 'example.class.func': {'some_wrapped_param': lambda arg: arg + '.txt'}
+        #'example.class.func': {'some_wrapped_param': lambda arg: arg + '.txt'}
 
         ## specific full-function replacements
         # see TODO: checkpoints -- low-level access
-        #'tensorflow.python.lib.io.file_io.file_exists': file_exists,
+        'tensorflow.python.lib.io.file_io.file_exists': file_exists,
 
         # patch maybe_download() to return the Quilt filename
-        'tensorflow.contrib.learn.datasets.base.maybe_download':
-            lambda fn, fndir, url: mapfunc(fndir + '/' + fn),
+        # 'tensorflow.contrib.learn.datasets.base.maybe_download':
+        #     lambda fn, fndir, url: mapfunc(fndir + '/' + fn),
     })
+    patchmap.update(kwargs)
 
     # don't patch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
     patchmap.pop('gzip.GzipFile', None)
 
-    return setup(pkg, mapfunc=mapfunc, **kwargs)
+    return setup(pkg, mapfunc=mapfunc, **patchmap)
