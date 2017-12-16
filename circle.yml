@@ -9,7 +9,8 @@ machine:
     QUILT_SERVER_CONFIG: dev_config.py
     FLASK_APP: quilt_server
     FLASK_DEBUG: 1
-
+    INSTALL_COMPILER: "pip install 'tables' ./compiler --user"
+    TEST_COMPILER: "python -m pytest compiler"
 
   pre:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
@@ -27,10 +28,10 @@ dependencies:
   post:
     - echo -r "Installing dependency"
     #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env && pip install pytest --user && python --version 
-    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && python --version && source deactivate quilt_env27
-    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env34 && python --version && source deactivate quilt_env34
-    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env35 && python --version && source deactivate quilt_env35
-    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env36 && python --version && source deactivate quilt_env36
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && $INSTALL_COMPILER && source deactivate quilt_env27
+    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env34 && pip install 'tables' ./compiler --user && source deactivate quilt_env34
+    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env35 && pip install 'tables' ./compiler --user && source deactivate quilt_env35
+    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env36 && python --version && source deactivate quilt_env36
         
     #- export PATH="$HOME/miniconda/bin:$PATH" && pip install 'tables' ./compiler --user
     #- if [[ "$TEST_REGISTRY" = "true" ]] ; then export PATH="$HOME/miniconda/bin:$PATH" && pip install -r registry/requirements.txt --user  && pip install registry --user ; fi
@@ -38,5 +39,6 @@ dependencies:
 test:
   override:
     - echo -r "Running Compiler/Registry Test with $(python --version)"
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && $TEST_COMPILER && source deactivate quilt_env27
     #- export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest compiler
     #- if [[ "$TEST_REGISTRY" = "true" ]] ; then export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest ./registry ; fi
