@@ -21,7 +21,7 @@ machine:
     - |
       for version in 2.7.10 3.4.1 3.5.1 3.6.1;
       do
-        export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env27 python=$version pip;
+        export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env$version python=$version pip;
       done
     #- export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env34 python=3.4.1 pip
     #- export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env35 python=3.5.1 pip
