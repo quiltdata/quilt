@@ -10,11 +10,10 @@ machine:
     TEST_COMPILER: python -m pytest compiler
 
   pre:
+    - echo "Creating python environments"
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
     - chmod +x mconda.sh
     - ./mconda.sh -b -p $HOME/miniconda
-    - export PATH="$HOME/miniconda/bin:$PATH" && echo $PATH
-    - $HOME/miniconda/bin/conda search "^python$"
     - |
       for version in 2.7.10 3.4.1 3.5.1 3.6.1
       do
@@ -25,30 +24,21 @@ machine:
 dependencies:
 
   post:
-    - echo -r "Installing dependency"
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env && pip install pytest --user && python --version 
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && pip install 'tables' ./compiler --user && source deactivate quilt_env27
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env34 && pip install 'tables' ./compiler --user && source deactivate quilt_env34
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env35 && pip install 'tables' ./compiler --user && source deactivate quilt_env35
+    - echo "Installing compiler to each environment"
     - |
       for version in 2.7.10 3.4.1 3.5.1 3.6.1
       do
         export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && pip install 'tables' ./compiler --user && source deactivate quilt_env$version;
       done
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env{{ version }} && python --version && source deactivate quilt_env{{version}}
-        
-    #- export PATH="$HOME/miniconda/bin:$PATH" && pip install 'tables' ./compiler --user
-    #- if [[ "$TEST_REGISTRY" = "true" ]] ; then export PATH="$HOME/miniconda/bin:$PATH" && pip install -r registry/requirements.txt --user  && pip install registry --user ; fi
 
 test:
   override:
-    - echo -r "Running Compiler/Registry Test with $(python --version)"
-    - |
-      for version in 2.7.10 3.4.1 3.5.1 3.6.1
-      do
-        #export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && python -m pytest compiler && source deactivate quilt_env$version;
-        export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
-      done
-    #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && $TEST_COMPILER && source deactivate quilt_env27
-    #- export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest compiler
-    #- if [[ "$TEST_REGISTRY" = "true" ]] ; then export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest ./registry ; fi
+    # Avoiding loop here, so that each test shown in separate tab in circle-ci
+    - echo "Running Compiler Test with $version"
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
+    - echo "Running Compiler Test with $version"
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
+    - echo "Running Compiler Test with $version"
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
+    - echo "Running Compiler Test with $version"
+    - export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
