@@ -4,13 +4,10 @@ machine:
     version: 9.0
 
   environment:
-    #TEST_REGISTRY: false
-    QPYVER: 3.5
     QUILT_SERVER_CONFIG: dev_config.py
     FLASK_APP: quilt_server
     FLASK_DEBUG: 1
-    INSTALL_COMPILER: pip install 'tables' ./compiler --user
-    TEST_COMPILER: "python -m pytest compiler"
+    TEST_COMPILER: python -m pytest compiler
 
   pre:
     - curl -o mconda.sh https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh
@@ -49,7 +46,8 @@ test:
     - |
       for version in 2.7.10 3.4.1 3.5.1 3.6.1
       do
-        export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && python -m pytest compiler && source deactivate quilt_env$version;
+        #export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && python -m pytest compiler && source deactivate quilt_env$version;
+        export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && $TEST_COMPILER  && source deactivate quilt_env$version;
       done
     #- export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env27 && $TEST_COMPILER && source deactivate quilt_env27
     #- export PATH="$HOME/miniconda/bin:$PATH" && python -m pytest compiler
