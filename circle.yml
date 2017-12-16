@@ -9,7 +9,7 @@ machine:
     QUILT_SERVER_CONFIG: dev_config.py
     FLASK_APP: quilt_server
     FLASK_DEBUG: 1
-    INSTALL_COMPILER: "pip install \'tables\' ./compiler --user"
+    INSTALL_COMPILER: pip install 'tables' ./compiler --user
     TEST_COMPILER: "python -m pytest compiler"
 
   pre:
