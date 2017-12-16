@@ -17,7 +17,7 @@ machine:
     - ./mconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH" && echo $PATH
     - $HOME/miniconda/bin/conda search "^python$"
-    - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env27 python=2.7.1 pip
+    - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env27 python=2.7.10 pip
     - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env34 python=3.4.1 pip
     - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env35 python=3.5.1 pip
     - export PATH="$HOME/miniconda/bin:$PATH"  && conda create --yes -n quilt_env36 python=3.6.1 pip
