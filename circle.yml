@@ -22,7 +22,7 @@ machine:
         #export PATH="$HOME/miniconda/bin:$PATH" && source activate quilt_env$version && pip install pytest --user && source deactivate quilt_env$version
     -  export PATH="$HOME/miniconda/bin:$PATH"
     -  $HOME/miniconda/bin/conda create --yes -n quilt_env  python=3.5.1 pip;
-    -  $HOME/miniconda/bin/source activate quilt_env
+    -  source activate quilt_env
     -  python --version
         
         
