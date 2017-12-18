@@ -45,7 +45,7 @@ install:
   # debug support
   - echo $(python --version)
   - pip install -U pip
-  - pip install -U numpy pytest --user
+  - pip install -U numpy pytest
   # install quilt from setup.py
   - travis_retry pip install --only-binary 'tables' ./compiler
   - |
