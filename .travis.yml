@@ -12,10 +12,6 @@ env:
     - FLASK_APP=quilt_server
     - FLASK_DEBUG=1
     - QUILT_SERVER_CONFIG=dev_config.py
-  matrix:
-    - QPYVER=2.7
-    - QPYVER=3.5
-    - QPYVER=3.6
 
 matrix:
   fast_finish: true
@@ -49,7 +45,7 @@ install:
   # debug support
   - echo $(python --version)
   - pip install -U pip
-  - pip install -U numpy pytest
+  - pip install -U numpy pytest --user
   # install quilt from setup.py
   - travis_retry pip install --only-binary 'tables' ./compiler
   - |
