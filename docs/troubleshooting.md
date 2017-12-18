@@ -1,6 +1,19 @@
 # Questions?
 Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.com). We can also invite you to our Slack channel.
 
+# Packages missing after upgrade to Quilt 2.8
+Quilt 2.8 changes where data packages are stored on your local machine. As a result, Quilt will no longer look for packages in quilt_packages directories. You will need to reinstall any previously installed packages. Locally built packages can be rebuilt. Or, to migrate existing packages to the new store without rebuilding, first revert to an ealier version of Quilt, then push your packages to the Quilt registry.
+```bash
+pip install quilt==2.7.1
+quilt push <your_username>/<your_package>
+``` 
+
+Once your packages are stored at the registry, you can upgrade to quilt 2.8.0 (or later) and re-install them.
+```bash
+pip install --upgrade quilt
+quilt install <your_username>/<your_package>
+```
+
 # `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install`.
 

@@ -2,51 +2,54 @@
 Start by installing and importing the package you wish to modify:
 ``` python
 import quilt
-quilt.install("akarve/wine")
-from quilt.data.akarve import wine
+quilt.install("uciml/wine")
+from quilt.data.uciml import wine
 ```
 
 # New package
 You can also build packages on the fly:
 ```python
 import pandas as pd
-import quilt
-
 df = pd.DataFrame(data=[1,2,3])
 ```
 
-## Edit package contents
+## Edit package
 
 Use the Pandas API to edit existing dataframes:
 ``` python
-red_df = wine.quality.red._data()
-red_df.set_value(0, 'quality', 6)
+df = wine.tables.wine()
+hue = df['Hue']
+df['HueNormalized'] = (hue - hue.min())/(hue.max() - hue.min())
 ```
-(The `_data()` method caches the dataframe so it will return the same object each time - however, it's not saved to disk yet.)
 
-Use the standard Python syntax to create or delete attributes:
+Use `del` to delete attributes:
 ``` python
-wine.quality.red2 = wine.quality.red
-del wine.quality.red
+del wine.raw.wine
 ```
 
 Use the `_set` helper method on the top-level package node to create new groups and data nodes:
 ``` python
 import pandas as pd
 df = pd.DataFrame(dict(x=[1, 2, 3]))
-wine._set(["group", "df"], df)
-assert wine.group.df._data() is df
+# insert a dataframe at wine.mygroup.data()
+wine._set(["mygroup", "data"], df) 
+# insert a file at wine.mygroup.anothergroup.blob()
+wine._set(["mygroup", "anothergroup", "blob"], "localpath/file.txt") #
 ```
 
-At this point the package owner can build the package in-place and push to update the package.
+Now you can rebuild the package to save the changes and then push the result to Quilt. (Note that only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
+
+First, log in to quilt:
+```
+$ quilt login
+```
+
+Finally name and push your package:
 ```python
-quilt.build("akarve/wine", wine)
-quilt.push("akarve/wine")
-```
-
-Alternatively, if you are not the package owner, you can build the modified packing into a new handle as follows:
-``` python
-quilt.build("my_user/wine_modified", wine)
+# build a package based on the current state of wine
+quilt.build("YOUR_USERNAME/YOUR_PACKAGENAME", wine)
+# push it to the registry.  NOTE: this becomes public and crawlable by Google for example.
+quilt.push("YOUR_USERNAME/YOUR_PACKAGENAME", public=True)
 ```
 
 ***

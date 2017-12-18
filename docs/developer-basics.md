@@ -6,6 +6,9 @@
 1. `cd quilt`
 1. From the repository root: `pip install -e .`
 
+## If the path above `setup.py` changes
+`pip uninstall` (and over-install) will fail you because pip will be unable to find the path from installation time. You can edit `site-packages/quilt.egg-link`  and `site-packages/easy-install.pth` to fix this issue.
+
 # Testing
 - All new modules, files, and functions should have a corresponding test 
 - Setup: `pip install pylint pytest pytest-cov`
