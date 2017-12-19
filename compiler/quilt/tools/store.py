@@ -322,6 +322,7 @@ def parse_package_extended(name):
     return owner, pkg, subpath, hash, version, tag
 
 def parse_package(name, allow_subpath=False):
+    name = name.rstrip('/')
     try:
         values = name.split('/')
         # Can't do "owner, pkg, *subpath = ..." in Python2 :(
