@@ -8,7 +8,7 @@ from include.model import model
 
 import quilt.vfs
 quilt.vfs.setup('asah/cifar_test', mappings={'data_set/cifar_10':'data_set.cifar_10'})
-quilt.vfs.patch('include.data', 'maybe_download_and_extract', lambda: None)
+quilt.vfs.Patch('include.data.maybe_download_and_extract', lambda: None)
 
 train_x, train_y, train_l = get_data_set()
 test_x, test_y, test_l = get_data_set("test")
