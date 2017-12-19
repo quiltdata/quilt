@@ -1259,12 +1259,16 @@ def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
                 yield [node_path, filename]
 
     # alter data to (['mapping', 'altered', 'module', 'path'], <quilt storage filename>)
-    mapped_names = ((filename_mapper(nodepath[:]), filename) for nodepath, filename in iter_nodepath_filenames(node))
+    mapped_names = ((filename_mapper(nodepath[:]), filename)
+                    for nodepath, filename in iter_nodepath_filenames(node))
 
     # alter data to (<export file Path>, <quilt storage Path>)
-    # also, verify all paths
+    # also, verify and clean up paths
     quilt_file_map = []
     for modpath, filename in mapped_names:
+        # no re-rooting
+        modpath = [name.lstrip('/') for name in modpath]
+        # general cleanup
         export_dest = (output_path / os.path.join(*modpath)).expanduser().absolute()
         export_source = Path(filename).expanduser().absolute()
 
