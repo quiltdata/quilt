@@ -1,11 +1,11 @@
 # Quilt CIFAR-10 Example
 
-The famous [CIFAR image dataset](https://www.cs.toronto.edu/~kriz/cifar.html) ([Quilt repository copy](https://quiltdata.com/package/asah/cifar_test)) and [exelban's tensorflow classifier](https://github.com/exelban/tensorflow-cifar-10)
+The [CIFAR image dataset](https://www.cs.toronto.edu/~kriz/cifar.html) ([Quilt repository copy](https://quiltdata.com/package/asah/cifar_test)) and [exelban's tensorflow classifier](https://github.com/exelban/tensorflow-cifar-10)
 
-To run, `python mnist_softmax.py`.
+# Run the example
 
-Output should look like this:
 ```sh
+$ pip install tensorflow
 $ python train.py
 /Users/asah/miniconda3/envs/jlab/lib/python3.6/importlib/_bootstrap.py:219: RuntimeWarning: compiletime version 3.5 of module 'tensorflow.python.framework.fast_tensor_util' does not match runtime version 3.6
   return f(*args, **kwds)
@@ -17,6 +17,9 @@ Global Step:     10, accuracy:  10.2%, loss = 2.30 (132.1 examples/sec, 0.97 sec
 
 
 # exelban's original README file
+
+The contents are inlined here for convenience.  [The original README](https://github.com/exelban/tensorflow-cifar-10/blob/master/README.md)
+
 
 # tensorflow-cifar-10
 Cifar-10 convolutional network implementation example using TensorFlow library.
