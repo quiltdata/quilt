@@ -9,6 +9,7 @@ from .tools.command import (
     build,
     check,
     config,
+    importpkg,
     inspect,
     install,
     log,

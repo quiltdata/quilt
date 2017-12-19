@@ -1208,13 +1208,19 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
-def update(pkginfo, content):
-    """high convenience, low performance way to update a package locally.
-    Call push() to update registry server.
-    """
-    # NOTE: cannot be named set() because that would conflict with the python builtin function.
+def importpkg(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
     owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-    module = importlib.import_module("quilt.data."+owner+"."+pkg)
+    pkgobj = PackageStore.find_package(owner, pkg)
+    if pkgobj is None:
+        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+    return _from_core_node(pkgobj, pkgobj.get_contents())
+
+def update(pkginfo, content):
+    """convenience function around _set()"""
+    # NOTE: cannot be named set() because that would conflict with the python builtin function.
+    module = importpkg(pkginfo)
     module._set(subpath, content)
     return module
 
@@ -1300,4 +1306,4 @@ def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
         sys.stdout.flush()
         copy(str(export_source), str(export_dest))
     print('..done.')
->>>>>>> 1257bcb74b6c83298f3db73c8d79a2ffa5074d33
+
