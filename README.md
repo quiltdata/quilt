@@ -34,6 +34,7 @@ Quilt consists of three components:
     
 2. A [data compiler](compiler)
     - Serializes tabular data to Apache Parquet
+    - Transforms and parses files
     - `build`s packages locally
     - `push`es packages to the registry
     - `pull`s packages from the registry
