@@ -1,4 +1,7 @@
-[![Python](https://img.shields.io/pypi/pyversions/quilt.svg)](https://pypi.python.org/pypi/quilt)  <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/simply-styled/256/OS-Linux-icon.png">[![Linux](https://travis-ci.org/quiltdata/quilt-compiler.svg?branch=master)](https://travis-ci.org/quiltdata/quilt-compiler) - <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png">[![Mac](https://circleci.com/gh/quiltdata/quilt-compiler.png)](https://circleci.com/gh/quiltdata) - <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/windows-8-metro/128/Folders-OS-Windows-8-Metro-icon.png">[![Windows](https://ci.appveyor.com/api/projects/status/github/quiltdata/quilt-compiler?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler)
+| OS | Build status | Python support |
+|----|--------------|----------------|
+| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/simply-styled/256/OS-Linux-icon.png"> <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png"> | [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches) | [![Python](https://img.shields.io/pypi/pyversions/quilt.svg)](https://pypi.python.org/pypi/quilt) |
+| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/windows-8-metro/128/Folders-OS-Windows-8-Metro-icon.png"> | [![Windows](https://ci.appveyor.com/api/projects/status/tnihllrbmm08x0lt/branch/master?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler/branch/master) | 3.5, 3.6 |
 
 # Quilt is a package manager for data
 
@@ -30,6 +33,6 @@ Quilt consists of two components:
 
 Visit [docs.quiltdata.com](https://docs.quiltdata.com/).
 
-# Feedback/Discussion
+# Questions
 
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby)

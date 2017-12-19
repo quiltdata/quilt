@@ -43,6 +43,11 @@ class DataNode(Node):
     def __call__(self):
         return self._data()
 
+    @property
+    def _filename(self):
+        if isinstance(self._node, core.FileNode):
+            return self._data()
+
     def _data(self):
         """
         Returns the contents of the node: a dataframe or a file path.
@@ -61,8 +66,10 @@ class GroupNode(DataNode):
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
         group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
+        if group_info:
+            group_info = group_info + '\n'
         data_info = '\n'.join(sorted(self._data_keys()))
-        return '%s\n%s\n%s' % (pinfo, group_info, data_info)
+        return '%s\n%s%s' % (pinfo, group_info, data_info)
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
@@ -89,6 +96,27 @@ class GroupNode(DataNode):
     def _add_group(self, groupname):
         child = GroupNode(self._package, core.GroupNode({}))
         setattr(self, groupname, child)
+
+    @classmethod
+    def __iterpaths(cls, base_path, node):
+        assert isinstance(base_path, list)
+        assert isinstance(node, GroupNode)
+
+        for name, child_node in node._items():
+            if isinstance(child_node, GroupNode):
+                for path in cls.__iterpaths(base_path + [name], child_node):
+                    yield path
+            elif isinstance(child_node, DataNode):
+                yield base_path + [name]
+
+    def _iterpaths(self):
+        """
+        Iterates paths in this and all child nodes
+
+        :returns: list of path lists
+        """
+        return self.__iterpaths([], self)
+
 
 class PackageNode(GroupNode):
     """
