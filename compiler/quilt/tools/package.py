@@ -229,7 +229,11 @@ class Package(object):
         self._add_to_contents(fullname, [filehash], '', path, 'file', None)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
-            copyfile(srcfile, objpath)
+            # Copy the file to a temporary location first, then move, to make sure we don't end up with
+            # truncated contents if the build gets interrupted.
+            tmppath = self._store.temporary_object_path(filehash)
+            copyfile(srcfile, tmppath)
+            move(tmppath, objpath)
 
     def save_group(self, name):
         """
