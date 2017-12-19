@@ -202,6 +202,7 @@ class ImportTest(QuiltTestCase):
         command.build('foo/package', build_path)
         from quilt.data.foo import package
 
+        # make a copy, to prove we can
         newpkgname = 'foo/newpackage'
         quilt.build(newpkgname, package)
 
@@ -224,4 +225,22 @@ class ImportTest(QuiltTestCase):
         newpath2 = getattr(reloaded_module, newfilename)()
         assert 'myfile' not in newpath2
 
+    def test_multiple_updates(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        from quilt.data.foo import package
 
+        newfilename1 = 'myfile1'+str(int(time.time()))
+        with open(newfilename1, 'w') as fh:
+            fh.write('hello world1')
+
+        package._set([newfilename1], newfilename1)
+
+        newfilename2 = 'myfile2'+str(int(time.time()))
+        with open(newfilename2, 'w') as fh:
+            fh.write('hello world2')
+
+        package._set([newfilename1], newfilename2)
+
+        assert getattr(package, newfilename1)() == newfilename2
