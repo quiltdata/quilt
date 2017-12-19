@@ -141,6 +141,9 @@ KNOWN_PARAMS = [
     [0, 'config'],
     [0, 'delete'],
     [0, 'delete', 0],
+    [0, 'export'],
+    [0, 'export', 0],
+    [0, 'export', 1],
     [0, 'generate'],
     [0, 'generate', 0],
     [0, 'help'],
@@ -488,6 +491,18 @@ class TestCLI(BasicQuiltTestCase):
             result.update(self.mock_command._result)
             return result
 
+    def _general_execute_tests(self, result, funcname):
+        """Takes the result from an execution and verifies general conditions
+
+        Convenience method.
+        This may not always be applicable, but it checks a few commond conditions.
+        """
+        assert result['return code'] == 0      # command accepted by argparse?
+        assert result['matched'] is True       # found func in mocked object?
+        assert not result['bind failure']      # argparse calling args matched func args?
+        assert not result['args']              # only kwargs were used to call the function?
+        assert result['func'] == funcname      # called func matches expected funcname?
+
     def test_cli_new_param(self):
         missing_paths = get_missing_key_paths(self.param_tree, KNOWN_PARAMS, exhaustive=True)
         if missing_paths:
@@ -519,13 +534,9 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        self._general_execute_tests(result, funcname='config')
 
         # Specific tests
-        assert result['func'] == 'config'
-        assert not result['args']
         assert not result['kwargs']
 
     def test_cli_command_push(self):
@@ -552,13 +563,9 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        self._general_execute_tests(result, funcname='push')
 
         # Specific tests
-        assert not result['args']
-        assert result['func'] == 'push'
         assert result['kwargs']['reupload'] is False
         assert result['kwargs']['public'] is False
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
@@ -568,16 +575,52 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        self._general_execute_tests(result, funcname='push')
 
         # Specific tests
-        assert not result['args']
-        assert result['func'] == 'push'
         assert result['kwargs']['reupload'] is True
         assert result['kwargs']['public'] is True
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+
+    def test_cli_command_export(self):
+        ## This test covers the following arguments that require testing
+        TESTED_PARAMS.extend([
+            [0, 'export'],
+            [0, 'export', 0],
+            [0, 'export', 1]
+            ])
+
+        ## This section tests for circumstances expected to be rejected by argparse.
+        expect_fail_2_args = [
+            'export'.split(),
+            'export too many args'.split(),
+            ]
+        for args in expect_fail_2_args:
+            assert self.execute(args)['return code'] == 2
+
+        ## This section tests for appropriate types and values.
+        # run the command
+        cmd = 'export fakeuser/fakepackage'.split()
+        result = self.execute(cmd)
+
+        # General tests
+        self._general_execute_tests(result, funcname='export')
+
+        # Specific tests
+        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        assert result['kwargs']['output_path'] == '.'
+
+        # run next command
+        cmd = 'export fakeuser/fakepackage fakedir'.split()
+        result = self.execute(cmd)
+
+        # General tests
+        self._general_execute_tests(result, funcname='export')
+
+        # Specific tests
+        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        assert result['kwargs']['output_path'] == 'fakedir'
+
 
 
 @pytest.mark.xfail

@@ -1235,9 +1235,7 @@ def export(package, output_path='.', filter=lambda x: True, filename_mapper=lamb
     :param filter: function -- takes a node path list, returns True to export
     :param filename_mapper: function -- takes and returns a node path list
     """
-    # TODO: CLI interface
     # TODO: tests
-    # TODO: CLI tests
     # TODO: Update docs
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
