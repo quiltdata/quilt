@@ -19,6 +19,7 @@ import tempfile
 from threading import Thread, Lock
 import time
 import yaml
+import importlib
 
 from packaging.version import Version
 import pandas as pd
@@ -1200,3 +1201,14 @@ def rm(package, force=False):
     deleted = store.remove_package(owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))
+
+def update(pkginfo, content):
+    """high convenience, low performance way to update a package locally.
+    Call push() to update registry server.
+    """
+    # NOTE: cannot be named set() because that would conflict with the python builtin function.
+    owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+    module = importlib.import_module("quilt.data."+owner+"."+pkg)
+    module._set(subpath, content)
+    return module
+
