@@ -5,7 +5,6 @@
 * [Introduction](README.md)
 * [Key concepts](terminology.md)
 * [Use cases](use-cases.md)
-* [Languages](supported-languages.md)
 
 ## Get started \(Python\)
 
