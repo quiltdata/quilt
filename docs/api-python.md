@@ -7,6 +7,7 @@
  * Quilt's Free tier supports only `public == True`
  * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
 * `quilt.install(USER/PACKAGE, [hash=HASH, tag=TAG, version=VERSION])` installs a package
+* `quilt.rm(USER/PACKAGE)` Remove a package (all instances/versions) from the local store.
 
 # Navigation
 * `NODE._keys()` returns a list of all children
@@ -62,6 +63,6 @@ Packages contain three types of nodes:
 * List node contents with dot notation: `PACKAGE.NODE.ANOTHER_NODE`
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
-  * All other data types return a string to the path of the package object in the local `quilt_modules` directory.
+  * All other data types return a string to the path of the object in the package store
 
 ***
