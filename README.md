@@ -24,6 +24,8 @@ Here are the basic Quilt commands:
 Quilt consists of three components:
 
 1. A [data catalog](https://quiltdata.com/)
+    - Displays package meta-data in HTML
+    
 1. A [data registry](registry)
     - Controls permissions
     - Stores pacakge fragments in blob storage
