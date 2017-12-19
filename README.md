@@ -12,9 +12,6 @@ Core features include:
 * Versioning and storage of large data
 * Transformation of a variety of file formats into data frames (via pandas and pyarrow)
 * De-duplication of repeated data for reduced disk and network footprint
-* A
-
-
 
 ## Commands
 
