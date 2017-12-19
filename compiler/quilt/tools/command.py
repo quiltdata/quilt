@@ -11,7 +11,7 @@ import hashlib
 import json
 import os
 import re
-from shutil import copyfileobj, move, rmtree
+from shutil import copyfileobj, move, rmtree, copy
 import stat
 import subprocess
 import sys
@@ -42,6 +42,7 @@ from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
 from .. import nodes
+from ..data import _from_core_node
 
 # pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
 # So... We disable it. That's what boto does.
@@ -52,6 +53,11 @@ try:
     pyopenssl.extract_from_urllib3()
 except ImportError:
     pass
+
+try:
+    from pathlib2 import Path   # py2
+except ImportError:
+    from pathlib import Path    # py3
 
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
@@ -1200,3 +1206,83 @@ def rm(package, force=False):
     deleted = store.remove_package(owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))
+
+
+# def example_mapper(pathlist):
+#     # handle pathlists, like ['tensorboard', 'cifar_10', 'x_100_meta']
+#     if pathlist[-1].startswith('x_'):
+#         pathlist[-1] = '-' + pathlist[-1][2:]
+#     return pathlist
+def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
+    """Export package file data.
+
+    :param package: package name, e.g., user/foo
+    :param output_path: distination folder
+    :param filter: Not implemented
+    :param filename_mapper:
+    """
+    # TODO: filters
+    # TODO: tests
+    # TODO: export via symlinks / hardlinks (unwise / messing with datastore? windows compat?)
+    if filter is not None:
+        raise NotImplemented("filters not implemented yet")
+
+    output_path = Path(output_path)
+    owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    pkgobj = PackageStore.find_package(owner, pkg)
+    if pkgobj is None:
+        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    # should _from_core_node be in nodes.py as staticmethod Node._from_core_node()?
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+
+    # ..and/or this?
+    def get_node_child_by_path(node, path):
+        # get a node's children by pathlist, like ['data_set', 'cifar_10', 'data_batch_4']
+        assert isinstance(path, list)
+        assert isinstance(node, nodes.GroupNode)
+        assert path
+        for name in path:
+            node = getattr(node, name)
+        return node
+
+    if subpath:
+        node = get_node_child_by_path(node, subpath)
+
+    def iter_nodepath_filenames(node):
+        """Yields [<node path>, <filename>] pairs for FileNodes under `node`"""
+        for node_path in node._iterpaths():
+            found_node = get_node_child_by_path(node, node_path)
+            filename = getattr(found_node, '_filename', None)
+            if filename is not None:
+                assert filename
+                yield [node_path, filename]
+
+    # alter data to (['mapping', 'altered', 'module', 'path'], <quilt storage filename>)
+    mapped_names = ((filename_mapper(nodepath[:]), filename) for nodepath, filename in iter_nodepath_filenames(node))
+
+    # alter data to (<export file Path>, <quilt storage Path>)
+    # also, verify all paths
+    quilt_file_map = []
+    for modpath, filename in mapped_names:
+        export_dest = (output_path / os.path.join(*modpath)).expanduser().absolute()
+        export_source = Path(filename).expanduser().absolute()
+
+        assert export_source.exists()
+
+        if export_dest.exists():
+            raise CommandException("Invalid export path: file already exists: {!r}"
+                                   .format(str(export_dest)))
+        quilt_file_map.append((export_source, export_dest))
+
+    # Paths verified, let's export..
+    sys.stdout.write('Exporting.')
+    sys.stdout.flush()
+    for export_source, export_dest in quilt_file_map:
+        assert not export_dest.exists()   # we've already checked, but who knows, things change..
+        if not export_dest.parent.exists():
+            export_dest.parent.mkdir(parents=True, exist_ok=True)
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        copy(str(export_source), str(export_dest))
+    print('..done.')

@@ -51,6 +51,7 @@ setup(
         'tables>=3.3.0',
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
+        'pathlib2>=2.3.0'    # stdlib backport
     ],
     include_package_data=True,
     entry_points={
