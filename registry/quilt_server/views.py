@@ -17,7 +17,6 @@ from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
-from packaging.version import Version as PackagingVersion
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
@@ -206,6 +205,15 @@ def token():
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 
+class Auth:
+    """
+    Info about the user making the API request.
+    """
+    def __init__(self, user, email):
+        self.user = user
+        self.email = email
+
+
 class ApiException(Exception):
     """
     Base class for API exceptions.
@@ -258,7 +266,8 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.user = PUBLIC
+            g.auth = Auth(PUBLIC, None)
+
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
@@ -269,7 +278,7 @@ def api(require_login=True, schema=None):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-            g.auth = auth
+            g.auth_header = auth
             if auth is None:
                 if require_login:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
@@ -283,9 +292,11 @@ def api(require_login=True, schema=None):
 
                     data = resp.json()
                     # TODO(dima): Generalize this.
-                    g.user = data.get('current_user', data.get('login'))
-                    assert g.user
-                    g.email = data['email']
+                    user = data.get('current_user', data.get('login'))
+                    assert user
+                    email = data['email']
+
+                    g.auth = Auth(user, email)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
                         raise ApiException(
@@ -296,11 +307,11 @@ def api(require_login=True, schema=None):
                         raise ApiException(requests.codes.server_error, "Server error")
                 except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
-            return f(g.user, *args, **kwargs)
+            return f(*args, **kwargs)
         return wrapper
     return innerdec
 
-def _get_package(auth_user, owner, package_name):
+def _get_package(auth, owner, package_name):
     """
     Helper for looking up a package and checking permissions.
     Only useful for *_list functions; all others should use more efficient queries.
@@ -309,14 +320,14 @@ def _get_package(auth_user, owner, package_name):
         Package.query
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter(Access.user.in_([auth.user, PUBLIC]))
         .one_or_none()
     )
     if package is None:
-        raise PackageNotFoundException(owner, package_name, auth_user is not PUBLIC)
+        raise PackageNotFoundException(owner, package_name, auth.user is not PUBLIC)
     return package
 
-def _get_instance(auth_user, owner, package_name, package_hash):
+def _get_instance(auth, owner, package_name, package_hash):
     instance = (
         Instance.query
         .filter_by(hash=package_hash)
@@ -324,7 +335,7 @@ def _get_instance(auth_user, owner, package_name, package_hash):
         .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter(Access.user.in_([auth.user, PUBLIC]))
         .one_or_none()
     )
     if instance is None:
@@ -347,7 +358,7 @@ def _mp_track(**kwargs):
         source = 'web'
 
     # Use the user ID if the user is logged in; otherwise, let MP use the IP address.
-    distinct_id = g.user if g.user != PUBLIC else None
+    distinct_id = g.auth.user if g.auth.user != PUBLIC else None
 
     # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
     ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
@@ -357,7 +368,7 @@ def _mp_track(**kwargs):
         kwargs,
         time=time.time(),
         ip=ip_addr,
-        user=g.user,
+        user=g.auth.user,
         source=source,
         browser_name=g.user_agent['browser']['name'],
         browser_version=g.user_agent['browser']['version'],
@@ -380,25 +391,26 @@ def _generate_presigned_url(method, owner, blob_hash):
 
 def _get_or_create_customer():
     assert HAVE_PAYMENTS, "Payments are not enabled"
+    assert g.auth.user != PUBLIC
 
-    db_customer = Customer.query.filter_by(id=g.user).one_or_none()
+    db_customer = Customer.query.filter_by(id=g.auth.user).one_or_none()
 
     if db_customer is None:
         try:
             # Insert a placeholder with no Stripe ID just to lock the row.
-            db_customer = Customer(id=g.user)
+            db_customer = Customer(id=g.auth.user)
             db.session.add(db_customer)
             db.session.flush()
         except IntegrityError:
             # Someone else just created it, so look it up.
             db.session.rollback()
-            db_customer = Customer.query.filter_by(id=g.user).one()
+            db_customer = Customer.query.filter_by(id=g.auth.user).one()
         else:
             # Create a new customer.
             plan = PaymentPlan.FREE.value
             customer = stripe.Customer.create(
-                email=g.email,
-                description=g.user,
+                email=g.auth.email,
+                description=g.auth.user,
             )
             stripe.Subscription.create(
                 customer=customer.id,
@@ -418,8 +430,8 @@ def _get_customer_plan(customer):
 @app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
 @api()
 @as_json
-def blob_get(auth_user, owner, blob_hash):
-    if auth_user != owner:
+def blob_get(owner, blob_hash):
+    if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the owner can upload objects.")
     return dict(
@@ -431,9 +443,9 @@ def blob_get(auth_user, owner, blob_hash):
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
-def package_put(auth_user, owner, package_name, package_hash):
+def package_put(owner, package_name, package_hash):
     # TODO: Write access for collaborators.
-    if auth_user != owner:
+    if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can push packages.")
 
@@ -480,22 +492,13 @@ def package_put(auth_user, owner, package_name, package_hash):
             customer = _get_or_create_customer()
             plan = _get_customer_plan(customer)
             if plan == PaymentPlan.FREE:
-                browser = g.user_agent['browser']
-                if (browser['name'] == 'QuiltCli' and
-                        PackagingVersion(browser['version']) <= PackagingVersion('2.5.0')):
-                    # Need 2.5.1 to create public packages.
-                    raise ApiException(
-                        requests.codes.server_error,
-                        "Outdated client. Run `pip install quilt --upgrade` to upgrade."
-                    )
-                else:
-                    raise ApiException(
-                        requests.codes.payment_required,
-                        ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
-                         "this package public, or upgrade your service plan to create " +
-                         "private packages: https://quiltdata.com/profile.") %
-                        (owner, package_name)
-                    )
+                raise ApiException(
+                    requests.codes.payment_required,
+                    ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                     "this package public, or upgrade your service plan to create " +
+                     "private packages: https://quiltdata.com/profile.") %
+                    (owner, package_name)
+                )
 
         package = Package(owner=owner, name=package_name)
         db.session.add(package)
@@ -565,8 +568,8 @@ def package_put(auth_user, owner, package_name, package_hash):
             package=package,
             contents=contents_str,
             hash=package_hash,
-            created_by=auth_user,
-            updated_by=auth_user
+            created_by=g.auth.user,
+            updated_by=g.auth.user
         )
 
         # Add all the hashes that don't exist yet.
@@ -592,7 +595,7 @@ def package_put(auth_user, owner, package_name, package_hash):
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
         instance.contents = contents_str
-        instance.updated_by = auth_user
+        instance.updated_by = g.auth.user
 
     db.session.add(instance)
 
@@ -618,10 +621,10 @@ def package_put(auth_user, owner, package_name, package_hash):
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_get(auth_user, owner, package_name, package_hash):
+def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
 
-    instance = _get_instance(auth_user, owner, package_name, package_hash)
+    instance = _get_instance(g.auth, owner, package_name, package_hash)
     contents = json.loads(instance.contents, object_hook=decode_node)
 
     subnode = contents
@@ -670,8 +673,8 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_preview(auth_user, owner, package_name, package_hash):
-    instance = _get_instance(auth_user, owner, package_name, package_hash)
+def package_preview(owner, package_name, package_hash):
+    instance = _get_instance(g.auth, owner, package_name, package_hash)
     contents = json.loads(instance.contents, object_hook=decode_node)
 
     readme = contents.children.get('README')
@@ -701,8 +704,8 @@ def package_preview(auth_user, owner, package_name, package_hash):
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_list(auth_user, owner, package_name):
-    package = _get_package(auth_user, owner, package_name)
+def package_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
     instances = (
         Instance.query
         .filter_by(package=package)
@@ -715,12 +718,12 @@ def package_list(auth_user, owner, package_name):
 @app.route('/api/package/<owner>/<package_name>/', methods=['DELETE'])
 @api()
 @as_json
-def package_delete(auth_user, owner, package_name):
-    if auth_user != owner:
+def package_delete(owner, package_name):
+    if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can delete packages.")
 
-    package = _get_package(auth_user, owner, package_name)
+    package = _get_package(g.auth, owner, package_name)
 
     db.session.delete(package)
     db.session.commit()
@@ -730,12 +733,12 @@ def package_delete(auth_user, owner, package_name):
 @app.route('/api/package/<owner>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def user_packages(auth_user, owner):
+def user_packages(owner):
     packages = (
         db.session.query(Package, sa.func.max(Access.user == PUBLIC))
         .filter_by(owner=owner)
         .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter(Access.user.in_([g.auth.user, PUBLIC]))
         .group_by(Package.id)
         .order_by(Package.name)
         .all()
@@ -754,8 +757,8 @@ def user_packages(auth_user, owner):
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def logs_list(auth_user, owner, package_name):
-    package = _get_package(auth_user, owner, package_name)
+def logs_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
 
     logs = (
         db.session.query(Log, Instance)
@@ -794,9 +797,9 @@ def normalize_version(version):
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['PUT'])
 @api(schema=VERSION_SCHEMA)
 @as_json
-def version_put(auth_user, owner, package_name, package_version):
+def version_put(owner, package_name, package_version):
     # TODO: Write access for collaborators.
-    if auth_user != owner:
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can create versions"
@@ -837,9 +840,9 @@ def version_put(auth_user, owner, package_name, package_version):
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def version_get(auth_user, owner, package_name, package_version):
+def version_get(owner, package_name, package_version):
     package_version = normalize_version(package_version)
-    package = _get_package(auth_user, owner, package_name)
+    package = _get_package(g.auth, owner, package_name)
 
     instance = (
         Instance.query
@@ -872,8 +875,8 @@ def version_get(auth_user, owner, package_name, package_version):
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def version_list(auth_user, owner, package_name):
-    package = _get_package(auth_user, owner, package_name)
+def version_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
 
     versions = (
         db.session.query(Version, Instance)
@@ -906,9 +909,9 @@ TAG_SCHEMA = {
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['PUT'])
 @api(schema=TAG_SCHEMA)
 @as_json
-def tag_put(auth_user, owner, package_name, package_tag):
+def tag_put(owner, package_name, package_tag):
     # TODO: Write access for collaborators.
-    if auth_user != owner:
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can modify tags"
@@ -952,8 +955,8 @@ def tag_put(auth_user, owner, package_name, package_tag):
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def tag_get(auth_user, owner, package_name, package_tag):
-    package = _get_package(auth_user, owner, package_name)
+def tag_get(owner, package_name, package_tag):
+    package = _get_package(g.auth, owner, package_name)
 
     instance = (
         Instance.query
@@ -986,9 +989,9 @@ def tag_get(auth_user, owner, package_name, package_tag):
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
 @api()
 @as_json
-def tag_delete(auth_user, owner, package_name, package_tag):
+def tag_delete(owner, package_name, package_tag):
     # TODO: Write access for collaborators.
-    if auth_user != owner:
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can delete tags"
@@ -1016,8 +1019,8 @@ def tag_delete(auth_user, owner, package_name, package_tag):
 @app.route('/api/tag/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def tag_list(auth_user, owner, package_name):
-    package = _get_package(auth_user, owner, package_name)
+def tag_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
 
     tags = (
         db.session.query(Tag, Instance)
@@ -1039,12 +1042,12 @@ def tag_list(auth_user, owner, package_name):
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['PUT'])
 @api()
 @as_json
-def access_put(auth_user, owner, package_name, user):
+def access_put(owner, package_name, user):
     # TODO: use re to check for valid username (e.g., not ../, etc.)
     if not user:
         raise ApiException(requests.codes.bad_request, "A valid user is required")
 
-    if auth_user != owner:
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can grant access"
@@ -1067,12 +1070,12 @@ def access_put(auth_user, owner, package_name, user):
 
         # Call to Django to send invitation email
         headers = {
-            AUTHORIZATION_HEADER: g.auth
+            AUTHORIZATION_HEADER: g.auth_header
             }
         resp = requests.post(INVITE_SEND_URL,
                              headers=headers,
                              data=dict(email=email,
-                                       owner=auth_user,
+                                       owner=g.auth.user,
                                        package=package.name,
                                        client_id=OAUTH_CLIENT_ID,
                                        client_secret=OAUTH_CLIENT_SECRET,
@@ -1113,8 +1116,8 @@ def access_put(auth_user, owner, package_name, user):
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['GET'])
 @api()
 @as_json
-def access_get(auth_user, owner, package_name, user):
-    if auth_user != owner:
+def access_get(owner, package_name, user):
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can view access"
@@ -1135,8 +1138,8 @@ def access_get(auth_user, owner, package_name, user):
 @app.route('/api/access/<owner>/<package_name>/<user>', methods=['DELETE'])
 @api()
 @as_json
-def access_delete(auth_user, owner, package_name, user):
-    if auth_user != owner:
+def access_delete(owner, package_name, user):
+    if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can revoke access"
@@ -1176,7 +1179,7 @@ def access_delete(auth_user, owner, package_name, user):
 @app.route('/api/access/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
-def access_list(auth_user, owner, package_name):
+def access_list(owner, package_name):
     accesses = (
         Access.query
         .join(Access.package)
@@ -1184,7 +1187,7 @@ def access_list(auth_user, owner, package_name):
     )
 
     can_access = [access.user for access in accesses]
-    is_collaborator = auth_user in can_access
+    is_collaborator = g.auth.user in can_access
     is_public = PUBLIC in can_access
 
     if is_public or is_collaborator:
@@ -1195,7 +1198,7 @@ def access_list(auth_user, owner, package_name):
 @app.route('/api/recent_packages/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def recent_packages(auth_user):
+def recent_packages():
     try:
         count = int(request.args.get('count', ''))
     except ValueError:
@@ -1225,7 +1228,7 @@ def recent_packages(auth_user):
 @app.route('/api/search/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def search(auth_user):
+def search():
     query = request.args.get('q', '')
     keywords = query.split()
 
@@ -1245,7 +1248,7 @@ def search(auth_user):
         db.session.query(Package, sa.func.max(Access.user == PUBLIC))
         .filter(sa.and_(*filter_list))
         .join(Package.access)
-        .filter(Access.user.in_([auth_user, PUBLIC]))
+        .filter(Access.user.in_([g.auth.user, PUBLIC]))
         .group_by(Package.id)
         .order_by(
             sa.sql.collate(Package.owner, UTF8_GENERAL_CI),
@@ -1267,7 +1270,7 @@ def search(auth_user):
 @app.route('/api/profile', methods=['GET'])
 @api()
 @as_json
-def profile(auth_user):
+def profile():
     if HAVE_PAYMENTS:
         customer = _get_or_create_customer()
         plan = _get_customer_plan(customer).value
@@ -1281,11 +1284,11 @@ def profile(auth_user):
     # Check for outstanding package sharing invitations
     invitations = (
         db.session.query(Invitation, Package)
-        .filter_by(email=g.email)
+        .filter_by(email=g.auth.email)
         .join(Invitation.package)
         )
     for invitation, package in invitations:
-        access = Access(package=package, user=auth_user)
+        access = Access(package=package, user=g.auth.user)
         db.session.add(access)
         db.session.delete(invitation)
 
@@ -1295,7 +1298,7 @@ def profile(auth_user):
     packages = (
         db.session.query(Package, public_access.user.isnot(None))
         .join(Package.access)
-        .filter(Access.user == auth_user)
+        .filter(Access.user == g.auth.user)
         .outerjoin(public_access, sa.and_(
             Package.id == public_access.package_id, public_access.user == PUBLIC))
         .order_by(Package.owner, Package.name)
@@ -1310,7 +1313,7 @@ def profile(auth_user):
                     name=package.name,
                     is_public=bool(is_public)
                 )
-                for package, is_public in packages if package.owner == auth_user
+                for package, is_public in packages if package.owner == g.auth.user
             ],
             shared=[
                 dict(
@@ -1318,7 +1321,7 @@ def profile(auth_user):
                     name=package.name,
                     is_public=bool(is_public)
                 )
-                for package, is_public in packages if package.owner != auth_user
+                for package, is_public in packages if package.owner != g.auth.user
             ],
         ),
         plan=plan,
@@ -1328,7 +1331,7 @@ def profile(auth_user):
 @app.route('/api/payments/update_plan', methods=['POST'])
 @api()
 @as_json
-def payments_update_plan(auth_user):
+def payments_update_plan():
     if not HAVE_PAYMENTS:
         raise ApiException(requests.codes.not_found, "Payments not enabled")
 
@@ -1384,7 +1387,7 @@ def payments_update_plan(auth_user):
 @app.route('/api/payments/update_payment', methods=['POST'])
 @api()
 @as_json
-def payments_update_payment(auth_user):
+def payments_update_payment():
     if not HAVE_PAYMENTS:
         raise ApiException(requests.codes.not_found, "Payments not enabled")
 
@@ -1405,10 +1408,10 @@ def payments_update_payment(auth_user):
 @app.route('/api/invite/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def invitation_user_list(auth_user):
+def invitation_user_list():
     invitations = (
         db.session.query(Invitation, Package)
-        .filter_by(email=g.email)
+        .filter_by(email=g.auth.email)
         .join(Invitation.package)
         .all()
     )
@@ -1422,8 +1425,8 @@ def invitation_user_list(auth_user):
 @app.route('/api/invite/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
-def invitation_package_list(auth_user, owner, package_name):
-    package = _get_package(auth_user, owner, package_name)
+def invitation_package_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
     invitations = (
         Invitation.query
         .filter_by(package_id=package.id)
@@ -1439,7 +1442,7 @@ def invitation_package_list(auth_user, owner, package_name):
 @app.route('/api/log', methods=['POST'])
 @api(require_login=False, schema=LOG_SCHEMA)
 @as_json
-def client_log(auth_user):
+def client_log():
     data = request.get_json()
     for event in data:
         _mp_track(**event)

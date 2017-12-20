@@ -45,7 +45,7 @@ setup(
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.4"'    # stdlib backport
-        'pyarrow>=0.4.0',
+        'pyarrow>=0.4.0,<0.8.0', # TODO(dima): Make unit tests work with 0.8.*.
         'pyOpenSSL>=16.2.0',  # Note: not actually used at the moment.
         'pyyaml>=3.12',
         'requests>=2.12.4',

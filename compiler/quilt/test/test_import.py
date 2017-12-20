@@ -183,12 +183,12 @@ class ImportTest(QuiltTestCase):
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package1', build_path)
+        command.build('foo/package4', build_path)
 
-        from quilt.data.foo import package1
+        from quilt.data.foo import package4
 
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         with self.assertRaises(AttributeError):
-            package1.newdf = df
+            package4.newdf = df
