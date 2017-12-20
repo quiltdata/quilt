@@ -1256,14 +1256,14 @@ def export(package, output_path='.', filter=lambda x: True, filename_mapper=lamb
     :param filter: function -- takes a node path list, returns True to export
     :param filename_mapper: function -- takes and returns a node path list
     """
-    # TODO: tests
     # TODO: Update docs
+    # TODO: force
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes
 
     output_path = Path(output_path)
-    node, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    node, _, _, _, subpath, _, _, _ = _importpkg(package)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
@@ -1325,6 +1325,6 @@ def export(package, output_path='.', filter=lambda x: True, filename_mapper=lamb
             export_dest.parent.mkdir(parents=True, exist_ok=True)
         sys.stdout.write('.')
         sys.stdout.flush()
-        export_dst.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
-        copy(str(export_src), str(export_dst))
+        export_dest.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
+        copy(str(export_source), str(export_dest))
     print('.. done.')
