@@ -154,6 +154,14 @@ DEFAULT_MODULE_MAPPINGS = scrub_patchmap(DEFAULT_MODULE_MAPPINGS, True)
 # TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
 DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
 
+def create_charmap_func(charmap):
+    if callable(charmap):
+        return charmap
+    fromstr = tostr = ""
+    for fromchar, tochar in charmap.items():
+        fromstr += fromchar
+        tostr += tochar
+    return lambda val: val.translate(str.maketrans(fromstr, tostr))
 
 def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
                  mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
@@ -163,16 +171,10 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     if install:
         command.install(pkg, hash=hash, version=version, tag=tag, force=force)
     owner, pkg = parse_package(pkg)
-
+    charmap_func = create_charmap_func(charmap)
     if mappings is None:
         mappings = { ".": "" }  # TODO: test this case
 
-    if not callable(charmap):
-        fromstr = tostr = ""
-        for fromchar, tochar in charmap.items():
-            fromstr += fromchar
-            tostr += tochar
-        charmap = str.maketrans(fromstr, tostr)
     #print(pkgname)
     module = importlib.import_module("quilt.data."+owner+"."+pkg)
     # expand/clean dir mappings, e.g.
@@ -199,7 +201,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
             raise Exception("Invalid mapping: Quilt node is not a Group: {}".format(piece))
         expanded_mappings[expanded_path] = node
 
-    def mapfunc(filename, mappings=mappings, charmap=charmap):
+    def mapfunc(filename, mappings=mappings, charmap_func=charmap_func):
         # TODO: disallow trailing slash - not allowed to open directories...
         abspath = os.path.abspath(os.path.expanduser(filename))
         # map subtrees:
@@ -212,7 +214,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
             if abspath.startswith(fromdir):
                 relpath = abspath[len(fromdir)+1:] # drop trailing slash
                 for raw_piece in relpath.split("/"):
-                    piece = charmap(raw_piece) if callable(charmap) else raw_piece.translate(charmap)
+                    piece = charmap_func(raw_piece)
                     #print('  {} => {}   raw_piece={}  piece={}'.format(relpath, node, raw_piece, piece))
                     keys = node._keys()
                     #print('keys={} piece={}'.format(keys, piece))
@@ -290,7 +292,8 @@ def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     patcher.start()
     return patcher
 
-def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False,
+def setup_tensorflow(pkg, checkpoints_nodepath="checkpoints",
+                     hash=None, version=None, tag=None, force=False,
                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """TensorFlow is a special case - badly behaved Python API."""
     import tensorflow
@@ -309,3 +312,38 @@ def setup_tensorflow(pkg, hash=None, version=None, tag=None, force=False,
     patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
           lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
 
+    # patch Saver.save() to read the checkpoint data and copy into Quilt.
+    # TODO: add features, e.g. configurable checkpoints path
+    save_patcher = None
+    def save_latest_to_quilt(obj,
+                             sess,
+                             save_path,
+                             global_step=None,
+                             latest_filename=None,
+                             meta_graph_suffix="meta",
+                             write_meta_graph=True,
+                             write_state=True,
+                             pkg=pkg, checkpoints_nodepath=checkpoints_nodepath):
+        print('save_latest_to_quilt called')
+        save_patcher.stop()
+        # allow save() to proceed as normal
+        path_prefix = obj.save(sess, save_path, global_step, latest_filename,
+                               meta_graph_suffix, write_meta_graph, write_state)
+        save_patcher.start()
+        
+        # read the latest checkpoint file and write to quilt
+        last_chk_path = tensorflow.train.latest_checkpoint(checkpoint_dir=save_path)
+        if latest_filename is None:
+            latest_filename = "checkpoint"
+        command.update(pkg+'/'+checkpoints_nodepath+'/'+latest_filename, last_chk_path)
+
+        # read the checkpoint data and write to quilt
+        with open(last_chk_path) as fh:
+            charmap_func = create_charmap_func(charmap)
+            last_chk_fn = os.path.basename(last_chk_path)
+            quilt_path = pkg+'/'+checkpoints_nodepath+'/'+charmap_func(last_chk_path)
+            print('last_chk_path={}  last_chk_fn={}  quilt_path={}'.format(
+                last_chk_path, last_chk_fn, quilt_path))
+            command.update(quilt_path, fh.read())
+        return path_prefix
+    save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)

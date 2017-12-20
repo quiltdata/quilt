@@ -1220,7 +1220,12 @@ def importpkg(pkginfo):
 def update(pkginfo, content):
     """convenience function around _set()"""
     # NOTE: cannot be named set() because that would conflict with the python builtin function.
-    module = importpkg(pkginfo)
+    # TODO: support hashes/versions/etc.
+    owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+    pkgobj = PackageStore.find_package(owner, pkg)
+    if pkgobj is None:
+        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+    module = _from_core_node(pkgobj, pkgobj.get_contents())
     module._set(subpath, content)
     return module
 
