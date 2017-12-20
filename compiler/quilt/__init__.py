@@ -9,6 +9,8 @@ from .tools.command import (
     build,
     check,
     config,
+    exportpkg,
+    importpkg,
     inspect,
     install,
     log,
@@ -21,6 +23,7 @@ from .tools.command import (
     tag_add,
     tag_list,
     tag_remove,
+    update,
     version_add,
     version_list,
 )

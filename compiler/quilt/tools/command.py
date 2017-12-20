@@ -19,6 +19,7 @@ import tempfile
 from threading import Thread, Lock
 import time
 import yaml
+import importlib
 
 from packaging.version import Version
 import pandas as pd
@@ -1207,6 +1208,26 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
+def _importpkg(pkginfo):
+    owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+    pkgobj = PackageStore.find_package(owner, pkg)
+    if pkgobj is None:
+        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+    module = _from_core_node(pkgobj, pkgobj.get_contents())
+    return module, pkgobj, owner, pkg, subpath, hash, version, tag
+
+def importpkg(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
+    return _importpkg(pkginfo)[0]
+
+def update(pkginfo, content):
+    """convenience function around _set()"""
+    # NOTE: cannot be named set() because that would conflict with the python builtin function.
+    # TODO: support hashes/versions/etc.
+    module, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    module._set(subpath, content)
+    return module
 
 # def example_mapper(pathlist):
 #     # handle pathlists, like ['tensorboard', 'cifar_10', 'x_100_meta']
@@ -1242,13 +1263,7 @@ def export(package, output_path='.', filter=lambda x: True, filename_mapper=lamb
     # TODO: (future) support dataframes
 
     output_path = Path(output_path)
-    owner, pkg, subpath = parse_package(package, allow_subpath=True)
-    pkgobj = PackageStore.find_package(owner, pkg)
-    if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-
-    # should _from_core_node be in nodes.py as staticmethod Node._from_core_node()?
-    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    node, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
@@ -1310,5 +1325,6 @@ def export(package, output_path='.', filter=lambda x: True, filename_mapper=lamb
             export_dest.parent.mkdir(parents=True, exist_ok=True)
         sys.stdout.write('.')
         sys.stdout.flush()
-        copy(str(export_source), str(export_dest))
-    print('..done.')
+        export_dst.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
+        copy(str(export_src), str(export_dst))
+    print('.. done.')

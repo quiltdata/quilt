@@ -3,8 +3,10 @@ Tests for magic imports.
 """
 
 import os
-
+import tempfile
 import pandas as pd
+import time
+import quilt
 from six import string_types
 
 from quilt.data import GroupNode, DataNode
@@ -192,3 +194,53 @@ class ImportTest(QuiltTestCase):
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         with self.assertRaises(AttributeError):
             package4.newdf = df
+
+    def test_importpkg_update(self):
+        # also tests dynamic import
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        from quilt.data.foo import package
+
+        # make a copy, to prove we can
+        newpkgname = 'foo/newpackage'
+        quilt.build(newpkgname, package)
+
+        newfilename = 'myfile'+str(int(time.time()))
+        with open(newfilename, 'w') as fh:
+            fh.write('hello world1')
+
+        module = quilt.importpkg(newpkgname)
+        module._set([newfilename], newfilename)
+        quilt.build(newpkgname, module)
+
+        # current spec requires that build() *not* update the in-memory module tree.
+        newpath1 = getattr(module, newfilename)()
+        assert newpath1 == newfilename
+        
+        # current spec requires that importpkg() reload from disk, i.e. gets a reference
+        # to the local object store
+        # this is important because of potential changes to myfile
+        reloaded_module = quilt.importpkg(newpkgname)
+        newpath2 = getattr(reloaded_module, newfilename)()
+        assert 'myfile' not in newpath2
+
+    def test_multiple_updates(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        from quilt.data.foo import package
+
+        newfilename1 = 'myfile1'+str(int(time.time()))
+        with open(newfilename1, 'w') as fh:
+            fh.write('hello world1')
+
+        package._set([newfilename1], newfilename1)
+
+        newfilename2 = 'myfile2'+str(int(time.time()))
+        with open(newfilename2, 'w') as fh:
+            fh.write('hello world2')
+
+        package._set([newfilename1], newfilename2)
+
+        assert getattr(package, newfilename1)() == newfilename2
