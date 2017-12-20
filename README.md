@@ -21,7 +21,7 @@ Core features include:
 
 Here are the basic Quilt commands:
 
-<img width="320" src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true" />
+<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/big-picture.png" />
 
 ## Architecture
 <img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
