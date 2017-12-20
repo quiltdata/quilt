@@ -24,8 +24,6 @@ Here are the basic Quilt commands:
 <img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/big-picture.png" />
 
 ## Architecture
-<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
-
 
 Quilt consists of three components:
 
@@ -44,6 +42,8 @@ Quilt consists of three components:
     - `build`s packages locally
     - `push`es packages to the registry
     - `pull`s packages from the registry
+    
+<img width="640" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
 
 # Discussion
 
