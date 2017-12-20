@@ -97,10 +97,7 @@ import pytest
 from .utils import BasicQuiltTestCase
 
 # inspect.argspec is deprecated, so
-try:
-    from funcsigs import signature  # python 2.7
-except ImportError:
-    from inspect import signature
+from ..tools.compat import signature
 
 
 ## "Static" vars
