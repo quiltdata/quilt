@@ -1234,9 +1234,9 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def exportpkg(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
+def export(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
               force=False):
-    """Export package file data.
+    """Export package file data.  Note: this is *not* the opposite of import.
 
     :param package: package name, e.g., user/foo
     :param output_path: distination folder

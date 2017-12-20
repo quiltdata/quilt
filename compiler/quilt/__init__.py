@@ -9,7 +9,7 @@ from .tools.command import (
     build,
     check,
     config,
-    exportpkg,
+    export,
     importpkg,
     inspect,
     install,
