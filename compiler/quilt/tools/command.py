@@ -1208,24 +1208,24 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
-def importpkg(pkginfo):
-    """functional interface to "from quilt.data.USER import PKG"""
-    # TODO: support hashes/versions/etc.
-    owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-    pkgobj = PackageStore.find_package(owner, pkg)
-    if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    return _from_core_node(pkgobj, pkgobj.get_contents())
-
-def update(pkginfo, content):
-    """convenience function around _set()"""
-    # NOTE: cannot be named set() because that would conflict with the python builtin function.
-    # TODO: support hashes/versions/etc.
+def _importpkg(pkginfo):
     owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
     module = _from_core_node(pkgobj, pkgobj.get_contents())
+    return module, pkgobj, owner, pkg, subpath, hash, version, tag
+
+def importpkg(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
+    return _importpkg(pkginfo)[0]
+
+def update(pkginfo, content):
+    """convenience function around _set()"""
+    # NOTE: cannot be named set() because that would conflict with the python builtin function.
+    # TODO: support hashes/versions/etc.
+    module, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
     module._set(subpath, content)
     return module
 
@@ -1234,13 +1234,15 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
+def exportpkg(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
+              force=False):
     """Export package file data.
 
     :param package: package name, e.g., user/foo
     :param output_path: distination folder
     :param filter: Not implemented
     :param filename_mapper:
+    :param force: if True, overwrite existing files
     """
     # TODO: filters
     # TODO: tests
@@ -1249,13 +1251,7 @@ def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
         raise NotImplemented("filters not implemented yet")
 
     output_path = Path(output_path)
-    owner, pkg, subpath = parse_package(package, allow_subpath=True)
-    pkgobj = PackageStore.find_package(owner, pkg)
-    if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-
-    # should _from_core_node be in nodes.py as staticmethod Node._from_core_node()?
-    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    node, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
@@ -1290,25 +1286,23 @@ def export(package, output_path='.', filter=None, filename_mapper=lambda x: x):
         # no re-rooting
         modpath = [name.lstrip('/') for name in modpath]
         # general cleanup
-        export_dest = (output_path / os.path.join(*modpath)).expanduser().absolute()
-        export_source = Path(filename).expanduser().absolute()
-
-        assert export_source.exists()
-
-        if export_dest.exists():
+        export_src = Path(filename).expanduser().absolute()
+        assert export_src.exists()
+        export_dst = (output_path / os.path.join(*modpath)).expanduser().absolute()
+        if export_dst.exists() and not force:
             raise CommandException("Invalid export path: file already exists: {!r}"
-                                   .format(str(export_dest)))
-        quilt_file_map.append((export_source, export_dest))
+                                   .format(str(export_dst)))
+        quilt_file_map.append((export_src, export_dst))
 
     # Paths verified, let's export..
     sys.stdout.write('Exporting.')
     sys.stdout.flush()
-    for export_source, export_dest in quilt_file_map:
-        assert not export_dest.exists()   # we've already checked, but who knows, things change..
-        if not export_dest.parent.exists():
-            export_dest.parent.mkdir(parents=True, exist_ok=True)
+    for export_src, export_dst in quilt_file_map:
+        if not export_dst.parent.exists():
+            export_dst.parent.mkdir(parents=True, exist_ok=True)
         sys.stdout.write('.')
         sys.stdout.flush()
-        copy(str(export_source), str(export_dest))
-    print('..done.')
+        export_dst.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
+        copy(str(export_src), str(export_dst))
+    print('.. done.')
 
