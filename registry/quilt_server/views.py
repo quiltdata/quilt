@@ -17,7 +17,6 @@ from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
-from packaging.version import Version as PackagingVersion
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
@@ -493,22 +492,13 @@ def package_put(owner, package_name, package_hash):
             customer = _get_or_create_customer()
             plan = _get_customer_plan(customer)
             if plan == PaymentPlan.FREE:
-                browser = g.user_agent['browser']
-                if (browser['name'] == 'QuiltCli' and
-                        PackagingVersion(browser['version']) <= PackagingVersion('2.5.0')):
-                    # Need 2.5.1 to create public packages.
-                    raise ApiException(
-                        requests.codes.server_error,
-                        "Outdated client. Run `pip install quilt --upgrade` to upgrade."
-                    )
-                else:
-                    raise ApiException(
-                        requests.codes.payment_required,
-                        ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
-                         "this package public, or upgrade your service plan to create " +
-                         "private packages: https://quiltdata.com/profile.") %
-                        (owner, package_name)
-                    )
+                raise ApiException(
+                    requests.codes.payment_required,
+                    ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                     "this package public, or upgrade your service plan to create " +
+                     "private packages: https://quiltdata.com/profile.") %
+                    (owner, package_name)
+                )
 
         package = Package(owner=owner, name=package_name)
         db.session.add(package)

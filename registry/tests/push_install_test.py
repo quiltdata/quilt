@@ -453,7 +453,7 @@ class PushInstallTestCase(QuiltTestCase):
 
     @mock_customer()
     def testCreatePrivateOnFreePlan(self, customer):
-        # New clients: need to upgrade the plan.
+        # Need to upgrade the plan.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
@@ -463,29 +463,11 @@ class PushInstallTestCase(QuiltTestCase):
             content_type='application/json',
             headers={
                 'Authorization': 'test_user',
-                'User-Agent': 'quilt-cli/2.5.1',
             }
         )
         assert resp.status_code == requests.codes.payment_required
         data = json.loads(resp.data.decode('utf8'))
         assert "upgrade your service plan" in data['message']
-
-        # Old clients: need to upgrade the client first.
-        resp = self.app.put(
-            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
-            data=json.dumps(dict(
-                description="",
-                contents=self.CONTENTS
-            ), default=encode_node),
-            content_type='application/json',
-            headers={
-                'Authorization': 'test_user',
-                'User-Agent': 'quilt-cli/2.5.0',
-            }
-        )
-        assert resp.status_code == requests.codes.server_error
-        data = json.loads(resp.data.decode('utf8'))
-        assert "pip install quilt --upgrade" in data['message']
 
     def testCreatePrivateNoPayments(self):
         # Payments disabled; no restrictions on private packages.
