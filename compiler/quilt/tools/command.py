@@ -44,6 +44,7 @@ from . import check_functions as qc
 
 from .. import nodes
 from ..data import _from_core_node
+from .compat import pathlib
 
 # pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
 # So... We disable it. That's what boto does.
@@ -54,11 +55,6 @@ try:
     pyopenssl.extract_from_urllib3()
 except ImportError:
     pass
-
-try:
-    from pathlib2 import Path   # py2
-except ImportError:
-    from pathlib import Path    # py3
 
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
@@ -1234,24 +1230,32 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def export(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
-              force=False):
-    """Export package file data.  Note: this is *not* the opposite of import.
+def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False):
+    """Export package file data.
 
-    :param package: package name, e.g., user/foo
+    Exports children of specified node to files (if they have file data).
+    Does not export dataframes or other non-file data.
+
+    The `filter` function takes export paths (without the output path prepended)
+    should return `True` or `False` to indicate the node's inclusion in the export.
+
+    The `mapper` function takes export paths (without the output path prepended),
+    and should alter and return that path with any changes that are desired for the
+    export (if any).
+
+    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
-    :param filter: Not implemented
-    :param filename_mapper:
+    :param filter: function -- takes a node path list, returns True to export
+    :param mapper: function -- takes and returns a node path list
     :param force: if True, overwrite existing files
     """
-    # TODO: filters
-    # TODO: tests
-    # TODO: export via symlinks / hardlinks (unwise / messing with datastore? windows compat?)
-    if filter is not None:
-        raise NotImplemented("filters not implemented yet")
-
-    output_path = Path(output_path)
-    node, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    # TODO: more tests?
+    # TODO: Update docs
+    # TODO: (future) Support other tags/versions
+    # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
+    # TODO: (future) support dataframes
+    output_path = pathlib.Path(output_path)
+    node, _, _, _, subpath, _, _, _ = _importpkg(package)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
@@ -1273,36 +1277,40 @@ def export(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
             filename = getattr(found_node, '_filename', None)
             if filename is not None:
                 assert filename
-                yield [node_path, filename]
+                yield (node_path, filename)
 
-    # alter data to (['mapping', 'altered', 'module', 'path'], <quilt storage filename>)
-    mapped_names = ((filename_mapper(nodepath[:]), filename)
-                    for nodepath, filename in iter_nodepath_filenames(node))
+    # gather nodes to be exported
+    exports = ((os.path.join(*dest), src) for dest, src in iter_nodepath_filenames(node))
+
+    # filter exports
+    exports = ((dest, src) for dest, src in exports if filter(dest) is True)
+
+    # apply mapping to exports
+    exports = ((mapper(dest), src) for dest, src in exports)
 
     # alter data to (<export file Path>, <quilt storage Path>)
-    # also, verify and clean up paths
-    quilt_file_map = []
-    for modpath, filename in mapped_names:
-        # no re-rooting
-        modpath = [name.lstrip('/') for name in modpath]
+    # verify and clean up paths
+    # pre-check that source exists and dest does not
+    final_export_map = []
+    for dest, src in exports:
         # general cleanup
-        export_src = Path(filename).expanduser().absolute()
-        assert export_src.exists()
-        export_dst = (output_path / os.path.join(*modpath)).expanduser().absolute()
-        if export_dst.exists() and not force:
-            raise CommandException("Invalid export path: file already exists: {!r}"
-                                   .format(str(export_dst)))
-        quilt_file_map.append((export_src, export_dst))
+        src = pathlib.Path(src).expanduser().absolute()
+        dest = (output_path / dest).expanduser().absolute()
 
+        # existence
+        assert src.exists()
+        if dest.exists() and not force:
+            raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+        final_export_map.append((src, dest))
     # Paths verified, let's export..
     sys.stdout.write('Exporting.')
     sys.stdout.flush()
-    for export_src, export_dst in quilt_file_map:
-        if not export_dst.parent.exists():
-            export_dst.parent.mkdir(parents=True, exist_ok=True)
+    for src, dest in final_export_map:
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
         sys.stdout.write('.')
         sys.stdout.flush()
-        export_dst.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
-        copy(str(export_src), str(export_dst))
-    print('.. done.')
-
+        dest.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
+        copy(str(src), str(dest))
+    print('..done.')
