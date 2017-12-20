@@ -382,6 +382,11 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                 ext = None
             elif os.path.isfile(path):
                 nodename, ext = splitext_no_dot(name)
+                # preserve unknown extensions, e.g. "foo.bar" => "foo_bar"
+                transform = ext
+                if transform not in PARSERS:
+                    nodename = nodename + "." + ext
+                    ext = ""
             else:
                 continue
 
