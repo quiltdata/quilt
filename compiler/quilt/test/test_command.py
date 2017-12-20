@@ -17,6 +17,10 @@ from six import assertRaisesRegex
 from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
+from ..tools.compat import pathlib
+from ..tools.compat import tempfile
+
+
 class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
@@ -517,3 +521,43 @@ class CommandTest(QuiltTestCase):
 
         from quilt.data.foo import bar
         assert isinstance(bar.foo(), pd.DataFrame)
+
+    def test_export(self):
+        Path = pathlib.Path
+        pkg_name = 'testing/foo'
+        pkg_name_subpkg = pkg_name + '/subdir'
+
+        # pathlib will translate these to windows paths
+        test_data = [
+            ('example', os.urandom(500)),
+            ('subdir/subdir_example', os.urandom(300)),
+            ('readme', os.urandom(200)),
+            ]
+
+        shash = lambda data: hashlib.sha256(data).hexdigest()
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = Path(temp_dir)
+            install_dir = temp_dir / 'install'
+            export_dir = temp_dir / 'export'
+
+            for path, data in test_data:
+                path = install_dir / path
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(data)
+
+            command.build('testing/foo', str(install_dir))
+            command.export('testing/foo', str(export_dir))
+
+            exported_paths = [path for path in export_dir.glob('**/*') if path.is_file()]
+
+            assert len(exported_paths) == len(test_data)
+
+            for path, data in test_data:
+                export_path = export_dir / path
+                install_path = install_dir / path
+
+                # filename matches
+                assert export_path in exported_paths
+                # data matches
+                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())

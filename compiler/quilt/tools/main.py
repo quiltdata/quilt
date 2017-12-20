@@ -76,6 +76,13 @@ def argument_parser():
     config_p = subparsers.add_parser("config", description="Configure Quilt")
     config_p.set_defaults(func=command.config)
 
+    export_p = subparsers.add_parser("export",
+                                     description="Export file data from package or subpackage to filesystem")
+    export_p.add_argument("package", type=str, help=HANDLE)
+    export_p.add_argument("output_path", type=str, default='.', nargs='?',
+                          help="Destination folder (auto-created), default '.'")
+    export_p.set_defaults(func=command.export)
+
     login_p = subparsers.add_parser("login", description="Log in to configured Quilt server")
     login_p.set_defaults(func=command.login)
 

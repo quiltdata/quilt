@@ -1234,24 +1234,36 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def export(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
-              force=False):
-    """Export package file data.  Note: this is *not* the opposite of import.
+def export(package, output_path='.', filter=lambda x: True, filename_mapper=lambda x: x):
+    """Export package file data.
 
-    :param package: package name, e.g., user/foo
+    Exports children of specified node to files (if they have file data).
+    Does not export dataframes or other non-file data.
+
+    Node path lists take the form ['foo', 'bar', 'baz'], and refer to a
+    specific node (such as foo.bar.baz) to be exported.
+
+    The `filter` function takes a node path list and should return `True` or
+    `False` to indicate the node's inclusion in the export.
+
+    The `filename_mapper` function takes a node path list, and should return
+    return a node path list indicating any name changes that are desired
+    for the export.  The altered nodepath will be reflected in the exported
+    filename, but will not affect any other resource.
+
+    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
-    :param filter: Not implemented
-    :param filename_mapper:
-    :param force: if True, overwrite existing files
+    :param filter: function -- takes a node path list, returns True to export
+    :param filename_mapper: function -- takes and returns a node path list
     """
-    # TODO: filters
-    # TODO: tests
-    # TODO: export via symlinks / hardlinks (unwise / messing with datastore? windows compat?)
-    if filter is not None:
-        raise NotImplemented("filters not implemented yet")
+    # TODO: Update docs
+    # TODO: force
+    # TODO: (future) Support other tags/versions
+    # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
+    # TODO: (future) support dataframes
 
     output_path = Path(output_path)
-    node, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    node, _, _, _, subpath, _, _, _ = _importpkg(package)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
@@ -1273,36 +1285,46 @@ def export(pkginfo, output_path='.', filter=None, filename_mapper=lambda x: x,
             filename = getattr(found_node, '_filename', None)
             if filename is not None:
                 assert filename
-                yield [node_path, filename]
+                yield (node_path, filename)
 
-    # alter data to (['mapping', 'altered', 'module', 'path'], <quilt storage filename>)
-    mapped_names = ((filename_mapper(nodepath[:]), filename)
-                    for nodepath, filename in iter_nodepath_filenames(node))
+    # gather nodes to be exported
+    exports = iter_nodepath_filenames(node)
+
+    # filter exports
+    exports = ((nodepath, filename) for nodepath, filename in exports if filter(nodepath[:]) is True)
+
+    # apply mapping to exports
+    exports = ((filename_mapper(nodepath[:]), filename) for nodepath, filename in exports)
 
     # alter data to (<export file Path>, <quilt storage Path>)
-    # also, verify and clean up paths
-    quilt_file_map = []
-    for modpath, filename in mapped_names:
+    # verify and clean up paths
+    # pre-check that source exists and dest does not
+    final_export_map = []
+    for nodepath, filename in exports:
         # no re-rooting
-        modpath = [name.lstrip('/') for name in modpath]
+        nodepath = [name.lstrip('/') for name in nodepath]
+        # convert node list to path, and set output path
+        export_dest = output_path / os.path.join(*nodepath)
         # general cleanup
-        export_src = Path(filename).expanduser().absolute()
-        assert export_src.exists()
-        export_dst = (output_path / os.path.join(*modpath)).expanduser().absolute()
-        if export_dst.exists() and not force:
-            raise CommandException("Invalid export path: file already exists: {!r}"
-                                   .format(str(export_dst)))
-        quilt_file_map.append((export_src, export_dst))
+        export_dest = export_dest.expanduser().absolute()
+        export_source = Path(filename).expanduser().absolute()
+
+        assert export_source.exists()
+
+        if export_dest.exists():
+            raise CommandException("Invalid export path: file already exists: {!r}".format(str(export_dest)))
+
+        final_export_map.append((export_source, export_dest))
 
     # Paths verified, let's export..
     sys.stdout.write('Exporting.')
     sys.stdout.flush()
-    for export_src, export_dst in quilt_file_map:
-        if not export_dst.parent.exists():
-            export_dst.parent.mkdir(parents=True, exist_ok=True)
+    for export_source, export_dest in final_export_map:
+        assert not export_dest.exists()   # we've already checked, but who knows, things change..
+        if not export_dest.parent.exists():
+            export_dest.parent.mkdir(parents=True, exist_ok=True)
         sys.stdout.write('.')
         sys.stdout.flush()
-        export_dst.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
-        copy(str(export_src), str(export_dst))
+        export_dest.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
+        copy(str(export_source), str(export_dest))
     print('.. done.')
-
