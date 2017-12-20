@@ -1,0 +1,3 @@
+ul.summary li:first-child, ul.summary li:nth-child(2) {
+    display: none !important;
+}

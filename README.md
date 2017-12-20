@@ -4,6 +4,10 @@
 | <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png"> | [![Build Status](https://travis-ci.org/quiltdata/quilt.svg?branch=2.8.0)](https://travis-ci.org/quiltdata/quilt) | [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches) | 2.7, 3.5, 3.6 |
 | <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/windows-8-metro/128/Folders-OS-Windows-8-Metro-icon.png"> | N/A | [![Windows](https://ci.appveyor.com/api/projects/status/tnihllrbmm08x0lt/branch/master?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler/branch/master) | 3.5, 3.6 |
 
+# Docs
+
+Visit [docs.quiltdata.com](https://docs.quiltdata.com/). Or [browse the docs on GitHub](/docs/SUMMARY.md).
+
 # Quilt is a data router
 
 With Quilt you can build, push, and install data packages. Data packages are versioned, reusable data structures that can be  loaded into Python. Quilt is designed to support reproducible, auditable, and compliant workflows.
@@ -39,10 +43,11 @@ Quilt consists of three components:
     - `push`es packages to the registry
     - `pull`s packages from the registry
 
-# Documentation
-
-Visit [docs.quiltdata.com](https://docs.quiltdata.com/).
-
-# Questions
+# Discussion
 
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby)
+
+
+
+
+
