@@ -36,9 +36,15 @@
 
 All commands such as `quilt install` support "short hashes," i.e. any unique prefix of a hash will be matched against the longer hash.  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e can be shortened to `quilt install akarve/examples -x 4594b5` assuming there's no other hashes that start with this sequence.  In practice, 6-8 characters is usually sufficient to achieve uniqueness.
 
-# Installing via requirements file
+# Installing via requirements file (quilt.yml)
+```sh
+$ quilt install [@filename]
+# quilt.yml is the default if @filename is absent
+```
 
-`quilt install @filename` (quilt.yml is the default) installs a list of packages specified by a YAML file containing one package per line:   USER/PACKAGE[/SUBPACKAGE][:version]   where version is specified via [h|hash]:<hash> or <t|tag>:<tag> or <v|version>:<version>.  Here is an example:
+Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages of the form  `USER/PACKAGE[/SUBPACKAGE][:hash|:tag|:version][:HASH|TAG|VERSION]`.
+
+## Example
 
 ```
 packages:
@@ -48,6 +54,5 @@ packages:
   - asah/snli:v:1.0                # get a specific version via version
 
 ```
-
 
 ***
