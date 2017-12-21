@@ -6,7 +6,6 @@ import pandas as pd
 from six import iteritems, string_types
 
 from .tools import core
-from .tools.store import PackageStore
 
 
 class Node(object):
@@ -103,7 +102,7 @@ class PackageNode(GroupNode):
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
-            core_node = core.TableNode(hashes=[])
+            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value)
         elif isinstance(value, string_types):
             core_node = core.FileNode(hashes=[])
         else:
