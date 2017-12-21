@@ -36,7 +36,8 @@ class PushInstallTestCase(QuiltTestCase):
 
     CONTENTS = RootNode(dict(
         foo=TableNode(
-            hashes=[HASH1, HASH2]
+            hashes=[HASH1, HASH2],
+            format=PackageFormat.default.value
         ),
         group1=GroupNode(dict(
             empty=TableNode(

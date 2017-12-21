@@ -53,7 +53,7 @@ class InstallTest(QuiltTestCase):
     def make_contents(cls, **args):
         contents = RootNode(dict(
             group=GroupNode(dict([
-                (key, TableNode([val]) if 'table' in key else FileNode([val]))
+                (key, TableNode([val], PackageFormat.default.value) if 'table' in key else FileNode([val]))
                 for key, val in args.items()]
             ))
         ))
@@ -286,7 +286,7 @@ packages:
         obj_hash = h.hexdigest()
         contents = GroupNode(dict(
             foo=GroupNode(dict(
-                bar=TableNode([obj_hash])
+                bar=TableNode([obj_hash], PackageFormat.default.value)
             ))
         ))
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
@@ -309,7 +309,7 @@ packages:
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
         contents = GroupNode(dict(
             foo=GroupNode(dict(
-                bar=TableNode([obj_hash])
+                bar=TableNode([obj_hash], PackageFormat.default.value)
             ))
         ))
         contents_hash = hash_contents(contents)
@@ -337,7 +337,7 @@ packages:
         contents = RootNode(dict(
             file0=FileNode([file_hash_list[0]]),
             file1=FileNode([file_hash_list[1]]),
-        ), format=PackageFormat.HDF5)
+        ))
         contents_hash = hash_contents(contents)
 
         # Create a package store object to use its path helpers
