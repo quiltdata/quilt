@@ -134,11 +134,15 @@ class PackageNode(GroupNode):
             core_node = core.TableNode(hashes=[])
         elif isinstance(value, string_types):
             core_node = core.FileNode(hashes=[])
+        elif isinstance(value, bytes):
+            core_node = core.FileNode(hashes=[])
         else:
-            assert False, "Unexpected value: %r" % value
+            # TODO: throw a proper exception?
+            assert False, "Value has bad type: {} value={}".format(str(type(value)), repr(value)[0:100])
 
         node = self
         for key in path[:-1]:
+            # TODO: check for all illegal identifiers, not just lading underscore
             assert not key.startswith('_')
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):

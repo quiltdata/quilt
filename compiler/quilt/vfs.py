@@ -68,12 +68,11 @@ import os.path
 import string
 import importlib
 from contextlib import contextmanager
-
+import re
 
 from .nodes import GroupNode
 from .tools import command
 from .tools.store import parse_package
-
 
 def filepatch(module_name, func_name, action_func):
     """monkeypatch an open-like function (that takes a filename as the first argument)
@@ -115,26 +114,26 @@ def scrub_patchmap(patchmap, verbose=False, strict=False):
     """
     result = {}
 
-    for modname, funcname in patchmap.items():
+    for module_name, funcname in patchmap.items():
         try:
-            module = importlib.import_module(modname)
+            module = importlib.import_module(module_name)
         except ImportError:
             if verbose:
-                print("Dropped {} from the patch map (module not present)".format(modname))
+                print("Dropped {} from the patch map (module not present)".format(module_name))
             continue
         if not hasattr(module, funcname):
             if verbose:
                 print("Dropped {}.{} from the patch map (func/class not present)".format(module, funcname))
             if strict:
-                raise AttributeError("{} is missing from module {}".format(funcname, modname))
+                raise AttributeError("{} is missing from module {}".format(funcname, module_name))
             continue
         if not callable(getattr(module, funcname)):
             if verbose:
                 print("Dropped {}.{} from the patch map (not callable)".format(module, funcname))
             if strict:
-                raise TypeError("{}.{} is not callable".format(funcname, modname))
+                raise TypeError("{}.{} is not callable".format(funcname, module_name))
             continue
-        result[modname] = funcname
+        result[module_name] = funcname
     return result
 
 
@@ -176,14 +175,14 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
         mappings = { ".": "" }  # TODO: test this case
 
     #print(pkgname)
-    module = importlib.import_module("quilt.data."+owner+"."+pkg)
+    module = command.importpkg(owner+'/'+pkg)
     # expand/clean dir mappings, e.g.
     # {"~asah/../foo": "."} ==> {"/Users/foo": ["uciml","raw"]}
     # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": ["uciml", "raw", "foo"]}  # cwd=/Users/asah
     expanded_mappings = {}
     for fromdir, topath in mappings.items():
         expanded_path = os.path.abspath(os.path.expanduser(fromdir)).rstrip("/")
-        #print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
+        print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
         node = module
         keys = None
         topath = topath.strip() # just in case
@@ -274,7 +273,7 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
         kwargs = DEFAULT_MODULE_MAPPINGS
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
                            mappings=mappings, install=install, charmap=charmap, **kwargs)
-    return [filepatch(modname, fname, mapfunc) for modname, fname in kwargs.items()]
+    return [filepatch(module_name, fname, mapfunc) for module_name, fname in kwargs.items()]
 
 def teardown(patchers):
     for patcher in patchers:
@@ -292,10 +291,12 @@ def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     patcher.start()
     return patcher
 
-def setup_tensorflow(pkg, checkpoints_nodepath="checkpoints",
+def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
                      hash=None, version=None, tag=None, force=False,
                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """TensorFlow is a special case - badly behaved Python API."""
+    if chkpt_pkg is None:
+        chkpt_pkg = data_pkg
     import tensorflow
     tensorflow.python = tensorflow  # hack: needs to be a module
     tensorflow.python.platform = tensorflow  # hack: needs to be a module
@@ -304,13 +305,26 @@ def setup_tensorflow(pkg, checkpoints_nodepath="checkpoints",
     del module_mappings['gzip']
     # patch gfile.Open()
     module_mappings['tensorflow.python.platform.gfile'] = 'Open'
-    setup(pkg, hash=hash, version=version, tag=tag, force=force,
+    setup(data_pkg, hash=hash, version=version, tag=tag, force=force,
           mappings=mappings, install=install, charmap=charmap, **module_mappings)
     # patch maybe_download() to return the Quilt filename
-    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
+    mapfunc = make_mapfunc(data_pkg, hash=hash, version=version, tag=tag, force=force,
           mappings=mappings, install=install, charmap=charmap, **module_mappings)
     patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
           lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
+
+def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
+                     hash=None, version=None, tag=None, force=False,
+                     mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+    """TensorFlow is a special case - badly behaved Python API."""
+    # export prev checkpoints, which are too hard to virtualize
+    def filename2quiltnode(filename):
+        # -6700.data-00000-of-00001 ==> n6700_data_00000_of_00001
+        return re.sub(r'/-(\d+)[.]', r'/n\1_', str(filename)).replace('-', '_')
+    def quiltnode2filename(path):
+        # n6700_data_00000_of_00001 ==> -6700.data-00000-of-00001
+        return re.sub(r'/n(\d+)_', r'/-\1.', str(path)).replace('_', '-')
+    command.export(pkg, force=True, mapper=quiltnode2filename)
 
     # patch Saver.save() to read the checkpoint data and copy into Quilt.
     # TODO: add features, e.g. configurable checkpoints path
@@ -324,26 +338,35 @@ def setup_tensorflow(pkg, checkpoints_nodepath="checkpoints",
                              write_meta_graph=True,
                              write_state=True,
                              pkg=pkg, checkpoints_nodepath=checkpoints_nodepath):
+        import tensorflow
         print('save_latest_to_quilt called')
         save_patcher.stop()
         # allow save() to proceed as normal
         path_prefix = obj.save(sess, save_path, global_step, latest_filename,
                                meta_graph_suffix, write_meta_graph, write_state)
+        print('path_prefix={}'.format(path_prefix))
         save_patcher.start()
         
         # read the latest checkpoint file and write to quilt
         last_chk_path = tensorflow.train.latest_checkpoint(checkpoint_dir=save_path)
         if latest_filename is None:
             latest_filename = "checkpoint"
-        command.update(pkg+'/'+checkpoints_nodepath+'/'+latest_filename, last_chk_path)
+        pkginfo = pkg+'/'+checkpoints_nodepath+'/'+latest_filename
+        print('last_chk_path={}  pkginfo={}'.format(last_chk_path, pkginfo))
+        command.update(pkginfo, last_chk_path)
 
         # read the checkpoint data and write to quilt
-        with open(last_chk_path) as fh:
-            charmap_func = create_charmap_func(charmap)
-            last_chk_fn = os.path.basename(last_chk_path)
-            quilt_path = pkg+'/'+checkpoints_nodepath+'/'+charmap_func(last_chk_path)
-            print('last_chk_path={}  last_chk_fn={}  quilt_path={}'.format(
-                last_chk_path, last_chk_fn, quilt_path))
-            command.update(quilt_path, fh.read())
+        import glob
+        for filename in glob.glob(path_prefix + "*"):  # foo/bar/-1234*
+            with open(filename, 'rb') as fh:
+                basename = os.path.basename(filename)   # foo/bar/-1234.meta ==> -1234.meta
+                quilt_path = filename2quiltnode(pkg+'/'+checkpoints_nodepath+'/'+basename)
+                print('filename={}  quilt_path={}'.format(filename, quilt_path))
+                command.update(quilt_path, fh.read())
+                print('update() completed.')
+        print('save_latest_to_quilt done.  path_prefix={}'.format(path_prefix))
+        command.build_from_node(pkg, command.importpkg(pkg))
+        print('built!')
+        import sys; sys.exit(0)
         return path_prefix
     save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)
