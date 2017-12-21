@@ -1,10 +1,19 @@
-#---------------------------------------------------------------------------
-# QUILT
+import numpy as np
+import tensorflow as tf
+from sklearn.metrics import confusion_matrix
+from time import time
 
-QUILT_PKG = 'asah/ct4'
+from include.data import get_data_set
+from include.model import model
+
+#---------------------------------------------------------------------------
+# QUILT SETUP - added after import statements
+
+QUILT_PKG = 'asah/cifar10'
 
 print("Connecting to Quilt... ")
-import quilt.vfs
+import quilt, quilt.vfs
+quilt.install(QUILT_PKG)
 
 print("   reading data from Quilt package: {}...".format(QUILT_PKG))
 quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'})
@@ -16,14 +25,6 @@ quilt.vfs.setup_tensorflow_checkpoints(QUILT_PKG, checkpoints_nodepath='tensorbo
 
 # END QUILT
 #---------------------------------------------------------------------------
-
-import numpy as np
-import tensorflow as tf
-from sklearn.metrics import confusion_matrix
-from time import time
-
-from include.data import get_data_set
-from include.model import model
 
 train_x, train_y, train_l = get_data_set()
 test_x, test_y, test_l = get_data_set("test")

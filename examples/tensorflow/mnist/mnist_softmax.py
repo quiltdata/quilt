@@ -29,16 +29,23 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 import tensorflow as tf
 
-FLAGS = None
+#---------------------------------------------------------------------------
+# QUILT SETUP - added after import statements
 
-# ---------------------------------------------------------------------------
-# fake TensorFlow file API to read MNIST data from Quilt
-# tensorflow is horribly behaved.
-#
-import quilt.vfs
-mnist_mappings = {'/tmp/tensorflow/mnist/input_data':'.'}
-mnist_charmap = lambda filename: filename.replace('.gz', '').replace('-', '_')
-quilt.vfs.setup_tensorflow('asah/mnist', mappings=mnist_mappings, charmap=mnist_charmap)
+QUILT_PKG = 'asah/mnist'
+
+print("Connecting to Quilt... ")
+import quilt, quilt.vfs
+quilt.install(QUILT_PKG)
+
+print("   setting up Tensorflow to read data from Quilt...")
+quilt.vfs.setup_tensorflow('asah/mnist', mappings={'/tmp/tensorflow/mnist/input_data':'.'},
+                           charmap=lambda fn: fn.replace('.gz', '').replace('-', '_'))
+
+# END QUILT
+#---------------------------------------------------------------------------
+
+FLAGS = None
 
 def main(_):
   # Import data
