@@ -304,6 +304,17 @@ def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     patcher.start()
     return patcher
 
+def setup_keras_dataset(data_pkg, keras_dataset_name, hash=None, version=None, tag=None, force=False,
+                        mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+    """Keras is a special case -- patch get_file()"""
+    mapfunc = make_mapfunc(data_pkg)
+    def keras_mapfunc(filename, **args):
+        return mapfunc(filename)
+
+    # TODO: keras checkpoints support
+    
+    patch('keras.datasets.'+keras_dataset_name, 'get_file', keras_mapfunc)
+
 def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
                      hash=None, version=None, tag=None, force=False,
                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):

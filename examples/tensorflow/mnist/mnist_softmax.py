@@ -32,11 +32,11 @@ import tensorflow as tf
 #---------------------------------------------------------------------------
 # QUILT SETUP - added after import statements
 
+import quilt, quilt.vfs
 QUILT_PKG = 'asah/mnist'
 
-print("Connecting to Quilt... ")
-import quilt, quilt.vfs
-quilt.install(QUILT_PKG)
+print("Connecting to Quilt...")
+quilt.install(QUILT_PKG, force=True)
 
 print("   setting up Tensorflow to read data from Quilt...")
 quilt.vfs.setup_tensorflow('asah/mnist', mappings={'/tmp/tensorflow/mnist/input_data':'.'},
