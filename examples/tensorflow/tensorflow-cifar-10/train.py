@@ -1,3 +1,22 @@
+#---------------------------------------------------------------------------
+# QUILT
+
+QUILT_PKG = 'asah/ct4'
+
+print("Connecting to Quilt... ")
+import quilt.vfs
+
+print("   reading data from Quilt package: {}...".format(QUILT_PKG))
+quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'})
+# disable the custom code (include/data.py) that looks for local input files
+quilt.vfs.patch('include.data', 'maybe_download_and_extract', lambda: None)
+
+print("   setting up Tensorflow to read and save checkpoints to/from Quilt...")
+quilt.vfs.setup_tensorflow_checkpoints(QUILT_PKG, checkpoints_nodepath='tensorboard/cifar_10')
+
+# END QUILT
+#---------------------------------------------------------------------------
+
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
@@ -5,18 +24,6 @@ from time import time
 
 from include.data import get_data_set
 from include.model import model
-
-import quilt.vfs
-
-# read the input data from Quilt
-quilt.vfs.setup('asah/ct4', mappings={'data_set/cifar_10':'data_set.cifar_10'})
-# disable this code (train.py) from looking for local input files, since they're in Quilt
-quilt.vfs.patch('include.data', 'maybe_download_and_extract', lambda: None)
-
-# checkpoints:
-# 1. have tensorflow read its latest checkpoint from Quilt
-# 2. have tensorflow save new checkpoints to Quilt (in addition to local disk)
-quilt.vfs.setup_tensorflow_checkpoints('asah/ct4', checkpoints_nodepath='tensorboard/cifar_10')
 
 train_x, train_y, train_l = get_data_set()
 test_x, test_y, test_l = get_data_set("test")

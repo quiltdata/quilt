@@ -195,7 +195,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     expanded_mappings = {}
     for fromdir, topath in mappings.items():
         expanded_path = os.path.abspath(os.path.expanduser(fromdir)).rstrip("/")
-        print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
+        #print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
         node = module
         keys = None
         topath = topath.strip() # just in case
