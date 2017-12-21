@@ -69,10 +69,22 @@ import string
 import importlib
 from contextlib import contextmanager
 import re
+import glob
 
 from .nodes import GroupNode
 from .tools import command
 from .tools.store import parse_package
+
+# TODO: replace global variable
+PATCHERS = []
+
+def patchers_start():
+    for patcher in PATCHERS:
+        patcher.start()
+
+def patchers_stop():
+    for patcher in PATCHERS:
+        patcher.stop()
 
 def filepatch(module_name, func_name, action_func):
     """monkeypatch an open-like function (that takes a filename as the first argument)
@@ -102,6 +114,7 @@ def filepatch(module_name, func_name, action_func):
             patcher.start()
         return res
     patcher = patch(module_name+'.'+func_name, open_func)
+    PATCHERS.append(patcher)
     patcher.start()
     return patcher
 
@@ -317,14 +330,19 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
                      hash=None, version=None, tag=None, force=False,
                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
     """TensorFlow is a special case - badly behaved Python API."""
-    # export prev checkpoints, which are too hard to virtualize
+    import tensorflow
+
     def filename2quiltnode(filename):
         # -6700.data-00000-of-00001 ==> n6700_data_00000_of_00001
         return re.sub(r'/-(\d+)[.]', r'/n\1_', str(filename)).replace('-', '_')
     def quiltnode2filename(path):
         # n6700_data_00000_of_00001 ==> -6700.data-00000-of-00001
         return re.sub(r'/n(\d+)_', r'/-\1.', str(path)).replace('_', '-')
-    command.export(pkg, force=True, mapper=quiltnode2filename)
+
+    # export prev checkpoints, which are too hard to virtualize because
+    # TF has complex I/O functions to find the latest checkpoint etc.
+    command.export(pkg, force=True, mapper=quiltnode2filename, filter=lambda path:
+                   re.search('/tensorboard/', path))
 
     # patch Saver.save() to read the checkpoint data and copy into Quilt.
     # TODO: add features, e.g. configurable checkpoints path
@@ -333,40 +351,35 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
                              sess,
                              save_path,
                              global_step=None,
-                             latest_filename=None,
+                             latest_filename="checkpoint",
                              meta_graph_suffix="meta",
                              write_meta_graph=True,
                              write_state=True,
                              pkg=pkg, checkpoints_nodepath=checkpoints_nodepath):
-        import tensorflow
-        print('save_latest_to_quilt called')
+        #print('save_latest_to_quilt called')
         save_patcher.stop()
+        patchers_stop()
         # allow save() to proceed as normal
         path_prefix = obj.save(sess, save_path, global_step, latest_filename,
                                meta_graph_suffix, write_meta_graph, write_state)
-        print('path_prefix={}'.format(path_prefix))
-        save_patcher.start()
+        #print('path_prefix={}'.format(path_prefix))
         
         # read the latest checkpoint file and write to quilt
         last_chk_path = tensorflow.train.latest_checkpoint(checkpoint_dir=save_path)
-        if latest_filename is None:
-            latest_filename = "checkpoint"
         pkginfo = pkg+'/'+checkpoints_nodepath+'/'+latest_filename
-        print('last_chk_path={}  pkginfo={}'.format(last_chk_path, pkginfo))
-        command.update(pkginfo, last_chk_path)
+        #print('last_chk_path={}  pkginfo={}'.format(last_chk_path, pkginfo))
+        command.build(pkg, command.update(pkginfo, os.path.join(save_path, latest_filename)))
 
         # read the checkpoint data and write to quilt
-        import glob
         for filename in glob.glob(path_prefix + "*"):  # foo/bar/-1234*
-            with open(filename, 'rb') as fh:
-                basename = os.path.basename(filename)   # foo/bar/-1234.meta ==> -1234.meta
-                quilt_path = filename2quiltnode(pkg+'/'+checkpoints_nodepath+'/'+basename)
-                print('filename={}  quilt_path={}'.format(filename, quilt_path))
-                command.update(quilt_path, fh.read())
-                print('update() completed.')
-        print('save_latest_to_quilt done.  path_prefix={}'.format(path_prefix))
-        command.build_from_node(pkg, command.importpkg(pkg))
-        print('built!')
-        import sys; sys.exit(0)
+            basename = os.path.basename(filename)   # foo/bar/-1234.meta ==> -1234.meta
+            quilt_path = filename2quiltnode(pkg+'/'+checkpoints_nodepath+'/'+basename)
+            #print('filename={}  quilt_path={}'.format(filename, quilt_path))
+            command.build(pkg, command.update(quilt_path, filename))
+            #print('update/build completed.')
+
+        #print('save_latest_to_quilt done.  path_prefix={}  pkg={}'.format(path_prefix, pkg))
+        patchers_start()
+        save_patcher.start()
         return path_prefix
     save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)

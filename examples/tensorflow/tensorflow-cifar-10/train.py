@@ -7,8 +7,16 @@ from include.data import get_data_set
 from include.model import model
 
 import quilt.vfs
-quilt.vfs.setup('asah/cifar_test', mappings={'data_set/cifar_10':'data_set.cifar_10'})
+
+# read the input data from Quilt
+quilt.vfs.setup('asah/ct4', mappings={'data_set/cifar_10':'data_set.cifar_10'})
+# disable this code (train.py) from looking for local input files, since they're in Quilt
 quilt.vfs.patch('include.data', 'maybe_download_and_extract', lambda: None)
+
+# checkpoints:
+# 1. have tensorflow read its latest checkpoint from Quilt
+# 2. have tensorflow save new checkpoints to Quilt (in addition to local disk)
+quilt.vfs.setup_tensorflow_checkpoints('asah/ct4', checkpoints_nodepath='tensorboard/cifar_10')
 
 train_x, train_y, train_l = get_data_set()
 test_x, test_y, test_l = get_data_set("test")
