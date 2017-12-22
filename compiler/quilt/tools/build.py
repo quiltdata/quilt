@@ -9,7 +9,7 @@ import os
 import re
 
 from pandas.errors import ParserError
-from six import iteritems, itervalues
+from six import iteritems, itervalues, string_types
 
 import yaml
 from tqdm import tqdm
@@ -290,9 +290,9 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     def find(key, value):
         """
         find matching nodes recursively;
-        only descend iterables
+        only descend iterables that aren't strings
         """
-        if isinstance(value, Iterable):
+        if isinstance(value, Iterable) and not isinstance(value, string_types):
             for k, v in iteritems(value):
                 if k == key:
                     yield v

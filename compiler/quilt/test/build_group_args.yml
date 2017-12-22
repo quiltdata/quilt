@@ -19,6 +19,8 @@ contents:
       file: data/csv.txt
     tsv:
       # should auto-infer as TSV
+      kwargs:
+        parse_dates: ['Date0']
       file: data/10KRows13Cols.tsv
     subgroup:
       # transform and skiprows apply to all children, unless overidden
