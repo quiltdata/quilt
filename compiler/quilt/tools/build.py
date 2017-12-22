@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
-from .core import GroupNode, PackageFormat
+from .core import GroupNode
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
@@ -133,7 +133,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
+def _build_node(build_dir, package, name, node, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -174,13 +174,13 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 # child_name is a glob string, use it to generate multiple child nodes
                 for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
                     full_gchild_name = name + '/' + gchild_name if name else gchild_name
-                    _build_node(build_dir, package, full_gchild_name, gchild_table, fmt,
+                    _build_node(build_dir, package, full_gchild_name, gchild_table,
                         checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
                 full_child_name = name + '/' + child_name if name else child_name
-                _build_node(build_dir, package, full_child_name, child_table, fmt,
+                _build_node(build_dir, package, full_child_name, child_table,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
@@ -262,7 +262,6 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                     print("Registering %s..." % path)
                     package.save_file(path, name, rel_path, target)
             elif transform == PARQUET:
-                assert PackageFormat(fmt) is PackageFormat.PARQUET
                 if checks:
                     from pyarrow.parquet import ParquetDataset
                     dataset = ParquetDataset(path)
@@ -294,7 +293,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+                    package.save_cached_df(cachedobjs, name, rel_path, transform, target)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -311,7 +310,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target)
 
                         # Add to cache
                         cache_entry = dict(
@@ -448,17 +447,6 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
-    pkgformat = build_data.get('format', PackageFormat.default.value)
-    if not isinstance(pkgformat, str):
-        raise BuildException("'format' must be a string")
-    try:
-        pkgformat = PackageFormat(pkgformat)
-    except ValueError:
-        raise BuildException("Unsupported format: %r" % pkgformat)
-
-    # HDF5 no longer supported.
-    if pkgformat is PackageFormat.HDF5:
-        raise BuildException("HDF5 format is no longer supported; please use PARQUET instead.")
 
     # inline checks take precedence
     checks_contents = {} if checks_contents is None else checks_contents
@@ -466,7 +454,7 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
 
     store = PackageStore()
     newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, '', contents, pkgformat,
+    _build_node(build_dir, newpackage, '', contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:

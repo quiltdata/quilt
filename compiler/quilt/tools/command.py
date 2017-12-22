@@ -31,7 +31,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
 from .const import DEFAULT_BUILDFILE, DTIMEF
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
+from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -562,7 +562,7 @@ def build_from_node(package, node):
             if isinstance(core_node, TableNode):
                 dataframe = node._data()
                 package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    'pandas', PackageFormat.default)
+                                    'pandas')
             elif isinstance(core_node, FileNode):
                 src_path = node._data()
                 package_obj.save_file(src_path, path, metadata.get('q_path'))

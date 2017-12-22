@@ -146,12 +146,6 @@ class Package(object):
         filehash = hash_list[0]
         return self._store.object_path(filehash)
 
-    def _read_hdf5(self, hash_list):
-        assert len(hash_list) == 1, "Multi-file DFs not supported in HDF5."
-        filehash = hash_list[0]
-        with pd.HDFStore(self._store.object_path(filehash), 'r') as store:
-            return store.get(self.DF_NAME)
-
     def _read_parquet_arrow(self, hash_list):
         from pyarrow.parquet import ParquetDataset
 
@@ -169,26 +163,20 @@ class Package(object):
         dataframe = spark.read.parquet(*objfiles)
         return dataframe
 
-    def _dataframe(self, hash_list, pkgformat):
+    def _dataframe(self, hash_list):
         """
         Creates a DataFrame from a set of objects (identified by hashes).
         """
-        enumformat = PackageFormat(pkgformat)
-        if enumformat is PackageFormat.HDF5:
-            return self._read_hdf5(hash_list)
-        elif enumformat is PackageFormat.PARQUET:
-            parqlib = self.get_parquet_lib()
-            if parqlib is ParquetLib.SPARK:
-                return self._read_parquet_spark(hash_list)
-            elif parqlib is ParquetLib.ARROW:
-                try:
-                    return self._read_parquet_arrow(hash_list)
-                except ValueError as err:
-                    raise PackageException(str(err))
-            else:
-                assert False, "Unimplemented Parquet Library %s" % parqlib
+        parqlib = self.get_parquet_lib()
+        if parqlib is ParquetLib.SPARK:
+            return self._read_parquet_spark(hash_list)
+        elif parqlib is ParquetLib.ARROW:
+            try:
+                return self._read_parquet_arrow(hash_list)
+            except ValueError as err:
+                raise PackageException(str(err))
         else:
-            assert False, "Unimplemented package format: %s" % enumformat
+            assert False, "Unimplemented Parquet Library %s" % parqlib
 
     def _check_hashes(self, hash_list):
         for objhash in hash_list:
@@ -217,39 +205,34 @@ class Package(object):
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
             contents.children = pkgnode.children.copy()
 
-    def save_cached_df(self, hashes, name, path, ext, target, fmt):
+    def save_cached_df(self, hashes, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
         buildfile = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
+        self._add_to_contents(buildfile, hashes, ext, path, target)
 
-    def save_df(self, dataframe, name, path, ext, target, fmt):
+    def save_df(self, dataframe, name, path, ext, target):
         """
         Save a DataFrame to the store.
         """
-        enumformat = PackageFormat(fmt)
         buildfile = name.lstrip('/').replace('/', '.')
         storepath = self._store.temporary_object_path(buildfile)
 
-        # Serialize DataFrame to chosen format
-        if enumformat is PackageFormat.PARQUET:
-            # switch parquet lib
-            parqlib = self.get_parquet_lib()
-            if isinstance(dataframe, pd.DataFrame):
-                #parqlib is ParquetLib.ARROW: # other parquet libs are deprecated, remove?
-                import pyarrow as pa
-                from pyarrow import parquet
-                table = pa.Table.from_pandas(dataframe)
-                parquet.write_table(table, storepath)
-            elif parqlib is ParquetLib.SPARK:
-                from pyspark import sql as sparksql
-                assert isinstance(dataframe, sparksql.DataFrame)
-                dataframe.write.parquet(storepath)
-            else:
-                assert False, "Unimplemented ParquetLib %s" % parqlib
+        # switch parquet lib
+        parqlib = self.get_parquet_lib()
+        if isinstance(dataframe, pd.DataFrame):
+            #parqlib is ParquetLib.ARROW: # other parquet libs are deprecated, remove?
+            import pyarrow as pa
+            from pyarrow import parquet
+            table = pa.Table.from_pandas(dataframe)
+            parquet.write_table(table, storepath)
+        elif parqlib is ParquetLib.SPARK:
+            from pyspark import sql as sparksql
+            assert isinstance(dataframe, sparksql.DataFrame)
+            dataframe.write.parquet(storepath)
         else:
-            assert False, "Unimplemented PackageFormat %s" % enumformat
+            assert False, "Unimplemented ParquetLib %s" % parqlib
 
         # Move serialized DataFrame to object store
         if os.path.isdir(storepath): # Pyspark
@@ -260,12 +243,12 @@ class Package(object):
                 objhash = digest_file(path)
                 move(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(buildfile, hashes, ext, path, target, fmt)
+            self._add_to_contents(buildfile, hashes, ext, path, target)
             rmtree(storepath)
             return hashes
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(buildfile, [filehash], ext, path, target, fmt)
+            self._add_to_contents(buildfile, [filehash], ext, path, target)
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
@@ -290,7 +273,7 @@ class Package(object):
         """
         fullname = name.lstrip('/').replace('/', '.')
         if fullname:
-            self._add_to_contents(fullname, None, '', None, 'group', None)
+            self._add_to_contents(fullname, None, '', None, 'group')
 
     def get_contents(self):
         """
@@ -329,11 +312,13 @@ class Package(object):
         """
         if isinstance(node, TableNode):
             self._check_hashes(node.hashes)
-            return self._dataframe(node.hashes, node.format)
+            if node.format is PackageFormat.HDF5:
+                raise PackageException("HDF5 format is no longer supported")
+            return self._dataframe(node.hashes)
         elif isinstance(node, GroupNode):
             hash_list = list(find_object_hashes(node, sort=True))
             self._check_hashes(hash_list)
-            return self._dataframe(hash_list, PackageFormat.PARQUET)
+            return self._dataframe(hash_list)
         elif isinstance(node, FileNode):
             self._check_hashes(node.hashes)
             return self.file(node.hashes)
@@ -358,7 +343,7 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt=PackageFormat.default):
+    def _add_to_contents(self, fullname, hashes, ext, path, target):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
@@ -381,10 +366,9 @@ class Package(object):
             if target_type is TargetType.GROUP:
                 node = GroupNode(dict())
             elif target_type is TargetType.PANDAS:
-                assert fmt is not None
                 node = TableNode(
                     hashes=hashes,
-                    format=fmt.value,
+                    format=PackageFormat.default.value,
                     metadata=metadata
                 )
             elif target_type is TargetType.FILE:
