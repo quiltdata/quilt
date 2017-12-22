@@ -1,4 +1,5 @@
-Production release [![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt)
+[![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby)
+
 
 | OS | `master` | Python support |
 |----|--------------------|----------------|
@@ -47,12 +48,3 @@ Quilt consists of three components:
     - `pull`s packages from the registry
     
 <img width="640" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
-
-# Discussion
-
-[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby)
-
-
-
-
-
