@@ -24,10 +24,6 @@ PACKAGE_SCHEMA = {
         'contents': {
             'type': 'object',
             'properties': {
-                'format' : {
-                    # DEPRECATED.
-                    'enum': [fmt.value for fmt in PackageFormat]
-                },
                 'type': {
                     'enum': [RootNode.json_type]
                 },

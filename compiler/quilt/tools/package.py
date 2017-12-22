@@ -91,23 +91,7 @@ class Package(object):
             raise PackageException(msg.format(hash=instance_hash, owner=self._user, pkg=self._package))
         
         with open(contents_path, 'r') as contents_file:
-            contents = json.load(contents_file, object_hook=decode_node)
-            if not isinstance(contents, RootNode):
-                # Really old package: no root node.
-                contents = RootNode(contents.children)
-            # Fix packages with no format in data nodes.
-            pkg_format = contents.format or PackageFormat.HDF5
-            self._fix_format(contents, pkg_format)
-            return contents
-
-    @classmethod
-    def _fix_format(cls, contents, pkg_format):
-        for child in itervalues(contents.children):
-            if isinstance(child, GroupNode):
-                cls._fix_format(child, pkg_format)
-            elif isinstance(child, TableNode):
-                if child.format is None:
-                    child.format = pkg_format
+            return json.load(contents_file, object_hook=decode_node)
 
     def file(self, hash_list):
         """
