@@ -38,7 +38,7 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
-        'backports.tempfile; python_version<"3.4"'   # stdlib backport
+        'backports.tempfile; python_version<"3.4"',   # stdlib backport
         'enum34; python_version<"3.4"',     # stdlib backport
         'funcsigs; python_version<"3.4"'    # stdlib backport
         'future>=0.16.0',
