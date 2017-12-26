@@ -29,10 +29,23 @@ class Team(db.Model):
 
     users = db.relationship('UserTeam', back_populates='team')
 
+    @property
+    def is_public(self):
+        return self.name == PUBLIC
+
+    @classmethod
+    def get_public_team(cls):
+        # TODO(dima): Look it up only once!
+        return cls.query.filter_by(name=PUBLIC).one()
+
     @classmethod
     def get_by_user(cls, user):
         assert user != PUBLIC
-        return cls.query.join(cls.users).filter_by(user=user).one_or_none()
+        team = cls.query.join(cls.users).filter_by(user=user).one_or_none()
+        if team is None:
+            return cls.get_public_team()
+        else:
+            return team
 
 class UserTeam(db.Model):
     user = db.Column(USERNAME_TYPE, primary_key=True)
@@ -43,7 +56,7 @@ class UserTeam(db.Model):
 
 class Package(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
-    team_id = db.Column(db.BigInteger, db.ForeignKey('team.id'))
+    team_id = db.Column(db.BigInteger, db.ForeignKey('team.id'), nullable=False)
     owner = db.Column(USERNAME_TYPE, nullable=False)
     name = db.Column(CaseSensitiveString(64), nullable=False)
 

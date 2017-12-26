@@ -18,6 +18,7 @@ import sqlalchemy_utils
 import quilt_server
 from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import encode_node, hash_contents
+from quilt_server.models import Team
 
 class MockMixpanelConsumer(object):
     """
@@ -59,6 +60,11 @@ class QuiltTestCase(TestCase):
 
         sqlalchemy_utils.create_database(self.db_url)
         quilt_server.db.create_all()
+
+        # Create the "public" team.
+        # It's normally created by a DB migration - but migrations are not used in tests.
+        quilt_server.db.session.add(Team(name=PUBLIC))
+        quilt_server.db.session.commit()
 
     def tearDown(self):
         quilt_server.db.session.remove()

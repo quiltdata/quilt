@@ -32,7 +32,10 @@ def upgrade():
         sa.ForeignKeyConstraint(['team_id'], ['team.id'], ),
         sa.PrimaryKeyConstraint('user')
     )
-    op.add_column('package', sa.Column('team_id', sa.BigInteger(), nullable=True))
+
+    op.add_column('package', sa.Column('team_id', sa.BigInteger(), nullable=False))
+    op.execute('''INSERT INTO team VALUES (0, "public")''')
+    op.execute('''UPDATE package, team SET package.team_id = team.id WHERE team.name = "public"''')
 
     op.create_index('idx_team_owner_name', 'package', ['team_id', 'owner', 'name'], unique=True)
     op.drop_index('idx_owner_name', table_name='package')

@@ -267,7 +267,7 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(PUBLIC, None, None)
+            g.auth = Auth(PUBLIC, None, Team.get_public_team())
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -319,12 +319,13 @@ def _get_team(auth, team_name):
     Looks up the team by name, if the user has access to it.
     Team users can see their own team and the public cloud. Non-team users can only see the public cloud.
     """
-    if team_name == PUBLIC:
-        return None  # The public cloud
-
-    if auth.team is not None and auth.team.name == team_name:
-        # User's own team.
+    if auth.team.name == team_name:
+        # User's own team (including public cloud for public cloud users)
         return auth.team
+
+    if team_name == PUBLIC:
+        # Public cloud (for actual team users)
+        return Team.get_public_team()
 
     # We return a 403, unlike a 404 for packages. This seems more logical - and
     # we're not leaking info about existence of the team regardless.
@@ -335,7 +336,7 @@ def _check_team_write(auth, team):
     Checks if the user has write access to the given team.
     For now, users can only write data to their own team - and not the public cloud.
     """
-    assert team is None or isinstance(team, Team)
+    assert isinstance(team, Team)
 
     if auth.team != team:
         raise ApiException(requests.codes.forbidden, "No write access to this team")
@@ -349,9 +350,9 @@ def _check_share(auth, team, other_user):
     assert auth.team == team
 
     if other_user == PUBLIC:
-        other_team = None
+        other_team = Team.get_public_team()
     elif other_user == TEAM:
-        if team is None:
+        if team.is_public:
             raise ApiException(requests.codes.forbidden, "Not a team package")
         other_team = team
     else:
@@ -364,7 +365,7 @@ def _access_filter(auth, team):
     query = [PUBLIC]
     if auth.user != PUBLIC:
         query.append(auth.user)
-    if auth.team == team and team is not None:
+    if auth.team == team and not team.is_public:
         query.append(TEAM)
     return Access.user.in_(query)
 
@@ -1167,7 +1168,7 @@ def access_put(team_name, owner, package_name, user):
 
     if EMAILREGEX.match(user):
         # TODO(dima): What do we do about teams? For now, disallow everything for team users.
-        if g.auth.team is not None:
+        if not g.auth.team.is_public:
             raise ApiException(requests.codes.forbidden, "Invitations not allowed")
 
         email = user
