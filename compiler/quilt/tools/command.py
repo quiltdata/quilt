@@ -1270,17 +1270,25 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     if subpath:
         node = get_node_child_by_path(node, subpath)
 
-    def iter_nodepath_filenames(node):
+    def iter_filename_map(node):
         """Yields [<node path>, <filename>] pairs for FileNodes under `node`"""
         for node_path in node._iterpaths():
             found_node = get_node_child_by_path(node, node_path)
-            filename = getattr(found_node, '_filename', None)
-            if filename is not None:
-                assert filename
-                yield (node_path, filename)
+            storage_filename = getattr(found_node, '_filename', None)
+            if storage_filename is not None:
+                assert storage_filename    # sanity check
+                
+                orig_path = pathlib.Path(found_node._node.metadata['q_path'])
+                orig_path = list(orig_path.parts)
+                print(node_path)
+                print(orig_path)
+                print("Paths equal: {}".format(orig_path[:-1] == node_path[:-1]))
+                print()
+                yield (orig_path, storage_filename)
+    
 
     # gather nodes to be exported
-    exports = ((os.path.join(*dest), src) for dest, src in iter_nodepath_filenames(node))
+    exports = ((os.path.join(*dest), src) for dest, src in iter_filename_map(node))
 
     # filter exports
     exports = ((dest, src) for dest, src in exports if filter(dest) is True)

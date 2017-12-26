@@ -531,7 +531,11 @@ class CommandTest(QuiltTestCase):
         test_data = [
             ('example', os.urandom(500)),
             ('subdir/subdir_example', os.urandom(300)),
-            ('readme', os.urandom(200)),
+            ('readme.md', os.urandom(200)),
+            # these are invalid python identifiers, but should be handled without issue
+            ('subdir/9bad-identifier.html', os.urandom(100)),
+            ('3-bad-identifier/bad_parent_identifier.html', os.urandom(100)),
+            ('3-bad-identifier/9{}bad-identifier.html', os.urandom(100)),
             ]
 
         shash = lambda data: hashlib.sha256(data).hexdigest()
