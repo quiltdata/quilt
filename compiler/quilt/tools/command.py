@@ -1277,15 +1277,9 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             storage_filename = getattr(found_node, '_filename', None)
             if storage_filename is not None:
                 assert storage_filename    # sanity check
-                
                 orig_path = pathlib.Path(found_node._node.metadata['q_path'])
                 orig_path = list(orig_path.parts)
-                print(node_path)
-                print(orig_path)
-                print("Paths equal: {}".format(orig_path[:-1] == node_path[:-1]))
-                print()
                 yield (orig_path, storage_filename)
-    
 
     # gather nodes to be exported
     exports = ((os.path.join(*dest), src) for dest, src in iter_filename_map(node))
