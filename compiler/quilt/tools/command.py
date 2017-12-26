@@ -1271,15 +1271,16 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         node = get_node_child_by_path(node, subpath)
 
     def iter_filename_map(node):
-        """Yields [<node path>, <filename>] pairs for FileNodes under `node`"""
+        """Yields [<original path>, <storage file path>] pairs for FileNodes under `node`"""
         for node_path in node._iterpaths():
             found_node = get_node_child_by_path(node, node_path)
             storage_filename = getattr(found_node, '_filename', None)
             if storage_filename is not None:
-                assert storage_filename    # sanity check
+                assert storage_filename    # sanity check -- no blank filenames
                 orig_path = pathlib.Path(found_node._node.metadata['q_path'])
                 orig_path = list(orig_path.parts)
                 yield (orig_path, storage_filename)
+
 
     # gather nodes to be exported
     exports = ((os.path.join(*dest), src) for dest, src in iter_filename_map(node))
