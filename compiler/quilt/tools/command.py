@@ -20,7 +20,6 @@ from threading import Thread, Lock
 import time
 import yaml
 import importlib
-import itertools
 
 from packaging.version import Version
 import pandas as pd
@@ -1294,7 +1293,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
                 orig_path = found_node._node.metadata['q_path']
                 yield (orig_path, storage_filename)
 
-    # Iterate over filename map and filter exports
+    # Iterate over filename map, filtering exports
     exports = ((dest, src) for dest, src in iter_filename_map(node) if filter(dest) is True)
 
     # apply mapping to exports
