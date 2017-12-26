@@ -20,6 +20,7 @@ from threading import Thread, Lock
 import time
 import yaml
 import importlib
+import itertools
 
 from packaging.version import Version
 import pandas as pd
@@ -1271,22 +1272,30 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         node = get_node_child_by_path(node, subpath)
 
     def iter_filename_map(node):
-        """Yields [<original path>, <storage file path>] pairs for FileNodes under `node`"""
+        """Yields (<original path>, <storage file path>) pairs for given `node`.
+
+        If `node._filename` exists and is truthy, yeild pair for `node`.
+        If `node` is a group node, yield pairs for children of `node`.
+
+        :returns: Iterator of (<original path>, <storage file path>) pairs
+        """
+        if getattr(node, '_filename', None):
+            orig_path = node._node.metadata['q_path']
+            yield (orig_path, node._filename)
+
+        if not isinstance(node, nodes.GroupNode):
+            return
+
         for node_path in node._iterpaths():
             found_node = get_node_child_by_path(node, node_path)
             storage_filename = getattr(found_node, '_filename', None)
             if storage_filename is not None:
                 assert storage_filename    # sanity check -- no blank filenames
-                orig_path = pathlib.Path(found_node._node.metadata['q_path'])
-                orig_path = list(orig_path.parts)
+                orig_path = found_node._node.metadata['q_path']
                 yield (orig_path, storage_filename)
 
-
-    # gather nodes to be exported
-    exports = ((os.path.join(*dest), src) for dest, src in iter_filename_map(node))
-
-    # filter exports
-    exports = ((dest, src) for dest, src in exports if filter(dest) is True)
+    # Iterate over filename map and filter exports
+    exports = ((dest, src) for dest, src in iter_filename_map(node) if filter(dest) is True)
 
     # apply mapping to exports
     exports = ((mapper(dest), src) for dest, src in exports)
@@ -1306,6 +1315,15 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
 
         final_export_map.append((src, dest))
+
+    # Skip it if there's nothing to do
+    if not final_export_map:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
     # Paths verified, let's export..
     sys.stdout.write('Exporting.')
     sys.stdout.flush()
