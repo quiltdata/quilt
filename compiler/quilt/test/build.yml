@@ -2,9 +2,9 @@
 contents:
   dataframes:
     csv: 
-    kwargs:
-      parse_dates: ['Date0']
-    file: data/10KRows13Cols.csv
+      kwargs:
+        parse_dates: ['Date0']
+      file: data/10KRows13Cols.csv
     nulls:
       file: data/nulls.csv
     tsv:
