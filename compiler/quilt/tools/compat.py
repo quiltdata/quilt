@@ -8,27 +8,28 @@ For others, import the module here under the python3 name (if there are naming d
 Unfortunately, this *doesn't* allow for `from .tools.compat.foo import bar`, so if needed,
 import frequently-used objects here for convenience.
 """
-# disable unused import warnings
-# pylint: disable=W0611
+# unused imports -- pylint: disable=W0611
 
-import six as _six
+import sys as _sys
 
-if _six.PY34:
-    import pathlib
-    import tempfile
-    # from unittest import mock
 
-    # inspect.argspec is deprecated, so
-    from inspect import signature
-else:
-    import pathlib2 as pathlib
+# Reflecting requirements in setup.py
+# Python < 3.4
+if _sys.version_info < (3, 4):
     from backports import tempfile
-    # import mock
+    from funcsigs import signature  # inspect.argspec is deprecated
+else:
+    import tempfile
+    from inspect import signature   # inspect.argspec is deprecated
 
-    # inspect.argspec is deprecated, so
-    from funcsigs import signature
+# Python < 3.5
+if _sys.version_info < (3, 5):
+    import pathlib2 as pathlib
+else:
+    import pathlib
+
 
 # convenience references (examples) to allow `from .tools.compat import some_obj`
 # path = mock.path
-Path = pathlib.Path
+# Path = pathlib.Path
 # TemporaryDirectory = tempdir.TemporaryDirectory
