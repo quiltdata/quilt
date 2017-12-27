@@ -1294,7 +1294,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
                 yield (orig_path, storage_filename)
 
     # Iterate over filename map, filtering exports
-    exports = ((dest, src) for dest, src in iter_filename_map(node) if filter(dest) is True)
+    exports = ((dest, src) for dest, src in iter_filename_map(node) if filter(dest))
 
     # apply mapping to exports
     exports = ((mapper(dest), src) for dest, src in exports)
