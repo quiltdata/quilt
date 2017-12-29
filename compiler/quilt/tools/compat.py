@@ -29,7 +29,8 @@ else:
     import pathlib
 
 
-# convenience references (examples) to allow `from .tools.compat import some_obj`
-# path = mock.path
+# Example convenience references to allow `from .tools.compat import some_obj`
+
+# patch = mock.patch
 # Path = pathlib.Path
-# TemporaryDirectory = tempdir.TemporaryDirectory
+# TemporaryDirectory = tempfile.TemporaryDirectory
