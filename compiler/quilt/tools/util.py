@@ -1,11 +1,14 @@
 """
 Helper functions.
 """
-
+import re
 import gzip
+import keyword
+import tokenize
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
+
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -81,3 +84,28 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
+
+def is_identifier(string):
+    """Check if string could be a valid python identifier
+
+    :param string: string to be tested
+    :returns: True if string can be a python identifier, False otherwise
+    :rtype: bool
+    """
+    val = re.match(tokenize.Name + '$', string) and not keyword.iskeyword(string)
+    return True if val else False
+
+
+def is_nodename(string):
+    """Check if string could be a valid node name
+
+    Convenience, and a good place to aggregate node-name related checks.
+
+    :param string: string to be tested
+    :returns: True if string could be used as a node name, False otherwise
+    :rtype: bool
+    """
+    if string.startswith('_'):
+        return False
+    return is_identifier(string)
