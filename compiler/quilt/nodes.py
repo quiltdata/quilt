@@ -131,10 +131,15 @@ class PackageNode(GroupNode):
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
+            # TODO: what about dataframe metadata?
             core_node = core.TableNode(hashes=[])
         elif isinstance(value, string_types):
-            core_node = core.FileNode(hashes=[])
+            # If metadata isn't given, the FileNode won't retain the file path.
+            # REVIEW: Should this happen within the filenode itself?
+            metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
+            core_node = core.FileNode(hashes=[], metadata=metadata)
         elif isinstance(value, bytes):
+            # TODO: This seems unused.
             core_node = core.FileNode(hashes=[])
         else:
             # TODO: throw a proper exception?
