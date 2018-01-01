@@ -21,4 +21,5 @@ cov_html/*
 *~
 [#]*
 
-
+# Project Files
+.idea
