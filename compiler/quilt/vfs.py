@@ -3,10 +3,11 @@
     context version:
 
     >>> import quilt.vfs
-    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}): print(open('foo/bar/iris_names').read()[0:100])
-    ...
+    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
+    ...     print(open('foo/bar/iris_names').read()[0:100])
+
     1. Title: Iris Plants Database
-    	Updated Sept 21 by C.Blake - Added discrepency information
+        Updated Sept 21 by C.Blake - Added discrepency information
 
     2. Sourc
     >>> print(open('foo/bar/iris_names').read()[0:100])
@@ -22,7 +23,7 @@
     >>> patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
     >>> print(open('foo/bar/iris_names').read()[0:100])
     1. Title: Iris Plants Database
-    	Updated Sept 21 by C.Blake - Added discrepency information
+        Updated Sept 21 by C.Blake - Added discrepency information
 
     2. Sourc
     >>> quilt.vfs.teardown(patchers)
@@ -59,13 +60,13 @@
     # TODO: get this to work:
     # https://github.com/xuetsing/image-classification-tensorflow/blob/master/classify.py#L13
     >>> import quilt.vfs; import tensorflow as tf
-    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}): len(tf.gfile.FastGFile('foo/bar/iris_names').read())
+    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
+    ...     len(tf.gfile.FastGFile('foo/bar/iris_names').read())
     ==> errors on not finding tf or tf.gfile
 
 
 """
 import os.path
-import string
 import importlib
 from contextlib import contextmanager
 import re
@@ -94,7 +95,7 @@ def filepatch(module_name, func_name, action_func):
     files."""
     try:
         from unittest.mock import patch   # Python3
-    except:
+    except ImportError:
         from mock import patch  # Python2
         if module_name == 'builtins':
             module_name = '__builtin__'
@@ -156,15 +157,27 @@ DEFAULT_MODULE_MAPPINGS = {
     'gzip': 'GzipFile',
     'h5py': 'File',    # for keras/tensorflow
     # manually add tensorflow because it's a heavyweight library
-    #'tensorflow': 'gfile.FastGFile', 
+    #'tensorflow': 'gfile.FastGFile',
     #'tensorflow': 'gfile.GFile',
 }
 DEFAULT_MODULE_MAPPINGS = scrub_patchmap(DEFAULT_MODULE_MAPPINGS, True)
 
 
-# simple mapping of illegal chars to underscores.
-# TODO: more sophisticated function for handling illegal identifiers, e.g. number as first char
-DEFAULT_CHAR_MAPPINGS = dict([(char, '_') for char in string.whitespace + string.punctuation])
+# simple mapping of illegal chars to underscores, prepending 'n' if needed.
+def to_python_identifier(string):
+    """Makes a python identifier (perhaps an ugly one) out of any string.
+
+    This isn't an isomorphically reversible change, the original filename
+    must be stored as well.
+    """
+    string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
+    if string[0].isdigit():
+        string = "n" + string
+    return string
+
+
+DEFAULT_CHAR_MAPPINGS = to_python_identifier
+
 
 def create_charmap_func(charmap):
     if callable(charmap):
@@ -346,18 +359,15 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
     def filename2quiltnode(filename):
         # -6700.data-00000-of-00001 ==> n6700_data_00000_of_00001
         return re.sub(r'/-(\d+)[.]', r'/n\1_', str(filename)).replace('-', '_')
-    def quiltnode2filename(path):
-        # n6700_data_00000_of_00001 ==> -6700.data-00000-of-00001
-        return re.sub(r'/n(\d+)_', r'/-\1.', str(path)).replace('_', '-')
 
     # export prev checkpoints, which are too hard to virtualize because
     # TF has complex I/O functions to find the latest checkpoint etc.
-    command.export(pkg, force=True, mapper=quiltnode2filename, filter=lambda path:
-                   re.search('/tensorboard/', path))
+    command.export(pkg, force=True, filter=lambda path: re.search('/?tensorboard/', path))
 
+    # XXX: We could also subclass Saver(), as a Saver object is always needed to save progress
     # patch Saver.save() to read the checkpoint data and copy into Quilt.
     # TODO: add features, e.g. configurable checkpoints path
-    save_patcher = None
+    save_patcher = None  # defined below after function creation
     def save_latest_to_quilt(obj,
                              sess,
                              save_path,
@@ -366,7 +376,9 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
                              meta_graph_suffix="meta",
                              write_meta_graph=True,
                              write_state=True,
-                             pkg=pkg, checkpoints_nodepath=checkpoints_nodepath):
+                             pkg=pkg,
+                             checkpoints_nodepath=checkpoints_nodepath):
+
         #print('save_latest_to_quilt called')
         save_patcher.stop()
         patchers_stop()
