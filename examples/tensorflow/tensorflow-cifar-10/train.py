@@ -13,7 +13,8 @@ import quilt, quilt.vfs
 QUILT_PKG = 'asah/cifar10'
 
 print("Connecting to Quilt...")
-quilt.install(QUILT_PKG, force=True)
+# force=False because otherwise local data in storage is overwritten
+quilt.install(QUILT_PKG, force=False)
 
 print("   reading data from Quilt package: {}...".format(QUILT_PKG))
 quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'})
