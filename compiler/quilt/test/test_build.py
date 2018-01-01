@@ -5,6 +5,7 @@ Test the build process
 #the functions that cli calls
 import os
 
+from numpy import dtype
 import pandas.api.types as ptypes
 from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
@@ -135,6 +136,8 @@ class BuildTest(QuiltTestCase):
         # ENDTODO
         assert isinstance(pkg.group_b.tsv(), DataFrame), \
             'Expected `transform: tsv` to be inferred from file extension'
+        assert pkg.group_b.tsv()['Date0'].dtype == dtype('<M8[ns]'), \
+            'Expected Date0 column to parse as date'
         assert pkg.group_b.subgroup.tsv().shape == (1, 3), \
             'Expected `transform: tsv` and one skipped row from group args'
         assert pkg.group_b.subgroup.csv().shape == (0, 2), \
