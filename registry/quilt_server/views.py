@@ -26,10 +26,10 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC
+from .const import EMAILREGEX, PaymentPlan, PUBLIC, TEAM
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
-                     S3Blob, Tag, UTF8_GENERAL_CI, Version)
+                     S3Blob, Tag, Team, UTF8_GENERAL_CI, UserTeam, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -205,13 +205,14 @@ def token():
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 
-class Auth:
+class Auth(object):
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email):
+    def __init__(self, user, email, team):
         self.user = user
         self.email = email
+        self.team = team
 
 
 class ApiException(Exception):
@@ -266,7 +267,7 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(PUBLIC, None)
+            g.auth = Auth(PUBLIC, None, Team.get_public_team())
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -296,7 +297,9 @@ def api(require_login=True, schema=None):
                     assert user
                     email = data['email']
 
-                    g.auth = Auth(user, email)
+                    team = Team.get_by_user(user)
+
+                    g.auth = Auth(user, email, team)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
                         raise ApiException(
@@ -311,31 +314,86 @@ def api(require_login=True, schema=None):
         return wrapper
     return innerdec
 
-def _get_package(auth, owner, package_name):
+def _get_team(auth, team_name):
+    """
+    Looks up the team by name, if the user has access to it.
+    Team users can see their own team and the public cloud. Non-team users can only see the public cloud.
+    """
+    if auth.team.name == team_name:
+        # User's own team (including public cloud for public cloud users)
+        return auth.team
+
+    if team_name == PUBLIC:
+        # Public cloud (for actual team users)
+        return Team.get_public_team()
+
+    # We return a 403, unlike a 404 for packages. This seems more logical - and
+    # we're not leaking info about existence of the team regardless.
+    raise ApiException(requests.codes.forbidden, "Cannot access team %r" % team_name)
+
+def _check_team_write(auth, team):
+    """
+    Checks if the user has write access to the given team.
+    For now, users can only write data to their own team - and not the public cloud.
+    """
+    assert isinstance(team, Team)
+
+    if auth.team != team:
+        raise ApiException(requests.codes.forbidden, "No write access to this team")
+
+def _check_share(auth, team, other_user):
+    """
+    Checks if the user can share a given team's package with the given user.
+    Team users can only share with their own team; public users can only share with public users.
+    """
+    # Should already be enforced by _check_team_write.
+    assert auth.team == team
+
+    if other_user == PUBLIC:
+        other_team = Team.get_public_team()
+    elif other_user == TEAM:
+        if team.is_public:
+            raise ApiException(requests.codes.forbidden, "Not a team package")
+        other_team = team
+    else:
+        other_team = Team.get_by_user(other_user)
+
+    if team != other_team:
+        raise ApiException(requests.codes.forbidden, "Cannot share with this user")
+
+def _access_filter(auth, team):
+    query = [PUBLIC]
+    if auth.user != PUBLIC:
+        query.append(auth.user)
+    if auth.team == team and not team.is_public:
+        query.append(TEAM)
+    return Access.user.in_(query)
+
+def _get_package(auth, team, owner, package_name):
     """
     Helper for looking up a package and checking permissions.
     Only useful for *_list functions; all others should use more efficient queries.
     """
     package = (
         Package.query
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth.user, PUBLIC]))
+        .filter(_access_filter(auth, team))
         .one_or_none()
     )
     if package is None:
         raise PackageNotFoundException(owner, package_name, auth.user is not PUBLIC)
     return package
 
-def _get_instance(auth, owner, package_name, package_hash):
+def _get_instance(auth, team, owner, package_name, package_hash):
     instance = (
         Instance.query
         .filter_by(hash=package_hash)
         .options(undefer('contents'))  # Contents is deferred by default.
         .join(Instance.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth.user, PUBLIC]))
+        .filter(_access_filter(auth, team))
         .one_or_none()
     )
     if instance is None:
@@ -427,6 +485,21 @@ def _get_or_create_customer():
 def _get_customer_plan(customer):
     return PaymentPlan(customer.subscriptions.data[0].plan.id)
 
+def team_route(rule, defaults={}, **options):
+    """
+    Decorator that adds the route itself and the corresponding legacy non-team route.
+    """
+    legacy_rule = rule.replace('/<team_name>/', '/')
+    assert legacy_rule != rule, "Failed to create the legacy route for %s" % rule
+
+    legacy_defaults = dict(defaults, team_name=PUBLIC)
+
+    def decorator(f):
+        app.add_url_rule(rule, f.__name__, f, defaults=defaults, **options)
+        app.add_url_rule(legacy_rule, f.__name__ + '-legacy', f, defaults=legacy_defaults, **options)
+        return f
+    return decorator
+
 @app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
 @api()
 @as_json
@@ -440,10 +513,13 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
-@app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
+@team_route('/api/package/<team_name>/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
-def package_put(owner, package_name, package_hash):
+def package_put(team_name, owner, package_name, package_hash):
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
@@ -465,7 +541,7 @@ def package_put(owner, package_name, package_hash):
     package = (
         Package.query
         .with_for_update()
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
 
@@ -475,6 +551,7 @@ def package_put(owner, package_name, package_hash):
             Package.query
             .filter(
                 sa.and_(
+                    Package.team == team,
                     sa.sql.collate(Package.owner, UTF8_GENERAL_CI) == owner,
                     sa.sql.collate(Package.name, UTF8_GENERAL_CI) == package_name
                 )
@@ -500,7 +577,7 @@ def package_put(owner, package_name, package_hash):
                     (owner, package_name)
                 )
 
-        package = Package(owner=owner, name=package_name)
+        package = Package(team=team, owner=owner, name=package_name)
         db.session.add(package)
 
         owner_access = Access(package=package, user=owner)
@@ -511,6 +588,8 @@ def package_put(owner, package_name, package_hash):
             db.session.add(public_access)
     else:
         if public:
+            _check_share(g.auth, team, PUBLIC)
+
             public_access = (
                 Access.query
                 .filter(sa.and_(
@@ -611,6 +690,7 @@ def package_put(owner, package_name, package_hash):
 
     _mp_track(
         type="push",
+        package_team=team_name,
         package_owner=owner,
         package_name=package_name,
         public=public,
@@ -618,13 +698,14 @@ def package_put(owner, package_name, package_hash):
 
     return dict()
 
-@app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
+@team_route('/api/package/<team_name>/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_get(owner, package_name, package_hash):
+def package_get(team_name, owner, package_name, package_hash):
     subpath = request.args.get('subpath')
 
-    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    team = _get_team(g.auth, team_name)
+    instance = _get_instance(g.auth, team, owner, package_name, package_hash)
     contents = json.loads(instance.contents, object_hook=decode_node)
 
     subnode = contents
@@ -643,6 +724,7 @@ def package_get(owner, package_name, package_hash):
 
     _mp_track(
         type="install",
+        package_team=team_name,
         package_owner=owner,
         package_name=package_name,
         subpath=subpath,
@@ -670,11 +752,12 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     else:
         return None
 
-@app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
+@team_route('/api/package_preview/<team_name>/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_preview(owner, package_name, package_hash):
-    instance = _get_instance(g.auth, owner, package_name, package_hash)
+def package_preview(team_name, owner, package_name, package_hash):
+    team = _get_team(g.auth, team_name)
+    instance = _get_instance(g.auth, team, owner, package_name, package_hash)
     contents = json.loads(instance.contents, object_hook=decode_node)
 
     readme = contents.children.get('README')
@@ -701,11 +784,12 @@ def package_preview(owner, package_name, package_hash):
         updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
-@app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/package/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def package_list(owner, package_name):
-    package = _get_package(g.auth, owner, package_name)
+def package_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
     instances = (
         Instance.query
         .filter_by(package=package)
@@ -715,15 +799,16 @@ def package_list(owner, package_name):
         hashes=[instance.hash for instance in instances]
     )
 
-@app.route('/api/package/<owner>/<package_name>/', methods=['DELETE'])
+@team_route('/api/package/<team_name>/<owner>/<package_name>/', methods=['DELETE'])
 @api()
 @as_json
-def package_delete(owner, package_name):
+def package_delete(team_name, owner, package_name):
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can delete packages.")
 
-    package = _get_package(g.auth, owner, package_name)
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     db.session.delete(package)
     db.session.commit()
@@ -754,11 +839,12 @@ def user_packages(owner):
         ]
     )
 
-@app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/log/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def logs_list(owner, package_name):
-    package = _get_package(g.auth, owner, package_name)
+def logs_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     logs = (
         db.session.query(Log, Instance)
@@ -794,10 +880,13 @@ def normalize_version(version):
 
     return version
 
-@app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['PUT'])
+@team_route('/api/version/<team_name>/<owner>/<package_name>/<package_version>', methods=['PUT'])
 @api(schema=VERSION_SCHEMA)
 @as_json
-def version_put(owner, package_name, package_version):
+def version_put(team_name, owner, package_name, package_version):
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(
@@ -815,7 +904,7 @@ def version_put(owner, package_name, package_version):
         Instance.query
         .filter_by(hash=package_hash)
         .join(Instance.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
 
@@ -837,12 +926,13 @@ def version_put(owner, package_name, package_version):
 
     return dict()
 
-@app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['GET'])
+@team_route('/api/version/<team_name>/<owner>/<package_name>/<package_version>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def version_get(owner, package_name, package_version):
+def version_get(team_name, owner, package_name, package_version):
+    team = _get_team(g.auth, team_name)
     package_version = normalize_version(package_version)
-    package = _get_package(g.auth, owner, package_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     instance = (
         Instance.query
@@ -859,6 +949,7 @@ def version_get(owner, package_name, package_version):
 
     _mp_track(
         type="get_hash",
+        package_team=team_name,
         package_owner=owner,
         package_name=package_name,
         package_version=package_version,
@@ -872,11 +963,12 @@ def version_get(owner, package_name, package_version):
         updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
-@app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/version/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def version_list(owner, package_name):
-    package = _get_package(g.auth, owner, package_name)
+def version_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     versions = (
         db.session.query(Version, Instance)
@@ -906,10 +998,13 @@ TAG_SCHEMA = {
     'required': ['hash']
 }
 
-@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['PUT'])
+@team_route('/api/tag/<team_name>/<owner>/<package_name>/<package_tag>', methods=['PUT'])
 @api(schema=TAG_SCHEMA)
 @as_json
-def tag_put(owner, package_name, package_tag):
+def tag_put(team_name, owner, package_name, package_tag):
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(
@@ -924,7 +1019,7 @@ def tag_put(owner, package_name, package_tag):
         Instance.query
         .filter_by(hash=package_hash)
         .join(Instance.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
 
@@ -952,11 +1047,12 @@ def tag_put(owner, package_name, package_tag):
 
     return dict()
 
-@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['GET'])
+@team_route('/api/tag/<team_name>/<owner>/<package_name>/<package_tag>', methods=['GET'])
 @api(require_login=False)
 @as_json
-def tag_get(owner, package_name, package_tag):
-    package = _get_package(g.auth, owner, package_name)
+def tag_get(team_name, owner, package_name, package_tag):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     instance = (
         Instance.query
@@ -973,6 +1069,7 @@ def tag_get(owner, package_name, package_tag):
 
     _mp_track(
         type="get_hash",
+        package_team=team_name,
         package_owner=owner,
         package_name=package_name,
         package_tag=package_tag,
@@ -986,10 +1083,13 @@ def tag_get(owner, package_name, package_tag):
         updated_at=_utc_datetime_to_ts(instance.updated_at),
     )
 
-@app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
+@team_route('/api/tag/<team_name>/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
 @api()
 @as_json
-def tag_delete(owner, package_name, package_tag):
+def tag_delete(team_name, owner, package_name, package_tag):
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(
@@ -1002,7 +1102,7 @@ def tag_delete(owner, package_name, package_tag):
         .with_for_update()
         .filter_by(tag=package_tag)
         .join(Tag.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
     if tag is None:
@@ -1016,11 +1116,12 @@ def tag_delete(owner, package_name, package_tag):
 
     return dict()
 
-@app.route('/api/tag/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/tag/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
-def tag_list(owner, package_name):
-    package = _get_package(g.auth, owner, package_name)
+def tag_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
 
     tags = (
         db.session.query(Tag, Instance)
@@ -1039,10 +1140,10 @@ def tag_list(owner, package_name):
         ]
     )
 
-@app.route('/api/access/<owner>/<package_name>/<user>', methods=['PUT'])
+@team_route('/api/access/<team_name>/<owner>/<package_name>/<user>', methods=['PUT'])
 @api()
 @as_json
-def access_put(owner, package_name, user):
+def access_put(team_name, owner, package_name, user):
     # TODO: use re to check for valid username (e.g., not ../, etc.)
     if not user:
         raise ApiException(requests.codes.bad_request, "A valid user is required")
@@ -1053,16 +1154,23 @@ def access_put(owner, package_name, user):
             "Only the package owner can grant access"
         )
 
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     package = (
         Package.query
         .with_for_update()
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
     if EMAILREGEX.match(user):
+        # TODO(dima): What do we do about teams? For now, disallow everything for team users.
+        if not g.auth.team.is_public:
+            raise ApiException(requests.codes.forbidden, "Invitations not allowed")
+
         email = user
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
@@ -1091,7 +1199,9 @@ def access_put(owner, package_name, user):
         return dict()
 
     else:
-        if user != PUBLIC:
+        _check_share(g.auth, team, user)
+
+        if user not in (PUBLIC, TEAM):
             resp = requests.get(OAUTH_PROFILE_API % user)
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
@@ -1113,10 +1223,12 @@ def access_put(owner, package_name, user):
 
         return dict()
 
-@app.route('/api/access/<owner>/<package_name>/<user>', methods=['GET'])
+@team_route('/api/access/<team_name>/<owner>/<package_name>/<user>', methods=['GET'])
 @api()
 @as_json
-def access_get(owner, package_name, user):
+def access_get(team_name, owner, package_name, user):
+    team = _get_team(g.auth, team_name)
+
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1127,7 +1239,7 @@ def access_get(owner, package_name, user):
         db.session.query(Access)
         .filter_by(user=user)
         .join(Access.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
     if access is None:
@@ -1135,10 +1247,13 @@ def access_get(owner, package_name, user):
 
     return dict()
 
-@app.route('/api/access/<owner>/<package_name>/<user>', methods=['DELETE'])
+@team_route('/api/access/<team_name>/<owner>/<package_name>/<user>', methods=['DELETE'])
 @api()
 @as_json
-def access_delete(owner, package_name, user):
+def access_delete(team_name, owner, package_name, user):
+    team = _get_team(g.auth, team_name)
+    _check_team_write(g.auth, team)
+
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1166,7 +1281,7 @@ def access_delete(owner, package_name, user):
         .with_for_update()
         .filter_by(user=user)
         .join(Access.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
         .one_or_none()
     )
     if access is None:
@@ -1176,14 +1291,16 @@ def access_delete(owner, package_name, user):
     db.session.commit()
     return dict()
 
-@app.route('/api/access/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/access/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
-def access_list(owner, package_name):
+def access_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+
     accesses = (
         Access.query
         .join(Access.package)
-        .filter_by(owner=owner, name=package_name)
+        .filter_by(team=team, owner=owner, name=package_name)
     )
 
     can_access = [access.user for access in accesses]
@@ -1422,11 +1539,12 @@ def invitation_user_list():
                                   invited_at=invite.invited_at)
                              for invite, package in invitations])
 
-@app.route('/api/invite/<owner>/<package_name>/', methods=['GET'])
+@team_route('/api/invite/<team_name>/<owner>/<package_name>/', methods=['GET'])
 @api()
 @as_json
-def invitation_package_list(owner, package_name):
-    package = _get_package(g.auth, owner, package_name)
+def invitation_package_list(team_name, owner, package_name):
+    team = _get_team(g.auth, team_name)
+    package = _get_package(g.auth, team, owner, package_name)
     invitations = (
         Invitation.query
         .filter_by(package_id=package.id)

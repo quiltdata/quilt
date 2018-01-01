@@ -16,8 +16,9 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.const import PaymentPlan
+from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import encode_node, hash_contents
+from quilt_server.models import Team
 
 class MockMixpanelConsumer(object):
     """
@@ -60,6 +61,11 @@ class QuiltTestCase(TestCase):
         sqlalchemy_utils.create_database(self.db_url)
         quilt_server.db.create_all()
 
+        # Create the "public" team.
+        # It's normally created by a DB migration - but migrations are not used in tests.
+        quilt_server.db.session.add(Team(name=PUBLIC))
+        quilt_server.db.session.commit()
+
     def tearDown(self):
         quilt_server.db.session.remove()
         quilt_server.db.drop_all()
@@ -96,8 +102,9 @@ class QuiltTestCase(TestCase):
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
-    def put_package(self, owner, package, contents, public=False):
-        pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
+    def put_package(self, owner, package, contents, team=None, public=False):
+        pkgurl = '/api/package/{team}/{usr}/{pkg}/{hash}'.format(
+            team=team or PUBLIC,
             usr=owner,
             pkg=package,
             hash=hash_contents(contents)
@@ -118,22 +125,28 @@ class QuiltTestCase(TestCase):
         assert resp.status_code == requests.codes.ok
         return pkgurl
 
-    def _share_package(self, owner, pkg, other_user):
+    def _share_package(self, owner, pkg, other_user, team=None):
         self._mock_check_user(other_user)
 
         return self.app.put(
-            '/api/access/{owner}/{pkg}/{usr}'.format(
-                owner=owner, usr=other_user, pkg=pkg
+            '/api/access/{team}/{owner}/{pkg}/{usr}'.format(
+                team=team or PUBLIC,
+                owner=owner,
+                usr=other_user,
+                pkg=pkg
             ),
             headers={
                 'Authorization': owner
             }
         )
 
-    def _unshare_package(self, owner, pkg, other_user):
+    def _unshare_package(self, owner, pkg, other_user, team=None):
         return self.app.delete(
-            '/api/access/{owner}/{pkg}/{usr}'.format(
-                owner=owner, usr=other_user, pkg=pkg
+            '/api/access/{team}/{owner}/{pkg}/{usr}'.format(
+                team=team or PUBLIC,
+                owner=owner,
+                usr=other_user,
+                pkg=pkg
             ),
             headers={
                 'Authorization': owner

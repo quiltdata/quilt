@@ -10,6 +10,7 @@ from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import deferred
 
 from . import db
+from .const import PUBLIC
 
 UTF8_BIN = 'utf8_bin'
 UTF8_GENERAL_CI = 'utf8_general_ci'
@@ -22,10 +23,44 @@ USERNAME_TYPE = CaseSensitiveString(64)
 # https://stripe.com/docs/upgrades#what-changes-does-stripe-consider-to-be-backwards-compatible
 STRIPE_ID_TYPE = CaseSensitiveString(255)
 
+class Team(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    name = db.Column(USERNAME_TYPE, nullable=False, index=True)
+
+    users = db.relationship('UserTeam', back_populates='team')
+
+    @property
+    def is_public(self):
+        return self.name == PUBLIC
+
+    @classmethod
+    def get_public_team(cls):
+        # TODO(dima): Look it up only once!
+        return cls.query.filter_by(name=PUBLIC).one()
+
+    @classmethod
+    def get_by_user(cls, user):
+        assert user != PUBLIC
+        team = cls.query.join(cls.users).filter_by(user=user).one_or_none()
+        if team is None:
+            return cls.get_public_team()
+        else:
+            return team
+
+class UserTeam(db.Model):
+    user = db.Column(USERNAME_TYPE, primary_key=True)
+    team_id = db.Column(db.BigInteger, db.ForeignKey('team.id'), nullable=False)
+    is_admin = db.Column(mysql.TINYINT(1), nullable=False)
+
+    team = db.relationship('Team', back_populates='users')
+
 class Package(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
+    team_id = db.Column(db.BigInteger, db.ForeignKey('team.id'), nullable=False)
     owner = db.Column(USERNAME_TYPE, nullable=False)
     name = db.Column(CaseSensitiveString(64), nullable=False)
+
+    team = db.relationship('Team')
 
     logs = db.relationship(
         'Log', back_populates='package', cascade='save-update, merge, delete')
@@ -46,7 +81,8 @@ class Package(db.Model):
     def sort_key(self):
         return (self.owner, self.name)
 
-db.Index('idx_owner_name', Package.owner, Package.name, unique=True)
+db.Index('idx_team_owner_name', Package.team_id, Package.owner, Package.name, unique=True)
+db.Index('idx_owner_name', Package.team_id, Package.owner, Package.name)
 
 
 InstanceBlobAssoc = db.Table(
