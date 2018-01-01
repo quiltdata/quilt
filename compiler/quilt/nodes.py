@@ -6,7 +6,7 @@ import pandas as pd
 from six import iteritems, string_types
 
 from .tools import core
-from .tools.store import PackageStore
+from .tools.util import is_nodename
 
 
 class Node(object):
@@ -135,20 +135,22 @@ class PackageNode(GroupNode):
             core_node = core.TableNode(hashes=[])
         elif isinstance(value, string_types):
             # If metadata isn't given, the FileNode won't retain the file path.
-            # REVIEW: Should this happen within the filenode itself?
             metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
             core_node = core.FileNode(hashes=[], metadata=metadata)
         elif isinstance(value, bytes):
-            # TODO: This seems unused.
+            # TODO: Are these bytes a filename?  If this is this re: 2 vs 6, it's already handled via string_types above
             core_node = core.FileNode(hashes=[])
         else:
-            # TODO: throw a proper exception?
-            assert False, "Value has bad type: {} value={}".format(str(type(value)), repr(value)[0:100])
+            accepted_types = (pd.DataFrame) + string_types
+            raise TypeError("Bad value type: Expected one of {!r}, but received {!r} instead"
+                            .format(accepted_types, value), repr(value)[0:100])
+
+        for key in path:
+            if not is_nodename(key):
+                raise ValueError("Invalid name for node: {}".format(key))
 
         node = self
         for key in path[:-1]:
-            # TODO: check for all illegal identifiers, not just lading underscore
-            assert not key.startswith('_')
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):
                 child = GroupNode(self._package, core.GroupNode({}))
@@ -157,6 +159,5 @@ class PackageNode(GroupNode):
             node = child
 
         key = path[-1]
-        assert not key.startswith('_')
         data_node = DataNode(self._package, core_node, value)
         setattr(node, key, data_node)
