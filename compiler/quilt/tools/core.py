@@ -120,12 +120,12 @@ class TableNode(Node):
 class FileNode(Node):
     json_type = 'FILE'
 
-    def __init__(self, hashes, metadata=None):
-        if metadata is None:
-            metadata = {}
-
+    def __init__(self, hashes, metadata):
         assert isinstance(hashes, list)
         assert isinstance(metadata, dict)
+
+        if not metadata.get('q_path'):
+            raise ValueError("`metadata` for a FileNode requires 'q_path' to be set.")
 
         self.hashes = hashes
         self.metadata = metadata
