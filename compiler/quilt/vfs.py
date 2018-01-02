@@ -75,6 +75,10 @@ import glob
 from .nodes import GroupNode
 from .tools import command
 from .tools.store import parse_package
+from .tools.util import to_nodename
+
+
+DEFAULT_CHAR_MAPPINGS = to_nodename
 
 # TODO: replace global variable
 PATCHERS = []
@@ -161,22 +165,6 @@ DEFAULT_MODULE_MAPPINGS = {
     #'tensorflow': 'gfile.GFile',
 }
 DEFAULT_MODULE_MAPPINGS = scrub_patchmap(DEFAULT_MODULE_MAPPINGS, True)
-
-
-# simple mapping of illegal chars to underscores, prepending 'n' if needed.
-def to_python_identifier(string):
-    """Makes a python identifier (perhaps an ugly one) out of any string.
-
-    This isn't an isomorphically reversible change, the original filename
-    must be stored as well.
-    """
-    string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
-    if string[0].isdigit():
-        string = "n" + string
-    return string
-
-
-DEFAULT_CHAR_MAPPINGS = to_python_identifier
 
 
 def create_charmap_func(charmap):
@@ -325,7 +313,7 @@ def setup_keras_dataset(data_pkg, keras_dataset_name, hash=None, version=None, t
         return mapfunc(filename)
 
     # TODO: keras checkpoints support
-    
+
     patch('keras.datasets.'+keras_dataset_name, 'get_file', keras_mapfunc)
 
 def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
@@ -386,7 +374,7 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
         path_prefix = obj.save(sess, save_path, global_step, latest_filename,
                                meta_graph_suffix, write_meta_graph, write_state)
         #print('path_prefix={}'.format(path_prefix))
-        
+
         # read the latest checkpoint file and write to quilt
         last_chk_path = tensorflow.train.latest_checkpoint(checkpoint_dir=save_path)
         pkginfo = pkg+'/'+checkpoints_nodepath+'/'+latest_filename

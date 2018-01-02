@@ -109,3 +109,80 @@ def is_nodename(string):
     if string.startswith('_'):
         return False
     return is_identifier(string)
+
+
+def to_identifier(string):
+    """Makes a python identifier (perhaps an ugly one) out of any string.
+
+    This isn't an isomorphic change, the original filename can't be recovered
+    from the change in all cases, so it must be stored separately.
+
+    Examples:
+    >>> to_identifier('#if') -> '_if'
+    >>> to_identifier('global') -> 'global_'
+    >>> to_identifier('9foo') -> 'n9foo'
+
+    :param string: string to convert
+    :returns: `string`, converted to python identifier if needed
+    :rtype: string
+    """
+    string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
+
+    if string[0].isdigit():
+        string = "n" + string
+    if keyword.iskeyword(string):
+        string = string + '_'
+
+    return string
+
+
+def to_nodename(string, invalid=None, raise_exc=False):
+    """Makes a Quilt Node name (perhaps an ugly one) out of any string.
+
+    This isn't an isomorphic change, the original filename can't be recovered
+    from the change in all cases, so it must be stored separately.
+
+    If `invalid` is given, it should be an iterable of names that the returned
+    string cannot match -- for example, other node names.
+
+    If `raise_exc` is False (default), an exception is raised when the
+    converted string is present in `invalid`.  Otherwise, the converted string
+    will have a number appended to its name.
+
+    Example:
+    # replace special chars -> remove prefix underscores -> rename keywords
+    # '!if' -> '_if' -> 'if' -> 'if_'
+    >>> to_nodename('!if') -> 'if_'
+    >>> to_nodename('if', ['if_']) -> 'if__2'
+    >>> to_nodename('9#blah') -> 'n9_blah'
+    >>> to_nodename('9:blah', ['n9_blah', 'n9_blah_2']) -> 'n9_blah_3'
+
+    :param string: string to convert to a nodename
+    :param invalid: iterable of names to avoid
+    :type invalid: iterable
+    :param raise_exc: Raise an exception on name conflicts if truthy.
+    :type raise_exc: bool
+    :returns: valid node name
+    :rtype: string
+    """
+    string = to_identifier(string).lstrip('_')
+
+    if keyword.iskeyword(string):
+        string = string + '_'
+
+    if invalid is None:
+        return string
+
+    invalid = set(invalid)
+    if string in invalid and raise_exc:
+        raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
+
+    result = string
+    counter = 1
+    while result in invalid:
+        # first conflicted name will be "somenode_2"
+        # The result is "somenode", "somenode_2", "somenode_3"..
+        counter += 1
+        result = "{}_{}".format(string, counter)
+
+    return result
