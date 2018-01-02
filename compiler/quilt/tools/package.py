@@ -6,7 +6,6 @@ from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
 
 import pandas as pd
-from six import itervalues
 
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
@@ -278,7 +277,7 @@ class Package(object):
 
     # WIP: doesn't work quite right yet.
     def find_node_by_name(self, findstr, node=None, prefix=''):
-        return None
+        raise NotImplementedError()
 #        """use / to separate levels"""
 #        if node is None:
 #            node = self.get_contents()
