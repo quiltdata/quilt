@@ -355,6 +355,8 @@ def diff_node_dataframe(package, nodename, dataframe):
     TODO: higher level API: diff_two_files(filepath1, filepath2)
     TODO: higher level API: diff_node_file(file, package, nodename, filepath)
     """
+    raise NotImplementedError()
+
     owner, pkg = parse_package(package)
     pkgobj = PackageStore.find_package(owner, pkg)
     if pkgobj is None:
