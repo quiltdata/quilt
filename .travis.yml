@@ -25,21 +25,21 @@ matrix:
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
     - os: linux
       language: python
       python: "3.5"
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
     - os: linux
       language: python
       python: "3.6"
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
 
 install:
   # debug support

@@ -29,7 +29,7 @@ from .analytics import MIXPANEL_EVENT, mp
 from .const import EMAILREGEX, PaymentPlan, PUBLIC
 from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
-                     S3Blob, Tag, UTF8_GENERAL_CI, Version)
+                     S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -475,8 +475,8 @@ def package_put(owner, package_name, package_hash):
             Package.query
             .filter(
                 sa.and_(
-                    sa.sql.collate(Package.owner, UTF8_GENERAL_CI) == owner,
-                    sa.sql.collate(Package.name, UTF8_GENERAL_CI) == package_name
+                    sa.func.lower(Package.owner) == sa.func.lower(owner),
+                    sa.func.lower(Package.name) == sa.func.lower(package_name)
                 )
             )
             .one_or_none()
@@ -735,7 +735,7 @@ def package_delete(owner, package_name):
 @as_json
 def user_packages(owner):
     packages = (
-        db.session.query(Package, sa.func.max(Access.user == PUBLIC))
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .filter_by(owner=owner)
         .join(Package.access)
         .filter(Access.user.in_([g.auth.user, PUBLIC]))
@@ -1237,22 +1237,22 @@ def search():
         raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
 
     filter_list = [
-        sa.func.instr(
-            sa.sql.collate(sa.func.concat(Package.owner, '/', Package.name), UTF8_GENERAL_CI),
-            keyword
+        sa.func.strpos(
+            sa.func.lower(sa.func.concat(Package.owner, '/', Package.name)),
+            sa.func.lower(keyword)
         ) > 0
         for keyword in keywords
     ]
 
     results = (
-        db.session.query(Package, sa.func.max(Access.user == PUBLIC))
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .filter(sa.and_(*filter_list))
         .join(Package.access)
         .filter(Access.user.in_([g.auth.user, PUBLIC]))
         .group_by(Package.id)
         .order_by(
-            sa.sql.collate(Package.owner, UTF8_GENERAL_CI),
-            sa.sql.collate(Package.name, UTF8_GENERAL_CI)
+            sa.func.lower(Package.owner),
+            sa.func.lower(Package.name)
         )
         .all()
     )
