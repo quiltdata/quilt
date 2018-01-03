@@ -7,6 +7,7 @@ DB Tables.
 from packaging.version import Version as PackagingVersion
 
 from sqlalchemy.orm import deferred
+from sqlalchemy.dialects import postgresql
 
 from . import db
 
@@ -61,7 +62,7 @@ class Instance(db.Model):
     updated_by = db.Column(USERNAME_TYPE, nullable=False)
 
     # Contents can be a potentially large JSON blob, so load it lazily.
-    contents = deferred(db.Column(db.JSON, nullable=False))
+    contents = deferred(db.Column(postgresql.JSONB, nullable=False))
 
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')

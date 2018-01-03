@@ -27,7 +27,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import EMAILREGEX, PaymentPlan, PUBLIC
-from .core import decode_node, encode_node, find_object_hashes, hash_contents, FileNode, GroupNode
+from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
@@ -535,15 +535,6 @@ def package_put(owner, package_name, package_hash):
         .one_or_none()
     )
 
-    contents_str = json.dumps(contents, default=encode_node)
-
-    if len(contents_str) > MAX_METADATA_SIZE:
-        # Should never actually happen because of nginx limits.
-        raise ApiException(
-            requests.codes.server_error,
-            "Metadata size too large"
-        )
-
     # No more error checking at this point, so return from dry-run early.
     if dry_run:
         db.session.rollback()
@@ -566,7 +557,7 @@ def package_put(owner, package_name, package_hash):
     if instance is None:
         instance = Instance(
             package=package,
-            contents=contents_str,
+            contents=contents,
             hash=package_hash,
             created_by=g.auth.user,
             updated_by=g.auth.user
@@ -594,7 +585,7 @@ def package_put(owner, package_name, package_hash):
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
-        instance.contents = contents_str
+        instance.contents = contents
         instance.updated_by = g.auth.user
 
     db.session.add(instance)
@@ -625,9 +616,10 @@ def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
 
     instance = _get_instance(g.auth, owner, package_name, package_hash)
-    contents = json.loads(instance.contents, object_hook=decode_node)
 
-    subnode = contents
+    assert isinstance(instance.contents, RootNode)
+
+    subnode = instance.contents
     for component in subpath.split('/') if subpath else []:
         try:
             subnode = subnode.children[component]
@@ -649,7 +641,7 @@ def package_get(owner, package_name, package_hash):
     )
 
     return dict(
-        contents=contents,
+        contents=instance.contents,
         urls=urls,
         created_by=instance.created_by,
         created_at=_utc_datetime_to_ts(instance.created_at),
@@ -675,16 +667,16 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @as_json
 def package_preview(owner, package_name, package_hash):
     instance = _get_instance(g.auth, owner, package_name, package_hash)
-    contents = json.loads(instance.contents, object_hook=decode_node)
+    assert isinstance(instance.contents, RootNode)
 
-    readme = contents.children.get('README')
+    readme = instance.contents.children.get('README')
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
         readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme.hashes[0])
     else:
         readme_url = None
 
-    contents_preview = _generate_preview(contents)
+    contents_preview = _generate_preview(instance.contents)
 
     _mp_track(
         type="preview",

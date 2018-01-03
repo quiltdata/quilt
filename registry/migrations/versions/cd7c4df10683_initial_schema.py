@@ -7,7 +7,7 @@ Create Date: 2018-01-02 16:07:40.063391
 """
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
 revision = 'cd7c4df10683'
@@ -51,7 +51,7 @@ def upgrade():
     sa.Column('created_by', sa.String(length=64), nullable=False),
     sa.Column('updated_at', sa.DateTime(), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_by', sa.String(length=64), nullable=False),
-    sa.Column('contents', sa.JSON(), nullable=False),
+    sa.Column('contents', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
     sa.ForeignKeyConstraint(['package_id'], ['package.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
