@@ -1,3 +1,5 @@
+# This should just be 'train.py' with a shorter interval.  Feel free to delete or modify.
+
 import numpy as np
 import tensorflow as tf
 from sklearn.metrics import confusion_matrix
@@ -78,12 +80,12 @@ def train(num_iterations):
         i_global, _ = sess.run([global_step, optimizer], feed_dict={x: batch_xs, y: batch_ys})
         duration = time() - start_time
 
-        if (i_global % 10 == 0) or (i == num_iterations - 1):
+        if (i_global % 1 == 0) or (i == num_iterations - 1):
             _loss, batch_acc = sess.run([loss, accuracy], feed_dict={x: batch_xs, y: batch_ys})
             msg = "Global Step: {0:>6}, accuracy: {1:>6.1%}, loss = {2:.2f} ({3:.1f} examples/sec, {4:.2f} sec/batch)"
             print(msg.format(i_global, batch_acc, _loss, _BATCH_SIZE / duration, duration))
 
-        if (i_global % 100 == 0) or (i == num_iterations - 1):
+        if (i_global % 10 == 0) or (i == num_iterations - 1):
             data_merged, global_1 = sess.run([merged, global_step], feed_dict={x: batch_xs, y: batch_ys})
             acc = predict_test()
 

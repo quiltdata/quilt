@@ -1217,6 +1217,7 @@ def importpkg(pkginfo):
     # TODO: support hashes/versions/etc.
     return _importpkg(pkginfo)[0]
 
+# XXX: should we create a 'quilt.tools.utils' or 'quilt.utils' module for stuff like this and importpkg?
 def update(pkginfo, content):
     """convenience function around _set()"""
     # NOTE: cannot be named set() because that would conflict with the python builtin function.
@@ -1270,29 +1271,45 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     if subpath:
         node = get_node_child_by_path(node, subpath)
 
-    def iter_nodepath_filenames(node):
-        """Yields [<node path>, <filename>] pairs for FileNodes under `node`"""
+    def iter_filename_map(node):
+        """Yields (<original path>, <storage file path>) pairs for given `node`.
+
+        If `node._filename` exists and is truthy, yeild pair for `node`.
+        If `node` is a group node, yield pairs for children of `node`.
+
+        :returns: Iterator of (<original path>, <storage file path>) pairs
+        """
+        if getattr(node, '_filename', None):
+            orig_path = node._node.metadata['q_path']
+            yield (node._filename, orig_path)
+
+        if not isinstance(node, nodes.GroupNode):
+            return
+
         for node_path in node._iterpaths():
             found_node = get_node_child_by_path(node, node_path)
-            filename = getattr(found_node, '_filename', None)
-            if filename is not None:
-                assert filename
-                yield (node_path, filename)
+            storage_filepath = getattr(found_node, '_filename', None)
+            if storage_filepath is not None:
+                assert storage_filepath    # sanity check -- no blank filenames
+                orig_filepath = found_node._node.metadata['q_path']
+                if orig_filepath is None:
+                    orig_filepath = '/'.join(node_path)
+                    if 'tensorboard' in orig_filepath:
+                        orig_filepath = re.sub(r'/n(\d+)_', r'/-\1.', orig_filepath).replace('_', '-')
+                    print("WARNING: original file path not stored.  Based on node path, guessed: {}".format(orig_filepath))
+                yield (storage_filepath, orig_filepath)
 
-    # gather nodes to be exported
-    exports = ((os.path.join(*dest), src) for dest, src in iter_nodepath_filenames(node))
-
-    # filter exports
-    exports = ((dest, src) for dest, src in exports if filter(dest) is True)
+    # Iterate over filename map, filtering exports
+    exports = ((src, dest) for src, dest in iter_filename_map(node) if filter(dest))
 
     # apply mapping to exports
-    exports = ((mapper(dest), src) for dest, src in exports)
+    exports = ((src, mapper(dest)) for src, dest in exports)
 
     # alter data to (<export file Path>, <quilt storage Path>)
     # verify and clean up paths
     # pre-check that source exists and dest does not
     final_export_map = []
-    for dest, src in exports:
+    for src, dest in exports:
         # general cleanup
         src = pathlib.Path(src).expanduser().absolute()
         dest = (output_path / dest).expanduser().absolute()
@@ -1303,6 +1320,15 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
 
         final_export_map.append((src, dest))
+
+    # Skip it if there's nothing to do
+    if not final_export_map:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
     # Paths verified, let's export..
     sys.stdout.write('Exporting.')
     sys.stdout.flush()

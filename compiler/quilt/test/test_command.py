@@ -523,41 +523,104 @@ class CommandTest(QuiltTestCase):
         assert isinstance(bar.foo(), pd.DataFrame)
 
     def test_export(self):
+        # pathlib will translate paths to windows or posix paths when needed
         Path = pathlib.Path
         pkg_name = 'testing/foo'
-        pkg_name_subpkg = pkg_name + '/subdir'
+        subpkg_name = 'subdir'
+        single_name = 'single_file'
+        single_bytes = os.urandom(200)
 
-        # pathlib will translate these to windows paths
-        test_data = [
-            ('example', os.urandom(500)),
-            ('subdir/subdir_example', os.urandom(300)),
-            ('readme', os.urandom(200)),
+        subdir_test_data = [
+            (subpkg_name + '/subdir_example', os.urandom(300)),
+            (subpkg_name + '/9bad-identifier.html', os.urandom(100)),
             ]
+
+        test_data = [
+            (single_name, single_bytes),
+            ('readme.md', os.urandom(200)),
+            # these are invalid python identifiers, but should be handled without issue
+            ('3-bad-identifier/bad_parent_identifier.html', os.urandom(100)),
+            ('3-bad-identifier/9{}bad-identifier.html', os.urandom(100)),
+            ] + subdir_test_data
 
         shash = lambda data: hashlib.sha256(data).hexdigest()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = Path(temp_dir)
             install_dir = temp_dir / 'install'
-            export_dir = temp_dir / 'export'
 
+            # Create and and install build
             for path, data in test_data:
                 path = install_dir / path
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(data)
+            command.build(pkg_name, str(install_dir))
 
-            command.build('testing/foo', str(install_dir))
-            command.export('testing/foo', str(export_dir))
+            # Test export
+            test_dir = temp_dir / 'test_export'
 
-            exported_paths = [path for path in export_dir.glob('**/*') if path.is_file()]
+            command.export(pkg_name, str(test_dir))
+
+            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
 
             assert len(exported_paths) == len(test_data)
 
             for path, data in test_data:
-                export_path = export_dir / path
+                export_path = test_dir / path
                 install_path = install_dir / path
 
                 # filename matches
                 assert export_path in exported_paths
                 # data matches
                 assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+            # Test subpackage exports
+            test_dir = temp_dir / 'test_subpkg_export'
+            command.export(pkg_name + '/' + subpkg_name, str(test_dir))
+
+            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+            assert len(exported_paths) == len(subdir_test_data)
+
+            for path, data in subdir_test_data:
+                export_path = test_dir / path
+                install_path = install_dir / path
+
+                # filename matches
+                assert export_path in exported_paths
+                # data matches
+                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+            # Test single-file exports
+            test_dir = temp_dir / 'test_single_file_export'
+            pkg_name_single = pkg_name + '/' + single_name
+            single_filepath = test_dir / single_name
+
+            command.export(pkg_name_single, str(test_dir))
+            assert single_filepath.exists()
+            assert shash(single_bytes) == shash(single_filepath.read_bytes())
+
+            # Test filters
+            test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
+            included_file = test_dir / single_name
+
+            command.export(pkg_name, str(test_dir),
+                           filter=lambda x: True if x == single_name else False)
+
+            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+            assert len(exported_paths) == 1
+            assert included_file.exists()
+            assert shash(single_bytes) == shash(included_file.read_bytes())
+
+            # Test map
+            test_dir = temp_dir / 'test_mapper'
+            test_filepath = test_dir / single_name    # ok on windows too per pathlib
+            mapped_filepath = test_filepath.with_suffix('.zip')
+
+            command.export(pkg_name + '/' + single_name, str(test_dir),
+                           mapper=lambda x: Path(x).with_suffix('.zip'))
+
+            assert not test_filepath.exists()
+            assert mapped_filepath.exists()
+            assert shash(single_bytes) == shash(mapped_filepath.read_bytes())

@@ -6,7 +6,7 @@ import pandas as pd
 from six import iteritems, string_types
 
 from .tools import core
-from .tools.store import PackageStore
+from .tools.util import is_nodename
 
 
 class Node(object):
@@ -131,19 +131,27 @@ class PackageNode(GroupNode):
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
-            core_node = core.TableNode(hashes=[])
-        elif isinstance(value, string_types):
-            core_node = core.FileNode(hashes=[])
-        elif isinstance(value, bytes):
-            core_node = core.FileNode(hashes=[])
+            # all we really know at this point is that it's a pandas dataframe.
+            metadata = {'q_target': 'pandas'}
+            core_node = core.TableNode(hashes=[], metadata=metadata)
+        elif isinstance(value, string_types + (bytes,)):
+            # bytes -> string for consistency when retrieving metadata
+            value = value.decode() if isinstance(value, bytes) else value
+
+            # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
+            metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
+            core_node = core.FileNode(hashes=[], metadata=metadata)
         else:
-            # TODO: throw a proper exception?
-            assert False, "Value has bad type: {} value={}".format(str(type(value)), repr(value)[0:100])
+            accepted_types = (pd.DataFrame, bytes) + string_types
+            raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
+                            .format(accepted_types, type(value)), repr(value)[0:100])
+
+        for key in path:
+            if not is_nodename(key):
+                raise ValueError("Invalid name for node: {}".format(key))
 
         node = self
         for key in path[:-1]:
-            # TODO: check for all illegal identifiers, not just lading underscore
-            assert not key.startswith('_')
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):
                 child = GroupNode(self._package, core.GroupNode({}))
@@ -152,6 +160,5 @@ class PackageNode(GroupNode):
             node = child
 
         key = path[-1]
-        assert not key.startswith('_')
         data_node = DataNode(self._package, core_node, value)
         setattr(node, key, data_node)
