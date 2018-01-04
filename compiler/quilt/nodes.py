@@ -131,19 +131,20 @@ class PackageNode(GroupNode):
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
-            # TODO: what about dataframe metadata?
-            core_node = core.TableNode(hashes=[])
-        elif isinstance(value, string_types):
-            # If metadata isn't given, the FileNode won't retain the file path.
+            # all we really know at this point is that it's a pandas dataframe.
+            metadata = {'q_target': 'pandas'}
+            core_node = core.TableNode(hashes=[], metadata=metadata)
+        elif isinstance(value, string_types + (bytes,)):
+            # bytes -> string for consistency when retrieving metadata
+            value = value.decode() if isinstance(value, bytes) else value
+
+            # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
             metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
             core_node = core.FileNode(hashes=[], metadata=metadata)
-        elif isinstance(value, bytes):
-            # TODO: Are these bytes a filename?  If this is this re: 2 vs 6, it's already handled via string_types above
-            core_node = core.FileNode(hashes=[])
         else:
-            accepted_types = (pd.DataFrame) + string_types
-            raise TypeError("Bad value type: Expected one of {!r}, but received {!r} instead"
-                            .format(accepted_types, value), repr(value)[0:100])
+            accepted_types = (pd.DataFrame, bytes) + string_types
+            raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
+                            .format(accepted_types, type(value)), repr(value)[0:100])
 
         for key in path:
             if not is_nodename(key):

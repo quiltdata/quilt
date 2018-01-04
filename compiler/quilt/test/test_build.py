@@ -166,7 +166,6 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(buildfilepath)
         build.build_package('test_generated', 'generated', buildfilepath)
         os.remove(buildfilepath)
-        # XXX: building now produces README_md instead of README -- intentional?
         from quilt.data.test_generated.generated import bad, foo, nuts, README_md
 
     def test_failover(self):
