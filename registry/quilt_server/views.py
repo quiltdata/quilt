@@ -1055,7 +1055,7 @@ def access_put(owner, package_name, user):
         raise PackageNotFoundException(owner, package_name)
 
     if EMAILREGEX.match(user):
-        email = user
+        email = user.lower()
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
@@ -1276,7 +1276,7 @@ def profile():
     # Check for outstanding package sharing invitations
     invitations = (
         db.session.query(Invitation, Package)
-        .filter_by(email=g.auth.email)
+        .filter_by(email=g.auth.email.lower())
         .join(Invitation.package)
         )
     for invitation, package in invitations:
@@ -1403,7 +1403,7 @@ def payments_update_payment():
 def invitation_user_list():
     invitations = (
         db.session.query(Invitation, Package)
-        .filter_by(email=g.auth.email)
+        .filter_by(email=g.auth.email.lower())
         .join(Invitation.package)
         .all()
     )
