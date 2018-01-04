@@ -114,7 +114,6 @@ class ModuleFinder(object):
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
                 elif glob.glob("{path}:*".format(path=file_path)):
-                    print("Making Fake Loader: for team path")
                     return FakeLoader(glob.glob("{path}:*".format(path=file_path))[0])
                 else:
                     raise ImportError('Could not find any installed packages by user {user!r}.\n  '
