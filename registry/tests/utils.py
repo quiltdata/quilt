@@ -50,7 +50,7 @@ class QuiltTestCase(TestCase):
         self.payments_patcher.start()
 
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
-        self.db_url = 'mysql+pymysql://root@localhost/test_%s' % random_name
+        self.db_url = 'postgres://postgres@localhost/test_%s' % random_name
 
         self.app = quilt_server.app.test_client()
         quilt_server.app.config['TESTING'] = True

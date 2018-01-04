@@ -22,7 +22,7 @@ MarkupSafe==1.0
 mixpanel==4.3.2
 oauthlib==2.0.2
 packaging==16.8
-PyMySQL==0.7.11
+psycopg2==2.7.3.2
 pyparsing==2.2.0
 python-dateutil==2.6.1
 python-editor==1.0.3
