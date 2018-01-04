@@ -156,6 +156,7 @@ KNOWN_PARAMS = [
     [0, 'log'],
     [0, 'log', 0],
     [0, 'login'],
+    [0, 'login', 0],
     [0, 'logout'],
     [0, 'ls'],
     [0, 'push'],

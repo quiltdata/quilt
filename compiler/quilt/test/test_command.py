@@ -178,6 +178,34 @@ class CommandTest(QuiltTestCase):
 
         mock_login_with_token.assert_called_with(old_refresh_token)
 
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login_with_public_team(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        command.login('public')
+
+        mock_open.assert_called_with('%s/login' % command.get_registry_url())
+
+        mock_login_with_token.assert_called_with(old_refresh_token)
+
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login_with_bny_team(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        command.login('bny')
+
+        mock_open.assert_called_with('%s/login' % command.get_registry_url('bny'))
+
+        mock_login_with_token.assert_called_with(old_refresh_token)
+
     @patch('quilt.tools.command._save_auth')
     def test_login_token(self, mock_save):
         old_refresh_token = "123"

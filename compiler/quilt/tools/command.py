@@ -87,7 +87,9 @@ def _save_config(cfg):
     with open(config_path, 'w') as fd:
         json.dump(cfg, fd)
 
-def get_registry_url():
+def get_registry_url(team='public'):
+    if team is "bny":
+        return "https://bny.team.quiltdata.com"
     global _registry_url
     if _registry_url is not None:
         return _registry_url
@@ -293,13 +295,13 @@ def _match_hash(session, owner, pkg, hash):
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
-def login():
+def login(team='public'):
     """
     Authenticate.
 
     Launches a web browser and asks the user for a token.
     """
-    login_url = "%s/login" % get_registry_url()
+    login_url = "%s/login" % get_registry_url(team)
 
     print("Launching a web browser...")
     print("If that didn't work, please visit the following URL: %s" % login_url)
