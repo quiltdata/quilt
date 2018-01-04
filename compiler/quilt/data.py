@@ -15,6 +15,7 @@ in ancestors of the current directory.
 """
 
 import imp
+import glob
 import os.path
 import sys
 
@@ -112,21 +113,44 @@ class ModuleFinder(object):
                 file_path = store.user_path(parts[0])
                 if os.path.isdir(file_path):
                     return FakeLoader(file_path)
+                elif glob.glob("{path}:*".format(path=file_path)):
+                    return FakeLoader(glob.glob("{path}:*".format(path=file_path))[0])
                 else:
                     raise ImportError('Could not find any installed packages by user {user!r}.\n  '
                                       'Check the name, or use "quilt install {user}/<packagename>" to install'
                                       .format(user=parts[0]))
         elif len(parts) == 2:
+            # Try Default Case: Quilt Public Cloud Registry
             user, package = parts
-            pkgobj = PackageStore.find_package(user, package)
-            if pkgobj:
-                file_path = pkgobj.get_path()
-                return PackageLoader(file_path, pkgobj)
-            else:
-                raise ImportError('Could not find package by user {user!r} named {package!r}.\n  '
-                                  'Check the name, or use "quilt install {user}/{package}" to install'
-                                  .format(**locals()))
+            for store_dir in PackageStore.find_store_dirs():
+                store = PackageStore(store_dir)
+                pkgobj = PackageStore.find_package(user, package)
+                if pkgobj:
+                    file_path = pkgobj.get_path()
+                    return PackageLoader(file_path, pkgobj)
 
+                # Try A Team/Other-Registry Path
+                team, user = parts
+                file_path = store.user_path("{team}:{user}".format(team=parts[0], user=parts[1]))
+                if os.path.isdir(file_path):
+                    return FakeLoader(file_path)
+
+            raise ImportError('Could not find package by user {user!r} named {package!r}.\n  '
+                              'Check the name, or use "quilt install {user}/{package}" to install'
+                              .format(**locals()))
+        elif len(parts) == 3:
+            for store_dir in PackageStore.find_store_dirs():
+                store = PackageStore(store_dir)
+
+                team, user, package = parts
+                pkgobj = PackageStore.find_package("{team}:{user}".format(team=team, user=user), package)
+                if pkgobj:
+                    file_path = pkgobj.get_path()
+                    return PackageLoader(file_path, pkgobj)
+                else:
+                    raise ImportError('Could not find any installed packages by user {user!r}.\n  '
+                                      'Check the name, or use "quilt install {team}:{user}/<packagename>" to install'
+                                      .format(team=team, user=user))
         return None
 
 sys.meta_path.append(ModuleFinder)

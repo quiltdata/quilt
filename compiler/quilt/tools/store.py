@@ -12,7 +12,7 @@ from .package import Package, PackageException
 from .util import BASE_DIR
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
-VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
+VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*(:[a-zA-Z]\w*)?$')
 CHUNK_SIZE = 4096
 
 # Helper function to return the default package store path
