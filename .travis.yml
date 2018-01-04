@@ -13,6 +13,9 @@ env:
     - FLASK_DEBUG=1
     - QUILT_SERVER_CONFIG=dev_config.py
 
+addons:
+  postgresql: "9.6"
+
 matrix:
   fast_finish: true
   include:
