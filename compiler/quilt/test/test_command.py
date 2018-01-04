@@ -11,6 +11,7 @@ import requests
 import responses
 import shutil
 
+import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -573,6 +574,10 @@ class CommandTest(QuiltTestCase):
                 assert export_path in exported_paths
                 # data matches
                 assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+            # Test export overwrite existing
+            with pytest.raises(command.CommandException, match='file already exists'):
+                command.export(pkg_name, str(test_dir))
 
             # Test subpackage exports
             test_dir = temp_dir / 'test_subpkg_export'
