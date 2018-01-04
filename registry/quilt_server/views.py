@@ -31,6 +31,7 @@ from .core import decode_node, encode_node, find_object_hashes, hash_contents, F
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, UTF8_GENERAL_CI, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
+from .config import BAN_PUBLIC_USERS
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -619,7 +620,7 @@ def package_put(owner, package_name, package_hash):
     return dict()
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
@@ -671,7 +672,7 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
         return None
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def package_preview(owner, package_name, package_hash):
     instance = _get_instance(g.auth, owner, package_name, package_hash)
@@ -702,7 +703,7 @@ def package_preview(owner, package_name, package_hash):
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def package_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
@@ -731,7 +732,7 @@ def package_delete(owner, package_name):
     return dict()
 
 @app.route('/api/package/<owner>/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def user_packages(owner):
     packages = (
@@ -755,7 +756,7 @@ def user_packages(owner):
     )
 
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
@@ -838,7 +839,7 @@ def version_put(owner, package_name, package_version):
     return dict()
 
 @app.route('/api/version/<owner>/<package_name>/<package_version>', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def version_get(owner, package_name, package_version):
     package_version = normalize_version(package_version)
@@ -873,7 +874,7 @@ def version_get(owner, package_name, package_version):
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def version_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
@@ -953,7 +954,7 @@ def tag_put(owner, package_name, package_tag):
     return dict()
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def tag_get(owner, package_name, package_tag):
     package = _get_package(g.auth, owner, package_name)
@@ -1017,7 +1018,7 @@ def tag_delete(owner, package_name, package_tag):
     return dict()
 
 @app.route('/api/tag/<owner>/<package_name>/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def tag_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
@@ -1196,7 +1197,7 @@ def access_list(owner, package_name):
         raise PackageNotFoundException(owner, package_name)
 
 @app.route('/api/recent_packages/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def recent_packages():
     try:
@@ -1226,7 +1227,7 @@ def recent_packages():
     )
 
 @app.route('/api/search/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def search():
     query = request.args.get('q', '')
@@ -1406,7 +1407,7 @@ def payments_update_payment():
     return dict()
 
 @app.route('/api/invite/', methods=['GET'])
-@api(require_login=False)
+@api(require_login=BAN_PUBLIC_USERS)
 @as_json
 def invitation_user_list():
     invitations = (
@@ -1440,7 +1441,7 @@ def invitation_package_list(owner, package_name):
                              for invite in invitations])
 
 @app.route('/api/log', methods=['POST'])
-@api(require_login=False, schema=LOG_SCHEMA)
+@api(require_login=BAN_PUBLIC_USERS, schema=LOG_SCHEMA)
 @as_json
 def client_log():
     data = request.get_json()
