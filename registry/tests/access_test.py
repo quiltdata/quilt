@@ -57,8 +57,8 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it and test that the
         invitation was created.
         """
-        sharewithuser = "anotheruser"
-        sharewithemail = "{usr}@example.com".format(usr=sharewithuser)
+        sharewithuser = "Anotheruser"
+        sharewithemail = "anotherUser@example.com"  # Different case
         resp = self._share_package(self.user, self.pkg, sharewithemail)
         assert resp.status_code == requests.codes.ok
 
