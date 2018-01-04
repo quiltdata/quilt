@@ -88,7 +88,7 @@ def _save_config(cfg):
         json.dump(cfg, fd)
 
 def get_registry_url(team='public'):
-    if team is "bny":
+    if team == "bny":
         return "https://bny.team.quiltdata.com"
     global _registry_url
     if _registry_url is not None:
