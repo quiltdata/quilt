@@ -31,6 +31,7 @@ from .core import decode_node, find_object_hashes, hash_contents, FileNode, Grou
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
+from .config import BAN_PUBLIC_USERS
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -280,7 +281,7 @@ def api(require_login=True, schema=None):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login:
+                if require_login or BAN_PUBLIC_USERS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
