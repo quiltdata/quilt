@@ -193,7 +193,7 @@ def _create_auth(team):
                 raise CommandException(
                     "Failed to update the access token (%s). Run `quilt login` again." % ex
                 )
-            _save_auth(auth)
+            _save_auth(team, auth)
     else:
         # The auth file doesn't exist, probably because the
         # user hasn't run quilt login yet.
