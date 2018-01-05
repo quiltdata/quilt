@@ -8,11 +8,7 @@ See `app.config.from_object('...')` in __init__.py.
 """
 import os
 
-BAN_PUBLIC_USERS = os.getenv('QUILT_BAN_PUBLIC_USERS', '')
-if BAN_PUBLIC_USERS:
-    BAN_PUBLIC_USERS = True
-else:
-    BAN_PUBLIC_USERS = False
+BAN_PUBLIC_USERS = bool(os.getenv('QUILT_BAN_PUBLIC_USERS', ''))
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.
