@@ -21,14 +21,11 @@ def read_yml_file(fn):
 class ChecksTest(QuiltTestCase):
 
     def setUp(self):
-        super(QuiltTestCase, self).setUp()
+        super(ChecksTest, self).setUp()
         self.checks_data = read_yml_file('checks_simple.yml')
         self.checks_contents = self.checks_data['contents']
         self.build_data = read_yml_file('build_simple_checks.yml')
         self.build_contents = self.build_data['contents']
-
-    def tearDown(self):
-        super(QuiltTestCase, self).tearDown()
 
     def build_success(self, check, nodename='foo'):
         if check is not None:

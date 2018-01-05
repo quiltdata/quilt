@@ -7,10 +7,11 @@ services:
       - MYSQL_DATABASE=quilt
     healthcheck:
       test: ["CMD", "mysql", "-u", "root", "-e", "select 1"]
-      interval: 1m
-      timeout: 10s
+      interval: 10s
+      timeout: 3s
       retries: 3
   migration:
+    build: .
     image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
@@ -25,6 +26,7 @@ services:
       flask db upgrade
   flask:
     build: .
+    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
@@ -73,6 +75,7 @@ services:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
       - DATABASE_URL=${DJANGO_DATABASE_URL}
+      - FRONTEND_URL=http://localhost:3000
       - ALLOW_HTTP=1
   catalog:
     image: quiltdata/catalog
