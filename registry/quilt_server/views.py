@@ -1045,6 +1045,10 @@ def access_put(owner, package_name, user):
             "Only the package owner can grant access"
         )
 
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+        }
+
     package = (
         Package.query
         .with_for_update()
@@ -1060,12 +1064,9 @@ def access_put(owner, package_name, user):
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Django to send invitation email
-        headers = {
-            AUTHORIZATION_HEADER: g.auth_header
-            }
+        # Call to Auth to send invitation email        
         resp = requests.post(INVITE_SEND_URL,
-                             headers=headers,
+                             headers=auth_headers,
                              data=dict(email=email,
                                        owner=g.auth.user,
                                        package=package.name,
@@ -1084,7 +1085,8 @@ def access_put(owner, package_name, user):
 
     else:
         if user != PUBLIC:
-            resp = requests.get(OAUTH_PROFILE_API % user)
+            resp = requests.get(OAUTH_PROFILE_API % user,
+                                headers=auth_headers)
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
                     requests.codes.not_found,
