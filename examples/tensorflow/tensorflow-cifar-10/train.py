@@ -9,12 +9,12 @@ from include.model import model
 #---------------------------------------------------------------------------
 # QUILT SETUP - added after import statements
 
-import quilt, quilt.vfs
+import quilt.vfs
+
 QUILT_PKG = 'asah/cifar10'
 
-print("Connecting to Quilt...")
-# force=False because otherwise local data in storage is overwritten
-quilt.install(QUILT_PKG, force=False)
+print("Ensuring {} is installed".format(QUILT_PKG))
+quilt.vfs.ensure_installed(QUILT_PKG)
 
 print("   reading data from Quilt package: {}...".format(QUILT_PKG))
 quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'})

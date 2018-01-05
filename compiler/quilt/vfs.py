@@ -394,3 +394,14 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
         save_patcher.start()
         return path_prefix
     save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)
+
+
+def ensure_installed(pkgname, silent=False):
+    try:
+        command.importpkg(pkgname)
+    except command.CommandException as error:
+        msg = str(error)
+        if not msg.startswith('Package') and msg.endswith('not found.'):
+            raise
+        command.install(pkgname, force=True)
+
