@@ -1231,7 +1231,7 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False):
+def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False, silent=False):
     """Export package file data.
 
     Exports children of specified node to files (if they have file data).
@@ -1309,13 +1309,19 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # verify and clean up paths
     # pre-check that source exists and dest does not
     final_export_map = []
+    zero_byte_files = set()
     for src, dest in exports:
         # general cleanup
         src = pathlib.Path(src).expanduser().absolute()
         dest = (output_path / dest).expanduser().absolute()
 
-        # existence
-        assert src.exists()
+        # existence checks
+        # this src check replaces previous existence assertion, doubling as zero-byte file check
+        # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
+        if src.stat().st_size == 0:
+            zero_byte_files.add(src)
+        if dest.parent != output_path and dest.parent.exists():
+            raise CommandException("Invalid export path: subdir already exists: {!r}".format(str(dest.parent)))
         if dest.exists() and not force:
             raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
 
@@ -1326,17 +1332,36 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         # Technically successful, but with nothing to do.
         # package may have no file nodes, or user may have filtered out all applicable targets.
         # -- should we consider it an error and raise?
-        print("No files to export.")
+        if not silent:
+            print("No files to export.")
         return
 
+    # ensure output path is writable.  I'd just check stat, but this is fully portable.
+    try:
+        output_path.mkdir(exist_ok=True)  # could be '.'
+        with tempfile.TemporaryFile(dir=str(output_path), prefix="quilt-export-write-test-", suffix='.tmp'):
+            pass
+    except OSError as error:
+        raise CommandException("Invalid export path: not writable: " + str(error))
+
     # Paths verified, let's export..
-    sys.stdout.write('Exporting.')
-    sys.stdout.flush()
-    for src, dest in final_export_map:
-        if not dest.parent.exists():
-            dest.parent.mkdir(parents=True, exist_ok=True)
-        sys.stdout.write('.')
-        sys.stdout.flush()
-        dest.touch()  # weird issue: zero-byte files not getting copied?!  TODO: performance
-        copy(str(src), str(dest))
-    print('..done.')
+    try:
+        if not silent:
+            sys.stdout.write('Exporting.')
+            sys.stdout.flush()
+        for src, dest in final_export_map:
+            if not dest.parent.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+            if not silent:
+                sys.stdout.write('.')
+                sys.stdout.flush()
+            if src in zero_byte_files:
+                dest.touch()  # weird issue: zero-byte files not getting copied?!
+            else:
+                copy(str(src), str(dest))
+        if not silent:
+            print('..done.')
+    except OSError as error:
+        commandex = CommandException("Unexpected error during export: " + str(error))
+        commandex.original_error = error
+        raise commandex
