@@ -1320,7 +1320,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
         if src.stat().st_size == 0:
             zero_byte_files.add(src)
-        if dest.parent != output_path and dest.parent.exists():
+        if dest.parent != output_path and dest.parent.exists() and not force:
             raise CommandException("Invalid export path: subdir already exists: {!r}".format(str(dest.parent)))
         if dest.exists() and not force:
             raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))

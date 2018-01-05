@@ -591,19 +591,6 @@ class CommandTest(QuiltTestCase):
                 # data matches
                 assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
 
-            # Test raise when exporting to overwrite existing files
-            files = set(f for f in test_dir.glob('*') if f.is_file())
-            # sorted and reversed means files before their containing dirs
-            for path in sorted(test_dir.glob('**/*'), reverse=True):
-                # keep files from root of test_dir
-                if path in files:
-                    continue
-                # remove everything else
-                path.rmdir() if path.is_dir() else path.unlink()
-            # now there are only files in the export root to conflict with.
-            with pytest.raises(command.CommandException, match='file already exists'):
-                command.export(pkg_name, str(test_dir))
-
             # Test force=True
             # We just tested that calling this raises CommandException with 'file already exists',
             # so it's a good spot to check the force option.
@@ -622,7 +609,21 @@ class CommandTest(QuiltTestCase):
                 # data matches
                 assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
 
+            # Test raise when exporting to overwrite existing files
+            files = set(f for f in test_dir.glob('*') if f.is_file())
+            # sorted and reversed means files before their containing dirs
+            for path in sorted(test_dir.glob('**/*'), reverse=True):
+                # keep files from root of test_dir
+                if path in files:
+                    continue
+                # remove everything else
+                path.rmdir() if path.is_dir() else path.unlink()
+            # now there are only files in the export root to conflict with.
+            with pytest.raises(command.CommandException, match='file already exists'):
+                command.export(pkg_name, str(test_dir))
+
             # Test raise when exporting to existing dir structure
+            command.export(pkg_name, str(test_dir), force=True)
             for p in test_dir.glob('**/*'):
                 # leave dirs, remove files
                 if p.is_dir():
