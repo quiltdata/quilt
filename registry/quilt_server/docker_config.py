@@ -5,7 +5,7 @@ Config file for dev in Docker. Overrides values in config.py.
 """
 import os
 
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@db/quilt'
+SQLALCHEMY_DATABASE_URI = 'postgres://postgres:testing@db/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
