@@ -122,10 +122,10 @@ class ImportTest(QuiltTestCase):
 
         from quilt.data.foo import package2
         teststore = PackageStore(self._store_dir)
-        contents1 = open(os.path.join(teststore.package_path('foo', 'package1'),
+        contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
                                       Package.CONTENTS_DIR,
                                       package1._package.get_hash())).read()
-        contents2 = open(os.path.join(teststore.package_path('foo', 'package2'),
+        contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
                                       Package.CONTENTS_DIR,
                                       package2._package.get_hash())).read()
         assert contents1 == contents2

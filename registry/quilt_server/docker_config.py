@@ -5,7 +5,7 @@ Config file for dev in Docker. Overrides values in config.py.
 """
 import os
 
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@db/quilt'
+SQLALCHEMY_DATABASE_URI = 'postgres://postgres:testing@db/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
@@ -16,7 +16,7 @@ if AUTH_PROVIDER == 'quilt':
         client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET'),
         user_api='http://auth:5002/api-root',
-        profile_api='http://auth:5002/profiles/%s/',
+        profile_api='http://auth:5002/accounts/profile?user=%s',
         have_refresh_token=True,
     )
 elif AUTH_PROVIDER == 'github':

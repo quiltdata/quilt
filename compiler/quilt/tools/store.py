@@ -90,21 +90,23 @@ class PackageStore(object):
         return [package_dir]
         
     @classmethod
-    def find_package(cls, user, package, store_dir=None):
+    def find_package(cls, team, user, package, store_dir=None):
         """
         Finds an existing package in one of the package directories.
         """
-        cls.check_name(user, package)
+        cls.check_name(team, user, package)
         dirs = cls.find_store_dirs()
         for store_dir in dirs:
             store = PackageStore(store_dir)
-            pkg = store.get_package(user, package)
+            pkg = store.get_package(team, user, package)
             if pkg is not None:
                 return pkg
         return None
 
     @classmethod
-    def check_name(cls, user, package):
+    def check_name(cls, team, user, package):
+        if team is not None and not VALID_NAME_RE.match(team):
+            raise StoreException("Invalid team name: %r" % team)
         if not VALID_NAME_RE.match(user):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
@@ -127,12 +129,12 @@ class PackageStore(object):
 
     # TODO: find a package instance other than 'latest', e.g. by
     # looking-up by hash, tag or version in the local store.
-    def get_package(self, user, package):
+    def get_package(self, team, user, package):
         """
         Gets a package from this store.
         """
-        self.check_name(user, package)
-        path = self.package_path(user, package)
+        self.check_name(team, user, package)
+        path = self.package_path(team, user, package)
         if os.path.isdir(path):
             try:
                 return Package(
@@ -145,15 +147,15 @@ class PackageStore(object):
                 pass
         return None
 
-    def install_package(self, user, package, contents):
+    def install_package(self, team, user, package, contents):
         """
         Creates a new package in the default package store
         and allocates a per-user directory if needed.
         """
-        self.check_name(user, package)
+        self.check_name(team, user, package)
 
         assert contents is not None
-        path = self.package_path(user, package)
+        path = self.package_path(team, user, package)
 
         # Delete any existing data.
         try:
@@ -169,22 +171,22 @@ class PackageStore(object):
             contents=contents
         )
 
-    def create_package(self, user, package, dry_run=False):
+    def create_package(self, team, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.
         """
         if dry_run:
             return Package(self, user, package, '.', RootNode(dict()))
         contents = RootNode(dict())
-        return self.install_package(user, package, contents)
+        return self.install_package(team, user, package, contents)
 
-    def remove_package(self, user, package):
+    def remove_package(self, team, user, package):
         """
         Removes a package (all instances) from this store.
         """
-        self.check_name(user, package)
+        self.check_name(team, user, package)
 
-        path = self.package_path(user, package)
+        path = self.package_path(team, user, package)
         remove_objs = set()
         if os.path.isdir(path):
             # Collect objects from all instances for potential cleanup
@@ -235,17 +237,18 @@ class PackageStore(object):
                         
         return packages
 
-    def user_path(self, user):
+    def user_path(self, team, user):
         """
         Returns the path to directory with the user's package repositories.
         """
-        return os.path.join(self._path, self.PKG_DIR, user)
+        name = team + ':' + user if team else user
+        return os.path.join(self._path, self.PKG_DIR, name)
 
-    def package_path(self, user, package):
+    def package_path(self, team, user, package):
         """
         Returns the path to a package repository.
         """
-        return os.path.join(self.user_path(user), package)
+        return os.path.join(self.user_path(team, user), package)
 
     def object_path(self, objhash):
         """
@@ -315,7 +318,7 @@ def parse_package_extended(name):
                 else:
                     # usr/pkg:hashval
                     hash = versioninfo
-        owner, pkg, subpath = parse_package(name, allow_subpath=True)
+        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
     except ValueError:
         pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
@@ -323,7 +326,13 @@ def parse_package_extended(name):
 
 def parse_package(name, allow_subpath=False):
     try:
-        values = name.split('/')
+        values = name.split(':', 1)
+        if len(values) > 1:
+            team = values[0]
+        else:
+            team = None
+
+        values = values[-1].split('/')
         # Can't do "owner, pkg, *subpath = ..." in Python2 :(
         (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
@@ -333,14 +342,14 @@ def parse_package(name, allow_subpath=False):
             raise ValueError
 
     except ValueError:
-        pkg_format = 'owner/package_name/path' if allow_subpath else 'owner/package_name'
+        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
         raise CommandException("Specify package as %s." % pkg_format)
 
     try:
-        PackageStore.check_name(owner, pkg)
+        PackageStore.check_name(team, owner, pkg)
     except StoreException as ex:
         raise CommandException(str(ex))
 
     if allow_subpath:
-        return owner, pkg, subpath
-    return owner, pkg
+        return team, owner, pkg, subpath
+    return team, owner, pkg

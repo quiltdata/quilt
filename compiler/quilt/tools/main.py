@@ -77,6 +77,7 @@ def argument_parser():
     config_p.set_defaults(func=command.config)
 
     login_p = subparsers.add_parser("login", description="Log in to configured Quilt server")
+    login_p.add_argument("team", type=str, nargs='?', help="Specify team to log in as")
     login_p.set_defaults(func=command.login)
 
     logout_p = subparsers.add_parser("logout", description="Log out of current Quilt server")
