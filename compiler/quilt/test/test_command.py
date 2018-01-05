@@ -5,6 +5,7 @@ Tests for commands.
 import hashlib
 import json
 import os
+import stat
 import time
 
 from contextlib import contextmanager
@@ -635,7 +636,8 @@ class CommandTest(QuiltTestCase):
             # Test exporting to an unwriteable location
             test_dir = temp_dir / 'test_write_permissions_fail'
             test_dir.mkdir()
-            with chmod_context(0o111, test_dir):  # --x--x--x on directory -- enter, but no read/modify
+            mode = stat.S_IREAD if os.name == 'nt' else 0o111
+            with chmod_context(mode, test_dir):  # --x--x--x on directory -- enter, but no read/modify
                 with pytest.raises(command.CommandException, match='not writable'):
                     command.export(pkg_name, str(test_dir))
 
