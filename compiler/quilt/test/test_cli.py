@@ -161,6 +161,7 @@ KNOWN_PARAMS = [
     [0, 'ls'],
     [0, 'push'],
     [0, 'push', '--public'],
+    [0, 'push', '--team'],
     [0, 'push', '--reupload'],
     [0, 'push', 0],
     [0, 'rm'],

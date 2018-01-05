@@ -328,7 +328,7 @@ def login_with_token(team, refresh_token):
 
     _clear_session(team)
 
-def logout(team):
+def logout(team=None):
     """
     Become anonymous. Useful for testing.
     """
@@ -552,10 +552,11 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, teamflag=False, reupload=False):
+def push(package, public=False, team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
+    teamflag = team
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
