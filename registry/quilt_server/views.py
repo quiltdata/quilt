@@ -1045,7 +1045,7 @@ def access_put(owner, package_name, user):
             "Only the package owner can grant access"
         )
 
-    django_headers = {
+    auth_headers = {
         AUTHORIZATION_HEADER: g.auth_header
         }
 
@@ -1064,9 +1064,9 @@ def access_put(owner, package_name, user):
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Django to send invitation email        
+        # Call to Auth to send invitation email        
         resp = requests.post(INVITE_SEND_URL,
-                             headers=django_headers,
+                             headers=auth_headers,
                              data=dict(email=email,
                                        owner=g.auth.user,
                                        package=package.name,
@@ -1080,14 +1080,13 @@ def access_put(owner, package_name, user):
                 "Invalid credentials"
                 )
         elif resp.status_code != requests.codes.ok:
-            print(resp.text)
             raise ApiException(requests.codes.server_error, "Server error")
         return dict()
 
     else:
         if user != PUBLIC:
             resp = requests.get(OAUTH_PROFILE_API % user,
-                                headers=django_headers)
+                                headers=auth_headers)
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
                     requests.codes.not_found,
