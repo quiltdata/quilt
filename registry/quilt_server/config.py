@@ -9,7 +9,7 @@ See `app.config.from_object('...')` in __init__.py.
 import os
 
 BAN_PUBLIC_USERS = os.getenv('QUILT_BAN_PUBLIC_USERS', '')
-if len(BAN_PUBLIC_USERS):
+if BAN_PUBLIC_USERS:
     BAN_PUBLIC_USERS = True
 else:
     BAN_PUBLIC_USERS = False
