@@ -13,11 +13,8 @@ import quilt.vfs
 
 QUILT_PKG = 'asah/cifar10'
 
-print("Ensuring {} is installed".format(QUILT_PKG))
-quilt.vfs.ensure_installed(QUILT_PKG)
-
 print("   reading data from Quilt package: {}...".format(QUILT_PKG))
-quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'})
+quilt.vfs.setup(QUILT_PKG, mappings={'data_set/cifar_10':'data_set.cifar_10'}, ensure_installed=True)
 # disable the custom code (include/data.py) that looks for local input files
 quilt.vfs.patch('include.data', 'maybe_download_and_extract', lambda: None)
 
