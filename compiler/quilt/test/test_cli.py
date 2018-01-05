@@ -158,6 +158,7 @@ KNOWN_PARAMS = [
     [0, 'login'],
     [0, 'login', 0],
     [0, 'logout'],
+    [0, 'logout', 0],
     [0, 'ls'],
     [0, 'push'],
     [0, 'push', '--public'],
