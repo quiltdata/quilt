@@ -1336,6 +1336,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         return
 
     # ensure output path is writable.  I'd just check stat, but this is fully portable.
+    # TODO: Performance re: write amplifacation per PR#266
     try:
         output_path.mkdir(exist_ok=True)  # could be '.'
         with tempfile.TemporaryFile(dir=str(output_path), prefix="quilt-export-write-test-", suffix='.tmp'):
