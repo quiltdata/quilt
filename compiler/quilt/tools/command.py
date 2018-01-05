@@ -552,7 +552,7 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, reupload=False):
+def push(package, public=False, teamflag=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
@@ -562,6 +562,19 @@ def push(package, public=False, reupload=False):
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    if teamflag and public:
+        raise CommandException("--team and --public are incompatible")
+
+    if teamflag and team is None:
+        raise CommandException("--team cannot be used on non-team packages")
+
+    if public and team is not None:
+        raise CommandException("--public is not compatible with team packages, " +
+                               "Maybe you meant --team")
+
+    if teamflag and team is not None:
+        public = True
 
     pkghash = pkgobj.get_hash()
 
