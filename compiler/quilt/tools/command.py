@@ -1231,7 +1231,7 @@ def update(pkginfo, content):
 #     if pathlist[-1].startswith('x_'):
 #         pathlist[-1] = '-' + pathlist[-1][2:]
 #     return pathlist
-def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False, silent=False):
+def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False):
     """Export package file data.
 
     Exports children of specified node to files (if they have file data).
@@ -1332,8 +1332,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         # Technically successful, but with nothing to do.
         # package may have no file nodes, or user may have filtered out all applicable targets.
         # -- should we consider it an error and raise?
-        if not silent:
-            print("No files to export.")
+        print("No files to export.")
         return
 
     # ensure output path is writable.  I'd just check stat, but this is fully portable.
@@ -1346,21 +1345,18 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
 
     # Paths verified, let's export..
     try:
-        if not silent:
-            sys.stdout.write('Exporting.')
-            sys.stdout.flush()
+        sys.stdout.write('Exporting.')
+        sys.stdout.flush()
         for src, dest in final_export_map:
             if not dest.parent.exists():
                 dest.parent.mkdir(parents=True, exist_ok=True)
-            if not silent:
-                sys.stdout.write('.')
-                sys.stdout.flush()
+            sys.stdout.write('.')
+            sys.stdout.flush()
             if src in zero_byte_files:
                 dest.touch()  # weird issue: zero-byte files not getting copied?!
             else:
                 copy(str(src), str(dest))
-        if not silent:
-            print('..done.')
+        print('..done.')
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
         commandex.original_error = error

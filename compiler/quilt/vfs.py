@@ -396,7 +396,7 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
     save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)
 
 
-def ensure_installed(pkgname, silent=False):
+def ensure_installed(pkgname):
     try:
         command.importpkg(pkgname)
     except command.CommandException as error:
