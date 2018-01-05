@@ -1,15 +1,18 @@
-version: '2.1'
+version: '2.2'
 services:
   db:
-    image: mysql
+    image: postgres
     environment:
-      - MYSQL_ALLOW_EMPTY_PASSWORD=True
-      - MYSQL_DATABASE=quilt
+      - POSTGRES_PASSWORD=testing
+      - POSTGRES_DB=packages
     healthcheck:
-      test: ["CMD", "mysql", "-u", "root", "-e", "select 1"]
-      interval: 1m
-      timeout: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
       retries: 3
+    ports:
+      - 5432
+
   migration:
     build: .
     image: quiltdata/flask
