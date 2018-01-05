@@ -6,7 +6,7 @@ import re
 
 from shutil import rmtree
 
-from .const import PACKAGE_DIR_NAME
+from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
 from .core import FileNode, RootNode, TableNode, CommandException
 from .package import Package, PackageException
 from .util import BASE_DIR
@@ -20,7 +20,6 @@ def default_store_location():
     path=os.path.realpath(BASE_DIR)
     package_dir = os.path.join(path, PACKAGE_DIR_NAME)
     return package_dir
-
 
 class StoreException(Exception):
     """
@@ -40,7 +39,7 @@ class PackageStore(object):
     TMP_OBJ_DIR = 'tmp'
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
-    VERSION = '1.2'
+    VERSION = '1.3'
     
     def __init__(self, location=None):
         if location is None:
@@ -207,11 +206,12 @@ class PackageStore(object):
         Return an iterator over all the packages in the PackageStore.
         """
         pkgdir = os.path.join(self._path, self.PKG_DIR)
-        for user in os.listdir(pkgdir):
-            for pkg in os.listdir(os.path.join(pkgdir, user)):
-                pkgpath = os.path.join(pkgdir, user, pkg)
-                for hsh in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR)):
-                    yield Package(self, user, pkg, pkgpath, pkghash=hsh)
+        for team in os.listdir(pkgdir):
+            for user in os.listdir(self.team_path(team)):
+                for pkg in os.listdir(self.user_path(team, user)):
+                    pkgpath = self.package_path(team, user, pkg)
+                    for hsh in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR)):
+                        yield Package(self, user, pkg, pkgpath, pkghash=hsh)
 
     def ls_packages(self):
         """
@@ -219,30 +219,37 @@ class PackageStore(object):
         """
         packages = []
         pkgdir = os.path.join(self._path, self.PKG_DIR)
-        for user in os.listdir(pkgdir):
-            for pkg in os.listdir(os.path.join(pkgdir, user)):
-                pkgpath = os.path.join(pkgdir, user, pkg)           
-                pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
-                for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
-                    with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
-                        pkghash = tagfile.read()
-                        pkgmap[pkghash].append(tag)
-                for pkghash, tags in pkgmap.items():
-                    fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
-                    # Add an empty string tag for untagged hashes
-                    displaytags = tags if tags else [""]
-                    # Display a separate full line per tag like Docker
-                    for tag in displaytags:
-                        packages.append((fullpkg, str(tag), pkghash))
+        for team in os.listdir(pkgdir):
+            for user in os.listdir(self.team_path(team)):
+                for pkg in os.listdir(self.user_path(team, user)):
+                    pkgpath = self.package_path(team, user, pkg)
+                    pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
+                    for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
+                        with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
+                            pkghash = tagfile.read()
+                            pkgmap[pkghash].append(tag)
+                    for pkghash, tags in pkgmap.items():
+                        fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
+                        # Add an empty string tag for untagged hashes
+                        displaytags = tags if tags else [""]
+                        # Display a separate full line per tag like Docker
+                        for tag in displaytags:
+                            packages.append((fullpkg, str(tag), pkghash))
                         
         return packages
+
+    def team_path(self, team):
+        """
+        Returns the path to directory with the team's users' package repositories.
+        """
+        teamdir = team if team else DEFAULT_TEAM
+        return os.path.join(self._path, self.PKG_DIR, teamdir)
 
     def user_path(self, team, user):
         """
         Returns the path to directory with the user's package repositories.
         """
-        name = team + ':' + user if team else user
-        return os.path.join(self._path, self.PKG_DIR, name)
+        return os.path.join(self.team_path(team), user)
 
     def package_path(self, team, user, package):
         """
