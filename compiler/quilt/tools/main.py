@@ -112,12 +112,14 @@ def argument_parser():
 
     push_p = subparsers.add_parser("push", description="Push a data package to the server")
     push_p.add_argument("package", type=str, help=HANDLE)
-    push_p.add_argument("--public", action="store_true",
-                        help=("Create or update a public package " +
-                              "(fails if the package exists and is private)"))
-    push_p.add_argument("--team", action="store_true",
-                        help=("Create or update a team-visible package " +
-                              "(fails if the package exists and is private)"))
+    push_mutexgrp_container = push_p.add_argument_group('team selection options', "(mutually exclusive)")
+    push_mutexgrp = push_mutexgrp_container.add_mutually_exclusive_group()
+    push_mutexgrp.add_argument("--public", action="store_true",
+                               help=("Create or update a public package " +
+                                     "(fails if the package exists and is private)"))
+    push_mutexgrp.add_argument("--team", action="store_true",
+                               help=("Create or update a team-visible package " +
+                                     "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",
                         help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)
