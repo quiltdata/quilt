@@ -842,7 +842,7 @@ def install_via_requirements(requirements_str, force=False):
     for pkginfo in yaml_data['packages']:
         owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
         package = owner + '/' + pkg
-        if subpath is not None:
+        if subpath:
             package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
 
