@@ -707,8 +707,14 @@ def push(package, public=False, team=False, reupload=False):
         ))
     )
 
-    url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Push complete. %s/%s is live:\n%s" % (owner, pkg, url))
+    if team is None:
+        url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
+        teamstr = ""
+    else:
+        url = "https://%s.team.quiltdata.com/package/%s/%s" % (team, owner, pkg)
+        teamstr = "%s:" % (team)
+
+    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, url))
 
 def version_list(package):
     """
