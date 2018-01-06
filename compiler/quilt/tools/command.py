@@ -525,7 +525,7 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
             build_package(team, owner, pkg, path, dry_run=dry_run, env=env)
 
         if not dry_run:
-            print("Built %s/%s successfully." % (owner, pkg))
+            print("Built %s%s/%s successfully." % (team + ':' if team else '', owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
