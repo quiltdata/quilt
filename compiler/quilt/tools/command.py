@@ -456,11 +456,11 @@ def _build_internal(package, path, dry_run, env):
         build_from_node(package, path)
     elif path is None:
         assert not dry_run  # TODO?
-        build_empty(package)
+        _build_empty(package)
     else:
         raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
-def build_empty(package):
+def _build_empty(package):
     """
     Create an empty package for convenient editing of de novo packages
     """
