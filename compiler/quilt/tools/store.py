@@ -229,7 +229,9 @@ class PackageStore(object):
                             pkghash = tagfile.read()
                             pkgmap[pkghash].append(tag)
                     for pkghash, tags in pkgmap.items():
-                        fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
+                        # add teams here if any other than DEFAULT_TEAM should be hidden.
+                        team_token = '' if team in (DEFAULT_TEAM,) else team + ':'
+                        fullpkg = "{team}{owner}/{pkg}".format(team=team_token, owner=user, pkg=pkg)
                         # Add an empty string tag for untagged hashes
                         displaytags = tags if tags else [""]
                         # Display a separate full line per tag like Docker
