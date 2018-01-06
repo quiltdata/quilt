@@ -1188,9 +1188,13 @@ def inspect(package):
     Inspect package details
     """
     team, owner, pkg = parse_package(package)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(teamstr=teamstr, owner=owner, pkg=pkg))
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
