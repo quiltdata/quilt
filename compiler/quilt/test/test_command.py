@@ -11,6 +11,7 @@ import requests
 import responses
 import shutil
 
+import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -191,6 +192,24 @@ class CommandTest(QuiltTestCase):
         mock_open.assert_called_with('%s/login' % command.get_registry_url('foo'))
 
         mock_login_with_token.assert_called_with('foo', old_refresh_token)
+
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login_invalid_team(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        with pytest.raises(command.CommandException, match='Invalid team name'):
+            command.login('fo!o')
+
+        assert not mock_open.called
+        assert not mock_login_with_token.called
+
+    def test_login_with_token_invalid_team(self):
+        with pytest.raises(command.CommandException, match='Invalid team name'):
+            command.login_with_token('fo!o', '123')
 
     @patch('quilt.tools.command._save_auth')
     def test_login_token(self, mock_save):

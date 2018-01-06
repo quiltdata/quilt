@@ -37,7 +37,7 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
                    load_yaml)
 from .hashing import digest_file
-from .store import PackageStore, parse_package, parse_package_extended
+from .store import PackageStore, parse_package, parse_package_extended, VALID_NAME_RE
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
@@ -89,6 +89,9 @@ def _save_config(cfg):
 
 def get_registry_url(team):
     if team is not None:
+        # TODO: use utils.is_nodename() once merged
+        if not VALID_NAME_RE.match(team):
+            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
