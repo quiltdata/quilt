@@ -9,17 +9,13 @@ import {
   getLatestSuccess,
 } from './actions';
 
-import {
-  GET_LATEST,
-  GET_LATEST_ERROR,
-  GET_LATEST_SUCCESS,
-} from './constants';
+import { GET_LATEST } from './constants';
 
 function* doGetLatest() {
   try {
     const { api: server } = config;
     const endpoint = `${server}/api/recent_packages`;
-    const response = yield call(requestJSON, endpoint, { method: 'GET'});
+    const response = yield call(requestJSON, endpoint, { method: 'GET' });
     if (response.message) {
       throw makeError('Package hiccup', response.message);
     }
