@@ -1,6 +1,5 @@
 /* Main landing page feature */
 import React, { PropTypes } from 'react';
-import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
 
 import ImageRow from 'components/ImageRow';
@@ -13,7 +12,7 @@ import strings from './messages';
 const xs = `${breaks.sm - 1}px`;
 
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-const Feature = ({ header, tagline}) => (
+const Feature = ({ header, tagline }) => (
   <ImageRow backgroundColor="#F6B500" src={background}>
     <Content>
       <h1 className="main">
@@ -42,12 +41,12 @@ const Feature = ({ header, tagline}) => (
 Feature.defaultProps = {
   header: strings.header.defaultMessage,
   tagline: strings.tagline.defaultMessage,
-}
+};
 
 Feature.propTypes = {
   header: PropTypes.string,
   tagline: PropTypes.string,
-}
+};
 
 const Content = styled.div`
   border-bottom: 1px solid backgroundColor;

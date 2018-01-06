@@ -1,4 +1,3 @@
-import { LOCATION_CHANGE } from 'react-router-redux';
 import { call, put, takeLatest } from 'redux-saga/effects';
 
 import makeError from 'utils/error';
@@ -6,7 +5,6 @@ import config from 'constants/config';
 import { requestJSON } from 'utils/request';
 
 import {
-  getLatest,
   getLatestError,
   getLatestSuccess,
 } from './actions';
@@ -17,11 +15,7 @@ import {
   GET_LATEST_SUCCESS,
 } from './constants';
 
-import {
-  makeSelectUserName,
-} from './selectors';
-
-function* doGetLatest(action) {
+function* doGetLatest() {
   try {
     const { api: server } = config;
     const endpoint = `${server}/api/recent_packages`;

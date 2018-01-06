@@ -67,7 +67,7 @@ const Card = styled.a`
   white-space: normal;
   background-color: white;
   border: 1px solid #ddd;
-  height: ${props => props.team ? '128px' : '256px'};
+  height: ${(props) => props.team ? '128px' : '256px'};
   margin: 0em 1em 1em 0em;
   overflow: hidden;
   padding: 1em;
