@@ -868,6 +868,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert [hash, version, tag].count(None) == 2
 
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
     session = _get_session(team)
     store = PackageStore()
     existing_pkg = store.get_package(team, owner, pkg)
@@ -912,7 +916,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert response.ok # other responses handled by _handle_response
 
     if existing_pkg is not None and not force:
-        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+        print("{teamstr}{owner}/{pkg} already installed.".format(teamstr=teamstr, owner=owner, pkg=pkg))
         overwrite = input("Overwrite? (y/n) ")
         if overwrite.lower() != 'y':
             return
@@ -1138,13 +1142,17 @@ def delete(package):
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
     team, owner, pkg = parse_package(package)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
 
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
-        "Type '%s/%s' to confirm: " % (owner, pkg)
+        "Type '%s%s/%s' to confirm: " % (teamstr, owner, pkg)
     )
 
-    if answer != '%s/%s' % (owner, pkg):
+    if answer != '%s%s/%s' % (teamstr, owner, pkg):
         print("Not deleting.")
         return 1
 
