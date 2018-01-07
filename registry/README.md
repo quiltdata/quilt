@@ -93,7 +93,7 @@ Connect to the local Quilt catalog by pointing your browser to: http://localhost
 
 It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package stage is reset every time the services are restarted.
 
-In developement, it's often useful to leave the database and storage service running, and only restart the flask container.
+In development, it's often useful to leave the database and storage service running, and only restart the flask container.
 
     docker-compose create --force-recreate --build flask
 
