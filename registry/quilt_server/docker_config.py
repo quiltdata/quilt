@@ -13,7 +13,7 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='http://auth:5002/o/token/',
         authorize_url='http://auth:5002/o/authorize/',
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id=os.getenv('OAUTH_CLIENT_ID'),
         client_secret=os.getenv('OAUTH_CLIENT_SECRET'),
         user_api='http://auth:5002/api-root',
         profile_api='http://auth:5002/accounts/profile?user=%s',
