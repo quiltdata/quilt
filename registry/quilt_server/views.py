@@ -26,7 +26,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC
+from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -448,6 +448,9 @@ def package_put(owner, package_name, package_hash):
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can push packages.")
+
+    if not VALID_NAME_RE.match(package_name):
+        raise ApiException(requests.codes.bad_request, "Invalid package name")
 
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
