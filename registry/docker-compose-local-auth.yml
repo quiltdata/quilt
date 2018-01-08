@@ -84,7 +84,7 @@ services:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
       - DATABASE_URL=postgres://postgres:testing@db/packages
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://catalog:3000
       - ALLOW_HTTP=1
     depends_on:
       db:
