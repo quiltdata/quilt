@@ -188,7 +188,6 @@ def argument_parser():
     # quilt logout
     shorthelp = "Log out of current Quilt server"
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
-    logout_p.add_argument("team", type=str, nargs='?', help="Specify team to log out from")
     logout_p.set_defaults(func=command.logout)
 
     # quilt ls
