@@ -54,7 +54,7 @@ Successfully tagged quiltdata/catalog:latest
 ```
 
 
-## Step 2) start the containers
+## Step 3) start the containers
 
 ```bash
 docker-compose up
@@ -166,7 +166,7 @@ flask_1       | AUTH_PROVIDER=github
 
 4. When users run ```quilt login``` their browser should be redirected to a page on github.com which handles login to the catalog webserver (via cookies/rediects) and also generates the access token for the Quilt client (command-line tools, Python API, etc).
 
-
+<!--
 [//]: # 
 [//]: # 
 [//]: # # Running directly (not with Docker)
@@ -245,3 +245,4 @@ flask_1       | AUTH_PROVIDER=github
 [//]: # Don't forget to add it to the repo:
 [//]: # 
 [//]: #     git add migrations/versions/[whatever].py
+-->
