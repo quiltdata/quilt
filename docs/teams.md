@@ -1,10 +1,12 @@
-# Teams BETA
+# Teams (Beta)
 
-A team in Quilt is a separate package namespace and access control specification. Being part of a team lets you install and push team-visible packages.
+A team in Quilt is a private package namespace and access control specification. As a team member, you can install and push packages in that team namespace.
 
-The general notation for a team package is team:user/pkg.
+The general notation for a team package is `TEAM:USER/PKG`.
 
 Most Quilt commands work just like normal whether you're part of a team or not. The rest of this document lists all the exceptions.
+
+If you're interested in using this feature, please [contact us](sales@quiltdata.io) to join the Beta.
 
 ## `quilt push`
 
