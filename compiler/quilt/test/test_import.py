@@ -7,7 +7,7 @@ import os
 import pandas as pd
 from six import string_types
 
-from quilt.data import GroupNode, DataNode
+from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package, PackageException
@@ -192,3 +192,18 @@ class ImportTest(QuiltTestCase):
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         with self.assertRaises(AttributeError):
             package4.newdf = df
+
+    def test_team_imports(self):
+        mydir = os.path.dirname(__file__)
+        build_path1 = os.path.join(mydir, './build_simple.yml')
+        command.build('my_team:foo/bar', build_path1)
+        build_path2 = os.path.join(mydir, './build_empty.yml')
+        command.build('foo/bar', build_path2)
+
+        # Verify that both imports work, and packages are in fact different.
+
+        from quilt.team.my_team.foo import bar as bar1
+        from quilt.data.foo import bar as bar2
+
+        assert hasattr(bar1, 'foo')
+        assert not hasattr(bar2, 'foo')
