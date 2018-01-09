@@ -196,14 +196,14 @@ class ImportTest(QuiltTestCase):
     def test_team_imports(self):
         mydir = os.path.dirname(__file__)
         build_path1 = os.path.join(mydir, './build_simple.yml')
-        command.build('my_team:foo/bar', build_path1)
+        command.build('my_team:foo/team_imports', build_path1)
         build_path2 = os.path.join(mydir, './build_empty.yml')
-        command.build('foo/bar', build_path2)
+        command.build('foo/team_imports', build_path2)
 
         # Verify that both imports work, and packages are in fact different.
 
-        from quilt.team.my_team.foo import bar as bar1
-        from quilt.data.foo import bar as bar2
+        from quilt.team.my_team.foo import team_imports as pkg1
+        from quilt.data.foo import team_imports as pkg2
 
-        assert hasattr(bar1, 'foo')
-        assert not hasattr(bar2, 'foo')
+        assert hasattr(pkg1, 'foo')
+        assert not hasattr(pkg2, 'foo')
