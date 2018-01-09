@@ -1,4 +1,4 @@
-version: '2.2'
+version: '2.1'
 services:
   db:
     image: postgres
@@ -59,6 +59,7 @@ services:
     command: /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
   s3:
+    build: nginx-s3
     image: quiltdata/nginx-s3-proxy
     ports:
       - "5001:5001"
@@ -103,6 +104,7 @@ services:
     command: /usr/src/auth-server/migrate.sh
 
   catalog:
+    build: catalog
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://flask:5000
