@@ -29,7 +29,7 @@ services:
       flask db upgrade
   flask:
     build: .
-    image: quiltdata/flask
+#    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
@@ -37,6 +37,7 @@ services:
       - OAUTH_CLIENT_SECRET=TESTING
       - OAUTHLIB_INSECURE_TRANSPORT=1
       - AUTH_PROVIDER=github
+      - OAUTH_CLIENT_ID_GITHUB
       - OAUTH_CLIENT_SECRET_GITHUB
     depends_on:
       db:
