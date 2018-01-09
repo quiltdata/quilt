@@ -29,7 +29,7 @@ Windows: (instructions coming soon)
 
 ```bash
 cd quilt    # run from the toplevel directory   
-docker build -t quiltdata/catalog ../catalog
+docker build -t quiltdata/catalog catalog
 
 cd quilt/registry  # run from the registry subdirectory
 docker build -t quiltdata/nginx-s3-proxy nginx-s3
