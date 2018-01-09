@@ -21,6 +21,7 @@
 * [Python API](api-python.md)
 * [Jupyter API](api-jupyter.md)
 * [R API](api-r.md)
+* [Teams API](teams.md)
 
 ## Support
 
