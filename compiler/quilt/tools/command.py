@@ -12,6 +12,7 @@ import json
 import os
 import re
 from shutil import copyfileobj, move, rmtree
+import stat
 import subprocess
 import sys
 import tempfile
@@ -102,6 +103,7 @@ def _save_auth(cfg):
         os.makedirs(BASE_DIR)
     auth_path = os.path.join(BASE_DIR, 'auth.json')
     with open(auth_path, 'w') as fd:
+        os.chmod(auth_path, stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
 def get_registry_url(team):
