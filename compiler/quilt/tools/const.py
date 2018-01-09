@@ -71,3 +71,6 @@ PARSERS = {
         'kwargs': _kwargs
     }
 }
+
+# Exit codes
+EXIT_KB_INTERRUPT = 4

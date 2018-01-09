@@ -306,6 +306,23 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
+    def testInvalidPackageName(self):
+        resp = self.app.put(
+            '/api/package/test_user/bad-name/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
     def testCase(self):
         # Can't create a package if the username has the wrong case.
         resp = self.app.put(
