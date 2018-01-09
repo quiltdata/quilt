@@ -82,9 +82,10 @@ def gzip_compress(data):
         fd.write(data)
     return buf.getvalue()
 
-def sub_dirs(path):
+def sub_dirs(path, visible=True):
     """
     Enumerate sub-directories.
     Used to avoid descending files (e.g. .DS_Store on Mac OS X)
     """
-    return [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+    subs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+    return subs if not visible else [x for x in subs if not x.startswith('.')]
