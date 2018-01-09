@@ -1,4 +1,4 @@
-# Teams
+# Teams BETA
 
 A team in Quilt is a separate package namespace and access control specification. Being part of a team lets you install and push team-visible packages.
 
