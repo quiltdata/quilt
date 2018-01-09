@@ -9,7 +9,7 @@ from shutil import rmtree
 from .const import PACKAGE_DIR_NAME
 from .core import FileNode, RootNode, TableNode, CommandException
 from .package import Package, PackageException
-from .util import BASE_DIR
+from .util import BASE_DIR, sub_dirs
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
@@ -205,7 +205,7 @@ class PackageStore(object):
         Return an iterator over all the packages in the PackageStore.
         """
         pkgdir = os.path.join(self._path, self.PKG_DIR)
-        for user in os.listdir(pkgdir):
+        for user in sub_dirs(pkgdir):
             for pkg in os.listdir(os.path.join(pkgdir, user)):
                 pkgpath = os.path.join(pkgdir, user, pkg)
                 for hsh in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR)):
@@ -217,8 +217,8 @@ class PackageStore(object):
         """
         packages = []
         pkgdir = os.path.join(self._path, self.PKG_DIR)
-        for user in os.listdir(pkgdir):
-            for pkg in os.listdir(os.path.join(pkgdir, user)):
+        for user in sub_dirs(pkgdir):
+            for pkg in sub_dirs(os.path.join(pkgdir, user)):
                 pkgpath = os.path.join(pkgdir, user, pkg)           
                 pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
                 for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):

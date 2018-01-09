@@ -1,8 +1,8 @@
 """
 Helper functions.
 """
-
 import gzip
+import os
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -81,3 +81,10 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
+def sub_dirs(path):
+    """
+    Enumerate sub-directories.
+    Used to avoid descending files (e.g. .DS_Store on Mac OS X)
+    """
+    return [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
