@@ -62,7 +62,7 @@ services:
     ports:
       - "5001:5001"
   catalog:
-    build: catalog
+    build: ../catalog
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://flask:5000

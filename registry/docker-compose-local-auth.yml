@@ -104,7 +104,7 @@ services:
     command: /usr/src/auth-server/migrate.sh
 
   catalog:
-    build: catalog
+    build: ../catalog
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://flask:5000
