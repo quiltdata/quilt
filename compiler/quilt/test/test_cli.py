@@ -89,11 +89,16 @@ removal (or incompatible additions) on the API side.
 import os
 import sys
 import json
+import signal
+import inspect
 import collections
-from subprocess import check_output, CalledProcessError
+from time import sleep
+from subprocess import check_output, CalledProcessError, Popen, PIPE
 
 import pytest
+from six import string_types
 
+from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
 
 # inspect.argspec is deprecated, so
@@ -117,6 +122,7 @@ TESTED_PARAMS = []
 # These can be directly added or removed from the KNOWN_PARAMS
 # variable, as befits your situation.
 KNOWN_PARAMS = [
+    ['--dev'],
     ['--version'],
     [0],
     [0, 'access'],
@@ -156,10 +162,13 @@ KNOWN_PARAMS = [
     [0, 'log'],
     [0, 'log', 0],
     [0, 'login'],
+    [0, 'login', 0],
     [0, 'logout'],
+    [0, 'logout', 0],
     [0, 'ls'],
     [0, 'push'],
     [0, 'push', '--public'],
+    [0, 'push', '--team'],
     [0, 'push', '--reupload'],
     [0, 'push', 0],
     [0, 'rm'],
@@ -421,8 +430,14 @@ class MockObject(object):
     def __getattr__(self, attrname):
         matched = hasattr(self._target, attrname)
         attr = getattr(self._target, attrname, None)
+
+        # don't mock non-callable attributes
         if matched and not callable(attr):
             return attr
+        # don't mock exceptions
+        if inspect.isclass(attr) and issubclass(attr, BaseException):
+            return attr
+
         def dummy_func(*args, **kwargs):
             bind_failure = fails_binding(attr, args=args, kwargs=kwargs)
 
@@ -456,37 +471,70 @@ class TestCLI(BasicQuiltTestCase):
         self.env = os.environ.copy()
         self.env['PYTHON_PATH'] = PACKAGE_DIR
 
-        self.quilt_command = [sys.executable, '-c', 'from quilt.tools import main; main.main()']
+        self.quilt_command = [sys.executable, '-c', 'from quilt.tools import main; main.main()',
+                              'quilt testing']
 
     def tearDown(self):
         # restore the real 'command' module back to the 'main' module
         self._main.command = self.mock_command._target
 
     def execute(self, cli_args):
-        result = {}
+        """Execute a command using the method specified by the environment
+        When "QUILT_TEST_CLI_SUBPROC" is set to "True", use a subprocess.
+        Otherwise, call main() directly.
+
+        :returns: dict of return codes and calls made to `command` functions
+        """
 
         # CLI mode -- actually executes "quilt <cli args>"
         # This mode is preferable, once quilt load times improve.
         if self.env.get('QUILT_TEST_CLI_SUBPROC', '').lower() == 'true':
-            quilt = self.quilt_command
-            env = self.env
-            cmd = quilt + cli_args
-            try:
-                result = json.loads(check_output(cmd, env=env).decode())
-                result['return code'] = 0
-            except CalledProcessError as error:
-                result['return code'] = error.returncode
-            return result
+            return self.execute_cli(cli_args)
         # Fast mode -- calls main.main(cli_args) instead of actually executing quilt
         else:
-            try:
-                self._main.main(cli_args)
-            except SystemExit as error:
-                result['return code'] = error.args[0] if error.args else 0
-            else:
-                result['return code'] = 0
-            result.update(self.mock_command._result)
-            return result
+            return self.execute_fast(cli_args)
+
+    def execute_cli(self, cli_args):
+        """Execute quilt <cli_args> by executing quilt in a subprocess
+
+        Typically only runs when 'QUILT_TEST_CLI_SUBPROC' is set, and also
+        sets it in the subprocess OS environment.
+
+        This method is preferable for completeness of testing, but currently
+        quilt loads far too slowly for it to be useful except perhaps in
+        automated testing like Travis or Appveyor.
+        """
+        result = {}
+
+        quilt = self.quilt_command
+        cmd = quilt + cli_args
+        env = self.env.copy()
+
+        if not env.get('QUILT_TEST_CLI_SUBPROC', '').lower() == 'true':
+            env['QUILT_TEST_CLI_SUBPROC'] = "True"
+
+        try:
+            result = json.loads(check_output(cmd, env=env).decode())
+            result['return code'] = 0
+        except CalledProcessError as error:
+            result['return code'] = error.returncode
+        return result
+
+    def execute_fast(self, cli_args):
+        """Execute quilt by calling quilt.tools.main.main(cli_args)
+
+        This process is significantly faster than execute_cli, but may be
+        slightly less complete.
+        """
+        result = {}
+        try:
+            self._main.main(cli_args)
+        except SystemExit as error:
+            result['return code'] = error.args[0] if error.args else 0
+        else:
+            result['return code'] = 0
+        result.update(self.mock_command._result)
+        return result
 
     def _general_execute_tests(self, result, funcname):
         """Takes the result from an execution and verifies general conditions
@@ -618,6 +666,128 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
         assert result['kwargs']['output_path'] == 'fakedir'
 
+    def test_cli_option_dev_flag(self):
+        # also test ctrl-c
+        if os.name == 'nt':
+            pytest.xfail("This test causes appveyor to freeze in windows.")
+
+        TESTED_PARAMS.append(['--dev'])
+
+        cmd = ['--dev', 'install', 'user/test']
+        if os.name == 'posix':
+            SIGINT = signal.SIGINT
+        elif os.name == 'nt':
+            SIGINT = signal.CTRL_C_EVENT
+        else:
+            raise ValueError("Unknown OS type: " + os.name)
+
+        result = self.execute(cmd)
+
+        # was the --dev arg accepted by argparse?
+        assert result['return code'] == 0
+
+        # We need to run a command that blocks.  To do so, I'm disabling the
+        # test mocking of the command module, and executing a command that
+        # blocks waiting for input ('config').
+        no_mock = os.environ.copy()
+        no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
+
+        # With no '--dev' arg, the process should exit without a traceback
+        cmd = self.quilt_command + ['config']
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+        # if interrupt is sent too fast, the files won't even be parsed.
+        sleep(3)
+        proc.send_signal(SIGINT)
+        stdout, stderr = (b.decode() for b in proc.communicate())
+        assert 'Traceback' not in stderr
+        # Return code should indicate keyboard interrupt
+        assert proc.returncode == EXIT_KB_INTERRUPT
+
+        # With the '--dev' arg, the process should display a traceback
+        cmd = self.quilt_command + ['--dev', 'config']
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+        # if interrupt is sent too fast, the files won't even be parsed.
+        sleep(3)
+        proc.send_signal(SIGINT)
+        stdout, stderr = (b.decode() for b in proc.communicate())
+        print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
+        assert 'Traceback (most recent call last)' in stderr
+        # Return code should be the generic exit code '1' for unhandled exception
+        assert proc.returncode == 1
+
+
+
+# need capsys, so this isn't in the unittest class
+def test_cli_command_in_help(capsys):
+    """Tests for inclusion in 'help'
+
+    Only tests the base subcommand, not sub-subcommands.
+    """
+    TESTED_PARAMS.append(['--version'])
+
+    from quilt.tools.main import main
+
+    expected_params = set()
+    hidden_params = set()
+    expected_optionals = set()
+    hidden_optionals = {'--dev'}
+
+    for argpath in KNOWN_PARAMS:
+        if len(argpath) == 1:
+            if isinstance(argpath[0], string_types):
+                assert argpath[0].startswith('-'),  "bug in test, not in tested code"
+                expected_optionals.add(argpath[0])
+            continue
+        if isinstance(argpath[1], string_types):
+            expected_params.add(argpath[1])
+
+    try:
+        main(['help'])
+    except SystemExit:
+        pass
+
+    outerr = capsys.readouterr()
+    lines = outerr.out.split('\n')
+
+    for pos, line in enumerate(lines):
+        if line.strip() == '<subcommand>':
+            start = pos + 1
+
+    found_params = []
+    for pos, line in enumerate(lines[start:]):
+        print(line)
+        if line.strip() == "optional arguments:":
+            print("stopping (optionals)")
+            start = pos + 1
+            break
+        splitline = line.split(None, 1)
+        if not splitline:
+            print('skipped (splitline)')
+            continue
+        if line[4] == ' ':  # skip multiline help text
+            print('skipped (char 4)')
+            continue
+        arg = splitline[0]
+        found_params.append(arg)
+
+    assert found_params == sorted(found_params), 'Help params should be sorted properly'
+    assert set(found_params) | hidden_params == expected_params, 'Found params do not match expected params'
+
+    found_optionals = []
+    for line in lines[start:]:
+        splitline = line.split(None, 1)   # ignore second optional form if present (--help, -h)
+        if not splitline:
+            continue
+        optional = splitline[0].rstrip(',')
+        if not optional.startswith('-'):
+            continue
+        print(optional)
+        if optional in ['--help', '-h']:
+            continue
+        found_optionals.append(optional)
+
+    assert found_optionals == sorted(found_optionals)
+    assert set(found_optionals) | hidden_optionals == expected_optionals
 
 
 @pytest.mark.xfail

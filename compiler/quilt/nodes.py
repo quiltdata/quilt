@@ -133,7 +133,7 @@ class PackageNode(GroupNode):
         if isinstance(value, pd.DataFrame):
             # all we really know at this point is that it's a pandas dataframe.
             metadata = {'q_target': 'pandas'}
-            core_node = core.TableNode(hashes=[], metadata=metadata)
+            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value, metadata=metadata)
         elif isinstance(value, string_types + (bytes,)):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value

@@ -53,8 +53,9 @@ class InstallTest(QuiltTestCase):
     def make_contents(cls, **args):
         contents = RootNode(dict(
             group=GroupNode(dict([
-                (key, TableNode([val]) if 'table' in key
-                    else FileNode([val], metadata={'q_path': key}))
+                (key, TableNode([val], PackageFormat.default.value)
+                 if 'table' in key
+                 else FileNode([val], metadata={'q_path': key}))
                 for key, val in args.items()]
             ))
         ))
@@ -76,7 +77,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path('foo', 'bar'),
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
                                Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -119,7 +120,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar/group/table')
 
         teststore = PackageStore(self._store_dir)
-        with open(os.path.join(teststore.package_path('foo', 'bar'),
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
                                Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -131,7 +132,7 @@ class InstallTest(QuiltTestCase):
     def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(user, package),
+        with open(os.path.join(teststore.package_path(None, user, package),
                                Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -144,7 +145,7 @@ class InstallTest(QuiltTestCase):
     def getmtime(self, user, package, contents_hash):
         teststore = PackageStore(self._store_dir)
 
-        return os.path.getmtime(os.path.join(teststore.package_path(user, package),
+        return os.path.getmtime(os.path.join(teststore.package_path(None, user, package),
                                              Package.CONTENTS_DIR,
                                              contents_hash))
 
@@ -244,13 +245,14 @@ packages:
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
-    def test_quilt_yml_unknown_tag(self):
+    def test_quilt_yml_unknown_hash(self):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_log('akarve/sales', contents_hash1)
         with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
-        self._mock_tag('akarve/sales', 'unknown', contents_hash1)
+        # TODO: Is this OK to drop? #merge_uncertainty
+        #self._mock_tag('akarve/sales', 'unknown', contents_hash1)
 
     def test_quilt_yml_unknown_tag(self):
         table_data1, table_hash1 = self.make_table_data('table1')
@@ -287,7 +289,7 @@ packages:
         obj_hash = h.hexdigest()
         contents = GroupNode(dict(
             foo=GroupNode(dict(
-                bar=TableNode([obj_hash])
+                bar=TableNode([obj_hash], PackageFormat.default.value)
             ))
         ))
         contents_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
@@ -310,7 +312,7 @@ packages:
         obj_hash = 'e867010701edc0b1c8be177e02a93aa3cb1342bb1123046e1f6b40e428c6048e'
         contents = GroupNode(dict(
             foo=GroupNode(dict(
-                bar=TableNode([obj_hash])
+                bar=TableNode([obj_hash], PackageFormat.default.value)
             ))
         ))
         contents_hash = hash_contents(contents)
@@ -340,10 +342,8 @@ packages:
             file_name_list.append(file_name)
 
         contents = RootNode(
-            {name: FileNode([file_hash_list[n]], metadata={'q_path': name})
-             for n, name in enumerate(file_name_list)},
-            format=PackageFormat.HDF5,
-        )
+            {filename: FileNode([file_hash_list[n]], metadata={'q_path': filename})
+             for n, filename in enumerate(file_name_list)})
         contents_hash = hash_contents(contents)
 
         # Create a package store object to use its path helpers
@@ -363,21 +363,21 @@ packages:
         command.install('foo/bar')
 
     def _mock_log(self, package, pkg_hash):
-        log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(None), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
             {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
         ]}))
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
                       status=200, message=None):
-        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(None), package, tag)
         self.requests_mock.add(cmd, tag_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
 
     def _mock_version(self, package, version, pkg_hash, cmd=responses.GET,
                       status=200, message=None):
-        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
+        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(None), package, version)
         self.requests_mock.add(cmd, version_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
@@ -385,7 +385,7 @@ packages:
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
                       status=200, message=None):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(None), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else

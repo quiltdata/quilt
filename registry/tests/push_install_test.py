@@ -36,7 +36,8 @@ class PushInstallTestCase(QuiltTestCase):
 
     CONTENTS = RootNode(dict(
         foo=TableNode(
-            hashes=[HASH1, HASH2]
+            hashes=[HASH1, HASH2],
+            format=PackageFormat.default.value
         ),
         group1=GroupNode(dict(
             empty=TableNode(
@@ -291,6 +292,23 @@ class PushInstallTestCase(QuiltTestCase):
     def testInvalidHash(self):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.HASH1,
+            data=json.dumps(dict(
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.bad_request
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert 'message' in data
+
+    def testInvalidPackageName(self):
+        resp = self.app.put(
+            '/api/package/test_user/bad-name/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
                 contents=self.CONTENTS

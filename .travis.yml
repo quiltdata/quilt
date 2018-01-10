@@ -13,6 +13,9 @@ env:
     - FLASK_DEBUG=1
     - QUILT_SERVER_CONFIG=dev_config.py
 
+addons:
+  postgresql: "9.6"
+
 matrix:
   fast_finish: true
   include:
@@ -25,21 +28,21 @@ matrix:
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
     - os: linux
       language: python
       python: "3.5"
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
     - os: linux
       language: python
       python: "3.6"
       env:
         TEST_REGISTRY=true
       services:
-        - mysql
+        - postgresql
 
 install:
   # debug support

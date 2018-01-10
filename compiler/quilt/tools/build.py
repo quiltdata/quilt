@@ -9,7 +9,7 @@ import os
 import re
 
 from pandas.errors import ParserError
-from six import iteritems, itervalues
+from six import iteritems, itervalues, string_types
 
 import yaml
 from tqdm import tqdm
@@ -281,7 +281,7 @@ def _file_to_data_frame(ext, path, target, handler_args):
 
     return dataframe
 
-def build_package(username, package, yaml_path, checks_path=None, dry_run=False, env='default'):
+def build_package(team, username, package, yaml_path, checks_path=None, dry_run=False, env='default'):
     """
     Builds a package from a given Yaml file and installs it locally.
 
@@ -290,9 +290,9 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
     def find(key, value):
         """
         find matching nodes recursively;
-        only descend iterables
+        only descend iterables that aren't strings
         """
-        if isinstance(value, Iterable):
+        if isinstance(value, Iterable) and not isinstance(value, string_types):
             for k, v in iteritems(value):
                 if k == key:
                     yield v
@@ -315,10 +315,10 @@ def build_package(username, package, yaml_path, checks_path=None, dry_run=False,
         checks_contents = load_yaml(checks_path)
     else:
         checks_contents = None
-    build_package_from_contents(username, package, os.path.dirname(yaml_path), build_data,
+    build_package_from_contents(team, username, package, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
-def build_package_from_contents(username, package, build_dir, build_data,
+def build_package_from_contents(team, username, package, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
@@ -340,7 +340,7 @@ def build_package_from_contents(username, package, build_dir, build_data,
     checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    newpackage = store.create_package(username, package, dry_run=dry_run)
+    newpackage = store.create_package(team, username, package, dry_run=dry_run)
     _build_node(build_dir, newpackage, '', contents, pkgformat,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
