@@ -49,7 +49,7 @@ class BuildTest(QuiltTestCase):
 
         # Verify cache contents
         srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
-        path_hash = build._path_hash(srcpath, 'csv', {})
+        path_hash = build._path_hash(srcpath, 'csv',  {'parse_dates': ['Date0']})
         assert os.path.exists(teststore.cache_path(path_hash))
         
         # Build again using the cache

@@ -7,7 +7,7 @@ import os
 import pandas as pd
 from six import string_types
 
-from quilt.data import GroupNode, DataNode
+from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package, PackageException
@@ -81,9 +81,9 @@ class ImportTest(QuiltTestCase):
 
         # Good imports
 
-        from quilt.data.test.bar import package
-        from quilt.data.test.bar.package import dataframes
-        from quilt.data.test.bar.package import README
+        from quilt.team.test.bar import package
+        from quilt.team.test.bar.package import dataframes
+        from quilt.team.test.bar.package import README
 
         # Contents of the imports
 
@@ -122,16 +122,16 @@ class ImportTest(QuiltTestCase):
         # Bad imports
 
         with self.assertRaises(ImportError):
-            import quilt.data.test.bar.bad_package
+            import quilt.team.test.bar.bad_package
 
         with self.assertRaises(ImportError):
-            import quilt.data.test.bad_user.bad_package
+            import quilt.team.test.bad_user.bad_package
 
         with self.assertRaises(ImportError):
-            from quilt.data.test.bar.dataframes import blah
+            from quilt.team.test.bar.dataframes import blah
 
         with self.assertRaises(ImportError):
-            from quilt.data.test.bar.baz import blah
+            from quilt.team.test.bar.baz import blah
 
     def test_import_group_as_data(self):
         mydir = os.path.dirname(__file__)
@@ -155,16 +155,15 @@ class ImportTest(QuiltTestCase):
         command.build('test:bar/grppkg', build_path)
 
         # Good imports
-        from quilt.data.test.bar.grppkg import dataframes
+        from quilt.team.test.bar.grppkg import dataframes
         assert isinstance(dataframes, GroupNode)
         assert isinstance(dataframes.csvs.csv, DataNode)
         assert isinstance(dataframes._data(), pd.DataFrame)
 
         # Incompatible Schema
-        from quilt.data.test.bar.grppkg import incompatible
+        from quilt.team.test.bar.grppkg import incompatible
         with self.assertRaises(PackageException):
             incompatible._data()
-
 
     def test_multiple_package_dirs(self):
         # First level
@@ -261,12 +260,12 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build.yml')
         command.build('test:bar/package1', build_path)
 
-        from quilt.data.test.bar import package1
+        from quilt.team.test.bar import package1
 
         # Build an identical package
         command.build('test:bar/package2', package1)
 
-        from quilt.data.test.bar import package2
+        from quilt.team.test.bar import package2
         teststore = PackageStore(self._store_dir)
         contents1 = open(os.path.join(teststore.package_path('test', 'bar', 'package1'),
                                       Package.CONTENTS_DIR,
@@ -312,7 +311,7 @@ class ImportTest(QuiltTestCase):
         # Built a new package and verify the new contents
         command.build('test:bar/package3', package1)
 
-        from quilt.data.test.bar import package3
+        from quilt.team.test.bar import package3
 
         assert hasattr(package3, 'dataframes2')
         assert not hasattr(package3, 'dataframes')
@@ -344,7 +343,7 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build.yml')
         command.build('test:bar/package4', build_path)
 
-        from quilt.data.test.bar import package4
+        from quilt.team.test.bar import package4
 
         # Assign a DataFrame as a node
         # (should throw exception)

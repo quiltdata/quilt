@@ -26,7 +26,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC
+from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -55,7 +55,7 @@ INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
-BAN_PUBLIC_USERS = app.config['BAN_PUBLIC_USERS']
+DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
 
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
@@ -282,7 +282,7 @@ def api(require_login=True, schema=None):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or BAN_PUBLIC_USERS:
+                if require_login or DISALLOW_PUBLIC_USERS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
@@ -450,6 +450,9 @@ def package_put(owner, package_name, package_hash):
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
                            "Only the package owner can push packages.")
+
+    if not VALID_NAME_RE.match(package_name):
+        raise ApiException(requests.codes.bad_request, "Invalid package name")
 
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)

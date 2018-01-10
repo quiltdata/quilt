@@ -8,8 +8,10 @@ import argparse
 import sys
 import os
 import pkg_resources
+
 import requests
 
+import quilt
 from . import command
 from .const import DEFAULT_QUILT_YML
 
@@ -62,8 +64,12 @@ def argument_parser():
                 group.error('hashes must be 6-64 chars long'))
 
     parser = CustomHelpParser(description="Quilt Command Line", add_help=False, full_help_only=True)
+
     parser.add_argument('--version', action='version', version=get_full_version(),
                         help="Show version number and exit")
+
+    # Hidden option '--dev' for development
+    parser.add_argument('--dev', action='store_true', help=argparse.SUPPRESS)
 
     subparsers = parser.add_subparsers(title="Commands", dest='cmd')
     subparsers.required = True
@@ -228,6 +234,14 @@ def main(args=None):
     # We can then pass it directly to the helper function.
     kwargs = vars(args)
     del kwargs['cmd']
+
+    # handle the '--dev' option
+    if kwargs.pop('dev') or os.environ.get('QUILT_DEV_MODE', '').strip().lower() == 'true':
+        # Enables CLI ctrl-c tracebacks, and whatever anyone else uses it for
+        quilt._DEV_MODE = True
+    else:
+        # Disables CLI ctrl-c tracebacks, etc.
+        quilt._DEV_MODE = False
 
     func = kwargs.pop('func')
 
