@@ -238,12 +238,11 @@ class PackageStore(object):
                         
         return packages
 
-    def team_path(self, team):
+    def team_path(self, team=DEFAULT_TEAM):
         """
         Returns the path to directory with the team's users' package repositories.
         """
-        teamdir = team if team else DEFAULT_TEAM
-        return os.path.join(self._path, self.PKG_DIR, teamdir)
+        return os.path.join(self._path, self.PKG_DIR, team)
 
     def user_path(self, team, user):
         """
@@ -334,10 +333,7 @@ def parse_package_extended(name):
 def parse_package(name, allow_subpath=False):
     try:
         values = name.split(':', 1)
-        if len(values) > 1:
-            team = values[0]
-        else:
-            team = None
+        team = values[0] if len(values) > 1 else None
 
         values = values[-1].split('/')
         # Can't do "owner, pkg, *subpath = ..." in Python2 :(

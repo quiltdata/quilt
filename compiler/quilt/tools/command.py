@@ -556,7 +556,7 @@ def push(package, public=False, team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    teamflag = team
+    using_team = team
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
@@ -564,17 +564,17 @@ def push(package, public=False, team=False, reupload=False):
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
-    if teamflag and public:
+    if using_team and public:
         raise CommandException("--team and --public are incompatible")
 
-    if teamflag and team is None:
+    if using_team and team is None:
         raise CommandException("--team cannot be used on non-team packages")
 
     if public and team is not None:
         raise CommandException("--public is not compatible with team packages, " +
                                "Maybe you meant --team")
 
-    if teamflag and team is not None:
+    if using_team and team is not None:
         public = True
 
     pkghash = pkgobj.get_hash()
@@ -868,10 +868,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert [hash, version, tag].count(None) == 2
 
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
-    if team:
-        teamstr = "%s:" % team
-    else:
-        teamstr = ""
+    teamstr = "{}:".format(team) if team else ""
     session = _get_session(team)
     store = PackageStore()
     existing_pkg = store.get_package(team, owner, pkg)
@@ -1142,11 +1139,8 @@ def delete(package):
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
     team, owner, pkg = parse_package(package)
-    if team:
-        teamstr = "%s:" % team
-    else:
-        teamstr = ""
-
+    
+    teamstr = "{}:".format(team) if team else ""
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
         "Type '%s%s/%s' to confirm: " % (teamstr, owner, pkg)
@@ -1188,10 +1182,8 @@ def inspect(package):
     Inspect package details
     """
     team, owner, pkg = parse_package(package)
-    if team:
-        teamstr = "%s:" % team
-    else:
-        teamstr = ""
+    teamstr = "{}:".format(team) if team else ""
+
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(teamstr=teamstr, owner=owner, pkg=pkg))
