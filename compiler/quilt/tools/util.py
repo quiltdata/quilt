@@ -1,8 +1,8 @@
 """
 Helper functions.
 """
-
 import gzip
+import os
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -81,3 +81,20 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
+def children(path, dirs=True, files=True, noinvisible=True):
+    """
+    Return children of a given path
+    dirs=True => include dirs
+    files=True => include files
+    invisible=True => include files that do begin with .
+    """
+    matches = os.listdir(path)
+    if noinvisible:
+        matches = filter(lambda x: not x.startswith('.'), matches)
+    if not dirs:
+        matches = filter(lambda x: not os.path.isdir(os.path.join(path, x)), matches)
+    if not files:
+        matches = filter(lambda x: not os.path.isfile(os.path.join(path, x)), matches)
+
+    return matches
