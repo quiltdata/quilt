@@ -96,6 +96,7 @@ from time import sleep
 from subprocess import check_output, CalledProcessError, Popen, PIPE
 
 import pytest
+from six import string_types
 
 from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
@@ -626,7 +627,8 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs']['public'] is True
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
 
-    def test_cli_option_dev(self):
+    def test_cli_option_dev_flag(self):
+        # also test ctrl-c
         if os.name == 'nt':
             pytest.xfail("This test causes appveyor to freeze in windows.")
 
@@ -673,6 +675,80 @@ class TestCLI(BasicQuiltTestCase):
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
+
+
+
+# need capsys, so this isn't in the unittest class
+def test_cli_command_in_help(capsys):
+    """Tests for inclusion in 'help'
+
+    Only tests the base subcommand, not sub-subcommands.
+    """
+    TESTED_PARAMS.append(['--version'])
+
+    from quilt.tools.main import main
+
+    expected_params = set()
+    hidden_params = set()
+    expected_optionals = set()
+    hidden_optionals = {'--dev'}
+
+    for argpath in KNOWN_PARAMS:
+        if len(argpath) == 1:
+            if isinstance(argpath[0], string_types):
+                assert argpath[0].startswith('-'),  "bug in test, not in tested code"
+                expected_optionals.add(argpath[0])
+            continue
+        if isinstance(argpath[1], string_types):
+            expected_params.add(argpath[1])
+
+    try:
+        main(['help'])
+    except SystemExit:
+        pass
+
+    outerr = capsys.readouterr()
+    lines = outerr.out.split('\n')
+
+    for pos, line in enumerate(lines):
+        if line.strip() == '<subcommand>':
+            start = pos + 1
+
+    found_params = []
+    for pos, line in enumerate(lines[start:]):
+        print(line)
+        if line.strip() == "optional arguments:":
+            print("stopping (optionals)")
+            start = pos + 1
+            break
+        splitline = line.split(None, 1)
+        if not splitline:
+            print('skipped (splitline)')
+            continue
+        if line[4] == ' ':  # skip multiline help text
+            print('skipped (char 4)')
+            continue
+        arg = splitline[0]
+        found_params.append(arg)
+
+    assert found_params == sorted(found_params), 'Help params should be sorted properly'
+    assert set(found_params) | hidden_params == expected_params, 'Found params do not match expected params'
+
+    found_optionals = []
+    for line in lines[start:]:
+        splitline = line.split(None, 1)   # ignore second optional form if present (--help, -h)
+        if not splitline:
+            continue
+        optional = splitline[0].rstrip(',')
+        if not optional.startswith('-'):
+            continue
+        print(optional)
+        if optional in ['--help', '-h']:
+            continue
+        found_optionals.append(optional)
+
+    assert found_optionals == sorted(found_optionals)
+    assert set(found_optionals) | hidden_optionals == expected_optionals
 
 
 @pytest.mark.xfail
