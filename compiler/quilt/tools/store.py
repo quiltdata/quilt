@@ -103,13 +103,17 @@ class PackageStore(object):
         return None
 
     @classmethod
-    def check_name(cls, team, user, package):
+    def check_name(cls, team, user, package, subpath=None):
         if team is not None and not VALID_NAME_RE.match(team):
             raise StoreException("Invalid team name: %r" % team)
         if not VALID_NAME_RE.match(user):
             raise StoreException("Invalid user name: %r" % user)
         if not VALID_NAME_RE.match(package):
             raise StoreException("Invalid package name: %r" % package)
+        if subpath:
+            for element in subpath:
+                if not VALID_NAME_RE.match(element):
+                    raise StoreException("Invalid element in subpath: %r" % element)
 
     def _version_path(self):
         return os.path.join(self._path, '.format')
@@ -229,7 +233,9 @@ class PackageStore(object):
                             pkghash = tagfile.read()
                             pkgmap[pkghash].append(tag)
                     for pkghash, tags in pkgmap.items():
-                        fullpkg = "{owner}/{pkg}".format(owner=user, pkg=pkg)
+                        # add teams here if any other than DEFAULT_TEAM should be hidden.
+                        team_token = '' if team in (DEFAULT_TEAM,) else team + ':'
+                        fullpkg = "{team}{owner}/{pkg}".format(team=team_token, owner=user, pkg=pkg)
                         # Add an empty string tag for untagged hashes
                         displaytags = tags if tags else [""]
                         # Display a separate full line per tag like Docker
@@ -349,7 +355,7 @@ def parse_package(name, allow_subpath=False):
         raise CommandException("Specify package as %s." % pkg_format)
 
     try:
-        PackageStore.check_name(team, owner, pkg)
+        PackageStore.check_name(team, owner, pkg, subpath)
     except StoreException as ex:
         raise CommandException(str(ex))
 
