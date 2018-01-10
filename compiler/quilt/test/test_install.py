@@ -249,7 +249,6 @@ packages:
         self._mock_log('akarve/sales', contents_hash1)
         with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
-        self._mock_tag('akarve/sales', 'unknown', contents_hash1)
 
     def test_quilt_yml_unknown_tag(self):
         table_data1, table_hash1 = self.make_table_data('table1')
