@@ -243,13 +243,12 @@ packages:
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
 
-    def test_quilt_yml_unknown_tag(self):
+    def test_quilt_yml_unknown_hash(self):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_log('akarve/sales', contents_hash1)
         with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
-        self._mock_tag('akarve/sales', 'unknown', contents_hash1)
 
     def test_quilt_yml_unknown_tag(self):
         table_data1, table_hash1 = self.make_table_data('table1')
