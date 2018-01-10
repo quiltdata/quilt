@@ -47,10 +47,16 @@ class UsageAction(argparse.Action):
 class CustomHelpParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
         full_help_only = kwargs.pop('full_help_only', False)
+        helpcommand = kwargs.pop('helpcommand', False)
+
         kwargs['add_help'] = False
         super(CustomHelpParser, self).__init__(*args, **kwargs)
         if full_help_only:
-            self.add_argument('-h', '--help', action='help', help="Show help")
+            self.add_argument('--help', '-h', action='help', help="Show help")
+        elif helpcommand:
+            self.add_argument('--help', action='help', help="Show this message")
+            self.add_argument('-h', action=UsageAction, help="Show short help (usage) for the 'help' command",
+                              nargs=0, default=argparse.SUPPRESS)
         else:
             self.add_argument('--help', action='help', help="Show full help for given command")
             self.add_argument('-h', action=UsageAction, help="Show short help (usage) for given command",
@@ -63,54 +69,136 @@ def argument_parser():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
-    parser = CustomHelpParser(description="Quilt Command Line", add_help=False, full_help_only=True)
-
+    parser = CustomHelpParser(description="Quilt Command Line", add_help=False, full_help_only=True,)
     parser.add_argument('--version', action='version', version=get_full_version(),
                         help="Show version number and exit")
 
     # Hidden option '--dev' for development
     parser.add_argument('--dev', action='store_true', help=argparse.SUPPRESS)
 
-    subparsers = parser.add_subparsers(title="Commands", dest='cmd')
+    subparsers = parser.add_subparsers(metavar="<subcommand>")
     subparsers.required = True
 
-    help_p = subparsers.add_parser("help", description="Show help for any given Quilt command",
-                                   add_help=False)
-    help_p.add_argument('command', nargs="*", help="Optional -- any Quilt command")
-    help_p.set_defaults(func=lambda command: parser.parse_args(command + ['--help']))
 
-    config_p = subparsers.add_parser("config", description="Configure Quilt")
-    config_p.set_defaults(func=command.config)
+    ## Note for `add_parser()` parameters:
+    #   `description` can be long-form help.
+    #   `help` is short help, listed in the base `quilt help` view.
 
-    login_p = subparsers.add_parser("login", description="Log in to configured Quilt server")
-    login_p.add_argument("team", type=str, nargs='?', help="Specify team to log in as")
-    login_p.set_defaults(func=command.login)
+    # quilt access
+    shorthelp = "List, add, or remove who has access to a given package"
+    access_p = subparsers.add_parser("access", description=shorthelp, help=shorthelp)
+    access_subparsers = access_p.add_subparsers(title="Access", dest='subcommand')
+    access_subparsers.required = True
 
-    logout_p = subparsers.add_parser("logout", description="Log out of current Quilt server")
-    logout_p.add_argument("team", type=str, nargs='?', help="Specify team to log out from")
-    logout_p.set_defaults(func=command.logout)
+    # quilt access add
+    shorthelp = "Allow a user to access a package"
+    access_add_p = access_subparsers.add_parser("add", description=shorthelp, help=shorthelp)
+    access_add_p.add_argument("package", type=str, help=HANDLE)
+    access_add_p.add_argument("user", type=str, help="User to add")
+    access_add_p.set_defaults(func=command.access_add)
 
-    log_p = subparsers.add_parser("log", description="Show log for a specified package")
-    log_p.add_argument("package", type=str, help=HANDLE)
-    log_p.set_defaults(func=command.log)
+    # quilt access list
+    shorthelp = "List who has access to a given package"
+    access_list_p = access_subparsers.add_parser("list", description=shorthelp, help=shorthelp)
+    access_list_p.add_argument("package", type=str, help=HANDLE)
+    access_list_p.set_defaults(func=command.access_list)
 
-    generate_p = subparsers.add_parser("generate",
-        description="Generate a build-file for Quilt build from a directory of build files")
-    generate_p.add_argument("directory", help="Source file directory")
-    generate_p.set_defaults(func=command.generate)
+    # quilt access remove
+    shorthelp = "Remove a user's access to a package"
+    access_remove_p = access_subparsers.add_parser("remove", description=shorthelp, help=shorthelp)
+    access_remove_p.add_argument("package", type=str, help=HANDLE)
+    access_remove_p.add_argument("user", type=str, help="User to remove")
+    access_remove_p.set_defaults(func=command.access_remove)
 
-    build_p = subparsers.add_parser("build",
-        description="Compile a Quilt data package from directory or YAML file")
+    # quilt build
+    shorthelp = "Compile a Quilt data package from directory or YAML file"
+    build_p = subparsers.add_parser("build", description=shorthelp, help=shorthelp)
     build_p.add_argument("package", type=str, help=HANDLE)
     build_p.add_argument("path", type=str, help="Path to source directory or YAML file")
     build_p.set_defaults(func=command.build)
 
-    check_p = subparsers.add_parser("check", description="Execute checks for a given build")
+    # quilt check
+    shorthelp = "Execute checks for a given build"
+    check_p = subparsers.add_parser("check", description=shorthelp, help=shorthelp)
     check_p.add_argument("path", nargs="?", type=str, help="Path to source directory or YAML file")
     check_p.add_argument("--env", type=str, help="use which environment (default=default)")
     check_p.set_defaults(func=command.check)
 
-    push_p = subparsers.add_parser("push", description="Push a data package to the server")
+    # quilt config
+    shorthelp = "Configure Quilt"
+    config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
+    config_p.set_defaults(func=command.config)
+
+    # quilt delete
+    shorthelp = "Delete the package (and all of its history) from the server"
+    delete_p = subparsers.add_parser("delete", description=shorthelp, help=shorthelp)
+    delete_p.add_argument("package", type=str, help="Owner/Package Name")
+    delete_p.set_defaults(func=command.delete)
+
+    # quilt generate
+    shorthelp = "Generate a build-file for Quilt build from a directory of build files"
+    generate_p = subparsers.add_parser("generate", description=shorthelp, help=shorthelp)
+    generate_p.add_argument("directory", help="Source file directory")
+    generate_p.set_defaults(func=command.generate)
+
+    # quilt help
+    shorthelp = "Show help for any given Quilt command"
+    help_p = subparsers.add_parser("help", description=shorthelp, help=shorthelp, add_help=False, helpcommand=True)
+    help_p.add_argument('subcommand', nargs="*", help="Optional -- any Quilt subcommand")
+    help_p.set_defaults(func=lambda subcommand=[]: parser.parse_args(subcommand + ['--help']))
+
+    # quilt inspect
+    shorthelp = "Inspect package details"
+    inspect_p = subparsers.add_parser("inspect", description=shorthelp, help=shorthelp)
+    inspect_p.add_argument("package", type=str, help=HANDLE)
+    inspect_p.set_defaults(func=command.inspect)
+
+    # quilt install
+    shorthelp = "Install a package from the server"
+    install_p = subparsers.add_parser("install", description=shorthelp, help=shorthelp)
+
+    # quilt install: When default quilt yml file is present, don't require the 'package' argument.
+    pkg_help = ("owner/package_name[/path/...] or @filename (defaults to @{} when present)"
+                .format(DEFAULT_QUILT_YML))
+    if os.path.exists(DEFAULT_QUILT_YML):
+        install_p.add_argument("package", type=str, help=pkg_help, nargs="?", default="@"+DEFAULT_QUILT_YML)
+    else:
+        install_p.add_argument("package", type=str, help=pkg_help)
+
+    install_p.set_defaults(func=command.install)
+    install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
+    # not a threading mutex, obv.
+    install_mutex_group = install_p.add_mutually_exclusive_group()
+    install_mutex_group.add_argument("-x", "--hash", help="Package hash", type=str)
+    install_mutex_group.add_argument("-v", "--version", type=str, help="Package version")
+    install_mutex_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
+
+    # quilt log
+    shorthelp = "Show log for a specified package"
+    log_p = subparsers.add_parser("log", description=shorthelp, help=shorthelp)
+    log_p.add_argument("package", type=str, help=HANDLE)
+    log_p.set_defaults(func=command.log)
+
+    # quilt login
+    shorthelp = "Log in to configured Quilt server"
+    login_p = subparsers.add_parser("login", description=shorthelp, help=shorthelp)
+    login_p.add_argument("team", type=str, nargs='?', help="Specify team to log in as")
+    login_p.set_defaults(func=command.login)
+
+    # quilt logout
+    shorthelp = "Log out of current Quilt server"
+    logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
+    logout_p.add_argument("team", type=str, nargs='?', help="Specify team to log out from")
+    logout_p.set_defaults(func=command.logout)
+
+    # quilt ls
+    shorthelp = "List locally-installed packages"
+    ls_p = subparsers.add_parser("ls", description=shorthelp, help=shorthelp)
+    ls_p.set_defaults(func=command.ls)
+
+    # quilt push
+    shorthelp = "Push a data package to the server"
+    push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp)
     push_p.add_argument("package", type=str, help=HANDLE)
     push_p.add_argument("--public", action="store_true",
                         help=("Create or update a public package " +
@@ -122,100 +210,65 @@ def argument_parser():
                         help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)
 
-    version_p = subparsers.add_parser("version",
-        description="List or permanently add a package version to the server")
-    version_subparsers = version_p.add_subparsers(title="version", dest='cmd')
-    version_subparsers.required = True
+    # quilt rm
+    shorthelp = "Remove a package locally"
+    rm_p = subparsers.add_parser("rm", description=shorthelp, help=shorthelp)
+    rm_p.add_argument("package", type=str, help=HANDLE)
+    rm_p.add_argument("-f", "--force", action="store_true", help="Remove without prompting")
+    rm_p.set_defaults(func=command.rm)
 
-    version_list_p = version_subparsers.add_parser("list",
-        description="List versions of package on the server")
-    version_list_p.add_argument("package", type=str, help=HANDLE)
-    version_list_p.set_defaults(func=command.version_list)
+    # quilt search
+    shorthelp = "Search for a package on the server"
+    search_p = subparsers.add_parser("search", description=shorthelp, help=shorthelp)
+    search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
+    search_p.set_defaults(func=command.search)
 
-    version_add_p = version_subparsers.add_parser("add",
-        description="Permanently add a version of a package to the server")
-    version_add_p.add_argument("package", type=str, help=HANDLE)
-    version_add_p.add_argument("version", type=str, help="Version")
-    version_add_p.add_argument("pkghash", type=str, help="Package hash")
-    version_add_p.set_defaults(func=command.version_add)
-
-    tag_p = subparsers.add_parser("tag", description="List, add, or remove tags for a package on the server")
-    tag_subparsers = tag_p.add_subparsers(title="Tag", dest='cmd')
+    # quilt tag
+    shorthelp = "List, add, or remove tags for a package on the server"
+    tag_p = subparsers.add_parser("tag", description=shorthelp, help=shorthelp)
+    tag_subparsers = tag_p.add_subparsers(dest='subcommand', metavar="<subcommand>")
     tag_subparsers.required = True
 
-    tag_list_p = tag_subparsers.add_parser("list", description="List tags for a given package on the server")
-    tag_list_p.add_argument("package", type=str, help=HANDLE)
-    tag_list_p.set_defaults(func=command.tag_list)
-
-    tag_add_p = tag_subparsers.add_parser("add",
-        description="Add a new tag to the server for the given package hash")
+    # quilt tag add
+    shorthelp = "Add a new tag to the server for the given package hash"
+    tag_add_p = tag_subparsers.add_parser("add", description=shorthelp, help=shorthelp)
     tag_add_p.add_argument("package", type=str, help=HANDLE)
     tag_add_p.add_argument("tag", type=str, help="Tag name")
     tag_add_p.add_argument("pkghash", type=str, help="Package hash")
     tag_add_p.set_defaults(func=command.tag_add)
 
-    tag_remove_p = tag_subparsers.add_parser("remove", description="Remove a tag from the server")
+    # quilt tag list
+    shorthelp = "List tags for a given package on the server"
+    tag_list_p = tag_subparsers.add_parser("list", description=shorthelp, help=shorthelp)
+    tag_list_p.add_argument("package", type=str, help=HANDLE)
+    tag_list_p.set_defaults(func=command.tag_list)
+
+    # quilt tag remove
+    shorthelp = "Remove a tag from the server"
+    tag_remove_p = tag_subparsers.add_parser("remove", description=shorthelp, help=shorthelp)
     tag_remove_p.add_argument("package", type=str, help=HANDLE)
     tag_remove_p.add_argument("tag", type=str, help="Tag name")
     tag_remove_p.set_defaults(func=command.tag_remove)
 
-    install_p = subparsers.add_parser("install", description="Install a package from the server")
+    # quilt version
+    shorthelp = "List or permanently add a package version to the server"
+    version_p = subparsers.add_parser("version", description=shorthelp, help=shorthelp)
+    version_subparsers = version_p.add_subparsers(dest='subcommand', metavar="<subcommand>")
+    version_subparsers.required = True
 
-    # When default quilt yml file is present, don't require the 'package' argument.
-    pkg_help = ("owner/package_name[/path/...] or @filename (defaults to @{} when present)"
-                .format(DEFAULT_QUILT_YML))
-    if os.path.exists(DEFAULT_QUILT_YML):
-        install_p.add_argument("package", type=str, help=pkg_help, nargs="?", default="@"+DEFAULT_QUILT_YML)
-    else:
-        install_p.add_argument("package", type=str, help=pkg_help)
+    # quilt version add
+    shorthelp = "Permanently add a version of a package to the server"
+    version_add_p = version_subparsers.add_parser("add", description=shorthelp, help=shorthelp)
+    version_add_p.add_argument("package", type=str, help=HANDLE)
+    version_add_p.add_argument("version", type=str, help="Version")
+    version_add_p.add_argument("pkghash", type=str, help="Package hash")
+    version_add_p.set_defaults(func=command.version_add)
 
-    install_p.set_defaults(func=command.install)
-    install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
-    install_group = install_p.add_mutually_exclusive_group()
-    install_group.add_argument("-x", "--hash", help="Package hash", type=str)
-    install_group.add_argument("-v", "--version", type=str, help="Package version")
-    install_group.add_argument("-t", "--tag", type=str, help="Package tag - defaults to 'latest'")
-
-    access_p = subparsers.add_parser("access",
-        description="List, add, or remove who has access to a given package")
-    access_subparsers = access_p.add_subparsers(title="Access", dest='cmd')
-    access_subparsers.required = True
-
-    access_list_p = access_subparsers.add_parser("list", description="List who has access to a given package")
-    access_list_p.add_argument("package", type=str, help=HANDLE)
-    access_list_p.set_defaults(func=command.access_list)
-
-    access_add_p = access_subparsers.add_parser("add", description="Allow a user to access a package")
-    access_add_p.add_argument("package", type=str, help=HANDLE)
-    access_add_p.add_argument("user", type=str, help="User to add")
-    access_add_p.set_defaults(func=command.access_add)
-
-    access_remove_p = access_subparsers.add_parser("remove",
-       description="Remove a user's access to a package")
-    access_remove_p.add_argument("package", type=str, help=HANDLE)
-    access_remove_p.add_argument("user", type=str, help="User to remove")
-    access_remove_p.set_defaults(func=command.access_remove)
-
-    delete_p = subparsers.add_parser(
-        "delete", description="Delete the package (including all of its history) from the server")
-    delete_p.add_argument("package", type=str, help="Owner/Package Name")
-    delete_p.set_defaults(func=command.delete)
-
-    search_p = subparsers.add_parser("search", description="Search for a package on the server")
-    search_p.add_argument("query", type=str, help="Search query (max 5 keywords)")
-    search_p.set_defaults(func=command.search)
-
-    ls_p = subparsers.add_parser("ls", description="List locally-installed packages")
-    ls_p.set_defaults(func=command.ls)
-
-    inspect_p = subparsers.add_parser("inspect", description="Inspect package details")
-    inspect_p.add_argument("package", type=str, help=HANDLE)
-    inspect_p.set_defaults(func=command.inspect)
-
-    rm_p = subparsers.add_parser("rm")
-    rm_p.add_argument("package", type=str, help=HANDLE)
-    rm_p.add_argument("-f", "--force", action="store_true", help="Remove without prompting")
-    rm_p.set_defaults(func=command.rm)
+    # quilt version list
+    shorthelp = "List versions of package on the server"
+    version_list_p = version_subparsers.add_parser("list", description=shorthelp, help=shorthelp)
+    version_list_p.add_argument("package", type=str, help=HANDLE)
+    version_list_p.set_defaults(func=command.version_list)
 
     return parser
 
@@ -228,10 +281,13 @@ def main(args=None):
     parser = argument_parser()
     args = parser.parse_args(args)
 
+    # If 'func' isn't present, something is misconfigured above or no (positional) arg was given.
+    if not hasattr(args, 'func'):
+        args = parser.parse_args(['help'])  # show help
+
     # Convert argparse.Namespace into dict and clean it up.
     # We can then pass it directly to the helper function.
     kwargs = vars(args)
-    del kwargs['cmd']
 
     # handle the '--dev' option
     if kwargs.pop('dev') or os.environ.get('QUILT_DEV_MODE', '').strip().lower() == 'true':
