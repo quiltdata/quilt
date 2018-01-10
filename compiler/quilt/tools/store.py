@@ -40,11 +40,11 @@ class PackageStore(object):
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
     VERSION = '1.3'
-    
+
     def __init__(self, location=None):
         if location is None:
             location = default_store_location()
-            
+
         assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % location
         self._path = location
@@ -60,7 +60,7 @@ class PackageStore(object):
                 msg += " with this version of quilt. Revert to an"
                 msg += " earlier version of quilt or remove the existing"
                 msg += " package repository."
-                raise StoreException(msg.format(self._path))            
+                raise StoreException(msg.format(self._path))
         else:
             # Create a new package store
             os.makedirs(self._path)
@@ -69,7 +69,7 @@ class PackageStore(object):
             os.mkdir(tmpobjdir)
             os.mkdir(pkgdir)
             os.mkdir(cachedir)
-    
+
         assert os.path.isdir(objdir)
         assert os.path.isdir(tmpobjdir)
         assert os.path.isdir(pkgdir)
@@ -87,7 +87,7 @@ class PackageStore(object):
         """
         package_dir = default_store_location()
         return [package_dir]
-        
+
     @classmethod
     def find_package(cls, team, user, package, store_dir=None):
         """
@@ -113,7 +113,7 @@ class PackageStore(object):
 
     def _version_path(self):
         return os.path.join(self._path, '.format')
-    
+
     def _read_format_version(self):
         if os.path.exists(self._version_path()):
             with open(self._version_path(), 'r') as versionfile:
@@ -198,8 +198,8 @@ class PackageStore(object):
                             remove_objs.add(objhash)
             # Remove package manifests
             rmtree(path)
-        
-        return self.prune(remove_objs)        
+
+        return self.prune(remove_objs)
 
     def iterpackages(self):
         """
@@ -235,13 +235,15 @@ class PackageStore(object):
                         # Display a separate full line per tag like Docker
                         for tag in displaytags:
                             packages.append((fullpkg, str(tag), pkghash))
-                        
+
         return packages
 
-    def team_path(self, team=DEFAULT_TEAM):
+    def team_path(self, team=None):
         """
         Returns the path to directory with the team's users' package repositories.
         """
+        if team is None:
+            team = DEFAULT_TEAM
         return os.path.join(self._path, self.PKG_DIR, team)
 
     def user_path(self, team, user):
@@ -297,7 +299,7 @@ class PackageStore(object):
             os.remove(self.object_path(obj))
             removed.append(obj)
         return removed
-            
+
 ########################################
 # Helper Functions
 ########################################
