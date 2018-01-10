@@ -5,12 +5,15 @@ Tests for commands.
 import hashlib
 import json
 import os
+import stat
 import time
 
+from contextlib import contextmanager
 import requests
 import responses
 import shutil
 
+import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -19,6 +22,21 @@ from .utils import QuiltTestCase, patch
 
 from ..tools.compat import pathlib
 from ..tools.compat import tempfile
+
+
+# noinspection PyUnboundLocalVariable
+@contextmanager
+def chmod_context(mode, path):
+    """A simple context manager to set a file/dir mode"""
+    try:
+        path = pathlib.Path(path)
+        orig_mode = path.stat().st_mode
+        path.chmod(mode)
+
+        yield
+    finally:
+        if 'orig_mode' in locals():  # may not exist if mode-set failed
+            path.chmod(orig_mode)
 
 
 class CommandTest(QuiltTestCase):
@@ -573,6 +591,57 @@ class CommandTest(QuiltTestCase):
                 assert export_path in exported_paths
                 # data matches
                 assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+            # Test force=True
+            # We just tested that calling this raises CommandException with 'file already exists',
+            # so it's a good spot to check the force option.
+            command.export(pkg_name, str(test_dir), force=True)
+
+            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+            assert len(exported_paths) == len(test_data)
+
+            for path, data in test_data:
+                export_path = test_dir / path
+                install_path = install_dir / path
+
+                # filename matches
+                assert export_path in exported_paths
+                # data matches
+                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+            # Test raise when exporting to overwrite existing files
+            files = set(f for f in test_dir.glob('*') if f.is_file())
+            # sorted and reversed means files before their containing dirs
+            for path in sorted(test_dir.glob('**/*'), reverse=True):
+                # keep files from root of test_dir
+                if path in files:
+                    continue
+                # remove everything else
+                path.rmdir() if path.is_dir() else path.unlink()
+            # now there are only files in the export root to conflict with.
+            with pytest.raises(command.CommandException, match='file already exists'):
+                command.export(pkg_name, str(test_dir))
+
+            # Test raise when exporting to existing dir structure
+            command.export(pkg_name, str(test_dir), force=True)
+            for p in test_dir.glob('**/*'):
+                # leave dirs, remove files
+                if p.is_dir():
+                    continue
+                p.unlink()
+            with pytest.raises(command.CommandException, match='subdir already exists'):
+                command.export(pkg_name, str(test_dir))
+
+            # Test exporting to an unwriteable location
+            # disabled on windows, for now
+            # TODO: Windows version of permission failure test
+            if os.name != 'nt':
+                test_dir = temp_dir / 'test_write_permissions_fail'
+                test_dir.mkdir()
+                with chmod_context(0o111, test_dir):  # --x--x--x on directory -- enter, but no read/modify
+                    with pytest.raises(command.CommandException, match='not writable'):
+                        command.export(pkg_name, str(test_dir))
 
             # Test subpackage exports
             test_dir = temp_dir / 'test_subpkg_export'

@@ -268,7 +268,7 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
             patcher.stop()
 
 def setup(pkg, hash=None, version=None, tag=None, force=False,
-          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, ensure_installed=True, **kwargs):
     """continuation-based virtual file support:
 
          patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
@@ -283,6 +283,15 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
          finally:
              quilt.vfs.teardown(patchers)
     """
+    if ensure_installed:
+        try:
+            command.importpkg(pkg)
+        except command.CommandException as error:
+            msg = str(error)
+            if not msg.startswith('Package') and msg.endswith('not found.'):
+                raise
+            command.install(pkg, force=True)
+
     if len(kwargs) == 0:
         kwargs = DEFAULT_MODULE_MAPPINGS
     mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
