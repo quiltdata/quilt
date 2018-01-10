@@ -55,7 +55,7 @@ INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
-BAN_PUBLIC_USERS = app.config['BAN_PUBLIC_USERS']
+DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
 
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
@@ -282,7 +282,7 @@ def api(require_login=True, schema=None):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or BAN_PUBLIC_USERS:
+                if require_login or DISALLOW_PUBLIC_USERS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
