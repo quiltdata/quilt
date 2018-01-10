@@ -84,7 +84,7 @@ def gzip_compress(data):
 
 def sub_dirs(path, invisible=False):
     """
-    Child directories
+    Child directories (non-recursive)
     """
     dirs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
     if not invisible:
@@ -94,7 +94,7 @@ def sub_dirs(path, invisible=False):
 
 def sub_files(path, invisible=False):
     """
-    Child files
+    Child files (non-recursive)
     """
     files = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
     if not invisible:

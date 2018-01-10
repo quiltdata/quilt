@@ -12,20 +12,40 @@ class UtilTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './listdir')
 
+        files = ['foo.txt']
+        invis_files = ['.invisible.txt']
+        children = ['dir/child.txt']
+        dirs = ['dir']
+        invis_dirs = ['.invisible_dir']
+
         for f in sub_files(path):
-            assert os.path.isfile(os.path.join(path, f)), 'Expected only files'
-            assert not f.startswith('.'), 'Expected only visible files'
+            assert f in files
+            assert f not in invis_files
+            assert f not in children
+            assert f not in dirs and f not in invis_dirs
 
         for f in sub_files(path, invisible=True):
-            assert os.path.isfile(os.path.join(path, f)), 'Expected only files'
+            assert f in files or f in invis_files
+            assert f not in children
+            assert f not in dirs and f not in invis_dirs
 
     def test_sub_dirs(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './listdir')
 
+        files = ['foo.txt']
+        invis_files = ['.invisible.txt']
+        children = ['dir/child.txt']
+        dirs = ['dir']
+        invis_dirs = ['.invisible_dir']
+
         for d in sub_dirs(path):
-            assert os.path.isdir(os.path.join(path, d)), 'Expected only dirs'
-            assert not d.startswith('.'), 'Expected only visible files'
+            assert d in dirs
+            assert d not in invis_dirs
+            assert d not in files and d not in invis_files
+            assert d not in children
 
         for d in sub_dirs(path, invisible=True):
-            assert os.path.isdir(os.path.join(path, d)), 'Expected only dirs'
+            assert d in dirs or d in invis_dirs
+            assert d not in files and d not in invis_files
+            assert d not in children
