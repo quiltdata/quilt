@@ -22,4 +22,5 @@ cov_html/*
 *~
 [#]*
 
-
+# Pycharm
+.idea
