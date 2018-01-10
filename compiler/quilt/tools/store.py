@@ -9,7 +9,7 @@ from shutil import rmtree
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
 from .core import FileNode, RootNode, TableNode, CommandException
 from .package import Package, PackageException
-from .util import BASE_DIR
+from .util import BASE_DIR, sub_dirs, sub_files
 
 # start with alpha (_ may clobber attrs), continue with alphanumeric or _
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
@@ -20,6 +20,7 @@ def default_store_location():
     path=os.path.realpath(BASE_DIR)
     package_dir = os.path.join(path, PACKAGE_DIR_NAME)
     return package_dir
+
 
 class StoreException(Exception):
     """
@@ -187,6 +188,7 @@ class PackageStore(object):
 
         path = self.package_path(team, user, package)
         remove_objs = set()
+        # TODO: do we really want to delete invisible dirs?
         if os.path.isdir(path):
             # Collect objects from all instances for potential cleanup
             contents_path = os.path.join(path, Package.CONTENTS_DIR)
@@ -207,10 +209,10 @@ class PackageStore(object):
         """
         pkgdir = os.path.join(self._path, self.PKG_DIR)
         for team in os.listdir(pkgdir):
-            for user in os.listdir(self.team_path(team)):
-                for pkg in os.listdir(self.user_path(team, user)):
+            for user in sub_dirs(self.team_path(team)):
+                for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    for hsh in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR)):
+                    for hsh in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR)):
                         yield Package(self, user, pkg, pkgpath, pkghash=hsh)
 
     def ls_packages(self):
@@ -219,12 +221,12 @@ class PackageStore(object):
         """
         packages = []
         pkgdir = os.path.join(self._path, self.PKG_DIR)
-        for team in os.listdir(pkgdir):
-            for user in os.listdir(self.team_path(team)):
-                for pkg in os.listdir(self.user_path(team, user)):
+        for team in sub_dirs(pkgdir):
+            for user in sub_dirs(self.team_path(team)):
+                for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    pkgmap = {h : [] for h in os.listdir(os.path.join(pkgpath, Package.CONTENTS_DIR))}
-                    for tag in os.listdir(os.path.join(pkgpath, Package.TAGS_DIR)):
+                    pkgmap = {h: [] for h in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR))}
+                    for tag in sub_files(os.path.join(pkgpath, Package.TAGS_DIR)):
                         with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
                             pkghash = tagfile.read()
                             pkgmap[pkghash].append(tag)

@@ -3,6 +3,7 @@ Helper functions.
 """
 import re
 import gzip
+import os
 import keyword
 import tokenize
 
@@ -76,6 +77,7 @@ def file_to_str(fname):
         data = fd.read()
     return data
 
+
 def gzip_compress(data):
     """
     Compress a string. Same as gzip.compress in Python3.
@@ -84,6 +86,28 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
+
+def sub_dirs(path, invisible=False):
+    """
+    Child directories (non-recursive)
+    """
+    dirs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+    if not invisible:
+        dirs = [x for x in dirs if not x.startswith('.')]
+
+    return dirs
+
+
+def sub_files(path, invisible=False):
+    """
+    Child files (non-recursive)
+    """
+    files = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
+    if not invisible:
+        files = [x for x in files if not x.startswith('.')]
+
+    return files
 
 
 def is_identifier(string):
