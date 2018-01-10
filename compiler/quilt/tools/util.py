@@ -82,19 +82,22 @@ def gzip_compress(data):
         fd.write(data)
     return buf.getvalue()
 
-def children(path, dirs=True, files=True, noinvisible=True):
+def sub_dirs(path, invisible=False):
     """
-    Return children of a given path
-    dirs=True => include dirs
-    files=True => include files
-    invisible=True => include files that do begin with .
+    Child directories
     """
-    matches = os.listdir(path)
-    if noinvisible:
-        matches = filter(lambda x: not x.startswith('.'), matches)
-    if not dirs:
-        matches = filter(lambda x: not os.path.isdir(os.path.join(path, x)), matches)
-    if not files:
-        matches = filter(lambda x: not os.path.isfile(os.path.join(path, x)), matches)
+    dirs = [x for x in os.listdir(path) if os.path.isdir(os.path.join(path, x))]
+    if not invisible:
+        dirs = [x for x in dirs if not x.startswith('.')]
 
-    return matches
+    return dirs
+
+def sub_files(path, invisible=False):
+    """
+    Child files
+    """
+    files = [x for x in os.listdir(path) if os.path.isfile(os.path.join(path, x))]
+    if not invisible:
+        files = [x for x in files if not x.startswith('.')]
+
+    return files
