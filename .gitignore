@@ -5,6 +5,7 @@ dist
 *.py[cod]
 tmp_*
 
+node_modules
 quilt_packages
 metastore_db
 derby.log
