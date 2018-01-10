@@ -37,7 +37,7 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
                    load_yaml)
 from .hashing import digest_file
-from .store import PackageStore, parse_package, parse_package_extended
+from .store import PackageStore, parse_package, parse_package_extended, VALID_NAME_RE
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
@@ -87,7 +87,13 @@ def _save_config(cfg):
     with open(config_path, 'w') as fd:
         json.dump(cfg, fd)
 
-def get_registry_url():
+def get_registry_url(team):
+    if team is not None:
+        # TODO: use utils.is_nodename() once merged
+        if not VALID_NAME_RE.match(team):
+            raise CommandException("Invalid team name: %r" % team)
+        return "https://%s-registry.team.quiltdata.com" % team
+
     global _registry_url
     if _registry_url is not None:
         return _registry_url
@@ -124,8 +130,8 @@ def config():
     global _registry_url
     _registry_url = None
 
-def get_auth_path():
-    url = get_registry_url()
+def get_auth_path(team):
+    url = get_registry_url(team)
     if url == DEFAULT_REGISTRY_URL:
         suffix = ''
     else:
@@ -134,8 +140,8 @@ def get_auth_path():
 
     return os.path.join(BASE_DIR, 'auth%s.json' % suffix)
 
-def _update_auth(refresh_token):
-    response = requests.post("%s/api/token" % get_registry_url(), data=dict(
+def _update_auth(team, refresh_token):
+    response = requests.post("%s/api/token" % get_registry_url(team), data=dict(
         refresh_token=refresh_token
     ))
 
@@ -153,11 +159,11 @@ def _update_auth(refresh_token):
         expires_at=data['expires_at']
     )
 
-def _save_auth(auth):
+def _save_auth(team, auth):
     if not os.path.exists(BASE_DIR):
         os.makedirs(BASE_DIR)
 
-    file_path = get_auth_path()
+    file_path = get_auth_path(team)
     with open(file_path, 'w') as fd:
         os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR)
         json.dump(auth, fd)
@@ -173,11 +179,11 @@ def _handle_response(resp, **kwargs):
         except ValueError:
             raise CommandException("Unexpected failure: error %s" % resp.status_code)
 
-def _create_auth():
+def _create_auth(team):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
-    file_path = get_auth_path()
+    file_path = get_auth_path(team)
     if os.path.exists(file_path):
         with open(file_path) as fd:
             auth = json.load(fd)
@@ -185,12 +191,12 @@ def _create_auth():
         # If the access token expires within a minute, update it.
         if auth['expires_at'] < time.time() + 60:
             try:
-                auth = _update_auth(auth['refresh_token'])
+                auth = _update_auth(team, auth['refresh_token'])
             except CommandException as ex:
                 raise CommandException(
                     "Failed to update the access token (%s). Run `quilt login` again." % ex
                 )
-            _save_auth(auth)
+            _save_auth(team, auth)
     else:
         # The auth file doesn't exist, probably because the
         # user hasn't run quilt login yet.
@@ -216,24 +222,27 @@ def _create_session(auth):
 
     return session
 
-_session = None                 # pylint:disable=C0103
+_sessions = {}                  # pylint:disable=C0103
 
-def _get_session():
+def _get_session(team):
     """
     Creates a session or returns an existing session.
     """
-    global _session             # pylint:disable=C0103
-    if _session is None:
-        auth = _create_auth()
-        _session = _create_session(auth)
+    global _sessions            # pylint:disable=C0103
+    session = _sessions.get(team)
+    if session is None:
+        auth = _create_auth(team)
+        _sessions[team] = session = _create_session(auth)
 
-    return _session
+    assert session is not None
 
-def _clear_session():
-    global _session             # pylint:disable=C0103
-    if _session is not None:
-        _session.close()
-        _session = None
+    return session
+
+def _clear_session(team):
+    global _sessions            # pylint:disable=C0103
+    session = _sessions.pop(team, None)
+    if session is not None:
+        session.close()
 
 def _create_s3_session():
     """
@@ -259,7 +268,7 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
-def _match_hash(session, owner, pkg, hash):
+def _match_hash(session, team, owner, pkg, hash):
     hash = hash.lower()
 
     if not (6 <= len(hash) <= 64):
@@ -273,7 +282,7 @@ def _match_hash(session, owner, pkg, hash):
 
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg
         )
@@ -293,13 +302,13 @@ def _match_hash(session, owner, pkg, hash):
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
-def login():
+def login(team):
     """
     Authenticate.
 
     Launches a web browser and asks the user for a token.
     """
-    login_url = "%s/login" % get_registry_url()
+    login_url = "%s/login" % get_registry_url(team)
 
     print("Launching a web browser...")
     print("If that didn't work, please visit the following URL: %s" % login_url)
@@ -309,31 +318,31 @@ def login():
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    login_with_token(refresh_token)
+    login_with_token(team, refresh_token)
 
-def login_with_token(refresh_token):
+def login_with_token(team, refresh_token):
     """
     Authenticate using an existing token.
     """
     # Get an access token and a new refresh token.
-    auth = _update_auth(refresh_token)
+    auth = _update_auth(team, refresh_token)
 
-    _save_auth(auth)
+    _save_auth(team, auth)
 
-    _clear_session()
+    _clear_session(team)
 
-def logout():
+def logout(team=None):
     """
     Become anonymous. Useful for testing.
     """
-    auth_file = get_auth_path()
+    auth_file = get_auth_path(team)
     # TODO revoke refresh token (without logging out of web sessions)
     if os.path.exists(auth_file):
         os.remove(auth_file)
     else:
         print("Already logged out.")
 
-    _clear_session()
+    _clear_session(team)
 
 def generate(directory, outfilename=DEFAULT_BUILDFILE):
     """
@@ -357,8 +366,8 @@ def diff_node_dataframe(package, nodename, dataframe):
     """
     raise NotImplementedError()
 
-    owner, pkg = parse_package(package)
-    pkgobj = PackageStore.find_package(owner, pkg)
+    team, owner, pkg = parse_package(package)
+    pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
     node = pkgobj.find_node_by_name(nodename)
@@ -383,14 +392,14 @@ def _clone_git_repo(url, branch, dest):
     cmd += [url, dest]
     subprocess.check_call(cmd)
 
-def _log(**kwargs):
+def _log(team, **kwargs):
     # TODO(dima): Save logs to a file, then send them when we get a chance.
 
     cfg = _load_config()
     if cfg.get('disable_analytics'):
         return
 
-    session = _get_session()
+    session = _get_session(team)
 
     # Disable error handling.
     orig_response_hooks = session.hooks.get('response')
@@ -401,7 +410,7 @@ def _log(**kwargs):
     try:
         session.post(
             "{url}/api/log".format(
-                url=get_registry_url(),
+                url=get_registry_url(team),
             ),
             data=json.dumps([kwargs]),
             timeout=LOG_TIMEOUT,
@@ -416,13 +425,14 @@ def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
     """
+    team, _, _ = parse_package(package)
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
         _build_internal(package, path, dry_run, env)
     except Exception as ex:
-        _log(type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
+        _log(team, type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
         raise
-    _log(type='build', package=package_hash, dry_run=dry_run, env=env)
+    _log(team, type='build', package=package_hash, dry_run=dry_run, env=env)
 
 def _build_internal(package, path, dry_run, env):
     # we may have a path, git URL, PackageNode, or None
@@ -449,28 +459,28 @@ def _build_internal(package, path, dry_run, env):
         build_from_node(package, path)
     elif path is None:
         assert not dry_run  # TODO?
-        build_empty(package)
+        _build_empty(package)
     else:
         raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
-def build_empty(package):
+def _build_empty(package):
     """
     Create an empty package for convenient editing of de novo packages
     """
-    owner, pkg = parse_package(package)
+    team, owner, pkg = parse_package(package)
 
     store = PackageStore()
-    new = store.create_package(owner, pkg)
+    new = store.create_package(team, owner, pkg)
     new.save_contents()
 
 def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
-    owner, pkg = parse_package(package)
+    team, owner, pkg = parse_package(package)
     # deliberate access of protected member
     store = node._package.get_store()
-    package_obj = store.create_package(owner, pkg)
+    package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=''):
         if isinstance(node, nodes.GroupNode):
@@ -499,7 +509,7 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
     """
-    owner, pkg = parse_package(package)
+    team, owner, pkg = parse_package(package)
 
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
@@ -513,12 +523,12 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
                 )
 
             contents = generate_contents(path, outfilename)
-            build_package_from_contents(owner, pkg, path, contents, dry_run=dry_run, env=env)
+            build_package_from_contents(team, owner, pkg, path, contents, dry_run=dry_run, env=env)
         else:
-            build_package(owner, pkg, path, dry_run=dry_run, env=env)
+            build_package(team, owner, pkg, path, dry_run=dry_run, env=env)
 
         if not dry_run:
-            print("Built %s/%s successfully." % (owner, pkg))
+            print("Built %s%s/%s successfully." % (team + ':' if team else '', owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -526,12 +536,12 @@ def log(package):
     """
     List all of the changes to a package on the server.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     response = session.get(
         "{url}/api/log/{owner}/{pkg}/".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg
         )
@@ -545,16 +555,30 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, reupload=False):
+def push(package, public=False, team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    teamflag = team
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
-    pkgobj = PackageStore.find_package(owner, pkg)
+    pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+
+    if teamflag and public:
+        raise CommandException("--team and --public are incompatible")
+
+    if teamflag and team is None:
+        raise CommandException("--team cannot be used on non-team packages")
+
+    if public and team is not None:
+        raise CommandException("--public is not compatible with team packages, " +
+                               "Maybe you meant --team")
+
+    if teamflag and team is not None:
+        public = True
 
     pkghash = pkgobj.get_hash()
 
@@ -570,7 +594,7 @@ def push(package, public=False, reupload=False):
 
         return session.put(
             "{url}/api/package/{owner}/{pkg}/{hash}".format(
-                url=get_registry_url(),
+                url=get_registry_url(team),
                 owner=owner,
                 pkg=pkg,
                 hash=pkghash
@@ -676,7 +700,7 @@ def push(package, public=False, reupload=False):
     print("Updating the 'latest' tag...")
     session.put(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg,
             tag=LATEST_TAG
@@ -686,19 +710,25 @@ def push(package, public=False, reupload=False):
         ))
     )
 
-    url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
-    print("Push complete. %s/%s is live:\n%s" % (owner, pkg, url))
+    if team is None:
+        url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
+        teamstr = ""
+    else:
+        url = "https://%s.team.quiltdata.com/package/%s/%s" % (team, owner, pkg)
+        teamstr = "%s:" % (team)
+
+    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, url))
 
 def version_list(package):
     """
     List the versions of a package.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     response = session.get(
         "{url}/api/version/{owner}/{pkg}/".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg
         )
@@ -714,8 +744,8 @@ def version_add(package, version, pkghash, force=False):
     Version format needs to follow PEP 440.
     Versions are permanent - once created, they cannot be modified or deleted.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     try:
         Version(version)
@@ -732,13 +762,13 @@ def version_add(package, version, pkghash, force=False):
 
     session.put(
         "{url}/api/version/{owner}/{pkg}/{version}".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg,
             version=version
         ),
         data=json.dumps(dict(
-            hash=_match_hash(session, owner, pkg, pkghash)
+            hash=_match_hash(session, team, owner, pkg, pkghash)
         ))
     )
 
@@ -746,12 +776,12 @@ def tag_list(package):
     """
     List the tags of a package.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     response = session.get(
         "{url}/api/tag/{owner}/{pkg}/".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg
         )
@@ -769,18 +799,18 @@ def tag_add(package, tag, pkghash):
 
     When a package is pushed, it gets the "latest" tag.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     session.put(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg,
             tag=tag
         ),
         data=json.dumps(dict(
-            hash=_match_hash(session, owner, pkg, pkghash)
+            hash=_match_hash(session, team, owner, pkg, pkghash)
         ))
     )
 
@@ -788,12 +818,12 @@ def tag_remove(package, tag):
     """
     Delete a tag.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
     session.delete(
         "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg,
             tag=tag
@@ -815,7 +845,7 @@ def install_via_requirements(requirements_str, force=False):
     for pkginfo in yaml_data['packages']:
         owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
         package = owner + '/' + pkg
-        if subpath is not None:
+        if subpath:
             package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
 
@@ -840,17 +870,21 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     assert [hash, version, tag].count(None) == 2
 
-    owner, pkg, subpath = parse_package(package, allow_subpath=True)
-    session = _get_session()
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
+    session = _get_session(team)
     store = PackageStore()
-    existing_pkg = store.get_package(owner, pkg)
+    existing_pkg = store.get_package(team, owner, pkg)
 
     print("Downloading package metadata...")
 
     if version is not None:
         response = session.get(
             "{url}/api/version/{owner}/{pkg}/{version}".format(
-                url=get_registry_url(),
+                url=get_registry_url(team),
                 owner=owner,
                 pkg=pkg,
                 version=version
@@ -860,7 +894,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     elif tag is not None:
         response = session.get(
             "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-                url=get_registry_url(),
+                url=get_registry_url(team),
                 owner=owner,
                 pkg=pkg,
                 tag=tag
@@ -868,12 +902,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
         )
         pkghash = response.json()['hash']
     else:
-        pkghash = _match_hash(session, owner, pkg, hash)
+        pkghash = _match_hash(session, team, owner, pkg, hash)
     assert pkghash is not None
 
     response = session.get(
         "{url}/api/package/{owner}/{pkg}/{hash}".format(
-            url=get_registry_url(),
+            url=get_registry_url(team),
             owner=owner,
             pkg=pkg,
             hash=pkghash
@@ -885,7 +919,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert response.ok # other responses handled by _handle_response
 
     if existing_pkg is not None and not force:
-        print("{owner}/{pkg} already installed.".format(owner=owner, pkg=pkg))
+        print("{teamstr}{owner}/{pkg} already installed.".format(teamstr=teamstr, owner=owner, pkg=pkg))
         overwrite = input("Overwrite? (y/n) ")
         if overwrite.lower() != 'y':
             return
@@ -898,7 +932,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     if pkghash != hash_contents(response_contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(owner, pkg, response_contents)
+    pkgobj = store.install_package(team, owner, pkg, response_contents)
 
     obj_queue = sorted(iteritems(response_urls), reverse=True)
     total = len(obj_queue)
@@ -1075,10 +1109,10 @@ def access_list(package):
     """
     Print list of users who can access a package.
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
-    lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=get_registry_url(), owner=owner, pkg=pkg)
+    lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=get_registry_url(team), owner=owner, pkg=pkg)
     response = session.get(lookup_url)
 
     data = response.json()
@@ -1090,19 +1124,19 @@ def access_add(package, user):
     """
     Add access
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
-    session.put("%s/api/access/%s/%s/%s" % (get_registry_url(), owner, pkg, user))
+    session.put("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
 
 def access_remove(package, user):
     """
     Remove access
     """
-    owner, pkg = parse_package(package)
-    session = _get_session()
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
 
-    session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(), owner, pkg, user))
+    session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
 
 def delete(package):
     """
@@ -1110,28 +1144,33 @@ def delete(package):
 
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
-    owner, pkg = parse_package(package)
+    team, owner, pkg = parse_package(package)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
 
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
-        "Type '%s/%s' to confirm: " % (owner, pkg)
+        "Type '%s%s/%s' to confirm: " % (teamstr, owner, pkg)
     )
 
-    if answer != '%s/%s' % (owner, pkg):
+    if answer != '%s%s/%s' % (teamstr, owner, pkg):
         print("Not deleting.")
         return 1
 
-    session = _get_session()
+    session = _get_session(team)
 
-    session.delete("%s/api/package/%s/%s/" % (get_registry_url(), owner, pkg))
+    session.delete("%s/api/package/%s/%s/" % (get_registry_url(team), owner, pkg))
     print("Deleted.")
 
 def search(query):
     """
     Search for packages
     """
-    session = _get_session()
-    response = session.get("%s/api/search/" % get_registry_url(), params=dict(q=query))
+    team = None  # TODO
+    session = _get_session(team)
+    response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
 
     packages = response.json()['packages']
     for pkg in packages:
@@ -1151,10 +1190,14 @@ def inspect(package):
     """
     Inspect package details
     """
-    owner, pkg = parse_package(package)
-    pkgobj = PackageStore.find_package(owner, pkg)
+    team, owner, pkg = parse_package(package)
+    if team:
+        teamstr = "%s:" % team
+    else:
+        teamstr = ""
+    pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(teamstr=teamstr, owner=owner, pkg=pkg))
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1191,7 +1234,7 @@ def rm(package, force=False):
     """
     Remove a package (all instances) from the local store.
     """
-    owner, pkg = parse_package(package)
+    team, owner, pkg = parse_package(package)
 
     if not force:
         confirmed = input("Remove {0}? (y/n)".format(package))
@@ -1199,6 +1242,6 @@ def rm(package, force=False):
             return
 
     store = PackageStore()
-    deleted = store.remove_package(owner, pkg)
+    deleted = store.remove_package(team, owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))

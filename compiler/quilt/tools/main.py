@@ -83,9 +83,11 @@ def argument_parser():
     config_p.set_defaults(func=command.config)
 
     login_p = subparsers.add_parser("login", description="Log in to configured Quilt server")
+    login_p.add_argument("team", type=str, nargs='?', help="Specify team to log in as")
     login_p.set_defaults(func=command.login)
 
     logout_p = subparsers.add_parser("logout", description="Log out of current Quilt server")
+    logout_p.add_argument("team", type=str, nargs='?', help="Specify team to log out from")
     logout_p.set_defaults(func=command.logout)
 
     log_p = subparsers.add_parser("log", description="Show log for a specified package")
@@ -110,9 +112,14 @@ def argument_parser():
 
     push_p = subparsers.add_parser("push", description="Push a data package to the server")
     push_p.add_argument("package", type=str, help=HANDLE)
-    push_p.add_argument("--public", action="store_true",
-                        help=("Create or update a public package " +
-                              "(fails if the package exists and is private)"))
+    push_mutexgrp_container = push_p.add_argument_group('team selection options', "(mutually exclusive)")
+    push_mutexgrp = push_mutexgrp_container.add_mutually_exclusive_group()
+    push_mutexgrp.add_argument("--public", action="store_true",
+                               help=("Create or update a public package " +
+                                     "(fails if the package exists and is private)"))
+    push_mutexgrp.add_argument("--team", action="store_true",
+                               help=("Create or update a team-visible package " +
+                                     "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",
                         help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)

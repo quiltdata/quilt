@@ -18,6 +18,7 @@ LATEST_TAG = 'latest'
 PACKAGE_DIR_NAME = 'quilt_packages'
 DEFAULT_BUILDFILE = 'build.yml'
 DEFAULT_QUILT_YML = 'quilt.yml'
+DEFAULT_TEAM = 'Quilt'
 
 # reserved words in build.yml
 RESERVED = {

@@ -1,3 +1,4 @@
+*.swp
 build
 .cache
 dist
@@ -21,4 +22,5 @@ cov_html/*
 *~
 [#]*
 
-
+# Pycharm
+.idea
