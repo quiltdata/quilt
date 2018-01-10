@@ -186,26 +186,6 @@ class ImportTest(QuiltTestCase):
         # Imports should find the second package
         from quilt.data.foo.nested import dataframes
 
-    def test_team_multiple_package_dirs(self):
-        # First level
-        mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_simple.yml')
-        command.build('test:bar/nested', build_path)
-
-        # Second level: different package
-        os.mkdir("aaa")
-        os.chdir("aaa")
-        build_path = os.path.join(mydir, './build.yml')
-        command.build('test:bar/nested', build_path)
-
-        # Third level: empty package directory
-        os.mkdir("bbb")
-        os.chdir("bbb")
-        os.mkdir(PACKAGE_DIR_NAME)
-
-        # Imports should find the second package
-        from quilt.data.test.bar.nested import dataframes
-
     def test_save(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
