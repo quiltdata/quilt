@@ -344,6 +344,7 @@ packages:
         teststore = PackageStore(self._store_dir)
 
         # file0 already exists.
+        teststore.create_dirs()
         with open(teststore.object_path(objhash=file_hash_list[0]), 'wb') as fd:
             fd.write(file_data_list[0])
 
