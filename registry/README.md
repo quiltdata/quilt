@@ -1,4 +1,4 @@
- Overview
+# Overview
 
 This is the reference implementation of the Quilt server and package registry.
 
@@ -138,6 +138,24 @@ flask_1       | AUTH_PROVIDER=github
 ```
 
 4. When users run ```quilt login``` their browser should be redirected to a page on github.com which handles login to the catalog webserver (via cookies/rediects) and also generates the access token for the Quilt client (command-line tools, Python API, etc).
+
+### Advanced: Modifying Components
+
+Developers who make changes to source code in the registry, catalog or s3 proxy can follow these steps:
+```bash
+docker-compose down
+```
+Edit source code.
+```
+docker-compose up
+```
+Docker should rebuild any containers that need updating. To build them manually, follow these commands:
+
+```bash
+docker build -t quiltdata/catalog ../catalog
+docker build -t quiltdata/nginx-s3-proxy nginx-s3
+docker build -t quiltdata/flask .
+```
 
 <!--
 # Running directly (not with Docker)
