@@ -340,7 +340,6 @@ def parse_package_extended(name):
     return owner, pkg, subpath, hash, version, tag
 
 def parse_package(name, allow_subpath=False):
-    name = name.rstrip('/')
     try:
         values = name.split(':', 1)
         team = values[0] if len(values) > 1 else None
