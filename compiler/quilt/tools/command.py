@@ -39,7 +39,7 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    load_yaml)
 from .hashing import digest_file
 from .store import PackageStore, parse_package, parse_package_extended
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
 from . import check_functions as qc
 
 from .. import nodes
@@ -92,6 +92,8 @@ def _save_config(cfg):
 
 def get_registry_url(team):
     if team is not None:
+        if not is_nodename(team):
+            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
@@ -459,11 +461,11 @@ def _build_internal(package, path, dry_run, env):
         build_from_node(package, path)
     elif path is None:
         assert not dry_run  # TODO?
-        build_empty(package)
+        _build_empty(package)
     else:
         raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
-def build_empty(package):
+def _build_empty(package):
     """
     Create an empty package for convenient editing of de novo packages
     """
@@ -528,7 +530,7 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
             build_package(team, owner, pkg, path, dry_run=dry_run, env=env)
 
         if not dry_run:
-            print("Built %s/%s successfully." % (owner, pkg))
+            print("Built %s%s/%s successfully." % (team + ':' if team else '', owner, pkg))
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -845,7 +847,7 @@ def install_via_requirements(requirements_str, force=False):
     for pkginfo in yaml_data['packages']:
         owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
         package = owner + '/' + pkg
-        if subpath is not None:
+        if subpath:
             package += '/' + "/".join(subpath)
         install(package, hash, version, tag, force=force)
 
