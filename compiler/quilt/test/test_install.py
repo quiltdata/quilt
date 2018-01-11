@@ -75,7 +75,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path('foo', 'bar'),
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
                                Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -118,7 +118,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar/group/table')
 
         teststore = PackageStore(self._store_dir)
-        with open(os.path.join(teststore.package_path('foo', 'bar'),
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
                                Package.CONTENTS_DIR, contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -130,7 +130,7 @@ class InstallTest(QuiltTestCase):
     def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(user, package),
+        with open(os.path.join(teststore.package_path(None, user, package),
                                Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -143,7 +143,7 @@ class InstallTest(QuiltTestCase):
     def getmtime(self, user, package, contents_hash):
         teststore = PackageStore(self._store_dir)
 
-        return os.path.getmtime(os.path.join(teststore.package_path(user, package),
+        return os.path.getmtime(os.path.join(teststore.package_path(None, user, package),
                                              Package.CONTENTS_DIR,
                                              contents_hash))
 
@@ -356,21 +356,21 @@ packages:
         command.install('foo/bar')
 
     def _mock_log(self, package, pkg_hash):
-        log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(None), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
             {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
         ]}))
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
                       status=200, message=None):
-        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(None), package, tag)
         self.requests_mock.add(cmd, tag_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
 
     def _mock_version(self, package, version, pkg_hash, cmd=responses.GET,
                       status=200, message=None):
-        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(), package, version)
+        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(None), package, version)
         self.requests_mock.add(cmd, version_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
@@ -378,7 +378,7 @@ packages:
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
                       status=200, message=None):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.get_registry_url(), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(None), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else

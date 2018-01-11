@@ -162,10 +162,13 @@ KNOWN_PARAMS = [
     [0, 'log'],
     [0, 'log', 0],
     [0, 'login'],
+    [0, 'login', 0],
     [0, 'logout'],
+    [0, 'logout', 0],
     [0, 'ls'],
     [0, 'push'],
     [0, 'push', '--public'],
+    [0, 'push', '--team'],
     [0, 'push', '--reupload'],
     [0, 'push', 0],
     [0, 'rm'],
@@ -573,6 +576,96 @@ class TestCLI(BasicQuiltTestCase):
         assert not result['args']
         assert not result['kwargs']
 
+    def test_cli_command_login(self):
+        """Ensures the 'login' command calls a specific API"""
+        ## This test covers the following arguments that require testing
+        TESTED_PARAMS.extend([
+            [0, 'login'],
+            [0, 'login', 0],
+        ])
+
+        ## This section tests for circumstances expected to be rejected by argparse.
+        expect_fail_2_args = [
+            'login too many params'.split(),
+            ]
+        for args in expect_fail_2_args:
+            assert self.execute(args)['return code'] == 2, 'with args: ' + str(args)
+
+        ## This section tests for acceptable types and values.
+        # plain login
+        cmd = ['login']
+        result = self.execute(cmd)
+
+        # General tests
+        # TODO: update this to use _general_execute_tests once merged
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockObject class?
+        assert not result['bind failure']
+
+        # Specific tests
+        assert result['func'] == 'login'
+        assert not result['args']
+        assert result['kwargs']['team'] is None
+
+        # login with team name
+        cmd = ['login', 'example_team']
+        result = self.execute(cmd)
+
+        # General tests
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockObject class?
+        assert not result['bind failure']
+
+        # Specific tests
+        assert result['func'] == 'login'
+        assert not result['args']
+        assert result['kwargs']['team'] == 'example_team'
+
+    def test_cli_command_logout(self):
+        """Ensures the 'login' command calls a specific API"""
+        ## This test covers the following arguments that require testing
+        TESTED_PARAMS.extend([
+            [0, 'logout'],
+            [0, 'logout', 0],
+        ])
+
+        ## This section tests for circumstances expected to be rejected by argparse.
+        expect_fail_2_args = [
+            'logout too many params'.split(),
+            ]
+        for args in expect_fail_2_args:
+            assert self.execute(args)['return code'] == 2, 'with args: ' + str(args)
+
+        ## This section tests for acceptable types and values.
+        # plain login
+        cmd = ['logout']
+        result = self.execute(cmd)
+
+        # General tests
+        # TODO: update this to use _general_execute_tests once merged
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockObject class?
+        assert not result['bind failure']
+
+        # Specific tests
+        assert result['func'] == 'logout'
+        assert not result['args']
+        assert result['kwargs']['team'] is None
+
+        # login with team name
+        cmd = ['logout', 'example_team']
+        result = self.execute(cmd)
+
+        # General tests
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockObject class?
+        assert not result['bind failure']
+
+        # Specific tests
+        assert result['func'] == 'logout'
+        assert not result['args']
+        assert result['kwargs']['team'] == 'example_team'
+
     def test_cli_command_push(self):
         ## This test covers the following arguments that require testing
         TESTED_PARAMS.extend([
@@ -580,6 +673,7 @@ class TestCLI(BasicQuiltTestCase):
             [0, 'push', 0],
             [0, 'push', '--public'],
             [0, 'push', '--reupload'],
+            [0, 'push', '--team'],
         ])
 
         ## This section tests for circumstances expected to be rejected by argparse.
@@ -588,9 +682,11 @@ class TestCLI(BasicQuiltTestCase):
             'push --public'.split(),
             'push --reupload'.split(),
             'push --public --reupload'.split(),
+            'push --public --team'.split(),
+            'push --public --team fakeuser/fakepackage'.split(),  # mutually exclusive options
             ]
         for args in expect_fail_2_args:
-            assert self.execute(args)['return code'] == 2
+            assert self.execute(args)['return code'] == 2, "using args: " + str(args)
 
         ## This section tests for appropriate types and values.
         cmd = 'push fakeuser/fakepackage'.split()
@@ -604,11 +700,16 @@ class TestCLI(BasicQuiltTestCase):
         # Specific tests
         assert not result['args']
         assert result['func'] == 'push'
-        assert result['kwargs']['reupload'] is False
-        assert result['kwargs']['public'] is False
-        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        kwargs = result['kwargs']
+        assert kwargs == {
+            'reupload': False,
+            'public': False,
+            'package': 'fakeuser/fakepackage',
+            'team': False,
+        }
 
         ## Test the flags as well..
+        # public (and reupload)
         cmd = 'push --reupload --public fakeuser/fakepackage'.split()
         result = self.execute(cmd)
 
@@ -620,9 +721,34 @@ class TestCLI(BasicQuiltTestCase):
         # Specific tests
         assert not result['args']
         assert result['func'] == 'push'
-        assert result['kwargs']['reupload'] is True
-        assert result['kwargs']['public'] is True
-        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        kwargs = result['kwargs']
+        assert kwargs == {
+            'reupload': True,
+            'public': True,
+            'package': 'fakeuser/fakepackage',
+            'team': False,
+        }
+
+        # team (without reupload)
+        cmd = 'push --reupload --team blah:fakeuser/fakepackage'.split()
+        result = self.execute(cmd)
+
+        # General tests
+        assert result['return code'] == 0
+        assert result['matched'] is True  # func name recognized by MockObject class?
+        assert not result['bind failure']
+
+        # Specific tests
+        assert not result['args']
+        assert result['func'] == 'push'
+        kwargs = result['kwargs']
+        assert kwargs == {
+            'reupload': True,
+            'public': False,
+            'package': 'blah:fakeuser/fakepackage',
+            'team': True,
+        }
+
 
     def test_cli_option_dev_flag(self):
         # also test ctrl-c

@@ -34,7 +34,7 @@ class ChecksTest(QuiltTestCase):
             raise Exception(str(self.build_data)+"\n\n"+str(self.checks_contents))
         mydir = os.path.dirname(__file__)
         build.build_package_from_contents(
-            'foox', 'barx', mydir, self.build_data, self.checks_contents, dry_run=True)
+            None, 'foox', 'barx', mydir, self.build_data, self.checks_contents, dry_run=True)
 
     def build_fail(self, check, regexp=None, nodename='foo'):
         # explicitly fail if build_success() somehow succeeds when it shouldn't
@@ -119,9 +119,9 @@ qc.check_column_datetime('DTime0', '%Y-%m-%d %H:%M:%S.%f')
             checks_fn = os.path.join(os.path.dirname(__file__), checks_fn) if checks_fn else None
             if expect_error:
                 with assertRaisesRegex(self, IOError, 'doesnt_exist.yml'):
-                    build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+                    build.build_package(None, 'foox', 'barx', build_fn, checks_fn, dry_run=True)
             else:
-                build.build_package('foox', 'barx', build_fn, checks_fn, dry_run=True)
+                build.build_package(None, 'foox', 'barx', build_fn, checks_fn, dry_run=True)
         run_build("build_simple_checks.yml", "checks_simple.yml")
         run_build("doesnt_exist.yml", "checks_simple.yml", True)
         run_build("build_simple_checks.yml", "doesnt_exist.yml", True)
