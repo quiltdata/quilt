@@ -1447,3 +1447,44 @@ def client_log():
         _mp_track(**event)
 
     return dict()
+
+@app.route('/api/users/list', methods=['GET'])
+@api(require_login=False)
+@as_json
+def list_users():
+    return dict()
+
+@app.route('/api/users/create', methods=['GET'])
+@api(require_login=False)
+@as_json
+def create_user():
+    data = request.get_json()
+    # forward to django
+    r = requests.get(from_django)
+
+    # return results
+    return r.json()
+
+@app.route('/api/users/disable', methods=['GET'])
+@api(require_login=False)
+@as_json
+def disable_user():
+    data = request.get_json()
+    # forward to django
+    requests.get(from_django)
+
+    # return results
+    return dict()
+
+@app.route('/api/users/delete', methods=['GET'])
+@api(require_login=False)
+@as_json
+def delete_user():
+    data = request.get_json()
+    # forward to django
+    requests.get(from_django)
+
+    # return results
+    return dict()
+
+print("DISALLOW: " + DISALLOW_PUBLIC_USERS)

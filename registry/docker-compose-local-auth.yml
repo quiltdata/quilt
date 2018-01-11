@@ -80,7 +80,7 @@ services:
     command: /bin/bash -c "envsubst < /etc/nginx/conf.d/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
   django:
-    image: quiltdata/django
+    image: quiltdata/django:teams
     environment:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
