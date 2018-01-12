@@ -1487,4 +1487,4 @@ def delete_user():
     # return results
     return dict()
 
-print("DISALLOW: " + DISALLOW_PUBLIC_USERS)
+print("DISALLOW: %s" % DISALLOW_PUBLIC_USERS)

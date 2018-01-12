@@ -87,6 +87,7 @@ services:
       - DATABASE_URL=postgres://postgres:testing@db/packages
       - FRONTEND_URL=http://catalog:3000
       - ALLOW_HTTP=1
+      - DISABLE_SIGNUP=True
     depends_on:
       db:
         condition: service_healthy
