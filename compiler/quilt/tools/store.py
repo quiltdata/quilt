@@ -309,51 +309,44 @@ class PackageStore(object):
 # Helper Functions
 ########################################
 def parse_package_extended(name):
-    hash = version = tag = None
-
-    # switched to regex when adding teams due to extra colon adding complexity.
-    # not sure this is less complex after all, but it works fine.
-    nodename = r'[a-zA-Z]\w*'
-    word = "\w+"
-
-
-    # team:owner/pkg/sub/path:foo:baz  -- team, subpath, version info optional
-    expression = (
-        r'^'
-        r'(?:({nodename}):)?'         # optional team name (outer group ignored with '?:')
-        r'({nodename})/({nodename})'  # required user/package
-        r'((?:/{nodename})+)?'        # optional path (inner group ignored)
-        r'(?::({word})|(?::({word}):({word})))?'  # :x or :x:y -- organizational groups ignored
-        r'$'
-    ).format(nodename=nodename, word=word)
-
-    match = re.match(expression, name)
-    if match is None:
-        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+    hash = version = tag = versioninfo = None
+    try:
+        needle, owner_pkg_sep = name.find(':'), name.find('/')
+        if needle != -1:
+            if needle < owner_pkg_sep:
+                # we have a team.  Needle points to team/pkg separator.
+                needle = name.find(':', needle+1)  # advance the needle to the next ':'
+                if needle != -1:
+                    # we also have version info.
+                    name, versioninfo = name[:needle], name[needle+1:]
+            else:
+                # no team.  Needle points to version info separator.
+                name, versioninfo = name[:needle], name[needle+1:]
+        # Version Info has been extracted from name.
+        # we have a name with a team
+        if versioninfo:
+            if ':' in versioninfo:
+                info = versioninfo.split(':', 1)
+                if len(info) == 2:
+                    if 'version'.startswith(info[0]):
+                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
+                        version = info[1]
+                    elif 'tag'.startswith(info[0]):
+                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
+                        tag = info[1]
+                    elif 'hash'.startswith(info[0]):
+                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
+                        hash = info[1]
+                    else:
+                        raise CommandException("Invalid versioninfo: %s." % info)
+                else:
+                    # usr/pkg:hashval
+                    hash = versioninfo
+        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
+    except ValueError:
+        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
-
-    team, owner, pkg, subpath, hash, info_type, info = match.groups()
-
-    if info_type and hash:
-        raise RuntimeError("Internal Error: Badly formed regex")  # just in case I'm missing something..
-
-    if info_type:
-        info_type = info_type.lower()
-        matches = [itype for itype in ('version', 'tag', 'hash') if itype.startswith(info_type)]
-
-        if len(matches) == 0:
-            raise CommandException("Invalid version type specifier: %s" % info_type)
-        assert len(matches) == 1
-
-        info_type = matches.pop()
-
-        locals()[info_type] = info   # acts like `hash = info_type`, `tag = info_type`, etc.
-
-    if subpath:
-        subpath = subpath.lstrip('/').split('/')
-
     return team, owner, pkg, subpath, hash, version, tag
-
 
 def parse_package(name, allow_subpath=False):
     try:
