@@ -313,21 +313,23 @@ def parse_package_extended(name):
 
     # switched to regex when adding teams due to extra colon adding complexity.
     # not sure this is less complex after all, but it works fine.
-    token = r'[a-zA-Z]\w*'
+    nodename = r'[a-zA-Z]\w*'
+    word = "\w+"
+
 
     # team:owner/pkg/sub/path:foo:baz  -- team, subpath, version info optional
     expression = (
         r'^'
-        r'(?:({token}):)?'      # optional team name (outer group ignored with '?:')
-        r'({token})/({token})'  # required user/package
-        r'((?:/{token})+)?'     # optional path (inner group ignored)
-        r'(?::({token})|(?::({token}):({token})))?'  # :x or :x:y -- organizational groups ignored
+        r'(?:({nodename}):)?'         # optional team name (outer group ignored with '?:')
+        r'({nodename})/({nodename})'  # required user/package
+        r'((?:/{nodename})+)?'        # optional path (inner group ignored)
+        r'(?::({word})|(?::({word}):({word})))?'  # :x or :x:y -- organizational groups ignored
         r'$'
-    ).format(token=token)
+    ).format(nodename=nodename, word=word)
 
     match = re.match(expression, name)
     if match is None:
-        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
 
     team, owner, pkg, subpath, hash, info_type, info = match.groups()
@@ -337,17 +339,15 @@ def parse_package_extended(name):
 
     if info_type:
         info_type = info_type.lower()
-        if 'version'.startswith(info_type):
-            # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
-            version = info
-        elif 'tag'.startswith(info_type):
-            # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
-            tag = info
-        elif 'hash'.startswith(info_type):
-            # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
-            hash = info
-        else:
+        matches = [itype for itype in ('version', 'tag', 'hash') if itype.startswith(info_type)]
+
+        if len(matches) == 0:
             raise CommandException("Invalid version type specifier: %s" % info_type)
+        assert len(matches) == 1
+
+        info_type = matches.pop()
+
+        locals()[info_type] = info   # acts like `hash = info_type`, `tag = info_type`, etc.
 
     if subpath:
         subpath = subpath.lstrip('/').split('/')
