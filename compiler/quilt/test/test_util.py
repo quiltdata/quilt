@@ -21,3 +21,8 @@ class UtilTest(QuiltTestCase):
 
         assert set(sub_dirs(path)) == set(['dir'])
         assert set(sub_dirs(path, invisible=True)) == set(['.invisible_dir', 'dir'])
+
+    #TODO: testing for is_identifier
+    #TODO: testing for is_nodename
+    #TODO: testing for to_identifier
+    #TODO: testing for to_nodename

@@ -9,10 +9,8 @@ from shutil import rmtree
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
 from .core import FileNode, RootNode, TableNode, CommandException
 from .package import Package, PackageException
-from .util import BASE_DIR, sub_dirs, sub_files
+from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
-# start with alpha (_ may clobber attrs), continue with alphanumeric or _
-VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 CHUNK_SIZE = 4096
 
 # Helper function to return the default package store path
@@ -104,15 +102,15 @@ class PackageStore(object):
 
     @classmethod
     def check_name(cls, team, user, package, subpath=None):
-        if team is not None and not VALID_NAME_RE.match(team):
+        if team is not None and not is_nodename(team):
             raise StoreException("Invalid team name: %r" % team)
-        if not VALID_NAME_RE.match(user):
+        if not is_nodename(user):
             raise StoreException("Invalid user name: %r" % user)
-        if not VALID_NAME_RE.match(package):
+        if not is_nodename(package):
             raise StoreException("Invalid package name: %r" % package)
         if subpath:
             for element in subpath:
-                if not VALID_NAME_RE.match(element):
+                if not is_nodename(element):
                     raise StoreException("Invalid element in subpath: %r" % element)
 
     def _version_path(self):
@@ -310,34 +308,52 @@ class PackageStore(object):
 ########################################
 # Helper Functions
 ########################################
-
 def parse_package_extended(name):
     hash = version = tag = None
-    try:
-        if ':' in name:
-            name, versioninfo = name.split(':', 1)
-            if ':' in versioninfo:
-                info = versioninfo.split(':', 1)
-                if len(info) == 2:
-                    if 'version'.startswith(info[0]):
-                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
-                        version = info[1]
-                    elif 'tag'.startswith(info[0]):
-                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
-                        tag = info[1]
-                    elif 'hash'.startswith(info[0]):
-                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
-                        hash = info[1]
-                    else:
-                        raise CommandException("Invalid versioninfo: %s." % info)
-                else:
-                    # usr/pkg:hashval
-                    hash = versioninfo
-        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
-    except ValueError:
+
+    # switched to regex when adding teams due to extra colon adding complexity.
+    # not sure this is less complex after all, but it works fine.
+    token = r'[a-zA-Z]\w*'
+
+    # team:owner/pkg/sub/path:foo:baz  -- team, subpath, version info optional
+    expression = (
+        r'^'
+        r'(?:({token}):)?'      # optional team name (outer group ignored with '?:')
+        r'({token})/({token})'  # required user/package
+        r'((?:/{token})+)?'     # optional path (inner group ignored)
+        r'(?::({token})|(?::({token}):({token})))?'  # :x or :x:y -- organizational groups ignored
+        r'$'
+    ).format(token=token)
+
+    match = re.match(expression, name)
+    if match is None:
         pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return owner, pkg, subpath, hash, version, tag
+
+    team, owner, pkg, subpath, hash, info_type, info = match.groups()
+
+    if info_type and hash:
+        raise RuntimeError("Internal Error: Badly formed regex")  # just in case I'm missing something..
+
+    if info_type:
+        info_type = info_type.lower()
+        if 'version'.startswith(info_type):
+            # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
+            version = info
+        elif 'tag'.startswith(info_type):
+            # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
+            tag = info
+        elif 'hash'.startswith(info_type):
+            # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
+            hash = info
+        else:
+            raise CommandException("Invalid version type specifier: %s" % info_type)
+
+    if subpath:
+        subpath = subpath.lstrip('/').split('/')
+
+    return team, owner, pkg, subpath, hash, version, tag
+
 
 def parse_package(name, allow_subpath=False):
     try:

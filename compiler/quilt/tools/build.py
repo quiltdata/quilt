@@ -18,10 +18,11 @@ from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
-from .store import PackageStore, VALID_NAME_RE, StoreException
-from .util import FileWithReadProgress
+from .store import PackageStore, StoreException
+from .util import FileWithReadProgress, is_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
+
 
 def _have_pyspark():
     """
@@ -60,7 +61,7 @@ def _pythonize_name(name):
     if safename and safename[0].isdigit():
         safename = "n%s" % safename
 
-    if not VALID_NAME_RE.match(safename):
+    if not is_nodename(safename):
         raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
@@ -105,7 +106,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # if it's not a reserved word it's a group that we can descend
         groups = { k: v for k, v in iteritems(node) if k not in RESERVED }
         for child_name, child_table in groups.items():
-            if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
+            if not isinstance(child_name, str) or not is_nodename(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
                 checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)

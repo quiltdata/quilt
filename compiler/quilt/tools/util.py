@@ -10,6 +10,8 @@ import tokenize
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
 
+from .compat import pathlib
+
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -117,7 +119,7 @@ def is_identifier(string):
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
-    val = re.match(tokenize.Name + '$', string) and not keyword.iskeyword(string)
+    val = re.match(r'^[a-zA-Z_]\w*$', string) and not keyword.iskeyword(string)
     return True if val else False
 
 
@@ -150,6 +152,7 @@ def to_identifier(string):
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """
+    # Not really useful to expose as a CONSTANT, and python will compile and cache
     string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
 
     if string[0].isdigit():
@@ -164,7 +167,8 @@ def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original filename can't be recovered
-    from the change in all cases, so it must be stored separately.
+    from the change in all cases, so it must be stored separately (`FileNode`
+    metadata)
 
     If `invalid` is given, it should be an iterable of names that the returned
     string cannot match -- for example, other node names.
@@ -189,15 +193,17 @@ def to_nodename(string, invalid=None, raise_exc=False):
     :returns: valid node name
     :rtype: string
     """
-    string = to_identifier(string).lstrip('_')
+    string = to_identifier(to_identifier(string).lstrip('_'))
 
-    if keyword.iskeyword(string):
-        string = string + '_'
+    if string[0].isdigit():  # for valid cases like '_903'.lstrip('_') == invalid '903'
+        string = 'n' + string
 
     if invalid is None:
         return string
 
-    invalid = set(invalid)
+    if not isinstance(invalid, set):
+        invalid = set(invalid)
+
     if string in invalid and raise_exc:
         raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
 
@@ -210,3 +216,11 @@ def to_nodename(string, invalid=None, raise_exc=False):
         result = "{}_{}".format(string, counter)
 
     return result
+
+
+def filepath_to_nodepath(filepath, nodepath_separator='.'):
+    filepath = pathlib.Path(filepath)
+    if filepath.anchor:
+        raise ValueError("Invalid filepath (relative file path required): " + str(filepath))
+
+    return nodepath_separator.join(to_nodename(part) for part in filepath.parts)
