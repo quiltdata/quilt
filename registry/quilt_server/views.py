@@ -1452,7 +1452,28 @@ def client_log():
 @api(require_login=False)
 @as_json
 def list_users():
-    return dict()
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+        }
+
+    user_list_api = "http://auth:5002/users"
+    if not user_list_api:
+        return dict()
+    resp = requests.get(user_list_api,
+                        headers=auth_headers)
+    print(resp.status_code)
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            requests.codes.not_found,
+            "User %s does not exist" % user
+            )
+    elif resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
 
 @app.route('/api/users/create', methods=['GET'])
 @api(require_login=False)
@@ -1487,4 +1508,3 @@ def delete_user():
     # return results
     return dict()
 
-print("DISALLOW: %s" % DISALLOW_PUBLIC_USERS)
