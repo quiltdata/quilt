@@ -4,6 +4,7 @@
 API routes.
 """
 
+import datetime
 from datetime import timedelta, timezone
 from functools import wraps
 import json
@@ -1449,7 +1450,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(require_login=False)
+@api()
 @as_json
 def list_users():
     auth_headers = {
@@ -1461,11 +1462,10 @@ def list_users():
         return dict()
     resp = requests.get(user_list_api,
                         headers=auth_headers)
-    print(resp.status_code)
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
-            "User %s does not exist" % user
+            "Cannot list users"
             )
     elif resp.status_code != requests.codes.ok:
         raise ApiException(
@@ -1475,19 +1475,59 @@ def list_users():
 
     return resp.json()
 
-@app.route('/api/users/create', methods=['GET'])
-@api(require_login=False)
+@app.route('/api/users/create', methods=['POST'])
+@api()
 @as_json
 def create_user():
-    data = request.get_json()
-    # forward to django
-    r = requests.get(from_django)
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
 
-    # return results
-    return r.json()
+    print("ASDF")
 
-@app.route('/api/users/disable', methods=['GET'])
-@api(require_login=False)
+    request_data = request.get_json()
+
+    user_create_api = 'http://auth:5002/users/'
+
+    if not user_create_api:
+        raise ApiException(requests.codes.not_found,
+                "Cannot create user"
+                )
+
+
+    resp = requests.post(user_create_api, headers=auth_headers, 
+            data=json.dumps({
+            "username": request_data.get('username'),
+            "first_name": "",
+            "last_name": "",
+            "email": request_data.get('email'),
+            "is_superuser": False,
+            "is_staff": False,
+            "is_active": True,
+            "last_login": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            requests.codes.not_found,
+            "Cannot list users"
+            )
+
+    elif resp.status_code == 201:
+        print("201")
+        return resp.json()
+
+    elif resp.status_code != requests.codes.ok:
+        print(resp.text)
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+@app.route('/api/users/disable', methods=['POST'])
+@api()
 @as_json
 def disable_user():
     data = request.get_json()
@@ -1497,8 +1537,8 @@ def disable_user():
     # return results
     return dict()
 
-@app.route('/api/users/delete', methods=['GET'])
-@api(require_login=False)
+@app.route('/api/users/delete', methods=['POST'])
+@api()
 @as_json
 def delete_user():
     data = request.get_json()
