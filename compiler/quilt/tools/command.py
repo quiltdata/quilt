@@ -845,10 +845,14 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+        team, owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+
         package = owner + '/' + pkg
+        if team:
+            package = team + ':' + package
         if subpath:
             package += '/' + "/".join(subpath)
+
         install(package, hash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
