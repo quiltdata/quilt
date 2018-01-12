@@ -1,8 +1,18 @@
 """
+=========
+Quilt VFS
+=========
 
-    context version:
+Basic usage
+===========
 
+The quilt VFS allows you to use file node data directly with native Python applications.
+In more complex situations with non-native code, such as with TensorFlow, it can be used
+by exporting, then patching save callbacks to update quilt.
+
+Usage as context manager:
     >>> import quilt.vfs
+    >>> # 'mappings' allows you to map forlders to modules.
     >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
     ...     print(open('foo/bar/iris_names').read()[0:100])
 
@@ -10,15 +20,14 @@
         Updated Sept 21 by C.Blake - Added discrepency information
 
     2. Sourc
-    >>> print(open('foo/bar/iris_names').read()[0:100])
+    >>> print(open('foo/bar/iris_names').read()[0:100])  # context closed, mapping no longer available.
     Traceback (most recent call last):
       File "<stdin>", line 1, in <module>
     FileNotFoundError: [Errno 2] No such file or directory: 'foo/bar/iris_names'
 
-    # --------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
 
-    explicit version:
-
+Explicit usage:
     >>> import quilt.vfs
     >>> patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
     >>> print(open('foo/bar/iris_names').read()[0:100])
@@ -33,15 +42,9 @@
     FileNotFoundError: [Errno 2] No such file or directory: 'foo/bar/iris_names'
 
 
-    # ---------------------------------------------------------------------------
-    # various character mapping scenarios
-    #
-    with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}):
-       assert(len(open('foo/bar/raw/iris_names').read()) > 100)
+# ---------------------------------------------------------------------------
 
-    # ---------------------------------------------------------------------------
-    # various character mapping scenarios
-    #
+various character mapping scenarios:
     with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'.'}, charmap=
                            lambda name: name.replace('.', '_')):
        assert(len(open('foo/bar/raw/iris.names').read()) > 100)
@@ -55,17 +58,11 @@
     # default charmapping changes . to _
     with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
        assert(len(open('foo/bar/iris_names').read()) > 100)
-
-    # --------------------------------------------------------------------------------
-    # TODO: get this to work:
-    # https://github.com/xuetsing/image-classification-tensorflow/blob/master/classify.py#L13
-    >>> import quilt.vfs; import tensorflow as tf
-    >>> with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
-    ...     len(tf.gfile.FastGFile('foo/bar/iris_names').read())
-    ==> errors on not finding tf or tf.gfile
-
-
 """
+# --------------------------------------------------------------------------------
+# TODO: ensure this works:
+# https://github.com/xuetsing/image-classification-tensorflow/blob/master/classify.py#L13
+
 import os.path
 import importlib
 from contextlib import contextmanager
@@ -75,7 +72,8 @@ import glob
 from .nodes import GroupNode
 from .tools import command
 from .tools.store import parse_package
-from .tools.util import to_nodename
+from .tools.util import to_nodename, filepath_to_nodepath
+from .tools.compat import pathlib
 
 
 DEFAULT_CHAR_MAPPINGS = to_nodename
@@ -183,7 +181,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
     """
     if install:
         command.install(pkg, hash=hash, version=version, tag=tag, force=force)
-    owner, pkg = parse_package(pkg)
+    team, owner, pkg = parse_package(pkg)
     charmap_func = create_charmap_func(charmap)
     if mappings is None:
         mappings = { ".": "" }  # TODO: test this case
@@ -325,46 +323,39 @@ def setup_keras_dataset(data_pkg, keras_dataset_name, hash=None, version=None, t
 
     patch('keras.datasets.'+keras_dataset_name, 'get_file', keras_mapfunc)
 
-def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
-                     hash=None, version=None, tag=None, force=False,
-                     mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+## Abandoned?
+# def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
+#                      hash=None, version=None, tag=None, force=False,
+#                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+#     """TensorFlow is a special case - badly behaved Python API."""
+#     if chkpt_pkg is None:
+#         chkpt_pkg = data_pkg
+#     import tensorflow
+#     tensorflow.python = tensorflow  # hack: needs to be a module
+#     tensorflow.python.platform = tensorflow  # hack: needs to be a module
+#     module_mappings = DEFAULT_MODULE_MAPPINGS.copy()
+#     # unpatch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
+#     del module_mappings['gzip']
+#     # patch gfile.Open()
+#     module_mappings['tensorflow.python.platform.gfile'] = 'Open'
+#     setup(data_pkg, hash=hash, version=version, tag=tag, force=force,
+#           mappings=mappings, install=install, charmap=charmap, **module_mappings)
+#     # patch maybe_download() to return the Quilt filename
+#     mapfunc = make_mapfunc(data_pkg, hash=hash, version=version, tag=tag, force=force,
+#           mappings=mappings, install=install, charmap=charmap, **module_mappings)
+#     patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
+#           lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
+
+def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints"):
     """TensorFlow is a special case - badly behaved Python API."""
-    if chkpt_pkg is None:
-        chkpt_pkg = data_pkg
+    # TODO: add features, e.g. configurable checkpoints path
     import tensorflow
-    tensorflow.python = tensorflow  # hack: needs to be a module
-    tensorflow.python.platform = tensorflow  # hack: needs to be a module
-    module_mappings = DEFAULT_MODULE_MAPPINGS.copy()
-    # unpatch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
-    del module_mappings['gzip']
-    # patch gfile.Open()
-    module_mappings['tensorflow.python.platform.gfile'] = 'Open'
-    setup(data_pkg, hash=hash, version=version, tag=tag, force=force,
-          mappings=mappings, install=install, charmap=charmap, **module_mappings)
-    # patch maybe_download() to return the Quilt filename
-    mapfunc = make_mapfunc(data_pkg, hash=hash, version=version, tag=tag, force=force,
-          mappings=mappings, install=install, charmap=charmap, **module_mappings)
-    patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
-          lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
-
-def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
-                     hash=None, version=None, tag=None, force=False,
-                     mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
-    """TensorFlow is a special case - badly behaved Python API."""
-    import tensorflow
-
-    def filename2quiltnode(filename):
-        # -6700.data-00000-of-00001 ==> n6700_data_00000_of_00001
-        return re.sub(r'/-(\d+)[.]', r'/n\1_', str(filename)).replace('-', '_')
-
     # export prev checkpoints, which are too hard to virtualize because
     # TF has complex I/O functions to find the latest checkpoint etc.
     command.export(pkg, force=True, filter=lambda path: re.search('/?tensorboard/', path))
 
     # XXX: We could also subclass Saver(), as a Saver object is always needed to save progress
     # patch Saver.save() to read the checkpoint data and copy into Quilt.
-    # TODO: add features, e.g. configurable checkpoints path
-    save_patcher = None  # defined below after function creation
     def save_latest_to_quilt(obj,
                              sess,
                              save_path,
@@ -373,30 +364,27 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints",
                              meta_graph_suffix="meta",
                              write_meta_graph=True,
                              write_state=True,
-                             pkg=pkg,
-                             checkpoints_nodepath=checkpoints_nodepath):
+                             ):
 
-        #print('save_latest_to_quilt called')
-        save_patcher.stop()
+        # Stop any patching we're currently doing, including this function
+        save_patcher.stop()  # Patcher for this function -- defined below in parent scope.
         patchers_stop()
+
         # allow save() to proceed as normal
         path_prefix = obj.save(sess, save_path, global_step, latest_filename,
                                meta_graph_suffix, write_meta_graph, write_state)
-        #print('path_prefix={}'.format(path_prefix))
 
         # read the latest checkpoint file and write to quilt
         last_chk_path = tensorflow.train.latest_checkpoint(checkpoint_dir=save_path)
+        # TODO: Agnostic posix/nt/pure paths using pathlib
         pkginfo = pkg+'/'+checkpoints_nodepath+'/'+latest_filename
-        #print('last_chk_path={}  pkginfo={}'.format(last_chk_path, pkginfo))
         command.build(pkg, command.update(pkginfo, os.path.join(save_path, latest_filename)))
 
         # read the checkpoint data and write to quilt
         for filename in glob.glob(path_prefix + "*"):  # foo/bar/-1234*
             basename = os.path.basename(filename)   # foo/bar/-1234.meta ==> -1234.meta
-            quilt_path = filename2quiltnode(pkg+'/'+checkpoints_nodepath+'/'+basename)
-            #print('filename={}  quilt_path={}'.format(filename, quilt_path))
+            quilt_path = pkg + '/' + filepath_to_nodepath(checkpoints_nodepath+'/'+basename, '/')
             command.build(pkg, command.update(quilt_path, filename))
-            #print('update/build completed.')
 
         #print('save_latest_to_quilt done.  path_prefix={}  pkg={}'.format(path_prefix, pkg))
         patchers_start()

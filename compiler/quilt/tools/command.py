@@ -1241,12 +1241,12 @@ def rm(package, force=False):
         print("Removed: {0}".format(obj))
 
 def _importpkg(pkginfo):
-    owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-    pkgobj = PackageStore.find_package(None, owner, pkg)
+    team, owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+    pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
     module = _from_core_node(pkgobj, pkgobj.get_contents())
-    return module, pkgobj, owner, pkg, subpath, hash, version, tag
+    return module, pkgobj, team, owner, pkg, subpath, hash, version, tag
 
 def importpkg(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
@@ -1258,7 +1258,7 @@ def update(pkginfo, content):
     """convenience function around _set()"""
     # NOTE: cannot be named set() because that would conflict with the python builtin function.
     # TODO: support hashes/versions/etc.
-    module, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    module, _, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
     module._set(subpath, content)
     return module
 
@@ -1287,7 +1287,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes
     output_path = pathlib.Path(output_path)
-    node, _, _, _, subpath, _, _, _ = _importpkg(package)
+    node, _, _, _, _, subpath, _, _, _ = _importpkg(package)
 
     # ..and/or this?
     def get_node_child_by_path(node, path):
