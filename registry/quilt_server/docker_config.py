@@ -5,7 +5,7 @@ Config file for dev in Docker. Overrides values in config.py.
 """
 import os
 
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@db/quilt'
+SQLALCHEMY_DATABASE_URI = 'postgres://postgres:testing@db/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
@@ -13,10 +13,10 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='http://auth:5002/o/token/',
         authorize_url='http://auth:5002/o/authorize/',
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id=os.getenv('OAUTH_CLIENT_ID'),
         client_secret=os.getenv('OAUTH_CLIENT_SECRET'),
         user_api='http://auth:5002/api-root',
-        profile_api='http://auth:5002/profiles/%s/',
+        profile_api='http://auth:5002/accounts/profile?user=%s',
         have_refresh_token=True,
     )
 elif AUTH_PROVIDER == 'github':
@@ -24,7 +24,7 @@ elif AUTH_PROVIDER == 'github':
         access_token_url='https://github.com/login/oauth/access_token',
         authorize_url='https://github.com/login/oauth/authorize',
         client_id=os.getenv('OAUTH_CLIENT_ID_GITHUB', '411a75cc2b4f6669a418'),
-        client_secret=os.getenv('OAUTH_CLIENT_SECRET_GITHUB', os.getenv('OAUTH_CLIENT_SECRET')),        
+        client_secret=os.getenv('OAUTH_CLIENT_SECRET_GITHUB', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='https://api.github.com/user',
         profile_api='https://api.github.com/users/%s',  # NO trailing slash
         have_refresh_token=False,
@@ -51,3 +51,6 @@ SQLALCHEMY_ECHO = True
 MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN', '')
 DEPLOYMENT_ID = ''
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+
+print('*** AUTH_PROVIDER=%s' % AUTH_PROVIDER)
+

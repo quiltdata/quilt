@@ -9,7 +9,7 @@ from ..tools import command
 from .utils import BasicQuiltTestCase
 from .integration import skip
 
-def _mock_url():
+def _mock_url(team):
     return pytest.config.getoption("--integration")
 
 @skip

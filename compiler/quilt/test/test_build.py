@@ -27,7 +27,7 @@ class BuildTest(QuiltTestCase):
         Package.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build.yml')
-        build.build_package('test_parquet', PACKAGE, path)
+        build.build_package(None, 'test_parquet', PACKAGE, path)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -45,15 +45,15 @@ class BuildTest(QuiltTestCase):
         teststore = store.PackageStore()
 
         # Build once to populate cache
-        build.build_package('test_cache', PACKAGE, path)
+        build.build_package(None, 'test_cache', PACKAGE, path)
 
         # Verify cache contents
         srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
-        path_hash = build._path_hash(srcpath, 'csv', {})
+        path_hash = build._path_hash(srcpath, 'csv',  {'parse_dates': ['Date0']})
         assert os.path.exists(teststore.cache_path(path_hash))
         
         # Build again using the cache
-        build.build_package('test_cache', PACKAGE, path)
+        build.build_package(None, 'test_cache', PACKAGE, path)
         
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
@@ -70,7 +70,7 @@ class BuildTest(QuiltTestCase):
         Package.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build.yml')
-        build.build_package('test_arrow', PACKAGE, path)
+        build.build_package(None, 'test_arrow', PACKAGE, path)
         from quilt.data.test_arrow.groot import dataframes, README
         self._test_dataframes(dataframes)
         assert os.path.exists(README())
@@ -108,7 +108,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_empty.yml')
-        build.build_package('empty', 'pkg', path)
+        build.build_package(None, 'empty', 'pkg', path)
 
         from quilt.data.empty import pkg
         assert not pkg._keys(), 'Expected package to be empty'
@@ -119,7 +119,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_group_args.yml')
-        build.build_package('groups', 'pkg', path)
+        build.build_package(None, 'groups', 'pkg', path)
 
         from quilt.data.groups import pkg
         
@@ -155,7 +155,7 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_hdf5.yml')
         with assertRaisesRegex(self, build.BuildException, "no longer supported"):
-            build.build_package('test_hdf5', PACKAGE, path)
+            build.build_package(None, 'test_hdf5', PACKAGE, path)
 
     def test_generate_buildfile(self):
         """
@@ -167,7 +167,7 @@ class BuildTest(QuiltTestCase):
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
-        build.build_package('test_generated', 'generated', buildfilepath)
+        build.build_package(None, 'test_generated', 'generated', buildfilepath)
         os.remove(buildfilepath)
         from quilt.data.test_generated.generated import bad, foo, nuts, README
 
@@ -177,7 +177,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_failover.yml')
-        build.build_package('test_failover', PACKAGE, path)
+        build.build_package(None, 'test_failover', PACKAGE, path)
         from quilt.data.test_failover.groot import bad
 
     def test_duplicates(self):
@@ -247,7 +247,7 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_bad_syntax.yml')
 
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
-            build.build_package('test_syntax_error', PACKAGE, path)
+            build.build_package(None, 'test_syntax_error', PACKAGE, path)
 
     def test_build_checks_yaml_syntax_error(self):    # pylint: disable=C0103
         """
@@ -258,4 +258,4 @@ class BuildTest(QuiltTestCase):
         checks_path = os.path.join(mydir, './checks_bad_syntax.yml')
 
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
-            build.build_package('test_syntax_error', PACKAGE, path, checks_path=checks_path)
+            build.build_package(None, 'test_syntax_error', PACKAGE, path, checks_path=checks_path)

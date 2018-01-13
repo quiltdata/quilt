@@ -34,13 +34,13 @@ Quilt consists of three components:
 1. A [data catalog](https://quiltdata.com/)
     - Displays package meta-data in HTML
     
-1. A [data registry](registry)
+2. A [data registry](registry)
     - Controls permissions
     - Stores pacakge fragments in blob storage
     - Stores package meta-data
     - De-duplicates repeated data fragments
     
-2. A [data compiler](compiler)
+3. A [data compiler](compiler)
     - Serializes tabular data to Apache Parquet
     - Transforms and parses files
     - `build`s packages locally

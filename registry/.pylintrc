@@ -1,3 +1,3 @@
 [TYPECHECK]
 generated-members=requests.codes.*,responses.*,query
-ignored-classes=SQLAlchemy,scoped_session
+ignored-classes=QuiltSQLAlchemy,scoped_session

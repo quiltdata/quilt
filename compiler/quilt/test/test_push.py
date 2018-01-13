@@ -22,7 +22,7 @@ class PushTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build_simple.yml')
         command.build('foo/bar', build_path)
 
-        pkg_obj = store.PackageStore.find_package('foo', 'bar')
+        pkg_obj = store.PackageStore.find_package(None, 'foo', 'bar')
         pkg_hash = pkg_obj.get_hash()
         assert pkg_hash
         contents = pkg_obj.get_contents()
@@ -60,11 +60,11 @@ class PushTest(QuiltTestCase):
         command.push('foo/bar')
 
     def _mock_put_package(self, package, pkg_hash, upload_urls):
-        pkg_url = '%s/api/package/%s/%s' % (command.get_registry_url(), package, pkg_hash)
+        pkg_url = '%s/api/package/%s/%s' % (command.get_registry_url(None), package, pkg_hash)
         # Dry run, then the real thing.
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(upload_urls=upload_urls)))
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict()))
 
     def _mock_put_tag(self, package, tag):
-        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(), package, tag)
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(None), package, tag)
         self.requests_mock.add(responses.PUT, tag_url, json.dumps(dict()))
