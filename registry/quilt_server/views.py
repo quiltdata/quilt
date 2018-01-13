@@ -1449,8 +1449,8 @@ def client_log():
 
     return dict()
 
-@app.route('/api/users/list', methods=['GET'])
-@api()
+@app.route('/api/users/list/', methods=['GET'])
+@api(require_login=False)
 @as_json
 def list_users():
     auth_headers = {
@@ -1480,7 +1480,9 @@ def list_users():
 @as_json
 def create_user():
     auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
     }
 
     print("ASDF")
@@ -1493,8 +1495,7 @@ def create_user():
         raise ApiException(requests.codes.not_found,
                 "Cannot create user"
                 )
-
-
+          
     resp = requests.post(user_create_api, headers=auth_headers, 
             data=json.dumps({
             "username": request_data.get('username'),
