@@ -302,7 +302,7 @@ def _match_hash(session, team, owner, pkg, hash):
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
-def login(team):
+def login(team=None):
     """
     Authenticate.
 
