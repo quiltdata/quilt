@@ -35,7 +35,7 @@ services:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=docker_config.py
-      - OAUTH_CLIENT_ID=QUILTPKGS
+      - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
       - OAUTHLIB_INSECURE_TRANSPORT=1
       - AUTH_PROVIDER=quilt
@@ -96,7 +96,7 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:testing@db/packages
       - OAUTH_REDIRECT_URI=http://flask:5000/oauth_callback
-      - OAUTH_CLIENT_ID=QUILTPKGS
+      - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
     depends_on:
       db:

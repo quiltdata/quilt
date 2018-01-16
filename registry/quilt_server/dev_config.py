@@ -14,7 +14,7 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='https://quilt-heroku.herokuapp.com/o/token/',
         authorize_url='https://quilt-heroku.herokuapp.com/o/authorize/',
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id='packages',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='https://quilt-heroku.herokuapp.com/api-root',
         profile_api='https://quilt-heroku.herokuapp.com/accounts/profile?user=%s',
