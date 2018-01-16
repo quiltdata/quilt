@@ -1,0 +1,86 @@
+version: '2.1'
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=testing
+      - POSTGRES_DB=packages
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - 5432
+
+  flaskmigration:
+    build: .
+    image: quiltdata/flask
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=docker_config.py
+      - OAUTH_CLIENT_SECRET=TESTING
+      - STRIPE_SECRET_KEY=STRIPETEST
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      flask db upgrade
+
+  s3:
+    build: nginx-s3
+    image: quiltdata/nginx-s3-proxy
+    ports:
+      - "5001:5001"
+
+  auth:
+    image: nginx:latest
+    ports:
+      - "5002:5002"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./nginx/nginx-quilt.conf:/etc/nginx/conf.d/nginx-quilt.template
+    environment:
+      - UWSGI_HOST=django
+      - UWSGI_PORT=9000
+      - NGINX_PORT=5002
+    command: /bin/bash -c "envsubst < /etc/nginx/conf.d/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  django:
+    image: quiltdata/django:teams
+    environment:
+      - USE_CONSOLE_EMAIL=True
+      - LOGFILE=/tmp/debug.log
+      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - FRONTEND_URL=http://localhost:3000
+      - ALLOW_HTTP=1
+      - DISABLE_SIGNUP=True
+    depends_on:
+      db:
+        condition: service_healthy
+
+  djangomigration:
+    image: quiltdata/django
+    environment:
+      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - OAUTH_REDIRECT_URI=http://localhost:5000/oauth_callback
+      - OAUTH_CLIENT_ID=QUILTPKGS
+      - OAUTH_CLIENT_SECRET=TESTING
+    depends_on:
+      db:
+        condition: service_healthy
+    command: /usr/src/auth-server/migrate.sh
+
+  catalog:
+    build: ../catalog
+    image: quiltdata/catalog
+    environment:
+      - REGISTRY_URL=http://localhost:5000
+      - USER_API=http://localhost:5002/api-root
+      - SIGN_OUT_URL=http://localhost:5002/api-auth/logout?next=%2F
+      - STRIPE_KEY=NOSTRIPE
+    ports:
+      - "3000:80"
