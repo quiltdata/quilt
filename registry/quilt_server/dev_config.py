@@ -10,14 +10,16 @@ SQLALCHEMY_DATABASE_URI = 'postgres://postgres@localhost/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
+QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', 'https://quilt-heroku.herokuapp.com')
+
 if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
-        access_token_url='https://quilt-heroku.herokuapp.com/o/token/',
-        authorize_url='https://quilt-heroku.herokuapp.com/o/authorize/',
+        access_token_url='%s/o/token/' % QUILT_AUTH_URL,
+        authorize_url='%s/o/authorize/' % QUILT_AUTH_URL,
         client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
-        user_api='https://quilt-heroku.herokuapp.com/api-root',
-        profile_api='https://quilt-heroku.herokuapp.com/accounts/profile?user=%s',
+        user_api='%s/api-root' % QUILT_AUTH_URL,
+        profile_api='%s/accounts/profile?user=%%s' % QUILT_AUTH_URL,
         have_refresh_token=True,
     )
 elif AUTH_PROVIDER == 'github':
@@ -39,7 +41,7 @@ OAUTH.update(dict(
 
 CATALOG_REDIRECT_URLS = ['http://localhost:3000/oauth_callback']
 
-INVITE_SEND_URL = 'https://quilt-heroku.herokuapp.com/pkginvite/send/'  # XXX
+INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL # XXX
 
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'

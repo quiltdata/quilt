@@ -1449,7 +1449,7 @@ def client_log():
 
     return dict()
 
-@app.route('/api/users/list/', methods=['GET'])
+@app.route('/api/users/list', methods=['GET'])
 @api(require_login=False)
 @as_json
 def list_users():
@@ -1485,8 +1485,6 @@ def create_user():
         "Accept": "application/json",
     }
 
-    print("ASDF")
-
     request_data = request.get_json()
 
     user_create_api = 'http://auth:5002/users/'
@@ -1514,12 +1512,7 @@ def create_user():
             "Cannot list users"
             )
 
-    elif resp.status_code == 201:
-        print("201")
-        return resp.json()
-
-    elif resp.status_code != requests.codes.ok:
-        print(resp.text)
+    elif resp.status_code != requests.codes.created:
         raise ApiException(
             requests.codes.server_error,
             "Unknown error"
