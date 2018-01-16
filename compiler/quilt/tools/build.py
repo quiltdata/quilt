@@ -7,7 +7,6 @@ import json
 from types import ModuleType
 import os
 import re
-import fnmatch
 
 from pandas.errors import ParserError
 from six import iteritems, itervalues, string_types
@@ -17,68 +16,14 @@ from tqdm import tqdm
 
 #TODO: Use this once merged with tensorflow branch
 #from .compat import pathlib
-import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
-from .store import PackageStore, VALID_NAME_RE, StoreException
-# TODO: uncomment to_nodename once merged with tensorflow branch
-from .util import FileWithReadProgress#, to_nodename
+from .store import PackageStore, StoreException
+from .util import FileWithReadProgress, to_nodename, glob_insensitive, is_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
-
-
-# TODO: use imported to_nodename once merged with tensorflow branch
-def to_nodename(string):
-    # Replace invalid characters
-    string = re.sub('[^0-9a-zA-Z_]', '_', string)
-
-    # Replace or shift over invalid leading chars
-    if string[0].isdigit():
-        string = 'n' + string
-    string = re.sub('^[^a-zA-Z_]+', '_', string)
-
-    return string
-
-
-def glob_insensitive(dir, pattern, path_objects=True):
-    dir = pathlib.Path(dir)
-    pattern = pathlib.Path(pattern)
-
-    if pattern.anchor:
-        raise BuildException("Invalid file pattern (only relative patterns are allowed): " + pattern)
-
-    for part in pattern.parts:
-        if '**' in part and part != '**':
-            raise BuildException("Invalid filename pattern: received {!r}, but '**' must stand alone.".format(part))
-
-    pat = []
-    zero_or_more_dirs = r'([^/]*/)*'
-    for part in pattern.parts:
-        if part == '**':
-            pat.append(zero_or_more_dirs)
-        else:
-            word = fnmatch.translate(part).rsplit(r'\Z', 1)[0]
-            word = word.replace('.*', r'[^/]*')
-            if pat and pat[-1] != zero_or_more_dirs:
-                pat.append('/')
-            pat.append(word)
-    pat = ''.join(pat)
-    regex = re.compile('^' + pat + '$', re.IGNORECASE)
-
-    def match(path):
-        """Case-insensitive match"""
-        if not path:
-            return False
-        return regex.match('/'.join(path.parts)) is not None
-
-    # TODO: optimize
-    # this is potentially awful because it walks the full subdirs, but it handles case insensitivity
-    # with full globbing, e.g., '**/[!c]??.TXT' matches 'subdir/foo.txt', 'subdir/subdir/goo.Txt', etc.
-    for path in dir.glob('**/*'):  # case sensitive, but matches everything
-        if match(path.relative_to(dir)):
-            yield path if path_objects else str(path)
 
 
 def _have_pyspark():
@@ -118,7 +63,7 @@ def _pythonize_name(name):
     if safename and safename[0].isdigit():
         safename = "n%s" % safename
 
-    if not VALID_NAME_RE.match(safename):
+    if not is_nodename(safename):
         raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
@@ -142,7 +87,9 @@ def _is_glob(string):
         return True
     if '?' in string:
         return True
-    if '[' in string and ']' in string:
+    lbr, rbr = string.find('['), string.find(']')
+    if lbr != -1 and rbr != -1 and lbr < rbr:
+        # not exact, but brackets in a node name are illegal, anyways -- very likely a glob string.
         return True
     return False
 
@@ -159,9 +106,6 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
       and overriding of ancestor or peer values.
       Child transform or kwargs override ancestor k:v pairs.
     """
-    TRANSFORM = RESERVED['transform']
-    KWARGS = RESERVED['kwargs']
-    FILE = RESERVED['file']
     from pprint import pprint
     pprint(node)
 
@@ -170,25 +114,29 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # fetch local transform and kwargs values; we do it using ifs
         # to prevent `key: None` from polluting the update
         local_args = {}
-        if node.get(TRANSFORM):
-            local_args[TRANSFORM] = node[TRANSFORM]
-        if node.get(KWARGS):
-            local_args[KWARGS] = node[KWARGS]
+        if node.get(RESERVED['transform']):
+            local_args[RESERVED['transform']] = node[RESERVED['transform']]
+        if node.get(RESERVED['kwargs']):
+            local_args[RESERVED['kwargs']] = node[RESERVED['kwargs']]
         group_args = ancestor_args.copy()
         group_args.update(local_args)
         # if it's not a reserved word it's a group that we can descend
         groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
         for child_name, child_table in groups.items():
             if _is_glob(child_name):
-                for filename in glob_insensitive(build_dir, child_name, path_objects=False):
-                    # TODO: use node name conflict avoidance once merged with tensorflow branch
-                    globchild_name = to_nodename(filename)
+                if child_table is None:
+                    child_table = {}
+                used = set()
+                for filepath in glob_insensitive(build_dir, child_name, include_dirs=False):
+                    print(filepath)
+                    globchild_name = to_nodename(filepath.name, used)
+                    used.add(globchild_name)
                     globchild_table = child_table.copy()
-                    globchild_table[FILE] = filename
+                    globchild_table[RESERVED['file']] = str(filepath)
                     _build_node(build_dir, package, name + '/' + globchild_name, globchild_table, fmt,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
             else:
-                if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
+                if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
                 _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)

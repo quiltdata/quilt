@@ -1,27 +1,16 @@
 ---
 contents:
-  dataframes:
-    csv:
-      file: 10KRows13Cols.csv
-  babynames:
-    "**/*.txt":
+  csv:
+    "[!bt]*.csv":
+    "csv.*":
+      transform: csv
+    subnode:
+      "subdir/**":
         transform: csv
-
-#        kwargs:
-#          foo: bar
-#          baz: bing
-#  dataframes:
-#    csv:
-#      file: data/10KRows13Cols.csv
-#    nulls:
-#      file: data/nulls.csv
-#    tsv:
-#      file: data/10KRows13Cols.tsv
-#    xls:
-#      file: data/10KRows13Cols.xlsx
-#    xls_skip:
-#      kwargs:
-#        skiprows: [0,10,100]
-#      file: data/10KRows13Cols.xlsx
-#  README:
-#    file: data/README.md
+  excel:
+    "*.xlsx":
+      kwargs:
+        skiprows: [0,10,100, 300, 600]
+  collision:
+    "**/csv.txt":
+      transform: csv
