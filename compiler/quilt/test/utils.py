@@ -41,7 +41,7 @@ class QuiltTestCase(BasicQuiltTestCase):
     def setUp(self):
         super(QuiltTestCase, self).setUp()
 
-        self.auth_patcher = patch('quilt.tools.command._create_auth', lambda team: None)
+        self.auth_patcher = patch('quilt.tools.command._load_auth', lambda: {})
         self.auth_patcher.start()
 
         self._store_dir = os.path.join(self._test_dir, PACKAGE_DIR_NAME)
