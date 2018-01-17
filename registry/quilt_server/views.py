@@ -1455,13 +1455,14 @@ def client_log():
 def list_users():
     auth_headers = {
         AUTHORIZATION_HEADER: g.auth_header
-        }
+    }
 
     user_list_api = "http://auth:5002/users"
     if not user_list_api:
         return dict()
-    resp = requests.get(user_list_api,
-                        headers=auth_headers)
+
+    resp = requests.get(user_list_api, headers=auth_headers)
+
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
@@ -1491,8 +1492,8 @@ def create_user():
 
     if not user_create_api:
         raise ApiException(requests.codes.not_found,
-                "Cannot create user"
-                )
+            "Cannot create user"
+            )
           
     resp = requests.post(user_create_api, headers=auth_headers, 
         data=json.dumps({
@@ -1536,16 +1537,14 @@ def disable_user():
         "Accept": "application/json",
     }
 
-    request_data = request.get_json()
-
     user_modify_api = 'http://auth:5002/users/'
 
     if not user_modify_api:
         raise ApiException(requests.codes.not_found,
-                "Cannot modify user"
-                )
-    data = request.get_json()
+            "Cannot modify user"
+            )
 
+    data = request.get_json()
     username = data.get('username')
 
     resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers, 
@@ -1571,10 +1570,9 @@ def delete_user():
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    data = request.get_json()
-
     user_modify_api = 'http://auth:5002/users/'
 
+    data = request.get_json()
     username = data.get('username')
 
     resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)

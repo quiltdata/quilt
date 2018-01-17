@@ -1237,3 +1237,22 @@ def rm(package, force=False):
     deleted = store.remove_package(team, owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))
+
+def list_users(team):
+    session = _get_session(team)
+    resp = session.get('http://localhost:5000/api/users/list')
+    print(resp.json())
+
+def create_user(team, username, email):
+    session = _get_session(team)
+    resp = session.post('http://localhost:5000/api/users/create', 
+            data=json.dumps({'username':username, 'email':email}))
+
+def disable_user(team, username):
+    session = _get_session(team)
+    resp = session.post('http://localhost:5000/api/users/disable', 
+            data=json.dumps({'username':username}))
+
+def delete_user(team, username):
+    session = _get_session(team)
+    resp = session.post('http://localhost:5000/api/users/delete', data=json.dumps({'username':username}))
