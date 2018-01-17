@@ -34,6 +34,22 @@ export default defineMessages({
     id: 'app.containers.Profile.learnMore',
     defaultMessage: 'Compare plans',
   },
+  membersRead: {
+    id: 'app.containers.Profile.membersRead',
+    defaultMessage: 'Members can read public packages',
+  },
+  membersWrite: {
+    id: 'app.containers.Profile.membersRead',
+    defaultMessage: 'Members can write public packages',
+  },
+  teamHeader: {
+    id: 'app.containers.Profile.teamHeader',
+    defaultMessage: 'Team {name}',
+  },
+  teamPolicies: {
+    id: 'app.containers.Profile.teamPolicies',
+    defaultMessage: 'Policies',
+  },
   updatePayment: {
     id: 'app.containers.Profile.updatePayment',
     defaultMessage: 'Change card',

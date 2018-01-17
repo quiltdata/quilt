@@ -1,7 +1,9 @@
 /* Profile */
 import Avatar from 'material-ui/Avatar';
+import Checkbox from 'material-ui/Checkbox';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
+import { Tabs, Tab } from 'material-ui/Tabs';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
@@ -15,6 +17,7 @@ import { makeSignInURL } from 'utils/auth';
 import config from 'constants/config';
 import Error from 'components/Error';
 import Help from 'components/Help';
+import { Skip } from 'components/LayoutHelpers';
 import Loading from 'components/Loading';
 import MIcon from 'components/MIcon';
 import PackageList from 'components/PackageList';
@@ -162,7 +165,30 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     const planMessage = (plan.response in PLANS || businessMember) ?
       <FormattedMessage {...paymentMessages[plan.response]} />
       : plan.response;
-    
+
+    const pageOne = (
+      <Content>
+        <PackagesArea
+          packages={response.packages}
+          shortName={shortName}
+          user={this.props.user}
+        />
+        <PlanArea
+          businessMember={businessMember}
+          currentPlan={this.props.currentPlan}
+          email={this.props.email}
+          handleShowDialog={() => this.showDialog(true)}
+          handleUpdatePayment={this.updatePayment}
+          haveCreditCard={response.have_credit_card}
+          isLoading={isLoading}
+          isWarning={isWarning}
+          locale={this.props.intl.locale}
+          planMessage={planMessage}
+          warningString={warningString}
+        />
+      </Content>
+    );
+
     return (
       <div>
         <PaymentDialog
@@ -176,26 +202,20 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           onToken={this.onToken}
           selectedPlan={this.state.selectedPlan}
         />
-        <Content>
-          <PackagesArea
-            packages={response.packages}
-            shortName={shortName}
-            user={this.props.user}
-          />
-          <PlanArea
-            businessMember={businessMember}
-            currentPlan={this.props.currentPlan}
-            email={this.props.email}
-            handleShowDialog={() => this.showDialog(true)}
-            handleUpdatePayment={this.updatePayment}
-            haveCreditCard={response.have_credit_card}
-            isLoading={isLoading}
-            isWarning={isWarning}
-            locale={this.props.intl.locale}
-            planMessage={planMessage}
-            warningString={warningString}
-          />
-        </Content>
+        { config.team ?
+          <div>
+            <Skip />
+            <Tabs>
+              <Tab label="packages" value="packages">{ pageOne }</Tab>
+              <Tab label="admin" value="admin">
+                <AdminPage
+                  teamName={config.team.name || ''}
+                />
+              </Tab>
+            </Tabs>
+            <Skip />
+          </div> : pageOne
+        }
       </div>
     );
   }
@@ -225,6 +245,20 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   };
 }
+const AdminPage = ({ teamName = '' }) => {
+  return (
+    <div>
+      <h1><FormattedMessage {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+      <h2><FormattedMessage {...messages.teamPolicies} /></h2>
+      <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
+      <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
+    </div>
+  );
+};
+
+AdminPage.propTypes = {
+  teamName: PropTypes.string,
+};
 
 const PackagesArea = ({ packages, shortName, user }) => (
   <div>
@@ -262,7 +296,7 @@ const PlanArea = ({
   isWarning,
   locale,
   planMessage,
-  warningString
+  warningString,
 }) => (
   <div>
     <h1>Service plan</h1>
@@ -320,7 +354,7 @@ PlanArea.propTypes = {
   locale: PropTypes.string,
   planMessage: PropTypes.object,
   warningString: PropTypes.string,
-}
+};
 
 const WarningIcon = ({ title }) => (
   <MIcon drop="4px" title={title}>

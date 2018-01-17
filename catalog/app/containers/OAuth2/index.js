@@ -17,11 +17,12 @@ export class OAuth2 extends React.PureComponent { // eslint-disable-line react/p
   componentWillMount() {
     const { dispatch } = this.props;
     const { query } = this.props.location;
+    // eslint-disable-next-line camelcase
     const { refresh_token, access_token, expires_at, next = '/' } = query;
     const tokens = {
-       refresh_token,
-       access_token,
-       expires_at: expires_at ? parseFloat(expires_at, 10) : Infinity,
+      refresh_token,
+      access_token,
+      expires_at: expires_at ? parseFloat(expires_at, 10) : Infinity,
     };
     dispatch(storeTokens(tokens));
     dispatch(getAuth(tokens));
