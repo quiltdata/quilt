@@ -167,8 +167,8 @@ class ImportTest(QuiltTestCase):
 
     def test_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build.yml')
-        simple_build_path = os.path.join(mydir, './build_simple.yml')
+        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
 
         new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
 
