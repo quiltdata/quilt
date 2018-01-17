@@ -28,7 +28,7 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
-from .models import (Access, Customer, Instance, Invitation, Log, Package,
+from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
 
@@ -603,6 +603,19 @@ def package_put(owner, package_name, package_hash):
     )
     db.session.add(log)
 
+    # Insert an event.
+    event = Event(
+        type=Event.PUSH,
+        user=g.auth.user,
+        data=dict(
+            package_owner=owner,
+            package_name=package_name,
+            package_hash=package_hash,
+            public=public,
+        )
+    )
+    db.session.add(event)
+
     db.session.commit()
 
     _mp_track(
@@ -637,6 +650,21 @@ def package_get(owner, package_name, package_hash):
         blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
         for blob_hash in all_hashes
     }
+
+    # Insert an event.
+    event = Event(
+        type=Event.INSTALL,
+        user=g.auth.user,
+        data=dict(
+            package_owner=owner,
+            package_name=package_name,
+            package_hash=package_hash,
+            subpath=subpath,
+        )
+    )
+    db.session.add(event)
+
+    db.session.commit()
 
     _mp_track(
         type="install",
@@ -682,6 +710,20 @@ def package_preview(owner, package_name, package_hash):
         readme_url = None
 
     contents_preview = _generate_preview(instance.contents)
+
+    # Insert an event.
+    event = Event(
+        type=Event.PREVIEW,
+        user=g.auth.user,
+        data=dict(
+            package_owner=owner,
+            package_name=package_name,
+            package_hash=package_hash,
+        )
+    )
+    db.session.add(event)
+
+    db.session.commit()
 
     _mp_track(
         type="preview",

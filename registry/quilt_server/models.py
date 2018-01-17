@@ -140,3 +140,15 @@ class Invitation(db.Model):
 class Customer(db.Model):
     id = db.Column(USERNAME_TYPE, primary_key=True)
     stripe_customer_id = db.Column(STRIPE_ID_TYPE)
+
+
+class Event(db.Model):
+    PUSH = 1
+    INSTALL = 2
+    PREVIEW = 3
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    type = db.Column(db.SmallInteger, nullable=False, index=True)
+    created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+    user = db.Column(USERNAME_TYPE)
+    data = db.Column(postgresql.JSONB)
