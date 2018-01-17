@@ -272,6 +272,12 @@ def argument_parser():
     version_list_p.add_argument("package", type=str, help=HANDLE)
     version_list_p.set_defaults(func=command.version_list)
 
+    users_p = subparsers.add_parser("user", description="Work with users", help="Work with users")
+    users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
+    users_subparsers.required = True
+
+    
+
     return parser
 
 

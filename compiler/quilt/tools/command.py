@@ -302,7 +302,7 @@ def _match_hash(session, team, owner, pkg, hash):
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
 
-def login(team):
+def login(team=None):
     """
     Authenticate.
 
@@ -1241,7 +1241,12 @@ def rm(package, force=False):
 def list_users(team):
     session = _get_session(team)
     resp = session.get('http://localhost:5000/api/users/list')
-    print(resp.json())
+    return resp.json()
+
+def cli_list_users(team):
+    res = list_users(team)
+    for user in res.results:
+        print(user)
 
 def create_user(team, username, email):
     session = _get_session(team)
