@@ -1238,15 +1238,34 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
+def print_table(table, padding=2):
+    col_width = max(len(word) for row in table for word in row) + 2
+    cols = list(zip(*table))
+    cols_width = [max(len(word) + padding for word in col) for col in cols]
+    for row in table:
+        i = 0
+        line = ""
+        for word in row:
+            line += "".join(word.ljust(cols_width[i]))
+            i += 1
+        print(line)
+
 def list_users(team):
     session = _get_session(team)
     resp = session.get('http://localhost:5000/api/users/list')
     return resp.json()
 
-def cli_list_users(team):
+def cli_list_users(team=None):
     res = list_users(team)
-    for user in res.results:
-        print(user)
+    l = [['Name', 'Email', 'Active', 'Superuser']]
+    for user in res.get('results'):
+        name = user.get('username')
+        email = user.get('email')
+        active = user.get('is_active')
+        su = user.get('is_superuser')
+        l.append([name, email, str(active), str(su)])
+
+    print_table(l)
 
 def create_user(team, username, email):
     session = _get_session(team)

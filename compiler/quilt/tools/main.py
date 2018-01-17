@@ -276,6 +276,9 @@ def argument_parser():
     users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
     users_subparsers.required = True
 
+    user_list_p = users_subparsers.add_parser("list")
+    user_list_p.set_defaults(func=command.cli_list_users)
+
     
 
     return parser
