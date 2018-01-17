@@ -1495,7 +1495,7 @@ def create_user():
                 )
           
     resp = requests.post(user_create_api, headers=auth_headers, 
-            data=json.dumps({
+        data=json.dumps({
             "username": request_data.get('username'),
             "first_name": "",
             "last_name": "",
@@ -1504,12 +1504,18 @@ def create_user():
             "is_staff": False,
             "is_active": True,
             "last_login": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-            }))
+        }))
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
             "Cannot list users"
+            )
+
+    if resp.status_code == requests.codes.bad:
+        raise ApiException(
+            requests.codes.bad,
+            "Bad request. Maybe there's already a user with the username you provided?"
             )
 
     elif resp.status_code != requests.codes.created:
@@ -1524,21 +1530,60 @@ def create_user():
 @api()
 @as_json
 def disable_user():
-    data = request.get_json()
-    # forward to django
-    requests.get(from_django)
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
 
-    # return results
-    return dict()
+    request_data = request.get_json()
+
+    user_modify_api = 'http://auth:5002/users/'
+
+    if not user_modify_api:
+        raise ApiException(requests.codes.not_found,
+                "Cannot modify user"
+                )
+    data = request.get_json()
+
+    username = data.get('username')
+
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers, 
+        data=json.dumps({
+            'username' : username,
+            'is_active' : False
+        }))
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
 
 @app.route('/api/users/delete', methods=['POST'])
 @api()
 @as_json
 def delete_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
     data = request.get_json()
-    # forward to django
-    requests.get(from_django)
 
-    # return results
-    return dict()
+    user_modify_api = 'http://auth:5002/users/'
+
+    username = data.get('username')
+
+    resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            resp.status_code,
+            "Unknown error"
+            )
+
+    return resp.json()
 
