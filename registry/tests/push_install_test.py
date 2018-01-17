@@ -21,6 +21,7 @@ from quilt_server.core import (
     RootNode,
     PackageFormat,
 )
+from quilt_server.models import Event
 
 from .utils import mock_customer, QuiltTestCase
 
@@ -182,6 +183,18 @@ class PushInstallTestCase(QuiltTestCase):
         assert url1.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
         assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
         assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
+
+        events = Event.query.all()
+        assert len(events) == 2
+        assert events[0].type == Event.PUSH
+        assert events[0].extra['public'] is True
+        assert events[1].type == Event.INSTALL
+        assert events[1].extra['subpath'] is None
+        for event in events:
+            assert event.user == 'test_user'
+            assert event.package_owner == 'test_user'
+            assert event.package_name == 'foo'
+            assert event.package_hash == self.CONTENTS_HASH
 
     def testPushNewMetadata(self):
         # Push the original contents.
@@ -694,3 +707,12 @@ class PushInstallTestCase(QuiltTestCase):
                 ]]
             ]],
         ]
+
+        events = Event.query.all()
+        assert len(events) == 2
+        event = events[1]
+        assert event.user == 'test_user'
+        assert event.type == Event.PREVIEW
+        assert event.package_owner == 'test_user'
+        assert event.package_name == 'foo'
+        assert event.package_hash == huge_contents_hash
