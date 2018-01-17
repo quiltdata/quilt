@@ -140,3 +140,21 @@ class Invitation(db.Model):
 class Customer(db.Model):
     id = db.Column(USERNAME_TYPE, primary_key=True)
     stripe_customer_id = db.Column(STRIPE_ID_TYPE)
+
+
+class Event(db.Model):
+    PUSH = 1
+    INSTALL = 2
+    PREVIEW = 3
+    DELETE = 4
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+    user = db.Column(USERNAME_TYPE, nullable=False, index=True)
+    type = db.Column(db.SmallInteger, nullable=False)
+    package_owner = db.Column(USERNAME_TYPE)
+    package_name = db.Column(db.String(64))
+    package_hash = db.Column(db.String(64))
+    extra = db.Column(postgresql.JSONB)
+
+db.Index('idx_package', Event.package_owner, Event.package_name)
