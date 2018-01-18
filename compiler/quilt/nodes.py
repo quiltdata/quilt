@@ -7,6 +7,7 @@ from six import iteritems, string_types
 
 from .tools import core
 from .tools.util import is_nodename
+from .tools.compat import pathlib
 
 
 class Node(object):
@@ -98,24 +99,37 @@ class GroupNode(DataNode):
         setattr(self, groupname, child)
 
     @classmethod
-    def __iterpaths(cls, base_path, node):
-        assert isinstance(base_path, list)
+    def __iteritems(cls, node, base_path, recursive=False):
+        assert isinstance(base_path, pathlib.PurePath)
         assert isinstance(node, GroupNode)
 
         for name, child_node in node._items():
-            if isinstance(child_node, GroupNode):
-                for path in cls.__iterpaths(base_path + [name], child_node):
-                    yield path
-            elif isinstance(child_node, DataNode):
-                yield base_path + [name]
+            child_path = base_path / name
+            yield child_path, child_node
+            if recursive and isinstance(child_node, GroupNode):
+                for subpath, subnode in cls.__iteritems(child_node, child_path):
+                    yield subpath, subnode
 
-    def _iterpaths(self):
+    def _iteritems(self, recursive=False):
+        """
+        Iterates paths and nodes within this and all child nodes
+
+        :param recursive: iterate recursively over child nodes as well
+        :returns: iterator of (<path string>, <node>) pairs
+        """
+        for path, node in self.__iteritems(self, pathlib.PurePath(), recursive):
+            yield str(path), node
+
+    def _iterpaths(self, recursive=False):
         """
         Iterates paths in this and all child nodes
 
-        :returns: list of path lists
+        :param recursive: iterate recursively over child nodes, as well
+        :returns: iterator of path strings
         """
-        return self.__iterpaths([], self)
+        # Only _iteritems was needed, but this is a gimme.
+        for path, node in self.__iteritems(self, pathlib.PurePath(), recursive):
+            yield str(path)
 
 
 class PackageNode(GroupNode):

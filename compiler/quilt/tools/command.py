@@ -1301,24 +1301,23 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
 
     :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
-    :param filter: function -- takes a node path list, returns True to export
-    :param mapper: function -- takes and returns a node path list
+    :param filter: function -- takes a node path string, returns True to export
+    :param mapper: function -- takes and returns a node path string
     :param force: if True, overwrite existing files
     """
-    # TODO: more tests?
     # TODO: Update docs
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
-    # TODO: (future) support dataframes
+    # TODO: (future) support dataframes (not too painful, probably)
     output_path = pathlib.Path(output_path)
-    node, _, _, _, _, subpath, _, _, _ = _importpkg(package)
+    node, _, _, _, _, subpath, _, _, _ = _load(package)
 
-    # ..and/or this?
     def get_node_child_by_path(node, path):
-        # get a node's children by pathlist, like ['data_set', 'cifar_10', 'data_batch_4']
-        assert isinstance(path, list)
+        # get a node's children by path list or string: 'foo/bar/baz' or ['foo', 'bar', 'baz']
         assert isinstance(node, nodes.GroupNode)
         assert path
+        if isinstance(path, str):
+            path = path.split('/')
         for name in path:
             node = getattr(node, name)
         return node
@@ -1327,9 +1326,9 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         node = get_node_child_by_path(node, subpath)
 
     def iter_filename_map(node):
-        """Yields (<original path>, <storage file path>) pairs for given `node`.
+        """Yields (<storage file path>, <original path>) pairs for given `node`.
 
-        If `node._filename` exists and is truthy, yeild pair for `node`.
+        If `node._filename` exists and is truthy, yield pair for `node`.
         If `node` is a group node, yield pairs for children of `node`.
 
         :returns: Iterator of (<original path>, <storage file path>) pairs
@@ -1341,17 +1340,16 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         if not isinstance(node, nodes.GroupNode):
             return
 
-        for node_path in node._iterpaths():
-            found_node = get_node_child_by_path(node, node_path)
-            storage_filepath = getattr(found_node, '_filename', None)
+        for node_path, found_node in node._iteritems(recursive=True):
+            storage_filepath = getattr(found_node, '_filename', None)  # only FileNodes have _filename
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata['q_path']
                 if orig_filepath is None:
-                    orig_filepath = '/'.join(node_path)
-                    if 'tensorboard' in orig_filepath:
-                        orig_filepath = re.sub(r'/n(\d+)_', r'/-\1.', orig_filepath).replace('_', '-')
-                    print("WARNING: original file path not stored.  Based on node path, guessed: {}".format(orig_filepath))
+                    # This really shouldn't happen -- print a warning.
+                    orig_filepath = node_path
+                    msg = "WARNING: original file path not stored.  Based on node path, guessed: {}"
+                    print(msg.format(orig_filepath))
                 yield (storage_filepath, orig_filepath)
 
     # Iterate over filename map, filtering exports
