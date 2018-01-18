@@ -1263,25 +1263,26 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
-def _importpkg(pkginfo):
-    team, owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+def _load(package):
+    team, owner, pkg, subpath, hash, version, tag = parse_package_extended(package)
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+        teamstr = team + ':' if team else ''
+        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(**locals()))
     module = _from_core_node(pkgobj, pkgobj.get_contents())
     return module, pkgobj, team, owner, pkg, subpath, hash, version, tag
 
-def importpkg(pkginfo):
+def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
     # TODO: support hashes/versions/etc.
-    return _importpkg(pkginfo)[0]
+    return _load(pkginfo)[0]
 
 # XXX: should we create a 'quilt.tools.utils' or 'quilt.utils' module for stuff like this and importpkg?
 def update(pkginfo, content):
     """convenience function around _set()"""
     # NOTE: cannot be named set() because that would conflict with the python builtin function.
     # TODO: support hashes/versions/etc.
-    module, _, _, _, _, subpath, _, _, _ = _importpkg(pkginfo)
+    module, _, _, _, _, subpath, _, _, _ = _load(pkginfo)
     module._set(subpath, content)
     return module
 

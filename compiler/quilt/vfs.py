@@ -187,7 +187,7 @@ def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
         mappings = { ".": "" }  # TODO: test this case
 
     #print(pkgname)
-    module = command.importpkg(owner+'/'+pkg)
+    module = command.load(owner+'/'+pkg)
     # expand/clean dir mappings, e.g.
     # {"~asah/../foo": "."} ==> {"/Users/foo": ["uciml","raw"]}
     # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": ["uciml", "raw", "foo"]}  # cwd=/Users/asah
@@ -283,7 +283,7 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
     """
     if ensure_installed:
         try:
-            command.importpkg(pkg)
+            command.load(pkg)
         except command.CommandException as error:
             msg = str(error)
             if not msg.startswith('Package') and msg.endswith('not found.'):

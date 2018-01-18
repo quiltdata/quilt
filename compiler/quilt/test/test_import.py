@@ -354,7 +354,7 @@ class ImportTest(QuiltTestCase):
         with self.assertRaises(AttributeError):
             package4.newdf = df
 
-    def test_importpkg_update(self):
+    def test_load_update(self):
         # also tests dynamic import
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
@@ -369,7 +369,7 @@ class ImportTest(QuiltTestCase):
         with open(newfilename, 'w') as fh:
             fh.write('hello world1')
 
-        module = quilt.importpkg(newpkgname)
+        module = quilt.load(newpkgname)
         module._set([newfilename], newfilename)
         quilt.build(newpkgname, module)
 
@@ -377,10 +377,10 @@ class ImportTest(QuiltTestCase):
         newpath1 = getattr(module, newfilename)()
         assert newpath1 == newfilename
         
-        # current spec requires that importpkg() reload from disk, i.e. gets a reference
+        # current spec requires that load() reload from disk, i.e. gets a reference
         # to the local object store
         # this is important because of potential changes to myfile
-        reloaded_module = quilt.importpkg(newpkgname)
+        reloaded_module = quilt.load(newpkgname)
         newpath2 = getattr(reloaded_module, newfilename)()
         assert 'myfile' not in newpath2
 
