@@ -605,13 +605,13 @@ def package_put(owner, package_name, package_hash):
 
     # Insert an event.
     event = Event(
-        type=Event.PUSH,
         user=g.auth.user,
-        data=dict(
-            package_owner=owner,
-            package_name=package_name,
-            package_hash=package_hash,
-            public=public,
+        type=Event.PUSH,
+        package_owner=owner,
+        package_name=package_name,
+        package_hash=package_hash,
+        extra=dict(
+            public=public
         )
     )
     db.session.add(event)
@@ -653,13 +653,13 @@ def package_get(owner, package_name, package_hash):
 
     # Insert an event.
     event = Event(
-        type=Event.INSTALL,
         user=g.auth.user,
-        data=dict(
-            package_owner=owner,
-            package_name=package_name,
-            package_hash=package_hash,
-            subpath=subpath,
+        type=Event.INSTALL,
+        package_owner=owner,
+        package_name=package_name,
+        package_hash=package_hash,
+        extra=dict(
+            subpath=subpath
         )
     )
     db.session.add(event)
@@ -715,11 +715,9 @@ def package_preview(owner, package_name, package_hash):
     event = Event(
         type=Event.PREVIEW,
         user=g.auth.user,
-        data=dict(
-            package_owner=owner,
-            package_name=package_name,
-            package_hash=package_hash,
-        )
+        package_owner=owner,
+        package_name=package_name,
+        package_hash=package_hash,
     )
     db.session.add(event)
 
@@ -765,6 +763,16 @@ def package_delete(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
     db.session.delete(package)
+
+    # Insert an event.
+    event = Event(
+        user=g.auth.user,
+        type=Event.DELETE,
+        package_owner=owner,
+        package_name=package_name,
+    )
+    db.session.add(event)
+
     db.session.commit()
 
     return dict()

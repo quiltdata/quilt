@@ -184,14 +184,14 @@ class PushInstallTestCase(QuiltTestCase):
         events = Event.query.all()
         assert len(events) == 2
         assert events[0].type == Event.PUSH
-        assert events[0].data['public'] is True
+        assert events[0].extra['public'] is True
         assert events[1].type == Event.INSTALL
-        assert events[1].data['subpath'] is None
+        assert events[1].extra['subpath'] is None
         for event in events:
             assert event.user == 'test_user'
-            assert event.data['package_owner'] == 'test_user'
-            assert event.data['package_name'] == 'foo'
-            assert event.data['package_hash'] == self.CONTENTS_HASH
+            assert event.package_owner == 'test_user'
+            assert event.package_name == 'foo'
+            assert event.package_hash == self.CONTENTS_HASH
 
     def testPushNewMetadata(self):
         # Push the original contents.
@@ -708,8 +708,8 @@ class PushInstallTestCase(QuiltTestCase):
         events = Event.query.all()
         assert len(events) == 2
         event = events[1]
-        assert event.type == Event.PREVIEW
         assert event.user == 'test_user'
-        assert event.data['package_owner'] == 'test_user'
-        assert event.data['package_name'] == 'foo'
-        assert event.data['package_hash'] == huge_contents_hash
+        assert event.type == Event.PREVIEW
+        assert event.package_owner == 'test_user'
+        assert event.package_name == 'foo'
+        assert event.package_hash == huge_contents_hash
