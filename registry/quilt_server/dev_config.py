@@ -6,7 +6,7 @@ Config file for dev. Overrides values in config.py.
 import os
 import socket
 
-SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root@localhost/quilt'
+SQLALCHEMY_DATABASE_URI = 'postgres://postgres@localhost/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
@@ -14,10 +14,10 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='https://quilt-heroku.herokuapp.com/o/token/',
         authorize_url='https://quilt-heroku.herokuapp.com/o/authorize/',
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id='packages',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='https://quilt-heroku.herokuapp.com/api-root',
-        profile_api='https://quilt-heroku.herokuapp.com/profiles/%s/',  # Trailing slash
+        profile_api='https://quilt-heroku.herokuapp.com/accounts/profile?user=%s',
         have_refresh_token=True,
     )
 elif AUTH_PROVIDER == 'github':

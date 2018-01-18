@@ -8,19 +8,34 @@ http://flask.pocoo.org/docs/0.12/patterns/packages/
 https://github.com/pallets/flask/wiki/Large-app-how-to
 """
 
+import json
+
 from flask import Flask
 from flask_json import FlaskJSON
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 
 from . import middleware
+from .core import decode_node, encode_node
 
 app = Flask(__name__.split('.')[0])
 app.wsgi_app = middleware.RequestEncodingMiddleware(app.wsgi_app)
 app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
 
-db = SQLAlchemy(app)
+class QuiltSQLAlchemy(SQLAlchemy):
+    def apply_driver_hacks(self, app, info, options):
+        """
+        Teach SQLAlchemy to encode and decode our node objects.
+        """
+        options.update(dict(
+            json_serializer=lambda data: json.dumps(data, default=encode_node),
+            json_deserializer=lambda data: json.loads(data, object_hook=decode_node)
+        ))
+        super(QuiltSQLAlchemy, self).apply_driver_hacks(app, info, options)
+
+db = QuiltSQLAlchemy(app)
+db.apply_driver_hacks
 
 FlaskJSON(app)
 Migrate(app, db)

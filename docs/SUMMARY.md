@@ -22,6 +22,10 @@
 * [Jupyter API](api-jupyter.md)
 * [R API](api-r.md)
 
+## Advanced Usage
+
+* [Teams](teams.md)
+
 ## Support
 
 * [Troubleshooting](troubleshooting.md)

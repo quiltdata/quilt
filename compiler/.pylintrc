@@ -191,7 +191,7 @@ notes=FIXME,XXX,TODO,qballs,QBALLS
 
 [TYPECHECK]
 
-ignored-modules=quilt.data
+ignored-modules=quilt.data,quilt.team
 
 # Tells whether missing members accessed in mixin class should be ignored. A
 # mixin class is detected if its name ends with "mixin" (case insensitive).

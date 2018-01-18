@@ -11,6 +11,7 @@ import requests
 import responses
 import shutil
 
+import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -32,7 +33,7 @@ class CommandTest(QuiltTestCase):
 
         args, kwargs = mock_save_config.call_args
         mock_load_config.return_value = args[0] if args else kwargs['cfg']
-        assert command.get_registry_url() == command.DEFAULT_REGISTRY_URL
+        assert command.get_registry_url(None) == command.DEFAULT_REGISTRY_URL
 
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
@@ -55,7 +56,7 @@ class CommandTest(QuiltTestCase):
 
             args, kwargs = mock_save_config.call_args
             mock_load_config.return_value = args[0] if args else kwargs['cfg']
-            assert test_url == command.get_registry_url()
+            assert test_url == command.get_registry_url(None)
 
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
@@ -69,7 +70,7 @@ class CommandTest(QuiltTestCase):
             ]
         # test general URL setting -- result should match initial state
         mock_load_config.return_value = {}
-        initial_url = command.get_registry_url()
+        initial_url = command.get_registry_url(None)
 
         for test_url in test_urls:
             mock_input.return_value = test_url
@@ -82,7 +83,7 @@ class CommandTest(QuiltTestCase):
 
             mock_save_config.assert_not_called()
 
-            assert command.get_registry_url() == initial_url
+            assert command.get_registry_url(None) == initial_url
 
     def test_version_add_badversion(self):
         with assertRaisesRegex(self, command.CommandException, 'Invalid version format'):
@@ -91,7 +92,7 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._match_hash')
     @patch('quilt.tools.command.input')
     def test_version_add_confirmed(self, mock_input, mock_match_hash):
-        registry_url = command.get_registry_url()
+        registry_url = command.get_registry_url(None)
         mock_input.return_value = 'y'
         mock_match_hash.return_value = 'fabc123'
 
@@ -111,8 +112,8 @@ class CommandTest(QuiltTestCase):
         command.version_add('user/test', '2.9.12', 'fabc123')  # should produce no mock network activity
 
     def test_ambiguous_hash(self):
-        registry_url = command.get_registry_url()
-        session = command._get_session()
+        registry_url = command.get_registry_url(None)
+        session = command._get_session(None)
         ambiguous_token = "795a7b"
         # There should be at least two results that start with the ambiguous_token, plus some non-ambiguous
         # results in fake_data to test against.
@@ -138,7 +139,7 @@ class CommandTest(QuiltTestCase):
         # ..it allows for formatting changes in the error, but requires the same order.
         fake_data_regexp = r'(.|\n)+'.join(fake_data_ambiguous)
         with assertRaisesRegex(self, command.CommandException, fake_data_regexp):
-            command._match_hash(session, owner='user', pkg='test', hash='795a7b')
+            command._match_hash(session, team=None, owner='user', pkg='test', hash='795a7b')
 
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
@@ -172,11 +173,43 @@ class CommandTest(QuiltTestCase):
 
         mock_input.return_value = old_refresh_token
 
-        command.login()
+        command.login(None)
 
-        mock_open.assert_called_with('%s/login' % command.get_registry_url())
+        mock_open.assert_called_with('%s/login' % command.get_registry_url(None))
 
-        mock_login_with_token.assert_called_with(old_refresh_token)
+        mock_login_with_token.assert_called_with(None, old_refresh_token)
+
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login_with_team(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        command.login('foo')
+
+        mock_open.assert_called_with('%s/login' % command.get_registry_url('foo'))
+
+        mock_login_with_token.assert_called_with('foo', old_refresh_token)
+
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    def test_login_invalid_team(self, mock_login_with_token, mock_input, mock_open):
+        old_refresh_token = "123"
+
+        mock_input.return_value = old_refresh_token
+
+        with pytest.raises(command.CommandException, match='Invalid team name'):
+            command.login('fo!o')
+
+        assert not mock_open.called
+        assert not mock_login_with_token.called
+
+    def test_login_with_token_invalid_team(self):
+        with pytest.raises(command.CommandException, match='Invalid team name'):
+            command.login_with_token('fo!o', '123')
 
     @patch('quilt.tools.command._save_auth')
     def test_login_token(self, mock_save):
@@ -187,7 +220,7 @@ class CommandTest(QuiltTestCase):
 
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.get_registry_url(),
+            '%s/api/token' % command.get_registry_url(None),
             json=dict(
                 status=200,
                 refresh_token=refresh_token,
@@ -196,26 +229,29 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login_with_token(old_refresh_token)
+        command.login_with_token(None, old_refresh_token)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
-        mock_save.assert_called_with(dict(
-            refresh_token=refresh_token,
-            access_token=access_token,
-            expires_at=expires_at
-        ))
+        mock_save.assert_called_with({
+            command.get_registry_url(None): dict(
+                team=None,
+                refresh_token=refresh_token,
+                access_token=access_token,
+                expires_at=expires_at
+            )
+        })
 
     @patch('quilt.tools.command._save_auth')
     def test_login_token_server_error(self, mock_save):
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.get_registry_url(),
+            '%s/api/token' % command.get_registry_url(None),
             status=500
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token("123")
+            command.login_with_token(None, "123")
 
         mock_save.assert_not_called()
 
@@ -223,7 +259,7 @@ class CommandTest(QuiltTestCase):
     def test_login_token_auth_fail(self, mock_save):
         self.requests_mock.add(
             responses.POST,
-            '%s/api/token' % command.get_registry_url(),
+            '%s/api/token' % command.get_registry_url(None),
             json=dict(
                 status=200,
                 error="Bad token!"
@@ -231,8 +267,56 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token("123")
+            command.login_with_token(None, "123")
 
+        mock_save.assert_not_called()
+
+    @patch('quilt.tools.command._save_auth')
+    @patch('quilt.tools.command._load_auth')
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input', lambda x: '')
+    @patch('quilt.tools.command.login_with_token', lambda x, y: None)
+    def test_login_not_allowed(self, mock_open, mock_load, mock_save):
+        # Already logged is as a public user.
+        mock_load.return_value = {
+            command.get_registry_url(None): dict(
+                team=None
+            )
+        }
+
+        # Normal login is ok.
+        command.login(None)
+        mock_open.reset_mock()
+        mock_save.reset_mock()
+
+        # Team login is not allowed.
+        with self.assertRaises(command.CommandException):
+            command.login('foo')
+
+        mock_open.assert_not_called()
+        mock_save.assert_not_called()
+
+        # Already logged is as a team user.
+        mock_load.return_value = {
+            command.get_registry_url('foo'): dict(
+                team='foo'
+            )
+        }
+
+        # Normal login is not allowed.
+        with self.assertRaises(command.CommandException):
+            command.login(None)
+
+        # Login as 'foo' is ok.
+        command.login('foo')
+        mock_open.reset_mock()
+        mock_save.reset_mock()
+
+        # Login as a different team is not allowed.
+        with self.assertRaises(command.CommandException):
+            command.login('bar')
+
+        mock_open.assert_not_called()
         mock_save.assert_not_called()
 
     def test_ls(self):
@@ -286,13 +370,13 @@ class CommandTest(QuiltTestCase):
         package = 'bar'
         command.build('%s/%s' % (owner, package), build_path)
 
-        pkg_obj = store.PackageStore.find_package(owner, package)
+        pkg_obj = store.PackageStore.find_package(None, owner, package)
         self._mock_logs_list(owner, package, pkg_obj.get_hash())
 
         command.log("{owner}/{pkg}".format(owner=owner, pkg=package))
 
     def _mock_logs_list(self, owner, package, pkg_hash):
-        logs_url = "%s/api/log/%s/%s/" % (command.get_registry_url(), owner, package)
+        logs_url = "%s/api/log/%s/%s/" % (command.get_registry_url(None), owner, package)
         resp = dict(logs=[dict(
             hash=pkg_hash,
             created=time.time(),
@@ -325,7 +409,7 @@ class CommandTest(QuiltTestCase):
 
         mock_input.return_value = '%s/%s' % (owner, package)
 
-        delete_url = "%s/api/package/%s/%s/" % (command.get_registry_url(), owner, package)
+        delete_url = "%s/api/package/%s/%s/" % (command.get_registry_url(None), owner, package)
         self.requests_mock.add(responses.DELETE, delete_url, json.dumps(dict()))
 
         command.delete('%s/%s' % (owner, package))
@@ -419,7 +503,7 @@ class CommandTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_simple.yml')
 
-        log_url = '%s/api/log' % (command.get_registry_url(),)
+        log_url = '%s/api/log' % (command.get_registry_url(None),)
 
         # Successful logging response.
         with patch('quilt.tools.command._load_config', return_value={}):
@@ -464,14 +548,14 @@ class CommandTest(QuiltTestCase):
 
         command.rm('foo/bar', force=True)
         teststore = store.PackageStore(self._store_dir)
-        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        assert not os.path.isdir(teststore.package_path(None, 'foo', 'bar'))
 
     def test_rm_non_existent_package(self):
         """
         Test removing a non-existent package.
         """
         teststore = store.PackageStore(self._store_dir)
-        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        assert not os.path.isdir(teststore.package_path(None, 'foo', 'bar'))
         command.rm('foo/bar', force=True)
 
     def test_rm_package_w_shared_obj(self):
@@ -486,7 +570,7 @@ class CommandTest(QuiltTestCase):
 
         command.rm('foo/bar', force=True)
         teststore = store.PackageStore(self._store_dir)
-        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        assert not os.path.isdir(teststore.package_path(None, 'foo', 'bar'))
 
         from quilt.data.foo import bar2
         assert isinstance(bar2.foo(), pd.DataFrame)
@@ -509,7 +593,7 @@ class CommandTest(QuiltTestCase):
 
         command.rm('foo/bar', force=True)
         teststore = store.PackageStore(self._store_dir)
-        assert not os.path.isdir(teststore.package_path('foo', 'bar'))
+        assert not os.path.isdir(teststore.package_path(None, 'foo', 'bar'))
 
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_simple.yml')

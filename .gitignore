@@ -1,3 +1,4 @@
+*.swp
 build
 .cache
 dist
@@ -9,6 +10,7 @@ node_modules
 quilt_packages
 metastore_db
 derby.log
+node_modules
 
 # Visual Studio Code
 .vscode
@@ -22,4 +24,5 @@ cov_html/*
 *~
 [#]*
 
-
+# Pycharm
+.idea
