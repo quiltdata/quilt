@@ -239,7 +239,7 @@ def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
     nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
     name = nodepath.name
     counter = 1
-    while str(nodepath) in invalid:
+    while nodepath_separator.join(nodepath.parts) in invalid:
         # first conflicted name will be "somenode_2"
         # The result is "somenode", "somenode_2", "somenode_3"..
         counter += 1
