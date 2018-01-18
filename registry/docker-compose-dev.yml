@@ -3,7 +3,6 @@ services:
   db:
     image: postgres
     environment:
-      - POSTGRES_PASSWORD=testing
       - POSTGRES_DB=packages
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -11,7 +10,7 @@ services:
       timeout: 3s
       retries: 3
     ports:
-      - 5432
+      - "5432:5432"
 
   flaskmigration:
     build: .
