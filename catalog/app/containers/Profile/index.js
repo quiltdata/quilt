@@ -1,9 +1,11 @@
 /* Profile */
 import Avatar from 'material-ui/Avatar';
 import Checkbox from 'material-ui/Checkbox';
+import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
+import TextField from 'material-ui/TextField';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
@@ -252,6 +254,9 @@ const AdminPage = ({ teamName = '' }) => {
       <h2><FormattedMessage {...messages.teamPolicies} /></h2>
       <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
       <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
+      <h2><FormattedMessage {...messages.membersAdd} /></h2>
+      <TextField hintText="Email" />
+      <FlatButton label="Add" />
     </div>
   );
 };

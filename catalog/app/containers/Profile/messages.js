@@ -34,12 +34,16 @@ export default defineMessages({
     id: 'app.containers.Profile.learnMore',
     defaultMessage: 'Compare plans',
   },
+  membersAdd: {
+    id: 'app.containers.Profile.membersAdd',
+    defaultMessage: 'Add member',
+  },
   membersRead: {
     id: 'app.containers.Profile.membersRead',
     defaultMessage: 'Members can read public packages',
   },
   membersWrite: {
-    id: 'app.containers.Profile.membersRead',
+    id: 'app.containers.Profile.membersWrite',
     defaultMessage: 'Members can write public packages',
   },
   teamHeader: {
