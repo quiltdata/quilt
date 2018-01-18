@@ -188,7 +188,6 @@ def argument_parser():
     # quilt logout
     shorthelp = "Log out of current Quilt server"
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
-    logout_p.add_argument("team", type=str, nargs='?', help="Specify team to log out from")
     logout_p.set_defaults(func=command.logout)
 
     # quilt ls
@@ -228,7 +227,7 @@ def argument_parser():
     # quilt tag
     shorthelp = "List, add, or remove tags for a package on the server"
     tag_p = subparsers.add_parser("tag", description=shorthelp, help=shorthelp)
-    tag_subparsers = tag_p.add_subparsers(dest='subcommand', metavar="<subcommand>")
+    tag_subparsers = tag_p.add_subparsers(metavar="<subcommand>")
     tag_subparsers.required = True
 
     # quilt tag add
@@ -255,7 +254,7 @@ def argument_parser():
     # quilt version
     shorthelp = "List or permanently add a package version to the server"
     version_p = subparsers.add_parser("version", description=shorthelp, help=shorthelp)
-    version_subparsers = version_p.add_subparsers(dest='subcommand', metavar="<subcommand>")
+    version_subparsers = version_p.add_subparsers(metavar="<subcommand>")
     version_subparsers.required = True
 
     # quilt version add
