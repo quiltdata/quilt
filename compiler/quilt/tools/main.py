@@ -87,7 +87,7 @@ def argument_parser():
     # quilt access
     shorthelp = "List, add, or remove who has access to a given package"
     access_p = subparsers.add_parser("access", description=shorthelp, help=shorthelp)
-    access_subparsers = access_p.add_subparsers(title="Access", dest='subcommand')
+    access_subparsers = access_p.add_subparsers(title="Access")
     access_subparsers.required = True
 
     # quilt access add
