@@ -96,7 +96,7 @@ class Package(object):
 
     def __contains__(self, item):
         try:
-            self[item]
+            self[item]  #pylint: disable=W0104
             return True
         except (KeyError, ValueError):
             return False
