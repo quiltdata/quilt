@@ -6,4 +6,6 @@ export OAUTH_CLIENT_SECRET_QUILT=TESTING
 export OAUTHLIB_INSECURE_TRANSPORT=1
 export AUTH_PROVIDER=quilt
 export QUILT_AUTH_URL=http://localhost:5002
+export FLASK_DEBUG=1
+export FLASK_APP=quilt_server
 flask run
