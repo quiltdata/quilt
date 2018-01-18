@@ -297,6 +297,11 @@ def argument_parser():
     user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
     user_delete_p.set_defaults(func=command.delete_user)
 
+    shorthelp = "Audit a user or a package."
+    audit_p = subparsers.add_parser("audit")
+    audit_p.add_argument("thing", type=str, help=shorthelp)
+    audit_p.set_defaults(func=command.audit)
+
     return parser
 
 
