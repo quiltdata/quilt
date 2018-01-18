@@ -2,12 +2,12 @@
 parse build file, serialize package
 """
 from collections import defaultdict, Iterable
+import glob
 import importlib
 import json
-from types import ModuleType
 import os
 import re
-import glob
+from types import ModuleType
 
 from pandas.errors import ParserError
 from six import iteritems, itervalues, string_types
@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 #TODO: Use this once merged with tensorflow branch
 #from .compat import pathlib
+from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .hashing import digest_file, digest_string
@@ -84,30 +85,28 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
 
 def _gen_glob_data(dir, pattern, child_table):
     """Generates node data by globbing a directory for a pattern"""
-    globstr = os.path.join(dir, pattern)
+    dir = pathlib.Path(dir)
     matched = False
     used_names = set()  # Used by to_nodename to prevent duplicate names
     # sorted so that renames (if any) are consistently ordered
-    for filename in sorted(glob.iglob(globstr, recursive=True)):
-        if os.path.isdir(filename):
+    print({'pattern': pattern, 'dir': dir})
+    for filepath in sorted(dir.glob(pattern)):
+        print(filepath)
+        if filepath.is_dir():
             continue
         else:
             matched = True
 
-        # prep
-        filename = os.path.relpath(filename, dir)
-        stem, ext = os.path.splitext(filename)
-
         # create node info
         node_table = {} if child_table is None else child_table.copy()
-        node_table[RESERVED['file']] = filename
-        node_name = to_nodename(os.path.basename(stem), invalid=used_names)
+        node_table[RESERVED['file']] = str(filepath.relative_to(dir))
+        node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
 
         yield node_name, node_table
 
     if not matched:
-        print("Warning: {!r} matched no files.".format(child_name))
+        print("Warning: {!r} matched no files.".format(pattern))
         return
 
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,

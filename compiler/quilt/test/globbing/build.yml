@@ -5,7 +5,7 @@ contents:
     "csv.*":
       transform: csv
     subnode:
-      "subdir/**":
+      "subdir/**/*":
         transform: csv
   excel:
     "*.xlsx":
