@@ -164,7 +164,6 @@ KNOWN_PARAMS = [
     [0, 'login'],
     [0, 'login', 0],
     [0, 'logout'],
-    [0, 'logout', 0],
     [0, 'ls'],
     [0, 'push'],
     [0, 'push', '--public'],
@@ -634,7 +633,6 @@ class TestCLI(BasicQuiltTestCase):
         ## This test covers the following arguments that require testing
         TESTED_PARAMS.extend([
             [0, 'logout'],
-            [0, 'logout', 0],
         ])
 
         ## This section tests for circumstances expected to be rejected by argparse.
@@ -645,7 +643,6 @@ class TestCLI(BasicQuiltTestCase):
             assert self.execute(args)['return code'] == 2, 'with args: ' + str(args)
 
         ## This section tests for acceptable types and values.
-        # plain login
         cmd = ['logout']
         result = self.execute(cmd)
 
@@ -658,21 +655,6 @@ class TestCLI(BasicQuiltTestCase):
         # Specific tests
         assert result['func'] == 'logout'
         assert not result['args']
-        assert result['kwargs']['team'] is None
-
-        # login with team name
-        cmd = ['logout', 'example_team']
-        result = self.execute(cmd)
-
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
-
-        # Specific tests
-        assert result['func'] == 'logout'
-        assert not result['args']
-        assert result['kwargs']['team'] == 'example_team'
 
     def test_cli_command_push(self):
         ## This test covers the following arguments that require testing

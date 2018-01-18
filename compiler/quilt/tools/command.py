@@ -27,7 +27,7 @@ import pkg_resources
 import requests
 from requests.packages.urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from six import iteritems, string_types
+from six import iteritems, itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
 from tqdm import tqdm
 
@@ -90,6 +90,25 @@ def _save_config(cfg):
     with open(config_path, 'w') as fd:
         json.dump(cfg, fd)
 
+def _load_auth():
+    auth_path = os.path.join(BASE_DIR, 'auth.json')
+    if os.path.exists(auth_path):
+        with open(auth_path) as fd:
+            auth = json.load(fd)
+            if 'access_token' in auth:
+                # Old format; ignore it.
+                auth = {}
+            return auth
+    return {}
+
+def _save_auth(cfg):
+    if not os.path.exists(BASE_DIR):
+        os.makedirs(BASE_DIR)
+    auth_path = os.path.join(BASE_DIR, 'auth.json')
+    with open(auth_path, 'w') as fd:
+        os.chmod(auth_path, stat.S_IRUSR | stat.S_IWUSR)
+        json.dump(cfg, fd)
+
 def get_registry_url(team):
     if team is not None:
         if not is_nodename(team):
@@ -132,16 +151,6 @@ def config():
     global _registry_url
     _registry_url = None
 
-def get_auth_path(team):
-    url = get_registry_url(team)
-    if url == DEFAULT_REGISTRY_URL:
-        suffix = ''
-    else:
-        # Store different servers' auth in different files.
-        suffix = "-%.8s" % hashlib.md5(url.encode('utf-8')).hexdigest()
-
-    return os.path.join(BASE_DIR, 'auth%s.json' % suffix)
-
 def _update_auth(team, refresh_token):
     response = requests.post("%s/api/token" % get_registry_url(team), data=dict(
         refresh_token=refresh_token
@@ -156,19 +165,11 @@ def _update_auth(team, refresh_token):
         raise CommandException("Failed to log in: %s" % error)
 
     return dict(
+        team=team,
         refresh_token=data['refresh_token'],
         access_token=data['access_token'],
         expires_at=data['expires_at']
     )
-
-def _save_auth(team, auth):
-    if not os.path.exists(BASE_DIR):
-        os.makedirs(BASE_DIR)
-
-    file_path = get_auth_path(team)
-    with open(file_path, 'w') as fd:
-        os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR)
-        json.dump(auth, fd)
 
 def _handle_response(resp, **kwargs):
     _ = kwargs                  # unused    pylint:disable=W0613
@@ -185,11 +186,11 @@ def _create_auth(team):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
-    file_path = get_auth_path(team)
-    if os.path.exists(file_path):
-        with open(file_path) as fd:
-            auth = json.load(fd)
+    url = get_registry_url(team)
+    contents = _load_auth()
+    auth = contents.get(url)
 
+    if auth is not None:
         # If the access token expires within a minute, update it.
         if auth['expires_at'] < time.time() + 60:
             try:
@@ -198,11 +199,8 @@ def _create_auth(team):
                 raise CommandException(
                     "Failed to update the access token (%s). Run `quilt login` again." % ex
                 )
-            _save_auth(team, auth)
-    else:
-        # The auth file doesn't exist, probably because the
-        # user hasn't run quilt login yet.
-        auth = None
+            contents[url] = auth
+            _save_auth(contents)
 
     return auth
 
@@ -303,13 +301,31 @@ def _match_hash(session, team, owner, pkg, hash):
             .format(**locals()))
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
+def _check_team_login(team):
+    """
+    Disallow simultaneous public cloud and team logins.
+    """
+    contents = _load_auth()
 
-def login(team):
+    for auth in itervalues(contents):
+        existing_team = auth.get('team')
+        if team and team != existing_team:
+            raise CommandException(
+                "Can't log in as team %r; log out first." % team
+            )
+        elif not team and existing_team:
+            raise CommandException(
+                "Can't log in as a public user; log out from team %r first." % existing_team
+            )
+
+def login(team=None):
     """
     Authenticate.
 
     Launches a web browser and asks the user for a token.
     """
+    _check_team_login(team)
+
     login_url = "%s/login" % get_registry_url(team)
 
     print("Launching a web browser...")
@@ -329,22 +345,25 @@ def login_with_token(team, refresh_token):
     # Get an access token and a new refresh token.
     auth = _update_auth(team, refresh_token)
 
-    _save_auth(team, auth)
+    url = get_registry_url(team)
+    contents = _load_auth()
+    contents[url] = auth
+    _save_auth(contents)
 
     _clear_session(team)
 
-def logout(team=None):
+def logout():
     """
     Become anonymous. Useful for testing.
     """
-    auth_file = get_auth_path(team)
     # TODO revoke refresh token (without logging out of web sessions)
-    if os.path.exists(auth_file):
-        os.remove(auth_file)
+    if _load_auth():
+        _save_auth({})
     else:
         print("Already logged out.")
 
-    _clear_session(team)
+    global _sessions            # pylint:disable=C0103
+    _sessions = {}
 
 def generate(directory, outfilename=DEFAULT_BUILDFILE):
     """
