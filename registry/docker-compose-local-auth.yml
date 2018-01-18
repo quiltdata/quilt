@@ -87,7 +87,6 @@ services:
       - DATABASE_URL=postgres://postgres:testing@db/packages
       - FRONTEND_URL=http://catalog:3000
       - ALLOW_HTTP=1
-      - DISABLE_SIGNUP=True
     depends_on:
       db:
         condition: service_healthy
@@ -109,8 +108,8 @@ services:
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://flask:5000
-      - USER_API=http://auth:5002/api-root
-      - SIGN_OUT_URL=http://auth:5002/api-auth/logout?next=%2F
+      - USER_API=http://auth:5002/accounts/api-root
+      - SIGN_OUT_URL=http://auth:5002/accounts/logout?next=%2F
       - STRIPE_KEY=NOSTRIPE
     ports:
       - "3000:80"

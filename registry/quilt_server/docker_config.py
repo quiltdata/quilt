@@ -15,7 +15,7 @@ if AUTH_PROVIDER == 'quilt':
         authorize_url='http://auth:5002/o/authorize/',
         client_id=os.getenv('OAUTH_CLIENT_ID'),
         client_secret=os.getenv('OAUTH_CLIENT_SECRET'),
-        user_api='http://auth:5002/api-root',
+        user_api='http://auth:5002/accounts/api-root',
         profile_api='http://auth:5002/accounts/profile?user=%s',
         have_refresh_token=True,
     )

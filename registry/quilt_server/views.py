@@ -1457,7 +1457,7 @@ def list_users():
         AUTHORIZATION_HEADER: g.auth_header
     }
 
-    user_list_api = "http://auth:5002/users"
+    user_list_api = "http://auth:5002/accounts/users"
     if not user_list_api:
         return dict()
 
@@ -1488,7 +1488,7 @@ def create_user():
 
     request_data = request.get_json()
 
-    user_create_api = 'http://auth:5002/users/'
+    user_create_api = 'http://auth:5002/accounts/users/'
 
     if not user_create_api:
         raise ApiException(requests.codes.not_found,
@@ -1520,6 +1520,8 @@ def create_user():
             )
 
     elif resp.status_code != requests.codes.created:
+        print(resp.status_code)
+        print(resp.text)
         raise ApiException(
             requests.codes.server_error,
             "Unknown error"
@@ -1537,7 +1539,7 @@ def disable_user():
         "Accept": "application/json",
     }
 
-    user_modify_api = 'http://auth:5002/users/'
+    user_modify_api = 'http://auth:5002/accounts/users/'
 
     if not user_modify_api:
         raise ApiException(requests.codes.not_found,
@@ -1570,7 +1572,7 @@ def delete_user():
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    user_modify_api = 'http://auth:5002/users/'
+    user_modify_api = 'http://auth:5002/accounts/users/'
 
     data = request.get_json()
     username = data.get('username')
