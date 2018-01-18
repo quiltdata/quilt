@@ -1,7 +1,11 @@
 /* Profile */
 import Avatar from 'material-ui/Avatar';
+import Checkbox from 'material-ui/Checkbox';
+import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
+import { Tabs, Tab } from 'material-ui/Tabs';
+import TextField from 'material-ui/TextField';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
@@ -15,6 +19,7 @@ import { makeSignInURL } from 'utils/auth';
 import config from 'constants/config';
 import Error from 'components/Error';
 import Help from 'components/Help';
+import { Skip } from 'components/LayoutHelpers';
 import Loading from 'components/Loading';
 import MIcon from 'components/MIcon';
 import PackageList from 'components/PackageList';
@@ -162,6 +167,30 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     const planMessage = (plan.response in PLANS || businessMember) ?
       <FormattedMessage {...paymentMessages[plan.response]} />
       : plan.response;
+
+    const pageOne = (
+      <Content>
+        <PackagesArea
+          packages={response.packages}
+          shortName={shortName}
+          user={this.props.user}
+        />
+        <PlanArea
+          businessMember={businessMember}
+          currentPlan={this.props.currentPlan}
+          email={this.props.email}
+          handleShowDialog={() => this.showDialog(true)}
+          handleUpdatePayment={this.updatePayment}
+          haveCreditCard={response.have_credit_card}
+          isLoading={isLoading}
+          isWarning={isWarning}
+          locale={this.props.intl.locale}
+          planMessage={planMessage}
+          warningString={warningString}
+        />
+      </Content>
+    );
+
     return (
       <div>
         <PaymentDialog
@@ -175,62 +204,20 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           onToken={this.onToken}
           selectedPlan={this.state.selectedPlan}
         />
-        <Content>
-          <h1><Avatar>{shortName}</Avatar> {this.props.user}</h1>
-          <h2><FormattedMessage {...messages.own} /></h2>
-          <PackageList
-            emptyMessage={<FormattedMessage {...messages.noOwned} />}
-            emptyHref={makePackage}
-            packages={response.packages.own}
-            showOwner={false}
-          />
-          <h2><FormattedMessage {...messages.shared} /></h2>
-          <PackageList packages={response.packages.shared} />
-          <h2><FormattedMessage {...messages.public} /></h2>
-          <Help href="/search/?q=">
-            <FormattedMessage {...messages.showPublic} />
-          </Help>
-          <h1>Service plan</h1>
-          <Toolbar>
-            <ToolbarGroup>
-              { isLoading ? <LoadingMargin /> : null }
-              <ToolbarTitle text={planMessage} />
-              { isWarning ? <WarningIcon title={warningString} /> : null }
-              {
-                this.props.currentPlan !== 'free' && !businessMember && response.have_credit_card ?
-                  <StripeCheckout
-                    allowRememberMe
-                    amount={0}
-                    email={this.props.email}
-                    image="https://d1j3mlw4fz6jw9.cloudfront.net/quilt-packages-stripe-checkout-logo.png"
-                    locale={this.props.intl.locale}
-                    name="Quilt Data, Inc."
-                    panelLabel="Update"
-                    token={this.updatePayment}
-                    stripeKey={config.stripeKey}
-                    zipCode
-                  >
-                    <IconButton
-                      disabled={isLoading}
-                      tooltip="Update payment card"
-                      touch
-                    >
-                      <MIcon>credit_card</MIcon>;
-                    </IconButton>
-                  </StripeCheckout> : null
-              }
-              <ToolbarSeparator />
-              { !businessMember ?
-                <RaisedButton
-                  disabled={isLoading}
-                  label={<FormattedMessage {...messages.learnMore} />}
-                  onClick={() => this.showDialog(true)}
-                  primary
-                /> : null
-              }
-            </ToolbarGroup>
-          </Toolbar>
-        </Content>
+        { config.team ?
+          <div>
+            <Skip />
+            <Tabs>
+              <Tab label="packages" value="packages">{ pageOne }</Tab>
+              <Tab label="admin" value="admin">
+                <AdminPage
+                  teamName={config.team.name || ''}
+                />
+              </Tab>
+            </Tabs>
+            <Skip />
+          </div> : pageOne
+        }
       </div>
     );
   }
@@ -260,6 +247,119 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   };
 }
+const AdminPage = ({ teamName = '' }) => {
+  return (
+    <div>
+      <h1><FormattedMessage {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+      <h2><FormattedMessage {...messages.teamPolicies} /></h2>
+      <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
+      <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
+      <h2><FormattedMessage {...messages.membersAdd} /></h2>
+      <TextField hintText="Email" />
+      <FlatButton label="Add" />
+    </div>
+  );
+};
+
+AdminPage.propTypes = {
+  teamName: PropTypes.string,
+};
+
+const PackagesArea = ({ packages, shortName, user }) => (
+  <div>
+    <h1><Avatar>{shortName}</Avatar> {user}</h1>
+    <h2><FormattedMessage {...messages.own} /></h2>
+    <PackageList
+      emptyMessage={<FormattedMessage {...messages.noOwned} />}
+      emptyHref={makePackage}
+      packages={packages.own}
+      showOwner={false}
+    />
+    <h2><FormattedMessage {...messages.shared} /></h2>
+    <PackageList packages={packages.shared} />
+    <h2><FormattedMessage {...messages.public} /></h2>
+    <Help href="/search/?q=">
+      <FormattedMessage {...messages.showPublic} />
+    </Help>
+  </div>
+);
+
+PackagesArea.propTypes = {
+  packages: PropTypes.object,
+  shortName: PropTypes.string,
+  user: PropTypes.string,
+};
+
+const PlanArea = ({
+  businessMember,
+  currentPlan,
+  email,
+  handleShowDialog,
+  handleUpdatePayment,
+  haveCreditCard,
+  isLoading,
+  isWarning,
+  locale,
+  planMessage,
+  warningString,
+}) => (
+  <div>
+    <h1>Service plan</h1>
+    <Toolbar>
+      <ToolbarGroup>
+        { isLoading ? <LoadingMargin /> : null }
+        <ToolbarTitle text={planMessage} />
+        { isWarning ? <WarningIcon title={warningString} /> : null }
+        {
+          currentPlan !== 'free' && !businessMember && haveCreditCard ?
+            <StripeCheckout
+              allowRememberMe
+              amount={0}
+              email={email}
+              image="https://d1j3mlw4fz6jw9.cloudfront.net/quilt-packages-stripe-checkout-logo.png"
+              locale={locale}
+              name="Quilt Data, Inc."
+              panelLabel="Update"
+              token={handleUpdatePayment}
+              stripeKey={config.stripeKey}
+              zipCode
+            >
+              <IconButton
+                disabled={isLoading}
+                tooltip="Update payment card"
+                touch
+              >
+                <MIcon>credit_card</MIcon>;
+              </IconButton>
+            </StripeCheckout> : null
+        }
+        <ToolbarSeparator />
+        { !businessMember ?
+          <RaisedButton
+            disabled={isLoading}
+            label={<FormattedMessage {...messages.learnMore} />}
+            onClick={handleShowDialog}
+            primary
+          /> : null
+        }
+      </ToolbarGroup>
+    </Toolbar>
+  </div>
+);
+
+PlanArea.propTypes = {
+  businessMember: PropTypes.bool,
+  currentPlan: PropTypes.string,
+  email: PropTypes.string,
+  handleShowDialog: PropTypes.func,
+  handleUpdatePayment: PropTypes.func,
+  haveCreditCard: PropTypes.bool,
+  isLoading: PropTypes.bool,
+  isWarning: PropTypes.bool,
+  locale: PropTypes.string,
+  planMessage: PropTypes.object,
+  warningString: PropTypes.string,
+};
 
 const WarningIcon = ({ title }) => (
   <MIcon drop="4px" title={title}>

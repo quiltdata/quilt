@@ -59,6 +59,14 @@ export const Scroll = styled.div`
   overflow: auto;
 `;
 
+export const Skip = styled.div`
+  height: ${(props) => props.height}
+`;
+
+Skip.defaultProps = {
+  height: '2em',
+};
+
 /* Stack - Inject margin between stacking columns */
 export const Stack = styled.div`
   @media (max-width:${(props) => props.maxWidth}) {

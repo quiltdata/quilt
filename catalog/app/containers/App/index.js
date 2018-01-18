@@ -11,7 +11,7 @@ import { Pad } from 'components/LayoutHelpers';
 
 import { routerStart, signOut } from './actions';
 import {
-  makeSelectAuth,
+   makeSelectAuth,
   makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,
