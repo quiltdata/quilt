@@ -5,6 +5,7 @@ Test the build process
 #the functions that cli calls
 import os
 
+import pytest
 from numpy import dtype
 import pandas.api.types as ptypes
 from pandas.core.frame import DataFrame
@@ -260,6 +261,13 @@ class BuildTest(QuiltTestCase):
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
             build.build_package(None, 'test_syntax_error', PACKAGE, path, checks_path=checks_path)
 
+    def test_build_naming_conflict(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'globbing/build_name_conflict.yml'
+
+        with pytest.raises(command.CommandException, match="Naming conflict:"):
+            command.build('test/globdata', str(buildfile))
+
     def test_build_via_glob(self):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
@@ -271,17 +279,17 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test import globdata
 
         # simple checks to ensure files were found and built
-        globdata.csv.csv_txt
-        globdata.csv.foo_csv
-        globdata.csv.nulls_csv
-        globdata.csv.nuts_csv
-        globdata.csv.n10KRows13Cols_csv
-        globdata.csv.subnode.csv_txt
-        globdata.csv.subnode.foo_txt
-        globdata.csv.subnode.goo_txt
+        globdata.csv.csv
+        globdata.csv.foo
+        globdata.csv.nulls
+        globdata.csv.nuts
+        globdata.csv.n10KRows13Cols
+        globdata.csv.subnode.csv
+        globdata.csv.subnode.foo
+        globdata.csv.subnode.goo
         # excel, kwargs sent
-        assert len(globdata.excel.n10KRows13Cols_xlsx()) == 9995
-        # naming collision
-        globdata.collision.csv_txt
-        globdata.collision.csv_txt_2
+        assert len(globdata.excel.n10KRows13Cols()) == 9995
+        # naming collision -- acceptable during a single glob specification, should result in a rename
+        globdata.collision.csv
+        globdata.collision.csv_2
 

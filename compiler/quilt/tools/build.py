@@ -7,6 +7,7 @@ import json
 from types import ModuleType
 import os
 import re
+import glob
 
 from pandas.errors import ParserError
 from six import iteritems, itervalues, string_types
@@ -21,7 +22,7 @@ from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, to_nodename, glob_insensitive, is_nodename
+from .util import FileWithReadProgress, to_nodename, is_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -81,18 +82,6 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
             raise BuildException("Data check failed: %s on %s @ %s" % (
                 check, rel_path, target))
 
-# TODO: Move to util?
-def _is_glob(string):
-    if '*' in string:
-        return True
-    if '?' in string:
-        return True
-    lbr, rbr = string.find('['), string.find(']')
-    if lbr != -1 and rbr != -1 and lbr < rbr:
-        # not exact, but brackets in a node name are illegal, anyways -- very likely a glob string.
-        return True
-    return False
-
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
@@ -106,9 +95,6 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
       and overriding of ancestor or peer values.
       Child transform or kwargs override ancestor k:v pairs.
     """
-    from pprint import pprint
-    pprint(node)
-
     if _is_internal_node(node):
         # NOTE: YAML parsing does not guarantee key order
         # fetch local transform and kwargs values; we do it using ifs
@@ -123,24 +109,37 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # if it's not a reserved word it's a group that we can descend
         groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
         for child_name, child_table in groups.items():
-            if _is_glob(child_name):
+            if glob.has_magic(child_name):
                 if child_table is None:
                     child_table = {}
-                used = set()
-                for filepath in glob_insensitive(build_dir, child_name, include_dirs=False):
-                    print(filepath)
-                    globchild_name = to_nodename(filepath.name, used)
-                    used.add(globchild_name)
+                used_names = set()
+                globstr = os.path.join(build_dir, child_name)
+                matched = False
+                # sorted so that renames are consistently ordered
+                for filename in sorted(glob.iglob(globstr, recursive=True)):
+                    if os.path.isdir(filename):
+                        continue
+                    matched = True
+                    filename = os.path.relpath(filename, build_dir)
+                    stem, ext = os.path.splitext(filename)
+                    globchild_name = to_nodename(os.path.basename(stem), invalid=used_names)
+                    used_names.add(globchild_name)
                     globchild_table = child_table.copy()
-                    globchild_table[RESERVED['file']] = str(filepath)
+                    globchild_table[RESERVED['file']] = filename
                     _build_node(build_dir, package, name + '/' + globchild_name, globchild_table, fmt,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                if not matched:
+                    print("Warning: {!r} matched no files.".format(child_name))
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
                 _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
-    else: # leaf node
+    else:  # leaf node
+        # prevent overwriting existing node names
+        if name.strip('/') in package:
+            name = name.strip('/')
+            raise BuildException("Naming conflict: {!r} has been added to the package more than once".format(name))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:

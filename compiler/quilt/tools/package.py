@@ -74,6 +74,33 @@ class Package(object):
 
         self._contents = contents
 
+    def __getitem__(self, item):
+        node = self.get_contents()
+
+        if '/' in item and '.' in item:
+            raise ValueError("Invalid name: expected delimiter of '.' or '/', not both for {!r}".format(item))
+        if '.' in item:
+            parts = item.split('.')
+        elif '/' in item:
+            parts = item.split('/')
+        else:
+            parts = [item]
+
+        try:
+            for part in parts[:-1]:
+                node = node.children[part]
+
+            return node.children[parts[-1]]
+        except (KeyError, AttributeError):
+            raise KeyError(item)
+
+    def __contains__(self, item):
+        try:
+            self[item]
+            return True
+        except (KeyError, ValueError):
+            return False
+
     def _load_contents(self, instance_hash=None):
         if instance_hash is None:
             latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
@@ -88,7 +115,7 @@ class Package(object):
         if not os.path.isfile(contents_path):
             msg = "Invalid hash for package {owner}/{pkg}: {hash}"
             raise PackageException(msg.format(hash=instance_hash, owner=self._user, pkg=self._package))
-        
+
         with open(contents_path, 'r') as contents_file:
             return json.load(contents_file, object_hook=decode_node)
 
@@ -251,7 +278,7 @@ class Package(object):
         tag_dir = os.path.join(self._path, self.TAGS_DIR)
         if not os.path.isdir(tag_dir):
             os.mkdir(tag_dir)
-            
+
         latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
         with open (latest_tag, 'w') as tagfile:
             tagfile.write("{hsh}".format(hsh=instance_hash))
@@ -276,7 +303,7 @@ class Package(object):
             assert False, "Unhandled Node {node}".format(node=node)
 
     # WIP: doesn't work quite right yet.
-    def find_node_by_name(self, findstr, node=None, prefix=''):
+    def find_node_by_name(self, name, node=None, prefix=''):
         raise NotImplementedError()
 #        """use / to separate levels"""
 #        if node is None:
