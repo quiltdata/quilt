@@ -11,6 +11,8 @@ REGISTRY_HOST = os.environ['REGISTRY_HOST']
 OAUTH_HOST = os.environ['OAUTH_HOST']
 OAUTH_API_HOST = os.environ['OAUTH_API_HOST']
 
+QUILT_AUTH_URL = 'https://%s' % OAUTH_API_HOST  # TODO: Disable it for GitHub?
+
 OAUTH = dict(
     access_token_url='https://%s/o/token/' % OAUTH_HOST,
     authorize_url='https://%s/o/authorize/' % OAUTH_HOST,

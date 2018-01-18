@@ -49,6 +49,8 @@ OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 
 CATALOG_REDIRECT_URLS = app.config['CATALOG_REDIRECT_URLS']
 
+QUILT_AUTH_URL = app.config['QUILT_AUTH_URL']
+
 AUTHORIZATION_HEADER = 'Authorization'
 
 INVITE_SEND_URL = app.config['INVITE_SEND_URL']
@@ -1457,7 +1459,7 @@ def list_users():
         AUTHORIZATION_HEADER: g.auth_header
     }
 
-    user_list_api = "http://auth:5002/accounts/users"
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
     if not user_list_api:
         return dict()
 
@@ -1488,7 +1490,7 @@ def create_user():
 
     request_data = request.get_json()
 
-    user_create_api = 'http://auth:5002/accounts/users/'
+    user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     if not user_create_api:
         raise ApiException(requests.codes.not_found,
@@ -1539,7 +1541,7 @@ def disable_user():
         "Accept": "application/json",
     }
 
-    user_modify_api = 'http://auth:5002/accounts/users/'
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     if not user_modify_api:
         raise ApiException(requests.codes.not_found,
@@ -1572,7 +1574,7 @@ def delete_user():
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    user_modify_api = 'http://auth:5002/accounts/users/'
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     data = request.get_json()
     username = data.get('username')
