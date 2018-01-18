@@ -15,8 +15,6 @@ from six import iteritems, itervalues, string_types
 import yaml
 from tqdm import tqdm
 
-#TODO: Use this once merged with tensorflow branch
-#from .compat import pathlib
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
