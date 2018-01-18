@@ -5,7 +5,6 @@ import re
 import gzip
 import os
 import keyword
-import tokenize
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -167,8 +166,8 @@ def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original filename can't be recovered
-    from the change in all cases, so it must be stored separately (`FileNode`
-    metadata)
+    from the change in all cases, so it must be stored separately (as
+    `FileNode` metadata).
 
     If `invalid` is given, it should be an iterable of names that the returned
     string cannot match -- for example, other node names.
@@ -218,9 +217,57 @@ def to_nodename(string, invalid=None, raise_exc=False):
     return result
 
 
-def filepath_to_nodepath(filepath, nodepath_separator='.'):
-    filepath = pathlib.Path(filepath)
-    if filepath.anchor:
-        raise ValueError("Invalid filepath (relative file path required): " + str(filepath))
+def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
+    """Converts a single relative file path into a nodepath
 
-    return nodepath_separator.join(to_nodename(part) for part in filepath.parts)
+    For example, 'foo/bar' -> 'foo.bar' -- see `to_nodename` for renaming rules.
+
+    If the result is in 'invalid', the last element is renamed to avoid conflicts.
+
+    :param filepath: filepath to convert to nodepath
+    :param nodepath_separator: separator between node pathnames, typically '.' or '/'
+    :param invalid: List of invalid or already-used results.
+    """
+    if not isinstance(invalid, set):
+        invalid = set() if invalid is None else set(invalid)
+
+    # PureWindowsPath recognizes c:\\, \\, or / anchors, and / or \ separators.
+    filepath = pathlib.PureWindowsPath(filepath)
+    if filepath.anchor:
+        raise ValueError("Invalid filepath (relative file path required): " + str(pathlib.Path(filepath)))
+
+    nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
+    name = nodepath.name
+    counter = 1
+    while str(nodepath) in invalid:
+        # first conflicted name will be "somenode_2"
+        # The result is "somenode", "somenode_2", "somenode_3"..
+        counter += 1
+        nodepath = nodepath.with_name("{}_{}".format(name, counter))
+
+    return nodepath_separator.join(nodepath.parts)
+
+
+def filepaths_to_nodepaths(filepaths, nodepath_separator='.', iterator=True):
+    """Converts multiple relative file paths into nodepaths.
+
+    Automatically prevents naming conflicts amongst generated nodepath names.
+
+    See `filepath_to_nodepath` for more info.
+
+    :param filepaths: relative paths to convert to nodepaths
+    :param nodepath_separator: used between node pathnames, typically '.' or '/'
+    :param iterator: [default True] If falsey, return a list instead of an iterator.
+    """
+    result = _filepaths_to_nodepaths(filepaths, nodepath_separator)
+    if iterator:
+        return result
+    return list(result)
+
+
+def _filepaths_to_nodepaths(filepaths, nodepath_separator='.'):
+    invalid = set()
+    for path in filepaths:
+        result = filepath_to_nodepath(path, nodepath_separator, invalid=invalid)
+        invalid.add(result)
+        yield result
