@@ -299,6 +299,15 @@ def _match_hash(session, team, owner, pkg, hash):
             .format(**locals()))
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
+def _find_logged_in_team():
+    """
+    Find a team name in the auth credentials.
+    There should be at most one, since we don't allow multiple team logins.
+    """
+    contents = _load_auth()
+    auth = next(itervalues(contents), {})
+    return auth.get('team')
+
 def _check_team_login(team):
     """
     Disallow simultaneous public cloud and team logins.
