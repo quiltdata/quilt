@@ -19,7 +19,7 @@ OAUTH = dict(
     client_id=os.environ['OAUTH_CLIENT_ID'],
     client_secret=os.environ['OAUTH_CLIENT_SECRET'],
     redirect_url='https://%s/oauth_callback' % REGISTRY_HOST,
-    user_api='https://%s/api-root' % OAUTH_API_HOST,
+    user_api='https://%s/accounts/api-root' % OAUTH_API_HOST,
     profile_api='https://%s/accounts/profile?user=%%s' % OAUTH_API_HOST,
     have_refresh_token=True
 )
