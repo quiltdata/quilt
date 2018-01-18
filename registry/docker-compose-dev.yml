@@ -63,11 +63,11 @@ services:
         condition: service_healthy
 
   djangomigration:
-    image: quiltdata/django
+    image: quiltdata/django:teams
     environment:
       - DATABASE_URL=postgres://postgres:testing@db/packages
       - OAUTH_REDIRECT_URI=http://localhost:5000/oauth_callback
-      - OAUTH_CLIENT_ID=QUILTPKGS
+      - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
     depends_on:
       db:

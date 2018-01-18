@@ -16,7 +16,7 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='%s/o/token/' % QUILT_AUTH_URL,
         authorize_url='%s/o/authorize/' % QUILT_AUTH_URL,
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id='packages',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='%s/api-root' % QUILT_AUTH_URL,
         profile_api='%s/accounts/profile?user=%%s' % QUILT_AUTH_URL,

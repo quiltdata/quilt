@@ -1,8 +1,8 @@
 export AWS_ACCESS_KEY_ID=ddccbbaa
 export AWS_SECRET_ACCESS_KEY=abcd
-export QUILT_SERVER_CONFIG=docker_config.py
-export OAUTH_CLIENT_ID=QUILTPKGS
-export OAUTH_CLIENT_SECRET=TESTING
+export QUILT_SERVER_CONFIG=dev_config.py
+export OAUTH_CLIENT_ID=packages
+export OAUTH_CLIENT_SECRET_QUILT=TESTING
 export OAUTHLIB_INSECURE_TRANSPORT=1
 export AUTH_PROVIDER=quilt
 export QUILT_AUTH_URL=http://localhost:5002
