@@ -1577,6 +1577,12 @@ def delete_user():
 
     resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
 
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to delete not found."
+            )
+
     if resp.status_code != requests.codes.ok:
         raise ApiException(
             resp.status_code,

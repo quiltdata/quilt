@@ -272,14 +272,31 @@ def argument_parser():
     version_list_p.add_argument("package", type=str, help=HANDLE)
     version_list_p.set_defaults(func=command.version_list)
 
-    users_p = subparsers.add_parser("user", description="Work with users", help="Work with users")
+    shorthelp = "Subcommand for managing users. Only available to admins"
+    users_p = subparsers.add_parser("user", description="Work with users", help=shorthelp)
     users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
     users_subparsers.required = True
 
-    user_list_p = users_subparsers.add_parser("list")
+    shorthelp = "List users in your team"
+    user_list_p = users_subparsers.add_parser("list", help=shorthelp)
     user_list_p.set_defaults(func=command.cli_list_users)
 
-    
+    shorthelp = "Create a user. Must provide username and email. Username must be unique."
+    user_create_p = users_subparsers.add_parser("create")
+    user_create_p.add_argument("username", type=str, help=shorthelp)
+    user_create_p.add_argument("email", type=str)
+    user_create_p.set_defaults(func=command.create_user)
+
+    shorthelp = "Disable a user."
+    user_disable_p = users_subparsers.add_parser("disable")
+    user_disable_p.add_argument("username", type=str, help=shorthelp)
+    user_disable_p.set_defaults(func=command.disable_user)
+
+    shorthelp = "Delete a user. Use with caution."
+    user_delete_p = users_subparsers.add_parser("delete")
+    user_delete_p.add_argument("username", type=str, help=shorthelp)
+    user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
+    user_delete_p.set_defaults(func=command.delete_user)
 
     return parser
 

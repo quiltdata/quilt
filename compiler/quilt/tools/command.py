@@ -1250,7 +1250,8 @@ def print_table(table, padding=2):
             i += 1
         print(line)
 
-def list_users(team):
+def list_users(team=None):
+    # get team from disk if not specified
     session = _get_session(team)
     resp = session.get('http://localhost:5000/api/users/list')
     return resp.json()
@@ -1267,16 +1268,24 @@ def cli_list_users(team=None):
 
     print_table(l)
 
-def create_user(team, username, email):
+def create_user(username, email, team=None):
+    # get team from disk if not specified
     session = _get_session(team)
     resp = session.post('http://localhost:5000/api/users/create', 
             data=json.dumps({'username':username, 'email':email}))
 
-def disable_user(team, username):
+def disable_user(username, team=None):
+    # get team from disk if not specified
     session = _get_session(team)
     resp = session.post('http://localhost:5000/api/users/disable', 
             data=json.dumps({'username':username}))
 
-def delete_user(team, username):
+def delete_user(username, force=False, team=None):
+    # get team from disk if not specified
+    if not force:
+        confirmed = input("Really delete user '{0}'? (y/n)".format(username))
+        if confirmed.lower() != 'y':
+            return
+
     session = _get_session(team)
     resp = session.post('http://localhost:5000/api/users/delete', data=json.dumps({'username':username}))
