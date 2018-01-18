@@ -229,9 +229,10 @@ class Auth:
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email):
+    def __init__(self, user, email, is_admin):
         self.user = user
         self.email = email
+        self.is_admin = is_admin
 
 
 class ApiException(Exception):
@@ -286,7 +287,7 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(PUBLIC, None)
+            g.auth = Auth(PUBLIC, None, False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -315,8 +316,9 @@ def api(require_login=True, schema=None):
                     user = data.get('current_user', data.get('login'))
                     assert user
                     email = data['email']
+                    is_admin = data.get('is_staff', False)
 
-                    g.auth = Auth(user, email)
+                    g.auth = Auth(user, email, is_admin)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
                         raise ApiException(
@@ -626,7 +628,7 @@ def package_put(owner, package_name, package_hash):
     # Insert an event.
     event = Event(
         user=g.auth.user,
-        type=Event.PUSH,
+        type=Event.Type.PUSH,
         package_owner=owner,
         package_name=package_name,
         package_hash=package_hash,
@@ -676,7 +678,7 @@ def package_get(owner, package_name, package_hash):
     # Insert an event.
     event = Event(
         user=g.auth.user,
-        type=Event.INSTALL,
+        type=Event.Type.INSTALL,
         package_owner=owner,
         package_name=package_name,
         package_hash=package_hash,
@@ -735,7 +737,7 @@ def package_preview(owner, package_name, package_hash):
 
     # Insert an event.
     event = Event(
-        type=Event.PREVIEW,
+        type=Event.Type.PREVIEW,
         user=g.auth.user,
         package_owner=owner,
         package_name=package_name,
@@ -789,7 +791,7 @@ def package_delete(owner, package_name):
     # Insert an event.
     event = Event(
         user=g.auth.user,
-        type=Event.DELETE,
+        type=Event.Type.DELETE,
         package_owner=owner,
         package_name=package_name,
     )
@@ -1519,3 +1521,51 @@ def client_log():
         _mp_track(**event)
 
     return dict()
+
+@app.route('/api/audit/<owner>/<package_name>/')
+@api()
+@as_json
+def audit_package(owner, package_name):
+    if not g.auth.is_admin:
+        raise ApiException(requests.codes.forbidden, "Not allowed")
+
+    events = (
+        Event.query
+        .filter_by(package_owner=owner, package_name=package_name)
+    )
+
+    return dict(
+        events=[dict(
+            created=event.created,
+            user=event.user,
+            type=Event.Type(event.type).name,
+            package_owner=event.package_owner,
+            package_name=event.package_name,
+            package_hash=event.package_hash,
+            extra=event.extra,
+        ) for event in events]
+    )
+
+@app.route('/api/audit/<user>/')
+@api()
+@as_json
+def audit_user(user):
+    if not g.auth.is_admin:
+        raise ApiException(requests.codes.forbidden, "Not allowed")
+
+    events = (
+        Event.query
+        .filter_by(user=user)
+    )
+
+    return dict(
+        events=[dict(
+            created=event.created,
+            user=event.user,
+            type=Event.Type(event.type).name,
+            package_owner=event.package_owner,
+            package_name=event.package_name,
+            package_hash=event.package_hash,
+            extra=event.extra,
+        ) for event in events]
+    )

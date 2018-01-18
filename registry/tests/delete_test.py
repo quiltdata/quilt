@@ -64,7 +64,7 @@ class DeleteTestCase(QuiltTestCase):
         events = Event.query.all()
         event = events[-1]
         assert event.user == self.user
-        assert event.type == Event.DELETE
+        assert event.type == Event.Type.DELETE
         assert event.package_owner == self.user
         assert event.package_name == self.pkg
 
