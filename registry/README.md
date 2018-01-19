@@ -236,6 +236,8 @@ Don't forget to add it to the repo:
     git add migrations/versions/[whatever].py
 -->
 
+# Instructions to set up development environment on Ubuntu Server 16.04.3
+
 1) set up Ubuntu, python and virtualenv
 ``` bash
 apt update
