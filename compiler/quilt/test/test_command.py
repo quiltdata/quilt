@@ -177,7 +177,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url(None))
 
-        mock_login_with_token.assert_called_with(None, old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, None)
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -191,7 +191,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url('foo'))
 
-        mock_login_with_token.assert_called_with('foo', old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, 'foo')
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -229,7 +229,7 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login_with_token(None, old_refresh_token)
+        command.login_with_token(old_refresh_token)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
@@ -251,7 +251,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 
@@ -267,7 +267,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 

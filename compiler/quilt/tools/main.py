@@ -110,6 +110,12 @@ def argument_parser():
     access_remove_p.add_argument("user", type=str, help="User to remove")
     access_remove_p.set_defaults(func=command.access_remove)
 
+    # audit
+    shorthelp = "Audit a user or a package."
+    audit_p = subparsers.add_parser("audit", description=shorthelp, help=shorthelp)
+    audit_p.add_argument("thing", type=str, help=shorthelp)
+    audit_p.set_defaults(func=command.audit)
+
     # quilt build
     shorthelp = "Compile a Quilt data package from directory or YAML file"
     build_p = subparsers.add_parser("build", description=shorthelp, help=shorthelp)
@@ -251,6 +257,37 @@ def argument_parser():
     tag_remove_p.add_argument("tag", type=str, help="Tag name")
     tag_remove_p.set_defaults(func=command.tag_remove)
 
+    # user
+    shorthelp = "Commands for managing users. Only available to admins"
+    users_p = subparsers.add_parser("user", description=shorthelp, help=shorthelp)
+    users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
+    users_subparsers.required = True
+
+    # user list
+    shorthelp = "List users in your team."
+    user_list_p = users_subparsers.add_parser("list", help=shorthelp)
+    user_list_p.set_defaults(func=command.cli_list_users)
+
+    # user create
+    shorthelp = "Create a user. Must provide username and email. Username must be unique."
+    user_create_p = users_subparsers.add_parser("create", help=shorthelp)
+    user_create_p.add_argument("username", type=str)
+    user_create_p.add_argument("email", type=str)
+    user_create_p.set_defaults(func=command.create_user)
+
+    # user disable
+    shorthelp = "Disable a user."
+    user_disable_p = users_subparsers.add_parser("disable", help=shorthelp)
+    user_disable_p.add_argument("username", type=str)
+    user_disable_p.set_defaults(func=command.disable_user)
+
+    # user delete
+    shorthelp = "Delete a user. Use with caution."
+    user_delete_p = users_subparsers.add_parser("delete", help=shorthelp)
+    user_delete_p.add_argument("username", type=str)
+    user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
+    user_delete_p.set_defaults(func=command.delete_user)
+
     # quilt version
     shorthelp = "List or permanently add a package version to the server"
     version_p = subparsers.add_parser("version", description=shorthelp, help=shorthelp)
@@ -270,37 +307,6 @@ def argument_parser():
     version_list_p = version_subparsers.add_parser("list", description=shorthelp, help=shorthelp)
     version_list_p.add_argument("package", type=str, help=HANDLE)
     version_list_p.set_defaults(func=command.version_list)
-
-    shorthelp = "Commands for managing users. Only available to admins"
-    users_p = subparsers.add_parser("user", description=shorthelp, help=shorthelp)
-    users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
-    users_subparsers.required = True
-
-    shorthelp = "List users in your team."
-    user_list_p = users_subparsers.add_parser("list", help=shorthelp)
-    user_list_p.set_defaults(func=command.cli_list_users)
-
-    shorthelp = "Create a user. Must provide username and email. Username must be unique."
-    user_create_p = users_subparsers.add_parser("create", help=shorthelp)
-    user_create_p.add_argument("username", type=str)
-    user_create_p.add_argument("email", type=str)
-    user_create_p.set_defaults(func=command.create_user)
-
-    shorthelp = "Disable a user."
-    user_disable_p = users_subparsers.add_parser("disable", help=shorthelp)
-    user_disable_p.add_argument("username", type=str)
-    user_disable_p.set_defaults(func=command.disable_user)
-
-    shorthelp = "Delete a user. Use with caution."
-    user_delete_p = users_subparsers.add_parser("delete", help=shorthelp)
-    user_delete_p.add_argument("username", type=str)
-    user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
-    user_delete_p.set_defaults(func=command.delete_user)
-
-    shorthelp = "Audit a user or a package."
-    audit_p = subparsers.add_parser("audit")
-    audit_p.add_argument("thing", type=str, help=shorthelp)
-    audit_p.set_defaults(func=command.audit)
 
     return parser
 
