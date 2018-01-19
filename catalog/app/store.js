@@ -6,6 +6,7 @@ import createSagaMiddleware from 'redux-saga';
 
 import { getAsyncInjectors } from 'utils/asyncInjectors';
 import appSagas from 'containers/App/sagas';
+import gallerySagas from 'containers/Gallery/sagas';
 import searchSagas from 'containers/SearchResults/sagas';
 import { loadState } from 'utils/storage';
 
@@ -57,6 +58,8 @@ export default function configureStore(initialState = {}, history) {
   // we cannot hot load the search sagas in routes.js since they may not be
   // ready when the event fires, causing the event to drop
   injectSagas(searchSagas);
+  // Gallery occurs at multiple routes so inject here instead of routes.js
+  injectSagas(gallerySagas);
   // Make reducers hot reloadable, see http://mxs.is/googmo
   /* istanbul ignore next */
   if (module.hot) {
