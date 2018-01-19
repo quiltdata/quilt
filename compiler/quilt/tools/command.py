@@ -1329,3 +1329,18 @@ def delete_user(username, force=False, team=None):
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
+
+def audit(thing):
+    team = _find_logged_in_team()
+    if not team:
+        raise CommandException("Not logged in as a team user")
+
+    session = _get_session(team)
+    response = session.get(
+        "{url}/api/audit/{thing}/".format(
+            url=get_registry_url(team),
+            thing=thing
+        )
+    )
+
+    print(json.dumps(response.json(), indent=2))
