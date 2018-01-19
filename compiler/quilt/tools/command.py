@@ -106,7 +106,7 @@ def _save_auth(cfg):
         os.chmod(auth_path, stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
-def get_registry_url(team):
+def get_registry_url(team=None):
     if team is not None:
         # TODO: use utils.is_nodename() once merged
         if not VALID_NAME_RE.match(team):
@@ -180,7 +180,7 @@ def _handle_response(resp, **kwargs):
         except ValueError:
             raise CommandException("Unexpected failure: error %s" % resp.status_code)
 
-def _create_auth(team):
+def _create_auth(team=None):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
@@ -222,7 +222,7 @@ def _create_session(auth):
 
 _sessions = {}                  # pylint:disable=C0103
 
-def _get_session(team):
+def _get_session(team=None):
     """
     Creates a session or returns an existing session.
     """
@@ -236,7 +236,7 @@ def _get_session(team):
 
     return session
 
-def _clear_session(team):
+def _clear_session(team=None):
     global _sessions            # pylint:disable=C0103
     session = _sessions.pop(team, None)
     if session is not None:
@@ -420,7 +420,7 @@ def _clone_git_repo(url, branch, dest):
     cmd += [url, dest]
     subprocess.check_call(cmd)
 
-def _log(team, **kwargs):
+def _log(team=None, **kwargs):
     # TODO(dima): Save logs to a file, then send them when we get a chance.
 
     cfg = _load_config()
