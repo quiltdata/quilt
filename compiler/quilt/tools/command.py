@@ -1280,8 +1280,11 @@ def print_table(table, padding=2):
 
 def list_users(team=None):
     # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
     session = _get_session(team)
-    resp = session.get('http://localhost:5000/api/users/list')
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
 def cli_list_users(team=None):
@@ -1298,14 +1301,20 @@ def cli_list_users(team=None):
 
 def create_user(username, email, team=None):
     # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
     session = _get_session(team)
-    resp = session.post('http://localhost:5000/api/users/create', 
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/create' % url,
             data=json.dumps({'username':username, 'email':email}))
 
 def disable_user(username, team=None):
     # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
     session = _get_session(team)
-    resp = session.post('http://localhost:5000/api/users/disable', 
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/disable' % url, 
             data=json.dumps({'username':username}))
 
 def delete_user(username, force=False, team=None):
@@ -1315,5 +1324,8 @@ def delete_user(username, force=False, team=None):
         if confirmed.lower() != 'y':
             return
 
+    if team is None:
+        team = _find_logged_in_team()
     session = _get_session(team)
-    resp = session.post('http://localhost:5000/api/users/delete', data=json.dumps({'username':username}))
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
