@@ -236,6 +236,7 @@
     "react-router-scroll": "0.4.1",
     "react-stripe-checkout": "^2.4.0",
     "react-tap-event-plugin": "^2.0.1",
+    "recompose": "0.24.0",
     "redux": "3.6.0",
     "redux-immutable": "3.0.8",
     "redux-saga": "0.14.0",
