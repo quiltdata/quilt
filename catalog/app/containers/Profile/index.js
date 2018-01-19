@@ -1,11 +1,8 @@
 /* Profile */
 import Avatar from 'material-ui/Avatar';
-import Checkbox from 'material-ui/Checkbox';
-import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
-import TextField from 'material-ui/TextField';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
@@ -14,6 +11,7 @@ import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 import { Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle } from 'material-ui/Toolbar';
 
+import Admin from 'containers/Admin';
 import apiStatus from 'constants/api';
 import { makeSignInURL } from 'utils/auth';
 import config from 'constants/config';
@@ -210,7 +208,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
             <Tabs>
               <Tab label="packages" value="packages">{ pageOne }</Tab>
               <Tab label="admin" value="admin">
-                <AdminPage
+                <Admin
                   teamName={config.team.name || ''}
                 />
               </Tab>
@@ -247,23 +245,6 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   };
 }
-const AdminPage = ({ teamName = '' }) => {
-  return (
-    <div>
-      <h1><FormattedMessage {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
-      <h2><FormattedMessage {...messages.teamPolicies} /></h2>
-      <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
-      <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
-      <h2><FormattedMessage {...messages.membersAdd} /></h2>
-      <TextField hintText="Email" />
-      <FlatButton label="Add" />
-    </div>
-  );
-};
-
-AdminPage.propTypes = {
-  teamName: PropTypes.string,
-};
 
 const PackagesArea = ({ packages, shortName, user }) => (
   <div>
