@@ -236,7 +236,7 @@ class ImportTest(QuiltTestCase):
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
-        package1._set(['new', 'file'], file_path)
+        package1._set(['new', 'file'], 'data/foo.csv', build_dir=mydir)
         assert package1.new.file._data() == file_path
 
         # Add a new group
@@ -247,11 +247,12 @@ class ImportTest(QuiltTestCase):
 
         # Overwrite a leaf node
         new_path = os.path.join(mydir, 'data/nuts.csv')
-        package1._set(['newgroup', 'foo'], new_path)
+        package1._set(['newgroup', 'foo'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup.foo._data() == new_path
 
         # Overwrite the whole group
-        package1._set(['newgroup'], new_path)
+        new_path = os.path.join(mydir, 'data/nuts.csv')
+        package1._set(['newgroup'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup._data() == new_path
 
         # Built a new package and verify the new contents
@@ -306,7 +307,7 @@ class ImportTest(QuiltTestCase):
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
-        package1._set(['new', 'file'], file_path)
+        package1._set(['new', 'file'], 'data/foo.csv', mydir)
         assert package1.new.file._data() == file_path
 
         # Add a new group
@@ -317,11 +318,11 @@ class ImportTest(QuiltTestCase):
 
         # Overwrite a leaf node
         new_path = os.path.join(mydir, 'data/nuts.csv')
-        package1._set(['newgroup', 'foo'], new_path)
+        package1._set(['newgroup', 'foo'], 'data/nuts.csv', mydir)
         assert package1.newgroup.foo._data() == new_path
 
         # Overwrite the whole group
-        package1._set(['newgroup'], new_path)
+        package1._set(['newgroup'], 'data/nuts.csv', mydir)
         assert package1.newgroup._data() == new_path
 
         # Built a new package and verify the new contents
@@ -358,12 +359,12 @@ class ImportTest(QuiltTestCase):
         # also tests dynamic import
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)
-        from quilt.data.foo import package
+        command.build('foo/package5', build_path)
+        from quilt.data.foo import package5
 
         # make a copy, to prove we can
-        newpkgname = 'foo/newpackage'
-        quilt.build(newpkgname, package)
+        newpkgname = 'foo/copied_package'
+        quilt.build(newpkgname, package5)
 
         newfilename = 'myfile'+str(int(time.time()))
         with open(newfilename, 'w') as fh:
@@ -376,11 +377,12 @@ class ImportTest(QuiltTestCase):
         # current spec requires that build() *not* update the in-memory module tree.
         newpath1 = getattr(module, newfilename)()
         assert newpath1 == newfilename
-        
+
         # current spec requires that load() reload from disk, i.e. gets a reference
         # to the local object store
         # this is important because of potential changes to myfile
         reloaded_module = quilt.load(newpkgname)
+        assert reloaded_module is not module
         newpath2 = getattr(reloaded_module, newfilename)()
         assert 'myfile' not in newpath2
 

@@ -1,6 +1,7 @@
 """
 Nodes that represent the data in a Quilt package.
 """
+import os
 
 import pandas as pd
 from six import iteritems, string_types
@@ -141,7 +142,19 @@ class PackageNode(GroupNode):
         finfo = self._package.get_path()
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
-    def _set(self, path, value):
+    def _set(self, path, value, build_dir=''):
+        """Create and set a node by path
+
+        This creates a node from a filename or pandas DataFrame.
+
+        If `value` is a filename, it must be relative to `build_dir`,
+            and it will be stored for export.
+            `build_dir` is the current directory by default.
+
+        :param path:  Path list -- I.e. ['examples', 'new_node']
+        :param value:  Pandas dataframe, or a filename relative to build_dir
+        :param build_dir:  Directory containing `value` if value is a filename.
+        """
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
@@ -151,10 +164,13 @@ class PackageNode(GroupNode):
         elif isinstance(value, string_types + (bytes,)):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value
-
+            if os.path.isabs(value):
+                raise ValueError("Invalid path: Package contents must be relative.  Use `build_dir` to set base path.")
             # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
             metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
             core_node = core.FileNode(hashes=[], metadata=metadata)
+            if build_dir:
+                value = os.path.join(build_dir, value)
         else:
             accepted_types = (pd.DataFrame, bytes) + string_types
             raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"

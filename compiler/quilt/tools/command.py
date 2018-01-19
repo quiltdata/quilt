@@ -445,7 +445,11 @@ def _log(team, **kwargs):
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
+
+    :param package: short package specifier, i.e. 'team:user/pkg'
+    :param path: file path, git url, or existing package node
     """
+    # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
@@ -506,7 +510,7 @@ def build_from_node(package, node):
     def _process_node(node, path=''):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, path + '/' + key)
+                _process_node(child, (path + '/' + key if path else key))
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
