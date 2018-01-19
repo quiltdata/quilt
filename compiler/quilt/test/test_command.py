@@ -333,6 +333,105 @@ class CommandTest(QuiltTestCase):
 
         command.inspect('foo/bar')
 
+    def test_user_list(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=200,
+            json=json.dumps({
+                'count':'1',
+                'results':[{
+                    'username':'admin',
+                    'email':'admin@quiltdata.io',
+                    'first_name':'',
+                    'last_name':'',
+                    'is_superuser':True,
+                    'is_admin':True,
+                    'is_staff':True
+                }]
+            })
+        )
+
+        command.list_users()
+        pass
+
+    def test_user_list_no_auth(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+        pass
+    
+    def test_user_create(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/create' % command.get_registry_url(None),
+            status=201,
+            json=json.dumps({
+                'count':'1',
+                'username':'admin',
+                'first_name':'',
+                'last_name':'',
+                'is_superuser':True,
+                'is_admin':True,
+                'is_staff':True,
+            })
+        )
+        command.create_user('bob', 'bob@quiltdata.io')
+        pass
+
+    def test_user_create_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/create' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quitdata.io')
+        pass
+    
+    def test_user_disable(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/disable' % command.get_registry_url(None),
+            status=201
+            )
+        command.disable_user('bob')
+        pass
+
+    def test_user_disable_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/disable' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob')
+        pass
+    
+    def test_user_delete(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(None),
+            status=201
+            )
+        command.delete_user('bob', force=True)
+        pass
+
+    def test_user_delete_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True)
+        pass
+    
+
 # TODO: work in progress
 #    def test_find_node_by_name(self):
 #        mydir = os.path.dirname(__file__)
