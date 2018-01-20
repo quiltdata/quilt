@@ -1281,7 +1281,6 @@ def load(pkginfo):
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
-# XXX: should we create a 'quilt.tools.utils' or 'quilt.utils' module for stuff like this and importpkg?
 def update(pkginfo, content):
     """convenience function around _set()"""
     # NOTE: cannot be named set() because that would conflict with the python builtin function.
