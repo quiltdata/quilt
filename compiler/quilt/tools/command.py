@@ -5,6 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
+from collections import Counter
 from datetime import datetime
 import gzip
 import hashlib
@@ -19,7 +20,6 @@ import tempfile
 from threading import Thread, Lock
 import time
 import yaml
-import importlib
 
 from packaging.version import Version
 import pandas as pd
@@ -1356,6 +1356,30 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
                     print(msg.format(orig_filepath))
                 yield (storage_filepath, orig_filepath)
 
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs"""
+
+        conflict_counter = Counter(dest for src, dest in export_list)
+        conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
+        verified_conflicts = []
+
+        if conflicts:
+            # kinda slow, but only happens if a conflict has definitely occurred.
+            for conflict in conflicts:
+                matches = [item for item in final_export_map if item[1] == conflict]
+                # if all are from the same source, it's not really a conflict.
+                src = matches[0][0]
+                if all(src == item[0] for item in matches[1:]):
+                    continue
+                verified_conflicts.append(conflict)
+
+        if verified_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_conflicts)
+            conflict_error = CommandException("Invalid export: Conflicting filenames contain different contents:\n\t"
+                                              + conflict_strings)
+            conflict_error.conflicts = verified_conflicts
+            raise conflict_error
+
     # Iterate over filename map, filtering exports
     exports = ((src, dest) for src, dest in iter_filename_map(node) if filter(dest))
 
@@ -1391,6 +1415,9 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         # -- should we consider it an error and raise?
         print("No files to export.")
         return
+
+    # prevent conflicts
+    check_for_conflicts(final_export_map)
 
     # ensure output path is writable.  I'd just check stat, but this is fully portable.
     # TODO: Performance re: write amplifacation per PR#266
