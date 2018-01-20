@@ -391,3 +391,166 @@ def setup_tensorflow_checkpoints(pkg, checkpoints_nodepath="checkpoints"):
         save_patcher.start()
         return path_prefix
     save_patcher = patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)
+
+
+## The below code below provides tensorflow support by suclassing Saver.
+#   Mapper etc have been retained for VFS purposes.
+
+## These helpers -- create_if_missing, try_export, and prep_package are meant to
+#  be useful for VFS or the TF Saver subclass, but have not been integrated into VFS.
+def create_if_missing(package):
+    """Checks that the given package exists, and if not, creates a blank one."""
+    try:
+        command.load(package)
+        print("Found {!r}".format(package))
+    except command.CommandException as error:
+        print("Creating empty package: {!r}".format(package))
+        team, owner, pkg, subpath = command.parse_package_extended(package)
+        command.build_package_from_contents(team, owner, pkg, '', {'contents': {}})
+
+
+def try_export(package, force=False):
+    """Attempts to export files from a package.
+
+    :returns: True on success, False otherwise
+    """
+    try:
+        module = command.load(package)
+        if not module._keys():
+            print("Unable to export: Empty module.")
+            return False
+        if force:
+            print("Exporting with force=True -- may overwrite existing data")
+        command.export(package, force=force)
+        return True
+    except AttributeError as error:
+        print("Unable to export: Specified module subpath doesn't exist.")
+        print("    Module subpath will be created at save time.")
+        return False
+    except command.CommandException as error:
+        if 'subdir already exists:' not in str(error):
+            raise
+        print("Unable to export -- subdir already exists.")
+
+
+def prep_package(package, ensure_installed=True, create_if_missing=False, failexit=False, export=True,
+                 force_export=False):
+    """Prepare to use the specified package.
+
+    This performs a few common activities that may be needed before usage.
+
+    The `failexit` parameter is meaningless if `create_if_missing` is True.
+
+    :param package: Package specifier, e.g. team:user/package/subpath/subpath
+    :param ensure_installed: Ensure `package` is installed.
+    :param create_if_missing: Create package if it isn't present.
+    :param failexit: Fail if package not present and can't be installed.
+    :param export: Export the package before usage
+    :param force_export: Allow export to overwrite existing data.
+    """
+    team, owner, pkg, _ = command.parse_package(package, allow_subpath=True)
+    team = team + ':' if team else ''
+    pkg = '{team}{owner}/{pkg}'.format(**locals())
+
+    if ensure_installed:
+        try:
+            command.load(pkg)
+        except command.CommandException as error:
+            msg = str(error)
+            if not msg.startswith('Package') and msg.endswith('not found.'):
+                raise
+
+            print("Installing {!r}".format(pkg))
+            try:
+                command.install(pkg)
+            except command.CommandException as error:
+                if not 'do you need to log in?' in str(error):
+                    raise
+                print("Unable to find or install {!r}".format(pkg))
+                if failexit and not create_if_missing:
+                    exit(1)
+    if create_if_missing:
+        globals()['create_if_missing'](pkg)
+    if export:
+        try_export(package, force=force_export)
+
+
+try:
+    # only relevant if tensorflow is installed.
+    import tensorflow
+    from tensorflow import train
+except ImportError:
+    pass
+
+
+if 'tensorflow' not in globals():
+    # stub class for when TF isn't installed.
+    class QuiltTfSaver(object):
+        def __init__(self, quilt_package, ensure_installed=True, create_if_missing=False, failexit=True,
+                     export=True, force_export=False):
+            raise ModuleNotFoundError("'tensorflow' module not found.")
+else:
+    class QuiltTfSaver(train.Saver):
+        def __init__(self, *args, **kwargs):
+            quilt_kwargs = ('quilt_package', 'ensure_installed', 'create_if_missing', 'failexit',
+                            'export', 'force_export')
+            quilt_kwargs = {key: kwargs.pop(key) for key in quilt_kwargs if key in kwargs}
+
+            super().__init__(*args, **kwargs)
+
+            quilt_package = quilt_kwargs.pop('quilt_package')   # required
+            team, owner, package, subpath = command.parse_package(quilt_package, allow_subpath=True)
+            self.quilt_package = pathlib.PurePosixPath("{}{}/{}".format((team + ':' if team else ''), owner, package))
+            self.quilt_subpath = pathlib.PurePosixPath('/'.join(subpath))
+            prep_package(quilt_package, **quilt_kwargs)
+
+        def save(
+                self,
+                sess,
+                save_path,
+                global_step=None,
+                latest_filename='checkpoint',
+                meta_graph_suffix="meta",
+                write_meta_graph=True,
+                write_state=True
+                ):
+            # perform the save
+            path_prefix = super(QuiltTfSaver, self).save(sess, save_path, global_step, latest_filename,
+                                                         meta_graph_suffix, write_meta_graph, write_state)
+
+            # when mixing path types, the first one wins --
+            #   examples:
+            #       save_path is OS native, so save_path / subpath == an OS native path
+            #       subpath is a PurePosixPath, so subpath / save_path == a PurePosixPath.
+            package = self.quilt_package                # PurePosixPath
+            subpath = self.quilt_subpath                # PurePosixPath
+            full_package = package / subpath
+
+            # retain OS path style by using Path()
+            save_path = pathlib.Path(save_path)         # tensorboard/cifar-10
+            path_prefix = pathlib.Path(path_prefix)     # tensorboard/cifar-10/-20
+
+            # get save info
+            #   'tensorboard/cifar-10/-20'
+            latest_checkpoint = tensorflow.train.latest_checkpoint(checkpoint_dir=str(save_path))
+
+            # print(latest_filename)      # checkpoint
+            # print(save_path)            # tensorboard/cifar-10
+            # print(latest_checkpoint)    # tensorboard/cifar-10/-20
+            # print(path_prefix)          # tensorboard/cifar-10/-20
+
+            # Update checkpoint file
+            latest_filename_file_path = save_path / latest_filename
+            latest_filename_node_path = filepath_to_nodepath(full_package / latest_filename_file_path, '/')
+
+            module = command.update(str(latest_filename_node_path), str(latest_filename_file_path))
+            command.build(str(package), module)
+
+            # read the checkpoint data and write to quilt
+            used = set()
+            for filepath in save_path.glob(path_prefix.name + "*"):   # foo/bar/-1234*
+                file_node_path = filepath_to_nodepath(full_package / filepath, nodepath_separator='/', invalid=used)
+                used.add(file_node_path)
+                command.build(str(package), command.update(file_node_path, str(filepath)))
+
+            return path_prefix
