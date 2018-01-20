@@ -108,7 +108,7 @@ class GroupNode(DataNode):
             child_path = base_path / name
             yield child_path, child_node
             if recursive and isinstance(child_node, GroupNode):
-                for subpath, subnode in cls.__iteritems(child_node, child_path):
+                for subpath, subnode in cls.__iteritems(child_node, child_path, recursive):
                     yield subpath, subnode
 
     def _iteritems(self, recursive=False):
@@ -128,7 +128,7 @@ class GroupNode(DataNode):
         :param recursive: iterate recursively over child nodes, as well
         :returns: iterator of path strings
         """
-        # Only _iteritems was needed, but this is a gimme.
+        # Only _iteritems was needed, but _iterpaths is a gimme.
         for path, node in self.__iteritems(self, pathlib.PurePath(), recursive):
             yield str(path)
 
