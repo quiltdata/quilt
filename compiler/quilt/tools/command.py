@@ -908,10 +908,7 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-        package = owner + '/' + pkg
-        if subpath:
-            package += '/' + "/".join(subpath)
+        package, hash, version, tag = parse_package_extended(pkginfo)
         install(package, hash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
@@ -1207,7 +1204,7 @@ def delete(package):
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
     team, owner, pkg = parse_package(package)
-    
+
     teamstr = "{}:".format(team) if team else ""
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
