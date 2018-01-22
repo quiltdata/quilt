@@ -613,7 +613,9 @@ def package_put(owner, package_name, package_hash):
         public=public,
     )
 
-    return dict()
+    return dict(
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+    )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
