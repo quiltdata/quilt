@@ -60,6 +60,8 @@ PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
 DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
 
+DISABLE_USER_ENDPOINTS = app.config['DISABLE_USER_ENDPOINTS']
+
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
@@ -258,7 +260,7 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None):
+def api(require_login=True, schema=None, enabled=True):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
@@ -272,10 +274,15 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+
             g.auth = Auth(PUBLIC, None, False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
+
+            if not enabled:
+                raise ApiException(requests.codes.bad_request, 
+                        "This endpoint is not enabled.")
 
             if validator is not None:
                 try:
@@ -1504,7 +1511,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(require_login=False)
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def list_users():
     auth_headers = {
@@ -1531,7 +1538,7 @@ def list_users():
     return resp.json()
 
 @app.route('/api/users/create', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def create_user():
     auth_headers = {
@@ -1584,7 +1591,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1618,7 +1625,7 @@ def disable_user():
     return resp.json()
 
 @app.route('/api/users/delete', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def delete_user():
     auth_headers = {

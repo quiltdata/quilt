@@ -10,6 +10,8 @@ import os
 
 DISALLOW_PUBLIC_USERS = bool(os.getenv('DISALLOW_PUBLIC_USERS', ''))
 
+DISABLE_USER_ENDPOINTS = bool(os.getenv('DISABLE_USER_ENDPOINTS', ''))
+
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.
 
