@@ -185,10 +185,38 @@ const AuditDialog = ({ onClose, open }) => {
       modal
       open={open}
     >
-      This dialog spans the entire width of the screen.
+      <AuditTable />
     </Dialog>
   );
 };
+
+AuditDialog.propTypes = {
+  onClose: PropTypes.func,
+  open: PropTypes.bool,
+};
+
+const AuditTable = () => (
+  <Table selectable={false}>
+    <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
+      <TableRow>
+        <TableHeaderColumn>Time</TableHeaderColumn>
+        <TableHeaderColumn>Package</TableHeaderColumn>
+        <TableHeaderColumn>Event</TableHeaderColumn>
+      </TableRow>
+    </TableHeader>
+    <TableBody displayRowCheckbox={false}>
+      {
+        packageData.map((p) => (
+          <TableRow hoverable key={p.name}>
+            <TableRowColumn><FlatButton> {p.last_seen} </FlatButton></TableRowColumn>
+            <TableRowColumn><a>{p.name}</a></TableRowColumn>
+            <TableRowColumn>{ ['preview', 'install', 'push'][Math.floor(Math.random() * 3)]}</TableRowColumn>
+          </TableRow>
+        ))
+      }
+    </TableBody>
+  </Table>
+);
 
 const mapStateToProps = createStructuredSelector({
   Admin: makeSelectAdmin(),
