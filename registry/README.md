@@ -245,10 +245,11 @@ apt upgrade -y
 apt install -y python3 python3-pip python3-venv virtualenvwrapper
 source `find /usr -name virtualenvwrapper.sh|head -1`
 mkvirtualenv -p $(which python3) quilt
+export ENV=~/.virtualenvs/quilt
 /bin/rm -f $ENV/bin/postactivate; touch $ENV/bin/postactivate
 echo 'export WORKON_HOME=$HOME/.virtualenvs' >> $ENV/bin/postactivate
 echo 'export PROJECT_HOME=$HOME/projects' >> $ENV/bin/postactivate
-echo ‘source `find /usr -name virtualenvwrapper.sh|head -1`’  >> $ENV/bin/postactivate # diff versions put it in diff places
+echo 'source `find /usr -name virtualenvwrapper.sh|head -1`'  >> $ENV/bin/postactivate # diff versions put it in diff places
 ```
 
 2) enter the virtual environment
@@ -283,13 +284,13 @@ sudo chmod +x /usr/local/bin/docker-compose
 djangomigration_1  |   Applying sessions.0001_initial... OK
 registry_djangomigration_1 exited with code 0
 ``` bash
-docker-compose -f docker-compose-dev.yml up
+sudo docker-compose -f docker-compose-dev.yml up
 ```
 4) start the flask server  (NEW TERMINAL WINDOW)
 ``` bash
 workon quilt
 cd quilt/registry
-sudo echo "127.0.0.1 auth s3 flask catalog" | tee -a /etc/hosts
+sudo echo "127.0.0.1 auth s3 flask catalog" | sudo tee -a /etc/hosts
 source quilt_server/flask_dev.sh
 ```
 
