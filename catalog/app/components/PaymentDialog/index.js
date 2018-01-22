@@ -112,7 +112,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
             />
             <br />
             <br />
-            <Pricing includeSignIn={false} />
+            <Pricing takeAction={false} />
           </Content>
         </Dialog>
         <Confirm

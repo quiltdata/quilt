@@ -12,7 +12,7 @@ import strings from './messages';
 const xs = `${breaks.sm - 1}px`;
 
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-const Feature = ({ header, tagline }) => (
+const Feature = ({ header, tagline, signUp }) => (
   <ImageRow backgroundColor="#F6B500" src={background}>
     <Content>
       <h1 className="main">
@@ -21,7 +21,7 @@ const Feature = ({ header, tagline }) => (
       <h2 className="main">
         { tagline }
       </h2>
-      <TakeAction />
+      <TakeAction signUp={signUp} />
       <div className="framer">
         <iframe
           src="https://ghbtns.com/github-btn.html?user=quiltdata&repo=quilt&type=star&count=true&size=large"
@@ -46,6 +46,7 @@ Feature.defaultProps = {
 Feature.propTypes = {
   header: PropTypes.string,
   tagline: PropTypes.string,
+  signUp: PropTypes.bool,
 };
 
 const Content = styled.div`
@@ -94,6 +95,7 @@ const Content = styled.div`
     h2.main {
       font-size: 1.5em;
     }
+  }
 `;
 
 export default Feature;
