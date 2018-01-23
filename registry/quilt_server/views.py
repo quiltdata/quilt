@@ -85,6 +85,18 @@ class QuiltCli(httpagentparser.Browser):
 
 httpagentparser.detectorshub.register(QuiltCli())
 
+class PythonPlatform(httpagentparser.DetectorBase):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.look_for = name
+
+    info_type = 'python_platform'
+    version_markers = [('/', '')]
+
+for python_name in ['CPython', 'Jython', 'PyPy']:
+    httpagentparser.detectorshub.register(PythonPlatform(python_name))
+
 
 ### Web routes ###
 
@@ -374,6 +386,8 @@ def _mp_track(**kwargs):
         browser_version=g.user_agent['browser']['version'],
         platform_name=g.user_agent['platform']['name'],
         platform_version=g.user_agent['platform']['version'],
+        python_name=g.user_agent.get('python_platform', {}).get('name'),
+        python_version=g.user_agent.get('python_platform', {}).get('version'),
         deployment_id=DEPLOYMENT_ID,
     )
 
