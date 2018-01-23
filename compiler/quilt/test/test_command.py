@@ -177,7 +177,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url(None))
 
-        mock_login_with_token.assert_called_with(None, old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, None)
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -191,7 +191,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url('foo'))
 
-        mock_login_with_token.assert_called_with('foo', old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, 'foo')
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -229,7 +229,7 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login_with_token(None, old_refresh_token)
+        command.login_with_token(old_refresh_token)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
@@ -251,7 +251,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 
@@ -267,7 +267,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123")
 
         mock_save.assert_not_called()
 
@@ -332,6 +332,105 @@ class CommandTest(QuiltTestCase):
         command.build('foo/bar', build_path)
 
         command.inspect('foo/bar')
+
+    def test_user_list(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=200,
+            json=json.dumps({
+                'count':'1',
+                'results':[{
+                    'username':'admin',
+                    'email':'admin@quiltdata.io',
+                    'first_name':'',
+                    'last_name':'',
+                    'is_superuser':True,
+                    'is_admin':True,
+                    'is_staff':True
+                }]
+            })
+        )
+
+        command.list_users()
+        pass
+
+    def test_user_list_no_auth(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+        pass
+    
+    def test_user_create(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/create' % command.get_registry_url(None),
+            status=201,
+            json=json.dumps({
+                'count':'1',
+                'username':'admin',
+                'first_name':'',
+                'last_name':'',
+                'is_superuser':True,
+                'is_admin':True,
+                'is_staff':True,
+            })
+        )
+        command.create_user('bob', 'bob@quiltdata.io')
+        pass
+
+    def test_user_create_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/create' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quitdata.io')
+        pass
+    
+    def test_user_disable(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/disable' % command.get_registry_url(None),
+            status=201
+            )
+        command.disable_user('bob')
+        pass
+
+    def test_user_disable_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/disable' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob')
+        pass
+    
+    def test_user_delete(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(None),
+            status=201
+            )
+        command.delete_user('bob', force=True)
+        pass
+
+    def test_user_delete_no_auth(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(None),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True)
+        pass
+    
 
 # TODO: work in progress
 #    def test_find_node_by_name(self):

@@ -47,7 +47,8 @@ OAUTH_USER_API = app.config['OAUTH']['user_api']
 OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
 OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 
-CATALOG_REDIRECT_URLS = app.config['CATALOG_REDIRECT_URLS']
+CATALOG_URL = app.config['CATALOG_URL']
+CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
 QUILT_AUTH_URL = app.config['QUILT_AUTH_URL']
 
@@ -59,6 +60,8 @@ PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
 DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
+
+DISABLE_USER_ENDPOINTS = app.config['DISABLE_USER_ENDPOINTS']
 
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
@@ -90,6 +93,18 @@ class QuiltCli(httpagentparser.Browser):
 
 httpagentparser.detectorshub.register(QuiltCli())
 
+class PythonPlatform(httpagentparser.DetectorBase):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.look_for = name
+
+    info_type = 'python_platform'
+    version_markers = [('/', '')]
+
+for python_name in ['CPython', 'Jython', 'PyPy']:
+    httpagentparser.detectorshub.register(PythonPlatform(python_name))
+
 
 ### Web routes ###
 
@@ -116,7 +131,7 @@ def robots():
     return Response(ROBOTS_TXT, mimetype='text/plain')
 
 def _valid_catalog_redirect(next):
-    return next is None or any(next.startswith(url) for url in CATALOG_REDIRECT_URLS)
+    return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 @app.route('/login')
 def login():
@@ -146,9 +161,14 @@ def oauth_callback():
     if not _valid_catalog_redirect(next):
         abort(requests.codes.bad_request)
 
+    common_tmpl_args = dict(
+        QUILT_CDN=QUILT_CDN,
+        CATALOG_URL=CATALOG_URL,
+    )
+
     error = request.args.get('error')
     if error is not None:
-        return render_template('oauth_fail.html', error=error, QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_fail.html', error=error, **common_tmpl_args)
 
     code = request.args.get('code')
     if code is None:
@@ -165,9 +185,9 @@ def oauth_callback():
             return redirect('%s#%s' % (next, urlencode(resp)))
         else:
             token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
-            return render_template('oauth_success.html', code=token, QUILT_CDN=QUILT_CDN)
+            return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
-        return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
 
 @app.route('/api/token', methods=['POST'])
 @as_json
@@ -258,7 +278,7 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None):
+def api(require_login=True, schema=None, enabled=True):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
@@ -272,10 +292,15 @@ def api(require_login=True, schema=None):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+
             g.auth = Auth(PUBLIC, None, False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
+
+            if not enabled:
+                raise ApiException(requests.codes.bad_request, 
+                        "This endpoint is not enabled.")
 
             if validator is not None:
                 try:
@@ -381,6 +406,8 @@ def _mp_track(**kwargs):
         browser_version=g.user_agent['browser']['version'],
         platform_name=g.user_agent['platform']['name'],
         platform_version=g.user_agent['platform']['version'],
+        python_name=g.user_agent.get('python_platform', {}).get('name'),
+        python_version=g.user_agent.get('python_platform', {}).get('version'),
         deployment_id=DEPLOYMENT_ID,
     )
 
@@ -630,7 +657,9 @@ def package_put(owner, package_name, package_hash):
         public=public,
     )
 
-    return dict()
+    return dict(
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+    )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -1504,7 +1533,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(require_login=False)
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def list_users():
     auth_headers = {
@@ -1531,7 +1560,7 @@ def list_users():
     return resp.json()
 
 @app.route('/api/users/create', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def create_user():
     auth_headers = {
@@ -1584,7 +1613,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1618,7 +1647,7 @@ def disable_user():
     return resp.json()
 
 @app.route('/api/users/delete', methods=['POST'])
-@api()
+@api(enabled=not DISABLE_USER_ENDPOINTS)
 @as_json
 def delete_user():
     auth_headers = {

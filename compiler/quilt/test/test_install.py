@@ -7,6 +7,7 @@ import json
 import os
 import time
 
+import requests
 import responses
 from six import assertRaisesRegex
 from six.moves import urllib
@@ -76,6 +77,36 @@ class InstallTest(QuiltTestCase):
         teststore = PackageStore(self._store_dir)
 
         with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
+                               Package.CONTENTS_DIR,
+                               contents_hash)) as fd:
+            file_contents = json.load(fd, object_hook=decode_node)
+            assert file_contents == contents
+
+        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
+            contents = fd.read()
+            assert contents == table_data
+
+        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
+            contents = fd.read()
+            assert contents == file_data
+
+    def test_install_team_latest(self):
+        """
+        Install the latest team update of a package.
+        """
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_tag('foo/bar', 'latest', contents_hash, team='qux')
+        self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash], team='qux')
+        self._mock_s3(table_hash, table_data)
+        self._mock_s3(file_hash, file_data)
+
+        command.install('qux:foo/bar')
+        teststore = PackageStore(self._store_dir)
+
+        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
                                Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
@@ -356,6 +387,35 @@ packages:
 
         command.install('foo/bar')
 
+    def test_download_retry(self):
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
+
+        s3_url = 'https://example.com/%s' % table_hash
+        error = requests.exceptions.ConnectionError("Timeout")
+
+        # Fail to install after 3 timeouts.
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self._mock_s3(table_hash, table_data)  # We won't actually get to this one.
+
+        with self.assertRaises(command.CommandException):
+            command.install('foo/bar/group/table')
+
+        self.requests_mock.reset()
+
+        # Succeed after 2 timeouts and a successful response.
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self._mock_s3(table_hash, table_data)
+
+        command.install('foo/bar/group/table')
+
     def _mock_log(self, package, pkg_hash):
         log_url = '%s/api/log/%s/' % (command.get_registry_url(None), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
@@ -363,23 +423,23 @@ packages:
         ]}))
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
-                      status=200, message=None):
-        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(None), package, tag)
+                      status=200, message=None, team=None):
+        tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(team), package, tag)
         self.requests_mock.add(cmd, tag_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
 
     def _mock_version(self, package, version, pkg_hash, cmd=responses.GET,
-                      status=200, message=None):
-        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(None), package, version)
+                      status=200, message=None, team=None):
+        version_url = '%s/api/version/%s/%s' % (command.get_registry_url(team), package, version)
         self.requests_mock.add(cmd, version_url, json.dumps(
             dict(message=message) if message else dict(hash=pkg_hash)
         ), status=status)
 
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
-                      status=200, message=None):
+                      status=200, message=None, team=None):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.get_registry_url(None), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(team), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else

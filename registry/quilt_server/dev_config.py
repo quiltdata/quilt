@@ -39,7 +39,7 @@ OAUTH.update(dict(
     redirect_url='http://localhost:5000/oauth_callback',
 ))
 
-CATALOG_REDIRECT_URLS = ['http://localhost:3000/oauth_callback']
+CATALOG_URL = 'http://localhost:3000'
 
 INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL # XXX
 

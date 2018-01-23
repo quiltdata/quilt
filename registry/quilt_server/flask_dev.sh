@@ -8,4 +8,5 @@ export AUTH_PROVIDER=quilt
 export QUILT_AUTH_URL=http://localhost:5002
 export FLASK_DEBUG=1
 export FLASK_APP=quilt_server
+unset DISABLE_USER_ENDPOINTS
 flask run

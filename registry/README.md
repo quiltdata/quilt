@@ -6,26 +6,34 @@ This is the reference implementation of the Quilt server and package registry.
 
 We recommend using `docker-compose` to run a local Quilt registry for testing and development. This starts a collection of Docker containers to run the various services needed to run the registry: database, storage, and Flask web/API server.  The advantage of Docker is that it isolates you from the details of installing each component correctly, including version, configuration, etc. -- with docker, everything is pre-configured for you.
 
-## VERY IMPORTANT: Docker database is reset (deleted) on each startup/shutdown!!!
+## IMPORTANT: The database is reset (deleted) on each startup/shutdown
 
-It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package stage is reset every time the services are restarted. To configure the database to use persistent storage, set `PGDATA` to point to a Docker volume as described here: (https://hub.docker.com/_/postgres/).
+It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package state is reset every time the services are restarted. To configure the database to use persistent storage, set `PGDATA` to point to a Docker volume as described [here](https://hub.docker.com/_/postgres/).
 
 <!--
 In development, it's often useful to leave the database and storage service running (avoiding deletion), and only restart the Flask webserver.  To do this, from the ```registry/``` directory, run ```docker-compose create --force-recreate --build flask``` instead of docker-compose restart/down/up.
 -->
-## Step 1) Install docker docker-compose
+## 1. Install docker and docker-compose
 
-Here are some helpful instructions for popular operating systems:
+Instructions for popular operating systems:
 
-Ubuntu Linux 16.04: [docker](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04)  [docker-compose](https://docs.docker.com/compose/install/)
+* Ubuntu Linux 16.04
+    * [docker](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04)
+    * [docker-compose](https://docs.docker.com/compose/install/)
+* Other Linux
+    * [docker](https://docs.docker.com/engine/installation/#server)
+    * [docker-compose](https://docs.docker.com/compose/install/#prerequisites)
+* MacOS
+    * Do not use Homebrew, which installs an older and incompatible version
+    * [docker](https://docs.docker.com/docker-for-mac/install/)
+    * [docker-compose](https://docs.docker.com/compose/install/)
+* Windows
+     * [docker](https://docs.docker.com/docker-for-windows/install/)
+     * [docker compose](https://docs.docker.com/compose/install/#install-compose)
+     * [ ] Test these instructions on Windows
 
-Other Linux: [docker](https://docs.docker.com/engine/installation/#server)  [docker-compose](https://docs.docker.com/compose/install/#prerequisites)
 
-MacOS: [docker](https://docs.docker.com/docker-for-mac/install/)  [docker-compose](https://docs.docker.com/compose/install/)   Important: do NOT use HomeBrew, which installs an older version that it not compatible.
-
-Windows: (instructions coming soon)
-
-## Step 2) Build and start the containers
+##  2) Build and start the containers
 ```bash
 docker-compose up
 ```
@@ -245,10 +253,11 @@ apt upgrade -y
 apt install -y python3 python3-pip python3-venv virtualenvwrapper
 source `find /usr -name virtualenvwrapper.sh|head -1`
 mkvirtualenv -p $(which python3) quilt
+export ENV=~/.virtualenvs/quilt
 /bin/rm -f $ENV/bin/postactivate; touch $ENV/bin/postactivate
 echo 'export WORKON_HOME=$HOME/.virtualenvs' >> $ENV/bin/postactivate
 echo 'export PROJECT_HOME=$HOME/projects' >> $ENV/bin/postactivate
-echo ‘source `find /usr -name virtualenvwrapper.sh|head -1`’  >> $ENV/bin/postactivate # diff versions put it in diff places
+echo 'source `find /usr -name virtualenvwrapper.sh|head -1`'  >> $ENV/bin/postactivate # diff versions put it in diff places
 ```
 
 2) enter the virtual environment
@@ -283,13 +292,13 @@ sudo chmod +x /usr/local/bin/docker-compose
 djangomigration_1  |   Applying sessions.0001_initial... OK
 registry_djangomigration_1 exited with code 0
 ``` bash
-docker-compose -f docker-compose-dev.yml up
+sudo docker-compose -f docker-compose-dev.yml up
 ```
 4) start the flask server  (NEW TERMINAL WINDOW)
 ``` bash
 workon quilt
 cd quilt/registry
-sudo echo "127.0.0.1 auth s3 flask catalog" | tee -a /etc/hosts
+sudo echo "127.0.0.1 auth s3 flask catalog" | sudo tee -a /etc/hosts
 source quilt_server/flask_dev.sh
 ```
 
