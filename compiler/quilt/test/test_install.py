@@ -308,7 +308,7 @@ packages:
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
@@ -333,7 +333,7 @@ packages:
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_version('akarve/sales', '99.99', contents_hash1,
                            status=404, message='Version 99.99 does not exist')
-        with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- akarve/sales:v:99.99")
 
     def test_quilt_yml_unknown_team(self):
