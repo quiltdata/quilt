@@ -28,7 +28,9 @@ Instructions for popular operating systems:
     * [docker](https://docs.docker.com/docker-for-mac/install/)
     * [docker-compose](https://docs.docker.com/compose/install/)
 * Windows
-     * [ ] Add instructions
+     * [docker](https://docs.docker.com/docker-for-windows/install/)
+     * [docker compose](https://docs.docker.com/compose/install/#install-compose)
+     * [ ] Test these instructions on Windows
 
 
 ##  2) Build and start the containers
