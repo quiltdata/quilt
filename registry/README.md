@@ -24,7 +24,7 @@ Instructions for popular operating systems:
     * [docker](https://docs.docker.com/engine/installation/#server)
     * [docker-compose](https://docs.docker.com/compose/install/#prerequisites)
 * MacOS
-    * Do not use HomeBrew, which installs an older and incompatible version
+    * Do not use Homebrew, which installs an older and incompatible version
     * [docker](https://docs.docker.com/docker-for-mac/install/)
     * [docker-compose](https://docs.docker.com/compose/install/)
 * Windows
