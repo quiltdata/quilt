@@ -13,17 +13,23 @@ It's important to note that this configuration of the registry is stateless. Bec
 <!--
 In development, it's often useful to leave the database and storage service running (avoiding deletion), and only restart the Flask webserver.  To do this, from the ```registry/``` directory, run ```docker-compose create --force-recreate --build flask``` instead of docker-compose restart/down/up.
 -->
-## 1) Install docker docker-compose
+## 1. Install docker and docker-compose
 
-Here are some helpful instructions for popular operating systems:
+Instructions for popular operating systems:
 
-Ubuntu Linux 16.04: [docker](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04)  [docker-compose](https://docs.docker.com/compose/install/)
+* Ubuntu Linux 16.04
+    * [docker](https://www.digitalocean.com/community/tutorials/how-to-install-and-use-docker-on-ubuntu-16-04)
+    * [docker-compose](https://docs.docker.com/compose/install/)
+* Other Linux
+    * [docker](https://docs.docker.com/engine/installation/#server)
+    * [docker-compose](https://docs.docker.com/compose/install/#prerequisites)
+* MacOS
+    * Do not use HomeBrew, which installs an older and incompatible version
+    * [docker](https://docs.docker.com/docker-for-mac/install/)
+    * [docker-compose](https://docs.docker.com/compose/install/)
+* Windows
+     * [ ] Add instructions
 
-Other Linux: [docker](https://docs.docker.com/engine/installation/#server)  [docker-compose](https://docs.docker.com/compose/install/#prerequisites)
-
-MacOS: [docker](https://docs.docker.com/docker-for-mac/install/)  [docker-compose](https://docs.docker.com/compose/install/)   Important: do NOT use HomeBrew, which installs an older version that it not compatible.
-
-Windows: (instructions coming soon)
 
 ##  2) Build and start the containers
 ```bash
