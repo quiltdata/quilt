@@ -78,8 +78,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'), Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -98,20 +97,17 @@ class InstallTest(QuiltTestCase):
         """
         table_data, table_hash = self.make_table_data()
         file_data, file_hash = self.make_file_data()
-        contents, contents_hash = self.make_contents(table=table_hash,
-                                                     file=file_hash)
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
         self._mock_tag('foo/bar', 'latest', contents_hash, team='qux')
-        self._mock_package('foo/bar', contents_hash, '',
-                           contents, [table_hash, file_hash], team='qux')
+        self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash], team='qux')
         self._mock_s3(table_hash, table_data)
         self._mock_s3(file_hash, file_data)
 
         command.install('qux:foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'), Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -130,16 +126,13 @@ class InstallTest(QuiltTestCase):
         """
         table_data, table_hash = self.make_table_data()
         file_data, file_hash = self.make_file_data()
-        contents, contents_hash = self.make_contents(table=table_hash,
-                                                     file=file_hash)
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
         self._mock_log('foo/bar', contents_hash)
-        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6],
-                       cmd=responses.PUT)
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT)
         command.tag_add('foo/bar', 'mytag', contents_hash[0:6])
 
-        self._mock_version('foo/bar', '1.0', contents_hash[0:6],
-                           cmd=responses.PUT)
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
     def test_team_short_hashes(self):
@@ -148,18 +141,14 @@ class InstallTest(QuiltTestCase):
         """
         table_data, table_hash = self.make_table_data()
         file_data, file_hash = self.make_file_data()
-        contents, contents_hash = self.make_contents(table=table_hash,
-                                                     file=file_hash)
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
 
         self._mock_log('foo/bar', contents_hash, team='qux')
-        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6],
-                       cmd=responses.PUT, team='qux')
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT, team='qux')
         command.tag_add('qux:foo/bar', 'mytag', contents_hash[0:6])
 
-        self._mock_version('foo/bar', '1.0', contents_hash[0:6],
-                           cmd=responses.PUT, team='qux')
-        command.version_add('qux:foo/bar', '1.0', contents_hash[0:6],
-                            force=True)
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT, team='qux')
+        command.version_add('qux:foo/bar', '1.0', contents_hash[0:6], force=True)
 
     def test_install_subpackage(self):
         """
@@ -191,19 +180,15 @@ class InstallTest(QuiltTestCase):
         table_data, table_hash = self.make_table_data()
         contents, contents_hash = self.make_contents(table=table_hash)
         self._mock_tag('foo/bar', 'latest', contents_hash, team='qux')
-        self._mock_package('foo/bar', contents_hash, 'group/table', contents,
-                           [table_hash], team='qux')
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash], team='qux')
         self._mock_s3(table_hash, table_data)
         command.install('qux:foo/bar/group/table')
-        self.validate_file('foo', 'bar', contents_hash, contents, table_hash,
-                           table_data, team='qux')
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data, team='qux')
 
-    def validate_file(self, user, package, contents_hash, contents, table_hash,
-                      table_data, team=None):
+    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data, team=None):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(team, user, package),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(team, user, package), Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
