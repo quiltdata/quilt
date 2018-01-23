@@ -45,7 +45,7 @@ class QuiltTestCase(BasicQuiltTestCase):
         self.auth_patcher.start()
 
         self._store_dir = os.path.join(self._test_dir, PACKAGE_DIR_NAME)
-        self.store_patcher = patch('quilt.tools.store.default_store_location', lambda: self._store_dir)
+        self.store_patcher = patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': self._store_dir})
         self.store_patcher.start()
 
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=True)

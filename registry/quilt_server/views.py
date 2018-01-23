@@ -46,7 +46,8 @@ OAUTH_USER_API = app.config['OAUTH']['user_api']
 OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
 OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 
-CATALOG_REDIRECT_URLS = app.config['CATALOG_REDIRECT_URLS']
+CATALOG_URL = app.config['CATALOG_URL']
+CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
 AUTHORIZATION_HEADER = 'Authorization'
 
@@ -113,7 +114,7 @@ def robots():
     return Response(ROBOTS_TXT, mimetype='text/plain')
 
 def _valid_catalog_redirect(next):
-    return next is None or any(next.startswith(url) for url in CATALOG_REDIRECT_URLS)
+    return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 @app.route('/login')
 def login():
@@ -612,7 +613,9 @@ def package_put(owner, package_name, package_hash):
         public=public,
     )
 
-    return dict()
+    return dict(
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+    )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)

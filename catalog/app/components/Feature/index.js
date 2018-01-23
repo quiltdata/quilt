@@ -1,6 +1,5 @@
 /* Main landing page feature */
-import React from 'react';
-import { FormattedMessage } from 'react-intl';
+import React, { PropTypes } from 'react';
 import styled from 'styled-components';
 
 import ImageRow from 'components/ImageRow';
@@ -13,14 +12,14 @@ import strings from './messages';
 const xs = `${breaks.sm - 1}px`;
 
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-const Feature = () => (
+const Feature = ({ header, tagline }) => (
   <ImageRow backgroundColor="#F6B500" src={background}>
     <Content>
       <h1 className="main">
-        <FormattedMessage {...strings.header} />
+        { header }
       </h1>
       <h2 className="main">
-        <FormattedMessage {...strings.tagline} />
+        { tagline }
       </h2>
       <TakeAction />
       <div className="framer">
@@ -37,6 +36,17 @@ const Feature = () => (
   </ImageRow>
 );
 
+/* TODO do not abuse string tables like this; belongs in a FormattedMessage, but
+ * those don't support default values well? */
+Feature.defaultProps = {
+  header: strings.header.defaultMessage,
+  tagline: strings.tagline.defaultMessage,
+};
+
+Feature.propTypes = {
+  header: PropTypes.string,
+  tagline: PropTypes.string,
+};
 
 const Content = styled.div`
   border-bottom: 1px solid backgroundColor;

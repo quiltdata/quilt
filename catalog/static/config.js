@@ -8,7 +8,7 @@ if (window.location.hostname === 'quiltdata.com') {
   };
 } else {
   window.__CONFIG = {
-    api: 'https://pkg-stage.quiltdata.com',
+    api: window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://pkg-stage.quiltdata.com',
     stripeKey: 'pk_test_DzvjoWzXwIB1DRtQqywxDjWp',
 
     // Quilt auth

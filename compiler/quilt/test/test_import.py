@@ -12,7 +12,7 @@ from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package, PackageException
 from quilt.tools.store import PackageStore
-from .utils import QuiltTestCase
+from .utils import patch, QuiltTestCase
 
 class ImportTest(QuiltTestCase):
     def test_imports(self):
@@ -166,24 +166,37 @@ class ImportTest(QuiltTestCase):
             incompatible._data()
 
     def test_multiple_package_dirs(self):
-        # First level
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_simple.yml')
-        command.build('foo/nested', build_path)
+        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
 
-        # Second level: different package
-        os.mkdir("aaa")
-        os.chdir("aaa")
-        build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/nested', build_path)
+        new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
 
-        # Third level: empty package directory
-        os.mkdir("bbb")
-        os.chdir("bbb")
-        os.mkdir(PACKAGE_DIR_NAME)
+        # Build two packages:
+        # - First one exists in the default dir and the new dir; default should take priority.
+        # - Second one only exists in the new dir.
 
-        # Imports should find the second package
-        from quilt.data.foo.nested import dataframes
+        # First package.
+        command.build('foo/multiple1', build_path)
+
+        # First and second package in the new build dir.
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
+            command.build('foo/multiple1', simple_build_path)
+            command.build('foo/multiple2', simple_build_path)
+
+        # Cannot see the second package yet.
+        with self.assertRaises(ImportError):
+            from quilt.data.foo import multiple2
+
+        # Now search the new build dir.
+        dirs = 'foo/%s:%s' % (PACKAGE_DIR_NAME, new_build_dir)
+        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
+            # Can import the second package now.
+            from quilt.data.foo import multiple2
+
+            # The first package contains data from the default dir.
+            from quilt.data.foo import multiple1
+            assert multiple1.dataframes
 
     def test_save(self):
         mydir = os.path.dirname(__file__)

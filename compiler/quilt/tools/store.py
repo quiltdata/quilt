@@ -17,9 +17,8 @@ CHUNK_SIZE = 4096
 
 # Helper function to return the default package store path
 def default_store_location():
-    path=os.path.realpath(BASE_DIR)
-    package_dir = os.path.join(path, PACKAGE_DIR_NAME)
-    return package_dir
+    package_dir = os.path.join(BASE_DIR, PACKAGE_DIR_NAME)
+    return os.getenv('QUILT_PRIMARY_PACKAGE_DIR', package_dir)
 
 class StoreException(Exception):
     """
@@ -48,45 +47,41 @@ class PackageStore(object):
         assert os.path.basename(os.path.abspath(location)) == PACKAGE_DIR_NAME, \
             "Unexpected package directory: %s" % location
         self._path = location
-        objdir = os.path.join(self._path, self.OBJ_DIR)
-        tmpobjdir = os.path.join(self._path, self.TMP_OBJ_DIR)
-        pkgdir = os.path.join(self._path, self.PKG_DIR)
-        cachedir = os.path.join(self._path, self.CACHE_DIR)
 
-        if os.path.isdir(self._path):
-            # Verify existing package store is compatible
-            if self.VERSION != self._read_format_version():
-                msg = "The package repository at {0} is not compatible"
-                msg += " with this version of quilt. Revert to an"
-                msg += " earlier version of quilt or remove the existing"
-                msg += " package repository."
-                raise StoreException(msg.format(self._path))
-        else:
-            # Create a new package store
+        version = self._read_format_version()
+
+        if version not in (None, self.VERSION):
+            msg = (
+                "The package repository at {0} is not compatible"
+                " with this version of quilt. Revert to an"
+                " earlier version of quilt or remove the existing"
+                " package repository."
+            )
+            raise StoreException(msg.format(self._path))
+
+    def create_dirs(self):
+        """
+        Creates the store directory and its subdirectories.
+        """
+        if not os.path.isdir(self._path):
             os.makedirs(self._path)
+        for dir_name in [self.OBJ_DIR, self.TMP_OBJ_DIR, self.PKG_DIR, self.CACHE_DIR]:
+            path = os.path.join(self._path, dir_name)
+            if not os.path.isdir(path):
+                os.mkdir(path)
+        if not os.path.exists(self._version_path()):
             self._write_format_version()
-            os.mkdir(objdir)
-            os.mkdir(tmpobjdir)
-            os.mkdir(pkgdir)
-            os.mkdir(cachedir)
 
-        assert os.path.isdir(objdir)
-        assert os.path.isdir(tmpobjdir)
-        assert os.path.isdir(pkgdir)
-        assert os.path.isdir(cachedir)
-
-
-    # CHANGED:
-    # hard-coded this to return exactly one directory, the package store in BASE_DIR.
-    # Leave the mechanism so we can support read-only package directories (e.g. as
-    # shared caches) later.
     @classmethod
     def find_store_dirs(cls):
         """
-        Returns a list with one entry.
+        Returns the primary package directory and any additional ones from QUILT_PACKAGE_DIRS.
         """
-        package_dir = default_store_location()
-        return [package_dir]
+        store_dirs = [default_store_location()]
+        extra_dirs_str = os.getenv('QUILT_PACKAGE_DIRS')
+        if extra_dirs_str:
+            store_dirs.extend(extra_dirs_str.split(':'))
+        return store_dirs
 
     @classmethod
     def find_package(cls, team, user, package, store_dir=None):
@@ -124,7 +119,7 @@ class PackageStore(object):
                 version = versionfile.read()
                 return version
         else:
-            return "0.0"
+            return None
 
     def _write_format_version(self):
         with open(self._version_path(), 'w') as versionfile:
@@ -156,8 +151,10 @@ class PackageStore(object):
         and allocates a per-user directory if needed.
         """
         self.check_name(team, user, package)
-
         assert contents is not None
+
+        self.create_dirs()
+
         path = self.package_path(team, user, package)
 
         # Delete any existing data.
@@ -211,6 +208,8 @@ class PackageStore(object):
         Return an iterator over all the packages in the PackageStore.
         """
         pkgdir = os.path.join(self._path, self.PKG_DIR)
+        if not os.path.isdir(pkgdir):
+            return
         for team in sub_dirs(pkgdir):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
@@ -224,6 +223,8 @@ class PackageStore(object):
         """
         packages = []
         pkgdir = os.path.join(self._path, self.PKG_DIR)
+        if not os.path.isdir(pkgdir):
+            return []
         for team in sub_dirs(pkgdir):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
