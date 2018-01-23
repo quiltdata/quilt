@@ -14,9 +14,6 @@ if (window.location.hostname === 'quiltdata.com') {
     // Quilt auth
     userApi: 'https://quilt-heroku.herokuapp.com/api-root',
     signOutUrl: 'https://quilt-heroku.herokuapp.com/api-auth/logout?next=%2F',
-    team: {
-      name: 'bnym'
-    }
     // GitHub
     // userApi: 'https://api.github.com/user',
     // signOutUrl: '/'
