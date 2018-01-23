@@ -6,7 +6,7 @@ This is the reference implementation of the Quilt server and package registry.
 
 We recommend using `docker-compose` to run a local Quilt registry for testing and development. This starts a collection of Docker containers to run the various services needed to run the registry: database, storage, and Flask web/API server.  The advantage of Docker is that it isolates you from the details of installing each component correctly, including version, configuration, etc. -- with docker, everything is pre-configured for you.
 
-## IMPORTANT: Docker database is reset (deleted) on each startup/shutdown
+## IMPORTANT: The database is reset (deleted) on each startup/shutdown
 
 It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package state is reset every time the services are restarted. To configure the database to use persistent storage, set `PGDATA` to point to a Docker volume as described [here](https://hub.docker.com/_/postgres/).
 
