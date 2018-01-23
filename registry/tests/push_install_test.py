@@ -129,6 +129,9 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['package_url'] == 'http://localhost:3000/package/test_user/foo'
+
         # List user's packages.
         resp = self.app.get(
             '/api/package/test_user/',

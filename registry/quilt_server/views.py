@@ -46,7 +46,8 @@ OAUTH_USER_API = app.config['OAUTH']['user_api']
 OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
 OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 
-CATALOG_REDIRECT_URLS = app.config['CATALOG_REDIRECT_URLS']
+CATALOG_URL = app.config['CATALOG_URL']
+CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
 AUTHORIZATION_HEADER = 'Authorization'
 
@@ -87,6 +88,18 @@ class QuiltCli(httpagentparser.Browser):
 
 httpagentparser.detectorshub.register(QuiltCli())
 
+class PythonPlatform(httpagentparser.DetectorBase):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.look_for = name
+
+    info_type = 'python_platform'
+    version_markers = [('/', '')]
+
+for python_name in ['CPython', 'Jython', 'PyPy']:
+    httpagentparser.detectorshub.register(PythonPlatform(python_name))
+
 
 ### Web routes ###
 
@@ -113,7 +126,7 @@ def robots():
     return Response(ROBOTS_TXT, mimetype='text/plain')
 
 def _valid_catalog_redirect(next):
-    return next is None or any(next.startswith(url) for url in CATALOG_REDIRECT_URLS)
+    return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 @app.route('/login')
 def login():
@@ -376,6 +389,8 @@ def _mp_track(**kwargs):
         browser_version=g.user_agent['browser']['version'],
         platform_name=g.user_agent['platform']['name'],
         platform_version=g.user_agent['platform']['version'],
+        python_name=g.user_agent.get('python_platform', {}).get('name'),
+        python_version=g.user_agent.get('python_platform', {}).get('version'),
         deployment_id=DEPLOYMENT_ID,
     )
 
@@ -612,7 +627,9 @@ def package_put(owner, package_name, package_hash):
         public=public,
     )
 
-    return dict()
+    return dict(
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+    )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
