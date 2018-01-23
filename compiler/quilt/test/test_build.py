@@ -54,7 +54,7 @@ class BuildTest(QuiltTestCase):
 
         # Build again using the cache
         build.build_package(None, 'test_cache', PACKAGE, path)
-        
+
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -169,7 +169,7 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(buildfilepath)
         build.build_package(None, 'test_generated', 'generated', buildfilepath)
         os.remove(buildfilepath)
-        from quilt.data.test_generated.generated import bad, foo, nuts, README_md
+        from quilt.data.test_generated.generated import bad, foo, nuts, README
 
     def test_failover(self):
         """

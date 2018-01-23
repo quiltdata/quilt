@@ -53,7 +53,7 @@ def _path_hash(path, transform, kwargs):
 
 def _is_internal_node(node):
     is_leaf = not node or node.get(RESERVED['file'])
-    return not is_leaf 
+    return not is_leaf
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -135,7 +135,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             transform = ext
             if transform not in PARSERS:
                 transform = ID
-            print("Inferring 'transform: %s' for %s" % (transform, rel_path)) 
+            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
         # TODO: parse/check environments:
         # environments = node.get(RESERVED['environments'])
 
@@ -304,7 +304,7 @@ def build_package(team, username, package, yaml_path, checks_path=None, dry_run=
                     for item in v:
                         for result in find(key, item):
                             yield result
-        
+
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
     # there's no inlined checks: defined by build.yml
@@ -383,11 +383,6 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                 ext = None
             elif os.path.isfile(path):
                 nodename, ext = splitext_no_dot(name)
-                # preserve unknown extensions, e.g. "foo.bar" => "foo_bar"
-                transform = ext
-                if transform not in PARSERS:
-                    nodename = nodename + "." + ext
-                    ext = ""
             else:
                 continue
 
