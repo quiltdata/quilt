@@ -980,7 +980,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                 else:
                                     with lock:
                                         tqdm.write("Download failed for %s: %s" % (obj_hash, ex))
-                                break
+                                    break
 
                     if not success:
                         # We've already printed an error, so not much to do - just move on to the next object.

@@ -7,6 +7,7 @@ import json
 import os
 import time
 
+import requests
 import responses
 from six import assertRaisesRegex
 from six.moves import urllib
@@ -354,6 +355,35 @@ packages:
         self._mock_s3(file_hash_list[1], file_data_list[1])
 
         command.install('foo/bar')
+
+    def test_download_retry(self):
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
+
+        s3_url = 'https://example.com/%s' % table_hash
+        error = requests.exceptions.ConnectionError("Timeout")
+
+        # Fail to install after 3 timeouts.
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self._mock_s3(table_hash, table_data)  # We won't actually get to this one.
+
+        with self.assertRaises(command.CommandException):
+            command.install('foo/bar/group/table')
+
+        self.requests_mock.reset()
+
+        # Succeed after 2 timeouts and a successful response.
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self.requests_mock.add(responses.GET, s3_url, body=error)
+        self._mock_s3(table_hash, table_data)
+
+        command.install('foo/bar/group/table')
 
     def _mock_log(self, package, pkg_hash):
         log_url = '%s/api/log/%s/' % (command.get_registry_url(), package)
