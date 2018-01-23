@@ -6,9 +6,11 @@ import hashlib
 import json
 import os
 import time
+import pytest
 
 import requests
 import responses
+from requests.exceptions import SSLError, ConnectionError
 from six import assertRaisesRegex
 from six.moves import urllib
 
@@ -308,7 +310,7 @@ packages:
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
@@ -333,19 +335,14 @@ packages:
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
         self._mock_version('akarve/sales', '99.99', contents_hash1,
                            status=404, message='Version 99.99 does not exist')
-        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
             command.install("packages:\n- akarve/sales:v:99.99")
 
     def test_quilt_yml_unknown_team(self):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
-        self._mock_tag('baz/bat', 'latest', contents_hash1, team='unknown')
-        self._mock_package('baz/bat', contents_hash1, '', contents1,
-                           [table_hash1], status=404,
-                           message='Team unknown does not exist',
-                           team='unknown')
-        with assertRaisesRegex(self, command.CommandException,
-                               "Team unknown does not exist"):
+        self._mock_request_exception(SSLError("Team does not exist"), team="unknown")
+        with pytest.raises(ConnectionError):
             command.install("packages:\n- unknown:baz/bat")
 
     def test_quilt_yml_unknown_subpath(self):
@@ -506,3 +503,7 @@ packages:
         }
         body = gzip_compress(contents)
         self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
+
+    def _mock_request_exception(self, body, cmd=responses.GET, team=None):
+        url = command.get_registry_url(team)
+        responses.add(cmd, url, body=body)
