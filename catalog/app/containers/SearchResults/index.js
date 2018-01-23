@@ -6,7 +6,7 @@ import { createStructuredSelector } from 'reselect';
 
 import apiStatus from 'constants/api';
 import Error from 'components/Error';
-import Gallery from 'components/Gallery';
+import Gallery from 'containers/Gallery';
 import Help from 'components/Help';
 import PackageList from 'components/PackageList';
 import Working from 'components/Working';

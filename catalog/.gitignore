@@ -1,7 +1,6 @@
 # Don't check auto-generated stuff into git
 coverage
 build
-node_modules
 quilt_packages
 stats.json
 
