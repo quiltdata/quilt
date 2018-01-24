@@ -18,6 +18,7 @@ from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
+import re
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
@@ -1577,10 +1578,19 @@ def create_user():
         raise ApiException(requests.codes.not_found,
             "Cannot create user"
             )
+
+    username = request_data.get('username')
+    user_regex = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
+    if not re.fullmatch(user_regex, username):
+        raise ApiException(
+            requests.codes.bad,
+            "Username is not valid. Usernames must start with a letter or underscore, and " +
+            "contain only alphanumeric characters and underscores thereafter."
+            )
           
     resp = requests.post(user_create_api, headers=auth_headers, 
         data=json.dumps({
-            "username": request_data.get('username'),
+            "username": username,
             "first_name": "",
             "last_name": "",
             "email": request_data.get('email'),
@@ -1603,8 +1613,6 @@ def create_user():
             )
 
     elif resp.status_code != requests.codes.created:
-        print(resp.status_code)
-        print(resp.text)
         raise ApiException(
             requests.codes.server_error,
             "Unknown error"
