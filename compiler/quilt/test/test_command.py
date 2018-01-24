@@ -601,3 +601,52 @@ class CommandTest(QuiltTestCase):
 
         from quilt.data.foo import bar
         assert isinstance(bar.foo(), pd.DataFrame)
+
+    def test_parse_package_names(self):
+        # good parse strings
+        expected = (None, 'user', 'package')
+        assert command.parse_package('user/package') == expected
+
+        expected = ('team', 'user', 'package')
+        assert command.parse_package('team:user/package') == expected
+
+        expected = (None, 'user', 'package', ['foo', 'bar'])
+        assert command.parse_package('user/package/foo/bar', True) == expected
+
+        expected = ('team', 'user', 'package', ['foo', 'bar'])
+        assert command.parse_package('team:user/package/foo/bar', True) == expected
+
+        expected = ('team', 'user', 'package', [])
+        assert command.parse_package('team:user/package', True) == expected
+
+        # bad parse strings
+        with pytest.raises(command.CommandException, message='subdir should be rejected'):
+            command.parse_package('user/package/subdir', allow_subpath=False)
+
+        with pytest.raises(command.CommandException, match="Invalid user name"):
+            command.parse_package('9user/package')
+
+        with pytest.raises(command.CommandException, match='Invalid package name'):
+            command.parse_package('user/!package')
+
+        with pytest.raises(command.CommandException, match='Invalid element in subpath'):
+            command.parse_package('user/package/&subdir', True)
+
+        with pytest.raises(command.CommandException, message='subdir should be rejected'):
+            command.parse_package('team:user/package/subdir', allow_subpath=False)
+
+        with pytest.raises(command.CommandException, match='Invalid team name'):
+            command.parse_package('team%:user/package/subdir', allow_subpath=True)
+
+        with pytest.raises(command.CommandException, match="Invalid user name"):
+            command.parse_package('team:9user/package')
+
+        with pytest.raises(command.CommandException, match='Invalid package name'):
+            command.parse_package('team:user/!package')
+
+        with pytest.raises(command.CommandException, match='Invalid element in subpath'):
+            command.parse_package('team:user/package/&subdir', True)
+
+        # XXX: in this case, should we just strip the trialing slash?
+        with pytest.raises(command.CommandException, match='Invalid element in subpath'):
+            command.parse_package('team:user/package/subdir/', True)
