@@ -87,9 +87,7 @@ def _gen_glob_data(dir, pattern, child_table):
     matched = False
     used_names = set()  # Used by to_nodename to prevent duplicate names
     # sorted so that renames (if any) are consistently ordered
-    print({'pattern': pattern, 'dir': dir})
     for filepath in sorted(dir.glob(pattern)):
-        print(filepath)
         if filepath.is_dir():
             continue
         else:
@@ -97,9 +95,11 @@ def _gen_glob_data(dir, pattern, child_table):
 
         # create node info
         node_table = {} if child_table is None else child_table.copy()
-        node_table[RESERVED['file']] = str(filepath.relative_to(dir))
+        filepath = filepath.relative_to(dir)
+        node_table[RESERVED['file']] = str(filepath)
         node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
+        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
 
         yield node_name, node_table
 

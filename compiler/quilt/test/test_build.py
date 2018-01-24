@@ -261,7 +261,7 @@ class BuildTest(QuiltTestCase):
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
             build.build_package(None, 'test_syntax_error', PACKAGE, path, checks_path=checks_path)
 
-    def test_build_naming_conflict(self):
+    def test_build_glob_naming_conflict(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
         buildfile = mydir / 'globbing/build_name_conflict.yml'
 
