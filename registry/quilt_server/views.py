@@ -88,6 +88,18 @@ class QuiltCli(httpagentparser.Browser):
 
 httpagentparser.detectorshub.register(QuiltCli())
 
+class PythonPlatform(httpagentparser.DetectorBase):
+    def __init__(self, name):
+        super().__init__()
+        self.name = name
+        self.look_for = name
+
+    info_type = 'python_platform'
+    version_markers = [('/', '')]
+
+for python_name in ['CPython', 'Jython', 'PyPy']:
+    httpagentparser.detectorshub.register(PythonPlatform(python_name))
+
 
 ### Web routes ###
 
@@ -144,9 +156,14 @@ def oauth_callback():
     if not _valid_catalog_redirect(next):
         abort(requests.codes.bad_request)
 
+    common_tmpl_args = dict(
+        QUILT_CDN=QUILT_CDN,
+        CATALOG_URL=CATALOG_URL,
+    )
+
     error = request.args.get('error')
     if error is not None:
-        return render_template('oauth_fail.html', error=error, QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_fail.html', error=error, **common_tmpl_args)
 
     code = request.args.get('code')
     if code is None:
@@ -163,9 +180,9 @@ def oauth_callback():
             return redirect('%s#%s' % (next, urlencode(resp)))
         else:
             token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
-            return render_template('oauth_success.html', code=token, QUILT_CDN=QUILT_CDN)
+            return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
-        return render_template('oauth_fail.html', error=ex.error, QUILT_CDN=QUILT_CDN)
+        return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
 
 @app.route('/api/token', methods=['POST'])
 @as_json
@@ -377,6 +394,8 @@ def _mp_track(**kwargs):
         browser_version=g.user_agent['browser']['version'],
         platform_name=g.user_agent['platform']['name'],
         platform_version=g.user_agent['platform']['version'],
+        python_name=g.user_agent.get('python_platform', {}).get('name'),
+        python_version=g.user_agent.get('python_platform', {}).get('version'),
         deployment_id=DEPLOYMENT_ID,
     )
 

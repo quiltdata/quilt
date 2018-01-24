@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import json
 import os
+import platform
 import re
 from shutil import copyfileobj, move, rmtree
 import stat
@@ -213,7 +214,10 @@ def _create_session(auth):
     session.headers.update({
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "User-Agent": "quilt-cli/%s" % VERSION,
+        "User-Agent": "quilt-cli/%s (%s %s) %s/%s" % (
+            VERSION, platform.system(), platform.release(),
+            platform.python_implementation(), platform.python_version()
+        )
     })
     if auth is not None:
         session.headers["Authorization"] = "Bearer %s" % auth['access_token']
@@ -1026,7 +1030,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                 else:
                                     with lock:
                                         tqdm.write("Download failed for %s: %s" % (obj_hash, ex))
-                                break
+                                    break
 
                     if not success:
                         # We've already printed an error, so not much to do - just move on to the next object.
