@@ -26,7 +26,6 @@ setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ],
@@ -38,7 +37,6 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
-        'enum34; python_version<"3.4"',
         'future>=0.16.0',
         'packaging>=16.8',
         'pandas>=0.19.2',
