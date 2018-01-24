@@ -27,18 +27,22 @@ Here are the basic Quilt commands:
 
 <img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/big-picture.png" />
 
+## Service
+Quilt is offered as a managed service at [quiltdata.com](https://quiltdata.com).
+
 ## Architecture
+Quilt consists of three source-level components:
 
-Quilt consists of three components:
-
-1. A [data catalog](https://quiltdata.com/)
+1. A [data catalog](catalog)
     - Displays package meta-data in HTML
+    - Implemented with JavaScript with redux, sagas
     
 2. A [data registry](registry)
     - Controls permissions
     - Stores pacakge fragments in blob storage
     - Stores package meta-data
     - De-duplicates repeated data fragments
+    - Implemented in Python with Flask and PostgreSQL
     
 3. A [data compiler](compiler)
     - Serializes tabular data to Apache Parquet
@@ -46,5 +50,6 @@ Quilt consists of three components:
     - `build`s packages locally
     - `push`es packages to the registry
     - `pull`s packages from the registry
+    - Implemented in Python with pandas and PyArrow
     
 <img width="640" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
