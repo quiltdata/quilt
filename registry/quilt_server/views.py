@@ -1624,8 +1624,9 @@ def disable_user():
 
     return resp.json()
 
+# This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=False)
 @as_json
 def delete_user():
     auth_headers = {
