@@ -7,7 +7,6 @@ import os
 from .utils import QuiltTestCase
 from ..tools.util import sub_dirs, sub_files
 
-
 class UtilTest(QuiltTestCase):
     def test_sub_files(self):
         mydir = os.path.dirname(__file__)
