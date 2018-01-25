@@ -300,7 +300,7 @@ def api(require_login=True, schema=None, enabled=True):
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if not enabled:
-                raise ApiException(requests.codes.bad_request, 
+                raise ApiException(requests.codes.bad_request,
                         "This endpoint is not enabled.")
 
             if validator is not None:
@@ -1154,7 +1154,7 @@ def access_put(owner, package_name, user):
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Auth to send invitation email        
+        # Call to Auth to send invitation email
         resp = requests.post(INVITE_SEND_URL,
                              headers=auth_headers,
                              data=dict(email=email,
@@ -1587,8 +1587,8 @@ def create_user():
             "Username is not valid. Usernames must start with a letter or underscore, and " +
             "contain only alphanumeric characters and underscores thereafter."
             )
-          
-    resp = requests.post(user_create_api, headers=auth_headers, 
+
+    resp = requests.post(user_create_api, headers=auth_headers,
         data=json.dumps({
             "username": username,
             "first_name": "",
@@ -1645,8 +1645,15 @@ def disable_user():
 
     data = request.get_json()
     username = data.get('username')
+    user_regex = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
+    if not re.fullmatch(user_regex, username):
+        raise ApiException(
+            requests.codes.bad,
+            "Username is not valid. Usernames must start with a letter or underscore, and " +
+            "contain only alphanumeric characters and underscores thereafter."
+            )
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers, 
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'username' : username,
             'is_active' : False
@@ -1674,6 +1681,13 @@ def delete_user():
 
     data = request.get_json()
     username = data.get('username')
+    user_regex = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
+    if not re.fullmatch(user_regex, username):
+        raise ApiException(
+            requests.codes.bad,
+            "Username is not valid. Usernames must start with a letter or underscore, and " +
+            "contain only alphanumeric characters and underscores thereafter."
+            )
 
     resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
 
