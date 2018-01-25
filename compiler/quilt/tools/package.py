@@ -303,7 +303,7 @@ class Package(object):
             assert False, "Unhandled Node {node}".format(node=node)
 
     # WIP: doesn't work quite right yet.
-    def find_node_by_name(self, name, node=None, prefix=''):
+    def find_node_by_name(self, findstr, node=None, prefix=''):
         raise NotImplementedError()
 #        """use / to separate levels"""
 #        if node is None:
