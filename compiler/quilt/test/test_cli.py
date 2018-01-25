@@ -535,17 +535,22 @@ class TestCLI(BasicQuiltTestCase):
         result.update(self.mock_command._result)
         return result
 
-    def _general_execute_tests(self, result, funcname):
-        """Takes the result from an execution and verifies general conditions
+    def execute_with_checks(self, cli_args, funcname):
+        """Execute via self.execute, then perform basic checks on the results
 
         Convenience method.
+
         This may not always be applicable, but it checks a few commond conditions.
         """
+        result = self.execute(cli_args)
+
         assert result['return code'] == 0      # command accepted by argparse?
         assert result['matched'] is True       # found func in mocked object?
         assert not result['bind failure']      # argparse calling args matched func args?
         assert not result['args']              # only kwargs were used to call the function?
         assert result['func'] == funcname      # called func matches expected funcname?
+
+        return result
 
     def test_cli_new_param(self):
         missing_paths = get_missing_key_paths(self.param_tree, KNOWN_PARAMS, exhaustive=True)
@@ -575,10 +580,7 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for appropriate types and values.
         cmd = ['config']
-        result = self.execute(cmd)
-
-        # General tests
-        self._general_execute_tests(result, funcname='config')
+        result = self.execute_with_checks(cmd, funcname='config')
 
         # Specific tests
         assert not result['kwargs']
@@ -604,7 +606,7 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        # TODO: update this to use _general_execute_tests once merged
+        # TODO: update this to use self.execute_with_checks once merged
         assert result['return code'] == 0
         assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
@@ -647,7 +649,7 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        # TODO: update this to use _general_execute_tests once merged
+        # TODO: update this to use self.execute_with_checks once merged
         assert result['return code'] == 0
         assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
@@ -680,10 +682,7 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for appropriate types and values.
         cmd = 'push fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        self._general_execute_tests(result, funcname='push')
+        result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
         assert not result['args']
@@ -698,10 +697,7 @@ class TestCLI(BasicQuiltTestCase):
         ## Test the flags as well..
         # public (and reupload)
         cmd = 'push --reupload --public fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        self._general_execute_tests(result, funcname='push')
+        result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
         assert not result['args']
@@ -752,10 +748,7 @@ class TestCLI(BasicQuiltTestCase):
         ## This section tests for appropriate types and values.
         # run the command
         cmd = 'export fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        self._general_execute_tests(result, funcname='export')
+        result = self.execute_with_checks(cmd, funcname='export')
 
         # Specific tests
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
@@ -763,10 +756,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # run next command
         cmd = 'export fakeuser/fakepackage fakedir'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        self._general_execute_tests(result, funcname='export')
+        result = self.execute_with_checks(cmd, funcname='export')
 
         # Specific tests
         assert result['kwargs']['package'] == 'fakeuser/fakepackage'
@@ -820,7 +810,6 @@ class TestCLI(BasicQuiltTestCase):
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
-
 
 
 # need capsys, so this isn't in the unittest class
