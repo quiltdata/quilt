@@ -5,6 +5,8 @@
     - // es-line-disable-line error-code
 
 # Developer notes
+- `window.__CONFIG` contains environment-specific configuration variables like API endpoints, Stripe keys, etc. `config.js.tmpl` is populated by `quilt.yaml` (see `quilt-deployment` repo) 
+
 - As a rule all UI component classes should return react-bootstrap `Row`s;
   this prevents layout contamination (e.g. returning a Col that accidentally
   flows in with another `Col`) and allows for high-level layout control

@@ -7,7 +7,7 @@ import re
 from shutil import rmtree
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
-from .core import FileNode, RootNode, TableNode, CommandException
+from .core import FileNode, RootNode, TableNode
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
@@ -375,3 +375,4 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
+  
