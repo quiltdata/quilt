@@ -6,9 +6,11 @@ import hashlib
 import json
 import os
 import time
+import pytest
 
 import requests
 import responses
+from requests.exceptions import SSLError, ConnectionError
 from six import assertRaisesRegex
 from six.moves import urllib
 
@@ -76,8 +78,7 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'), Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -106,8 +107,7 @@ class InstallTest(QuiltTestCase):
         command.install('qux:foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'), Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -135,6 +135,21 @@ class InstallTest(QuiltTestCase):
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
+    def test_team_short_hashes(self):
+        """
+        Test various functions that use short hashes for team
+        """
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_log('foo/bar', contents_hash, team='qux')
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT, team='qux')
+        command.tag_add('qux:foo/bar', 'mytag', contents_hash[0:6])
+
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT, team='qux')
+        command.version_add('qux:foo/bar', '1.0', contents_hash[0:6], force=True)
+
     def test_install_subpackage(self):
         """
         Install a part of a package.
@@ -158,11 +173,22 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
-    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
+    def test_install_team_subpackage(self):
+        """
+        Install a part of a package.
+        """
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
+        self._mock_tag('foo/bar', 'latest', contents_hash, team='qux')
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash], team='qux')
+        self._mock_s3(table_hash, table_data)
+        command.install('qux:foo/bar/group/table')
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data, team='qux')
+
+    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data, team=None):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(None, user, package),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(team, user, package), Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -171,10 +197,10 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
-    def getmtime(self, user, package, contents_hash):
+    def getmtime(self, user, package, contents_hash, team=None):
         teststore = PackageStore(self._store_dir)
 
-        return os.path.getmtime(os.path.join(teststore.package_path(None, user, package),
+        return os.path.getmtime(os.path.join(teststore.package_path(team, user, package),
                                              Package.CONTENTS_DIR,
                                              contents_hash))
 
@@ -297,6 +323,13 @@ packages:
         with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
             command.install("packages:\n- akarve/sales:v:99.99")
 
+    def test_quilt_yml_unknown_team(self):
+        table_data1, table_hash1 = self.make_table_data('table1')
+        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
+        self._mock_request_exception(SSLError("Team does not exist"), team="unknown")
+        with pytest.raises(ConnectionError):
+            command.install("packages:\n- unknown:baz/bat")
+
     def test_quilt_yml_unknown_subpath(self):
         table_data1, table_hash1 = self.make_table_data('table1')
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
@@ -387,6 +420,7 @@ packages:
 
         command.install('foo/bar')
 
+
     def test_download_retry(self):
         table_data, table_hash = self.make_table_data()
         contents, contents_hash = self.make_contents(table=table_hash)
@@ -416,10 +450,11 @@ packages:
 
         command.install('foo/bar/group/table')
 
-    def _mock_log(self, package, pkg_hash):
-        log_url = '%s/api/log/%s/' % (command.get_registry_url(None), package)
+
+    def _mock_log(self, package, pkg_hash, team=None):
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(team), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
-            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
+            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author'}
         ]}))
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,
@@ -453,3 +488,7 @@ packages:
         }
         body = gzip_compress(contents)
         self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
+
+    def _mock_request_exception(self, body, cmd=responses.GET, team=None):
+        url = command.get_registry_url(team)
+        responses.add(cmd, url, body=body)

@@ -66,7 +66,8 @@ S3_CONNECT_TIMEOUT = 30
 S3_READ_TIMEOUT = 30
 S3_TIMEOUT_RETRIES = 3
 CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
-
+VALID_EXTENDED_PCKG_RE = re.compile(r'^((\w+:)?\w+/[\w/]+)(:(version|tag|hash|v|t|h):(.+)$)?',
+                                    flags=re.IGNORECASE)
 LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
@@ -80,31 +81,23 @@ class CommandException(Exception):
 
 def parse_package_extended(name):
     hash = version = tag = None
+    package = name
     try:
-        if ':' in name:
-            name, versioninfo = name.split(':', 1)
-            if ':' in versioninfo:
-                info = versioninfo.split(':', 1)
-                if len(info) == 2:
-                    if 'version'.startswith(info[0]):
-                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
-                        version = info[1]
-                    elif 'tag'.startswith(info[0]):
-                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
-                        tag = info[1]
-                    elif 'hash'.startswith(info[0]):
-                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
-                        hash = info[1]
-                    else:
-                        raise CommandException("Invalid versioninfo: %s." % info)
-                else:
-                    # usr/pkg:hashval
-                    hash = versioninfo
-        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
-    except ValueError:
-        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+        package, _, _, info_type, info = VALID_EXTENDED_PCKG_RE.match(name).groups()
+        if info_type:
+            if info_type[0] == 'v':
+                version = info
+            elif info_type[0] == 'h':
+                hash = info
+            else:
+                tag = info
+        # e.g. 'owner/package:aaa:bbb'
+        elif package != name:
+            raise CommandException("Invalid versioninfo")
+    except AttributeError:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return owner, pkg, subpath, hash, version, tag
+    return package, hash, version, tag
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -908,10 +901,7 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-        package = owner + '/' + pkg
-        if subpath:
-            package += '/' + "/".join(subpath)
+        package, hash, version, tag = parse_package_extended(pkginfo)
         install(package, hash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
@@ -1207,7 +1197,7 @@ def delete(package):
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
     team, owner, pkg = parse_package(package)
-    
+
     teamstr = "{}:".format(team) if team else ""
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
