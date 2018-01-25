@@ -23,7 +23,7 @@ class CommandTest(QuiltTestCase):
         self.requests_mock.add(
             responses.POST,
             '%s/api/users/%s' % (command.get_registry_url(team), method),
-            body=json.dumps(dict(message=message))
+            body=json.dumps(dict(message=message)),
             status=status
             )
 
