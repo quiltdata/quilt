@@ -244,6 +244,18 @@ class InstallTest(QuiltTestCase):
         self._mock_package('danWebster/sgRNAs', contents_hash6, 'libraries/brunello', contents6, [table_hash6])
         self._mock_s3(table_hash6, table_data6)
 
+        table_data7, table_hash7 = self.make_table_data('table7')
+        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
+        self._mock_tag('usr/pkga', 'latest', contents_hash7, team='team')
+        self._mock_package('usr/pkga', contents_hash7, '', contents7, [table_hash7], team='team')
+        self._mock_s3(table_hash7, table_data7)
+
+        table_data8, table_hash8 = self.make_table_data('table8')
+        contents8, contents_hash8 = self.make_contents(table8=table_hash8)
+        self._mock_tag('usr/pkgb', 'tag', contents_hash8, team='team')
+        self._mock_package('usr/pkgb', contents_hash8, 'path', contents8, [table_hash8], team='team')
+        self._mock_s3(table_hash8, table_data8)
+
         # inline test of quilt.yml
         command.install('''
 packages:
@@ -253,30 +265,37 @@ packages:
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
 - danWebster/sgRNAs/libraries/brunello  # subpath
+- team:usr/pkga
+- team:usr/pkgb/path:t:tag
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
+
         self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
         self.validate_file('baz','bat', contents_hash2, contents2, table_hash2, table_data2)
         self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
         self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
         self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
         self.validate_file('danWebster', 'sgRNAs', contents_hash6, contents6, table_hash6, table_data6)
+        self.validate_file('usr', 'pkga', contents_hash7, contents7, table_hash7, table_data7, team='team')
+        self.validate_file('usr', 'pkgb', contents_hash8, contents8, table_hash8, table_data8, team='team')
+
         # check that installation happens in the order listed in quilt.yml
         assert (self.getmtime('foo','bar', contents_hash1) <=
                 self.getmtime('baz','bat', contents_hash2) <=
                 self.getmtime('usr1','pkga', contents_hash3) <=
                 self.getmtime('usr2','pkgb', contents_hash4) <=
                 self.getmtime('usr3','pkgc', contents_hash5) <=
-                self.getmtime('danWebster', 'sgRNAs', contents_hash6))
+                self.getmtime('danWebster', 'sgRNAs', contents_hash6) <=
+                self.getmtime('usr','pkga', contents_hash7, team='team') <=
+                self.getmtime('usr','pkgb', contents_hash8, team='team'))
 
-        # test reading from file
-        table_data7, table_hash7 = self.make_table_data('table7')
-        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
-        self._mock_tag('usr4/pkgd', 'latest', contents_hash7)
-        self._mock_package('usr4/pkgd', contents_hash7, '', contents7, [table_hash7])
-        self._mock_s3(table_hash7, table_data7)
+    def test_install_dependencies_from_file(self):
+        table_data, table_hash = self.make_table_data('table')
+        contents, contents_hash = self.make_contents(table7=table_hash)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash)
+        self._mock_package('usr4/pkgd', contents_hash, '', contents, [table_hash])
+        self._mock_s3(table_hash, table_data)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
-            fd.close()
         command.install('@tmp_quilt.yml')
 
     def test_bad_install_dependencies(self):
