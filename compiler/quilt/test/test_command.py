@@ -654,53 +654,53 @@ class CommandTest(QuiltTestCase):
     def test_parse_package_extended_names(self):
         # good parse strings
         expected = ('user/package', None, None, None)
-        assert store.parse_package_extended('user/package') == expected
+        assert command.parse_package_extended('user/package') == expected
 
         expected = ('team:user/package', None, None, None)
-        assert store.parse_package_extended('team:user/package') == expected
+        assert command.parse_package_extended('team:user/package') == expected
 
         expected = ('team:user/package/sub/path', None, None, None)
-        assert store.parse_package_extended('team:user/package/sub/path') == expected
+        assert command.parse_package_extended('team:user/package/sub/path') == expected
 
         expected = ('user/package', 'abc123', None, None)
-        assert store.parse_package_extended('user/package:h:abc123') == expected
+        assert command.parse_package_extended('user/package:h:abc123') == expected
 
         expected = ('user/package', 'abc123', None, None)
-        assert store.parse_package_extended('user/package:hash:abc123') == expected
+        assert command.parse_package_extended('user/package:hash:abc123') == expected
 
         expected = ('user/package', None, '123', None)
-        assert store.parse_package_extended('user/package:v:123') == expected
+        assert command.parse_package_extended('user/package:v:123') == expected
 
         expected = ('user/package', None, '123', None)
-        assert store.parse_package_extended('user/package:version:123') == expected
+        assert command.parse_package_extended('user/package:version:123') == expected
 
         expected = ('user/package', None, None, 'some')
-        assert store.parse_package_extended('user/package:t:some') == expected
+        assert command.parse_package_extended('user/package:t:some') == expected
 
         expected = ('user/package', None, None, 'some')
-        assert store.parse_package_extended('user/package:tag:some') == expected
+        assert command.parse_package_extended('user/package:tag:some') == expected
 
         expected = ('team:user/package', 'abc123', None, None)
-        assert store.parse_package_extended('team:user/package:h:abc123') == expected
+        assert command.parse_package_extended('team:user/package:h:abc123') == expected
 
         expected = ('team:user/package', 'abc123', None, None)
-        assert store.parse_package_extended('team:user/package:hash:abc123') == expected
+        assert command.parse_package_extended('team:user/package:hash:abc123') == expected
 
         expected = ('team:user/package', None, '123', None)
-        assert store.parse_package_extended('team:user/package:v:123') == expected
+        assert command.parse_package_extended('team:user/package:v:123') == expected
 
         expected = ('team:user/package', None, '123', None)
-        assert store.parse_package_extended('team:user/package:version:123') == expected
+        assert command.parse_package_extended('team:user/package:version:123') == expected
 
         expected = ('team:user/package', None, None, 'some')
-        assert store.parse_package_extended('team:user/package:t:some') == expected
+        assert command.parse_package_extended('team:user/package:t:some') == expected
 
         expected = ('team:user/package', None, None, 'some')
-        assert store.parse_package_extended('team:user/package:tag:some') == expected
+        assert command.parse_package_extended('team:user/package:tag:some') == expected
 
         # bad parse strings
         with pytest.raises(CommandException, match='Invalid versioninfo'):
-            store.parse_package_extended('user/package:a:aaa111')
+            command.parse_package_extended('user/package:a:aaa111')
 
         with pytest.raises(CommandException, match='Invalid versioninfo'):
-            store.parse_package_extended('team:user/package:a:aaa111')
+            command.parse_package_extended('team:user/package:a:aaa111')
