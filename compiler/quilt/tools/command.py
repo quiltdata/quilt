@@ -895,8 +895,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        package, hash, version, tag = parse_package_extended(pkginfo)
-        install(package, hash, version, tag, force=force)
+        package, pkghash, version, tag = parse_package_extended(pkginfo)
+        install(package, pkghash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
