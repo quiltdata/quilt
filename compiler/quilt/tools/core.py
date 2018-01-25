@@ -7,6 +7,7 @@
 
 from enum import Enum
 import hashlib
+import os
 import struct
 
 from six import iteritems, itervalues, string_types

@@ -38,7 +38,7 @@ from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore, StoreException, parse_package, parse_package_extended
+from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
 
 from . import check_functions as qc
@@ -82,11 +82,24 @@ class CommandException(Exception):
     """
     pass
 
+
 def parse_package_extended(name):
-    hash = version = tag = None
+    hash = version = tag = versioninfo = None
     try:
-        if ':' in name:
-            name, versioninfo = name.split(':', 1)
+        needle, owner_pkg_sep = name.find(':'), name.find('/')
+        if needle != -1:
+            if needle < owner_pkg_sep:
+                # we have a team.  Needle points to team/pkg separator.
+                needle = name.find(':', needle + 1)  # advance the needle to the next ':'
+                if needle != -1:
+                    # we also have version info.
+                    name, versioninfo = name[:needle], name[needle + 1:]
+            else:
+                # no team.  Needle points to version info separator.
+                name, versioninfo = name[:needle], name[needle + 1:]
+        # Version Info has been extracted from name.
+        # we have a name with a team
+        if versioninfo:
             if ':' in versioninfo:
                 info = versioninfo.split(':', 1)
                 if len(info) == 2:
@@ -108,11 +121,14 @@ def parse_package_extended(name):
     except ValueError:
         pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return owner, pkg, subpath, hash, version, tag
+    return team, owner, pkg, subpath, hash, version, tag
+
 
 def parse_package(name, allow_subpath=False):
     try:
         values = name.split(':', 1)
+        if len(values) > 2:     # catch team:usr/pkg:hash
+            raise ValueError()
         team = values[0] if len(values) > 1 else None
 
         values = values[-1].split('/')
@@ -120,9 +136,9 @@ def parse_package(name, allow_subpath=False):
         (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
             # Make sure they're not empty.
-            raise ValueError
+            raise ValueError()
         if subpath and not allow_subpath:
-            raise ValueError
+            raise ValueError()
 
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
