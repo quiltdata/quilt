@@ -387,22 +387,22 @@ class ImportTest(QuiltTestCase):
     def test_multiple_updates(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)
-        from ..data.foo import package
+        command.build('foo/package6', build_path)
+        from ..data.foo import package6
 
         newfilename1 = 'myfile1'+str(int(time.time()))
         with open(newfilename1, 'w') as fh:
             fh.write('hello world1')
 
-        package._set([newfilename1], newfilename1)
+        package6._set([newfilename1], newfilename1)
 
         newfilename2 = 'myfile2'+str(int(time.time()))
         with open(newfilename2, 'w') as fh:
             fh.write('hello world2')
 
-        package._set([newfilename1], newfilename2)
+        package6._set([newfilename1], newfilename2)
 
-        assert getattr(package, newfilename1)() == newfilename2
+        assert getattr(package6, newfilename1)() == newfilename2
 
     def test_team_imports(self):
         mydir = os.path.dirname(__file__)
