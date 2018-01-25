@@ -340,7 +340,7 @@ def create_if_missing(package):
         print("Found {!r}".format(package))
     except command.CommandException as error:
         print("Creating empty package: {!r}".format(package))
-        team, owner, pkg, subpath = command.parse_package_extended(package)
+        team, owner, pkg, subpath = command.parse_package(package, allow_subpath=True)
         command.build_package_from_contents(team, owner, pkg, '', {'contents': {}})
 
 
