@@ -324,9 +324,10 @@ packages:
             command.install("packages:\n- akarve/sales:v:99.99")
 
     def test_quilt_yml_unknown_team(self):
-        table_data1, table_hash1 = self.make_table_data('table1')
-        contents1, contents_hash1 = self.make_contents(table1=table_hash1)
-        self._mock_request_exception(SSLError("Team does not exist"), team="unknown")
+        # TODO(dima): This is not a particularly useful test -
+        # but it simulates the current behavior in production (an SSL certificate error).
+        url = command.get_registry_url('unknown')
+        responses.add(responses.GET, url, body=SSLError())
         with pytest.raises(ConnectionError):
             command.install("packages:\n- unknown:baz/bat")
 
@@ -488,7 +489,3 @@ packages:
         }
         body = gzip_compress(contents)
         self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
-
-    def _mock_request_exception(self, body, cmd=responses.GET, team=None):
-        url = command.get_registry_url(team)
-        responses.add(cmd, url, body=body)
