@@ -19,6 +19,14 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
+    def _mock_method(self, method, status=201, team=None, message=""):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/%s' % (command.get_registry_url(team), method),
+            body=json.dumps(dict(message=message))
+            status=status
+            )
+
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
@@ -364,7 +372,7 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.list_users()
         pass
-    
+
     def test_user_create(self):
         self.requests_mock.add(
             responses.POST,
@@ -392,7 +400,31 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io')
         pass
-    
+
+    def test_user_create_duplicate(self):
+        self._mock_method('create', status=400, message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('bob', 'bob@quitdata.io')
+
+        self._mock_method('create', status=400, team='qux', message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('bob', 'bob@quitdata.io', team='qux')
+
+    def test_user_create_bogus(self):
+        self._mock_method('create', status=400, message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', 'wrongemail')
+        self._mock_method('create', status=400, message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.create_user('', 'bob@quitdata.io')
+
+        self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', 'wrongemail', team='qux')
+        self._mock_method('create', status=400, team='qux', message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.create_user('', 'bob@quitdata.io', team='qux')
+
     def test_user_disable(self):
         self.requests_mock.add(
             responses.POST,
@@ -411,7 +443,25 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
         pass
-    
+
+    def test_user_disable_empty(self):
+        self._mock_method('disable', status=400, message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.disable_user('')
+
+        self._mock_method('disable', status=400, team='qux', message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.create_user('', team='qux')
+
+    def test_user_disable_unknown(self):
+        self._mock_method('disable', status=404)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('unknown')
+
+        self._mock_method('disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('unknown', team='qux')
+
     def test_user_delete(self):
         self.requests_mock.add(
             responses.POST,
@@ -419,6 +469,14 @@ class CommandTest(QuiltTestCase):
             status=201
             )
         command.delete_user('bob', force=True)
+
+        team = 'qux'
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(team),
+            status=201
+            )
+        command.delete_user('bob', force=True, team=team)
         pass
 
     def test_user_delete_no_auth(self):
@@ -429,8 +487,35 @@ class CommandTest(QuiltTestCase):
             )
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True)
+
+        team = 'qux'
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/delete' % command.get_registry_url(team),
+            status=401
+            )
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True, team=team)
         pass
-    
+
+    def test_user_delete_empty(self):
+        self._mock_method('delete', status=400, message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.delete_user('', force=True)
+
+        self._mock_method('delete', status=400, team='qux', message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.delete_user('', force=True, team='qux')
+
+    def test_user_delete_unknown(self):
+        self._mock_method('delete', status=404)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('unknown', force=True)
+
+        self._mock_method('delete', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('unknown', force=True, team='qux')
+
 
 # TODO: work in progress
 #    def test_find_node_by_name(self):
