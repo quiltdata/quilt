@@ -66,8 +66,6 @@ various character mapping scenarios:
 import os.path
 import importlib
 from contextlib import contextmanager
-import re
-import glob
 import pkg_resources
 
 from .nodes import GroupNode
@@ -77,18 +75,29 @@ from .tools.util import to_nodename, filepath_to_nodepath
 from .tools.compat import pathlib
 
 
-DEFAULT_CHAR_MAPPINGS = to_nodename
+DEFAULT_MODULE_MAPPINGS = {
+    'builtins': 'open',
+    'bz2': 'BZ2File',
+    'gzip': 'GzipFile',
+    'h5py': 'File',    # for keras/tensorflow
+    }
 
 # TODO: replace global variable
 PATCHERS = []
+
+class QuiltVfsReadError(OSError):
+    pass
+
 
 def patchers_start():
     for patcher in PATCHERS:
         patcher.start()
 
+
 def patchers_stop():
     for patcher in PATCHERS:
         patcher.stop()
+
 
 def filepatch(module_name, func_name, action_func):
     """monkeypatch an open-like function (that takes a filename as the first argument)
@@ -152,100 +161,74 @@ def scrub_patchmap(patchmap, verbose=False, strict=False):
             continue
         result[module_name] = funcname
     return result
-
-
-DEFAULT_MODULE_MAPPINGS = {
-    'builtins': 'open',
-    'bz2': 'BZ2File',
-    'gzip': 'GzipFile',
-    'h5py': 'File',    # for keras/tensorflow
-    # manually add tensorflow because it's a heavyweight library
-    #'tensorflow': 'gfile.FastGFile',
-    #'tensorflow': 'gfile.GFile',
-}
 DEFAULT_MODULE_MAPPINGS = scrub_patchmap(DEFAULT_MODULE_MAPPINGS, True)
 
 
-def create_charmap_func(charmap):
-    if callable(charmap):
-        return charmap
-    fromstr = tostr = ""
-    for fromchar, tochar in charmap.items():
-        fromstr += fromchar
-        tostr += tochar
-    return lambda val: val.translate(str.maketrans(fromstr, tostr))
+def _expand_mappings(mappings, module):
+    """Expand mappings and ensure they refer to group nodes
 
-def make_mapfunc(pkg, hash=None, version=None, tag=None, force=False,
-                 mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
-    """core support for mapping filepaths to objects in quilt local objs/ datastore.
-       TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
+    Peeled off from make_mapfunc and simplified.
     """
-    if install:
-        command.install(pkg, hash=hash, version=version, tag=tag, force=force)
-    team, owner, pkg = parse_package(pkg)
-    charmap_func = create_charmap_func(charmap)
-    if mappings is None:
-        mappings = { ".": "" }  # TODO: test this case
-
-    #print(pkgname)
-    module = command.load(owner+'/'+pkg)
-    # expand/clean dir mappings, e.g.
-    # {"~asah/../foo": "."} ==> {"/Users/foo": ["uciml","raw"]}
-    # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": ["uciml", "raw", "foo"]}  # cwd=/Users/asah
     expanded_mappings = {}
     for fromdir, topath in mappings.items():
         expanded_path = os.path.abspath(os.path.expanduser(fromdir)).rstrip("/")
-        #print('expanded_path: {} fromdir={} topath={}'.format(expanded_path, fromdir, topath))
         node = module
-        keys = None
-        topath = topath.strip() # just in case
-        if topath not in [ "", "." ]:
-            for piece in topath.strip().strip(".").split("."):
-                keys = node._keys()
-                #print('keys={}'.format(keys))
-                if piece not in keys:
-                    raise Exception("Invalid mapping: Quilt node path not found: {}  ({} not found in {})".format(
-                        topath, piece, keys))
+        if topath not in ["", "."]:
+            # this line replaces the below for loop, once done.
+            #node = module._package[topath]
+            for piece in topath.split('.'):
                 node = getattr(node, piece)
-                #print('node={}'.format(node))
-        if isinstance(keys, GroupNode):
+        if not isinstance(node, GroupNode):
             # TODO: improve errmsg to be more useful
-            raise Exception("Invalid mapping: Quilt node is not a Group: {}".format(piece))
+            raise ValueError("Invalid mapping: Node path is not a Group: {}".format(topath))
         expanded_mappings[expanded_path] = node
+    return expanded_mappings
 
-    def mapfunc(filename, mappings=mappings, charmap_func=charmap_func):
+
+def make_mapfunc(pkg, mappings=None):
+    """core support for mapping filepaths to objects in quilt local objs/ datastore.
+       TODO: add support for reading/iterating directories, e.g. os.scandir() and friends
+    """
+    team, owner, pkg = parse_package(pkg)
+    charmap_func = to_nodename
+    if mappings is None:
+        mappings = { ".": "" }  # TODO: test this case
+
+    module = command.load(owner+'/'+pkg)
+    # expand/clean dir mappings, e.g.
+    # {"~asah/../foo": "."} ==> {"/Users/foo": quilt.data.uciml.raw}
+    # {"foo/bar": "foo"} ==> {"/Users/asah/foo/bar": quilt.data.uciml.raw.foo}  # cwd=/Users/asah
+    expanded_mappings = _expand_mappings(mappings, module)
+
+    def mapfunc(filename, charmap_func=charmap_func):
         # TODO: disallow trailing slash - not allowed to open directories...
         abspath = os.path.abspath(os.path.expanduser(filename))
         # map subtrees:
         #   make_mapfunc("uciml/iris", mappings={".": "raw"}); open("bezdek_iris")
         #   make_mapfunc("uciml/iris"); open("raw/bezdek_iris")
         #   make_mapfunc("foo/bar", "baz/bat"); open("myfile")
-        #print('checking {}... mappings={}'.format(filename, mappings))
         for fromdir, node in expanded_mappings.items():
-            #print('{}: checking {} => {}'.format(abspath, fromdir, topath))
             if abspath.startswith(fromdir):
                 relpath = abspath[len(fromdir)+1:] # drop trailing slash
-                for raw_piece in relpath.split("/"):
+                piece = relpath  # for error when referencing node root
+                for raw_piece in relpath.split("/") if relpath else relpath:  # skip ''
                     piece = charmap_func(raw_piece)
-                    #print('  {} => {}   raw_piece={}  piece={}'.format(relpath, node, raw_piece, piece))
                     keys = node._keys()
-                    #print('keys={} piece={}'.format(keys, piece))
                     if piece not in keys:
-                        raise Exception("Quilt node path not found: {}  ({} not found in {})".format(
-                            abspath, piece, keys))
+                        raise QuiltVfsReadError("Quilt node path not found: {}  ({} not found in {})".format(
+                                                abspath, piece, keys))
                     node = getattr(node, piece)
-                    #print('node={}'.format(node))
-                if isinstance(keys, GroupNode):
-                    raise Exception("Quilt node is a Group, not a Node/file: {}  ({} not found in {})".format(
-                        abspath, piece, keys))
+                if isinstance(node, GroupNode):
+                    raise QuiltVfsReadError("Quilt node is a Group, not a Node/file: {!r}  ({!r} not found in {})"
+                                            .format(abspath, piece, node._keys()))
                 return node()
         return filename
-
     return mapfunc
+
 
 @contextmanager
 def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
-            mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+            mappings=None, install=False, charmap=to_nodename, **kwargs):
     """context-based virtual file support:
 
          with quilt.vfs.mapdirs('uciml/iris', mappings={'foo/bar':'raw'}):
@@ -257,8 +240,7 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
     patchers = []
     try:
         # in case of interruption/exception, patchers will contain a subset that can be backed-out
-        mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                               mappings=mappings, install=install, charmap=charmap, **kwargs)
+        mapfunc = make_mapfunc(pkg, mappings=mappings)
         for module_name, func_name in kwargs.items():
             patchers.append(filepatch(module_name, func_name, mapfunc))
         yield
@@ -266,8 +248,8 @@ def mapdirs(pkg, hash=None, version=None, tag=None, force=False,
         for patcher in patchers:
             patcher.stop()
 
-def setup(pkg, hash=None, version=None, tag=None, force=False,
-          mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, ensure_installed=True, **kwargs):
+def setup(pkg, mappings=None, ensure_installed=True, create_if_missing=False, export=True, force_export=False,
+          **kwargs):
     """continuation-based virtual file support:
 
          patchers = quilt.vfs.setup('uciml/iris', mappings={'foo/bar':'raw'})
@@ -282,24 +264,20 @@ def setup(pkg, hash=None, version=None, tag=None, force=False,
          finally:
              quilt.vfs.teardown(patchers)
     """
-    if ensure_installed:
-        try:
-            command.load(pkg)
-        except command.CommandException as error:
-            msg = str(error)
-            if not msg.startswith('Package') and msg.endswith('not found.'):
-                raise
-            command.install(pkg, force=True)
+    prep_package(pkg, ensure_installed=ensure_installed, create_if_missing=create_if_missing, export=export,
+                 force_export=force_export)
 
     if len(kwargs) == 0:
         kwargs = DEFAULT_MODULE_MAPPINGS
-    mapfunc = make_mapfunc(pkg, hash=hash, version=version, tag=tag, force=force,
-                           mappings=mappings, install=install, charmap=charmap, **kwargs)
+
+    mapfunc = make_mapfunc(pkg, mappings=mappings)
     return [filepatch(module_name, fname, mapfunc) for module_name, fname in kwargs.items()]
+
 
 def teardown(patchers):
     for patcher in patchers:
         patcher.stop()
+
 
 def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     """wrapper for unittest.mock.patch supporting py2 and py3 and default action func."""
@@ -313,39 +291,17 @@ def patch(module_name, func_name, action_func=lambda *args, **kwargs: None):
     patcher.start()
     return patcher
 
-def setup_keras_dataset(data_pkg, keras_dataset_name, hash=None, version=None, tag=None, force=False,
-                        mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
+
+def setup_keras_dataset(data_pkg, keras_dataset_name, **kwargs):
     """Keras is a special case -- patch get_file()"""
     mapfunc = make_mapfunc(data_pkg)
-    def keras_mapfunc(filename, **args):
+    def keras_mapfunc(filename, **kwargs):
         return mapfunc(filename)
 
     # TODO: keras checkpoints support
 
     patch('keras.datasets.'+keras_dataset_name, 'get_file', keras_mapfunc)
 
-## Abandoned?
-# def setup_tensorflow(data_pkg, chkpt_pkg=None, checkpoints_nodepath="checkpoints",
-#                      hash=None, version=None, tag=None, force=False,
-#                      mappings=None, install=False, charmap=DEFAULT_CHAR_MAPPINGS, **kwargs):
-#     """TensorFlow is a special case - badly behaved Python API."""
-#     if chkpt_pkg is None:
-#         chkpt_pkg = data_pkg
-#     import tensorflow
-#     tensorflow.python = tensorflow  # hack: needs to be a module
-#     tensorflow.python.platform = tensorflow  # hack: needs to be a module
-#     module_mappings = DEFAULT_MODULE_MAPPINGS.copy()
-#     # unpatch gzip.GzipFile() because TF uses gzip.GzipFile(fileobj=) instead of filename
-#     del module_mappings['gzip']
-#     # patch gfile.Open()
-#     module_mappings['tensorflow.python.platform.gfile'] = 'Open'
-#     setup(data_pkg, hash=hash, version=version, tag=tag, force=force,
-#           mappings=mappings, install=install, charmap=charmap, **module_mappings)
-#     # patch maybe_download() to return the Quilt filename
-#     mapfunc = make_mapfunc(data_pkg, hash=hash, version=version, tag=tag, force=force,
-#           mappings=mappings, install=install, charmap=charmap, **module_mappings)
-#     patch('tensorflow.contrib.learn.datasets.base', 'maybe_download',
-#           lambda fn, fndir, url: mapfunc(fndir+'/'+fn))
 
 def setup_tensorflow_checkpoints(package, ensure_installed=True, create_if_missing=False, export=True,
                                  force_export=False):
@@ -374,9 +330,6 @@ def setup_tensorflow_checkpoints(package, ensure_installed=True, create_if_missi
                                   meta_graph_suffix, write_meta_graph, write_state)
     return patch('tensorflow.train.Saver', 'save', save_latest_to_quilt)
 
-
-## The below code below provides tensorflow support by suclassing Saver.
-#   Mapper etc have been retained for VFS purposes.
 
 ## These helpers -- create_if_missing, try_export, and prep_package are meant to
 #  be useful for VFS or the TF Saver subclass, but have not been integrated into VFS.
