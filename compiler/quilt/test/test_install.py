@@ -78,7 +78,8 @@ class InstallTest(QuiltTestCase):
         command.install('foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'), Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
+                               Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -107,7 +108,8 @@ class InstallTest(QuiltTestCase):
         command.install('qux:foo/bar')
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'), Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
+                               Package.CONTENTS_DIR,
                                contents_hash)) as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
