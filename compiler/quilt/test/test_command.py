@@ -623,6 +623,18 @@ class CommandTest(QuiltTestCase):
         from quilt.data.foo import bar
         assert isinstance(bar.foo(), pd.DataFrame)
 
+    def test_export_invalid(self):
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("zzznonexistentuserzzz/package")
+
+        # create a blank package so the user definitely exists
+        command.build_package_from_contents(None, 'testuser', 'testpackage', '', {'contents': {}})
+
+        from quilt.data.testuser import testpackage
+
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("testuser/nonexistentpackage")
+
     def test_export(self):
         # pathlib will translate paths to windows or posix paths when needed
         Path = pathlib.Path
