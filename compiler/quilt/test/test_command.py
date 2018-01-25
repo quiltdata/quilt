@@ -451,7 +451,7 @@ class CommandTest(QuiltTestCase):
 
         self._mock_method('disable', status=400, team='qux', message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
-            command.create_user('', team='qux')
+            command.disable_user('', team='qux')
 
     def test_user_disable_unknown(self):
         self._mock_method('disable', status=404)
