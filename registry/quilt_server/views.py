@@ -1607,6 +1607,12 @@ def create_user():
             )
 
     if resp.status_code == requests.codes.bad:
+        if resp.text == '{"email":["Enter a valid email address."]}':
+            raise ApiException(
+                requests.codes.bad,
+                "Please enter a valid email address."
+                )
+
         raise ApiException(
             requests.codes.bad,
             "Bad request. Maybe there's already a user with the username you provided?"
