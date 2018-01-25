@@ -14,7 +14,7 @@ if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='https://quilt-heroku.herokuapp.com/o/token/',
         authorize_url='https://quilt-heroku.herokuapp.com/o/authorize/',
-        client_id='chrOhbIPVtJAey7LcT1ez7PnIaV9tFLqNYXapcG3',
+        client_id='packages',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='https://quilt-heroku.herokuapp.com/api-root',
         profile_api='https://quilt-heroku.herokuapp.com/accounts/profile?user=%s',
@@ -37,7 +37,7 @@ OAUTH.update(dict(
     redirect_url='http://localhost:5000/oauth_callback',
 ))
 
-CATALOG_REDIRECT_URLS = ['http://localhost:3000/oauth_callback']
+CATALOG_URL = 'http://localhost:3000'
 
 INVITE_SEND_URL = 'https://quilt-heroku.herokuapp.com/pkginvite/send/'  # XXX
 

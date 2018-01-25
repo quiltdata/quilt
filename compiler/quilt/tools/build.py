@@ -9,7 +9,6 @@ import os
 import re
 from types import ModuleType
 
-from pandas.errors import ParserError
 from six import iteritems, itervalues, string_types
 
 import yaml
@@ -295,22 +294,23 @@ def _file_to_data_frame(ext, path, target, handler_args):
                 progress.update(count)
             with FileWithReadProgress(path, _callback) as fd:
                 dataframe = handler(fd, **kwargs)
-    except (UnicodeDecodeError, ParserError) as error:
+    except ValueError as error:
         if failover:
             warning = "Warning: failed fast parse on input %s.\n" % path
             warning += "Switching to Python engine."
             print(warning)
             try_again = True
         else:
-            raise error
-    except ValueError as error:
-        raise BuildException(str(error))
+            raise BuildException(str(error))
 
     if try_again:
         failover_args = {}
         failover_args.update(failover)
         failover_args.update(kwargs)
-        dataframe = handler(path, **failover_args)
+        try:
+            dataframe = handler(path, **failover_args)
+        except ValueError as error:
+            raise BuildException(str(error))
 
     # cast object columns to strings
     # TODO does pyarrow finally support objects?
