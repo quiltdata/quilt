@@ -57,6 +57,10 @@ except ImportError:
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
+EXTENDED_PACKAGE_RE = re.compile(
+    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
+)
+
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
@@ -66,8 +70,7 @@ S3_CONNECT_TIMEOUT = 30
 S3_READ_TIMEOUT = 30
 S3_TIMEOUT_RETRIES = 3
 CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
-VALID_EXTENDED_PCKG_RE = re.compile(r'^((\w+:)?\w+/[\w/]+)(:(version|tag|hash|v|t|h):(.+)$)?',
-                                    flags=re.IGNORECASE)
+
 LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
@@ -80,24 +83,15 @@ class CommandException(Exception):
     pass
 
 def parse_package_extended(name):
-    hash = version = tag = None
-    package = name
-    try:
-        package, _, _, info_type, info = VALID_EXTENDED_PCKG_RE.match(name).groups()
-        if info_type:
-            if info_type[0] == 'v':
-                version = info
-            elif info_type[0] == 'h':
-                hash = info
-            else:
-                tag = info
-        # e.g. 'owner/package:aaa:bbb'
-        elif package != name:
-            raise CommandException("Invalid versioninfo")
-    except AttributeError:
-        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(name)
+    if match is None:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return package, hash, version, tag
+
+    return match.groups()
 
 def parse_package(name, allow_subpath=False):
     try:

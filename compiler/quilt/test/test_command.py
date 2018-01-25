@@ -699,8 +699,11 @@ class CommandTest(QuiltTestCase):
         assert command.parse_package_extended('team:user/package:tag:some') == expected
 
         # bad parse strings
-        with pytest.raises(command.CommandException, match='Invalid versioninfo'):
+        with pytest.raises(command.CommandException):
             command.parse_package_extended('user/package:a:aaa111')
 
-        with pytest.raises(command.CommandException, match='Invalid versioninfo'):
+        with pytest.raises(command.CommandException):
             command.parse_package_extended('team:user/package:a:aaa111')
+
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('foo:bar:baz')
