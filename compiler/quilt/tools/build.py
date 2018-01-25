@@ -9,20 +9,30 @@ import os
 import re
 from types import ModuleType
 
-from six import iteritems, itervalues, string_types
+import numpy as np
+import pandas as pd
+from pandas import DataFrame as df
+from six import iteritems, string_types
 
 import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat, BuildException, exec_yaml_python, load_yaml
+from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
 from .util import FileWithReadProgress, to_nodename, is_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
+
+
+class BuildException(Exception):
+    """
+    Build-time exception class
+    """
+    pass
 
 
 def _have_pyspark():
@@ -474,3 +484,48 @@ def generate_build_file(startpath, outfilename=DEFAULT_BUILDFILE):
     with open(buildfilepath, 'w') as outfile:
         yaml.dump(contents, outfile, default_flow_style=False)
     return buildfilepath
+
+def load_yaml(filename, optional=False):
+    if optional and (filename is None or not os.path.isfile(filename)):
+        return None
+    with open(filename, 'r') as fd:
+        data = fd.read()
+    try:
+        res = yaml.load(data)
+    except yaml.scanner.ScannerError as error:
+        mark = error.problem_mark
+        message = ["Bad yaml syntax in {!r}".format(filename),
+                   "  Line {}, column {}:".format(mark.line, mark.column)]
+        message.extend(error.problem_mark.get_snippet().split(os.linesep))
+        message.append("  " + error.problem)
+        raise BuildException('\n'.join(message))
+    if res is None:
+        if optional:
+            return None
+        raise BuildException("Unable to open YAML file: %s" % filename)
+    return res
+
+def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
+    # TODO False vs Exception...
+    try:
+        # setup for eval
+        qc.nodename = nodename
+        qc.filename = path
+        qc.data = dataframe
+        eval_globals = {
+            'qc': qc, 'numpy': np, 'df': df, 'pd': pd, 're': re
+        }
+        # single vs multi-line checks - YAML hackery
+        if '\n' in str(chkcode):
+            # note: python2 doesn't support named args for exec()
+            # https://docs.python.org/2/reference/simple_stmts.html#exec
+            exec(str(chkcode), eval_globals, {})  # pylint:disable=W0122
+            res = True
+        else:
+            # str() to handle True/False
+            res = eval(str(chkcode), eval_globals, {})  # pylint:disable=W0123
+    except qc.CheckFunctionsReturn as ex:
+        res = ex.result
+    except Exception as ex:
+        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
+    return res
