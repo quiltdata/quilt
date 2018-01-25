@@ -10,6 +10,9 @@ SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
 REGISTRY_HOST = os.environ['REGISTRY_HOST']
 OAUTH_HOST = os.environ['OAUTH_HOST']
 OAUTH_API_HOST = os.environ['OAUTH_API_HOST']
+CATALOG_HOST = os.environ['CATALOG_HOST']
+
+CATALOG_URL = 'https://%s' % CATALOG_HOST
 
 OAUTH = dict(
     access_token_url='https://%s/o/token/' % OAUTH_HOST,
@@ -21,8 +24,6 @@ OAUTH = dict(
     profile_api='https://%s/accounts/profile?user=%%s' % OAUTH_API_HOST,
     have_refresh_token=True
 )
-
-CATALOG_REDIRECT_URLS = os.environ['CATALOG_REDIRECT_URLS'].split()
 
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
 
