@@ -13,7 +13,8 @@ import quilt.vfs
 
 QUILT_PKG = 'asah/cifar10'
 
-# quilt.vfs.QuiltTfSaver is used as the saver, below.
+# Patch the `tensorflow.train.Saver`.
+quilt.vfs.setup_tensorflow_checkpoints(QUILT_PKG, create_if_missing=True)
 
 # END QUILT SETUP
 #---------------------------------------------------------------------------
@@ -41,24 +42,7 @@ tf.summary.scalar("Accuracy/train", accuracy)
 
 
 merged = tf.summary.merge_all()
-#---------------------------------------------------------------------------
-# QUILT SETUP -- use the Quilt saver
-#saver = tf.train.Saver()   # use quilt saver instead
-
-# Normal tf.train.Saver args and kwargs accepted
-saver = quilt.vfs.QuiltTfSaver(
-    # Use kwargs for all quilt args.
-    quilt_package=QUILT_PKG,    # required      -- [team:]user/package[/subnode...]
-    ensure_installed=True,      # Default True  -- Attempt to install the package if it isn't installed
-    create_if_missing=True,     # Default False -- If package is missing, create it.
-    failexit=False,             # Default False -- SystemExit if package can't be found or installed. Ignored
-                                #                  if create_if_missing is True.
-    export=True,                # Default True  -- export data from quilt_package first.
-    force_export=False,         # Default False -- Force export to overwrite existing files if present
-    )
-
-# END QUILT SETUP
-#---------------------------------------------------------------------------
+saver = tf.train.Saver()
 sess = tf.Session()
 train_writer = tf.summary.FileWriter(_SAVE_PATH, sess.graph)
 
@@ -86,12 +70,12 @@ def train(num_iterations):
         i_global, _ = sess.run([global_step, optimizer], feed_dict={x: batch_xs, y: batch_ys})
         duration = time() - start_time
 
-        if (i_global % 2 == 0) or (i == num_iterations - 1):
+        if (i_global % 10 == 0) or (i == num_iterations - 1):
             _loss, batch_acc = sess.run([loss, accuracy], feed_dict={x: batch_xs, y: batch_ys})
             msg = "Global Step: {0:>6}, accuracy: {1:>6.1%}, loss = {2:.2f} ({3:.1f} examples/sec, {4:.2f} sec/batch)"
             print(msg.format(i_global, batch_acc, _loss, _BATCH_SIZE / duration, duration))
 
-        if (i_global % 4 == 0) or (i == num_iterations - 1):
+        if (i_global % 100 == 0) or (i == num_iterations - 1):
             data_merged, global_1 = sess.run([merged, global_step], feed_dict={x: batch_xs, y: batch_ys})
             acc = predict_test()
 
