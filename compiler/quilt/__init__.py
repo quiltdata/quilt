@@ -87,8 +87,10 @@ from .tools.command import (
     build,
     check,
     config,
+    export,
     inspect,
     install,
+    load,
     log,
     login,
     login_with_token,
@@ -100,6 +102,7 @@ from .tools.command import (
     tag_add,
     tag_list,
     tag_remove,
+    update,
     version_add,
     version_list,
 )

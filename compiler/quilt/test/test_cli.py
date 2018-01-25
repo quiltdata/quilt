@@ -102,10 +102,7 @@ from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
 
 # inspect.argspec is deprecated, so
-try:
-    from funcsigs import signature  # python 2.7
-except ImportError:
-    from inspect import signature
+from ..tools.compat import signature
 
 
 ## "Static" vars
@@ -118,7 +115,7 @@ PACKAGE_DIR = os.path.dirname(_QUILT_DIR)
 # Get an example key path by calling get_all_param_paths()
 TESTED_PARAMS = []
 
-# KNOWN_PARAMS
+## KNOWN_PARAMS
 # This is a list of keypaths.
 # When adding a new param to the cli, add the param here.
 # New or missing cli param keypaths can be found in test errors,
@@ -147,6 +144,9 @@ KNOWN_PARAMS = [
     [0, 'config'],
     [0, 'delete'],
     [0, 'delete', 0],
+    [0, 'export'],
+    [0, 'export', 0],
+    [0, 'export', 1],
     [0, 'generate'],
     [0, 'generate', 0],
     [0, 'help'],
@@ -479,12 +479,12 @@ class TestCLI(BasicQuiltTestCase):
 
     def execute(self, cli_args):
         """Execute a command using the method specified by the environment
-
         When "QUILT_TEST_CLI_SUBPROC" is set to "True", use a subprocess.
         Otherwise, call main() directly.
 
         :returns: dict of return codes and calls made to `command` functions
         """
+
         # CLI mode -- actually executes "quilt <cli args>"
         # This mode is preferable, once quilt load times improve.
         if self.env.get('QUILT_TEST_CLI_SUBPROC', '').lower() == 'true':
@@ -535,6 +535,23 @@ class TestCLI(BasicQuiltTestCase):
         result.update(self.mock_command._result)
         return result
 
+    def execute_with_checks(self, cli_args, funcname):
+        """Execute via self.execute, then perform basic checks on the results
+
+        Convenience method.
+
+        This may not always be applicable, but it checks a few commond conditions.
+        """
+        result = self.execute(cli_args)
+
+        assert result['return code'] == 0      # command accepted by argparse?
+        assert result['matched'] is True       # found func in mocked object?
+        assert not result['bind failure']      # argparse calling args matched func args?
+        assert not result['args']              # only kwargs were used to call the function?
+        assert result['func'] == funcname      # called func matches expected funcname?
+
+        return result
+
     def test_cli_new_param(self):
         missing_paths = get_missing_key_paths(self.param_tree, KNOWN_PARAMS, exhaustive=True)
         if missing_paths:
@@ -563,16 +580,9 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for appropriate types and values.
         cmd = ['config']
-        result = self.execute(cmd)
-
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='config')
 
         # Specific tests
-        assert result['func'] == 'config'
-        assert not result['args']
         assert not result['kwargs']
 
     def test_cli_command_login(self):
@@ -596,7 +606,7 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        # TODO: update this to use _general_execute_tests once merged
+        # TODO: update this to use self.execute_with_checks once merged
         assert result['return code'] == 0
         assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
@@ -639,7 +649,7 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute(cmd)
 
         # General tests
-        # TODO: update this to use _general_execute_tests once merged
+        # TODO: update this to use self.execute_with_checks once merged
         assert result['return code'] == 0
         assert result['matched'] is True  # func name recognized by MockObject class?
         assert not result['bind failure']
@@ -672,16 +682,10 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for appropriate types and values.
         cmd = 'push fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
         assert not result['args']
-        assert result['func'] == 'push'
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': False,
@@ -693,16 +697,10 @@ class TestCLI(BasicQuiltTestCase):
         ## Test the flags as well..
         # public (and reupload)
         cmd = 'push --reupload --public fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
-
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
         assert not result['args']
-        assert result['func'] == 'push'
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
@@ -731,6 +729,38 @@ class TestCLI(BasicQuiltTestCase):
             'team': True,
         }
 
+    def test_cli_command_export(self):
+        ## This test covers the following arguments that require testing
+        TESTED_PARAMS.extend([
+            [0, 'export'],
+            [0, 'export', 0],
+            [0, 'export', 1]
+            ])
+
+        ## This section tests for circumstances expected to be rejected by argparse.
+        expect_fail_2_args = [
+            'export'.split(),
+            'export too many args'.split(),
+            ]
+        for args in expect_fail_2_args:
+            assert self.execute(args)['return code'] == 2
+
+        ## This section tests for appropriate types and values.
+        # run the command
+        cmd = 'export fakeuser/fakepackage'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        # Specific tests
+        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        assert result['kwargs']['output_path'] == '.'
+
+        # run next command
+        cmd = 'export fakeuser/fakepackage fakedir'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        # Specific tests
+        assert result['kwargs']['package'] == 'fakeuser/fakepackage'
+        assert result['kwargs']['output_path'] == 'fakedir'
 
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
@@ -780,7 +810,6 @@ class TestCLI(BasicQuiltTestCase):
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
-
 
 
 # need capsys, so this isn't in the unittest class

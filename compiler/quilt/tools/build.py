@@ -20,8 +20,8 @@ from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
-from .store import PackageStore, VALID_NAME_RE, StoreException
-from .util import FileWithReadProgress
+from .store import PackageStore, StoreException
+from .util import FileWithReadProgress, is_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -62,7 +62,7 @@ def _path_hash(path, transform, kwargs):
 
 def _is_internal_node(node):
     is_leaf = not node or node.get(RESERVED['file'])
-    return not is_leaf 
+    return not is_leaf
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -70,7 +70,7 @@ def _pythonize_name(name):
     if safename and safename[0].isdigit():
         safename = "n%s" % safename
 
-    if not VALID_NAME_RE.match(safename):
+    if not is_nodename(safename):
         raise BuildException("Unable to determine a Python-legal name for %r" % name)
     return safename
 
@@ -115,7 +115,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # if it's not a reserved word it's a group that we can descend
         groups = { k: v for k, v in iteritems(node) if k not in RESERVED }
         for child_name, child_table in groups.items():
-            if not isinstance(child_name, str) or not VALID_NAME_RE.match(child_name):
+            if not isinstance(child_name, str) or not is_nodename(child_name):
                 raise StoreException("Invalid node name: %r" % child_name)
             _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
                 checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
@@ -144,7 +144,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             transform = ext
             if transform not in PARSERS:
                 transform = ID
-            print("Inferring 'transform: %s' for %s" % (transform, rel_path)) 
+            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
         # TODO: parse/check environments:
         # environments = node.get(RESERVED['environments'])
 
@@ -314,7 +314,7 @@ def build_package(team, username, package, yaml_path, checks_path=None, dry_run=
                     for item in v:
                         for result in find(key, item):
                             yield result
-        
+
     build_data = load_yaml(yaml_path)
     # default to 'checks.yml' if build.yml contents: contains checks, but
     # there's no inlined checks: defined by build.yml

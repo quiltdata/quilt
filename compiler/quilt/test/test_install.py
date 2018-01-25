@@ -54,7 +54,9 @@ class InstallTest(QuiltTestCase):
     def make_contents(cls, **args):
         contents = RootNode(dict(
             group=GroupNode(dict([
-                (key, TableNode([val], PackageFormat.default.value) if 'table' in key else FileNode([val]))
+                (key, TableNode([val], PackageFormat.default.value)
+                 if 'table' in key
+                 else FileNode([val], metadata={'q_path': key}))
                 for key, val in args.items()]
             ))
         ))
@@ -280,6 +282,8 @@ packages:
         self._mock_log('akarve/sales', contents_hash1)
         with assertRaisesRegex(self, command.CommandException, "Invalid hash"):
             command.install("packages:\n- akarve/sales:h:123456")
+        # TODO: Is this OK to drop? #merge_uncertainty
+        #self._mock_tag('akarve/sales', 'unknown', contents_hash1)
 
     def test_quilt_yml_unknown_tag(self):
         table_data1, table_hash1 = self.make_table_data('table1')
@@ -359,15 +363,18 @@ packages:
         """
         file_data_list = []
         file_hash_list = []
+        file_name_list = []
+
         for i in range(2):
-            file_data, file_hash = self.make_file_data('file%d' % i)
+            file_name = 'file{}'.format(i)
+            file_data, file_hash = self.make_file_data(file_name)
             file_data_list.append(file_data)
             file_hash_list.append(file_hash)
+            file_name_list.append(file_name)
 
-        contents = RootNode(dict(
-            file0=FileNode([file_hash_list[0]]),
-            file1=FileNode([file_hash_list[1]]),
-        ))
+        contents = RootNode(
+            {filename: FileNode([file_hash_list[n]], metadata={'q_path': filename})
+             for n, filename in enumerate(file_name_list)})
         contents_hash = hash_contents(contents)
 
         # Create a package store object to use its path helpers

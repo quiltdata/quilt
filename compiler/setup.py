@@ -37,9 +37,13 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
+        'backports.tempfile; python_version<"3.4"',   # stdlib backport
+        'enum34; python_version<"3.4"',     # stdlib backport
+        'funcsigs; python_version<"3.4"',    # stdlib backport
         'future>=0.16.0',
         'packaging>=16.8',
         'pandas>=0.19.2',
+        'pathlib2; python_version<"3.5"',    # stdlib backport
         'pyarrow>=0.4.0,<0.8.0', # TODO(dima): Make unit tests work with 0.8.*.
         'pyOpenSSL>=16.2.0',  # Note: not actually used at the moment.
         'pyyaml>=3.12',

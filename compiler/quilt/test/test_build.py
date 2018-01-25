@@ -51,10 +51,10 @@ class BuildTest(QuiltTestCase):
         srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
         path_hash = build._path_hash(srcpath, 'csv',  {'parse_dates': ['Date0']})
         assert os.path.exists(teststore.cache_path(path_hash))
-        
+
         # Build again using the cache
         build.build_package(None, 'test_cache', PACKAGE, path)
-        
+
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -122,7 +122,7 @@ class BuildTest(QuiltTestCase):
         build.build_package(None, 'groups', 'pkg', path)
 
         from quilt.data.groups import pkg
-        
+
         assert isinstance(pkg.group_a.csv(), DataFrame), \
             'Expected parent `transform: csv` to affect group_a.csv()'
         assert isinstance(pkg.group_a.tsv(), DataFrame), \
@@ -145,9 +145,9 @@ class BuildTest(QuiltTestCase):
         assert pkg.group_b.subgroup.many_tsv.one().shape == (1, 3), \
             'Expected local `transform: csv` and one skipped row from group args'
         assert isinstance(pkg.group_b.subgroup.many_tsv.two(), DataFrame), \
-            'Expected `transform: tsv` from ancestor' 
+            'Expected `transform: tsv` from ancestor'
         assert isinstance(pkg.group_b.subgroup.many_tsv.three(), DataFrame), \
-            'Expected `transform: tsv` from ancestor' 
+            'Expected `transform: tsv` from ancestor'
         assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
         assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
 
