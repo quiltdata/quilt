@@ -84,7 +84,7 @@ services:
     environment:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
-      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - DATABASE_URL=postgresql://postgres:testing@db/packages
       - FRONTEND_URL=http://catalog:3000
       - ALLOW_HTTP=1
     depends_on:
@@ -94,7 +94,7 @@ services:
   djangomigration:
     image: quiltdata/django
     environment:
-      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - DATABASE_URL=postgresql://postgres:testing@db/packages
       - OAUTH_REDIRECT_URI=http://flask:5000/oauth_callback
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
