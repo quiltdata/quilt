@@ -61,6 +61,10 @@ except ImportError:
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
+EXTENDED_PACKAGE_RE = re.compile(
+    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
+)
+
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
@@ -84,46 +88,17 @@ class CommandException(Exception):
 
 
 def parse_package_extended(name):
-    hash = version = tag = versioninfo = None
-    try:
-        needle, owner_pkg_sep = name.find(':'), name.find('/')
-        if needle != -1:
-            if needle < owner_pkg_sep:
-                # we have a team.  Needle points to team/pkg separator.
-                needle = name.find(':', needle + 1)  # advance the needle to the next ':'
-                if needle != -1:
-                    # we also have version info.
-                    name, versioninfo = name[:needle], name[needle + 1:]
-            else:
-                # no team.  Needle points to version info separator.
-                name, versioninfo = name[:needle], name[needle + 1:]
-        # Version Info has been extracted from name.
-        # we have a name with a team
-        if versioninfo:
-            if ':' in versioninfo:
-                info = versioninfo.split(':', 1)
-                if len(info) == 2:
-                    if 'version'.startswith(info[0]):
-                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
-                        version = info[1]
-                    elif 'tag'.startswith(info[0]):
-                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
-                        tag = info[1]
-                    elif 'hash'.startswith(info[0]):
-                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
-                        hash = info[1]
-                    else:
-                        raise CommandException("Invalid versioninfo: %s." % info)
-                else:
-                    # usr/pkg:hashval
-                    hash = versioninfo
-        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
-    except ValueError:
-        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(name)
+    if match is None:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return team, owner, pkg, subpath, hash, version, tag
 
+    return match.groups()
 
+  
 def parse_package(name, allow_subpath=False):
     try:
         values = name.split(':', 1)
@@ -918,6 +893,7 @@ def tag_remove(package, tag):
         )
     )
 
+
 def install_via_requirements(requirements_str, force=False):
     """
     Download multiple Quilt data packages via quilt.xml requirements file.
@@ -931,14 +907,9 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        team, owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
+        package, pkghash, version, tag = parse_package_extended(pkginfo)
+        install(package, pkghash, version, tag, force=force)
 
-        package = owner + '/' + pkg
-        if team:
-            package = team + ':' + package
-        if subpath:
-            package += '/' + "/".join(subpath)
-        install(package, hash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
