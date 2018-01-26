@@ -16,10 +16,8 @@ import MIcon from 'components/MIcon';
 
 import messages from './messages';
 
-
 const PER_PAGE = 10;
 const UNIT_SIZE = '24px';
-
 
 const Controls = styled.div`
   display: flex;
@@ -41,7 +39,6 @@ const Chevron = compose(
 )(IconButton);
 
 const Pages = styled.span`
-  font-weight: bold;
   margin-left: 12px;
 `;
 
