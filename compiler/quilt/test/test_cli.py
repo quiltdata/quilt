@@ -98,7 +98,7 @@ from subprocess import check_output, CalledProcessError, Popen, PIPE
 from time import sleep
 
 import pytest
-from six import string_types
+from six import string_types, PY2
 
 from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
@@ -791,10 +791,8 @@ def test_cli_command_version_flag(capsys):
 
     from quilt.tools.main import main
 
-    try:
+    with pytest.raises(SystemExit):
         main(['--version'])
-    except SystemExit:
-        pass
 
     # there's not a lot to test here -- this literally just does the same thing
     # that 'quilt --version' does, but this at least ensures that it still
@@ -805,7 +803,11 @@ def test_cli_command_version_flag(capsys):
     expectation = "quilt {} ({})\n".format(dist.version, dist.egg_name())
 
     outerr = capsys.readouterr()
-    assert expectation == outerr.out
+
+    # in python 2, apparently argparse's 'version' handler prints to stderr.
+    result = outerr.err if PY2 else outerr.out
+
+    assert expectation in outerr and '' in outerr
 
 # need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
@@ -829,10 +831,8 @@ def test_cli_command_in_help(capsys):
         if isinstance(argpath[1], string_types):
             expected_params.add(argpath[1])
 
-    try:
+    with pytest.raises(SystemExit):
         main(['help'])
-    except SystemExit:
-        pass
 
     outerr = capsys.readouterr()
     lines = outerr.out.split('\n')
