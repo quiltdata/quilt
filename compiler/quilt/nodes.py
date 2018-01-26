@@ -101,6 +101,7 @@ class GroupNode(DataNode):
 
     @classmethod
     def __iteritems(cls, node, base_path, recursive=False):
+        # worker for _iteritems and _iterpaths.
         assert isinstance(base_path, pathlib.PurePath)
         assert isinstance(node, GroupNode)
 
@@ -112,8 +113,11 @@ class GroupNode(DataNode):
                     yield subpath, subnode
 
     def _iteritems(self, recursive=False):
-        """
-        Iterates paths and nodes within this and all child nodes
+        """Iterate over paths and nodes in this node
+
+        Yields child `(path, node)` pairs.  Paths are slash-separated
+        strings.  If `recursive` is True, also yields all child nodes
+        and their children, recursively.
 
         :param recursive: iterate recursively over child nodes as well
         :returns: iterator of (<path string>, <node>) pairs
@@ -122,8 +126,11 @@ class GroupNode(DataNode):
             yield str(path), node
 
     def _iterpaths(self, recursive=False):
-        """
-        Iterates paths in this and all child nodes
+        """Iterate over paths in this node
+
+        Yields paths in this node, as slash-separated strings.  If
+        `recursive` is True, also yields all child nodes and their
+        children, recursively.
 
         :param recursive: iterate recursively over child nodes, as well
         :returns: iterator of path strings
