@@ -5,7 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import Counter
+from collections import Counter, namedtuple
 from datetime import datetime
 import gzip
 import hashlib
@@ -85,16 +85,23 @@ class CommandException(Exception):
     """
     pass
 
-def parse_package_extended(name):
+
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
     """
     Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
     """
-    match = EXTENDED_PACKAGE_RE.match(name)
+    match = EXTENDED_PACKAGE_RE.match(identifier)
     if match is None:
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    return match.groups()
+    full_name, hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -901,8 +908,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        package, pkghash, version, tag = parse_package_extended(pkginfo)
-        install(package, pkghash, version, tag, force=force)
+        info = parse_package_extended(pkginfo)
+        install(info.full_name, info.hash, info.version, info.tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
@@ -1294,15 +1301,15 @@ def rm(package, force=False):
         print("Removed: {0}".format(obj))
 
 def _load(package):
-    package, hash, version, tag = parse_package_extended(package)
-    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    info = parse_package_extended(package)
+    team, user, name = info.team, info.user, info.name
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
+    pkgobj = PackageStore.find_package(team, user, name)
     if pkgobj is None:
         teamstr = team + ':' if team else ''
-        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(**locals()))
-    module = _from_core_node(pkgobj, pkgobj.get_contents())
-    return module, pkgobj, team, owner, pkg, subpath, hash, version, tag
+        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    return node, pkgobj, info
 
 def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
@@ -1333,7 +1340,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes (not too painful, probably)
     output_path = pathlib.Path(output_path)
-    node, _, _, _, _, subpath, _, _, _ = _load(package)
+    node, _, info = _load(package)
 
     def get_node_child_by_path(node, path):
         # get a node's children by path list or string: 'foo/bar/baz' or ['foo', 'bar', 'baz']
@@ -1345,8 +1352,8 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             node = getattr(node, name)
         return node
 
-    if subpath:
-        node = get_node_child_by_path(node, subpath)
+    if info.subpath:
+        node = get_node_child_by_path(node, info.subpath)
 
     def iter_filename_map(node):
         """Yields (<storage file path>, <original path>) pairs for given `node`.
