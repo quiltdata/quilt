@@ -175,7 +175,6 @@ If you are very careful, you can run Quilt directly in your host operating syste
 * Postgres
 
 ## Python support
-- 3.4
 - 3.5
 - 3.6
 

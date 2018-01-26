@@ -1,32 +1,15 @@
-#
-# TODO: shared with backend - DO NOT ADD CLIENT-SPECIFIC CODE HERE
-#
+# Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
+
+############################################################
+# NOTE: This file is shared between compiler and registry. #
+# Do not add any client or server specific code here.      #
+############################################################
 
 from enum import Enum
-import os
 import hashlib
 import struct
-import yaml
 
-import re
-import numpy
-import pandas as pd
-from pandas import DataFrame as df
-from . import check_functions as qc
-
-from six import iteritems, string_types
-
-class BuildException(Exception):
-    """
-    Build-time exception class
-    """
-    pass
-
-class CommandException(Exception):
-    """
-    Exception class for all command-related failures.
-    """
-    pass
+from six import iteritems, itervalues, string_types
 
 
 class PackageFormat(Enum):
@@ -71,7 +54,7 @@ class GroupNode(Node):
 
         while stack:
             node = stack.pop()
-            for child in node.children.values():
+            for child in itervalues(node.children):
                 output.append(child)
                 if isinstance(child, GroupNode):
                     stack.append(child)
@@ -173,69 +156,6 @@ def find_object_hashes(obj):
         for objhash in obj.hashes:
             yield objhash
     elif isinstance(obj, GroupNode):
-        for child in obj.children.values():
+        for child in itervalues(obj.children):
             for objhash in find_object_hashes(child):
                 yield objhash
-
-def load_yaml(filename, optional=False):
-    if optional and (filename is None or not os.path.isfile(filename)):
-        return None
-    with open(filename, 'r') as fd:
-        data = fd.read()
-    try:
-        res = yaml.load(data)
-    except yaml.scanner.ScannerError as error:
-        mark = error.problem_mark
-        message = ["Bad yaml syntax in {!r}".format(filename),
-                   "  Line {}, column {}:".format(mark.line, mark.column)]
-        message.extend(error.problem_mark.get_snippet().split(os.linesep))
-        message.append("  " + error.problem)
-        raise BuildException('\n'.join(message))
-    if res is None:
-        if optional:
-            return None
-        raise BuildException("Unable to open YAML file: %s" % filename)
-    return res
-
-def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
-    # TODO False vs Exception...
-    try:
-        # setup for eval
-        qc.nodename = nodename
-        qc.filename = path
-        qc.data = dataframe
-        eval_globals = {
-            'qc': qc, 'numpy': numpy, 'df': df, 'pd': pd, 're': re
-        }
-        # single vs multi-line checks - YAML hackery
-        if '\n' in str(chkcode):
-            # note: python2 doesn't support named args for exec()
-            # https://docs.python.org/2/reference/simple_stmts.html#exec
-            exec(str(chkcode), eval_globals, {})  # pylint:disable=W0122
-            res = True
-        else:
-            # str() to handle True/False
-            res = eval(str(chkcode), eval_globals, {})  # pylint:disable=W0123
-    except qc.CheckFunctionsReturn as ex:
-        res = ex.result
-    except Exception as ex:
-        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
-    return res
-
-def diff_dataframes(df1, df2):
-    """Identify differences between two pandas DataFrames"""
-    # from https://stackoverflow.com/a/38421614
-    assert(df1.columns == df2.columns).all(), \
-        "DataFrame column names are different"
-    if df1.equals(df2):
-        return None
-    # need to account for numpy.nan != numpy.nan returning True
-    diff_mask = (df1 != df2) & ~(df1.isnull() & df2.isnull())
-    ne_stacked = diff_mask.stack()
-    changed = ne_stacked[ne_stacked]
-    changed.index.names = ['id']
-    difference_locations = numpy.where(diff_mask)
-    changed_from = df1.values[difference_locations]
-    changed_to = df2.values[difference_locations]
-    return pd.DataFrame({'from': changed_from, 'to': changed_to},
-                        index=changed.index)
