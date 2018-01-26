@@ -6,9 +6,11 @@ import hashlib
 import json
 import os
 import time
+import pytest
 
 import requests
 import responses
+from requests.exceptions import SSLError, ConnectionError
 from six import assertRaisesRegex
 from six.moves import urllib
 
@@ -135,6 +137,21 @@ class InstallTest(QuiltTestCase):
         self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT)
         command.version_add('foo/bar', '1.0', contents_hash[0:6], force=True)
 
+    def test_team_short_hashes(self):
+        """
+        Test various functions that use short hashes for team
+        """
+        table_data, table_hash = self.make_table_data()
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_log('foo/bar', contents_hash, team='qux')
+        self._mock_tag('foo/bar', 'mytag', contents_hash[0:6], cmd=responses.PUT, team='qux')
+        command.tag_add('qux:foo/bar', 'mytag', contents_hash[0:6])
+
+        self._mock_version('foo/bar', '1.0', contents_hash[0:6], cmd=responses.PUT, team='qux')
+        command.version_add('qux:foo/bar', '1.0', contents_hash[0:6], force=True)
+
     def test_install_subpackage(self):
         """
         Install a part of a package.
@@ -158,11 +175,22 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
-    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data):
+    def test_install_team_subpackage(self):
+        """
+        Install a part of a package.
+        """
+        table_data, table_hash = self.make_table_data()
+        contents, contents_hash = self.make_contents(table=table_hash)
+        self._mock_tag('foo/bar', 'latest', contents_hash, team='qux')
+        self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash], team='qux')
+        self._mock_s3(table_hash, table_data)
+        command.install('qux:foo/bar/group/table')
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data, team='qux')
+
+    def validate_file(self, user, package, contents_hash, contents, table_hash, table_data, team=None):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(None, user, package),
-                               Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(team, user, package), Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -171,10 +199,10 @@ class InstallTest(QuiltTestCase):
             contents = fd.read()
             assert contents == table_data
 
-    def getmtime(self, user, package, contents_hash):
+    def getmtime(self, user, package, contents_hash, team=None):
         teststore = PackageStore(self._store_dir)
 
-        return os.path.getmtime(os.path.join(teststore.package_path(None, user, package),
+        return os.path.getmtime(os.path.join(teststore.package_path(team, user, package),
                                              Package.CONTENTS_DIR,
                                              contents_hash))
 
@@ -218,6 +246,18 @@ class InstallTest(QuiltTestCase):
         self._mock_package('danWebster/sgRNAs', contents_hash6, 'libraries/brunello', contents6, [table_hash6])
         self._mock_s3(table_hash6, table_data6)
 
+        table_data7, table_hash7 = self.make_table_data('table7')
+        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
+        self._mock_tag('usr/pkga', 'latest', contents_hash7, team='team')
+        self._mock_package('usr/pkga', contents_hash7, '', contents7, [table_hash7], team='team')
+        self._mock_s3(table_hash7, table_data7)
+
+        table_data8, table_hash8 = self.make_table_data('table8')
+        contents8, contents_hash8 = self.make_contents(table8=table_hash8)
+        self._mock_tag('usr/pkgb', 'tag', contents_hash8, team='team')
+        self._mock_package('usr/pkgb', contents_hash8, 'path', contents8, [table_hash8], team='team')
+        self._mock_s3(table_hash8, table_data8)
+
         # inline test of quilt.yml
         command.install('''
 packages:
@@ -227,30 +267,37 @@ packages:
 - usr2/pkgb
 - usr3/pkgc:h:SHORTHASH5
 - danWebster/sgRNAs/libraries/brunello  # subpath
+- team:usr/pkga
+- team:usr/pkgb/path:t:tag
         '''.replace('SHORTHASH5', contents_hash5[0:8]))  # short hash
+
         self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
         self.validate_file('baz','bat', contents_hash2, contents2, table_hash2, table_data2)
         self.validate_file('usr1','pkga', contents_hash3, contents3, table_hash3, table_data3)
         self.validate_file('usr2','pkgb', contents_hash4, contents4, table_hash4, table_data4)
         self.validate_file('usr3','pkgc', contents_hash5, contents5, table_hash5, table_data5)
         self.validate_file('danWebster', 'sgRNAs', contents_hash6, contents6, table_hash6, table_data6)
+        self.validate_file('usr', 'pkga', contents_hash7, contents7, table_hash7, table_data7, team='team')
+        self.validate_file('usr', 'pkgb', contents_hash8, contents8, table_hash8, table_data8, team='team')
+
         # check that installation happens in the order listed in quilt.yml
         assert (self.getmtime('foo','bar', contents_hash1) <=
                 self.getmtime('baz','bat', contents_hash2) <=
                 self.getmtime('usr1','pkga', contents_hash3) <=
                 self.getmtime('usr2','pkgb', contents_hash4) <=
                 self.getmtime('usr3','pkgc', contents_hash5) <=
-                self.getmtime('danWebster', 'sgRNAs', contents_hash6))
+                self.getmtime('danWebster', 'sgRNAs', contents_hash6) <=
+                self.getmtime('usr','pkga', contents_hash7, team='team') <=
+                self.getmtime('usr','pkgb', contents_hash8, team='team'))
 
-        # test reading from file
-        table_data7, table_hash7 = self.make_table_data('table7')
-        contents7, contents_hash7 = self.make_contents(table7=table_hash7)
-        self._mock_tag('usr4/pkgd', 'latest', contents_hash7)
-        self._mock_package('usr4/pkgd', contents_hash7, '', contents7, [table_hash7])
-        self._mock_s3(table_hash7, table_data7)
+    def test_install_dependencies_from_file(self):
+        table_data, table_hash = self.make_table_data('table')
+        contents, contents_hash = self.make_contents(table7=table_hash)
+        self._mock_tag('usr4/pkgd', 'latest', contents_hash)
+        self._mock_package('usr4/pkgd', contents_hash, '', contents, [table_hash])
+        self._mock_s3(table_hash, table_data)
         with open('tmp_quilt.yml', 'w') as fd:
             fd.write("packages:\n- usr4/pkgd")
-            fd.close()
         command.install('@tmp_quilt.yml')
 
     def test_bad_install_dependencies(self):
@@ -269,7 +316,7 @@ packages:
             command.install("packages:\n")
         with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "Invalid versioninfo"):
+        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
@@ -296,6 +343,14 @@ packages:
                            status=404, message='Version 99.99 does not exist')
         with assertRaisesRegex(self, command.CommandException, "Version 99.99 does not exist"):
             command.install("packages:\n- akarve/sales:v:99.99")
+
+    def test_quilt_yml_unknown_team(self):
+        # TODO(dima): This is not a particularly useful test -
+        # but it simulates the current behavior in production (an SSL certificate error).
+        url = command.get_registry_url('unknown')
+        responses.add(responses.GET, url, body=SSLError())
+        with pytest.raises(ConnectionError):
+            command.install("packages:\n- unknown:baz/bat")
 
     def test_quilt_yml_unknown_subpath(self):
         table_data1, table_hash1 = self.make_table_data('table1')
@@ -387,6 +442,7 @@ packages:
 
         command.install('foo/bar')
 
+
     def test_download_retry(self):
         table_data, table_hash = self.make_table_data()
         contents, contents_hash = self.make_contents(table=table_hash)
@@ -416,10 +472,11 @@ packages:
 
         command.install('foo/bar/group/table')
 
-    def _mock_log(self, package, pkg_hash):
-        log_url = '%s/api/log/%s/' % (command.get_registry_url(None), package)
+
+    def _mock_log(self, package, pkg_hash, team=None):
+        log_url = '%s/api/log/%s/' % (command.get_registry_url(team), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
-            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author' }
+            {'created': int(time.time()), 'hash': pkg_hash, 'author': 'author'}
         ]}))
 
     def _mock_tag(self, package, tag, pkg_hash, cmd=responses.GET,

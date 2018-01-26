@@ -35,10 +35,14 @@ class QuiltSQLAlchemy(SQLAlchemy):
         super(QuiltSQLAlchemy, self).apply_driver_hacks(app, info, options)
 
 db = QuiltSQLAlchemy(app)
-db.apply_driver_hacks
 
 FlaskJSON(app)
 Migrate(app, db)
+
+@app.cli.command('createdb')
+def createdb_command():
+    import sqlalchemy_utils
+    sqlalchemy_utils.create_database(db.engine.url)
 
 # Need to import views.py in order for the routes to get set up.
 from . import views

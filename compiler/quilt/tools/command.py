@@ -32,13 +32,12 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException)
+                    generate_contents, BuildException, exec_yaml_python, load_yaml)
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node, exec_yaml_python, CommandException, diff_dataframes,
-                   load_yaml)
+                   decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore, parse_package, parse_package_extended, VALID_NAME_RE
+from .store import PackageStore, StoreException, VALID_NAME_RE
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress
 from . import check_functions as qc
 
@@ -58,6 +57,10 @@ except ImportError:
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
+EXTENDED_PACKAGE_RE = re.compile(
+    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
+)
+
 CHUNK_SIZE = 4096
 
 PARALLEL_UPLOADS = 20
@@ -71,6 +74,52 @@ CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 LOG_TIMEOUT = 3  # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
+
+
+class CommandException(Exception):
+    """
+    Exception class for all command-related failures.
+    """
+    pass
+
+def parse_package_extended(name):
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(name)
+    if match is None:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    return match.groups()
+
+def parse_package(name, allow_subpath=False):
+    try:
+        values = name.split(':', 1)
+        team = values[0] if len(values) > 1 else None
+
+        values = values[-1].split('/')
+        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
+        (owner, pkg), subpath = values[:2], values[2:]
+        if not owner or not pkg:
+            # Make sure they're not empty.
+            raise ValueError
+        if subpath and not allow_subpath:
+            raise ValueError
+
+    except ValueError:
+        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    try:
+        PackageStore.check_name(team, owner, pkg, subpath)
+    except StoreException as ex:
+        raise CommandException(str(ex))
+
+    if allow_subpath:
+        return team, owner, pkg, subpath
+    return team, owner, pkg
+
 
 _registry_url = None
 
@@ -387,26 +436,6 @@ def generate(directory, outfilename=DEFAULT_BUILDFILE):
         raise CommandException(str(builderror))
 
     print("Generated build-file %s." % (buildfilepath))
-
-def diff_node_dataframe(package, nodename, dataframe):
-    """
-    compare two dataframes and print the result
-
-    WIP: find_node_by_name() doesn't work yet.
-    TODO: higher level API: diff_two_files(filepath1, filepath2)
-    TODO: higher level API: diff_node_file(file, package, nodename, filepath)
-    """
-    raise NotImplementedError()
-
-    team, owner, pkg = parse_package(package)
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
-    node = pkgobj.find_node_by_name(nodename)
-    if node is None:
-        raise CommandException("Node path not found: {}".format(nodename))
-    quilt_dataframe = pkgobj.get_obj(node)
-    return diff_dataframes(quilt_dataframe, dataframe)
 
 def check(path=None, env='default'):
     """
@@ -875,11 +904,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-        package = owner + '/' + pkg
-        if subpath:
-            package += '/' + "/".join(subpath)
-        install(package, hash, version, tag, force=force)
+        package, pkghash, version, tag = parse_package_extended(pkginfo)
+        install(package, pkghash, version, tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
@@ -1174,7 +1200,7 @@ def delete(package):
     Irreversibly deletes the package along with its history, tags, versions, etc.
     """
     team, owner, pkg = parse_package(package)
-    
+
     teamstr = "{}:".format(team) if team else ""
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
