@@ -86,14 +86,16 @@ removal (or incompatible additions) on the API side.
 # it will eventually occur.
 # Fixing this improves our coverage, but might be somewhat complex.
 
-import os
-import sys
-import json
-import signal
-import inspect
 import collections
-from time import sleep
+import inspect
+import json
+import os
+import pkg_resources
+import signal
+import sys
+
 from subprocess import check_output, CalledProcessError, Popen, PIPE
+from time import sleep
 
 import pytest
 from six import string_types
@@ -782,6 +784,28 @@ class TestCLI(BasicQuiltTestCase):
         assert proc.returncode == 1
 
 
+# need capsys, so this isn't in the unittest class
+def test_cli_command_version_flag(capsys):
+    """Tests that `quilt --version` is working"""
+    TESTED_PARAMS.append(['--version'])
+
+    from quilt.tools.main import main
+
+    try:
+        main(['--version'])
+    except SystemExit:
+        pass
+
+    # there's not a lot to test here -- this literally just does the same thing
+    # that 'quilt --version' does, but this at least ensures that it still
+    # exists and still produces the expected result.
+
+    dist = pkg_resources.get_distribution('quilt')
+
+    expectation = "quilt {} ({})\n".format(dist.version, dist.egg_name())
+
+    outerr = capsys.readouterr()
+    assert expectation == outerr.out
 
 # need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
@@ -789,8 +813,6 @@ def test_cli_command_in_help(capsys):
 
     Only tests the base subcommand, not sub-subcommands.
     """
-    TESTED_PARAMS.append(['--version'])
-
     from quilt.tools.main import main
 
     expected_params = set()
