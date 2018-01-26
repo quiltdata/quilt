@@ -416,14 +416,19 @@ class CommandTest(QuiltTestCase):
             command.create_user('bob', 'wrongemail')
 
     def test_user_create_empty(self):
-        self._mock_method('create', status=400)
-        with self.assertRaises(command.CommandException):
+        self._mock_method('create', status=400, message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('', 'bob@quiltdata.io')
 
-        #self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
-        #with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
-        #    command.create_user('bob', 'wrongemail', team='qux')
-        # TODO team_test invalid username
+    def test_user_create_team_bogus(self):
+        self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', 'wrongemail', team='qux')
+
+    def test_user_create_team_empty(self):
+        self._mock_method('create', status=400, team='qux', message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('', 'bob@quiltdata.io', team='qux')
 
     def test_user_disable(self):
         self.requests_mock.add(
