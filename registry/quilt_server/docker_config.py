@@ -5,7 +5,7 @@ Config file for dev in Docker. Overrides values in config.py.
 """
 import os
 
-SQLALCHEMY_DATABASE_URI = 'postgres://postgres:testing@db/packages'
+SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:testing@db/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
