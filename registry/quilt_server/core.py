@@ -1,5 +1,10 @@
 # Copyright (c) 2017 Quilt Data, Inc. All rights reserved.
 
+############################################################
+# NOTE: This file is shared between compiler and registry. #
+# Do not add any client or server specific code here.      #
+############################################################
+
 from enum import Enum
 import hashlib
 import struct
@@ -10,7 +15,7 @@ from six import iteritems, itervalues, string_types
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
     PARQUET = 'PARQUET'
-    default = HDF5
+    default = PARQUET
 
 class Node(object):
     @property
@@ -38,6 +43,22 @@ class GroupNode(Node):
     def __init__(self, children):
         assert isinstance(children, dict)
         self.children = children
+
+    def preorder(self):
+        """
+        Performs a pre-order walk of the package tree starting at this node.
+        It returns a list of the nodes in the order visited.
+        """
+        stack = [self]
+        output = []
+
+        while stack:
+            node = stack.pop()
+            for child in itervalues(node.children):
+                output.append(child)
+                if isinstance(child, GroupNode):
+                    stack.append(child)
+        return output
 
 class RootNode(GroupNode):
     json_type = 'ROOT'
@@ -109,11 +130,11 @@ def hash_contents(contents):
 
     def _hash_object(obj):
         _hash_str(obj.json_type)
-        if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+        if isinstance(obj, (TableNode, FileNode)):
             hashes = obj.hashes
             _hash_int(len(hashes))
-            for h in hashes:
-                _hash_str(h)
+            for hval in hashes:
+                _hash_str(hval)
         elif isinstance(obj, GroupNode):
             children = obj.children
             _hash_int(len(children))
@@ -131,7 +152,7 @@ def find_object_hashes(obj):
     """
     Iterator that returns hashes of all of the tables.
     """
-    if isinstance(obj, TableNode) or isinstance(obj, FileNode):
+    if isinstance(obj, (TableNode, FileNode)):
         for objhash in obj.hashes:
             yield objhash
     elif isinstance(obj, GroupNode):
