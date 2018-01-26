@@ -807,7 +807,7 @@ def test_cli_command_version_flag(capsys):
     # in python 2, apparently argparse's 'version' handler prints to stderr.
     result = outerr.err if PY2 else outerr.out
 
-    assert expectation in outerr and '' in outerr
+    assert expectation == result
 
 # need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
