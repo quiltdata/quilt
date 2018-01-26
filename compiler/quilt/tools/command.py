@@ -1190,14 +1190,24 @@ def delete(package):
     session.delete("%s/api/package/%s/%s/" % (get_registry_url(team), owner, pkg))
     print("Deleted.")
 
-def search(query):
+def search(query, team=None):
     """
     Search for packages
     """
-    team = None  # TODO
-    session = _get_session(team)
-    response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+    if team is None:
+        team = _find_logged_in_team()
 
+    if team is not None:
+        session = _get_session(team)
+        response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+        print("--- Packages in team %s ---" % team)
+        packages = response.json()['packages']
+        for pkg in packages:
+            print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
+        print("--- Packages in public cloud ---")
+
+    public_session = _get_session(None)
+    response = public_session.get("%s/api/search/" % get_registry_url(), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
