@@ -415,14 +415,14 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail')
         self._mock_method('create', status=400, message="Username is not valid")
-        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+        with self.assertRaises(command.CommandException):
             command.create_user('', 'bob@quitdata.io')
 
         self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail', team='qux')
         self._mock_method('create', status=400, team='qux', message="Username is not valid")
-        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+        with self.assertRaises(command.CommandException):
             command.create_user('', 'bob@quitdata.io', team='qux')
 
     def test_user_disable(self):
