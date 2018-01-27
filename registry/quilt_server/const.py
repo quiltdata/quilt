@@ -9,7 +9,8 @@ import re
 
 PUBLIC = 'public' # This username is blocked by Quilt signup
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
-EMAILREGEX = re.compile(r'^([^\s@]+)@([^\s@]+)$')
+VALID_USERNAME_RE = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
+VALID_EMAIL_RE = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 
 class PaymentPlan(Enum):
     FREE = 'free'
