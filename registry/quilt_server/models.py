@@ -76,6 +76,7 @@ class S3Blob(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     owner = db.Column(USERNAME_TYPE, nullable=False)
     hash = db.Column(db.String(64), nullable=False)
+    size = db.Column(db.BigInteger)
 
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
 

@@ -119,7 +119,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -171,6 +172,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
         assert contents == self.CONTENTS
+        assert data['sizes'] == {self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
         assert data['created_by'] == data['updated_by'] == 'test_user'
         assert data['created_at'] == data['updated_at']
         urls = data['urls']
@@ -569,7 +571,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -593,6 +596,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
         assert contents == self.CONTENTS
+        assert data['sizes'] == {self.HASH1: 1, self.HASH2: 2}
         urls = data['urls']
         assert len(urls) == 2  # HASH1 and HASH2
 
