@@ -115,8 +115,9 @@ def is_identifier(string):
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
+    # cached by python
     val = re.match(r'^[a-zA-Z_]\w*$', string) and not keyword.iskeyword(string)
-    return True if val else False
+    return bool(val)
 
 
 def is_nodename(string):

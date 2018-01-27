@@ -74,7 +74,8 @@ class TableNode(Node):
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
         assert isinstance(metadata, dict)
-        assert not os.path.isabs(metadata.get('q_path') or '')
+        # (x.get('y') or '') is always a string, even if x['y'] is set to None
+        assert not os.path.isabs(metadata.get('q_path') or '')  # Handle value set to None
 
         self.hashes = hashes
         self.format = PackageFormat(format)
@@ -91,11 +92,8 @@ class FileNode(Node):
     def __init__(self, hashes, metadata):
         assert isinstance(hashes, list)
         assert isinstance(metadata, dict)
-        assert metadata.get('q_path')
+        assert metadata.get('q_path')   # metadata for a FileNode requires 'q_path' to be set.
         assert not os.path.isabs(metadata['q_path'])
-
-        if not metadata.get('q_path'):
-            raise ValueError("`metadata` for a FileNode requires 'q_path' to be set.")
 
         self.hashes = hashes
         self.metadata = metadata
