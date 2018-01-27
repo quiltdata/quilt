@@ -35,4 +35,7 @@ Groups that share packages across users can save storage and network traffic by 
     from quilt.data.USERNAME import PACKAGE
     ```
 
+## Import precedence
+Quilt will first check `QUILT_PRIMARY` (defaults to the local machine) and then check `QUILT_PACKAGE_DIRS` (if available) when importing a package.
+
 See the [Python API](api-python.md) for more details on quilt commands.
