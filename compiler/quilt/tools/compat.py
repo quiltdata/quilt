@@ -31,33 +31,3 @@ else:
 
 # patch = mock.patch
 # Path = pathlib.Path
-# TemporaryDirectory = tempfile.TemporaryDirectory
-
-
-# Manual backport of a stdlib tool -- avoid extra backport dependency.
-try:
-    from tempfile import TemporaryDirectory
-except ImportError:
-    import tempfile as _tempfile
-    import contextlib as _contextlib
-    from shutil import rmtree as _rmtree
-
-    @_contextlib.contextmanager
-    def TemporaryDirectory(suffix='', prefix='tmp', dir=None):
-        """Create and return a temporary directory.  This has the same
-        behavior as mkdtemp but can be used as a context manager.  For
-        example:
-
-            with TemporaryDirectory() as tmpdir:
-                ...
-
-        Upon exiting the context, the directory and everything contained
-        in it are removed.
-        """
-        name = None
-        try:
-            name = _tempfile.mkdtemp(suffix, prefix, dir)
-            yield name
-        finally:
-            if name is not None:
-                _rmtree(name)
