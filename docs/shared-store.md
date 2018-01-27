@@ -1,39 +1,38 @@
 # Sharing Package Storage
 
-Groups that share packages among several users can save storage and network traffic by saving packages to a shared package directory, e.g., on their local network file server.
+Groups that share packages among several users can save storage and network traffic by saving packages to a shared package directory (e.g. on a network file server).
 
-## Create a Shared Local Package Repository
+## Create & populate shared package directory
 
-First create a directory with the name `quilt_packages` somewhere on your shared file system. Next, set the environment variable `QUILT_PRIMARY_PACKAGE_DIR` to the package directory.
-example:
-```bash
-export QUILT_PRIMARY_PACKAGE_DIR=/share/quilt_packages
-mkdir "$QUILT_PRIMARY_PACKAGE_DIR"
-```
+1. Create a `quilt_packages` on the shared file system. Grant read access to all intended recipients. 
 
-Once the shared package directory is created and `QUILT_PRIMARY_PACKAGE_DIR` is set, you can add packages to the shared package store with `quilt install` and `quilt build`.
+1. Set the `QUILT_PRIMARY_PACKAGE_DIR` to the path for `quilt_packages` in step 1. 
+    ```bash
+    export QUILT_PRIMARY_PACKAGE_DIR=/share/quilt_packages
+    mkdir "$QUILT_PRIMARY_PACKAGE_DIR"
+    ```
 
-example:
-```bash
-quilt build <username>/<package> <path>
-quilt install <username>/<package>
-```
+1. Install packages to the shared directory
+    ```bash
+    quilt build USERNAME/PACKAGE PATH_TO_BUILD_YML
+    quilt install USERNAME/PACKAGE
+    ```
 
-Once you've added the packages, you'll need to add read permission to the shared packages directory and all of its subdirectories.
-example:
-```bash
-chgrp -R sharers "$QUILT_PRIMARY_PACKAGE_DIR"
-chmod -R g+rx "$QUILT_PRIMARY_PACKAGE_DIR"
-```
+1. Set read permissions on shared directory and sub-directories
+    ```bash
+    chgrp -R sharers "$QUILT_PRIMARY_PACKAGE_DIR"
+    chmod -R g+rx "$QUILT_PRIMARY_PACKAGE_DIR"
+    ```
 
-## Import Packages from a Shared Local Package Repository
+## Configure clients to read from shared directory 
+1. Each reader should set the following environment variable:
+    ```bash
+    export QUILT_PACKAGE_DIRS=/share/quilt_packages
+    ```
+2. Readers can can import shared packages as follows
+    example:
+    ```python
+    from quilt.data.USERNAME import PACKAGE
+    ```
 
-Collaborators sharing packages from the shared local package repository need to configure Quilt by adding the local package directory to their search path. Set the `QUILT_PACKAGE_DIRS` environment variable. 
-
-example:
-```bash
-export QUILT_PACKAGE_DIRS=/share/quilt_packages
-```
-```python
-from quilt.data.username import package
-```
+See the [Python API](api-python.md) for more details on quilt commands.

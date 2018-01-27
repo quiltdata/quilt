@@ -24,7 +24,7 @@
 
 ## Advanced Usage
 
-* [Shared Package Cache](shared-store.md)
+* [Shared drives](shared-store.md)
 * [Teams](teams.md)
 
 ## Support
