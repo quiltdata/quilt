@@ -326,6 +326,42 @@ class CommandTest(QuiltTestCase):
 
         command.ls()
 
+    def test_search(self):
+        self.requests_mock.add(
+            responses.GET,
+            'https://pkg.quiltdata.com/api/search/?q=asdf',
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        command.search("asdf")
+        pass
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "teamname")
+    def test_search_team(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/search/?q=asdf' % command.get_registry_url("teamname"),
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/search/?q=asdf' % command.get_registry_url(),
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        command.search("asdf")
+        pass
+
     def test_inspect_valid_package(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_simple.yml')
