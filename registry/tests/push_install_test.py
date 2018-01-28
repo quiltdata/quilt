@@ -52,7 +52,8 @@ class PushInstallTestCase(QuiltTestCase):
             ))
         )),
         file=FileNode(
-            hashes=[HASH3]
+            hashes=[HASH3],
+            metadata={'q_path': 'example'}
         )
     ))
 

@@ -1,11 +1,13 @@
 """
 Nodes that represent the data in a Quilt package.
 """
+import os
 
 import pandas as pd
 from six import iteritems, string_types
 
 from .tools import core
+from .tools.util import is_nodename
 
 
 class Node(object):
@@ -60,8 +62,10 @@ class GroupNode(DataNode):
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
         group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
+        if group_info:
+            group_info = group_info + '\n'
         data_info = '\n'.join(sorted(self._data_keys()))
-        return '%s\n%s\n%s' % (pinfo, group_info, data_info)
+        return '%s\n%s%s' % (pinfo, group_info, data_info)
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
@@ -98,19 +102,46 @@ class PackageNode(GroupNode):
         finfo = self._package.get_path()
         return "<%s %r>" % (self.__class__.__name__, finfo)
 
-    def _set(self, path, value):
+    def _set(self, path, value, build_dir=''):
+        """Create and set a node by path
+
+        This creates a node from a filename or pandas DataFrame.
+
+        If `value` is a filename, it must be relative to `build_dir`,
+            and it will be stored for export.
+            `build_dir` is the current directory by default.
+
+        :param path:  Path list -- I.e. ['examples', 'new_node']
+        :param value:  Pandas dataframe, or a filename relative to build_dir
+        :param build_dir:  Directory containing `value` if value is a filename.
+        """
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
-            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value)
-        elif isinstance(value, string_types):
-            core_node = core.FileNode(hashes=[])
+            # all we really know at this point is that it's a pandas dataframe.
+            metadata = {'q_target': 'pandas'}
+            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value, metadata=metadata)
+        elif isinstance(value, string_types + (bytes,)):
+            # bytes -> string for consistency when retrieving metadata
+            value = value.decode() if isinstance(value, bytes) else value
+            if os.path.isabs(value):
+                raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
+            # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
+            metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
+            core_node = core.FileNode(hashes=[], metadata=metadata)
+            if build_dir:
+                value = os.path.join(build_dir, value)
         else:
-            assert False, "Unexpected value: %r" % value
+            accepted_types = (pd.DataFrame, bytes) + string_types
+            raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
+                            .format(accepted_types, type(value)), repr(value)[0:100])
+
+        for key in path:
+            if not is_nodename(key):
+                raise ValueError("Invalid name for node: {}".format(key))
 
         node = self
         for key in path[:-1]:
-            assert not key.startswith('_')
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):
                 child = GroupNode(self._package, core.GroupNode({}))
@@ -119,6 +150,5 @@ class PackageNode(GroupNode):
             node = child
 
         key = path[-1]
-        assert not key.startswith('_')
         data_node = DataNode(self._package, core_node, value)
         setattr(node, key, data_node)
