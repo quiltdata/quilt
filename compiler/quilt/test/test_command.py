@@ -58,7 +58,7 @@ from .utils import QuiltTestCase, patch
 class CommandTest(QuiltTestCase):
     def _mock_method(self, endpoint, status=201, team=None, message="", method=responses.POST):
         self.requests_mock.add(
-            responses.POST,
+            method,
             '%s/api/users/%s' % (command.get_registry_url(team), endpoint),
             body=json.dumps(dict(message=message)),
             status=status
@@ -430,33 +430,20 @@ class CommandTest(QuiltTestCase):
                 }]
             })
         )
-
         command.list_users()
 
     def test_user_list_no_auth(self):
-        self.requests_mock.add(
-            responses.GET,
-            '%s/api/users/list' % command.get_registry_url(None),
-            status=401
-            )
+        self._mock_method('list', status=401, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
     def test_user_list_not_found(self):
-        self.requests_mock.add(
-            responses.GET,
-            '%s/api/users/list' % command.get_registry_url(None),
-            status=404
-            )
+        self._mock_method('list', status=404, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
     def test_user_list_server_error(self):
-        self.requests_mock.add(
-            responses.GET,
-            '%s/api/users/list' % command.get_registry_url(None),
-            status=500
-            )
+        self._mock_method('list', status=500, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
@@ -478,11 +465,7 @@ class CommandTest(QuiltTestCase):
         command.create_user('bob', 'bob@quiltdata.io')
 
     def test_user_create_no_auth(self):
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/create' % command.get_registry_url(None),
-            status=401
-            )
+        self._mock_method('create', status=401)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io')
 
@@ -541,11 +524,7 @@ class CommandTest(QuiltTestCase):
             command.create_user('bob', 'bob@quiltdata.io', team='nonexisting')
 
     def test_user_disable(self):
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/disable' % command.get_registry_url(None),
-            status=201
-            )
+        self._mock_method('disable', status=201)
         command.disable_user('bob')
 
     def test_user_disable_not_found(self):
@@ -591,11 +570,7 @@ class CommandTest(QuiltTestCase):
             command.disable_user('nonexisting', team='qux')
 
     def test_user_disable_no_auth(self):
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/disable' % command.get_registry_url(None),
-            status=401
-            )
+        self._mock_method('disable', status=401)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
@@ -618,38 +593,20 @@ class CommandTest(QuiltTestCase):
             command.disable_user('unknown', team='qux')
 
     def test_user_delete(self):
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/delete' % command.get_registry_url(None),
-            status=201
-            )
+        self._mock_method('delete', status=201)
         command.delete_user('bob', force=True)
 
-        team = 'qux'
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/delete' % command.get_registry_url(team),
-            status=201
-            )
-        command.delete_user('bob', force=True, team=team)
+        self._mock_method('delete', status=404, team='qux')
+        command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_no_auth(self):
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/delete' % command.get_registry_url(None),
-            status=401
-            )
+        self._mock_method('delete', status=401)
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True)
 
-        team = 'qux'
-        self.requests_mock.add(
-            responses.POST,
-            '%s/api/users/delete' % command.get_registry_url(team),
-            status=401
-            )
+        self._mock_method('delete', status=401, team='qux')
         with self.assertRaises(command.CommandException):
-            command.delete_user('bob', force=True, team=team)
+            command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_not_found(self):
         self._mock_method('delete', status=404)
