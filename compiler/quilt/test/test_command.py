@@ -596,7 +596,7 @@ class CommandTest(QuiltTestCase):
         self._mock_method('delete', status=201)
         command.delete_user('bob', force=True)
 
-        self._mock_method('delete', status=404, team='qux')
+        self._mock_method('delete', status=201, team='qux')
         command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_no_auth(self):
