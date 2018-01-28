@@ -1,5 +1,42 @@
 """
 Tests for commands.
+
+Covered cases:
+CRUD related:
+    1. users/list
+        - OK
+        - no auth
+        - not found
+        - server error
+    2. users/create
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already created (duplicate)
+        - bogus email
+        - empty name
+        - empty email
+        - non existing team
+    3. users/disable
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already disabled
+        - empty name
+        - deleted user
+        - unknown user
+        - non existing team
+    4. users/delete
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already deleted
+        - empty name
+        - unknown user
+        - non existing team
 """
 
 import hashlib
@@ -19,10 +56,10 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    def _mock_method(self, method, status=201, team=None, message=""):
+    def _mock_method(self, endpoint, status=201, team=None, message="", method=responses.POST):
         self.requests_mock.add(
             responses.POST,
-            '%s/api/users/%s' % (command.get_registry_url(team), method),
+            '%s/api/users/%s' % (command.get_registry_url(team), endpoint),
             body=json.dumps(dict(message=message)),
             status=status
             )
@@ -405,6 +442,24 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.list_users()
 
+    def test_user_list_not_found(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=404
+            )
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+
+    def test_user_list_server_error(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=500
+            )
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+
     def test_user_create(self):
         self.requests_mock.add(
             responses.POST,
@@ -431,6 +486,16 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io')
 
+    def test_create_not_found(self):
+        self._mock_method('create', status=404)
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io')
+
+    def test_create_server_error(self):
+        self._mock_method('create', status=500)
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io')
+
     def test_create_duplicate(self):
         self._mock_method('create', status=400, message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
@@ -445,20 +510,35 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail')
 
+    def test_user_create_empty_email(self):
+        self._mock_method('create', status=400, message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', '')
+
+    def test_user_create_empty_email_team(self):
+        self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', '', team='qux')
+
     def test_user_create_empty(self):
         self._mock_method('create', status=400, message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('', 'bob@quiltdata.io')
 
-    def test_user_create_team_bogus(self):
+    def test_user_create_bogus_team(self):
         self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail', team='qux')
 
-    def test_user_create_team_empty(self):
+    def test_user_create_empty_team(self):
         self._mock_method('create', status=400, team='qux', message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('', 'bob@quiltdata.io', team='qux')
+
+    def test_user_create_nonexisting_team(self):
+        self._mock_method('create', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io', team='nonexisting')
 
     def test_user_disable(self):
         self.requests_mock.add(
@@ -468,14 +548,47 @@ class CommandTest(QuiltTestCase):
             )
         command.disable_user('bob')
 
-    def test_user_disable_already(self):
-        self._mock_method('disable', status=201)
+    def test_user_disable_not_found(self):
+        self._mock_method('disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
-        self._mock_method('disable', status=201, team='qux')
+    def test_user_disable_server_error(self):
+        self._mock_method('disable', status=500)
         with self.assertRaises(command.CommandException):
-            command.disable_user('unknown', team='qux')
+            command.disable_user('bob')
+
+    def test_user_disable_already(self):
+        self._mock_method('disable', status=404)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob')
+
+        self._mock_method('disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='qux')
+
+    def test_user_disable_deleted(self):
+        self._mock_method('disable', status=404)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('deleted')
+
+        self._mock_method('disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('deleted', team='qux')
+
+    def test_user_disable_non_existing_team(self):
+        self._mock_method('disable', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='nonexisting')
+
+    def test_user_disable_non_existing(self):
+        self._mock_method('disable', status=404)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('nonexisting')
+
+        self._mock_method('disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('nonexisting', team='qux')
 
     def test_user_disable_no_auth(self):
         self.requests_mock.add(
@@ -538,6 +651,16 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True, team=team)
 
+    def test_user_delete_not_found(self):
+        self._mock_method('delete', status=404)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True)
+
+    def test_user_delete_server_error(self):
+        self._mock_method('delete', status=404)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True)
+
     def test_user_delete_empty(self):
         self._mock_method('delete', status=400, message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
@@ -555,6 +678,16 @@ class CommandTest(QuiltTestCase):
         self._mock_method('delete', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.delete_user('unknown', force=True, team='qux')
+
+    def test_user_delete_already(self):
+        self._mock_method('delete', status=404)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('deleted', force=True)
+
+    def test_user_delete_nonexisting_team(self):
+        self._mock_method('delete', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True, team='nonexisting')
 
 
 # TODO: work in progress
