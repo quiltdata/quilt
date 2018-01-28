@@ -37,6 +37,11 @@ CRUD related:
         - empty name
         - unknown user
         - non existing team
+    5. audit user or package
+        - OK
+        - no auth
+        - no team
+        - not admin
 """
 
 import hashlib
@@ -56,13 +61,13 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    def _mock_method(self, endpoint, status=201, team=None, message="", method=responses.POST):
+    def _mock_method(self, endpoint, status=201, team=None, message="", method=responses.POST, api="users"):
         self.requests_mock.add(
             method,
-            '%s/api/users/%s' % (command.get_registry_url(team), endpoint),
+            '%s/api/%s/%s' % (command.get_registry_url(team), api, endpoint),
             body=json.dumps(dict(message=message)),
             status=status
-            )
+        )
 
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
@@ -569,11 +574,6 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.disable_user('nonexisting', team='qux')
 
-    def test_user_disable_no_auth(self):
-        self._mock_method('disable', status=401)
-        with self.assertRaises(command.CommandException):
-            command.disable_user('bob')
-
     def test_user_disable_empty(self):
         self._mock_method('disable', status=400, message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
@@ -582,6 +582,15 @@ class CommandTest(QuiltTestCase):
         self._mock_method('disable', status=400, team='qux', message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.disable_user('', team='qux')
+
+    def test_user_disable_no_auth(self):
+        self._mock_method('disable', status=401)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob')
+
+        self._mock_method('disable', status=401, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='qux')
 
     def test_user_disable_unknown(self):
         self._mock_method('disable', status=404)
@@ -598,15 +607,6 @@ class CommandTest(QuiltTestCase):
 
         self._mock_method('delete', status=201, team='qux')
         command.delete_user('bob', force=True, team='qux')
-
-    def test_user_delete_no_auth(self):
-        self._mock_method('delete', status=401)
-        with self.assertRaises(command.CommandException):
-            command.delete_user('bob', force=True)
-
-        self._mock_method('delete', status=401, team='qux')
-        with self.assertRaises(command.CommandException):
-            command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_not_found(self):
         self._mock_method('delete', status=404)
@@ -627,6 +627,15 @@ class CommandTest(QuiltTestCase):
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.delete_user('', force=True, team='qux')
 
+    def test_user_delete_no_auth(self):
+        self._mock_method('delete', status=401)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True)
+
+        self._mock_method('delete', status=401, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True, team='qux')
+
     def test_user_delete_unknown(self):
         self._mock_method('delete', status=404)
         with self.assertRaises(command.CommandException):
@@ -645,6 +654,75 @@ class CommandTest(QuiltTestCase):
         self._mock_method('delete', status=404, team='nonexisting')
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True, team='nonexisting')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_user(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/audit/bob/' % command.get_registry_url("someteam"),
+            status=201,
+            json=json.dumps({
+                'events': [{
+                    'created': '',
+                    'user': 'bob',
+                    'type': 'user',
+                    'package_owner': '',
+                    'package_name': '',
+                    'package_hash': '',
+                    'extra': ''
+                }]
+            }))
+        command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_package(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/audit/foo/bar/' % command.get_registry_url("someteam"),
+            status=201,
+            json=json.dumps({
+                'events': [{
+                    'created': '',
+                    'user': 'bob',
+                    'type': 'package',
+                    'package_owner': '',
+                    'package_name': '',
+                    'package_hash': '',
+                    'extra': ''
+                }]
+            }))
+        command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_no_auth_user(self):
+        self._mock_method('bob/', status=401, team='someteam', method=responses.GET, api='audit')
+        with self.assertRaises(command.CommandException):
+            command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_no_auth_package(self):
+        self._mock_method('foo/bar/', status=401, team='someteam', method=responses.GET, api='audit')
+        with self.assertRaises(command.CommandException):
+            command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_audit_no_team(self):
+        with assertRaisesRegex(self, command.CommandException, "Not logged in as a team user"):
+            command.audit('bob')
+            command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_not_admin_user(self):
+        self._mock_method('bob/', status=401, team='someteam', method=responses.GET, api='audit')
+        with self.assertRaises(command.CommandException):
+            command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_not_admin_package(self):
+        self._mock_method('foo/bar/', status=401, team='someteam', method=responses.GET, api='audit')
+        with self.assertRaises(command.CommandException):
+            command.audit('foo/bar')
+
 
 
 # TODO: work in progress
