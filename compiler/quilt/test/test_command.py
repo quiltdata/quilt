@@ -345,7 +345,6 @@ class CommandTest(QuiltTestCase):
                 }
             )
         command.search("asdf")
-        pass
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "teamname")
     def test_search_team(self):
@@ -368,7 +367,6 @@ class CommandTest(QuiltTestCase):
                 }
             )
         command.search("asdf")
-        pass
 
     def test_inspect_valid_package(self):
         mydir = os.path.dirname(__file__)
@@ -397,7 +395,6 @@ class CommandTest(QuiltTestCase):
         )
 
         command.list_users()
-        pass
 
     def test_user_list_no_auth(self):
         self.requests_mock.add(
@@ -407,7 +404,6 @@ class CommandTest(QuiltTestCase):
             )
         with self.assertRaises(command.CommandException):
             command.list_users()
-        pass
 
     def test_user_create(self):
         self.requests_mock.add(
@@ -425,7 +421,6 @@ class CommandTest(QuiltTestCase):
             })
         )
         command.create_user('bob', 'bob@quiltdata.io')
-        pass
 
     def test_user_create_no_auth(self):
         self.requests_mock.add(
@@ -435,9 +430,8 @@ class CommandTest(QuiltTestCase):
             )
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io')
-        pass
 
-    def test_user_create_duplicate(self):
+    def test_create_duplicate(self):
         self._mock_method('create', status=400, message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('bob', 'bob@quiltdata.io')
@@ -473,7 +467,15 @@ class CommandTest(QuiltTestCase):
             status=201
             )
         command.disable_user('bob')
-        pass
+
+    def test_user_disable_already(self):
+        self._mock_method('disable', status=201)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob')
+
+        self._mock_method('disable', status=201, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('unknown', team='qux')
 
     def test_user_disable_no_auth(self):
         self.requests_mock.add(
@@ -483,7 +485,6 @@ class CommandTest(QuiltTestCase):
             )
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
-        pass
 
     def test_user_disable_empty(self):
         self._mock_method('disable', status=400, message="Username is not valid")
@@ -518,7 +519,6 @@ class CommandTest(QuiltTestCase):
             status=201
             )
         command.delete_user('bob', force=True, team=team)
-        pass
 
     def test_user_delete_no_auth(self):
         self.requests_mock.add(
@@ -537,7 +537,6 @@ class CommandTest(QuiltTestCase):
             )
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True, team=team)
-        pass
 
     def test_user_delete_empty(self):
         self._mock_method('delete', status=400, message="Username is not valid")

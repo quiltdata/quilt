@@ -1606,7 +1606,7 @@ def create_user():
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
-            "Cannot list users"
+            "Cannot create user"
             )
 
     if resp.status_code == requests.codes.bad:
@@ -1655,6 +1655,12 @@ def disable_user():
             'username' : username,
             'is_active' : False
         }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to disable not found."
+            )
 
     if resp.status_code != requests.codes.ok:
         raise ApiException(
