@@ -9,7 +9,7 @@ Groups that share packages across users can save storage and network traffic by 
 1. Set the `QUILT_PRIMARY_PACKAGE_DIR` to the path for `quilt_packages` in step 1. 
     ```bash
     # select a path that you control & is durable, e.g.
-    export SHARE_PATH=$HOME/shared/quilt_packages
+    export SHARE_PATH=YOUR_SHARED_PATH/quilt_packages
     export QUILT_PRIMARY_PACKAGE_DIR=$SHARE_PATH
     mkdir -p "$SHARE_PATH"
     chmod o+r $SHARE_PATH
