@@ -198,6 +198,13 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
 
+    def test_multiple_package_search_dirs(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
+
+        new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
+
     def test_save(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
