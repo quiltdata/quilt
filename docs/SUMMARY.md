@@ -24,6 +24,7 @@
 
 ## Advanced Usage
 
+* [Shared drives](shared-store.md)
 * [Teams](teams.md)
 
 ## Support
