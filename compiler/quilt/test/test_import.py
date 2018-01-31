@@ -213,7 +213,7 @@ class ImportTest(QuiltTestCase):
 
         # check for bad nulti dirs
         simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
-        bad_build_dir = '**??;;||==%s' % PACKAGE_DIR_NAME
+        bad_build_dir = '**??/;;||==/%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             command.build('bar/multiple1', simple_build_path)
             command.build('bar/multiple2', simple_build_path)
