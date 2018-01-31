@@ -198,6 +198,14 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
 
+            # check search again returns the same package
+            from quilt.data.foo import multiple1
+            assert multiple1.dataframes
+
+        # dicrectory does not exists
+        from quilt.data.bar import multiple1
+        assert multiple1.dataframes
+
         # check for bad nulti dirs
         bad_build_dir = '>>>/&&&/%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
