@@ -208,6 +208,11 @@ class ImportTest(QuiltTestCase):
             from quilt.data.bar import multiple1
             from quilt.data.bar import multiple2
 
+        dirs = 'bar/%s:%s' % (PACKAGE_DIR_NAME, bad_build_dir)
+        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
+            from quilt.data.bar import multiple1
+            from quilt.data.bar import multiple2
+
 
     def test_team_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)
