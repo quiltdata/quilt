@@ -202,12 +202,18 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
 
-        # dicrectory does not exists
-        from quilt.data.bar import multiple1
-        assert multiple1.dataframes
+            # bad imports
+            with self.assertRaises(ImportError):
+                from quilt.data.nonexisting import multiple2
+                from quilt.data.foo import nonexistingdata
+                import quilt.data.foo.nonexisting
+                import quilt.data.bad_user.nonexisting
+                from quilt.data.foo.dataframes import blah
+                from quilt.data.foo.baz import blah
 
         # check for bad nulti dirs
-        bad_build_dir = '>>>/&&&/%s' % PACKAGE_DIR_NAME
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
+        bad_build_dir = '**??;;||==%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             command.build('bar/multiple1', simple_build_path)
             command.build('bar/multiple2', simple_build_path)
