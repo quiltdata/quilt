@@ -201,12 +201,12 @@ class ImportTest(QuiltTestCase):
         # check for bad nulti dirs
         bad_build_dir = '>>>/&&&/%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
-            command.build('foo/multiple1', simple_build_path)
-            command.build('foo/multiple2', simple_build_path)
+            command.build('bar/multiple1', simple_build_path)
+            command.build('bar/multiple2', simple_build_path)
 
         with self.assertRaises(ImportError):
-            from quilt.data.foo import multiple1
-            from quilt.data.foo import multiple2
+            from quilt.data.bar import multiple1
+            from quilt.data.bar import multiple2
 
 
     def test_team_multiple_package_dirs(self):
