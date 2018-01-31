@@ -198,6 +198,17 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
 
+        # check for bad nulti dirs
+        bad_build_dir = '>>>/&&&/%s' % PACKAGE_DIR_NAME
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            command.build('foo/multiple1', simple_build_path)
+            command.build('foo/multiple2', simple_build_path)
+
+        with self.assertRaises(ImportError):
+            from quilt.data.foo import multiple1
+            from quilt.data.foo import multiple2
+
+
     def test_team_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
@@ -231,10 +242,13 @@ class ImportTest(QuiltTestCase):
             from quilt.team.qux.foo import multiple1
             assert multiple1.dataframes
 
-    def test_multiple_package_search_dirs(self):
+    def test_multiple_dirs_search_same_package(self):
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
-        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
+        package_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        package_copy_path = os.path.join(mydir, './build_simple.yml')  # Empty
+        copy_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
+
+        command.build('qux:foo/samepackage', package_path)
 
         new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
 
