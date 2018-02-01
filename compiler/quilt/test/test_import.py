@@ -255,23 +255,6 @@ class ImportTest(QuiltTestCase):
             # Can import the second package now.
             from quilt.team.qux.foo import multiple2
 
-            # The first package contains data from the default dir.
-            from quilt.team.qux.foo import multiple1
-            assert not multiple1.dataframes
-
-            # check search again returns the same package
-            from quilt.team.qux.foo import multiple1
-            assert not multiple1.dataframes
-
-            # bad imports
-            with self.assertRaises(ImportError):
-                from quilt.team.qux.nonexisting import multiple2
-                from quilt.team.qux.foo import nonexistingdata
-                import quilt.team.qux.nonexisting
-                import quilt.team.qux.bad_user.nonexisting
-                from quilt.team.qux.foo.dataframes import blah
-                from quilt.team.qux.foo.baz import blah
-
         # add same dir to the serach path
         dirs = 'foo/%s:%s:%s' % (PACKAGE_DIR_NAME, new_build_dir, new_build_dir)
         with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
@@ -286,19 +269,6 @@ class ImportTest(QuiltTestCase):
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             with self.assertRaises(AssertionError):
                 command.build('qux:bar/multiple1', simple_build_path)
-
-    def test_subpackages_multiple_package_dirs(self):
-        mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
-        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
-        new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
-
-        # First and second package in the new build dir.
-        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
-            command.build('foo/bar/sub', simple_build_path)
-            from quilt.data.foo.bar import sub
-            command.build('foo/bar', simple_build_path)
-            from quilt.data.foo.bar import sub
 
     def test_save(self):
         mydir = os.path.dirname(__file__)
