@@ -1,15 +1,18 @@
 """
 Tests for commands.
 """
+# Disable no-self-use, protected-access, too-many-public-methods
+# pylint: disable=R0201, W0212, R0904
 
+from contextlib import contextmanager
 import hashlib
 import json
 import os
+import shutil
 import time
 
 import requests
 import responses
-import shutil
 
 import pytest
 import pandas as pd
@@ -17,6 +20,9 @@ from six import assertRaisesRegex
 
 from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
+
+from ..tools.compat import pathlib
+
 
 class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._save_config')
@@ -602,6 +608,180 @@ class CommandTest(QuiltTestCase):
         from quilt.data.foo import bar
         assert isinstance(bar.foo(), pd.DataFrame)
 
+    def test_export_invalid(self):
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("zzznonexistentuserzzz/package")
+
+        # create a blank package so the user definitely exists
+        command.build_package_from_contents(None, 'testuser', 'testpackage', '', {'contents': {}})
+
+        from quilt.data.testuser import testpackage
+
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("testuser/nonexistentpackage")
+
+    def test_export(self):
+        # pathlib will translate paths to windows or posix paths when needed
+        Path = pathlib.Path
+        pkg_name = 'testing/foo'
+        subpkg_name = 'subdir'
+        single_name = 'single_file'
+        single_bytes = os.urandom(200)
+
+        subdir_test_data = [
+            (subpkg_name + '/subdir_example', os.urandom(300)),
+            (subpkg_name + '/9bad-identifier.html', os.urandom(100)),
+            ]
+
+        test_data = [
+            (single_name, single_bytes),
+            ('readme.md', os.urandom(200)),
+            # these are invalid python identifiers, but should be handled without issue
+            ('3-bad-identifier/bad_parent_identifier.html', os.urandom(100)),
+            ('3-bad-identifier/9{}bad-identifier.html', os.urandom(100)),
+            ] + subdir_test_data
+
+        shash = lambda data: hashlib.sha256(data).hexdigest()
+
+        temp_dir = Path() / "temp_test_command"
+        install_dir = temp_dir / 'install'
+
+        # Create and and install build
+        for path, data in test_data:
+            path = install_dir / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        command.build(pkg_name, str(install_dir))
+
+        # Test export
+        test_dir = temp_dir / 'test_export'
+
+        command.export(pkg_name, str(test_dir))
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+        # Test force=True
+        # We just exported and checked that the files exist,
+        # so it's a good spot to check the force option.
+        command.export(pkg_name, str(test_dir), force=True)
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+        # Test raise when exporting to overwrite existing files
+        files = set(f for f in test_dir.glob('*') if f.is_file())
+        # sorted and reversed means files before their containing dirs
+        for path in sorted(test_dir.glob('**/*'), reverse=True):
+            # keep files from root of test_dir
+            if path in files:
+                continue
+            # remove everything else
+            path.rmdir() if path.is_dir() else path.unlink()
+        # now there are only files in the export root to conflict with.
+        with pytest.raises(command.CommandException, match='file already exists'):
+            command.export(pkg_name, str(test_dir))
+
+        # Test raise when exporting to existing dir structure
+        command.export(pkg_name, str(test_dir), force=True)
+        for path in test_dir.glob('**/*'):
+            # leave dirs, remove files
+            if path.is_dir():
+                continue
+            path.unlink()
+        with pytest.raises(command.CommandException, match='subdir already exists'):
+            command.export(pkg_name, str(test_dir))
+
+        # Test exporting to an unwriteable location
+        # disabled on windows, for now
+        # TODO: Windows version of permission failure test
+        if os.name != 'nt':
+            test_dir = temp_dir / 'test_write_permissions_fail'
+            test_dir.mkdir()
+            try:
+                orig_mode = test_dir.stat().st_mode
+                test_dir.chmod(0o111)
+
+                with pytest.raises(command.CommandException, match='not writable'):
+                    command.export(pkg_name, str(test_dir))
+
+            finally:
+                if 'orig_mode' in locals():  # may not exist if mode-set failed
+                    # noinspection PyUnboundLocalVariable
+                    test_dir.chmod(orig_mode)
+
+
+        # Test subpackage exports
+        test_dir = temp_dir / 'test_subpkg_export'
+        command.export(pkg_name + '/' + subpkg_name, str(test_dir))
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(subdir_test_data)
+
+        for path, data in subdir_test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+        # Test single-file exports
+        test_dir = temp_dir / 'test_single_file_export'
+        pkg_name_single = pkg_name + '/' + single_name
+        single_filepath = test_dir / single_name
+
+        command.export(pkg_name_single, str(test_dir))
+        assert single_filepath.exists()
+        assert shash(single_bytes) == shash(single_filepath.read_bytes())
+
+        # Test filters
+        test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
+        included_file = test_dir / single_name
+
+        command.export(pkg_name, str(test_dir),
+                       filter=lambda x: True if x == single_name else False)
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == 1
+        assert included_file.exists()
+        assert shash(single_bytes) == shash(included_file.read_bytes())
+
+        # Test map
+        test_dir = temp_dir / 'test_mapper'
+        test_filepath = test_dir / single_name    # ok on windows too per pathlib
+        mapped_filepath = test_filepath.with_suffix('.zip')
+
+        command.export(pkg_name + '/' + single_name, str(test_dir),
+                       mapper=lambda x: Path(x).with_suffix('.zip'))
+
+        assert not test_filepath.exists()
+        assert mapped_filepath.exists()
+        assert shash(single_bytes) == shash(mapped_filepath.read_bytes())
+
     def test_parse_package_names(self):
         # good parse strings
         expected = (None, 'user', 'package')
@@ -653,50 +833,96 @@ class CommandTest(QuiltTestCase):
 
     def test_parse_package_extended_names(self):
         # good parse strings
-        expected = ('user/package', None, None, None)
+        expected = ('user/package', None, 'user', 'package', [], None, None, None)
         assert command.parse_package_extended('user/package') == expected
 
-        expected = ('team:user/package', None, None, None)
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('user/package/sub/path') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, None)
         assert command.parse_package_extended('team:user/package') == expected
 
-        expected = ('team:user/package/sub/path', None, None, None)
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, None)
         assert command.parse_package_extended('team:user/package/sub/path') == expected
 
-        expected = ('user/package', 'abc123', None, None)
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('user/package:h:abc123') == expected
 
-        expected = ('user/package', 'abc123', None, None)
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('user/package:hash:abc123') == expected
 
-        expected = ('user/package', None, '123', None)
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('user/package:v:123') == expected
 
-        expected = ('user/package', None, '123', None)
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('user/package:version:123') == expected
 
-        expected = ('user/package', None, None, 'some')
+        expected = ('user/package', None, 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('user/package:t:some') == expected
 
-        expected = ('user/package', None, None, 'some')
+        expected = ('user/package', None, 'user', 'package', [],  None, None, 'some')
         assert command.parse_package_extended('user/package:tag:some') == expected
 
-        expected = ('team:user/package', 'abc123', None, None)
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:h:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:hash:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:v:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:version:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:t:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'],  None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:tag:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('team:user/package:h:abc123') == expected
 
-        expected = ('team:user/package', 'abc123', None, None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('team:user/package:hash:abc123') == expected
 
-        expected = ('team:user/package', None, '123', None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('team:user/package:v:123') == expected
 
-        expected = ('team:user/package', None, '123', None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('team:user/package:version:123') == expected
 
-        expected = ('team:user/package', None, None, 'some')
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('team:user/package:t:some') == expected
 
-        expected = ('team:user/package', None, None, 'some')
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('team:user/package:tag:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:h:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:hash:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:v:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:version:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:t:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:tag:some') == expected
 
         # bad parse strings
         with pytest.raises(command.CommandException):
@@ -707,3 +933,4 @@ class CommandTest(QuiltTestCase):
 
         with pytest.raises(command.CommandException):
             command.parse_package_extended('foo:bar:baz')
+

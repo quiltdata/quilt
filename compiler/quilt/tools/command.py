@@ -5,6 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
+from collections import Counter, namedtuple
 from datetime import datetime
 import gzip
 import hashlib
@@ -12,7 +13,7 @@ import json
 import os
 import platform
 import re
-from shutil import copyfileobj, move, rmtree
+from shutil import copyfileobj, move, rmtree, copy
 import stat
 import subprocess
 import sys
@@ -33,14 +34,16 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
+from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore, StoreException, VALID_NAME_RE
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress
-from . import check_functions as qc
+from .store import PackageStore, StoreException
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from ..imports import _from_core_node
 
+from . import check_functions as qc
 from .. import nodes
 
 # pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
@@ -82,16 +85,23 @@ class CommandException(Exception):
     """
     pass
 
-def parse_package_extended(name):
+
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
     """
     Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
     """
-    match = EXTENDED_PACKAGE_RE.match(name)
+    match = EXTENDED_PACKAGE_RE.match(identifier)
     if match is None:
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    return match.groups()
+    full_name, hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -103,9 +113,9 @@ def parse_package(name, allow_subpath=False):
         (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
             # Make sure they're not empty.
-            raise ValueError
+            raise ValueError()
         if subpath and not allow_subpath:
-            raise ValueError
+            raise ValueError()
 
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
@@ -158,8 +168,7 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        # TODO: use utils.is_nodename() once merged
-        if not VALID_NAME_RE.match(team):
+        if not is_nodename(team):
             raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
@@ -476,7 +485,11 @@ def _log(team, **kwargs):
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
+
+    :param package: short package specifier, i.e. 'team:user/pkg'
+    :param path: file path, git url, or existing package node
     """
+    # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
@@ -537,7 +550,7 @@ def build_from_node(package, node):
     def _process_node(node, path=''):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, path + '/' + key)
+                _process_node(child, (path + '/' + key if path else key))
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
@@ -895,8 +908,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        package, pkghash, version, tag = parse_package_extended(pkginfo)
-        install(package, pkghash, version, tag, force=force)
+        info = parse_package_extended(pkginfo)
+        install(info.full_name, info.hash, info.version, info.tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
@@ -1286,3 +1299,201 @@ def rm(package, force=False):
     deleted = store.remove_package(team, owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))
+
+def _load(package):
+    info = parse_package_extended(package)
+    team, user, name = info.team, info.user, info.name
+
+    pkgobj = PackageStore.find_package(team, user, name)
+    if pkgobj is None:
+        teamstr = team + ':' if team else ''
+        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    return node, pkgobj, info
+
+def load(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
+    return _load(pkginfo)[0]
+
+def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False):
+    """Export package file data.
+
+    Exports children of specified node to files (if they have file data).
+    Does not export dataframes or other non-file data.
+
+    The `filter` function takes export paths (without the output path prepended)
+    should return `True` or `False` to indicate the node's inclusion in the export.
+
+    The `mapper` function takes export paths (without the output path prepended),
+    and should alter and return that path with any changes that are desired for the
+    export (if any).
+
+    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
+    :param output_path: distination folder
+    :param filter: function -- takes a node path string, returns True to export
+    :param mapper: function -- takes and returns a node path string
+    :param force: if True, overwrite existing files
+    """
+    # TODO: Update docs
+    # TODO: (future) Support other tags/versions
+    # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
+    # TODO: (future) support dataframes (not too painful, probably)
+
+    ## Helpers
+    # Should this function or something similar actually be GroupNode.__getitem__()?
+    def get_node_child_by_path(node, path):
+        """get a node's children by path list or string: 'foo', 'foo/bar/baz' or ['foo', 'bar', 'baz']
+        :returns: Child Node
+        """
+        assert isinstance(node, nodes.GroupNode)
+        assert path
+        if isinstance(path, str):
+            path = path.split('/')
+        for name in path:
+            node = getattr(node, name)
+        return node
+
+    def iter_filename_map(node):
+        """Yields (<storage file path>, <original path>) pairs for given `node`.
+
+        If `node._filename` exists and is truthy, yield pair for `node`.
+        If `node` is a group node, yield pairs for children of `node`.
+
+        :returns: Iterator of (<original path>, <storage file path>) pairs
+        """
+        if getattr(node, '_filename', None):
+            orig_path = node._node.metadata['q_path']
+            yield (node._filename, orig_path)
+
+        if not isinstance(node, nodes.GroupNode):
+            return
+
+        for node_path, found_node in node._iteritems(recursive=True):
+            storage_filepath = getattr(found_node, '_filename', None)  # _filename is None if not FileNode
+            if storage_filepath is not None:
+                assert storage_filepath    # sanity check -- no blank filenames
+                orig_filepath = found_node._node.metadata['q_path']
+                if orig_filepath is None:
+                    # This really shouldn't happen -- print a warning.
+                    orig_filepath = node_path
+                    msg = "WARNING: original file path not stored.  Based on node path, guessed: {}"
+                    print(msg.format(orig_filepath))
+                yield (storage_filepath, orig_filepath)
+
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs"""
+
+        conflict_counter = Counter(dest for src, dest in export_list)
+        conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
+        verified_conflicts = []
+
+        if conflicts:
+            # kinda slow, but only happens if a conflict has definitely occurred.
+            for conflict in conflicts:
+                matches = [item for item in final_export_map if item[1] == conflict]
+                # if all are from the same source, it's not really a conflict.
+                src = matches[0][0]
+                if all(src == item[0] for item in matches[1:]):
+                    continue
+                verified_conflicts.append(conflict)
+
+        if verified_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_conflicts)
+            conflict_error = CommandException(
+                "Invalid export: Conflicting filenames contain different contents:\n\t" + conflict_strings
+                )
+            conflict_error.conflicts = verified_conflicts
+            raise conflict_error
+
+    def resolve_dirpath(dirpath):
+        """Checks the dirpath and ensures it exists and is writable
+        :returns: absolute, resolved dirpath
+        """
+        # ensure output path is writable.  I'd just check stat, but this is fully portable.
+        # TODO: Performance re: write amplifacation per PR#266
+        try:
+            dirpath.mkdir(exist_ok=True)  # could be '.'
+            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
+                pass
+        except OSError as error:
+            raise CommandException("Invalid export path: not writable: " + str(error))
+        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
+
+    def finalize(outpath, exports):
+        """Finalize exports
+
+        This performs the following tasks:
+            * Change path strings to `Path` objects
+            * Ensure source exists
+            * Ensure destination doesn't exist
+            * Prefix destination with target dir
+            * Locate and record any zero-byte files in source (see comments)
+        """
+        # We return list instead of yielding, so that all prep logic is done before write is attempted.
+        final_export_map = []
+        zero_byte_files = set()
+
+        for src, dest in exports:
+            # general cleanup
+            src = pathlib.Path(src).expanduser().absolute()
+            dest = (outpath / dest).expanduser().absolute()
+
+            # existence checks
+            # this src check replaces previous existence assertion, doubling as zero-byte file check
+            # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
+            if src.stat().st_size == 0:
+                zero_byte_files.add(src)
+            if dest.parent != outpath and dest.parent.exists() and not force:
+                raise CommandException("Invalid export path: subdir already exists: {!r}"
+                                       .format(str(dest.parent)))
+            if dest.exists() and not force:
+                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+            final_export_map.append((src, dest))
+        return final_export_map, zero_byte_files
+
+    ## Export Logic
+    output_path = pathlib.Path(output_path)
+    node, _, info = _load(package)
+
+    if info.subpath:
+        node = get_node_child_by_path(node, info.subpath)
+
+    exports = iter_filename_map(node)                                   # Create src / dest map iterator
+    exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
+    exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
+    resolved_output = resolve_dirpath(output_path)                      # resolve/create output path
+
+    # Checks src/dest existence/nonexistence, converts to Path objects
+    exports, zero_byte_files = finalize(resolved_output, exports)
+
+    # Prevent conflicts introduced by mapping, coded builds, or build-time globbing
+    check_for_conflicts(exports)
+
+    # Skip it if there's nothing to do
+    if not exports:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
+    # All prep done, let's export..
+    try:
+        sys.stdout.write('Exporting.')
+        sys.stdout.flush()
+        for src, dest in exports:
+            if not dest.parent.exists():
+                dest.parent.mkdir(parents=True, exist_ok=True)
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            if src in zero_byte_files:
+                dest.touch()  # weird issue: zero-byte files not getting copied?!
+            else:
+                copy(str(src), str(dest))
+        print('..done.')
+    except OSError as error:
+        commandex = CommandException("Unexpected error during export: " + str(error))
+        commandex.original_error = error
+        raise commandex

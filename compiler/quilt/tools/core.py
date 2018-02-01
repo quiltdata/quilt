@@ -7,6 +7,7 @@
 
 from enum import Enum
 import hashlib
+import os
 import struct
 
 from six import iteritems, itervalues, string_types
@@ -73,6 +74,8 @@ class TableNode(Node):
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
         assert isinstance(metadata, dict)
+        # (x.get('y') or '') is always a string, even if x['y'] is set to None
+        assert not os.path.isabs(metadata.get('q_path') or '')  # Handle value set to None
 
         self.hashes = hashes
         self.format = PackageFormat(format)
@@ -86,12 +89,11 @@ class TableNode(Node):
 class FileNode(Node):
     json_type = 'FILE'
 
-    def __init__(self, hashes, metadata=None):
-        if metadata is None:
-            metadata = {}
-
+    def __init__(self, hashes, metadata):
         assert isinstance(hashes, list)
         assert isinstance(metadata, dict)
+        assert metadata.get('q_path')   # metadata for a FileNode requires 'q_path' to be set.
+        assert not os.path.isabs(metadata['q_path'])
 
         self.hashes = hashes
         self.metadata = metadata

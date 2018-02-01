@@ -11,6 +11,7 @@
 * `quilt install [-x HASH | -v VERSION | -t TAG] [USER/PACKAGE[/SUBPATH...] or @QUILT_YML_FILE]` installs a package.
 * `quilt generate [DIRECTORY]` creates a build.yml file from a directory of files.  You can customize this before running `quilt build` and `quilt push`.
 * `quilt rm [USER/PACKAGE] [--force]`  Remove a package (all instances/versions) from the local store.
+* `quilt export USER/PACKAGE [OUTPUT_PATH]`  Export non-columnar data to original filenames
 
 # Versioning
 * `quilt log USER/PACKAGE` to see the push history

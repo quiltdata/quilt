@@ -8,6 +8,7 @@
  * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
 * `quilt.install(USER/PACKAGE, [hash=HASH, tag=TAG, version=VERSION])` installs a package
 * `quilt.rm(USER/PACKAGE)` Remove a package (all instances/versions) from the local store.
+* `quilt.export(USER/PACKAGE, [output_path='.', force=False])`  Export non-columnar data to original filenames
 
 # Navigation
 * `NODE._keys()` returns a list of all children

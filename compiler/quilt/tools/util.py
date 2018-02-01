@@ -1,8 +1,10 @@
 """
 Helper functions.
 """
+import re
 import gzip
 import os
+import keyword
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -73,6 +75,7 @@ def file_to_str(fname):
         data = fd.read()
     return data
 
+
 def gzip_compress(data):
     """
     Compress a string. Same as gzip.compress in Python3.
@@ -81,6 +84,7 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
 
 def sub_dirs(path, invisible=False):
     """
@@ -92,6 +96,7 @@ def sub_dirs(path, invisible=False):
 
     return dirs
 
+
 def sub_files(path, invisible=False):
     """
     Child files (non-recursive)
@@ -101,3 +106,32 @@ def sub_files(path, invisible=False):
         files = [x for x in files if not x.startswith('.')]
 
     return files
+
+
+def is_identifier(string):
+    """Check if string could be a valid python identifier
+
+    :param string: string to be tested
+    :returns: True if string can be a python identifier, False otherwise
+    :rtype: bool
+    """
+    # cached by python
+    val = re.match(r'^[a-zA-Z_]\w*$', string) and not keyword.iskeyword(string)
+    return bool(val)
+
+
+def is_nodename(string):
+    """Check if string could be a valid node name
+
+    Convenience, and a good place to aggregate node-name related checks.
+
+    :param string: string to be tested
+    :returns: True if string could be used as a node name, False otherwise
+    :rtype: bool
+    """
+    if string.startswith('_'):
+        return False
+    return is_identifier(string)
+
+
+
