@@ -293,7 +293,6 @@ def api(require_login=True, schema=None, enabled=True):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-
             g.auth = Auth(PUBLIC, None, False)
 
             user_agent_str = request.headers.get('user-agent', '')
@@ -492,11 +491,16 @@ def package_put(owner, package_name, package_hash):
     dry_run = data.get('dry_run', False)
     public = data.get('public', False)
     contents = data['contents']
+    sizes = data.get('sizes', {})
 
     if hash_contents(contents) != package_hash:
         raise ApiException(requests.codes.bad_request, "Wrong contents hash")
 
     all_hashes = set(find_object_hashes(contents))
+
+    # Old clients don't send sizes. But if sizes are present, make sure they match the hashes.
+    if sizes and set(sizes) != all_hashes:
+        raise ApiException(requests.codes.bad_request, "Sizes don't match the hashes")
 
     # Insert a package if it doesn't already exist.
     # TODO: Separate endpoint for just creating a package with no versions?
@@ -618,8 +622,9 @@ def package_put(owner, package_name, package_hash):
         existing_hashes = {blob.hash for blob in blobs}
 
         for blob_hash in all_hashes:
+            blob_size = sizes.get(blob_hash)
             if blob_hash not in existing_hashes:
-                instance.blobs.append(S3Blob(owner=owner, hash=blob_hash))
+                instance.blobs.append(S3Blob(owner=owner, hash=blob_hash, size=blob_size))
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
@@ -681,6 +686,17 @@ def package_get(owner, package_name, package_hash):
 
     all_hashes = set(find_object_hashes(subnode))
 
+    blobs = (
+        S3Blob.query
+        .filter(
+            sa.and_(
+                S3Blob.owner == owner,
+                S3Blob.hash.in_(all_hashes)
+            )
+        )
+        .all()
+    ) if all_hashes else []
+
     urls = {
         blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
         for blob_hash in all_hashes
@@ -711,6 +727,7 @@ def package_get(owner, package_name, package_hash):
     return dict(
         contents=instance.contents,
         urls=urls,
+        sizes={blob.hash: blob.size for blob in blobs},
         created_by=instance.created_by,
         created_at=_utc_datetime_to_ts(instance.created_at),
         updated_by=instance.updated_by,
