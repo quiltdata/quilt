@@ -247,7 +247,7 @@ class ImportTest(QuiltTestCase):
         # - Second one only exists in the new dir.
 
         # First package.
-        command.build('foo/bar/group/table', build_path)
+        command.build('foo/multiple1', build_path)
 
         # First and second package in the new build dir.
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
@@ -296,19 +296,6 @@ class ImportTest(QuiltTestCase):
         dirs = 'bar/%s:%s' % (PACKAGE_DIR_NAME, bad_build_dir)
         with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
             from quilt.team.qux.bar import multiple1
-
-    def test_subpackages_multiple_package_dirs(self):
-        mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
-        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
-        new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
-
-        # First and second package in the new build dir.
-        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
-            command.build('foo/bar/sub', simple_build_path)
-            from quilt.data.foo.bar import sub
-            command.build('foo/bar', simple_build_path)
-            from quilt.data.foo.bar import sub
 
     def test_save(self):
         mydir = os.path.dirname(__file__)
