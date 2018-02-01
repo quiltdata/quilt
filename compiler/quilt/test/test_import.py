@@ -220,20 +220,11 @@ class ImportTest(QuiltTestCase):
         bad_build_dir = '**??/;;||==/%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             command.build('bar/multiple1', simple_build_path)
-        with self.assertRaises(ImportError):
-            from quilt.data.bar import multiple1
-        dirs = 'bar/%s:%s' % (PACKAGE_DIR_NAME, bad_build_dir)
-        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
-            from quilt.data.bar import multiple1
 
         bad_build_dir = ''
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
-            command.build('bar/multiple1', simple_build_path)
-        with self.assertRaises(ImportError):
-            from quilt.data.bar import multiple1
-        dirs = 'bar/%s:%s' % (PACKAGE_DIR_NAME, bad_build_dir)
-        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
-            from quilt.data.bar import multiple1
+            with self.assertRaises(AssertionError):
+                command.build('bar/multiple1', simple_build_path)
 
     def test_team_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)
@@ -287,15 +278,14 @@ class ImportTest(QuiltTestCase):
             from quilt.team.qux.foo import multiple2
 
         # check for bad nulti dirs, does not work properly for now
-        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
         bad_build_dir = '**??/;;||==/%s' % PACKAGE_DIR_NAME
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             command.build('qux:bar/multiple1', simple_build_path)
-        with self.assertRaises(ImportError):
-            from quilt.team.qux.bar import multiple1
-        dirs = 'bar/%s:%s' % (PACKAGE_DIR_NAME, bad_build_dir)
-        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
-            from quilt.team.qux.bar import multiple1
+
+        bad_build_dir = ''
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            with self.assertRaises(AssertionError):
+                command.build('qux:bar/multiple1', simple_build_path)
 
     def test_save(self):
         mydir = os.path.dirname(__file__)

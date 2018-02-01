@@ -7,8 +7,8 @@ Delete tests
 import json
 import requests
 
-from quilt_server.const import PUBLIC
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
+from quilt_server.models import Event
 from .utils import QuiltTestCase
 
 
@@ -60,6 +60,13 @@ class DeleteTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.not_found
+
+        events = Event.query.all()
+        event = events[-1]
+        assert event.user == self.user
+        assert event.type == Event.Type.DELETE
+        assert event.package_owner == self.user
+        assert event.package_name == self.pkg
 
     def testDeleteAccessTagVersionLog(self):
         hashes = [hash_contents(contents) for contents in self.contents_list]
