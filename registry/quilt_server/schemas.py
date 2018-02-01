@@ -91,6 +91,12 @@ PACKAGE_SCHEMA = {
             },
             'required': ['type', 'children'],
             'additionalProperties': False
+        },
+        'sizes': {
+            'type': 'object',
+            'additionalProperties': {
+                'type': 'integer'
+            }
         }
     },
     'required': ['description', 'contents'],
