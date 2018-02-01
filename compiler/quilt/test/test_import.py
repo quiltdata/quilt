@@ -226,7 +226,7 @@ class ImportTest(QuiltTestCase):
         with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
             from quilt.data.bar import multiple1
 
-        bad_build_dir = '**??/;;||==/%s' % PACKAGE_DIR_NAME
+        bad_build_dir = ''
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
             command.build('bar/multiple1', simple_build_path)
         with self.assertRaises(ImportError):
@@ -247,7 +247,7 @@ class ImportTest(QuiltTestCase):
         # - Second one only exists in the new dir.
 
         # First package.
-        command.build('qux:foo/multiple1', build_path)
+        command.build('foo/bar/group/table', build_path)
 
         # First and second package in the new build dir.
         with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
@@ -309,21 +309,6 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo.bar import sub
             command.build('foo/bar', simple_build_path)
             from quilt.data.foo.bar import sub
-
-
-        # Cannot see the second package yet.
-        with self.assertRaises(ImportError):
-            from quilt.team.qux.foo import multiple2
-
-        # Now search the new build dir.
-        dirs = 'foo/%s:%s' % (PACKAGE_DIR_NAME, new_build_dir)
-        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
-            # Can import the second package now.
-            from quilt.team.qux.foo import multiple2
-
-            # The first package contains data from the default dir.
-            from quilt.team.qux.foo import multiple1
-            assert multiple1.dataframes
 
     def test_save(self):
         mydir = os.path.dirname(__file__)
