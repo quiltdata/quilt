@@ -387,9 +387,9 @@ def login(team=None):
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    login_with_token(team, refresh_token)
+    login_with_token(refresh_token, team)
 
-def login_with_token(team, refresh_token):
+def login_with_token(refresh_token, team=None):
     """
     Authenticate using an existing token.
     """
