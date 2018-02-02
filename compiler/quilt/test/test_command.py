@@ -416,7 +416,7 @@ class CommandTest(QuiltTestCase):
                 'is_staff':True,
             })
         )
-        command.create_user('bob', 'bob@quiltdata.io')
+        command.create_user('bob', 'bob@quiltdata.io', None)
         pass
 
     def test_user_create_no_auth(self):
@@ -426,7 +426,7 @@ class CommandTest(QuiltTestCase):
             status=401
             )
         with self.assertRaises(command.CommandException):
-            command.create_user('bob', 'bob@quitdata.io')
+            command.create_user('bob', 'bob@quitdata.io', None)
         pass
     
     def test_user_disable(self):
@@ -435,7 +435,7 @@ class CommandTest(QuiltTestCase):
             '%s/api/users/disable' % command.get_registry_url(None),
             status=201
             )
-        command.disable_user('bob')
+        command.disable_user('bob', None)
         pass
 
     def test_user_disable_no_auth(self):
@@ -445,7 +445,7 @@ class CommandTest(QuiltTestCase):
             status=401
             )
         with self.assertRaises(command.CommandException):
-            command.disable_user('bob')
+            command.disable_user('bob', None)
         pass
     
     def test_user_delete(self):
@@ -454,7 +454,7 @@ class CommandTest(QuiltTestCase):
             '%s/api/users/delete' % command.get_registry_url(None),
             status=201
             )
-        command.delete_user('bob', force=True)
+        command.delete_user('bob', None, force=True)
         pass
 
     def test_user_delete_no_auth(self):
@@ -464,7 +464,7 @@ class CommandTest(QuiltTestCase):
             status=401
             )
         with self.assertRaises(command.CommandException):
-            command.delete_user('bob', force=True)
+            command.delete_user('bob', None, force=True)
         pass
     
 
