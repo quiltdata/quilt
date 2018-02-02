@@ -853,7 +853,7 @@ def user_packages(owner):
         ]
     )
 
-@app.route('/api/package_list/<owner>/', methods=['GET'])
+@app.route('/api/admin/package_list/<owner>/', methods=['GET'])
 @api(require_login=True)
 @as_json
 def list_user_packages(owner):

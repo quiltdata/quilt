@@ -1353,7 +1353,7 @@ def list_packages(username, team=None):
         team = _find_logged_in_team()
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.get('%s/api/package_list/%s' % (url, username))
+    resp = session.get('%s/api/admin/package_list/%s' % (url, username))
     return resp.json()
 
 def disable_user(username, team=None):
