@@ -1341,8 +1341,6 @@ def cli_list_users(team=None):
 
 def create_user(username, email, team):
     # get team from disk if not specified
-    if team is None:
-        team = _find_logged_in_team()
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/create' % url,
@@ -1350,8 +1348,6 @@ def create_user(username, email, team):
 
 def disable_user(username, team):
     # get team from disk if not specified
-    if team is None:
-        team = _find_logged_in_team()
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/disable' % url, 
@@ -1364,8 +1360,6 @@ def delete_user(username, team, force=False):
         if confirmed.lower() != 'y':
             return
 
-    if team is None:
-        team = _find_logged_in_team()
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
