@@ -28,7 +28,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_USERNAME_RE, VALID_EMAIL_RE
+from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -135,7 +135,7 @@ def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 def _validate_username(username):
-    if not VALID_USERNAME_RE.fullmatch(username):
+    if not VALID_NAME_RE.fullmatch(username):
         raise ApiException(
             requests.codes.bad,
             """
