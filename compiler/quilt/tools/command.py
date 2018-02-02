@@ -1348,6 +1348,14 @@ def create_user(username, email, team=None):
     resp = session.post('%s/api/users/create' % url,
             data=json.dumps({'username':username, 'email':email}))
 
+def list_packages(username, team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/package_list/%s' % (url, username))
+    return resp.json()
+
 def disable_user(username, team=None):
     # get team from disk if not specified
     if team is None:
