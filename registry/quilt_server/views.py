@@ -853,6 +853,35 @@ def user_packages(owner):
         ]
     )
 
+@app.route('/api/admin/package_list/<owner>/', methods=['GET'])
+@api(require_login=True)
+@as_json
+def list_user_packages(owner):
+    if not g.auth.is_admin:
+        raise ApiException(
+            requests.codes.forbidden,
+            "Must be authenticated as an admin to use this endpoint."
+            )
+
+    packages = (
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        .filter_by(owner=owner)
+        .join(Package.access)
+        .group_by(Package.id)
+        .order_by(Package.name)
+        .all()
+    )
+
+    return dict(
+        packages=[
+            dict(
+                name=package.name,
+                is_public=is_public
+            )
+            for package, is_public in packages
+        ]
+    )
+
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
