@@ -76,21 +76,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(file_hash, file_data)
 
         command.install('foo/bar')
-        teststore = PackageStore(self._store_dir)
-
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
-                               contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
-
-        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == file_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data)
 
     def test_install_team_latest(self):
         """
@@ -106,21 +92,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(file_hash, file_data)
 
         command.install('qux:foo/bar')
-        teststore = PackageStore(self._store_dir)
-
-        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
-                               contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
-
-        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == file_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data, team='qux')
 
     def test_short_hashes(self):
         """
@@ -158,22 +130,11 @@ class InstallTest(QuiltTestCase):
         """
         table_data, table_hash = self.make_table_data()
         contents, contents_hash = self.make_contents(table=table_hash)
-
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, 'group/table', contents, [table_hash])
         self._mock_s3(table_hash, table_data)
-
         command.install('foo/bar/group/table')
-
-        teststore = PackageStore(self._store_dir)
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR, contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data)
 
     def test_install_team_subpackage(self):
         """
