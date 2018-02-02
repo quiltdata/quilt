@@ -286,7 +286,7 @@ def argument_parser():
     user_delete_p = users_subparsers.add_parser("delete", help=shorthelp)
     user_delete_p.add_argument("username", type=str)
     user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
-    user_delete_p.set_defaults(func=command.delete_user)
+    user_delete_p.set_defaults(func=command.delete_user_cli)
 
     # quilt version
     shorthelp = "List or permanently add a package version to the server"
