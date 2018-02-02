@@ -92,7 +92,6 @@ from .tools.command import (
     disable_user,
     inspect,
     install,
-    list_packages,
     list_users,
     log,
     login,
