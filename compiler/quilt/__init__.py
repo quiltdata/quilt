@@ -87,6 +87,7 @@ from .tools.command import (
     build,
     check,
     config,
+    generate,
     inspect,
     install,
     log,
