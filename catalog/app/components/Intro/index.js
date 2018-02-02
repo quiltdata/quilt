@@ -4,7 +4,7 @@ import { Col, Row } from 'react-bootstrap';
 import styled from 'styled-components';
 
 import speedometer from 'img/art/accelerate.png';
-import Gallery from 'components/Gallery';
+import Gallery from 'containers/Gallery';
 import palette from 'img/art/palette.png';
 import pkg from 'img/art/package.png';
 

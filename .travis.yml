@@ -24,13 +24,6 @@ matrix:
       python: "2.7"
     - os: linux
       language: python
-      python: "3.4"
-      env:
-        TEST_REGISTRY=true
-      services:
-        - postgresql
-    - os: linux
-      language: python
       python: "3.5"
       env:
         TEST_REGISTRY=true

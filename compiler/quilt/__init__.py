@@ -96,6 +96,7 @@ from .tools.command import (
     ls,
     delete,
     push,
+    rm,
     tag_add,
     tag_list,
     tag_remove,
