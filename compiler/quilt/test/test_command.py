@@ -61,7 +61,7 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    def _mock_error(self, endpoint, status=requests.codes.created, team=None, message="",
+    def _mock_error(self, endpoint, status, team=None, message="",
                     method=responses.POST):
         self.requests_mock.add(
             method,
