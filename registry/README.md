@@ -165,6 +165,10 @@ docker build -t quiltdata/nginx-s3-proxy nginx-s3
 docker build -t quiltdata/flask .
 ```
 
+### Advanced: using Teams user endpoints
+
+To use the Teams user endoints, make sure the environment variable ENABLE_USER_ENDPOINTS is set.
+
 <!--
 # Running directly (not with Docker)
 
