@@ -1362,7 +1362,7 @@ def disable_user(username, team=None):
         team = _find_logged_in_team()
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.post('%s/api/users/disable' % url, 
+    resp = session.post('%s/api/users/disable' % url,
             data=json.dumps({'username':username}))
 
 def delete_user(username, force=False, team=None):

@@ -28,7 +28,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
+from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -133,6 +133,15 @@ def robots():
 
 def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
+
+def _validate_username(username):
+    if not VALID_NAME_RE.fullmatch(username):
+        raise ApiException(
+            requests.codes.bad,
+            """
+            Username is not valid. Usernames must start with a letter or underscore, and
+            contain only alphanumeric characters and underscores thereafter.
+            """)
 
 @app.route('/login')
 def login():
@@ -299,7 +308,7 @@ def api(require_login=True, schema=None, enabled=True):
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if not enabled:
-                raise ApiException(requests.codes.bad_request, 
+                raise ApiException(requests.codes.bad_request,
                         "This endpoint is not enabled.")
 
             if validator is not None:
@@ -1194,13 +1203,13 @@ def access_put(owner, package_name, user):
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
-    if EMAILREGEX.match(user):
+    if VALID_EMAIL_RE.match(user):
         email = user.lower()
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Auth to send invitation email        
+        # Call to Auth to send invitation email
         resp = requests.post(INVITE_SEND_URL,
                              headers=auth_headers,
                              data=dict(email=email,
@@ -1626,15 +1635,9 @@ def create_user():
             )
 
     username = request_data.get('username')
-    user_regex = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
-    if not re.fullmatch(user_regex, username):
-        raise ApiException(
-            requests.codes.bad,
-            "Username is not valid. Usernames must start with a letter or underscore, and " +
-            "contain only alphanumeric characters and underscores thereafter."
-            )
-          
-    resp = requests.post(user_create_api, headers=auth_headers, 
+    _validate_username(username)
+
+    resp = requests.post(user_create_api, headers=auth_headers,
         data=json.dumps({
             "username": username,
             "first_name": "",
@@ -1649,7 +1652,7 @@ def create_user():
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
-            "Cannot list users"
+            "Cannot create user"
             )
 
     if resp.status_code == requests.codes.bad:
@@ -1691,12 +1694,19 @@ def disable_user():
 
     data = request.get_json()
     username = data.get('username')
+    _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers, 
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'username' : username,
             'is_active' : False
         }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to disable not found."
+            )
 
     if resp.status_code != requests.codes.ok:
         raise ApiException(
@@ -1720,6 +1730,7 @@ def delete_user():
 
     data = request.get_json()
     username = data.get('username')
+    _validate_username(username)
 
     resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
 
