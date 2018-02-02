@@ -1551,7 +1551,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def list_users():
     auth_headers = {
@@ -1578,7 +1578,7 @@ def list_users():
     return resp.json()
 
 @app.route('/api/users/create', methods=['POST'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def create_user():
     auth_headers = {
@@ -1644,7 +1644,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def disable_user():
     auth_headers = {
