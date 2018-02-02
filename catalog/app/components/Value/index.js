@@ -1,4 +1,5 @@
 /* Value propositions of the product */
+import PropTypes from 'prop-types';
 import React from 'react';
 import { Row, Col } from 'react-bootstrap';
 import styled from 'styled-components';
@@ -49,9 +50,9 @@ const Value = ({ children, src, title }) => (
 );
 
 Value.propTypes = {
-  children: React.PropTypes.node,
-  src: React.PropTypes.string,
-  title: React.PropTypes.node,
+  children: PropTypes.node,
+  src: PropTypes.string,
+  title: PropTypes.node,
 };
 
 export default Value;

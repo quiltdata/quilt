@@ -1,5 +1,5 @@
 /* Simple Layout Helpers */
-import React from 'react';
+import PropTypes from 'prop-types';
 import styled from 'styled-components';
 
 import { breaks, rowVSpace } from 'constants/style';
@@ -69,8 +69,8 @@ export const Stack = styled.div`
 `;
 
 Stack.propTypes = {
-  breakPoint: React.PropTypes.string,
-  margin: React.PropTypes.string,
+  breakPoint: PropTypes.string,
+  margin: PropTypes.string,
 };
 
 const sm = `${breaks.md - 1}px`; //  upper end of sm breakpoint

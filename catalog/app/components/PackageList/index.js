@@ -1,5 +1,6 @@
 /* PackageList */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { List, ListItem } from 'material-ui/List';
 
 import PackageHandle from 'components/PackageHandle';
@@ -42,12 +43,13 @@ function PackageList({
   }
 
   return (
-    <Pagination items={packages}>{
-      ({ items }) =>
+    <Pagination items={packages}>
+      {({ items }) => (
         <List style={listStyle}>
           {items.map(renderPackage(showOwner, owner))}
         </List>
-    }</Pagination>
+      )}
+    </Pagination>
   );
 }
 

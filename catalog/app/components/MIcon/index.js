@@ -1,5 +1,6 @@
 /* MIcon - wrap material icon for convenience, style control */
 import FontIcon from 'material-ui/FontIcon';
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -11,18 +12,13 @@ const Adjust = styled.span`
   top: ${(props) => props.drop || 0}
 `;
 
-function MIcon(props) {
-  // color gets spread to FontIcon; we don't need to use it locally
-  const { children, color, drop, title } = props; // eslint-disable-line no-unused-vars
-  // consume props that FontIcon won't recognize or React complains
-  const cleanProps = Object.assign({}, props);
-  delete cleanProps.drop;
-  delete cleanProps.title;
+// eslint-disable-next-line object-curly-newline
+function MIcon({ children, drop, title, ...rest }) {
   return (
     <Adjust drop={drop} title={title}>
       <FontIcon
         className="material-icons"
-        {...cleanProps}
+        {...rest}
       >
         { children }
       </FontIcon>
@@ -31,10 +27,10 @@ function MIcon(props) {
 }
 
 MIcon.propTypes = {
-  children: React.PropTypes.string.isRequired,
-  color: React.PropTypes.string,
-  drop: React.PropTypes.string,
-  title: React.PropTypes.string,
+  children: PropTypes.string.isRequired,
+  color: PropTypes.string,
+  drop: PropTypes.string,
+  title: PropTypes.string,
 };
 
 MIcon.defaultProps = {

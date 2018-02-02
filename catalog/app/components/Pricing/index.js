@@ -1,5 +1,6 @@
 /* Pricing */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 import { Tabs, Tab } from 'material-ui/Tabs';
 
