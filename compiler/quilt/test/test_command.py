@@ -204,12 +204,12 @@ class CommandTest(QuiltTestCase):
         with pytest.raises(command.CommandException, match='Invalid team name'):
             command.login('fo!o')
 
-        assert not mock_open.called
-        assert not mock_login_with_token.called
+        mock_open.assert_not_called()
+        mock_login_with_token.assert_not_called()
 
     def test_login_with_token_invalid_team(self):
         with pytest.raises(command.CommandException, match='Invalid team name'):
-            command.login_with_token('fo!o', '123')
+            command.login_with_token('123', 'fo!o')
 
     @patch('quilt.tools.command._save_auth')
     def test_login_token(self, mock_save):
@@ -229,7 +229,7 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login_with_token(old_refresh_token)
+        command.login_with_token(old_refresh_token, None)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
@@ -251,7 +251,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token("123")
+            command.login_with_token("123", None)
 
         mock_save.assert_not_called()
 
@@ -267,7 +267,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token("123")
+            command.login_with_token("123", None)
 
         mock_save.assert_not_called()
 
