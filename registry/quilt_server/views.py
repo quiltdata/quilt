@@ -1669,6 +1669,12 @@ def disable_user():
             'is_active' : False
         }))
 
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to disable not found."
+            )
+
     if resp.status_code != requests.codes.ok:
         raise ApiException(
             requests.codes.server_error,

@@ -1364,8 +1364,8 @@ def delete_user(username, team, force=False):
     url = get_registry_url(team)
     resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
 
-def delete_user_cli(username, force=False):
-    delete_user(username, None, force)
+def delete_user_cli(team, username, force=False):
+    delete_user(username, team, force)
 
 def audit(thing):
     team = _find_logged_in_team()
