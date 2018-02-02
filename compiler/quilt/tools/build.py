@@ -156,7 +156,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                     data = fd.read()
                     _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
             if not dry_run:
-                print("Copying %s..." % path)
+                print("Registering %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
             # copy so we don't modify shared ancestor_args
