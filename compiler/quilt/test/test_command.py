@@ -61,10 +61,11 @@ from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
 
 class CommandTest(QuiltTestCase):
-    def _mock_method(self, endpoint, status=201, team=None, message="", method=responses.POST, api="users"):
+    def _mock_error(self, endpoint, status=requests.codes.created, team=None, message="",
+                    method=responses.POST):
         self.requests_mock.add(
             method,
-            '%s/api/%s/%s' % (command.get_registry_url(team), api, endpoint),
+            '%s/api/%s' % (command.get_registry_url(team), endpoint),
             body=json.dumps(dict(message=message)),
             status=status
         )
@@ -438,17 +439,17 @@ class CommandTest(QuiltTestCase):
         command.list_users()
 
     def test_user_list_no_auth(self):
-        self._mock_method('list', status=401, method=responses.GET)
+        self._mock_error('users/list', status=401, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
     def test_user_list_not_found(self):
-        self._mock_method('list', status=404, method=responses.GET)
+        self._mock_error('users/list', status=404, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
     def test_user_list_server_error(self):
-        self._mock_method('list', status=500, method=responses.GET)
+        self._mock_error('users/list', status=500, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users()
 
@@ -470,188 +471,188 @@ class CommandTest(QuiltTestCase):
         command.create_user('bob', 'bob@quiltdata.io')
 
     def test_user_create_no_auth(self):
-        self._mock_method('create', status=401)
+        self._mock_error('users/create', status=401)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io')
 
     def test_create_not_found(self):
-        self._mock_method('create', status=404)
+        self._mock_error('users/create', status=404)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quiltdata.io')
 
     def test_create_server_error(self):
-        self._mock_method('create', status=500)
+        self._mock_error('users/create', status=500)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quiltdata.io')
 
     def test_create_duplicate(self):
-        self._mock_method('create', status=400, message="Bad request. Maybe there's already")
+        self._mock_error('users/create', status=400, message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('bob', 'bob@quiltdata.io')
 
-        self._mock_method('create', status=400, team='qux', message="Bad request. Maybe there's already")
+        self._mock_error('users/create', status=400, team='qux', message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('bob', 'bob@quiltdata.io', team='qux')
 
     def test_user_create_bogus(self):
-        self._mock_method('create', status=400, message="Please enter a valid email address.")
+        self._mock_error('users/create', status=400, message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail')
 
     def test_user_create_empty_email(self):
-        self._mock_method('create', status=400, message="Please enter a valid email address.")
+        self._mock_error('users/create', status=400, message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', '')
 
     def test_user_create_empty_email_team(self):
-        self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
+        self._mock_error('users/create', status=400, team='qux', message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', '', team='qux')
 
     def test_user_create_empty(self):
-        self._mock_method('create', status=400, message="Bad request. Maybe there's already")
+        self._mock_error('users/create', status=400, message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('', 'bob@quiltdata.io')
 
     def test_user_create_bogus_team(self):
-        self._mock_method('create', status=400, team='qux', message="Please enter a valid email address.")
+        self._mock_error('users/create', status=400, team='qux', message="Please enter a valid email address.")
         with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
             command.create_user('bob', 'wrongemail', team='qux')
 
     def test_user_create_empty_team(self):
-        self._mock_method('create', status=400, team='qux', message="Bad request. Maybe there's already")
+        self._mock_error('users/create', status=400, team='qux', message="Bad request. Maybe there's already")
         with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
             command.create_user('', 'bob@quiltdata.io', team='qux')
 
     def test_user_create_nonexisting_team(self):
-        self._mock_method('create', status=404, team='nonexisting')
+        self._mock_error('users/create', status=404, team='nonexisting')
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quiltdata.io', team='nonexisting')
 
     def test_user_disable(self):
-        self._mock_method('disable', status=201)
+        self._mock_error('users/disable', status=201)
         command.disable_user('bob')
 
     def test_user_disable_not_found(self):
-        self._mock_method('disable', status=404)
+        self._mock_error('users/disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
     def test_user_disable_server_error(self):
-        self._mock_method('disable', status=500)
+        self._mock_error('users/disable', status=500)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
     def test_user_disable_already(self):
-        self._mock_method('disable', status=404)
+        self._mock_error('users/disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
-        self._mock_method('disable', status=404, team='qux')
+        self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('bob', team='qux')
 
     def test_user_disable_deleted(self):
-        self._mock_method('disable', status=404)
+        self._mock_error('users/disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('deleted')
 
-        self._mock_method('disable', status=404, team='qux')
+        self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('deleted', team='qux')
 
     def test_user_disable_non_existing_team(self):
-        self._mock_method('disable', status=404, team='nonexisting')
+        self._mock_error('users/disable', status=404, team='nonexisting')
         with self.assertRaises(command.CommandException):
             command.disable_user('bob', team='nonexisting')
 
     def test_user_disable_non_existing(self):
-        self._mock_method('disable', status=404)
+        self._mock_error('users/disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('nonexisting')
 
-        self._mock_method('disable', status=404, team='qux')
+        self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('nonexisting', team='qux')
 
     def test_user_disable_empty(self):
-        self._mock_method('disable', status=400, message="Username is not valid")
+        self._mock_error('users/disable', status=400, message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.disable_user('')
 
-        self._mock_method('disable', status=400, team='qux', message="Username is not valid")
+        self._mock_error('users/disable', status=400, team='qux', message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.disable_user('', team='qux')
 
     def test_user_disable_no_auth(self):
-        self._mock_method('disable', status=401)
+        self._mock_error('users/disable', status=401)
         with self.assertRaises(command.CommandException):
             command.disable_user('bob')
 
-        self._mock_method('disable', status=401, team='qux')
+        self._mock_error('users/disable', status=401, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('bob', team='qux')
 
     def test_user_disable_unknown(self):
-        self._mock_method('disable', status=404)
+        self._mock_error('users/disable', status=404)
         with self.assertRaises(command.CommandException):
             command.disable_user('unknown')
 
-        self._mock_method('disable', status=404, team='qux')
+        self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('unknown', team='qux')
 
     def test_user_delete(self):
-        self._mock_method('delete', status=201)
+        self._mock_error('users/delete', status=201)
         command.delete_user('bob', force=True)
 
-        self._mock_method('delete', status=201, team='qux')
+        self._mock_error('users/delete', status=201, team='qux')
         command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_not_found(self):
-        self._mock_method('delete', status=404)
+        self._mock_error('users/delete', status=404)
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True)
 
     def test_user_delete_server_error(self):
-        self._mock_method('delete', status=404)
+        self._mock_error('users/delete', status=404)
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True)
 
     def test_user_delete_empty(self):
-        self._mock_method('delete', status=400, message="Username is not valid")
+        self._mock_error('users/delete', status=400, message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.delete_user('', force=True)
 
-        self._mock_method('delete', status=400, team='qux', message="Username is not valid")
+        self._mock_error('users/delete', status=400, team='qux', message="Username is not valid")
         with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
             command.delete_user('', force=True, team='qux')
 
     def test_user_delete_no_auth(self):
-        self._mock_method('delete', status=401)
+        self._mock_error('users/delete', status=401)
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True)
 
-        self._mock_method('delete', status=401, team='qux')
+        self._mock_error('users/delete', status=401, team='qux')
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True, team='qux')
 
     def test_user_delete_unknown(self):
-        self._mock_method('delete', status=404)
+        self._mock_error('users/delete', status=404)
         with self.assertRaises(command.CommandException):
             command.delete_user('unknown', force=True)
 
-        self._mock_method('delete', status=404, team='qux')
+        self._mock_error('users/delete', status=404, team='qux')
         with self.assertRaises(command.CommandException):
             command.delete_user('unknown', force=True, team='qux')
 
     def test_user_delete_already(self):
-        self._mock_method('delete', status=404)
+        self._mock_error('users/delete', status=404)
         with self.assertRaises(command.CommandException):
             command.delete_user('deleted', force=True)
 
     def test_user_delete_nonexisting_team(self):
-        self._mock_method('delete', status=404, team='nonexisting')
+        self._mock_error('users/delete', status=404, team='nonexisting')
         with self.assertRaises(command.CommandException):
             command.delete_user('bob', force=True, team='nonexisting')
 
@@ -695,13 +696,13 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_no_auth_user(self):
-        self._mock_method('bob/', status=401, team='someteam', method=responses.GET, api='audit')
+        self._mock_error('audit/bob/', status=401, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('bob')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_no_auth_package(self):
-        self._mock_method('foo/bar/', status=401, team='someteam', method=responses.GET, api='audit')
+        self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('foo/bar')
 
@@ -713,13 +714,13 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_not_admin_user(self):
-        self._mock_method('bob/', status=401, team='someteam', method=responses.GET, api='audit')
+        self._mock_error('audit/bob/', status=401, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('bob')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_not_admin_package(self):
-        self._mock_method('foo/bar/', status=401, team='someteam', method=responses.GET, api='audit')
+        self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('foo/bar')
 
