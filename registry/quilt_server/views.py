@@ -4,8 +4,7 @@
 API routes.
 """
 
-import datetime
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
 import time
@@ -1639,7 +1638,7 @@ def create_user():
             "is_superuser": False,
             "is_staff": False,
             "is_active": True,
-            "last_login": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+            "last_login": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
         }))
 
     if resp.status_code == requests.codes.not_found:
