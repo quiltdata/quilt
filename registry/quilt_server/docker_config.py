@@ -40,7 +40,8 @@ OAUTH.update(dict(
 
 CATALOG_URL = 'http://localhost:3000'
 
-INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL # XXX
+# TODO: move invite sending to flask
+INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL
 
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
@@ -56,3 +57,4 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 print('*** AUTH_PROVIDER=%s' % AUTH_PROVIDER)
 
+ENABLE_USER_ENDPOINTS = True

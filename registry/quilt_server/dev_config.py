@@ -41,7 +41,8 @@ OAUTH.update(dict(
 
 CATALOG_URL = 'http://localhost:3000'
 
-INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL # XXX
+# TODO: move invite sending to flask
+INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL
 
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
@@ -54,3 +55,5 @@ SQLALCHEMY_ECHO = True
 MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN', '')
 DEPLOYMENT_ID = socket.gethostname()
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+
+ENABLE_USER_ENDPOINTS = True

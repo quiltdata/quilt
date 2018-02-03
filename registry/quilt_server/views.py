@@ -28,7 +28,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
+from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -62,7 +62,7 @@ PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
 DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
 
-DISABLE_USER_ENDPOINTS = app.config['DISABLE_USER_ENDPOINTS']
+ENABLE_USER_ENDPOINTS = app.config['ENABLE_USER_ENDPOINTS']
 
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
@@ -133,6 +133,15 @@ def robots():
 
 def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
+
+def _validate_username(username):
+    if not VALID_NAME_RE.fullmatch(username):
+        raise ApiException(
+            requests.codes.bad,
+            """
+            Username is not valid. Usernames must start with a letter or underscore, and
+            contain only alphanumeric characters and underscores thereafter.
+            """)
 
 @app.route('/login')
 def login():
@@ -299,7 +308,7 @@ def api(require_login=True, schema=None, enabled=True):
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if not enabled:
-                raise ApiException(requests.codes.bad_request, 
+                raise ApiException(requests.codes.bad_request,
                         "This endpoint is not enabled.")
 
             if validator is not None:
@@ -853,6 +862,35 @@ def user_packages(owner):
         ]
     )
 
+@app.route('/api/admin/package_list/<owner>/', methods=['GET'])
+@api(require_login=True)
+@as_json
+def list_user_packages(owner):
+    if not g.auth.is_admin:
+        raise ApiException(
+            requests.codes.forbidden,
+            "Must be authenticated as an admin to use this endpoint."
+            )
+
+    packages = (
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        .filter_by(owner=owner)
+        .join(Package.access)
+        .group_by(Package.id)
+        .order_by(Package.name)
+        .all()
+    )
+
+    return dict(
+        packages=[
+            dict(
+                name=package.name,
+                is_public=is_public
+            )
+            for package, is_public in packages
+        ]
+    )
+
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -1165,13 +1203,13 @@ def access_put(owner, package_name, user):
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
-    if EMAILREGEX.match(user):
+    if VALID_EMAIL_RE.match(user):
         email = user.lower()
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Auth to send invitation email        
+        # Call to Auth to send invitation email
         resp = requests.post(INVITE_SEND_URL,
                              headers=auth_headers,
                              data=dict(email=email,
@@ -1551,7 +1589,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def list_users():
     auth_headers = {
@@ -1559,8 +1597,6 @@ def list_users():
     }
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-    if not user_list_api:
-        return dict()
 
     resp = requests.get(user_list_api, headers=auth_headers)
 
@@ -1578,7 +1614,7 @@ def list_users():
     return resp.json()
 
 @app.route('/api/users/create', methods=['POST'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def create_user():
     auth_headers = {
@@ -1591,21 +1627,10 @@ def create_user():
 
     user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
-    if not user_create_api:
-        raise ApiException(requests.codes.not_found,
-            "Cannot create user"
-            )
-
     username = request_data.get('username')
-    user_regex = re.compile(r"^[^\d\W]\w*\Z", re.UNICODE)
-    if not re.fullmatch(user_regex, username):
-        raise ApiException(
-            requests.codes.bad,
-            "Username is not valid. Usernames must start with a letter or underscore, and " +
-            "contain only alphanumeric characters and underscores thereafter."
-            )
-          
-    resp = requests.post(user_create_api, headers=auth_headers, 
+    _validate_username(username)
+
+    resp = requests.post(user_create_api, headers=auth_headers,
         data=json.dumps({
             "username": username,
             "first_name": "",
@@ -1620,7 +1645,7 @@ def create_user():
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
             requests.codes.not_found,
-            "Cannot list users"
+            "Cannot create user"
             )
 
     if resp.status_code == requests.codes.bad:
@@ -1644,7 +1669,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api(enabled=not DISABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1655,15 +1680,11 @@ def disable_user():
 
     user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
-    if not user_modify_api:
-        raise ApiException(requests.codes.not_found,
-            "Cannot modify user"
-            )
-
     data = request.get_json()
     username = data.get('username')
+    _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers, 
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'username' : username,
             'is_active' : False
@@ -1697,6 +1718,7 @@ def delete_user():
 
     data = request.get_json()
     username = data.get('username')
+    _validate_username(username)
 
     resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
 

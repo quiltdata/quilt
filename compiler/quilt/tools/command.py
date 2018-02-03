@@ -1306,18 +1306,6 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
-def print_table(table, padding=2):
-    col_width = max(len(word) for row in table for word in row) + 2
-    cols = list(zip(*table))
-    cols_width = [max(len(word) + padding for word in col) for col in cols]
-    for row in table:
-        i = 0
-        line = ""
-        for word in row:
-            line += "".join(word.ljust(cols_width[i]))
-            i += 1
-        print(line)
-
 def list_users(team=None):
     # get team from disk if not specified
     if team is None:
@@ -1327,18 +1315,6 @@ def list_users(team=None):
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
-def cli_list_users(team=None):
-    res = list_users(team)
-    l = [['Name', 'Email', 'Active', 'Superuser']]
-    for user in res.get('results'):
-        name = user.get('username')
-        email = user.get('email')
-        active = user.get('is_active')
-        su = user.get('is_superuser')
-        l.append([name, email, str(active), str(su)])
-
-    print_table(l)
-
 def create_user(username, email, team):
     # get team from disk if not specified
     session = _get_session(team)
@@ -1346,11 +1322,19 @@ def create_user(username, email, team):
     resp = session.post('%s/api/users/create' % url,
             data=json.dumps({'username':username, 'email':email}))
 
+def list_packages(username, team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/admin/package_list/%s' % (url, username))
+    return resp.json()
+
 def disable_user(username, team):
     # get team from disk if not specified
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.post('%s/api/users/disable' % url, 
+    resp = session.post('%s/api/users/disable' % url,
             data=json.dumps({'username':username}))
 
 def delete_user(username, team, force=False):
