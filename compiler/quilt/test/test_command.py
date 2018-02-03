@@ -402,7 +402,7 @@ class CommandTest(QuiltTestCase):
             )
         self.requests_mock.add(
             responses.GET,
-            '%s/api/search/?q=asdf' % command.get_registry_url(),
+            '%s/api/search/?q=asdf' % command.get_registry_url(None),
             status=200,
             json={
                 "packages": [],

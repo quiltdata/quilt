@@ -84,6 +84,7 @@ from .tools.command import (
     access_add,
     access_list,
     access_remove,
+    audit,
     build,
     check,
     config,
