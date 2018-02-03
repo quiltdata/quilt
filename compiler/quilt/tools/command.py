@@ -1354,16 +1354,20 @@ def delete_user(username, force=False, team=None):
     url = get_registry_url(team)
     resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
 
-def audit(thing):
+def audit(user_or_package):
+    parts = user_or_package.split('/')
+    if len(parts) > 2 or not all(VALID_NAME_RE.match(part) for part in parts):
+        raise CommandException("Need either a user or a user/package")
+
     team = _find_logged_in_team()
     if not team:
         raise CommandException("Not logged in as a team user")
 
     session = _get_session(team)
     response = session.get(
-        "{url}/api/audit/{thing}/".format(
+        "{url}/api/audit/{user_or_package}/".format(
             url=get_registry_url(team),
-            thing=thing
+            user_or_package=user_or_package
         )
     )
 

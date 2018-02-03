@@ -135,7 +135,7 @@ def argument_parser():
     # audit
     shorthelp = "Audit a user or a package."
     audit_p = subparsers.add_parser("audit", description=shorthelp, help=shorthelp)
-    audit_p.add_argument("thing", type=str, help=shorthelp)
+    audit_p.add_argument("user_or_package", type=str, help=shorthelp)
     audit_p.set_defaults(func=command.audit)
 
     # quilt build
