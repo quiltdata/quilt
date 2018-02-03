@@ -380,7 +380,7 @@ class CommandTest(QuiltTestCase):
     def test_search(self):
         self.requests_mock.add(
             responses.GET,
-            'https://pkg.quiltdata.com/api/search/?q=asdf',
+            '%s/api/search/?q=asdf' % command.get_registry_url(None),
             status=200,
             json={
                 "packages": [],
