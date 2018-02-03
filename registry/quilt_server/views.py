@@ -1597,8 +1597,6 @@ def list_users():
     }
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-    if not user_list_api:
-        return dict()
 
     resp = requests.get(user_list_api, headers=auth_headers)
 
@@ -1628,11 +1626,6 @@ def create_user():
     request_data = request.get_json()
 
     user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    if not user_create_api:
-        raise ApiException(requests.codes.not_found,
-            "Cannot create user"
-            )
 
     username = request_data.get('username')
     _validate_username(username)
@@ -1686,11 +1679,6 @@ def disable_user():
     }
 
     user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    if not user_modify_api:
-        raise ApiException(requests.codes.not_found,
-            "Cannot modify user"
-            )
 
     data = request.get_json()
     username = data.get('username')
