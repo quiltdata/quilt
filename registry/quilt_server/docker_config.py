@@ -9,14 +9,16 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:testing@db/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
+QUILT_AUTH_URL = 'http://auth:5002'
+
 if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
-        access_token_url='http://auth:5002/o/token/',
-        authorize_url='http://auth:5002/o/authorize/',
+        access_token_url='%s/o/token/' % QUILT_AUTH_URL,
+        authorize_url='%s/o/authorize/' % QUILT_AUTH_URL,
         client_id=os.getenv('OAUTH_CLIENT_ID'),
         client_secret=os.getenv('OAUTH_CLIENT_SECRET'),
-        user_api='http://auth:5002/api-root',
-        profile_api='http://auth:5002/accounts/profile?user=%s',
+        user_api='%s/accounts/api-root' % QUILT_AUTH_URL,
+        profile_api='%s/accounts/profile?user=%%s' % QUILT_AUTH_URL,
         have_refresh_token=True,
     )
 elif AUTH_PROVIDER == 'github':
@@ -38,7 +40,8 @@ OAUTH.update(dict(
 
 CATALOG_URL = 'http://localhost:3000'
 
-INVITE_SEND_URL = 'https://quilt-heroku.herokuapp.com/pkginvite/send/'  # XXX
+# TODO: move invite sending to flask
+INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL
 
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
@@ -54,3 +57,4 @@ STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 print('*** AUTH_PROVIDER=%s' % AUTH_PROVIDER)
 
+ENABLE_USER_ENDPOINTS = True

@@ -4,7 +4,7 @@
 API routes.
 """
 
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
 import time
@@ -17,6 +17,7 @@ from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
+import re
 import requests
 from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
@@ -26,7 +27,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import EMAILREGEX, PaymentPlan, PUBLIC, VALID_NAME_RE
+from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -49,6 +50,8 @@ OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
 CATALOG_URL = app.config['CATALOG_URL']
 CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
+QUILT_AUTH_URL = app.config['QUILT_AUTH_URL']
+
 AUTHORIZATION_HEADER = 'Authorization'
 
 INVITE_SEND_URL = app.config['INVITE_SEND_URL']
@@ -57,6 +60,8 @@ PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
 DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
+
+ENABLE_USER_ENDPOINTS = app.config['ENABLE_USER_ENDPOINTS']
 
 S3_HEAD_OBJECT = 'head_object'
 S3_GET_OBJECT = 'get_object'
@@ -127,6 +132,15 @@ def robots():
 
 def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
+
+def _validate_username(username):
+    if not VALID_NAME_RE.fullmatch(username):
+        raise ApiException(
+            requests.codes.bad,
+            """
+            Username is not valid. Usernames must start with a letter or underscore, and
+            contain only alphanumeric characters and underscores thereafter.
+            """)
 
 @app.route('/login')
 def login():
@@ -273,7 +287,7 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None):
+def api(require_login=True, schema=None, enabled=True):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
@@ -291,6 +305,10 @@ def api(require_login=True, schema=None):
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
+
+            if not enabled:
+                raise ApiException(requests.codes.bad_request,
+                        "This endpoint is not enabled.")
 
             if validator is not None:
                 try:
@@ -843,6 +861,35 @@ def user_packages(owner):
         ]
     )
 
+@app.route('/api/admin/package_list/<owner>/', methods=['GET'])
+@api(require_login=True)
+@as_json
+def list_user_packages(owner):
+    if not g.auth.is_admin:
+        raise ApiException(
+            requests.codes.forbidden,
+            "Must be authenticated as an admin to use this endpoint."
+            )
+
+    packages = (
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        .filter_by(owner=owner)
+        .join(Package.access)
+        .group_by(Package.id)
+        .order_by(Package.name)
+        .all()
+    )
+
+    return dict(
+        packages=[
+            dict(
+                name=package.name,
+                is_public=is_public
+            )
+            for package, is_public in packages
+        ]
+    )
+
 @app.route('/api/log/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -1155,13 +1202,13 @@ def access_put(owner, package_name, user):
     if package is None:
         raise PackageNotFoundException(owner, package_name)
 
-    if EMAILREGEX.match(user):
+    if VALID_EMAIL_RE.match(user):
         email = user.lower()
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Auth to send invitation email        
+        # Call to Auth to send invitation email
         resp = requests.post(INVITE_SEND_URL,
                              headers=auth_headers,
                              data=dict(email=email,
@@ -1539,6 +1586,154 @@ def client_log():
         _mp_track(**event)
 
     return dict()
+
+@app.route('/api/users/list', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS)
+@as_json
+def list_users():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
+
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+
+    resp = requests.get(user_list_api, headers=auth_headers)
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            requests.codes.not_found,
+            "Cannot list users"
+            )
+    elif resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+@app.route('/api/users/create', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS)
+@as_json
+def create_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    request_data = request.get_json()
+
+    user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    username = request_data.get('username')
+    _validate_username(username)
+
+    resp = requests.post(user_create_api, headers=auth_headers,
+        data=json.dumps({
+            "username": username,
+            "first_name": "",
+            "last_name": "",
+            "email": request_data.get('email'),
+            "is_superuser": False,
+            "is_staff": False,
+            "is_active": True,
+            "last_login": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
+        }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            requests.codes.not_found,
+            "Cannot create user"
+            )
+
+    if resp.status_code == requests.codes.bad:
+        if resp.text == '{"email":["Enter a valid email address."]}':
+            raise ApiException(
+                requests.codes.bad,
+                "Please enter a valid email address."
+                )
+
+        raise ApiException(
+            requests.codes.bad,
+            "Bad request. Maybe there's already a user with the username you provided?"
+            )
+
+    elif resp.status_code != requests.codes.created:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+@app.route('/api/users/disable', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS)
+@as_json
+def disable_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+        data=json.dumps({
+            'username' : username,
+            'is_active' : False
+        }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to disable not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+# This endpoint is disabled pending a rework of authentication
+@app.route('/api/users/delete', methods=['POST'])
+@api(enabled=False)
+@as_json
+def delete_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to delete not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            resp.status_code,
+            "Unknown error"
+            )
+
+    return resp.json()
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api()
