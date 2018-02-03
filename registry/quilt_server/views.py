@@ -1225,6 +1225,8 @@ def access_put(owner, package_name, user):
                 "Invalid credentials"
                 )
         elif resp.status_code != requests.codes.ok:
+            print("DJANGO RESPONSE!")
+            print(resp.text)
             raise ApiException(requests.codes.server_error, "Server error")
         return dict()
 
