@@ -312,7 +312,7 @@ def argument_parser():
     user_delete_p.add_argument("team", type=str)
     user_delete_p.add_argument("username", type=str)
     user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
-    user_delete_p.set_defaults(func=command.delete_user_cli)
+    user_delete_p.set_defaults(func=command.delete)
 
     # quilt version
     shorthelp = "List or permanently add a package version to the server"
