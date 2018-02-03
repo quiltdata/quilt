@@ -1,5 +1,0 @@
-{
-  "quilt/test/test_build.py": true,
-  "quilt/test/test_command.py": true,
-  "quilt/test/test_command.py::CommandTest::test_user_create_empty_email": true
-}
