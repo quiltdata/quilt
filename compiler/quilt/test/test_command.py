@@ -571,7 +571,7 @@ class CommandTest(QuiltTestCase):
         self._mock_error('users/disable', status=401, team='qux')
         with self.assertRaises(command.CommandException):
             command.disable_user('bob', team='qux')
-            
+
     def test_user_disable_unknown(self):
         self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
