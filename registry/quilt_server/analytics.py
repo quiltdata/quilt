@@ -38,7 +38,12 @@ class NoopConsumer(object):
     def send(self, endpoint, json_message):
         pass
 
-mp_token = app.config.get('MIXPANEL_PROJECT_TOKEN', 'fd57644e08f13d8e569e5a95a0c81b3b')
+# By default, MixPanel is enabled - but can be turned off by setting the token to an empty string.
+# `None` means, use the default token.
+mp_token = app.config.get('MIXPANEL_PROJECT_TOKEN')
+if mp_token is None:
+    mp_token = 'fd57644e08f13d8e569e5a95a0c81b3b'
+
 if mp_token:
     mp_consumer = AsyncConsumer()
     atexit.register(mp_consumer.shutdown)
