@@ -165,6 +165,10 @@ docker build -t quiltdata/nginx-s3-proxy nginx-s3
 docker build -t quiltdata/flask .
 ```
 
+### Advanced: using Teams user endpoints
+
+To use the Teams user endoints, make sure the environment variable ENABLE_USER_ENDPOINTS is set.
+
 <!--
 # Running directly (not with Docker)
 
@@ -242,3 +246,77 @@ Don't forget to add it to the repo:
 
     git add migrations/versions/[whatever].py
 -->
+
+# Instructions to set up development environment on Ubuntu Server 16.04.3
+
+1) set up Ubuntu, python and virtualenv
+``` bash
+apt update
+apt upgrade -y
+apt install -y python3 python3-pip python3-venv virtualenvwrapper
+source `find /usr -name virtualenvwrapper.sh|head -1`
+mkvirtualenv -p $(which python3) quilt
+export ENV=~/.virtualenvs/quilt
+/bin/rm -f $ENV/bin/postactivate; touch $ENV/bin/postactivate
+echo 'export WORKON_HOME=$HOME/.virtualenvs' >> $ENV/bin/postactivate
+echo 'export PROJECT_HOME=$HOME/projects' >> $ENV/bin/postactivate
+echo 'source `find /usr -name virtualenvwrapper.sh|head -1`'  >> $ENV/bin/postactivate # diff versions put it in diff places
+```
+
+2) enter the virtual environment
+``` bash
+workon quilt
+pip install --upgrade pip   # ok if it says “requirement already met”
+```
+
+3) clone the quilt repo
+``` bash
+git clone http://github.com/quiltdata/quilt
+cd quilt/registry
+git checkout team_crud # not once merged
+pip install -r requirements.txt
+pip install -e .
+```
+
+4) install docker and docker-compose from the existing readme:
+https://github.com/quiltdata/quilt/blob/master/registry/README.md
+NOTE: do not run docker-compose up!  Just install docker and docker-compose
+these are the commands for Ubuntu 16.04
+``` bash
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt-get update
+sudo apt-get install docker-ce -y
+
+sudo curl -L https://github.com/docker/compose/releases/download/1.18.0/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+```
+3) build and start docker images -- NOTE: this should appear to hang!  And end with something like this:
+djangomigration_1  |   Applying sessions.0001_initial... OK
+registry_djangomigration_1 exited with code 0
+``` bash
+sudo docker-compose -f docker-compose-dev.yml up
+```
+4) start the flask server  (NEW TERMINAL WINDOW)
+``` bash
+workon quilt
+cd quilt/registry
+sudo echo "127.0.0.1 auth s3 flask catalog" | sudo tee -a /etc/hosts
+source quilt_server/flask_dev.sh
+```
+
+5) configure client  (NEW TERMINAL WINDOW)
+```
+workon quilt
+cd quilt/compiler
+pip install -e .
+quilt config
+# -- set registry to http://localhost:5000
+```
+
+6) attempt to log in
+You need to make the ports for Flask and Django accessible to your browser. If you're running docker and flask on a machine with a browser, you can just use that.
+Options: lynx, ssh tunnel (ssh -L 5000:localhost:5000 -L 5002:localhost:5002 -L 3000:localhost:3000 user@remote_host)
+``` bash
+quilt login
+```

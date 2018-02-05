@@ -13,7 +13,6 @@ import { Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle } from 'material-
 
 import Admin from 'containers/Admin';
 import apiStatus from 'constants/api';
-import { makeSignInURL } from 'utils/auth';
 import config from 'constants/config';
 import Error from 'components/Error';
 import Help from 'components/Help';
@@ -24,9 +23,7 @@ import PackageList from 'components/PackageList';
 import PaymentDialog from 'components/PaymentDialog';
 import paymentMessages from 'components/PaymentDialog/messages';
 import {
-  makeSelectAuth,
   makeSelectEmail,
-  makeSelectSignedIn,
   makeSelectUserName,
 } from 'containers/App/selectors';
 import { printObject } from 'utils/string';
@@ -55,23 +52,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   };
 
   componentWillMount() {
-    const { auth, authenticated } = this.props;
-    // at this point in the flow one of the following must hold:
-    // * the store is hydrated with valid auth from local storage => authenticated === true
-    // * user is normally authenticated => authenticated === TRUE
-    // * store hydrated with an expired token and doRefresh fired REFRESH_AUTH => auth.status === WAITING
-    // * OAuth2 component has fired GET_AUTH => auth.status === WAITING
-    // * the user is simply not authenticated and there is no auth pending
-    // so if user is not authenticated and isn't trying, boot them
-    if (!authenticated && auth.status !== apiStatus.WAITING) {
-      // we cannot navigate with the react-router/or react-router-redux since
-      // they only handle relative paths (not absolute URLs)
-      // we also cannot redirect with onEnter for /profile since that
-      // fires too early, before we know auth status
-      // so we are left with one choice :)
-      window.location = makeSignInURL();
-    }
-    this.maybeGetProfile(authenticated);
+    this.maybeGetProfile();
   }
 
   componentWillReceiveProps(next) {
@@ -81,7 +62,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
       // set initial menu selection for payments to current plan
       this.setState({ selectedPlan: newPlan.response });
     }
-    this.maybeGetProfile(next.authenticated);
+    this.maybeGetProfile();
   }
 
   onDowngrade = () => {
@@ -105,9 +86,9 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   }
 
   // TODO this won't work if we switch to a realtime backend
-  maybeGetProfile(authenticated) {
+  maybeGetProfile() {
     // if and only if we haven't already, get the profile
-    if (!this.state.requestedProfile && authenticated) {
+    if (!this.state.requestedProfile) {
       this.setState({ requestedProfile: true });
       this.props.dispatch(getProfile());
     }
@@ -222,8 +203,6 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
 }
 
 Profile.propTypes = {
-  auth: PropTypes.object.isRequired,
-  authenticated: PropTypes.bool.isRequired,
   currentPlan: PropTypes.string,
   intl: intlShape.isRequired,
   dispatch: PropTypes.func.isRequired,
@@ -233,8 +212,6 @@ Profile.propTypes = {
 };
 
 const mapStateToProps = createStructuredSelector({
-  auth: makeSelectAuth(),
-  authenticated: makeSelectSignedIn(),
   profile: makeSelectProfile(),
   user: makeSelectUserName(),
   email: makeSelectEmail(),

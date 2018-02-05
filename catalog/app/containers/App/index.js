@@ -9,7 +9,7 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 
-import { routerStart, signOut } from './actions';
+import { routerStart } from './actions';
 import {
    makeSelectAuth,
   makeSelectSearchText,
@@ -30,11 +30,9 @@ export class App extends React.PureComponent { // eslint-disable-line react/pref
   render() {
     const { auth, children, dispatch, name, searchText, signedIn } = this.props;
     const waiting = auth.status === status.WAITING;
-    const bye = () => this.props.dispatch(signOut());
     return (
       <CoreLF>
         <AuthBar
-          bye={bye}
           dispatch={dispatch}
           error={auth.error}
           signedIn={signedIn}

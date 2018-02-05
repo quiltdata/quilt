@@ -352,6 +352,15 @@ def _match_hash(session, team, owner, pkg, hash):
             .format(**locals()))
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
+def _find_logged_in_team():
+    """
+    Find a team name in the auth credentials.
+    There should be at most one, since we don't allow multiple team logins.
+    """
+    contents = _load_auth()
+    auth = next(itervalues(contents), {})
+    return auth.get('team')
+
 def _check_team_login(team):
     """
     Disallow simultaneous public cloud and team logins.
@@ -387,9 +396,9 @@ def login(team=None):
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    login_with_token(team, refresh_token)
+    login_with_token(refresh_token, team)
 
-def login_with_token(team, refresh_token):
+def login_with_token(refresh_token, team=None):
     """
     Authenticate using an existing token.
     """
@@ -1207,14 +1216,24 @@ def delete(package):
     session.delete("%s/api/package/%s/%s/" % (get_registry_url(team), owner, pkg))
     print("Deleted.")
 
-def search(query):
+def search(query, team=None):
     """
     Search for packages
     """
-    team = None  # TODO
-    session = _get_session(team)
-    response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+    if team is None:
+        team = _find_logged_in_team()
 
+    if team is not None:
+        session = _get_session(team)
+        response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+        print("--- Packages in team %s ---" % team)
+        packages = response.json()['packages']
+        for pkg in packages:
+            print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
+        print("--- Packages in public cloud ---")
+
+    public_session = _get_session(None)
+    response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
@@ -1286,3 +1305,64 @@ def rm(package, force=False):
     deleted = store.remove_package(team, owner, pkg)
     for obj in deleted:
         print("Removed: {0}".format(obj))
+
+def list_users(team=None):
+    # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list' % url)
+    return resp.json()
+
+def create_user(username, email, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/create' % url,
+            data=json.dumps({'username':username, 'email':email}))
+
+def list_packages(username, team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/admin/package_list/%s' % (url, username))
+    return resp.json()
+
+def disable_user(username, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/disable' % url,
+            data=json.dumps({'username':username}))
+
+def delete_user(username, team, force=False):
+    # get team from disk if not specified
+    if not force:
+        confirmed = input("Really delete user '{0}'? (y/n)".format(username))
+        if confirmed.lower() != 'y':
+            return
+
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
+
+def audit(user_or_package):
+    parts = user_or_package.split('/')
+    if len(parts) > 2 or not all(VALID_NAME_RE.match(part) for part in parts):
+        raise CommandException("Need either a user or a user/package")
+
+    team = _find_logged_in_team()
+    if not team:
+        raise CommandException("Not logged in as a team user")
+
+    session = _get_session(team)
+    response = session.get(
+        "{url}/api/audit/{user_or_package}/".format(
+            url=get_registry_url(team),
+            user_or_package=user_or_package
+        )
+    )
+
+    print(json.dumps(response.json(), indent=2))
