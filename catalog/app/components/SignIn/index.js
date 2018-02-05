@@ -8,12 +8,12 @@ import { makeSignInURL } from 'utils/auth';
 import MIcon from 'components/MIcon';
 import Spinner from 'components/Spinner';
 import { authButtonStyle } from 'constants/style';
+import redirect from 'utils/redirect';
 
 import strings from './messages';
 
 const onClickSignIn = () => {
-  const dest = makeSignInURL();
-  window.location = dest;
+  redirect(makeSignInURL());
 };
 
 const SignIn = ({ error, useNavStyle, waiting }) => {

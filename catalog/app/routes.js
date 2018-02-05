@@ -2,17 +2,30 @@
 // They are all wrapped in the App component, which should contain the navbar etc
 // See http://blog.mxstbr.com/2016/01/react-apps-with-pages for more information
 // about the code splitting business
-import { getAsyncInjectors } from 'utils/asyncInjectors';
-
 import queryString from 'query-string';
+import get from 'lodash/fp/get';
+import { withProps } from 'recompose';
+import { getAsyncInjectors } from 'utils/asyncInjectors';
+import requireAuth from 'utils/requireAuth';
+import config from 'constants/config';
+
+
+const loadRoute = (load) => (_next, cb) =>
+  load()
+  .catch(errorLoading)
+  .then((res) => cb(null, res));
 
 const errorLoading = (err) => {
+  // TODO: show error page
   console.error('Dynamic page loading failed', err); // eslint-disable-line no-console
 };
 
-const loadModule = (cb) => (componentModule) => {
-  cb(null, componentModule.default);
-};
+const getDefault = get('default');
+
+const requireAuthIfTeam = (Component) =>
+  config.team && config.team.name && config.catalogRequiresAuth
+    ? requireAuth(Component) : Component;
+
 
 export default function createRoutes(store) {
   // Create reusable async injectors using getAsyncInjectors factory
@@ -22,27 +35,19 @@ export default function createRoutes(store) {
     {
       path: '/',
       name: 'home',
-      getComponent(nextState, cb) {
-        const importModules = Promise.all([
-          import('containers/HomePage'),
-        ]);
-
-        const renderRoute = loadModule(cb);
-
-        importModules.then(([component]) => {
-          renderRoute(component);
-        });
-
-        importModules.catch(errorLoading);
-      },
+      getComponent: loadRoute(() =>
+        import('containers/HomePage')
+        .then(getDefault)
+        .then(requireAuthIfTeam)
+      ),
     }, {
       path: '/package/:owner/:name',
       name: 'package',
-      getComponent(location, cb) {
+      getComponent: loadRoute(() =>
         import('containers/Package')
-          .then(loadModule(cb))
-          .catch(errorLoading);
-      },
+        .then(getDefault)
+        .then(requireAuthIfTeam)
+      ),
     }, {
       path: '/oauth_callback',
       name: 'oauth2',
@@ -56,63 +61,55 @@ export default function createRoutes(store) {
           });
         }
       },
-      getComponent(nextState, cb) {
-        const importModules = Promise.all([
-          import('containers/OAuth2'),
-        ]);
-
-        const renderRoute = loadModule(cb);
-
-        importModules.then(([component]) => {
-          renderRoute(component);
-        });
-
-        importModules.catch(errorLoading);
-      },
+      getComponent: loadRoute(() =>
+        import('containers/OAuth2').then(getDefault)
+      ),
     }, {
       path: '/grna-search',
       name: 'redirect',
-      getComponent(location, cb) {
+      getComponent: loadRoute(() =>
         import('components/Redirect')
-          .then(loadModule(cb))
-          .catch(errorLoading);
-      },
+        .then(getDefault)
+        .then(withProps({ url: 'https://app.quiltdata.com/grna-search/' }))
+      ),
     }, {
       path: '/profile',
       name: 'profile',
-      getComponent(nextState, cb) {
-        const importModules = Promise.all([
+      getComponent: loadRoute(() =>
+        Promise.all([
           import('containers/Profile/reducer'),
           import('containers/Profile/sagas'),
           import('containers/Profile'),
-        ]);
-
-        const renderRoute = loadModule(cb);
-
-        importModules.then(([reducer, sagas, component]) => {
+        ])
+        .then(([reducer, sagas, component]) => {
           injectReducer('profile', reducer.default);
           injectSagas(sagas.default);
-          renderRoute(component);
-        });
-
-        importModules.catch(errorLoading);
-      },
+          return requireAuth(component.default);
+        })
+      ),
     }, {
       path: '/search',
       name: 'searchResults',
-      getComponent(nextState, cb) {
+      getComponent: loadRoute(() =>
         import('containers/SearchResults')
-          .then(loadModule(cb))
-          .catch(errorLoading);
-      },
+        .then(getDefault)
+        .then(requireAuthIfTeam)
+      ),
+    }, {
+      path: '/signout',
+      name: 'signout',
+      getComponent: loadRoute(() =>
+        import('containers/SignOut')
+        .then(getDefault)
+      ),
     }, {
       path: '*',
       name: 'notfound',
-      getComponent(nextState, cb) {
+      getComponent: loadRoute(() =>
         import('containers/NotFoundPage')
-          .then(loadModule(cb))
-          .catch(errorLoading);
-      },
+        .then(getDefault)
+        .then(requireAuthIfTeam)
+      ),
     },
   ];
 }
