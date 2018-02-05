@@ -10,7 +10,7 @@ $ npm start
 ```
 To activate team features, modify `/static/config.js` to include something
 like the following under `window.__CONFIG`:
-```json
+```javascript
 team: {
   name: "TEST",
 },
