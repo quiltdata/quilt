@@ -500,7 +500,11 @@ packages:
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else
-            dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
+            dict(
+                contents=contents,
+                sizes={h: None for h in hashes},
+                urls={h: 'https://example.com/%s' % h for h in hashes}
+            )
         , default=encode_node), match_querystring=True, status=status)
 
     def _mock_s3(self, pkg_hash, contents):
