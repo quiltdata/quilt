@@ -198,6 +198,130 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
 
+             # Check search order again just to make sure it doesn't return same named empty package
+            from quilt.data.foo import multiple1
+            assert multiple1.dataframes
+
+            teststore = PackageStore(self._store_dir)
+            contents = open(os.path.join(teststore.package_path(None, 'foo', 'multiple1'),
+                                          Package.CONTENTS_DIR,
+                                          multiple1._package.get_hash())).read()
+            assert contents
+
+            # bad imports
+            with self.assertRaises(ImportError):
+                from quilt.data.nonexisting import multiple2
+            with self.assertRaises(ImportError):
+                from quilt.data.foo import nonexistingdata
+            with self.assertRaises(ImportError):
+                import quilt.data.foo.nonexisting
+            with self.assertRaises(ImportError):
+                import quilt.data.bad_user.nonexisting
+            with self.assertRaises(ImportError):
+                from quilt.data.foo.dataframes import blah
+            with self.assertRaises(ImportError):
+                from quilt.data.foo.baz import blah
+
+        # add same dir to the search path
+        dirs = 'foo/%s:%s:%s' % (PACKAGE_DIR_NAME, new_build_dir, new_build_dir)
+        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
+            from quilt.data.foo import multiple2
+
+        # check that invalid folder names fail
+        bad_build_dir = '?\*;:|<>'
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            with self.assertRaises(AssertionError):
+                command.build('bar/multiple1', simple_build_path)
+        bad_build_dir = ''
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            with self.assertRaises(AssertionError):
+                command.build('bar/multiple1', simple_build_path)
+
+    def test_team_multiple_package_dirs(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
+
+        new_build_dir = 'aaa/bbb/%s' % PACKAGE_DIR_NAME
+
+        # First package.
+        command.build('test:foo/multiple1', build_path)
+
+        # First and second package in the new build dir.
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
+            command.build('test:foo/multiple1', simple_build_path)
+            command.build('test:foo/multiple2', simple_build_path)
+
+        # Cannot see the second package yet.
+        with self.assertRaises(ImportError):
+            from quilt.team.test.foo import multiple2
+
+        # Now search the new build dir.
+        dirs = 'foo/%s:%s' % (PACKAGE_DIR_NAME, new_build_dir)
+        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
+            # Can import the second package now.
+            from quilt.team.test.foo import multiple2
+
+            # The first package contains data from the default dir.
+            from quilt.team.test.foo import multiple1
+            assert multiple1.dataframes
+
+            # Check search order again just to make sure it doesn't return same named empty package
+            from quilt.team.test.foo import multiple1
+            assert multiple1.dataframes
+
+            teststore = PackageStore(self._store_dir)
+            contents = open(os.path.join(teststore.package_path('test', 'foo', 'multiple1'),
+                                          Package.CONTENTS_DIR,
+                                          multiple1._package.get_hash())).read()
+            assert contents
+
+            # bad imports
+            with self.assertRaises(ImportError):
+                from quilt.team.test.nonexisting import multiple2
+            with self.assertRaises(ImportError):
+                from quilt.team.test.foo import nonexistingdata
+            with self.assertRaises(ImportError):
+                import quilt.team.test.foo.nonexisting
+            with self.assertRaises(ImportError):
+                import quilt.team.test.bad_user.nonexisting
+            with self.assertRaises(ImportError):
+                from quilt.team.test.foo.dataframes import blah
+            with self.assertRaises(ImportError):
+                from quilt.team.test.foo.baz import blah
+
+        # add same dir to the search path
+        dirs = 'foo/%s:%s:%s' % (PACKAGE_DIR_NAME, new_build_dir, new_build_dir)
+        with patch.dict(os.environ, {'QUILT_PACKAGE_DIRS': dirs}):
+            from quilt.team.test.foo import multiple2
+
+        # check that invalid folder names fail
+        bad_build_dir = '?\*;:|<>'
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            with self.assertRaises(AssertionError):
+                command.build('test:bar/multiple1', simple_build_path)
+        bad_build_dir = ''
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+            with self.assertRaises(AssertionError):
+                command.build('test:bar/multiple1', simple_build_path)
+
+    def test_multiple_package_dirs_with_subpackage(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')  # Contains 'dataframes'
+        simple_build_path = os.path.join(mydir, './build_simple.yml')  # Empty
+
+        # build package into shared directory
+        new_build_dir = 'qqq/www/%s' % PACKAGE_DIR_NAME
+        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': new_build_dir}):
+            command.build('baz/pckg', build_path)
+
+        # override package
+        command.build('baz/pckg', simple_build_path)
+
+        # check that package is overridden
+        with self.assertRaises(ImportError):
+            from quilt.data.baz.pckg import dataframes
+
     def test_save(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
