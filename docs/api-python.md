@@ -3,7 +3,7 @@
 # Core
 * `quilt.ls()` to list installed packages
 * `quilt.build(USER/PACKAGE, PATH_TO_DIR_OR_BUILD_YML)` to build a package
-* `quilt.push(USER/PACKAGE, public=bool)` stores the package in the registry
+* `quilt.push(USER/PACKAGE[/SUBPATHS...], public=bool)` stores the package in the registry
  * Quilt's Free tier supports only `public == True`
  * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
 * `quilt.install(USER/PACKAGE, [hash=HASH, tag=TAG, version=VERSION])` installs a package

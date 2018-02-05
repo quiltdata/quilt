@@ -70,7 +70,7 @@ import pkg_resources
 
 from .nodes import GroupNode
 from .tools import command
-from .tools.store import parse_package
+from .tools.command import parse_package
 from .tools.util import to_nodename, filepath_to_nodepath
 from .tools.compat import pathlib
 

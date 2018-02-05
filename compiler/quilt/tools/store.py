@@ -48,7 +48,15 @@ class PackageStore(object):
 
         version = self._read_format_version()
 
-        if version not in (None, self.VERSION):
+        if version == '1.2':
+            # Migrate to the teams format.
+            pkgdir = os.path.join(self._path, self.PKG_DIR)
+            old_dirs = sub_dirs(pkgdir)
+            os.mkdir(os.path.join(pkgdir, DEFAULT_TEAM))
+            for old_dir in old_dirs:
+                os.rename(os.path.join(pkgdir, old_dir), os.path.join(pkgdir, DEFAULT_TEAM, old_dir))
+            self._write_format_version()
+        elif version not in (None, self.VERSION):
             msg = (
                 "The package repository at {0} is not compatible"
                 " with this version of quilt. Revert to an"

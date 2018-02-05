@@ -5,7 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import Counter
+from collections import Counter, namedtuple
 from datetime import datetime
 import gzip
 import hashlib
@@ -34,18 +34,17 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
+from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from ..imports import _from_core_node
 
 from . import check_functions as qc
-
 from .. import nodes
-from ..imports import _from_core_node
-from .compat import pathlib
 
 # pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
 # So... We disable it. That's what boto does.
@@ -60,6 +59,10 @@ except ImportError:
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
+
+EXTENDED_PACKAGE_RE = re.compile(
+    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
+)
 
 CHUNK_SIZE = 4096
 
@@ -83,52 +86,26 @@ class CommandException(Exception):
     pass
 
 
-def parse_package_extended(name):
-    hash = version = tag = versioninfo = None
-    try:
-        needle, owner_pkg_sep = name.find(':'), name.find('/')
-        if needle != -1:
-            if needle < owner_pkg_sep:
-                # we have a team.  Needle points to team/pkg separator.
-                needle = name.find(':', needle + 1)  # advance the needle to the next ':'
-                if needle != -1:
-                    # we also have version info.
-                    name, versioninfo = name[:needle], name[needle + 1:]
-            else:
-                # no team.  Needle points to version info separator.
-                name, versioninfo = name[:needle], name[needle + 1:]
-        # Version Info has been extracted from name.
-        # we have a name with a team
-        if versioninfo:
-            if ':' in versioninfo:
-                info = versioninfo.split(':', 1)
-                if len(info) == 2:
-                    if 'version'.startswith(info[0]):
-                        # usr/pkg:v:<string>  usr/pkg:version:<string>  etc
-                        version = info[1]
-                    elif 'tag'.startswith(info[0]):
-                        # usr/pkg:t:<tag>  usr/pkg:tag:<tag>  etc
-                        tag = info[1]
-                    elif 'hash'.startswith(info[0]):
-                        # usr/pkg:h:<hash>  usr/pkg:hash:<hash>  etc
-                        hash = info[1]
-                    else:
-                        raise CommandException("Invalid versioninfo: %s." % info)
-                else:
-                    # usr/pkg:hashval
-                    hash = versioninfo
-        team, owner, pkg, subpath = parse_package(name, allow_subpath=True)
-    except ValueError:
-        pkg_format = 'owner/package_name/path[:v:<version> or :t:tag or :h:hash]'
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(identifier)
+    if match is None:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
-    return team, owner, pkg, subpath, hash, version, tag
 
+    full_name, hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
         values = name.split(':', 1)
-        if len(values) > 2:     # catch team:usr/pkg:hash
-            raise ValueError()
         team = values[0] if len(values) > 1 else None
 
         values = values[-1].split('/')
@@ -136,9 +113,9 @@ def parse_package(name, allow_subpath=False):
         (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
             # Make sure they're not empty.
-            raise ValueError()
+            raise ValueError
         if subpath and not allow_subpath:
-            raise ValueError()
+            raise ValueError
 
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
@@ -384,6 +361,15 @@ def _match_hash(session, team, owner, pkg, hash):
             .format(**locals()))
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
+def _find_logged_in_team():
+    """
+    Find a team name in the auth credentials.
+    There should be at most one, since we don't allow multiple team logins.
+    """
+    contents = _load_auth()
+    auth = next(itervalues(contents), {})
+    return auth.get('team')
+
 def _check_team_login(team):
     """
     Disallow simultaneous public cloud and team logins.
@@ -419,9 +405,9 @@ def login(team=None):
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    login_with_token(team, refresh_token)
+    login_with_token(refresh_token, team)
 
-def login_with_token(team, refresh_token):
+def login_with_token(refresh_token, team=None):
     """
     Authenticate using an existing token.
     """
@@ -931,15 +917,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        team, owner, pkg, subpath, hash, version, tag = parse_package_extended(pkginfo)
-
-        package = owner + '/' + pkg
-        if team:
-            package = team + ':' + package
-        if subpath:
-            package += '/' + "/".join(subpath)
-
-        install(package, hash, version, tag, force=force)
+        info = parse_package_extended(pkginfo)
+        install(info.full_name, info.hash, info.version, info.tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
@@ -1250,14 +1229,24 @@ def delete(package):
     session.delete("%s/api/package/%s/%s/" % (get_registry_url(team), owner, pkg))
     print("Deleted.")
 
-def search(query):
+def search(query, team=None):
     """
     Search for packages
     """
-    team = None  # TODO
-    session = _get_session(team)
-    response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+    if team is None:
+        team = _find_logged_in_team()
 
+    if team is not None:
+        session = _get_session(team)
+        response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+        print("--- Packages in team %s ---" % team)
+        packages = response.json()['packages']
+        for pkg in packages:
+            print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
+        print("--- Packages in public cloud ---")
+
+    public_session = _get_session(None)
+    response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
@@ -1330,14 +1319,77 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
+def list_users(team=None):
+    # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list' % url)
+    return resp.json()
+
+def create_user(username, email, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/create' % url,
+            data=json.dumps({'username':username, 'email':email}))
+
+def list_packages(username, team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/admin/package_list/%s' % (url, username))
+    return resp.json()
+
+def disable_user(username, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/disable' % url,
+            data=json.dumps({'username':username}))
+
+def delete_user(username, team, force=False):
+    # get team from disk if not specified
+    if not force:
+        confirmed = input("Really delete user '{0}'? (y/n)".format(username))
+        if confirmed.lower() != 'y':
+            return
+
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
+
+def audit(user_or_package):
+    parts = user_or_package.split('/')
+    if len(parts) > 2 or not all(is_nodename(part) for part in parts):
+        raise CommandException("Need either a user or a user/package")
+
+    team = _find_logged_in_team()
+    if not team:
+        raise CommandException("Not logged in as a team user")
+
+    session = _get_session(team)
+    response = session.get(
+        "{url}/api/audit/{user_or_package}/".format(
+            url=get_registry_url(team),
+            user_or_package=user_or_package
+        )
+    )
+
+    print(json.dumps(response.json(), indent=2))
+
 def _load(package):
-    team, owner, pkg, subpath, hash, version, tag = parse_package_extended(package)
-    pkgobj = PackageStore.find_package(team, owner, pkg)
+    info = parse_package_extended(package)
+    team, user, name = info.team, info.user, info.name
+
+    pkgobj = PackageStore.find_package(team, user, name)
     if pkgobj is None:
         teamstr = team + ':' if team else ''
-        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(**locals()))
-    module = _from_core_node(pkgobj, pkgobj.get_contents())
-    return module, pkgobj, team, owner, pkg, subpath, hash, version, tag
+        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    return node, pkgobj, info
 
 def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
@@ -1375,11 +1427,13 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes (not too painful, probably)
-    output_path = pathlib.Path(output_path)
-    node, _, _, _, _, subpath, _, _, _ = _load(package)
 
+    ## Helpers
+    # Should this function or something similar actually be GroupNode.__getitem__()?
     def get_node_child_by_path(node, path):
-        # get a node's children by path list or string: 'foo/bar/baz' or ['foo', 'bar', 'baz']
+        """get a node's children by path list or string: 'foo', 'foo/bar/baz' or ['foo', 'bar', 'baz']
+        :returns: Child Node
+        """
         assert isinstance(node, nodes.GroupNode)
         assert path
         if isinstance(path, str):
@@ -1387,9 +1441,6 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         for name in path:
             node = getattr(node, name)
         return node
-
-    if subpath:
-        node = get_node_child_by_path(node, subpath)
 
     def iter_filename_map(node):
         """Yields (<storage file path>, <original path>) pairs for given `node`.
@@ -1407,7 +1458,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             return
 
         for node_path, found_node in node._iteritems(recursive=True):
-            storage_filepath = getattr(found_node, '_filename', None)  # only FileNodes have _filename
+            storage_filepath = getattr(found_node, '_filename', None)  # _filename is None if not FileNode
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata['q_path']
@@ -1437,64 +1488,90 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
 
         if verified_conflicts:
             conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_conflicts)
-            conflict_error = CommandException("Invalid export: Conflicting filenames contain different contents:\n\t"
-                                              + conflict_strings)
+            conflict_error = CommandException(
+                "Invalid export: Conflicting filenames contain different contents:\n\t" + conflict_strings
+                )
             conflict_error.conflicts = verified_conflicts
             raise conflict_error
 
-    # Iterate over filename map, filtering exports
-    exports = ((src, dest) for src, dest in iter_filename_map(node) if filter(dest))
+    def resolve_dirpath(dirpath):
+        """Checks the dirpath and ensures it exists and is writable
+        :returns: absolute, resolved dirpath
+        """
+        # ensure output path is writable.  I'd just check stat, but this is fully portable.
+        # TODO: Performance re: write amplifacation per PR#266
+        try:
+            dirpath.mkdir(exist_ok=True)  # could be '.'
+            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
+                pass
+        except OSError as error:
+            raise CommandException("Invalid export path: not writable: " + str(error))
+        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
 
-    # apply mapping to exports
-    exports = ((src, mapper(dest)) for src, dest in exports)
+    def finalize(outpath, exports):
+        """Finalize exports
 
-    # alter data to (<export file Path>, <quilt storage Path>)
-    # verify and clean up paths
-    # pre-check that source exists and dest does not
-    final_export_map = []
-    zero_byte_files = set()
-    for src, dest in exports:
-        # general cleanup
-        src = pathlib.Path(src).expanduser().absolute()
-        dest = (output_path / dest).expanduser().absolute()
+        This performs the following tasks:
+            * Change path strings to `Path` objects
+            * Ensure source exists
+            * Ensure destination doesn't exist
+            * Prefix destination with target dir
+            * Locate and record any zero-byte files in source (see comments)
+        """
+        # We return list instead of yielding, so that all prep logic is done before write is attempted.
+        final_export_map = []
+        zero_byte_files = set()
 
-        # existence checks
-        # this src check replaces previous existence assertion, doubling as zero-byte file check
-        # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
-        if src.stat().st_size == 0:
-            zero_byte_files.add(src)
-        if dest.parent != output_path and dest.parent.exists() and not force:
-            raise CommandException("Invalid export path: subdir already exists: {!r}".format(str(dest.parent)))
-        if dest.exists() and not force:
-            raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+        for src, dest in exports:
+            # general cleanup
+            src = pathlib.Path(src).expanduser().absolute()
+            dest = (outpath / dest).expanduser().absolute()
 
-        final_export_map.append((src, dest))
+            # existence checks
+            # this src check replaces previous existence assertion, doubling as zero-byte file check
+            # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
+            if src.stat().st_size == 0:
+                zero_byte_files.add(src)
+            if dest.parent != outpath and dest.parent.exists() and not force:
+                raise CommandException("Invalid export path: subdir already exists: {!r}"
+                                       .format(str(dest.parent)))
+            if dest.exists() and not force:
+                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+            final_export_map.append((src, dest))
+        return final_export_map, zero_byte_files
+
+    ## Export Logic
+    output_path = pathlib.Path(output_path)
+    node, _, info = _load(package)
+
+    if info.subpath:
+        node = get_node_child_by_path(node, info.subpath)
+
+    exports = iter_filename_map(node)                                   # Create src / dest map iterator
+    exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
+    exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
+    resolved_output = resolve_dirpath(output_path)                      # resolve/create output path
+
+    # Checks src/dest existence/nonexistence, converts to Path objects
+    exports, zero_byte_files = finalize(resolved_output, exports)
+
+    # Prevent conflicts introduced by mapping, coded builds, or build-time globbing
+    check_for_conflicts(exports)
 
     # Skip it if there's nothing to do
-    if not final_export_map:
+    if not exports:
         # Technically successful, but with nothing to do.
         # package may have no file nodes, or user may have filtered out all applicable targets.
         # -- should we consider it an error and raise?
         print("No files to export.")
         return
 
-    # prevent conflicts
-    check_for_conflicts(final_export_map)
-
-    # ensure output path is writable.  I'd just check stat, but this is fully portable.
-    # TODO: Performance re: write amplifacation per PR#266
-    try:
-        output_path.mkdir(exist_ok=True)  # could be '.'
-        with tempfile.TemporaryFile(dir=str(output_path), prefix="quilt-export-write-test-", suffix='.tmp'):
-            pass
-    except OSError as error:
-        raise CommandException("Invalid export path: not writable: " + str(error))
-
-    # Paths verified, let's export..
+    # All prep done, let's export..
     try:
         sys.stdout.write('Exporting.')
         sys.stdout.flush()
-        for src, dest in final_export_map:
+        for src, dest in exports:
             if not dest.parent.exists():
                 dest.parent.mkdir(parents=True, exist_ok=True)
             sys.stdout.write('.')

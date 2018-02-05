@@ -19,11 +19,11 @@
 
 * [Command-line Interface \(CLI\)](cli.md)
 * [Python API](api-python.md)
-* [Jupyter API](api-jupyter.md)
 * [R API](api-r.md)
 
 ## Advanced Usage
 
+* [Shared drives](shared-store.md)
 * [Teams](teams.md)
 
 ## Support
