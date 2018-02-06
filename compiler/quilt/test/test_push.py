@@ -63,7 +63,7 @@ class PushTest(QuiltTestCase):
         pkg_url = '%s/api/package/%s/%s' % (command.get_registry_url(None), package, pkg_hash)
         # Dry run, then the real thing.
         self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(upload_urls=upload_urls)))
-        self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict()))
+        self.requests_mock.add(responses.PUT, pkg_url, json.dumps(dict(package_url='https://example.com/')))
 
     def _mock_put_tag(self, package, tag):
         tag_url = '%s/api/tag/%s/%s' % (command.get_registry_url(None), package, tag)
