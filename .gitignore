@@ -20,6 +20,9 @@ node_modules
 .coverage
 cov_html/*
 
+# Pytest cache
+compiler/.pytest_cache/*
+
 ### emacs
 *~
 [#]*

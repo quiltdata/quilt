@@ -14,13 +14,15 @@ CATALOG_HOST = os.environ['CATALOG_HOST']
 
 CATALOG_URL = 'https://%s' % CATALOG_HOST
 
+QUILT_AUTH_URL = 'https://%s' % OAUTH_API_HOST  # TODO: Disable it for GitHub?
+
 OAUTH = dict(
     access_token_url='https://%s/o/token/' % OAUTH_HOST,
     authorize_url='https://%s/o/authorize/' % OAUTH_HOST,
     client_id=os.environ['OAUTH_CLIENT_ID'],
     client_secret=os.environ['OAUTH_CLIENT_SECRET'],
     redirect_url='https://%s/oauth_callback' % REGISTRY_HOST,
-    user_api='https://%s/api-root' % OAUTH_API_HOST,
+    user_api='https://%s/accounts/api-root' % OAUTH_API_HOST,
     profile_api='https://%s/accounts/profile?user=%%s' % OAUTH_API_HOST,
     have_refresh_token=True
 )
@@ -33,3 +35,4 @@ INVITE_SEND_URL = 'https://%s/pkginvite/send/' % OAUTH_API_HOST
 MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN')
 DEPLOYMENT_ID = os.getenv('DEPLOYMENT_ID')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+ENABLE_USER_ENDPOINTS = bool(os.getenv('ENABLE_USER_ENDPOINTS', ''))

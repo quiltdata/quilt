@@ -18,8 +18,8 @@ const Container = styled.div`
 `;
 
 // TODO move this to a separate local component
-const UserMenu = ({ bye, error, signedIn, name, waiting }) => {
-  const inner = signedIn ? <AuthMenu bye={bye} name={name} />
+const UserMenu = ({ error, signedIn, name, waiting }) => {
+  const inner = signedIn ? <AuthMenu name={name} />
     : <SignIn error={error} waiting={waiting} />;
   return (
     <Container>
@@ -29,7 +29,6 @@ const UserMenu = ({ bye, error, signedIn, name, waiting }) => {
 };
 
 UserMenu.propTypes = {
-  bye: PropTypes.func.isRequired,
   error: PropTypes.object,
   signedIn: PropTypes.bool.isRequired,
   name: PropTypes.string,
@@ -37,7 +36,7 @@ UserMenu.propTypes = {
 };
 
 
-const AuthMenu = ({ bye, name }) => (
+const AuthMenu = ({ name }) => (
   <IconMenu
     iconButtonElement={
       <FlatButton
@@ -56,7 +55,7 @@ const AuthMenu = ({ bye, name }) => (
       <FormattedMessage {...strings.profile} />
     </MenuItem>
     <Divider />
-    <MenuItem onClick={bye}>
+    <MenuItem href="/signout">
       <FormattedMessage {...strings.logOut} />
     </MenuItem>
   </IconMenu>
@@ -65,7 +64,6 @@ const AuthMenu = ({ bye, name }) => (
 AuthMenu.muiName = 'IconMenu';
 
 AuthMenu.propTypes = {
-  bye: PropTypes.func.isRequired,
   name: PropTypes.string,
 };
 

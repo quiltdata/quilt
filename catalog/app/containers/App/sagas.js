@@ -2,7 +2,7 @@
 import { LOCATION_CHANGE } from 'react-router-redux';
 import { call, put, select, takeLatest } from 'redux-saga/effects';
 
-import { makeHeaders, makeHeadersFromTokens, makeSignOutURL } from 'utils/auth';
+import { makeHeaders, makeHeadersFromTokens } from 'utils/auth';
 import makeError from 'utils/error';
 import config from 'constants/config';
 import { requestJSON, requestText } from 'utils/request';
@@ -211,10 +211,6 @@ function* doRefresh(action) {
   }
 }
 
-function jump(url) {
-  window.location.href = url;
-}
-
 function* doSearch(action) {
   const { payload } = action;
   // execute the search if we've landed on the search page
@@ -243,7 +239,6 @@ function* doSignOut() {
   if (window.Intercom) {
     yield call(window.Intercom, 'shutdown');
   }
-  yield call(jump, makeSignOutURL());
 }
 
 function* doStoreResponse(action) {
