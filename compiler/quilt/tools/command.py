@@ -768,7 +768,8 @@ def push(package, public=False, team=False, reupload=False):
         raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
-    _push_package(sizes=obj_sizes)
+    resp = _push_package(sizes=obj_sizes)
+    package_url = resp.json()['package_url']
 
     print("Updating the 'latest' tag...")
     session.put(
@@ -784,13 +785,11 @@ def push(package, public=False, team=False, reupload=False):
     )
 
     if team is None:
-        url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
         teamstr = ""
     else:
-        url = "https://%s.team.quiltdata.com/package/%s/%s" % (team, owner, pkg)
-        teamstr = "%s:" % (team)
+        teamstr = "%s:" % (team,)
 
-    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, url))
+    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, package_url))
 
 def version_list(package):
     """
