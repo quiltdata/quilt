@@ -9,7 +9,7 @@ import urllib
 
 import requests
 
-from quilt_server import app
+from quilt_server import app, db
 from quilt_server.const import PaymentPlan
 from quilt_server.core import (
     decode_node,
@@ -21,7 +21,7 @@ from quilt_server.core import (
     RootNode,
     PackageFormat,
 )
-from quilt_server.models import Event
+from quilt_server.models import Event, InstanceBlobAssoc, S3Blob
 
 from .utils import mock_customer, QuiltTestCase
 
@@ -83,6 +83,12 @@ class PushInstallTestCase(QuiltTestCase):
         )
     ))
 
+    CONTENTS_2 = RootNode(dict(
+        file=FileNode(
+            hashes=[HASH3]
+        )
+    ))
+
     HUGE_CONTENTS = RootNode(dict(
         README=FileNode(
             hashes=[HASH1]
@@ -105,6 +111,7 @@ class PushInstallTestCase(QuiltTestCase):
     ))
 
     CONTENTS_HASH = 'a20597100b045f5420de46b7188590e8688bcfe2ac01e9cbefe26f8919b3f44d'
+    CONTENTS_2_HASH = 'ede3e3b8d0d3df8503aa9b27d592b5e27281f929cb440a556a2d0c3c52a912e7'
 
     def testContentsHash(self):
         assert hash_contents(self.CONTENTS) == self.CONTENTS_HASH
@@ -720,3 +727,48 @@ class PushInstallTestCase(QuiltTestCase):
         assert event.package_owner == 'test_user'
         assert event.package_name == 'foo'
         assert event.package_hash == huge_contents_hash
+
+    def testInstanceBlob(self):
+        # Verify that all blobs are accounted for in the instance<->blob table.
+
+        # Push the first instance with three blobs.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        blobs = S3Blob.query.all()
+        instance_blobs = db.session.query(InstanceBlobAssoc).all()
+
+        assert len(blobs) == 3
+        assert len(instance_blobs) == 3
+
+        # Push the second instance, which reuses one of the blobs.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_2_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS_2
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        blobs = S3Blob.query.all()
+        instance_blobs = db.session.query(InstanceBlobAssoc).all()
+
+        assert len(blobs) == 3
+        assert len(instance_blobs) == 4

@@ -627,12 +627,14 @@ def package_put(owner, package_name, package_hash):
             .all()
         ) if all_hashes else []
 
-        existing_hashes = {blob.hash for blob in blobs}
+        blob_by_hash = { blob.hash: blob for blob in blobs }
 
         for blob_hash in all_hashes:
             blob_size = sizes.get(blob_hash)
-            if blob_hash not in existing_hashes:
-                instance.blobs.append(S3Blob(owner=owner, hash=blob_hash, size=blob_size))
+            blob = blob_by_hash.get(blob_hash)
+            if blob is None:
+                blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
+            instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
