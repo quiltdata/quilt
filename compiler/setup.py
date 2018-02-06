@@ -38,7 +38,7 @@ setup(
     install_requires=[
         'appdirs>=1.4.0',
         'funcsigs; python_version<"3.4"',  # stdlib backport, test only
-        'future>=0.16.0',   # unused
+        'future>=0.16.0',  # stdlib backport: 'from builtins import xxx', plus others
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.6"',    # stdlib backport
@@ -48,7 +48,7 @@ setup(
         'requests>=2.12.4',
         'responses>=0.7.0',  # test only
         'six>=1.10.0',
-        'tables>=3.3.0',  # unused
+        'tables>=3.3.0',  # hdf5
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
     ],

@@ -132,7 +132,7 @@ class PackageNode(GroupNode):
             if build_dir:
                 value = os.path.join(build_dir, value)
         else:
-            accepted_types = (pd.DataFrame, bytes) + string_types
+            accepted_types = tuple(set((pd.DataFrame, bytes) + string_types))
             raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
                             .format(accepted_types, type(value)), repr(value)[0:100])
 
