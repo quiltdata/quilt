@@ -49,6 +49,21 @@ export default function createRoutes(store) {
         .then(requireAuthIfTeam)
       ),
     }, {
+      path: '/user/:username',
+      name: 'user',
+      getComponent: loadRoute(() =>
+        Promise.all([
+          import('containers/User/reducer'),
+          import('containers/User/sagas'),
+          import('containers/User'),
+        ])
+        .then(([reducer, sagas, component]) => {
+          injectReducer('user', reducer.default);
+          injectSagas(sagas.default);
+          return requireAuthIfTeam(component.default);
+        })
+      ),
+    }, {
       path: '/oauth_callback',
       name: 'oauth2',
       onEnter: (props, replaceState) => {
