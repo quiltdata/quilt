@@ -94,11 +94,11 @@ def parse_package_extended(identifier):
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    full_name, hash, version, tag = match.groups()
+    full_name, pkg_hash, version, tag = match.groups()
     team, user, name, subpath = parse_package(full_name, allow_subpath=True)
 
     # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:

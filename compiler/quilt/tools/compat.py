@@ -16,8 +16,7 @@ import sys as _sys
 #      I'm tentatively still keeping compat.py, otherwise the try: except: block ends up in
 #      each module's import stanzas, instead of 'from compat import pathlib'.
 
-try:
-    import pathlib2 as pathlib
-except ImportError:
-    assert _sys.version_info >= (3, 6)   # use `pip install --upgrade quilt` if needed
-    import pathlib
+if _sys.version_info < (3, 6):
+    from pathlib2 import path
+else:
+    from pathlib import path

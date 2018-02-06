@@ -63,7 +63,7 @@ class GroupNode(DataNode):
         pinfo = super(GroupNode, self).__repr__()
         group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
         if group_info:
-            group_info = group_info + '\n'
+            group_info += '\n'
         data_info = '\n'.join(sorted(self._data_keys()))
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
