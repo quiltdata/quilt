@@ -443,8 +443,7 @@ def make_saver(*args, **kwargs):
     :param bool force_export: Allow export to overwrite existing data.
         Default `False`.
     """
-    if QuiltTfSaver is None:
-        generate_tf_saver_class()
+    generate_tf_saver_class()
     return QuiltTfSaver(*args, **kwargs)
 
 
@@ -459,6 +458,9 @@ def generate_tf_saver_class():
     global QuiltTfSaver
 
     from tensorflow import train
+
+    if QuiltTfSaver is not None:
+        return
 
     class QuiltTfSaver(train.Saver):
         # See 'make_saver' for documentation.
