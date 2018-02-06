@@ -18,10 +18,10 @@ blobs = { blob.hash: blob for blob in db.session.query(S3Blob) }
 instance_blobs = { (ib.instance_id, ib.blob_id) for ib in db.session.query(InstanceBlobAssoc) }
 
 for idx, instance in enumerate(instances):
-    print("Processing %s (%d/%d)..." % (instance.id, idx + 1, len(instances)))
+    print("Processing %d (%d/%d)..." % (instance.id, idx + 1, len(instances)))
 
     missing = []
-    hashes = find_object_hashes(instance.contents)
+    hashes = set(find_object_hashes(instance.contents))
 
     for obj_hash in hashes:
         blob = blobs[obj_hash]
@@ -29,7 +29,8 @@ for idx, instance in enumerate(instances):
             print("Missing: %d-%d" % (instance.id, blob.id))
             missing.append(dict(instance_id=instance.id, blob_id=blob.id))
 
-    db.session.execute(InstanceBlobAssoc.insert(), missing)
-    db.session.commit()
+    if missing:
+        db.session.execute(InstanceBlobAssoc.insert(), missing)
+        db.session.commit()
 
 print("Done")

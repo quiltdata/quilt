@@ -46,8 +46,9 @@ db.Index('idx_owner_name', Package.owner, Package.name, unique=True)
 
 InstanceBlobAssoc = db.Table(
     'instance_blob',
-    db.Column('instance_id', db.BigInteger, db.ForeignKey('instance.id')),
-    db.Column('blob_id', db.BigInteger, db.ForeignKey('s3_blob.id'))
+    db.Column('instance_id', db.BigInteger, db.ForeignKey('instance.id'), nullable=False),
+    db.Column('blob_id', db.BigInteger, db.ForeignKey('s3_blob.id'), nullable=False),
+    db.PrimaryKeyConstraint('instance_id', 'blob_id'),
 )
 
 
