@@ -233,7 +233,7 @@ class ImportTest(QuiltTestCase):
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
-        package1._set(['new', 'file'], file_path)
+        package1._set(['new', 'file'], 'data/foo.csv', build_dir=mydir)
         assert package1.new.file._data() == file_path
 
         # Add a new group
@@ -244,11 +244,11 @@ class ImportTest(QuiltTestCase):
 
         # Overwrite a leaf node
         new_path = os.path.join(mydir, 'data/nuts.csv')
-        package1._set(['newgroup', 'foo'], new_path)
+        package1._set(['newgroup', 'foo'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup.foo._data() == new_path
 
         # Overwrite the whole group
-        package1._set(['newgroup'], new_path)
+        package1._set(['newgroup'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup._data() == new_path
 
         # Built a new package and verify the new contents
@@ -303,7 +303,7 @@ class ImportTest(QuiltTestCase):
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
-        package1._set(['new', 'file'], file_path)
+        package1._set(['new', 'file'], 'data/foo.csv', mydir)
         assert package1.new.file._data() == file_path
 
         # Add a new group
@@ -314,11 +314,11 @@ class ImportTest(QuiltTestCase):
 
         # Overwrite a leaf node
         new_path = os.path.join(mydir, 'data/nuts.csv')
-        package1._set(['newgroup', 'foo'], new_path)
+        package1._set(['newgroup', 'foo'], 'data/nuts.csv', mydir)
         assert package1.newgroup.foo._data() == new_path
 
         # Overwrite the whole group
-        package1._set(['newgroup'], new_path)
+        package1._set(['newgroup'], 'data/nuts.csv', mydir)
         assert package1.newgroup._data() == new_path
 
         # Built a new package and verify the new contents

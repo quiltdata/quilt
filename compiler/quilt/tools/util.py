@@ -1,6 +1,7 @@
 """
 Helper functions.
 """
+import re
 import gzip
 import os
 
@@ -11,6 +12,7 @@ APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
+PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 
 
 class FileWithReadProgress(Iterator):
@@ -73,6 +75,7 @@ def file_to_str(fname):
         data = fd.read()
     return data
 
+
 def gzip_compress(data):
     """
     Compress a string. Same as gzip.compress in Python3.
@@ -81,6 +84,7 @@ def gzip_compress(data):
     with gzip.GzipFile(fileobj=buf, mode='wb') as fd:
         fd.write(data)
     return buf.getvalue()
+
 
 def sub_dirs(path, invisible=False):
     """
@@ -92,6 +96,7 @@ def sub_dirs(path, invisible=False):
 
     return dirs
 
+
 def sub_files(path, invisible=False):
     """
     Child files (non-recursive)
@@ -101,3 +106,21 @@ def sub_files(path, invisible=False):
         files = [x for x in files if not x.startswith('.')]
 
     return files
+
+
+def is_nodename(string):
+    """Check if string could be a valid node name
+
+    Convenience, and a good place to aggregate node-name related checks.
+
+    :param string: string to be tested
+    :returns: True if string could be used as a node name, False otherwise
+    :rtype: bool
+    """
+    ## Currently a node name has the following characteristics:
+    # * Must be a python identifier
+    # * May be a python keyword
+    # * Must not start with an underscore
+    if string.startswith('_'):
+        return False
+    return bool(PYTHON_IDENTIFIER_RE.match(string))

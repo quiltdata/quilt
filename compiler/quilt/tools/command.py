@@ -5,6 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
+from collections import namedtuple
 from datetime import datetime
 import gzip
 import hashlib
@@ -37,10 +38,9 @@ from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node)
 from .hashing import digest_file
-from .store import PackageStore, StoreException, VALID_NAME_RE
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress
+from .store import PackageStore, StoreException
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
 from . import check_functions as qc
-
 from .. import nodes
 
 # pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
@@ -82,16 +82,23 @@ class CommandException(Exception):
     """
     pass
 
-def parse_package_extended(name):
+
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
     """
     Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
     """
-    match = EXTENDED_PACKAGE_RE.match(name)
+    match = EXTENDED_PACKAGE_RE.match(identifier)
     if match is None:
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    return match.groups()
+    full_name, pkg_hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -158,8 +165,7 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        # TODO: use utils.is_nodename() once merged
-        if not VALID_NAME_RE.match(team):
+        if not is_nodename(team):
             raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
@@ -485,7 +491,11 @@ def _log(team, **kwargs):
 def build(package, path=None, dry_run=False, env='default'):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
+
+    :param package: short package specifier, i.e. 'team:user/pkg'
+    :param path: file path, git url, or existing package node
     """
+    # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
@@ -546,7 +556,7 @@ def build_from_node(package, node):
     def _process_node(node, path=''):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, path + '/' + key)
+                _process_node(child, (path + '/' + key if path else key))
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
@@ -906,8 +916,8 @@ def install_via_requirements(requirements_str, force=False):
     else:
         yaml_data = yaml.load(requirements_str)
     for pkginfo in yaml_data['packages']:
-        package, pkghash, version, tag = parse_package_extended(pkginfo)
-        install(package, pkghash, version, tag, force=force)
+        info = parse_package_extended(pkginfo)
+        install(info.full_name, info.hash, info.version, info.tag, force=force)
 
 def install(package, hash=None, version=None, tag=None, force=False):
     """
@@ -1373,7 +1383,7 @@ def delete_user(username, team, force=False):
 
 def audit(user_or_package):
     parts = user_or_package.split('/')
-    if len(parts) > 2 or not all(VALID_NAME_RE.match(part) for part in parts):
+    if len(parts) > 2 or not all(is_nodename(part) for part in parts):
         raise CommandException("Need either a user or a user/package")
 
     team = _find_logged_in_team()
