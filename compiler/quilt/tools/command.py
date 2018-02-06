@@ -37,7 +37,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, LATEST_TAG
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node)
+                   decode_node, encode_node, FILENAME_MISSING)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
@@ -1374,7 +1374,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata['q_path']
-                if orig_filepath is None:
+                if orig_filepath is None or orig_filepath == FILENAME_MISSING:
                     # This really shouldn't happen -- print a warning.
                     orig_filepath = node_path
                     msg = "WARNING: original file path not stored.  Based on node path, guessed: {}"

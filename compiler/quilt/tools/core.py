@@ -13,6 +13,14 @@ import struct
 from six import iteritems, itervalues, string_types
 
 
+# Backward compatibility
+# Created circa 2.8.4.
+# It's possible some package stores or registries have FileNodes in them with no
+# metadata['q_path'].  If data is loaded from disk or network with no metadata['q_path'],
+# metadata['q_path'] is set to this token.
+FILENAME_MISSING = "::FILENAME_MISSING::"
+
+
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
     PARQUET = 'PARQUET'
@@ -110,6 +118,11 @@ def decode_node(value):
     if type_str is None:
         return value
     node_cls = NODE_TYPE_TO_CLASS[type_str]
+    if node_cls is FileNode:
+        if 'metadata' not in value:
+            value['metadata'] = {}
+        if not value['metadata'].get('q_path'):
+            value['metadata']['q_path'] = FILENAME_MISSING
     return node_cls(**value)
 
 def hash_contents(contents):
