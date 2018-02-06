@@ -793,21 +793,19 @@ def test_cli_command_version_flag(capsys):
 
     with pytest.raises(SystemExit):
         main(['--version'])
+    outerr = capsys.readouterr()
 
     # there's not a lot to test here -- this literally just does the same thing
     # that 'quilt --version' does, but this at least ensures that it still
     # exists and still produces the expected result.
-
     dist = pkg_resources.get_distribution('quilt')
-
     expectation = "quilt {} ({})\n".format(dist.version, dist.egg_name())
-
-    outerr = capsys.readouterr()
 
     # in python 2, apparently argparse's 'version' handler prints to stderr.
     result = outerr.err if PY2 else outerr.out
 
     assert expectation == result
+
 
 # need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
