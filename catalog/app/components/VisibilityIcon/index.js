@@ -9,7 +9,7 @@ const Tag = styled.span`
   font-size: 70%;
   margin-left: .5em;
   opacity: .5;
-  padding: 2px 4px 2px 4px;
+  padding: 0px 4px 1px 4px;
 `;
 
 export default function VisibilityIcon({ label }) {
