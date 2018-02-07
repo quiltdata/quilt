@@ -249,7 +249,6 @@ class ImportTest(QuiltTestCase):
         assert package1.newgroup.foo._data() == new_path
 
         # Overwrite the whole group
-        new_path = os.path.join(mydir, 'data/nuts.csv')
         package1._set(['newgroup'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup._data() == new_path
 

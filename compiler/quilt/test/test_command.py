@@ -43,42 +43,26 @@ CRUD related:
         - no team
         - not admin
 """
+# Disable no-self-use, protected-access, too-many-public-methods
+# pylint: disable=R0201, W0212, R0904
 
 import hashlib
 import json
 import os
-import stat
+import shutil
 import time
 
 from contextlib import contextmanager
 import requests
 import responses
-import shutil
 
 import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
-from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
-
+from ..tools import command, store
 from ..tools.compat import pathlib
-from ..tools.compat import tempfile
-
-
-# noinspection PyUnboundLocalVariable
-@contextmanager
-def chmod_context(mode, path):
-    """A simple context manager to set a file/dir mode"""
-    try:
-        path = pathlib.Path(path)
-        orig_mode = path.stat().st_mode
-        path.chmod(mode)
-
-        yield
-    finally:
-        if 'orig_mode' in locals():  # may not exist if mode-set failed
-            path.chmod(orig_mode)
 
 
 class CommandTest(QuiltTestCase):
@@ -495,7 +479,7 @@ class CommandTest(QuiltTestCase):
         self._mock_error('users/create', status=401)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io', None)
-    
+
     def test_user_disable(self):
         self.requests_mock.add(
             responses.POST,
@@ -987,8 +971,6 @@ class CommandTest(QuiltTestCase):
             command.export("testuser/nonexistentpackage")
 
     def test_export(self):
-        # pathlib will translate paths to windows or posix paths when needed
-        Path = pathlib.Path
         pkg_name = 'testing/foo'
         subpkg_name = 'subdir'
         single_name = 'single_file'
@@ -1009,136 +991,142 @@ class CommandTest(QuiltTestCase):
 
         shash = lambda data: hashlib.sha256(data).hexdigest()
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_dir = Path(temp_dir)
-            install_dir = temp_dir / 'install'
+        # pathlib will translate paths to windows or posix paths when needed
+        temp_dir = pathlib.Path("test_command_test_export")
 
-            # Create and and install build
-            for path, data in test_data:
-                path = install_dir / path
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(data)
-            command.build(pkg_name, str(install_dir))
+        install_dir = temp_dir / 'install'
 
-            # Test export
-            test_dir = temp_dir / 'test_export'
+        # Create and and install build
+        for path, data in test_data:
+            path = install_dir / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        command.build(pkg_name, str(install_dir))
 
+        # Test export
+        test_dir = temp_dir / 'test_export'
+
+        command.export(pkg_name, str(test_dir))
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+        # Test force=True
+        # We just tested that calling this raises CommandException with 'file already exists',
+        # so it's a good spot to check the force option.
+        command.export(pkg_name, str(test_dir), force=True)
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+
+        # Test raise when exporting to overwrite existing files
+        files = set(f for f in test_dir.glob('*') if f.is_file())
+        # sorted and reversed means files before their containing dirs
+        for path in sorted(test_dir.glob('**/*'), reverse=True):
+            # keep files from root of test_dir
+            if path in files:
+                continue
+            # remove everything else
+            path.rmdir() if path.is_dir() else path.unlink()
+        # now there are only files in the export root to conflict with.
+        with pytest.raises(command.CommandException, match='file already exists'):
             command.export(pkg_name, str(test_dir))
 
-            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+        # Test raise when exporting to existing dir structure
+        command.export(pkg_name, str(test_dir), force=True)
+        for p in test_dir.glob('**/*'):
+            # leave dirs, remove files
+            if p.is_dir():
+                continue
+            p.unlink()
+        with pytest.raises(command.CommandException, match='subdir already exists'):
+            command.export(pkg_name, str(test_dir))
 
-            assert len(exported_paths) == len(test_data)
+        # Test exporting to an unwriteable location
+        # disabled on windows, for now
+        # TODO: Windows version of permission failure test
+        if os.name != 'nt':
+            test_dir = temp_dir / 'test_write_permissions_fail'
+            test_dir.mkdir()
+            orig_mode = test_dir.stat().st_mode
+            try:
+                test_dir.chmod(0o111)
+                with pytest.raises(command.CommandException, match='not writable'):
+                    command.export(pkg_name, str(test_dir))
+            finally:
+                if 'orig_mode' in locals():  # may not exist if mode-set failed
+                    test_dir.chmod(orig_mode)
 
-            for path, data in test_data:
-                export_path = test_dir / path
-                install_path = install_dir / path
+        # Test subpackage exports
+        test_dir = temp_dir / 'test_subpkg_export'
+        command.export(pkg_name + '/' + subpkg_name, str(test_dir))
 
-                # filename matches
-                assert export_path in exported_paths
-                # data matches
-                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
 
-            # Test force=True
-            # We just tested that calling this raises CommandException with 'file already exists',
-            # so it's a good spot to check the force option.
-            command.export(pkg_name, str(test_dir), force=True)
+        assert len(exported_paths) == len(subdir_test_data)
 
-            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+        for path, data in subdir_test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
 
-            assert len(exported_paths) == len(test_data)
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
 
-            for path, data in test_data:
-                export_path = test_dir / path
-                install_path = install_dir / path
+        # Test single-file exports
+        test_dir = temp_dir / 'test_single_file_export'
+        pkg_name_single = pkg_name + '/' + single_name
+        single_filepath = test_dir / single_name
 
-                # filename matches
-                assert export_path in exported_paths
-                # data matches
-                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+        command.export(pkg_name_single, str(test_dir))
+        assert single_filepath.exists()
+        assert shash(single_bytes) == shash(single_filepath.read_bytes())
 
-            # Test raise when exporting to overwrite existing files
-            files = set(f for f in test_dir.glob('*') if f.is_file())
-            # sorted and reversed means files before their containing dirs
-            for path in sorted(test_dir.glob('**/*'), reverse=True):
-                # keep files from root of test_dir
-                if path in files:
-                    continue
-                # remove everything else
-                path.rmdir() if path.is_dir() else path.unlink()
-            # now there are only files in the export root to conflict with.
-            with pytest.raises(command.CommandException, match='file already exists'):
-                command.export(pkg_name, str(test_dir))
+        # Test filters
+        test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
+        included_file = test_dir / single_name
 
-            # Test raise when exporting to existing dir structure
-            command.export(pkg_name, str(test_dir), force=True)
-            for p in test_dir.glob('**/*'):
-                # leave dirs, remove files
-                if p.is_dir():
-                    continue
-                p.unlink()
-            with pytest.raises(command.CommandException, match='subdir already exists'):
-                command.export(pkg_name, str(test_dir))
+        command.export(pkg_name, str(test_dir),
+                       filter=lambda x: True if x == single_name else False)
 
-            # Test exporting to an unwriteable location
-            # disabled on windows, for now
-            # TODO: Windows version of permission failure test
-            if os.name != 'nt':
-                test_dir = temp_dir / 'test_write_permissions_fail'
-                test_dir.mkdir()
-                with chmod_context(0o111, test_dir):  # --x--x--x on directory -- enter, but no read/modify
-                    with pytest.raises(command.CommandException, match='not writable'):
-                        command.export(pkg_name, str(test_dir))
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
 
-            # Test subpackage exports
-            test_dir = temp_dir / 'test_subpkg_export'
-            command.export(pkg_name + '/' + subpkg_name, str(test_dir))
+        assert len(exported_paths) == 1
+        assert included_file.exists()
+        assert shash(single_bytes) == shash(included_file.read_bytes())
 
-            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+        # Test map
+        test_dir = temp_dir / 'test_mapper'
+        test_filepath = test_dir / single_name    # ok on windows too per pathlib
+        mapped_filepath = test_filepath.with_suffix('.zip')
 
-            assert len(exported_paths) == len(subdir_test_data)
+        command.export(pkg_name + '/' + single_name, str(test_dir),
+                       mapper=lambda x: pathlib.Path(x).with_suffix('.zip'))
 
-            for path, data in subdir_test_data:
-                export_path = test_dir / path
-                install_path = install_dir / path
-
-                # filename matches
-                assert export_path in exported_paths
-                # data matches
-                assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
-
-            # Test single-file exports
-            test_dir = temp_dir / 'test_single_file_export'
-            pkg_name_single = pkg_name + '/' + single_name
-            single_filepath = test_dir / single_name
-
-            command.export(pkg_name_single, str(test_dir))
-            assert single_filepath.exists()
-            assert shash(single_bytes) == shash(single_filepath.read_bytes())
-
-            # Test filters
-            test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
-            included_file = test_dir / single_name
-
-            command.export(pkg_name, str(test_dir),
-                           filter=lambda x: True if x == single_name else False)
-
-            exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
-
-            assert len(exported_paths) == 1
-            assert included_file.exists()
-            assert shash(single_bytes) == shash(included_file.read_bytes())
-
-            # Test map
-            test_dir = temp_dir / 'test_mapper'
-            test_filepath = test_dir / single_name    # ok on windows too per pathlib
-            mapped_filepath = test_filepath.with_suffix('.zip')
-
-            command.export(pkg_name + '/' + single_name, str(test_dir),
-                           mapper=lambda x: Path(x).with_suffix('.zip'))
-
-            assert not test_filepath.exists()
-            assert mapped_filepath.exists()
-            assert shash(single_bytes) == shash(mapped_filepath.read_bytes())
+        assert not test_filepath.exists()
+        assert mapped_filepath.exists()
+        assert shash(single_bytes) == shash(mapped_filepath.read_bytes())
 
     def test_parse_package_names(self):
         # good parse strings
@@ -1188,3 +1176,107 @@ class CommandTest(QuiltTestCase):
         # XXX: in this case, should we just strip the trialing slash?
         with pytest.raises(command.CommandException, match='Invalid element in subpath'):
             command.parse_package('team:user/package/subdir/', True)
+
+    def test_parse_package_extended_names(self):
+        # good parse strings
+        expected = ('user/package', None, 'user', 'package', [], None, None, None)
+        assert command.parse_package_extended('user/package') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('user/package/sub/path') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, None)
+        assert command.parse_package_extended('team:user/package') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('team:user/package/sub/path') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('user/package:h:abc123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('user/package:hash:abc123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('user/package:v:123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('user/package:version:123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('user/package:t:some') == expected
+
+        expected = ('user/package', None, 'user', 'package', [],  None, None, 'some')
+        assert command.parse_package_extended('user/package:tag:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:h:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:hash:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:v:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:version:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:t:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'],  None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:tag:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package:h:abc123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package:hash:abc123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('team:user/package:v:123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('team:user/package:version:123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('team:user/package:t:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('team:user/package:tag:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:h:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:hash:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:v:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:version:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:t:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:tag:some') == expected
+
+        # bad parse strings
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('user/package:a:aaa111')
+
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('team:user/package:a:aaa111')
+
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('foo:bar:baz')
+

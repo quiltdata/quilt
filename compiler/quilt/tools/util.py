@@ -4,7 +4,6 @@ Helper functions.
 import re
 import gzip
 import os
-import keyword
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -16,6 +15,7 @@ APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
+PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 
 
 class FileWithReadProgress(Iterator):
@@ -111,17 +111,6 @@ def sub_files(path, invisible=False):
     return files
 
 
-def is_identifier(string):
-    """Check if string could be a valid python identifier
-
-    :param string: string to be tested
-    :returns: True if string can be a python identifier, False otherwise
-    :rtype: bool
-    """
-    val = re.match(r'^[a-zA-Z_]\w*$', string) and not keyword.iskeyword(string)
-    return True if val else False
-
-
 def is_nodename(string):
     """Check if string could be a valid node name
 
@@ -131,9 +120,13 @@ def is_nodename(string):
     :returns: True if string could be used as a node name, False otherwise
     :rtype: bool
     """
+    ## Currently a node name has the following characteristics:
+    # * Must be a python identifier
+    # * May be a python keyword
+    # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return is_identifier(string)
+    return bool(PYTHON_IDENTIFIER_RE.match(string))
 
 
 def to_identifier(string):

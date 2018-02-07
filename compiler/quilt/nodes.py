@@ -69,7 +69,7 @@ class GroupNode(DataNode):
         pinfo = super(GroupNode, self).__repr__()
         group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
         if group_info:
-            group_info = group_info + '\n'
+            group_info += '\n'
         data_info = '\n'.join(sorted(self._data_keys()))
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
@@ -165,14 +165,14 @@ class PackageNode(GroupNode):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value
             if os.path.isabs(value):
-                raise ValueError("Invalid path: Package contents must be relative.  Use `build_dir` to set base path.")
+                raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
             # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
             metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
             core_node = core.FileNode(hashes=[], metadata=metadata)
             if build_dir:
                 value = os.path.join(build_dir, value)
         else:
-            accepted_types = (pd.DataFrame, bytes) + string_types
+            accepted_types = tuple(set((pd.DataFrame, bytes) + string_types))
             raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
                             .format(accepted_types, type(value)), repr(value)[0:100])
 

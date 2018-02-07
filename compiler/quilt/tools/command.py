@@ -97,11 +97,11 @@ def parse_package_extended(identifier):
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    full_name, hash, version, tag = match.groups()
+    full_name, pkg_hash, version, tag = match.groups()
     team, user, name, subpath = parse_package(full_name, allow_subpath=True)
 
     # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -656,12 +656,13 @@ def push(package, public=False, team=False, reupload=False):
 
     pkghash = pkgobj.get_hash()
 
-    def _push_package(dry_run=False):
+    def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             public=public,
             contents=pkgobj.get_contents(),
-            description=""  # TODO
+            description="",  # TODO
+            sizes=sizes
         ), default=encode_node)
 
         compressed_data = gzip_compress(data.encode('utf-8'))
@@ -686,9 +687,10 @@ def push(package, public=False, team=False, reupload=False):
     obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
     total = len(obj_queue)
 
-    total_bytes = 0
-    for obj_hash in obj_queue:
-        total_bytes += os.path.getsize(pkgobj.get_store().object_path(obj_hash))
+    obj_sizes = {
+        obj_hash: os.path.getsize(pkgobj.get_store().object_path(obj_hash)) for obj_hash in obj_queue
+    }
+    total_bytes = sum(itervalues(obj_sizes))
 
     uploaded = []
     lock = Lock()
@@ -769,7 +771,8 @@ def push(package, public=False, team=False, reupload=False):
         raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
-    _push_package()
+    resp = _push_package(sizes=obj_sizes)
+    package_url = resp.json()['package_url']
 
     print("Updating the 'latest' tag...")
     session.put(
@@ -785,13 +788,11 @@ def push(package, public=False, team=False, reupload=False):
     )
 
     if team is None:
-        url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
         teamstr = ""
     else:
-        url = "https://%s.team.quiltdata.com/package/%s/%s" % (team, owner, pkg)
-        teamstr = "%s:" % (team)
+        teamstr = "%s:" % (team,)
 
-    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, url))
+    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, package_url))
 
 def version_list(package):
     """
@@ -995,6 +996,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
     response_contents = dataset['contents']
+    obj_sizes = dataset['sizes']
 
     # Verify contents hash
     if pkghash != hash_contents(response_contents):
@@ -1004,13 +1006,15 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     obj_queue = sorted(iteritems(response_urls), reverse=True)
     total = len(obj_queue)
+    # Some objects might be missing a size; ignore those for now.
+    total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
 
     downloaded = []
     lock = Lock()
 
-    print("Downloading %d fragments..." % total)
+    print("Downloading %d fragments (%d bytes before compression)..." % (total, total_bytes))
 
-    with tqdm(total=total, unit='obj') as progress:
+    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
         def _worker_thread():
             with _create_s3_session() as s3_session:
                 while True:
@@ -1018,11 +1022,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
                         if not obj_queue:
                             break
                         obj_hash, url = obj_queue.pop()
+                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
 
                     local_filename = store.object_path(obj_hash)
                     if os.path.exists(local_filename):
                         with lock:
-                            progress.update(1)
+                            progress.update(original_size)
                             downloaded.append(obj_hash)
                         continue
 
@@ -1043,7 +1048,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                 )
 
                                 # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                                if response.status_code == requests.codes.RANGE_NOT_SATISFIABLE:
+                                    with lock:
+                                        progress.update(original_size)
+                                else:
                                     if not response.ok:
                                         message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
                                             obj_hash, response.request.url, response.status_code, response.text
@@ -1066,8 +1074,23 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                             tqdm.write("Unexpected Content-Range: %s" % content_range)
                                         break
 
+                                    compressed_size = int(match.group(3))
+
+                                    # We may have started with a partially-downloaded file, so update the progress bar.
+                                    compressed_read = starting_length
+                                    original_read = compressed_read * original_size // compressed_size
+                                    with lock:
+                                        progress.update(original_read)
+                                    original_last_update = original_read
+
+                                    # Do the actual download.
                                     for chunk in response.iter_content(CHUNK_SIZE):
                                         output_file.write(chunk)
+                                        compressed_read += len(chunk)
+                                        original_read = compressed_read * original_size // compressed_size
+                                        with lock:
+                                            progress.update(original_read - original_last_update)
+                                        original_last_update = original_read
 
                                 success = True
                                 break  # Done!
@@ -1106,7 +1129,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
                     # Success.
                     with lock:
-                        progress.update(1)
                         downloaded.append(obj_hash)
 
         threads = [

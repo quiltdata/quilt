@@ -418,18 +418,15 @@ packages:
         """
         file_data_list = []
         file_hash_list = []
-        file_name_list = []
-
         for i in range(2):
-            file_name = 'file{}'.format(i)
-            file_data, file_hash = self.make_file_data(file_name)
+            file_data, file_hash = self.make_file_data('file%d' % i)
             file_data_list.append(file_data)
             file_hash_list.append(file_hash)
-            file_name_list.append(file_name)
 
-        contents = RootNode(
-            {filename: FileNode([file_hash_list[n]], metadata={'q_path': filename})
-             for n, filename in enumerate(file_name_list)})
+        contents = RootNode(dict(
+            file0=FileNode([file_hash_list[0]], metadata={'q_path': 'file0'}),
+            file1=FileNode([file_hash_list[1]], metadata={'q_path': 'file1'}),
+        ))
         contents_hash = hash_contents(contents)
 
         # Create a package store object to use its path helpers
@@ -507,7 +504,11 @@ packages:
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else
-            dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
+            dict(
+                contents=contents,
+                sizes={h: None for h in hashes},
+                urls={h: 'https://example.com/%s' % h for h in hashes}
+            )
         , default=encode_node), match_querystring=True, status=status)
 
     def _mock_s3(self, pkg_hash, contents):

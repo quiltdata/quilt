@@ -3,6 +3,7 @@ import { Tabs, Tab } from 'material-ui/Tabs';
 import React, { PropTypes } from 'react';
 import { Row, Col } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
+import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
@@ -87,6 +88,11 @@ export class Package extends React.PureComponent {
 
     return (
       <Row>
+        <Helmet>
+          <title>{owner}/{name} | Quilt</title>
+          <meta name="description" content="Quilt data package" />
+          <meta name="author" content={owner} />
+        </Helmet>
         <Col xs={12} md={7}>
           <Header>
             <h1><PackageHandle name={name} owner={owner} /></h1>

@@ -50,10 +50,9 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
   }
 
   render() {
-    const { bye, error, name, searchText, signedIn, waiting } = this.props;
+    const { error, name, searchText, signedIn, waiting } = this.props;
     const menu = (
       <UserMenu
-        bye={bye}
         error={error}
         signedIn={signedIn}
         name={name}
@@ -88,7 +87,6 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
 }
 
 AuthBar.propTypes = {
-  bye: PropTypes.func.isRequired,
   dispatch: PropTypes.func.isRequired,
   error: PropTypes.object,
   searchText: PropTypes.string,

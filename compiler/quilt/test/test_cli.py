@@ -86,23 +86,28 @@ removal (or incompatible additions) on the API side.
 # it will eventually occur.
 # Fixing this improves our coverage, but might be somewhat complex.
 
-import os
-import sys
-import json
-import signal
-import inspect
 import collections
-from time import sleep
+import inspect
+import json
+import os
+import pkg_resources
+import signal
+import sys
+
 from subprocess import check_output, CalledProcessError, Popen, PIPE
+from time import sleep
 
 import pytest
-from six import string_types
+from six import string_types, PY2
 
 from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
 
 # inspect.argspec is deprecated, so
-from ..tools.compat import signature
+try:
+    from funcsigs import signature  # python 2.7
+except ImportError:
+    from inspect import signature
 
 
 ## "Static" vars
@@ -496,12 +501,12 @@ class TestCLI(BasicQuiltTestCase):
 
     def execute(self, cli_args):
         """Execute a command using the method specified by the environment
+
         When "QUILT_TEST_CLI_SUBPROC" is set to "True", use a subprocess.
         Otherwise, call main() directly.
 
         :returns: dict of return codes and calls made to `command` functions
         """
-
         # CLI mode -- actually executes "quilt <cli args>"
         # This mode is preferable, once quilt load times improve.
         if self.env.get('QUILT_TEST_CLI_SUBPROC', '').lower() == 'true':
@@ -620,16 +625,9 @@ class TestCLI(BasicQuiltTestCase):
         ## This section tests for acceptable types and values.
         # plain login
         cmd = ['login']
-        result = self.execute(cmd)
-
-        # General tests
-        # TODO: update this to use self.execute_with_checks once merged
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='login')
 
         # Specific tests
-        assert result['func'] == 'login'
         assert not result['args']
         assert result['kwargs']['team'] is None
 
@@ -663,16 +661,9 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for acceptable types and values.
         cmd = ['logout']
-        result = self.execute(cmd)
-
-        # General tests
-        # TODO: update this to use self.execute_with_checks once merged
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='logout')
 
         # Specific tests
-        assert result['func'] == 'logout'
         assert not result['args']
 
     def test_cli_command_push(self):
@@ -830,6 +821,29 @@ class TestCLI(BasicQuiltTestCase):
 
 
 # need capsys, so this isn't in the unittest class
+def test_cli_command_version_flag(capsys):
+    """Tests that `quilt --version` is working"""
+    TESTED_PARAMS.append(['--version'])
+
+    from quilt.tools.main import main
+
+    with pytest.raises(SystemExit):
+        main(['--version'])
+    outerr = capsys.readouterr()
+
+    # there's not a lot to test here -- this literally just does the same thing
+    # that 'quilt --version' does, but this at least ensures that it still
+    # exists and still produces the expected result.
+    dist = pkg_resources.get_distribution('quilt')
+    expectation = "quilt {} ({})\n".format(dist.version, dist.egg_name())
+
+    # in python 2, apparently argparse's 'version' handler prints to stderr.
+    result = outerr.err if PY2 else outerr.out
+
+    assert expectation == result
+
+
+# need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
     """Tests for inclusion in 'help'
 
@@ -853,10 +867,8 @@ def test_cli_command_in_help(capsys):
         if isinstance(argpath[1], string_types):
             expected_params.add(argpath[1])
 
-    try:
+    with pytest.raises(SystemExit):
         main(['help'])
-    except SystemExit:
-        pass
 
     outerr = capsys.readouterr()
     lines = outerr.out.split('\n')
