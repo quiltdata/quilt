@@ -11,7 +11,7 @@ services:
       timeout: 3s
       retries: 3
     ports:
-      - 5432
+      - "5432:5432"
 
   flaskmigration:
     build: .
@@ -84,9 +84,12 @@ services:
     environment:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
-      - DATABASE_URL=postgres://postgres:testing@db/packages
-      - FRONTEND_URL=http://catalog:3000
+      - DATABASE_URL=postgresql://postgres:testing@db/packages
+      - FRONTEND_URL=http://localhost:3000
       - ALLOW_HTTP=1
+      - AUTH_URL=http://auth:5002
+      - OAUTH_WEB_APPLICATION=Quilt
+      - QUILT_PKG_URL=http://flask:5000
     depends_on:
       db:
         condition: service_healthy
@@ -94,7 +97,7 @@ services:
   djangomigration:
     image: quiltdata/django
     environment:
-      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - DATABASE_URL=postgresql://postgres:testing@db/packages
       - OAUTH_REDIRECT_URI=http://flask:5000/oauth_callback
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
@@ -108,8 +111,8 @@ services:
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://flask:5000
-      - USER_API=http://auth:5002/api-root
-      - SIGN_OUT_URL=http://auth:5002/api-auth/logout?next=%2F
+      - USER_API=http://auth:5002/accounts/api-root
+      - SIGN_OUT_URL=http://auth:5002/accounts/logout?next=%2F
       - STRIPE_KEY=NOSTRIPE
     ports:
       - "3000:80"

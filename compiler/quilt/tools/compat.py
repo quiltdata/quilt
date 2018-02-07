@@ -12,25 +12,22 @@ import frequently-used objects here for convenience.
 
 import sys as _sys
 
+# XXX: This originally had a few modules, but I've managed to remove the others.
+#      I'm tentatively still keeping compat.py, otherwise the try: except: block ends up in
+#      each module's import stanzas, instead of 'from compat import pathlib'.
 
 # Reflecting requirements in setup.py
-# Python < 3.4
-if _sys.version_info < (3, 4):
-    from backports import tempfile
-    from funcsigs import signature  # inspect.argspec is deprecated
-else:
-    import tempfile
-    from inspect import signature   # inspect.argspec is deprecated
-
-# Python < 3.5
-if _sys.version_info < (3, 5):
+# Python < 3.6
+if _sys.version_info < (3, 6):
     import pathlib2 as pathlib
 else:
     import pathlib
 
 
-# Example convenience references to allow `from .tools.compat import some_obj`
+# Since `from compat.something import bar` isn't doable, feel free to import any
+# convenience references here, so they are available via `from compat import bar`
 
+# examples..
+# from some_module import some_item
 # patch = mock.patch
 # Path = pathlib.Path
-# TemporaryDirectory = tempfile.TemporaryDirectory

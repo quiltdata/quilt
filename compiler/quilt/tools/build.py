@@ -23,7 +23,7 @@ from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, to_nodename, is_nodename
+from .util import FileWithReadProgress, is_nodename, to_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -194,7 +194,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                     data = fd.read()
                     _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
             if not dry_run:
-                print("Copying %s..." % path)
+                print("Registering %s..." % path)
                 package.save_file(path, name, rel_path)
         else:
             # copy so we don't modify shared ancestor_args

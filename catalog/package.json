@@ -206,7 +206,10 @@
       ".*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$": "<rootDir>/internals/mocks/image.js"
     },
     "setupTestFrameworkScriptFile": "<rootDir>/internals/testing/test-bundler.js",
-    "testRegex": "tests/.*\\.test\\.js$"
+    "testRegex": "tests/.*\\.test\\.js$",
+    "snapshotSerializers": [
+      "enzyme-to-json/serializer"
+    ]
   },
   "dependencies": {
     "assert": "^1.4.1",
@@ -221,14 +224,14 @@
     "intl": "1.2.5",
     "invariant": "2.2.2",
     "ip": "1.1.4",
-    "lodash": "4.17.2",
+    "lodash": "^4.17.2",
     "material-ui": "^0.18.7",
     "minimist": "1.2.0",
     "query-string": "^5.0.0",
     "react": "15.4.1",
     "react-bootstrap": "^0.30.7",
     "react-dom": "15.4.1",
-    "react-helmet": "3.2.2",
+    "react-helmet": "^5.2.0",
     "react-intl": "2.1.5",
     "react-redux": "4.4.6",
     "react-router": "3.0.0",
@@ -236,7 +239,9 @@
     "react-router-scroll": "0.4.1",
     "react-stripe-checkout": "^2.4.0",
     "react-tap-event-plugin": "^2.0.1",
+    "recompose": "0.24.0",
     "redux": "3.6.0",
+    "redux-auth-wrapper": "^2.0.2",
     "redux-immutable": "3.0.8",
     "redux-saga": "0.14.0",
     "remarkable": "^1.7.1",
@@ -267,7 +272,8 @@
     "copy-webpack-plugin": "^4.0.1",
     "coveralls": "2.11.15",
     "css-loader": "0.26.1",
-    "enzyme": "2.6.0",
+    "enzyme": "^2.9.1",
+    "enzyme-to-json": "^2.0.1",
     "eslint": "3.11.1",
     "eslint-config-airbnb": "13.0.0",
     "eslint-config-airbnb-base": "10.0.1",

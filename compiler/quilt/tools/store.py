@@ -9,10 +9,8 @@ from shutil import rmtree
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
 from .core import FileNode, RootNode, TableNode
 from .package import Package, PackageException
-from .util import BASE_DIR, sub_dirs, sub_files
+from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
-# start with alpha (_ may clobber attrs), continue with alphanumeric or _
-VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 CHUNK_SIZE = 4096
 
 # Helper function to return the default package store path
@@ -50,7 +48,15 @@ class PackageStore(object):
 
         version = self._read_format_version()
 
-        if version not in (None, self.VERSION):
+        if version == '1.2':
+            # Migrate to the teams format.
+            pkgdir = os.path.join(self._path, self.PKG_DIR)
+            old_dirs = sub_dirs(pkgdir)
+            os.mkdir(os.path.join(pkgdir, DEFAULT_TEAM))
+            for old_dir in old_dirs:
+                os.rename(os.path.join(pkgdir, old_dir), os.path.join(pkgdir, DEFAULT_TEAM, old_dir))
+            self._write_format_version()
+        elif version not in (None, self.VERSION):
             msg = (
                 "The package repository at {0} is not compatible"
                 " with this version of quilt. Revert to an"
@@ -99,15 +105,15 @@ class PackageStore(object):
 
     @classmethod
     def check_name(cls, team, user, package, subpath=None):
-        if team is not None and not VALID_NAME_RE.match(team):
+        if team is not None and not is_nodename(team):
             raise StoreException("Invalid team name: %r" % team)
-        if not VALID_NAME_RE.match(user):
+        if not is_nodename(user):
             raise StoreException("Invalid user name: %r" % user)
-        if not VALID_NAME_RE.match(package):
+        if not is_nodename(package):
             raise StoreException("Invalid package name: %r" % package)
         if subpath:
             for element in subpath:
-                if not VALID_NAME_RE.match(element):
+                if not is_nodename(element):
                     raise StoreException("Invalid element in subpath: %r" % element)
 
     def _version_path(self):

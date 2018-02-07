@@ -13,7 +13,7 @@ from six import assertRaisesRegex, string_types
 import yaml
 
 from ..tools.package import ParquetLib, Package
-from ..tools.compat import pathlib, tempfile
+from ..tools.compat import pathlib
 from ..tools import build, command, store
 from .utils import QuiltTestCase
 

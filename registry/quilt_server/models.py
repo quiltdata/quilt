@@ -4,6 +4,7 @@
 DB Tables.
 """
 
+from enum import IntEnum
 from packaging.version import Version as PackagingVersion
 
 from sqlalchemy.orm import deferred
@@ -45,8 +46,9 @@ db.Index('idx_owner_name', Package.owner, Package.name, unique=True)
 
 InstanceBlobAssoc = db.Table(
     'instance_blob',
-    db.Column('instance_id', db.BigInteger, db.ForeignKey('instance.id')),
-    db.Column('blob_id', db.BigInteger, db.ForeignKey('s3_blob.id'))
+    db.Column('instance_id', db.BigInteger, db.ForeignKey('instance.id'), nullable=False),
+    db.Column('blob_id', db.BigInteger, db.ForeignKey('s3_blob.id'), nullable=False),
+    db.PrimaryKeyConstraint('instance_id', 'blob_id'),
 )
 
 
@@ -76,6 +78,7 @@ class S3Blob(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     owner = db.Column(USERNAME_TYPE, nullable=False)
     hash = db.Column(db.String(64), nullable=False)
+    size = db.Column(db.BigInteger)
 
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
 
@@ -140,3 +143,24 @@ class Invitation(db.Model):
 class Customer(db.Model):
     id = db.Column(USERNAME_TYPE, primary_key=True)
     stripe_customer_id = db.Column(STRIPE_ID_TYPE)
+
+
+class Event(db.Model):
+    class Type(IntEnum):
+        PUSH = 1
+        INSTALL = 2
+        PREVIEW = 3
+        DELETE = 4
+
+        def __str__(self): return '%d' % self
+
+    id = db.Column(db.BigInteger, primary_key=True)
+    created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+    user = db.Column(USERNAME_TYPE, nullable=False, index=True)
+    type = db.Column(db.SmallInteger, nullable=False)
+    package_owner = db.Column(USERNAME_TYPE)
+    package_name = db.Column(db.String(64))
+    package_hash = db.Column(db.String(64))
+    extra = db.Column(postgresql.JSONB)
+
+db.Index('idx_package', Event.package_owner, Event.package_name)

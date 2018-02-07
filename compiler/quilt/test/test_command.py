@@ -1,24 +1,78 @@
 """
 Tests for commands.
+
+Covered cases:
+CRUD related:
+    1. users/list
+        - OK
+        - no auth
+        - not found
+        - server error
+    2. users/create
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already created (duplicate)
+        - bogus email
+        - empty name
+        - empty email
+        - non existing team
+    3. users/disable
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already disabled
+        - empty name
+        - deleted user
+        - unknown user
+        - non existing team
+    4. users/delete
+        - OK
+        - no auth
+        - not found
+        - server error
+        - already deleted
+        - empty name
+        - unknown user
+        - non existing team
+    5. audit user or package
+        - OK
+        - no auth
+        - no team
+        - not admin
 """
+# Disable no-self-use, protected-access, too-many-public-methods
+# pylint: disable=R0201, W0212, R0904
 
 import hashlib
 import json
 import os
+import shutil
 import time
 
 import requests
 import responses
-import shutil
 
 import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
-from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
+from ..tools import command, store
+
 
 class CommandTest(QuiltTestCase):
+    def _mock_error(self, endpoint, status, team=None, message="",
+                    method=responses.POST):
+        self.requests_mock.add(
+            method,
+            '%s/api/%s' % (command.get_registry_url(team), endpoint),
+            body=json.dumps(dict(message=message)),
+            status=status
+        )
+
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
@@ -177,7 +231,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url(None))
 
-        mock_login_with_token.assert_called_with(None, old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, None)
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -191,7 +245,7 @@ class CommandTest(QuiltTestCase):
 
         mock_open.assert_called_with('%s/login' % command.get_registry_url('foo'))
 
-        mock_login_with_token.assert_called_with('foo', old_refresh_token)
+        mock_login_with_token.assert_called_with(old_refresh_token, 'foo')
 
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
@@ -204,12 +258,12 @@ class CommandTest(QuiltTestCase):
         with pytest.raises(command.CommandException, match='Invalid team name'):
             command.login('fo!o')
 
-        assert not mock_open.called
-        assert not mock_login_with_token.called
+        mock_open.assert_not_called()
+        mock_login_with_token.assert_not_called()
 
     def test_login_with_token_invalid_team(self):
         with pytest.raises(command.CommandException, match='Invalid team name'):
-            command.login_with_token('fo!o', '123')
+            command.login_with_token('123', 'fo!o')
 
     @patch('quilt.tools.command._save_auth')
     def test_login_token(self, mock_save):
@@ -229,7 +283,7 @@ class CommandTest(QuiltTestCase):
             )
         )
 
-        command.login_with_token(None, old_refresh_token)
+        command.login_with_token(old_refresh_token, None)
 
         assert self.requests_mock.calls[0].request.body == "refresh_token=%s" % old_refresh_token
 
@@ -251,7 +305,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123", None)
 
         mock_save.assert_not_called()
 
@@ -267,7 +321,7 @@ class CommandTest(QuiltTestCase):
         )
 
         with self.assertRaises(command.CommandException):
-            command.login_with_token(None, "123")
+            command.login_with_token("123", None)
 
         mock_save.assert_not_called()
 
@@ -326,12 +380,312 @@ class CommandTest(QuiltTestCase):
 
         command.ls()
 
+    def test_search(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/search/?q=asdf' % command.get_registry_url(None),
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        command.search("asdf")
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "teamname")
+    def test_search_team(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/search/?q=asdf' % command.get_registry_url("teamname"),
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/search/?q=asdf' % command.get_registry_url(None),
+            status=200,
+            json={
+                "packages": [],
+                "status": 200
+                }
+            )
+        command.search("asdf")
+
     def test_inspect_valid_package(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_simple.yml')
         command.build('foo/bar', build_path)
 
         command.inspect('foo/bar')
+
+    def test_user_list(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list' % command.get_registry_url(None),
+            status=200,
+            json=json.dumps({
+                'count':'1',
+                'results':[{
+                    'username':'admin',
+                    'email':'admin@quiltdata.io',
+                    'first_name':'',
+                    'last_name':'',
+                    'is_superuser':True,
+                    'is_admin':True,
+                    'is_staff':True
+                }]
+            })
+        )
+        command.list_users()
+
+    def test_user_list_no_auth(self):
+        self._mock_error('users/list', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+
+    def test_user_list_not_found(self):
+        self._mock_error('users/list', status=404, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+
+    def test_user_list_server_error(self):
+        self._mock_error('users/list', status=500, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users()
+
+    def test_user_create(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/create' % command.get_registry_url(None),
+            status=201,
+            json=json.dumps({
+                'count':'1',
+                'username':'admin',
+                'first_name':'',
+                'last_name':'',
+                'is_superuser':True,
+                'is_admin':True,
+                'is_staff':True,
+            })
+        )
+        command.create_user('bob', 'bob@quiltdata.io', None)
+
+    def test_user_create_no_auth(self):
+        self._mock_error('users/create', status=401)
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quitdata.io', None)
+    
+    def test_user_disable(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/disable' % command.get_registry_url(None),
+            status=201
+            )
+        command.disable_user('bob', None)
+
+    def test_create_not_found(self):
+        self._mock_error('users/create', team='qux', status=404)
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io', team='qux')
+
+    def test_create_server_error(self):
+        self._mock_error('users/create', team='qux', status=500)
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io', team='qux')
+
+    def test_create_duplicate(self):
+        self._mock_error('users/create', status=400, team='qux', message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('bob', 'bob@quiltdata.io', team='qux')
+
+    def test_user_create_bogus(self):
+        self._mock_error('users/create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', 'wrongemail', 'qux')
+
+    def test_user_create_empty_email_team(self):
+        self._mock_error('users/create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', '', team='qux')
+
+    def test_user_create_empty(self):
+        self._mock_error('users/create', status=400, team='qux', message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('', 'bob@quiltdata.io', team='qux')
+
+    def test_user_create_bogus_team(self):
+        self._mock_error('users/create', status=400, team='qux', message="Please enter a valid email address.")
+        with assertRaisesRegex(self, command.CommandException, "Please enter a valid email address."):
+            command.create_user('bob', 'wrongemail', team='qux')
+
+    def test_user_create_empty_team(self):
+        self._mock_error('users/create', status=400, team='qux', message="Bad request. Maybe there's already")
+        with assertRaisesRegex(self, command.CommandException, "Bad request. Maybe there's already"):
+            command.create_user('', 'bob@quiltdata.io', team='qux')
+
+    def test_user_create_nonexisting_team(self):
+        self._mock_error('users/create', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.create_user('bob', 'bob@quiltdata.io', team='nonexisting')
+
+    def test_user_disable(self):
+        self._mock_error('users/disable', team='qux', status=201)
+        command.disable_user('bob', team='qux')
+
+    def test_user_disable_not_found(self):
+        self._mock_error('users/disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', 'qux')
+
+    def test_user_disable_server_error(self):
+        self._mock_error('users/disable', team='qux', status=500)
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', 'qux')
+
+    def test_user_disable_already(self):
+        self._mock_error('users/disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='qux')
+
+    def test_user_disable_deleted(self):
+        self._mock_error('users/disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('deleted', team='qux')
+
+    def test_user_disable_non_existing_team(self):
+        self._mock_error('users/disable', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='nonexisting')
+
+    def test_user_disable_non_existing(self):
+        self._mock_error('users/disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('nonexisting', team='qux')
+
+    def test_user_disable_empty(self):
+        self._mock_error('users/disable', status=400, team='qux', message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.disable_user('', team='qux')
+
+    def test_user_disable_no_auth(self):
+        self._mock_error('users/disable', status=401, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('bob', team='qux')
+
+    def test_user_disable_unknown(self):
+        self._mock_error('users/disable', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.disable_user('unknown', team='qux')
+
+    def test_user_delete(self):
+        self._mock_error('users/delete', status=201, team='qux')
+        command.delete_user('bob', force=True, team='qux')
+
+    def test_user_delete_not_found(self):
+        self._mock_error('users/delete', team='qux', status=404)
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', team='qux', force=True)
+
+    def test_user_delete_server_error(self):
+        self._mock_error('users/delete', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', 'qux', force=True)
+
+    def test_user_delete_empty(self):
+        self._mock_error('users/delete', status=400, team='qux', message="Username is not valid")
+        with assertRaisesRegex(self, command.CommandException, "Username is not valid"):
+            command.delete_user('', force=True, team='qux')
+
+    def test_user_delete_no_auth(self):
+        self._mock_error('users/delete', status=401, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True, team='qux')
+
+    def test_user_delete_unknown(self):
+        self._mock_error('users/delete', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('unknown', force=True, team='qux')
+
+    def test_user_delete_already(self):
+        self._mock_error('users/delete', status=404, team='qux')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('deleted', team='qux', force=True)
+
+    def test_user_delete_nonexisting_team(self):
+        self._mock_error('users/delete', status=404, team='nonexisting')
+        with self.assertRaises(command.CommandException):
+            command.delete_user('bob', force=True, team='nonexisting')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_user(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/audit/bob/' % command.get_registry_url("someteam"),
+            status=201,
+            json=json.dumps({
+                'events': [{
+                    'created': '',
+                    'user': 'bob',
+                    'type': 'user',
+                    'package_owner': '',
+                    'package_name': '',
+                    'package_hash': '',
+                    'extra': ''
+                }]
+            }))
+        command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_package(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/audit/foo/bar/' % command.get_registry_url("someteam"),
+            status=201,
+            json=json.dumps({
+                'events': [{
+                    'created': '',
+                    'user': 'bob',
+                    'type': 'package',
+                    'package_owner': '',
+                    'package_name': '',
+                    'package_hash': '',
+                    'extra': ''
+                }]
+            }))
+        command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_no_auth_user(self):
+        self._mock_error('audit/bob/', status=401, team='someteam', method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_no_auth_package(self):
+        self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_audit_no_team(self):
+        with assertRaisesRegex(self, command.CommandException, "Not logged in as a team user"):
+            command.audit('bob')
+            command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_not_admin_user(self):
+        self._mock_error('audit/bob/', status=401, team='someteam', method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.audit('bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
+    def test_audit_not_admin_package(self):
+        self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.audit('foo/bar')
 
 # TODO: work in progress
 #    def test_find_node_by_name(self):
@@ -650,3 +1004,107 @@ class CommandTest(QuiltTestCase):
         # XXX: in this case, should we just strip the trialing slash?
         with pytest.raises(command.CommandException, match='Invalid element in subpath'):
             command.parse_package('team:user/package/subdir/', True)
+
+    def test_parse_package_extended_names(self):
+        # good parse strings
+        expected = ('user/package', None, 'user', 'package', [], None, None, None)
+        assert command.parse_package_extended('user/package') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('user/package/sub/path') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, None)
+        assert command.parse_package_extended('team:user/package') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('team:user/package/sub/path') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('user/package:h:abc123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('user/package:hash:abc123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('user/package:v:123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('user/package:version:123') == expected
+
+        expected = ('user/package', None, 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('user/package:t:some') == expected
+
+        expected = ('user/package', None, 'user', 'package', [],  None, None, 'some')
+        assert command.parse_package_extended('user/package:tag:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:h:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:hash:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:v:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:version:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:t:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'],  None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:tag:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package:h:abc123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package:hash:abc123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('team:user/package:v:123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
+        assert command.parse_package_extended('team:user/package:version:123') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('team:user/package:t:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
+        assert command.parse_package_extended('team:user/package:tag:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:h:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:hash:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:v:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:version:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:t:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:tag:some') == expected
+
+        # bad parse strings
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('user/package:a:aaa111')
+
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('team:user/package:a:aaa111')
+
+        with pytest.raises(command.CommandException):
+            command.parse_package_extended('foo:bar:baz')
+

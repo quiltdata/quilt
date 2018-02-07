@@ -8,7 +8,7 @@
 * `quilt push [--public] USER/PACKAGE` stores the package in the registry
  * Quilt's Free tier supports only `push --public`
  * A `README.md` file is recommended at the root of your package. README files use markdown syntax via [remarkable](https://jonschlinkert.github.io/remarkable/demo/).
-* `quilt install [-x HASH | -v VERSION | -t TAG] [USER/PACKAGE or @FILENAME]` installs a package.
+* `quilt install [-x HASH | -v VERSION | -t TAG] [USER/PACKAGE[/SUBPATH...] or @QUILT_YML_FILE]` installs a package.
 * `quilt generate [DIRECTORY]` creates a build.yml file from a directory of files.  You can customize this before running `quilt build` and `quilt push`.
 * `quilt rm [USER/PACKAGE] [--force]`  Remove a package (all instances/versions) from the local store.
 
