@@ -338,12 +338,6 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     assert user
                     email = data['email']
                     is_admin = data.get('is_staff', False)
-                    if require_admin and not is_admin:
-                        raise ApiException(
-                            requests.codes.forbidden,
-                            "Must be authenticated as an admin to use this endpoint."
-                            )
-
                     g.auth = Auth(user, email, is_admin)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
@@ -355,6 +349,13 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                         raise ApiException(requests.codes.server_error, "Server error")
                 except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
+
+            if require_admin and (not g.auth or not g.auth.is_admin):
+                raise ApiException(
+                    requests.codes.forbidden,
+                    "Must be authenticated as an admin to use this endpoint."
+                    )
+
             return f(*args, **kwargs)
         return wrapper
     return innerdec
