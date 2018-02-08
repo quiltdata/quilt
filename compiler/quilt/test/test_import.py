@@ -210,15 +210,17 @@ class ImportTest(QuiltTestCase):
             with self.assertRaises(ImportError):
                 from quilt.data.nonexisting import multiple2
 
+        # TODO: these tests might be useful in case there will be an easy way to change
+        # default build folder
         # check that invalid folder names fail
-        bad_build_dir = '?\*;:|<>'
-        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
-            with self.assertRaises(AssertionError):
-                command.build('bar/multiple1', simple_build_path)
-        bad_build_dir = ''
-        with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
-            with self.assertRaises(AssertionError):
-                command.build('bar/multiple1', simple_build_path)
+        # bad_build_dir = '?\*;:|<>'
+        # with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+        #     with self.assertRaises(AssertionError):
+        #         command.build('bar/multiple1', simple_build_path)
+        # bad_build_dir = ''
+        # with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+        #     with self.assertRaises(AssertionError):
+        #         command.build('bar/multiple1', simple_build_path)
 
     def test_save(self):
         mydir = os.path.dirname(__file__)
