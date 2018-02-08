@@ -84,7 +84,7 @@ s3_client = boto3.client(
 )
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
-HAVE_PAYMENTS = stripe.api_key is not None
+HAVE_PAYMENTS = bool(stripe.api_key)
 
 
 class QuiltCli(httpagentparser.Browser):
