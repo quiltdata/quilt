@@ -144,20 +144,21 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
         for child_name, child_table in groups.items():
             if glob.has_magic(child_name):
-                # child_name is a glob string
-                for node_name, node_table in _gen_glob_data(build_dir, child_name, child_table):
-                    _build_node(build_dir, package, name + '/' + node_name, node_table, fmt,
-                                checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                # child_name is a glob string, use it to generate multiple child nodes
+                for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
+                    full_gchild_name = name + '/' + gchild_name if name else gchild_name
+                    _build_node(build_dir, package, full_gchild_name, gchild_table, fmt,
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
-                _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
+                full_child_name = name + '/' + child_name if name else child_name
+                _build_node(build_dir, package, full_child_name, child_table, fmt,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if name.strip('/') in package:
-            name = name.strip('/')
-            raise BuildException("Naming conflict: {!r} has been added to the package more than once".format(name))
+        if name in package:
+            raise BuildException("Naming conflict: {!r} added to package more than once".format(name))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
