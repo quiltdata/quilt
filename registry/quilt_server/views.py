@@ -287,11 +287,14 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None, enabled=True):
+def api(require_login=True, schema=None, enabled=True, require_admin=False):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
     """
+    if require_admin:
+        require_login=True
+
     if schema is not None:
         Draft4Validator.check_schema(schema)
         validator = Draft4Validator(schema)
@@ -335,7 +338,6 @@ def api(require_login=True, schema=None, enabled=True):
                     assert user
                     email = data['email']
                     is_admin = data.get('is_staff', False)
-
                     g.auth = Auth(user, email, is_admin)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
@@ -347,6 +349,13 @@ def api(require_login=True, schema=None, enabled=True):
                         raise ApiException(requests.codes.server_error, "Server error")
                 except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
+
+            if require_admin and not g.auth.is_admin:
+                raise ApiException(
+                    requests.codes.forbidden,
+                    "Must be authenticated as an admin to use this endpoint."
+                    )
+
             return f(*args, **kwargs)
         return wrapper
     return innerdec
@@ -864,15 +873,9 @@ def user_packages(owner):
     )
 
 @app.route('/api/admin/package_list/<owner>/', methods=['GET'])
-@api(require_login=True)
+@api(require_login=True, require_admin=True)
 @as_json
 def list_user_packages(owner):
-    if not g.auth.is_admin:
-        raise ApiException(
-            requests.codes.forbidden,
-            "Must be authenticated as an admin to use this endpoint."
-            )
-
     packages = (
         db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .filter_by(owner=owner)
@@ -1590,7 +1593,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_users():
     auth_headers = {
@@ -1615,7 +1618,7 @@ def list_users():
     return resp.json()
 
 @app.route('/api/users/create', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def create_user():
     auth_headers = {
@@ -1670,7 +1673,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1707,7 +1710,7 @@ def disable_user():
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
-@api(enabled=False)
+@api(enabled=False, require_admin=True)
 @as_json
 def delete_user():
     auth_headers = {
@@ -1738,12 +1741,9 @@ def delete_user():
     return resp.json()
 
 @app.route('/api/audit/<owner>/<package_name>/')
-@api()
+@api(require_admin=True)
 @as_json
 def audit_package(owner, package_name):
-    if not g.auth.is_admin:
-        raise ApiException(requests.codes.forbidden, "Not allowed")
-
     events = (
         Event.query
         .filter_by(package_owner=owner, package_name=package_name)
@@ -1762,12 +1762,9 @@ def audit_package(owner, package_name):
     )
 
 @app.route('/api/audit/<user>/')
-@api()
+@api(require_admin=True)
 @as_json
 def audit_user(user):
-    if not g.auth.is_admin:
-        raise ApiException(requests.codes.forbidden, "Not allowed")
-
     events = (
         Event.query
         .filter_by(user=user)
