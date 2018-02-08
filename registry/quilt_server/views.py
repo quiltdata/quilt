@@ -350,7 +350,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
 
-            if require_admin and (not g.auth or not g.auth.is_admin):
+            if require_admin and not g.auth.is_admin:
                 raise ApiException(
                     requests.codes.forbidden,
                     "Must be authenticated as an admin to use this endpoint."
