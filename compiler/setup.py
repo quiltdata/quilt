@@ -51,7 +51,7 @@ setup(
         'xlrd>=1.0.0',
     ],
     extras_require={
-        # Use: pip install --editable ../../Work/Quilt/quilt/compiler[tests]
+        # Use: pip install --editable ./[tests]
         'tests': [
             'funcsigs; python_version<"3.4"',   # stdlib backport
             'mock; python_version<"3.3"',
