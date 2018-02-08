@@ -13,6 +13,7 @@ APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
+PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 
 
 class FileWithReadProgress(Iterator):
@@ -108,16 +109,18 @@ def sub_files(path, invisible=False):
     return files
 
 
-def is_identifier(string):
+def is_identifier(string, permit_keyword=False):
     """Check if string could be a valid python identifier
 
     :param string: string to be tested
+    :param permit_keyword [False]: If True, allow string to be a Python keyword
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
-    # cached by python
-    val = re.match(r'^[a-zA-Z_]\w*$', string) and not keyword.iskeyword(string)
-    return bool(val)
+    matched = PYTHON_IDENTIFIER_RE.match(string)
+    if permit_keyword:
+        return bool(matched)
+    return bool(matched and not is_keyword(string))
 
 
 def is_nodename(string):
@@ -129,9 +132,10 @@ def is_nodename(string):
     :returns: True if string could be used as a node name, False otherwise
     :rtype: bool
     """
+    ## Currently a node name has the following characteristics:
+    # * Must be a python identifier
+    # * May be a python keyword
+    # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return is_identifier(string)
-
-
-
+    return bool(PYTHON_IDENTIFIER_RE.match(string))

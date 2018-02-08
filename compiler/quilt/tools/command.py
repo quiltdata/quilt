@@ -97,11 +97,11 @@ def parse_package_extended(identifier):
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    full_name, hash, version, tag = match.groups()
+    full_name, pkg_hash, version, tag = match.groups()
     team, user, name, subpath = parse_package(full_name, allow_subpath=True)
 
     # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, hash, version, tag)
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
     try:
@@ -113,9 +113,9 @@ def parse_package(name, allow_subpath=False):
         (owner, pkg), subpath = values[:2], values[2:]
         if not owner or not pkg:
             # Make sure they're not empty.
-            raise ValueError()
+            raise ValueError
         if subpath and not allow_subpath:
-            raise ValueError()
+            raise ValueError
 
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
@@ -361,6 +361,15 @@ def _match_hash(session, team, owner, pkg, hash):
             .format(**locals()))
     raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
 
+def _find_logged_in_team():
+    """
+    Find a team name in the auth credentials.
+    There should be at most one, since we don't allow multiple team logins.
+    """
+    contents = _load_auth()
+    auth = next(itervalues(contents), {})
+    return auth.get('team')
+
 def _check_team_login(team):
     """
     Disallow simultaneous public cloud and team logins.
@@ -396,9 +405,9 @@ def login(team=None):
     print()
     refresh_token = input("Enter the code from the webpage: ")
 
-    login_with_token(team, refresh_token)
+    login_with_token(refresh_token, team)
 
-def login_with_token(team, refresh_token):
+def login_with_token(refresh_token, team=None):
     """
     Authenticate using an existing token.
     """
@@ -647,12 +656,13 @@ def push(package, public=False, team=False, reupload=False):
 
     pkghash = pkgobj.get_hash()
 
-    def _push_package(dry_run=False):
+    def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             public=public,
             contents=pkgobj.get_contents(),
-            description=""  # TODO
+            description="",  # TODO
+            sizes=sizes
         ), default=encode_node)
 
         compressed_data = gzip_compress(data.encode('utf-8'))
@@ -677,9 +687,10 @@ def push(package, public=False, team=False, reupload=False):
     obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
     total = len(obj_queue)
 
-    total_bytes = 0
-    for obj_hash in obj_queue:
-        total_bytes += os.path.getsize(pkgobj.get_store().object_path(obj_hash))
+    obj_sizes = {
+        obj_hash: os.path.getsize(pkgobj.get_store().object_path(obj_hash)) for obj_hash in obj_queue
+    }
+    total_bytes = sum(itervalues(obj_sizes))
 
     uploaded = []
     lock = Lock()
@@ -760,7 +771,8 @@ def push(package, public=False, team=False, reupload=False):
         raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
-    _push_package()
+    resp = _push_package(sizes=obj_sizes)
+    package_url = resp.json()['package_url']
 
     print("Updating the 'latest' tag...")
     session.put(
@@ -776,13 +788,11 @@ def push(package, public=False, team=False, reupload=False):
     )
 
     if team is None:
-        url = "https://quiltdata.com/package/%s/%s" % (owner, pkg)
         teamstr = ""
     else:
-        url = "https://%s.team.quiltdata.com/package/%s/%s" % (team, owner, pkg)
-        teamstr = "%s:" % (team)
+        teamstr = "%s:" % (team,)
 
-    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, url))
+    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, package_url))
 
 def version_list(package):
     """
@@ -986,6 +996,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     dataset = response.json(object_hook=decode_node)
     response_urls = dataset['urls']
     response_contents = dataset['contents']
+    obj_sizes = dataset['sizes']
 
     # Verify contents hash
     if pkghash != hash_contents(response_contents):
@@ -995,13 +1006,15 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     obj_queue = sorted(iteritems(response_urls), reverse=True)
     total = len(obj_queue)
+    # Some objects might be missing a size; ignore those for now.
+    total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
 
     downloaded = []
     lock = Lock()
 
-    print("Downloading %d fragments..." % total)
+    print("Downloading %d fragments (%d bytes before compression)..." % (total, total_bytes))
 
-    with tqdm(total=total, unit='obj') as progress:
+    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
         def _worker_thread():
             with _create_s3_session() as s3_session:
                 while True:
@@ -1009,11 +1022,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
                         if not obj_queue:
                             break
                         obj_hash, url = obj_queue.pop()
+                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
 
                     local_filename = store.object_path(obj_hash)
                     if os.path.exists(local_filename):
                         with lock:
-                            progress.update(1)
+                            progress.update(original_size)
                             downloaded.append(obj_hash)
                         continue
 
@@ -1034,7 +1048,10 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                 )
 
                                 # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                                if response.status_code != requests.codes.RANGE_NOT_SATISFIABLE:
+                                if response.status_code == requests.codes.RANGE_NOT_SATISFIABLE:
+                                    with lock:
+                                        progress.update(original_size)
+                                else:
                                     if not response.ok:
                                         message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
                                             obj_hash, response.request.url, response.status_code, response.text
@@ -1057,8 +1074,23 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                             tqdm.write("Unexpected Content-Range: %s" % content_range)
                                         break
 
+                                    compressed_size = int(match.group(3))
+
+                                    # We may have started with a partially-downloaded file, so update the progress bar.
+                                    compressed_read = starting_length
+                                    original_read = compressed_read * original_size // compressed_size
+                                    with lock:
+                                        progress.update(original_read)
+                                    original_last_update = original_read
+
+                                    # Do the actual download.
                                     for chunk in response.iter_content(CHUNK_SIZE):
                                         output_file.write(chunk)
+                                        compressed_read += len(chunk)
+                                        original_read = compressed_read * original_size // compressed_size
+                                        with lock:
+                                            progress.update(original_read - original_last_update)
+                                        original_last_update = original_read
 
                                 success = True
                                 break  # Done!
@@ -1097,7 +1129,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
                     # Success.
                     with lock:
-                        progress.update(1)
                         downloaded.append(obj_hash)
 
         threads = [
@@ -1220,14 +1251,24 @@ def delete(package):
     session.delete("%s/api/package/%s/%s/" % (get_registry_url(team), owner, pkg))
     print("Deleted.")
 
-def search(query):
+def search(query, team=None):
     """
     Search for packages
     """
-    team = None  # TODO
-    session = _get_session(team)
-    response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+    if team is None:
+        team = _find_logged_in_team()
 
+    if team is not None:
+        session = _get_session(team)
+        response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
+        print("--- Packages in team %s ---" % team)
+        packages = response.json()['packages']
+        for pkg in packages:
+            print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
+        print("--- Packages in public cloud ---")
+
+    public_session = _get_session(None)
+    response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
@@ -1300,6 +1341,67 @@ def rm(package, force=False):
     for obj in deleted:
         print("Removed: {0}".format(obj))
 
+def list_users(team=None):
+    # get team from disk if not specified
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list' % url)
+    return resp.json()
+
+def create_user(username, email, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/create' % url,
+            data=json.dumps({'username':username, 'email':email}))
+
+def list_packages(username, team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/admin/package_list/%s' % (url, username))
+    return resp.json()
+
+def disable_user(username, team):
+    # get team from disk if not specified
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/disable' % url,
+            data=json.dumps({'username':username}))
+
+def delete_user(username, team, force=False):
+    # get team from disk if not specified
+    if not force:
+        confirmed = input("Really delete user '{0}'? (y/n)".format(username))
+        if confirmed.lower() != 'y':
+            return
+
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
+
+def audit(user_or_package):
+    parts = user_or_package.split('/')
+    if len(parts) > 2 or not all(is_nodename(part) for part in parts):
+        raise CommandException("Need either a user or a user/package")
+
+    team = _find_logged_in_team()
+    if not team:
+        raise CommandException("Not logged in as a team user")
+
+    session = _get_session(team)
+    response = session.get(
+        "{url}/api/audit/{user_or_package}/".format(
+            url=get_registry_url(team),
+            user_or_package=user_or_package
+        )
+    )
+
+    print(json.dumps(response.json(), indent=2))
+
 def _load(package):
     info = parse_package_extended(package)
     team, user, name = info.team, info.user, info.name
@@ -1341,7 +1443,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # TODO: (future) support dataframes (not too painful, probably)
 
     ## Helpers
-    # Should this function or something similar actually be GroupNode.__getitem__()?
+    # TODO: Change this over to `node.Node` item notation once implemented
     def get_node_child_by_path(node, path):
         """get a node's children by path list or string: 'foo', 'foo/bar/baz' or ['foo', 'bar', 'baz']
         :returns: Child Node

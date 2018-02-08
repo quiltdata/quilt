@@ -86,23 +86,28 @@ removal (or incompatible additions) on the API side.
 # it will eventually occur.
 # Fixing this improves our coverage, but might be somewhat complex.
 
-import os
-import sys
-import json
-import signal
-import inspect
 import collections
-from time import sleep
+import inspect
+import json
+import os
+import pkg_resources
+import signal
+import sys
+
 from subprocess import check_output, CalledProcessError, Popen, PIPE
+from time import sleep
 
 import pytest
-from six import string_types
+from six import string_types, PY2
 
 from ..tools.const import EXIT_KB_INTERRUPT
 from .utils import BasicQuiltTestCase
 
 # inspect.argspec is deprecated, so
-from ..tools.compat import signature
+try:
+    from funcsigs import signature  # python 2.7
+except ImportError:
+    from inspect import signature
 
 
 ## "Static" vars
@@ -135,6 +140,8 @@ KNOWN_PARAMS = [
     [0, 'access', 0, 'remove'],
     [0, 'access', 0, 'remove', 0],
     [0, 'access', 0, 'remove', 1],
+    [0, 'audit'],
+    [0, 'audit', 0],
     [0, 'build'],
     [0, 'build', 0],
     [0, 'build', 1],
@@ -186,6 +193,21 @@ KNOWN_PARAMS = [
     [0, 'tag', 0, 'remove'],
     [0, 'tag', 0, 'remove', 0],
     [0, 'tag', 0, 'remove', 1],
+    [0, 'user'],
+    [0, 'user', 0],
+    [0, 'user', 0, 'create'],
+    [0, 'user', 0, 'create', 0],
+    [0, 'user', 0, 'create', 1],
+    [0, 'user', 0, 'create', 2],
+    [0, 'user', 0, 'delete'],
+    [0, 'user', 0, 'delete', 0],
+    [0, 'user', 0, 'delete', '-f'],
+    [0, 'user', 0, 'delete', 1],
+    [0, 'user', 0, 'disable'],
+    [0, 'user', 0, 'disable', 0],
+    [0, 'user', 0, 'disable', 1],
+    [0, 'user', 0, 'list'],
+    [0, 'user', 0, 'list', 0],
     [0, 'version'],
     [0, 'version', 0],
     [0, 'version', 0, 'add'],
@@ -603,17 +625,9 @@ class TestCLI(BasicQuiltTestCase):
         ## This section tests for acceptable types and values.
         # plain login
         cmd = ['login']
-        result = self.execute(cmd)
-
-        # General tests
-        # TODO: update this to use self.execute_with_checks once merged
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
+        result = self.execute_with_checks(cmd, funcname='login')
 
         # Specific tests
-        assert result['func'] == 'login'
-        assert not result['args']
         assert result['kwargs']['team'] is None
 
         # login with team name
@@ -646,17 +660,7 @@ class TestCLI(BasicQuiltTestCase):
 
         ## This section tests for acceptable types and values.
         cmd = ['logout']
-        result = self.execute(cmd)
-
-        # General tests
-        # TODO: update this to use self.execute_with_checks once merged
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
-
-        # Specific tests
-        assert result['func'] == 'logout'
-        assert not result['args']
+        result = self.execute_with_checks(cmd, funcname='logout')
 
     def test_cli_command_push(self):
         ## This test covers the following arguments that require testing
@@ -685,7 +689,6 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
-        assert not result['args']
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': False,
@@ -700,7 +703,6 @@ class TestCLI(BasicQuiltTestCase):
         result = self.execute_with_checks(cmd, funcname='push')
 
         # Specific tests
-        assert not result['args']
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
@@ -813,6 +815,29 @@ class TestCLI(BasicQuiltTestCase):
 
 
 # need capsys, so this isn't in the unittest class
+def test_cli_command_version_flag(capsys):
+    """Tests that `quilt --version` is working"""
+    TESTED_PARAMS.append(['--version'])
+
+    from quilt.tools.main import main
+
+    with pytest.raises(SystemExit):
+        main(['--version'])
+    outerr = capsys.readouterr()
+
+    # there's not a lot to test here -- this literally just does the same thing
+    # that 'quilt --version' does, but this at least ensures that it still
+    # exists and still produces the expected result.
+    dist = pkg_resources.get_distribution('quilt')
+    expectation = "quilt {} ({})\n".format(dist.version, dist.egg_name())
+
+    # in python 2, apparently argparse's 'version' handler prints to stderr.
+    result = outerr.err if PY2 else outerr.out
+
+    assert expectation == result
+
+
+# need capsys, so this isn't in the unittest class
 def test_cli_command_in_help(capsys):
     """Tests for inclusion in 'help'
 
@@ -836,10 +861,8 @@ def test_cli_command_in_help(capsys):
         if isinstance(argpath[1], string_types):
             expected_params.add(argpath[1])
 
-    try:
+    with pytest.raises(SystemExit):
         main(['help'])
-    except SystemExit:
-        pass
 
     outerr = capsys.readouterr()
     lines = outerr.out.split('\n')

@@ -13,21 +13,7 @@ import frequently-used objects here for convenience.
 import sys as _sys
 
 
-# Reflecting requirements in setup.py
-# Python < 3.4
-if _sys.version_info < (3, 4):
-    from funcsigs import signature  # inspect.argspec is deprecated
-else:
-    from inspect import signature   # inspect.argspec is deprecated
-
-# Python < 3.5
-if _sys.version_info < (3, 5):
+if _sys.version_info < (3, 6):
     import pathlib2 as pathlib
 else:
     import pathlib
-
-
-# Example convenience references to allow `from .tools.compat import some_obj`
-
-# patch = mock.patch
-# Path = pathlib.Path
