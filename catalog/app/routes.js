@@ -85,7 +85,7 @@ export default function createRoutes(store) {
       getComponent: loadRoute(() =>
         import('components/Redirect')
         .then(getDefault)
-        .then(withProps({ url: 'https://app.quiltdata.com/grna-search/' }))
+        .then(withProps({ url: 'https://blog.quiltdata.com/designing-crispr-sgrnas-in-python-cd693674237d' }))
       ),
     }, {
       path: '/profile',
