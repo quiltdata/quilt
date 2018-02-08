@@ -409,7 +409,7 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                 existing_name = safename_to_name.get(new_safename)
                 if existing_name is not None:
                     raise BuildException(
-                        "Duplicate node names in directory %s. %r was renamed to %r, which overlaps with %r" % (
+                        "Duplicate node names in directory %r. %r was renamed to %r, which overlaps with %r" % (
                         dir_path, name, new_safename, existing_name)
                     )
                 safename_to_name[new_safename] = name
