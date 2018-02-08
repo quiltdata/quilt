@@ -7,11 +7,14 @@ import tempfile
 
 import pandas as pd
 
+from .compat import pathlib
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
                    FileNode, RootNode, GroupNode, TableNode,
                    PackageFormat)
 from .hashing import digest_file
+from .util import is_nodename
+
 
 ZLIB_LEVEL = 2
 CHUNK_SIZE = 4096
@@ -75,30 +78,51 @@ class Package(object):
         self._contents = contents
 
     def __getitem__(self, item):
-        node = self.get_contents()
+        """Get a (core) node from this package.
 
-        if '/' in item and '.' in item:
-            raise ValueError("Invalid name: expected delimiter of '.' or '/', not both for {!r}".format(item))
-        if '.' in item:
-            parts = item.split('.')
-        elif '/' in item:
-            parts = item.split('/')
-        else:
-            parts = [item]
+        Usage:
+            p['item']
+            p['path/item]
+
+        :param item: Node name or path, as in "node" or "node/subnode".
+        """
+        node = self.get_contents()
+        path = pathlib.PurePosixPath(item)
+
+        # checks
+        if not item:    # No blank node names.
+            raise TypeError("Invalid node reference: Blank node names not permitted.")
+        if path.anchor:
+            raise TypeError("Invalid node reference: Absolute path.  Remove prefix {!r}".format(path.anchor))
 
         try:
-            for part in parts[:-1]:
+            count = 0
+            for part in path.parts:
+                if not is_nodename(part):
+                    raise TypeError("Invalid node name: {!r}".format(part))
                 node = node.children[part]
-
-            return node.children[parts[-1]]
-        except (KeyError, AttributeError):
-            raise KeyError(item)
+                count += 1
+            return node
+        except KeyError:
+            traversed = '/'.join(path.parts[:count])
+            raise KeyError(traversed, path.parts[count])
+        except AttributeError:
+            traversed = '/'.join(path.parts[:count])
+            raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
 
     def __contains__(self, item):
+        """Check package contains a specific node name or node path.
+
+        Usage:
+            'item' in p
+            'path/item' in p
+
+        :param item: Node name or path, as in "node" or "node/subnode".
+        """
         try:
             self[item]  #pylint: disable=W0104
             return True
-        except (KeyError, ValueError):
+        except (KeyError, TypeError):
             return False
 
     def _load_contents(self, instance_hash=None):
