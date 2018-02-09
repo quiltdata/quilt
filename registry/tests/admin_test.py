@@ -71,11 +71,11 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         data = json.loads(resp.get_data()).get('events')
-        assert(len(data) == 3)
+        assert len(data) == 3
         for event in data:
-            assert(event.get('type') == 'PUSH')
-            assert(event.get('package_owner') == self.user)
-            assert(event.get('user') == self.user)
+            assert event['type'] == 'PUSH'
+            assert event['package_owner'] == self.user
+            assert event['user'] == self.user
 
         self.put_package(self.user, self.pkg, self.contents_list[0])
         resp = self.app.get(
@@ -87,7 +87,7 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         data = json.loads(resp.get_data()).get('events')
-        assert(len(data) == 4)
+        assert len(data) == 4
         pass
 
     def testAuditPackage(self):
@@ -102,11 +102,11 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         data = json.loads(resp.get_data()).get('events')
-        assert(len(data) == 3)
+        assert len(data) == 3
         for event in data:
-            assert(event.get('type') == 'PUSH')
-            assert(event.get('package_owner') == self.user)
-            assert(event.get('user') == self.user)
+            assert event.get('type') == 'PUSH'
+            assert event.get('package_owner') == self.user
+            assert event.get('user') == self.user
 
         self.put_package(self.user, self.pkg, self.contents_list[0])
         resp = self.app.get(
@@ -119,7 +119,7 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         data = json.loads(resp.get_data()).get('events')
-        assert(len(data) == 4)
+        assert len(data) == 4
 
         self.put_package(self.user, self.pkg + '2', self.contents_list[0])
         resp = self.app.get(
@@ -132,7 +132,7 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         data = json.loads(resp.get_data()).get('events')
-        assert(len(data) == 4)
+        assert len(data) == 4
         pass
 
     def testAdminListUserUI(self):
