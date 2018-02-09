@@ -1650,19 +1650,16 @@ def list_users_detailed():
 
     users = requests.get(user_list_api, headers=auth_headers).json()
 
-    results = {}
-    for user in users.get('results'):
-        results[user.get('username')] = { 'last_seen' : user.get('last_login') }
-
-    for username, result in results.items():
-        result['packages'] = package_counts.get(username, 0)
-        if username in event_results:
-            result['installs'] = event_results[username]['installs']
-            result['previews'] = event_results[username]['previews']
-        else:
-            result['installs'] = 0
-            result['previews'] = 0
-
+    results = {
+        user.get('username') : {
+            'packages' : package_counts.get(user.get('username'), 9),
+            'installs' : event_results[user.get('username')]['installs']
+                if user.get('username') in event_results else 0,
+            'previews' : event_results[user.get('username')]['previews']
+                if user.get('username') in event_results else 0,
+            }
+        for user in users.get('results')
+    }
 
 
     return results
