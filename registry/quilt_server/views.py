@@ -1657,6 +1657,7 @@ def list_users_detailed():
                 if user.get('username') in event_results else 0,
             'previews' : event_results[user.get('username')]['previews']
                 if user.get('username') in event_results else 0,
+            'status' : 'active' if user.get('is_active') == True else 'disabled'
             }
         for user in users.get('results')
     }
