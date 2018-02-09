@@ -1652,7 +1652,7 @@ def list_users_detailed():
 
     results = {
         user.get('username') : {
-            'packages' : package_counts.get(user.get('username'), 9),
+            'packages' : package_counts.get(user.get('username'), 0),
             'installs' : event_results[user.get('username')]['installs']
                 if user.get('username') in event_results else 0,
             'previews' : event_results[user.get('username')]['previews']
