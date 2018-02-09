@@ -90,6 +90,7 @@ services:
       - AUTH_URL=http://auth:5002
       - OAUTH_WEB_APPLICATION=Quilt
       - QUILT_PKG_URL=http://flask:5000
+      - DISABLE_SIGNUP    
     depends_on:
       db:
         condition: service_healthy
