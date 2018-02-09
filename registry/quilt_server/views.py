@@ -1630,16 +1630,12 @@ def list_users_detailed():
 
     events = (
         db.session.query(Event.user, Event.type, sa.func.count(Event.type))
-        .filter(Event.type.in_([Event.Type.INSTALL, Event.Type.PREVIEW]))
         .group_by(Event.user, Event.type)
         )
 
-    event_results = defaultdict(lambda: defaultdict(int))
+    event_results = defaultdict(int)
     for event_user, event_type, event_count in events:
-        if event_type == Event.Type.INSTALL:
-            event_results[event_user]["installs"] = event_count
-        elif event_type == Event.Type.PREVIEW:
-            event_results[event_user]["previews"] = event_count
+        event_results[(event_user, event_type)] = event_count
 
     # replicate code from list_users since endpoints aren't callable from each other
     auth_headers = {
@@ -1651,17 +1647,16 @@ def list_users_detailed():
     users = requests.get(user_list_api, headers=auth_headers).json()
 
     results = {
-        user.get('username') : {
-            'packages' : package_counts.get(user.get('username'), 0),
-            'installs' : event_results[user.get('username')]['installs']
-                if user.get('username') in event_results else 0,
-            'previews' : event_results[user.get('username')]['previews']
-                if user.get('username') in event_results else 0,
-            'status' : 'active' if user.get('is_active') == True else 'disabled'
+        user['username'] : {
+            'packages' : package_counts.get(user['username'], 0),
+            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
+            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
+            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
+            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
+            'status' : 'active' if user['is_active'] else 'disabled'
             }
-        for user in users.get('results')
+        for user in users['results']
     }
-
 
     return results
 
