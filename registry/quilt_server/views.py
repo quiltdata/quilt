@@ -1617,6 +1617,53 @@ def list_users():
 
     return resp.json()
 
+@app.route('/api/users/list_detailed', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_users_detailed():
+    package_counts_query = db.session.query(Package.owner, sa.func.count(Package.owner)).group_by(Package.owner)
+    package_counts = {}
+    for user in package_counts_query:
+        package_counts[user[0]] = user[1]
+
+    events = db.session.query(Event.user, Event.type, sa.func.count(Event.type)
+            ).filter(Event.type.in_([Event.Type.INSTALL, Event.Type.PREVIEW])
+            ).group_by(Event.user, Event.type)
+
+    event_results = {}
+    for item in events:
+        if event_results.get(item[0]) is None:
+            event_results[item[0]] = { 'installs':0, 'previews':0 }
+        if item[1] == 2:
+            event_results[item[0]]["installs"] = event_results[item[0]]["installs"] + item[2]
+        elif item[1] == 3:
+            event_results[item[0]]["previews"] = event_results[item[0]]["previews"] + item[2]
+
+    # replicate code from list_users since endpoints aren't callable from each other
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
+
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+
+    users = requests.get(user_list_api, headers=auth_headers).json()
+
+    results = {}
+    for user in users.get('results'):
+        results[user.get('username')] = { 'last_seen' : user.get('last_login') }
+
+    for username in results.keys():
+        results[username]['packages'] = package_counts.get(username, 0)
+        if username in event_results:
+            results[username]['installs'] = event_results[username]['installs']
+            results[username]['previews'] = event_results[username]['previews']
+        else:
+            results[username]['installs'] = 0
+            results[username]['previews'] = 0
+
+    return results
+
+
 @app.route('/api/users/create', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
