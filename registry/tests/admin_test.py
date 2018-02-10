@@ -170,4 +170,5 @@ class AdminTestCase(QuiltTestCase):
         assert user['pushes'] == 3
         assert user['packages'] == 1
         assert user['status'] == 'active'
+        assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
         pass
