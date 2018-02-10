@@ -103,7 +103,7 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data()).get('events')
+        data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 3
         for event in data:
             assert event.get('type') == 'PUSH'
@@ -120,7 +120,7 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data()).get('events')
+        data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
 
         self.put_package(self.user, self.pkg + '2', self.contents_list[0])
@@ -133,7 +133,7 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data()).get('events')
+        data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
         pass
 
@@ -163,9 +163,9 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data())
+        data = json.loads(resp.data.decode('utf8'))
         assert data['status'] == 200
-        user = data[self.user]
+        user = data['users'][self.user]
         assert user['installs'] == 0
         assert user['pushes'] == 3
         assert user['packages'] == 1

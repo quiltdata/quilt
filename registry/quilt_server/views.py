@@ -1659,7 +1659,7 @@ def list_users_detailed():
         for user in users['results']
     }
 
-    return results
+    return {'users' : results}
 
 
 @app.route('/api/users/create', methods=['POST'])
