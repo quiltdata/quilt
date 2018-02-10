@@ -12,11 +12,10 @@ import frequently-used objects here for convenience.
 
 import sys as _sys
 
-# XXX: This originally had a few modules, but I've managed to remove the others.
-#      I'm tentatively still keeping compat.py, otherwise the try: except: block ends up in
-#      each module's import stanzas, instead of 'from compat import pathlib'.
 
+# Reflecting requirements in setup.py
+# Python < 3.6
 if _sys.version_info < (3, 6):
-    from pathlib2 import path
+    import pathlib2 as pathlib
 else:
-    from pathlib import path
+    import pathlib
