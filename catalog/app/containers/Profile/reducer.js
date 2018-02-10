@@ -46,8 +46,8 @@ function profileReducer(state = initialState, action) {
         .setIn(['payment', 'response'], fromJS(action.response));
     case UPDATE_PLAN:
       return state.setIn(['plan', 'status'], status.WAITING)
-        .deleteIn(['plan', 'error']);
         // don't delete plan.response else UI dropdown goes blank
+        .deleteIn(['plan', 'error']);
     case UPDATE_PLAN_ERROR:
       return state.setIn(['plan', 'status'], status.ERROR)
         .setIn(['plan', 'error'], fromJS(action.error));

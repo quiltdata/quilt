@@ -15,13 +15,13 @@ function Demo() {
       <Scroll>
         <HCenter>
           <iframe
+            title="Quilt Demo"
             width="560"
             height="315"
             src="https://www.youtube.com/embed/bKIV1GUVLPc"
             frameBorder="0"
             allowFullScreen
-          >
-          </iframe>
+          />
         </HCenter>
       </Scroll>
     </div>

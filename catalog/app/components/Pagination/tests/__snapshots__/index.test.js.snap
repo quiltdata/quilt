@@ -1,68 +1,82 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
 exports[`<Pagination /> when there are items for more than one page should match the snapshot 1`] = `
 <div>
   <list>
     <item
-      key="1">
+      key="1"
+    >
       1
     </item>
     <item
-      key="2">
+      key="2"
+    >
       2
     </item>
     <item
-      key="3">
+      key="3"
+    >
       3
     </item>
     <item
-      key="4">
+      key="4"
+    >
       4
     </item>
     <item
-      key="5">
+      key="5"
+    >
       5
     </item>
     <item
-      key="6">
+      key="6"
+    >
       6
     </item>
     <item
-      key="7">
+      key="7"
+    >
       7
     </item>
     <item
-      key="8">
+      key="8"
+    >
       8
     </item>
     <item
-      key="9">
+      key="9"
+    >
       9
     </item>
     <item
-      key="10">
+      key="10"
+    >
       10
     </item>
   </list>
-  <styled.div>
+  <Pagination__Controls>
     <withProps(IconButton)
       direction="left"
       disabled={true}
-      onClick={[Function]} />
+      onClick={[Function]}
+    />
     <withProps(IconButton)
       direction="right"
       disabled={false}
-      onClick={[Function]} />
-    <styled.span>
+      onClick={[Function]}
+    />
+    <Pagination__Pages>
       1
        
       <FormattedMessage
         defaultMessage="of"
         id="app.components.Pagination.of"
-        tagName="span"
-        values={Object {}} />
+        values={Object {}}
+      />
        
       2
-    </styled.span>
-  </styled.div>
+    </Pagination__Pages>
+  </Pagination__Controls>
 </div>
 `;
 

@@ -1,4 +1,5 @@
 /* Ellipsis - standard text truncation */
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -17,8 +18,8 @@ function Ellipsis({ children, title }) {
 }
 
 Ellipsis.propTypes = {
-  children: React.PropTypes.node,
-  title: React.PropTypes.string,
+  children: PropTypes.node,
+  title: PropTypes.string,
 };
 
 export default Ellipsis;

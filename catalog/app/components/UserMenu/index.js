@@ -3,7 +3,8 @@ import Divider from 'material-ui/Divider';
 import FlatButton from 'material-ui/FlatButton';
 import IconMenu from 'material-ui/IconMenu';
 import MenuItem from 'material-ui/MenuItem';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
 
@@ -18,6 +19,7 @@ const Container = styled.div`
 `;
 
 // TODO move this to a separate local component
+// eslint-disable-next-line object-curly-newline
 const UserMenu = ({ error, signedIn, name, waiting }) => {
   const inner = signedIn ? <AuthMenu name={name} />
     : <SignIn error={error} waiting={waiting} />;

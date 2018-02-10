@@ -8,12 +8,14 @@ const selectAuth = (state) => state.getIn(['app', 'user', 'auth'], emptyMap);
 const selectLocation = (state) => state.getIn(['app', 'location'], emptyMap);
 const selectPackage = (state) => state.getIn(['app', 'package'], emptyMap);
 const selectSearchText = (state) => state.getIn(['app', 'searchText'], '');
+// eslint-disable-next-line function-paren-newline
 const selectUserName = (state) => state.getIn(
   ['app', 'user', 'auth', 'response', 'current_user'], ''
-);
+); // eslint-disable-line function-paren-newline
+// eslint-disable-next-line function-paren-newline
 const selectEmail = (state) => state.getIn(
   ['app', 'user', 'auth', 'response', 'email'], ''
-);
+); // eslint-disable-line function-paren-newline
 
 const makeSelectAuth = () => createSelector(
   selectAuth,

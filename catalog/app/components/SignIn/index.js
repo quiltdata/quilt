@@ -1,7 +1,8 @@
 /* SignIn */
 import FlatButton from 'material-ui/FlatButton';
 import RaisedButton from 'material-ui/RaisedButton';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { FormattedMessage } from 'react-intl';
 
 import { makeSignInURL } from 'utils/auth';

@@ -1,4 +1,5 @@
-import React, { PropTypes as PT } from 'react';
+import PT from 'prop-types';
+import React from 'react';
 import { shallow } from 'enzyme';
 
 import Pagination from '../index';
@@ -29,17 +30,17 @@ describe('<Pagination />', () => {
   const items2pagesP1 = items2pages.slice(0, 10);
   // const items2pagesP2 = items2pages.slice(10, 20);
   // const items2pagesChanged = [
-    // { id: 2 },
-    // { id: 3 },
-    // { id: 4 },
-    // { id: 5 },
-    // { id: 6 },
-    // { id: 7 },
-    // { id: 8 },
-    // { id: 9 },
-    // { id: 10 },
-    // { id: 11 },
-    // { id: 12 },
+  //   { id: 2 },
+  //   { id: 3 },
+  //   { id: 4 },
+  //   { id: 5 },
+  //   { id: 6 },
+  //   { id: 7 },
+  //   { id: 8 },
+  //   { id: 9 },
+  //   { id: 10 },
+  //   { id: 11 },
+  //   { id: 12 },
   // ];
 
   const SimpleList = ({ items }) =>
@@ -52,15 +53,15 @@ describe('<Pagination />', () => {
   const render = (items, children = SimpleList) =>
     shallow(<Pagination items={items}>{children}</Pagination>)
       // dive into HoCs
-      .dive().dive().dive();
+      .dive().dive().dive().dive().dive();
 
   const controlsSel = 'FormattedMessage[id="app.components.Pagination.of"]';
 
   // TODO
   // const clickNext = (wrapper) =>
-    // wrapper.find('[direction="right"]').simulate('click');
+  //   wrapper.find('[direction="right"]').simulate('click');
   // const clickPrev = (wrapper) =>
-    // wrapper.find('[direction="left"]').simulate('click');
+  //   wrapper.find('[direction="left"]').simulate('click');
 
   describe('when there is 0 items', () => {
     it('should match the snapshot', () => {
@@ -112,23 +113,23 @@ describe('<Pagination />', () => {
 
   // TODO
   // describe('when next button is clicked', () => {
-    // describe('and there is next page', () => {
-      // it('should go to the next page', () => {
-      // });
-    // });
-    // describe('and there is no next page', () => {
-    // });
+  //   describe('and there is next page', () => {
+  //     it('should go to the next page', () => {
+  //     });
+  //   });
+  //   describe('and there is no next page', () => {
+  //   });
   // });
 
   // describe('when back button is clicked', () => {
-    // describe('and there is previous page', () => {
-    // });
-    // describe('and there is no previous page', () => {
-    // });
+  //   describe('and there is previous page', () => {
+  //   });
+  //   describe('and there is no previous page', () => {
+  //   });
   // });
 
   // describe('when the items prop gets changed', () => {
-    // it('should reset the page number', () => {
-    // });
+  //   it('should reset the page number', () => {
+  //   });
   // });
 });

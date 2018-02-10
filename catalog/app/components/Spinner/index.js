@@ -1,4 +1,5 @@
 /* Spinner */
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -17,8 +18,8 @@ function Spinner({ className, drop }) {
 }
 
 Spinner.propTypes = {
-  className: React.PropTypes.string,
-  drop: React.PropTypes.string,
+  className: PropTypes.string,
+  drop: PropTypes.string,
 };
 
 Spinner.defaultProps = {
