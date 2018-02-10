@@ -72,7 +72,7 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data()).get('events')
+        data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 3
         for event in data:
             assert event['type'] == 'PUSH'
@@ -88,7 +88,7 @@ class AdminTestCase(QuiltTestCase):
                 'Authorization': self.user
             }
         )
-        data = json.loads(resp.get_data()).get('events')
+        data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
 
     def testAuditPackage(self):
