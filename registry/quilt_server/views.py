@@ -4,6 +4,7 @@
 API routes.
 """
 
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
@@ -1616,6 +1617,50 @@ def list_users():
             )
 
     return resp.json()
+
+@app.route('/api/users/list_detailed', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_users_detailed():
+    package_counts_query = (
+        db.session.query(Package.owner, sa.func.count(Package.owner))
+        .group_by(Package.owner)
+        )
+    package_counts = dict(package_counts_query) 
+
+    events = (
+        db.session.query(Event.user, Event.type, sa.func.count(Event.type))
+        .group_by(Event.user, Event.type)
+        )
+
+    event_results = defaultdict(int)
+    for event_user, event_type, event_count in events:
+        event_results[(event_user, event_type)] = event_count
+
+    # replicate code from list_users since endpoints aren't callable from each other
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
+
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+
+    users = requests.get(user_list_api, headers=auth_headers).json()
+
+    results = {
+        user['username'] : {
+            'packages' : package_counts.get(user['username'], 0),
+            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
+            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
+            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
+            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
+            'status' : 'active' if user['is_active'] else 'disabled',
+            'last_seen' : user['last_login']
+            }
+        for user in users['results']
+    }
+
+    return {'users' : results}
+
 
 @app.route('/api/users/create', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
