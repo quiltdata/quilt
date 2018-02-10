@@ -90,7 +90,6 @@ class AdminTestCase(QuiltTestCase):
         )
         data = json.loads(resp.get_data()).get('events')
         assert len(data) == 4
-        pass
 
     def testAuditPackage(self):
         self._mock_admin()
@@ -135,7 +134,6 @@ class AdminTestCase(QuiltTestCase):
         )
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
-        pass
 
     def testAdminListUserUI(self):
         self._mock_admin()
@@ -171,4 +169,3 @@ class AdminTestCase(QuiltTestCase):
         assert user['packages'] == 1
         assert user['status'] == 'active'
         assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
-        pass
