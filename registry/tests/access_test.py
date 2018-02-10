@@ -86,6 +86,15 @@ class AccessTestCase(QuiltTestCase):
         invitations = json.loads(resp.data.decode('utf8'))['invitations']
         assert len(invitations) == 1
 
+        # test that receiver cannot read package before claiming invitation
+        resp = self.app.get(
+            self.pkgurl,
+            headers={
+                'Authorization': sharewithuser
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
+
         # Test that the receiver can claim the invitation
         resp = self.app.get(
             '/api/profile'.format(user=sharewithuser),
