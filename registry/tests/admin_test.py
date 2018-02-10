@@ -6,7 +6,9 @@ Admin feature tests
 
 import json
 import requests
+import responses
 
+import quilt_server
 from quilt_server.core import GroupNode, RootNode
 from .utils import QuiltTestCase
 
@@ -136,8 +138,36 @@ class AdminTestCase(QuiltTestCase):
         pass
 
     def testAdminListUserUI(self):
+        self._mock_admin()
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+        self.requests_mock.add(responses.GET, user_list_api, json.dumps({
+            'status': 200,
+            'count': 1,
+            'next': None,
+            'previous': None,
+            'results': [{
+                'username': self.user,
+                'id': 1,
+                'date_joined': '2018-01-14T19:33:27.656835Z',
+                'email': 'admin@quiltdata.io',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_active': True,
+                'last_login': '2018-01-14T19:33:27.656835Z'
+            }]
+            }))
+        resp = self.app.get(
+            '/api/users/list_detailed',
+            headers={
+                'Authorization': self.user
+            }
+        )
+        data = json.loads(resp.get_data())
+        assert data['status'] == 200
+        user = data[self.user]
+        assert user['installs'] == 0
+        assert user['pushes'] == 3
+        assert user['packages'] == 1
+        assert user['status'] == 'active'
         pass
-
-    # test user with no packages and some events
-    # test user with packages and no events
-    # test disabled users
