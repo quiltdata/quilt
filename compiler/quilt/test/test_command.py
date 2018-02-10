@@ -456,6 +456,46 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.list_users()
 
+    def test_user_list_detailed(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list_detailed' % command.get_registry_url(None),
+            status=200,
+            json=json.dumps({
+                'users': {
+                    'admin': {
+                        'packages': '1',
+                        'installs': {'admin': '1'},
+                        'previews': {'admin': '1'},
+                        'pushes': {'admin': '1'},
+                        'deletes': {'admin': '1'},
+                        'status': 'active',
+                        'last_seen': ''
+                    }
+                }
+            }))
+        command.list_users_detailed()
+
+    def test_user_detailed_list_no_auth(self):
+        self._mock_error('users/list_detailed', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_no_admin(self):
+        self._mock_error('users/list_detailed', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_not_found(self):
+        self._mock_error('users/list_detailed', status=404, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_server_error(self):
+        self._mock_error('users/list_detailed', status=500, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
     def test_user_create(self):
         self.requests_mock.add(
             responses.POST,

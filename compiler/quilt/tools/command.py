@@ -1347,6 +1347,14 @@ def list_users(team=None):
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
+def list_users_detailed(team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list_detailed' % url)
+    return resp.json()
+
 def create_user(username, email, team):
     # get team from disk if not specified
     session = _get_session(team)
