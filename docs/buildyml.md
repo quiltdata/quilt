@@ -33,7 +33,7 @@ Example `build.yml`:
 ``` yaml
 contents:
   data_example:     # create a node named 'data_example'
-    transform: csv  # Read file as csv 
+    transform: csv  # Read files using csv reader
     kwargs:         # optional
       header:       # optional: no header row
       sep: ","      # optional: set field separator
