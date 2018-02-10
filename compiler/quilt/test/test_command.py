@@ -42,6 +42,12 @@ CRUD related:
         - no auth
         - no team
         - not admin
+    6. users/list_detailed
+        - OK
+        - no auth
+        - no admin
+        - not found
+        - server error
 """
 # Disable no-self-use, protected-access, too-many-public-methods
 # pylint: disable=R0201, W0212, R0904
@@ -482,7 +488,7 @@ class CommandTest(QuiltTestCase):
             command.list_users_detailed()
 
     def test_user_detailed_list_no_admin(self):
-        self._mock_error('users/list_detailed', status=401, method=responses.GET)
+        self._mock_error('users/list_detailed', status=403, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.list_users_detailed()
 
