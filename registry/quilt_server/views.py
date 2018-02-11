@@ -1185,7 +1185,7 @@ def tag_list(owner, package_name):
 @api()
 @as_json
 def access_put(owner, package_name, user):
-    _validate_username(user)
+    # _validate_username(user)
 
     if g.auth.user != owner:
         raise ApiException(
