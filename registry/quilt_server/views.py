@@ -1185,8 +1185,6 @@ def tag_list(owner, package_name):
 @api()
 @as_json
 def access_put(owner, package_name, user):
-    # _validate_username(user)
-
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1232,6 +1230,7 @@ def access_put(owner, package_name, user):
         return dict()
 
     else:
+        _validate_username(user)
         if user != PUBLIC:
             resp = requests.get(OAUTH_PROFILE_API % user,
                                 headers=auth_headers)
