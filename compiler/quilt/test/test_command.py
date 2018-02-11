@@ -42,6 +42,19 @@ CRUD related:
         - no auth
         - no team
         - not admin
+    6. access list
+        - OK
+        - no auth
+    7. access remove
+        - OK
+        - no auth
+        - not owner
+        - revoke owner
+        - free plan
+    8. access add
+        - OK
+        - no auth
+        - not owner
 """
 # Disable no-self-use, protected-access, too-many-public-methods
 # pylint: disable=R0201, W0212, R0904
