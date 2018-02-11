@@ -477,7 +477,7 @@ class CommandTest(QuiltTestCase):
         self._mock_error('users/create', status=401)
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quitdata.io', None)
-    
+
     def test_user_disable(self):
         self.requests_mock.add(
             responses.POST,
@@ -686,6 +686,16 @@ class CommandTest(QuiltTestCase):
         self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_list(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/access/foo/bar' % command.get_registry_url(None),
+            status=201,
+            json={'users': ['foo']
+            })
+        command.access_list('foo/bar')
 
 # TODO: work in progress
 #    def test_find_node_by_name(self):
@@ -1107,4 +1117,3 @@ class CommandTest(QuiltTestCase):
 
         with pytest.raises(command.CommandException):
             command.parse_package_extended('foo:bar:baz')
-
