@@ -699,6 +699,70 @@ class CommandTest(QuiltTestCase):
         )
         command.access_list('foo/bar')
 
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_list_no_auth(self):
+        self._mock_error('access/foo/bar', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.access_list('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove(self):
+        self.requests_mock.add(
+            responses.DELETE,
+            '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
+            status=201
+        )
+        command.access_remove('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_no_auth(self):
+        self._mock_error('access/foo/bar/bob', status=401, method=responses.DELETE)
+        with self.assertRaises(command.CommandException):
+            command.access_remove('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_not_owner(self):
+        self._mock_error('access/foo/bar/bob', status=403, method=responses.DELETE,
+                         message="Only the package owner can revoke access")
+        with assertRaisesRegex(self, command.CommandException, "Only the package owner can revoke access"):
+            command.access_remove('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_owner(self):
+        self._mock_error('access/foo/bar/foo', status=403, method=responses.DELETE,
+                         message="Cannot revoke the owner's access")
+        with assertRaisesRegex(self, command.CommandException, "Cannot revoke the owner's access"):
+            command.access_remove('foo/bar', 'foo')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_free_plan(self):
+        self._mock_error('access/foo/bar/foo', status=402, method=responses.DELETE,
+                         message="Insufficient permissions.")
+        with assertRaisesRegex(self, command.CommandException, "Insufficient permissions."):
+            command.access_remove('foo/bar', 'foo')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_add(self):
+        self.requests_mock.add(
+            responses.PUT,
+            '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
+            status=201
+        )
+        command.access_add('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_add_no_auth(self):
+        self._mock_error('access/foo/bar/bob', status=401, method=responses.PUT)
+        with self.assertRaises(command.CommandException):
+            command.access_add('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_add_not_owner(self):
+        self._mock_error('access/foo/bar/bob', status=403, method=responses.PUT,
+                         message="Only the package owner can revoke access")
+        with assertRaisesRegex(self, command.CommandException, "Only the package owner can revoke access"):
+            command.access_add('foo/bar', 'bob')
+
 # TODO: work in progress
 #    def test_find_node_by_name(self):
 #        mydir = os.path.dirname(__file__)

@@ -1280,6 +1280,7 @@ def access_get(owner, package_name, user):
 @api()
 @as_json
 def access_delete(owner, package_name, user):
+    _validate_username(user)
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,

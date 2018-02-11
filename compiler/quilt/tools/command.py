@@ -1224,6 +1224,7 @@ def access_remove(package, user):
     session = _get_session(team)
 
     session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print("Access removed")
 
 def delete(package):
     """
