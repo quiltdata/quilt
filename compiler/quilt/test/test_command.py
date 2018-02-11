@@ -426,7 +426,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/users/list' % command.get_registry_url(None),
             status=200,
-            json=json.dumps({
+            json={
                 'count':'1',
                 'results':[{
                     'username':'admin',
@@ -437,7 +437,7 @@ class CommandTest(QuiltTestCase):
                     'is_admin':True,
                     'is_staff':True
                 }]
-            })
+            }
         )
         command.list_users()
 
@@ -461,7 +461,7 @@ class CommandTest(QuiltTestCase):
             responses.POST,
             '%s/api/users/create' % command.get_registry_url(None),
             status=201,
-            json=json.dumps({
+            json={
                 'count':'1',
                 'username':'admin',
                 'first_name':'',
@@ -469,7 +469,7 @@ class CommandTest(QuiltTestCase):
                 'is_superuser':True,
                 'is_admin':True,
                 'is_staff':True,
-            })
+            }
         )
         command.create_user('bob', 'bob@quiltdata.io', None)
 
@@ -625,7 +625,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/audit/bob/' % command.get_registry_url("someteam"),
             status=201,
-            json=json.dumps({
+            json={
                 'events': [{
                     'created': '',
                     'user': 'bob',
@@ -635,7 +635,7 @@ class CommandTest(QuiltTestCase):
                     'package_hash': '',
                     'extra': ''
                 }]
-            }))
+            })
         command.audit('bob')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
@@ -644,7 +644,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/audit/foo/bar/' % command.get_registry_url("someteam"),
             status=201,
-            json=json.dumps({
+            json={
                 'events': [{
                     'created': '',
                     'user': 'bob',
@@ -654,7 +654,7 @@ class CommandTest(QuiltTestCase):
                     'package_hash': '',
                     'extra': ''
                 }]
-            }))
+            })
         command.audit('foo/bar')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
@@ -693,8 +693,10 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/access/foo/bar' % command.get_registry_url(None),
             status=201,
-            json={'users': ['foo']
-            })
+            json={
+                'users': ['foo']
+            }
+        )
         command.access_list('foo/bar')
 
 # TODO: work in progress
