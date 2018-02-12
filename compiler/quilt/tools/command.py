@@ -1258,17 +1258,21 @@ def search(query, team=None):
     if team is not None:
         session = _get_session(team)
         response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
-        print("--- Packages in team %s ---" % team)
+        print("* Packages in team %s" % team)
         packages = response.json()['packages']
         for pkg in packages:
             print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
-        print("--- Packages in public cloud ---")
+        if len(packages) == 0:
+            print("(No results)")
+        print("* Packages in public cloud")
 
     public_session = _get_session(None)
     response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
+    if len(packages) == 0:
+        print("(No results)")
 
 def ls():                       # pylint:disable=C0103
     """
