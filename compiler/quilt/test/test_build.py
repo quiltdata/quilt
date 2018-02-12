@@ -15,7 +15,7 @@ import yaml
 from ..tools.package import ParquetLib, Package
 from ..tools.compat import pathlib
 from ..tools import build, command, store
-from .utils import QuiltTestCase
+from .utils import QuiltTestCase, patch
 
 PACKAGE = 'groot'
 
@@ -27,7 +27,7 @@ class BuildTest(QuiltTestCase):
         """
         Package.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build.yml')
+        path = os.path.join(mydir, './build_large.yml')
         build.build_package(None, 'test_parquet', PACKAGE, path)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
@@ -42,7 +42,7 @@ class BuildTest(QuiltTestCase):
         that the package is successfully generated.
         """
         mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build.yml')
+        path = os.path.join(mydir, './build_large.yml')
         teststore = store.PackageStore()
 
         # Build once to populate cache
@@ -63,20 +63,22 @@ class BuildTest(QuiltTestCase):
         self._test_dataframes(dataframes)
         assert os.path.exists(README())
 
-    def test_build_parquet_pyarrow(self):
+    def test_parquet_env_var(self):
         """
-        Test compilation Parquet via pyarrow
+        Test setting the parquet library using the env variable.
         """
-        os.environ["QUILT_PARQUET_LIBRARY"] = ParquetLib.ARROW.value
-        Package.reset_parquet_lib()
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build.yml')
-        build.build_package(None, 'test_arrow', PACKAGE, path)
-        from quilt.data.test_arrow.groot import dataframes, README
-        self._test_dataframes(dataframes)
-        assert os.path.exists(README())
-        assert Package.get_parquet_lib() is ParquetLib.ARROW
-        del os.environ["QUILT_PARQUET_LIBRARY"]
+        try:
+            assert Package.get_parquet_lib() == ParquetLib.ARROW
+
+            with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.ARROW.value}):
+                Package.reset_parquet_lib()
+                assert Package.get_parquet_lib() == ParquetLib.ARROW
+
+            with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.SPARK.value}):
+                Package.reset_parquet_lib()
+                assert Package.get_parquet_lib() == ParquetLib.SPARK
+        finally:
+            Package.reset_parquet_lib()
 
     # shared testing logic between pyarrow and default env
     def _test_dataframes(self, dataframes):
