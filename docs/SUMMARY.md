@@ -4,7 +4,7 @@
 
 * [Introduction](README.md)
 * [Key concepts](terminology.md)
-* [Articles](use-cases.md)
+* [Tutorials](use-cases.md)
 
 ## Get started \(Python\)
 
