@@ -1,5 +1,6 @@
 /* Intro */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import styled from 'styled-components';
 
@@ -131,6 +132,7 @@ const ClipCol = styled(Col)`
   overflow: hidden;
 `;
 
+// eslint-disable-next-line object-curly-newline
 function IntroRow({ detail, src, srcFade, textRight, title, typing }) {
   const text = (
     <Col key="text" xs={12} sm={7}>

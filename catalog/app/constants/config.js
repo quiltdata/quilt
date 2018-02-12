@@ -1,5 +1,5 @@
 /* Config - environment-specific parameters */
-const config = window.__CONFIG;  // eslint-disable-line no-underscore-dangle
+const config = window.__CONFIG; // eslint-disable-line no-underscore-dangle
 
 Object.freeze(config);
 

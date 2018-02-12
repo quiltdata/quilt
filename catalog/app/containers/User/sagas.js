@@ -15,6 +15,7 @@ import {
 export function* doGetPackages({ username }) {
   try {
     const headers = yield call(makeHeaders);
+    // eslint-disable-next-line function-paren-newline
     const response = yield call(requestJSON,
       `${config.api}/api/package/${username}/`,
       { headers }

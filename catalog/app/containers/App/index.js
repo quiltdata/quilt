@@ -1,5 +1,6 @@
 /* App */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
 
@@ -28,6 +29,7 @@ export class App extends React.PureComponent { // eslint-disable-line react/pref
   }
 
   render() {
+    // eslint-disable-next-line object-curly-newline
     const { auth, children, dispatch, name, searchText, signedIn } = this.props;
     const waiting = auth.status === status.WAITING;
     return (

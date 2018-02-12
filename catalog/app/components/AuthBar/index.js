@@ -1,7 +1,8 @@
 /* AuthBar - app wide navigation bar and user controls */
 import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { Link } from 'react-router';
 import { push } from 'react-router-redux';
@@ -39,7 +40,6 @@ const Right = styled.div`
 `;
 
 export class AuthBar extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
-
   handleSearch = (query) => {
     // submit search via query param to the search results page
     this.props.dispatch(push(`/search/?q=${encodeURIComponent(query)}`));
@@ -50,6 +50,7 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
   }
 
   render() {
+    // eslint-disable-next-line object-curly-newline
     const { error, name, searchText, signedIn, waiting } = this.props;
     const menu = (
       <UserMenu
@@ -141,11 +142,13 @@ class LeftGroup extends React.PureComponent { //  eslint-disable-line react/no-m
   render() {
     return (
       <div style={{ marginTop: '16px' }}>
+        {/* eslint-disable jsx-a11y/anchor-is-valid */}
         <Link to="/">
           <Lockup>
             <img alt="Quilt logo" src={logo} />
           </Lockup>
         </Link>
+        {/* eslint-enable jsx-a11y/anchor-is-valid */}
         <TextField
           hintStyle={hintStyle}
           hintText="Search packages"

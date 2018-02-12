@@ -1,6 +1,6 @@
 /* Quilt button class wrapper for consistent custom style and logic */
-
 import RaisedButton from 'material-ui/RaisedButton';
+import PropTypes from 'prop-types';
 import React from 'react';
 
 function QButton(props) {
@@ -17,9 +17,9 @@ function QButton(props) {
 }
 
 QButton.propTypes = {
-  children: React.PropTypes.node,
-  primary: React.PropTypes.bool,
-  secondary: React.PropTypes.bool,
+  children: PropTypes.node,
+  primary: PropTypes.bool,
+  secondary: PropTypes.bool,
 };
 
 export default QButton;

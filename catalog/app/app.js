@@ -6,7 +6,6 @@
 import 'babel-polyfill';
 
 // Import all the third party stuff
-import injectTapEventPlugin from 'react-tap-event-plugin';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
@@ -51,10 +50,6 @@ Promise.all([robo.load(), roboSlab.load(), roboMono.load()]).then(() => {
 }, () => {
   document.body.classList.remove('fontLoaded');
 });
-
-// Material-UI Needs this  for onTouchTap http://stackoverflow.com/a/34015469/988941
-// TODO remove this when it's deprecated
-injectTapEventPlugin();
 
 
 // Create redux store with history

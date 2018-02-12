@@ -63,4 +63,4 @@ export default compose(
       )}
     </div>
   )
-);
+); // eslint-disable-line function-paren-newline

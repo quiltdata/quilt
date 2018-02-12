@@ -1,5 +1,6 @@
 /* OAuth2 - handler for OAuth2 callbacks */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
 import { replace } from 'react-router-redux';
@@ -17,6 +18,7 @@ export class OAuth2 extends React.PureComponent { // eslint-disable-line react/p
   componentWillMount() {
     const { dispatch } = this.props;
     const { query } = this.props.location;
+    // eslint-disable-next-line object-curly-newline, camelcase
     const { refresh_token, access_token, expires_at, next = '/' } = query;
     const tokens = {
       refresh_token,
