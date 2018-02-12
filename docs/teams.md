@@ -31,5 +31,5 @@ Run `quilt login team` to login as a member of a team.
 ## Import data
 To import a team package, use the following syntax:
 ```python
-from quilt.TEAM.USER import PKG`
+from quilt.TEAM.USER import PKG
 ```
