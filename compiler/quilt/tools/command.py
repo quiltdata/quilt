@@ -955,28 +955,38 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     print("Downloading package metadata...")
 
-    if version is not None:
-        response = session.get(
-            "{url}/api/version/{owner}/{pkg}/{version}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                version=version
+    try:
+        if version is not None:
+            response = session.get(
+                "{url}/api/version/{owner}/{pkg}/{version}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    version=version
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    elif tag is not None:
-        response = session.get(
-            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                tag=tag
+            pkghash = response.json()['hash']
+        elif tag is not None:
+            response = session.get(
+                "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    tag=tag
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    else:
-        pkghash = _match_hash(session, team, owner, pkg, hash)
+            pkghash = response.json()['hash']
+        else:
+            pkghash = _match_hash(session, team, owner, pkg, hash)
+
+    except CommandException as e:
+        if _find_logged_in_team() is not None:
+            if str(e).startswith('Package {package} does not exist'.format(package=package)):
+                message = ('Package {package} does not exist. Did you mean {team}:{package}?'
+                        .format(package=package, team=_find_logged_in_team()))
+                raise CommandException(message)
+        raise e
+
     assert pkghash is not None
 
     response = session.get(
