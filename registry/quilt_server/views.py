@@ -1826,3 +1826,29 @@ def audit_user(user):
             extra=event.extra,
         ) for event in events]
     )
+
+@app.route('/api/admin/package_summary')
+@api(require_admin=True)
+@as_json
+def package_summary():
+    events = (
+        db.session.query(Event.package_name, Event.type, sa.func.count(Event.type))
+        .group_by(Event.package_name, Event.type)
+        )
+
+    event_results = defaultdict(int)
+    packages = set()
+    for event_package, event_type, event_count in events:
+        event_results[(event_package, event_type)] = event_count
+        packages.add(event_package)
+
+    results = {
+        package : {
+            'installs' : event_results[(package, Event.Type.INSTALL)],
+            'previews' : event_results[(package, Event.Type.PREVIEW)],
+            'pushes' : event_results[(package, Event.Type.PUSH)],
+            'deletes' : event_results[(package, Event.Type.DELETE)]
+        } for package in packages
+    }
+
+    return {'packages' : results}
