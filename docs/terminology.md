@@ -7,7 +7,7 @@ Packages are stored in a server-side registry. The registry controls permissions
 
 The data in a package are tracked in a hash tree. The _tophash_ for the tree is the hash of all hashes of all data in the package. The combination of a package handle and tophash is a _package_ instance. Package instances are immutable.
 
-Leaf nodes in the package tree are called _fragments_. Installed fragments are de-duplicated and kept in a local [_object store_](./quilt_repository_format.md).
+Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [_object store_](./quilt_repository_format.md).
 
 # Package lifecycle
 
