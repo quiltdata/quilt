@@ -27,7 +27,7 @@ Example: `quilt access add myteam:me/mypkg myteam` to make package team-visible.
 
 Run `quilt login team` to login as a member of a team.
 
-# `Python API`
+# Python API
 ## Import data
 To import a team package, use the following syntax:
 ```python
