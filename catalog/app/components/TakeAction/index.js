@@ -1,6 +1,7 @@
 /* TakeAction */
 import RaisedButton from 'material-ui/RaisedButton';
-import React, { PropTypes as PT } from 'react';
+import PT from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 
 import { makeSignInURL } from 'utils/auth';

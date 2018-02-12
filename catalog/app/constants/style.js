@@ -36,7 +36,7 @@ export const palette = {
   accent1Color: '#F88500',
   accent2Color: grey200,
   accent3Color: grey300,
-  textColor: grey800,  // see also global-styles.js
+  textColor: grey800, // see also global-styles.js
 };
 
 export const plainTextStyle = {

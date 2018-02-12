@@ -93,8 +93,8 @@ class QuiltTestCase(TestCase):
 
         self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
 
-    def _mock_admin(self):
-        self._is_admin = True
+    def _mock_admin(self, is_admin=True):
+        self._is_admin = is_admin
 
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""

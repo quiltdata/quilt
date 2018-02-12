@@ -1,4 +1,5 @@
 /* Markdown */
+import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
@@ -69,9 +70,9 @@ function Markdown({ data, status, useStatus }) {
 }
 
 Markdown.propTypes = {
-  data: React.PropTypes.string,
-  useStatus: React.PropTypes.bool,
-  status: React.PropTypes.string,
+  data: PropTypes.string,
+  useStatus: PropTypes.bool,
+  status: PropTypes.string,
 };
 
 Markdown.defaultProps = {

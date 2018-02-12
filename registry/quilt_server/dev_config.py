@@ -10,13 +10,15 @@ SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
-QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', 'https://quilt-heroku.herokuapp.com')
+STAGE_AUTH_URL = 'https://stage-auth.quiltdata.com'
+
+QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', STAGE_AUTH_URL)
 
 if AUTH_PROVIDER == 'quilt':
     OAUTH = dict(
         access_token_url='%s/o/token/' % QUILT_AUTH_URL,
         authorize_url='%s/o/authorize/' % QUILT_AUTH_URL,
-        client_id='packages',
+        client_id='packages-dev' if QUILT_AUTH_URL == STAGE_AUTH_URL else 'packages',
         client_secret=os.getenv('OAUTH_CLIENT_SECRET_QUILT', os.getenv('OAUTH_CLIENT_SECRET')),
         user_api='%s/accounts/api-root' % QUILT_AUTH_URL,
         profile_api='%s/accounts/profile?user=%%s' % QUILT_AUTH_URL,

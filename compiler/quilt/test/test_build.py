@@ -5,14 +5,15 @@ Test the build process
 #the functions that cli calls
 import os
 
+import pytest
 from numpy import dtype
 import pandas.api.types as ptypes
 from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
-from .. import nodes
 from ..tools.package import ParquetLib, Package
+from ..tools.compat import pathlib
 from ..tools import build, command, store
 from .utils import QuiltTestCase
 
@@ -51,10 +52,10 @@ class BuildTest(QuiltTestCase):
         srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
         path_hash = build._path_hash(srcpath, 'csv',  {'parse_dates': ['Date0']})
         assert os.path.exists(teststore.cache_path(path_hash))
-        
+
         # Build again using the cache
         build.build_package(None, 'test_cache', PACKAGE, path)
-        
+
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -122,7 +123,7 @@ class BuildTest(QuiltTestCase):
         build.build_package(None, 'groups', 'pkg', path)
 
         from quilt.data.groups import pkg
-        
+
         assert isinstance(pkg.group_a.csv(), DataFrame), \
             'Expected parent `transform: csv` to affect group_a.csv()'
         assert isinstance(pkg.group_a.tsv(), DataFrame), \
@@ -145,9 +146,9 @@ class BuildTest(QuiltTestCase):
         assert pkg.group_b.subgroup.many_tsv.one().shape == (1, 3), \
             'Expected local `transform: csv` and one skipped row from group args'
         assert isinstance(pkg.group_b.subgroup.many_tsv.two(), DataFrame), \
-            'Expected `transform: tsv` from ancestor' 
+            'Expected `transform: tsv` from ancestor'
         assert isinstance(pkg.group_b.subgroup.many_tsv.three(), DataFrame), \
-            'Expected `transform: tsv` from ancestor' 
+            'Expected `transform: tsv` from ancestor'
         assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
         assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
 
@@ -259,3 +260,98 @@ class BuildTest(QuiltTestCase):
 
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
             build.build_package(None, 'test_syntax_error', PACKAGE, path, checks_path=checks_path)
+
+    def test_build_glob_naming_conflict(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'globbing/build_name_conflict.yml'
+
+        with pytest.raises(command.CommandException, match="Naming conflict:"):
+            command.build('test/globdata', str(buildfile))
+
+    def test_build_via_glob(self):
+        # TODO: flesh out this test
+        # TODO: remove any unused files from globbing
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'globbing/build.yml'
+
+        command.build('test/globdata', str(buildfile))
+
+        from quilt.data.test import globdata
+
+        # simple checks to ensure files were found and built
+        globdata.csv.csv
+        globdata.csv.foo
+        globdata.csv.nulls
+        globdata.csv.nuts
+        globdata.csv.n10KRows13Cols
+        globdata.csv.subnode.csv
+        globdata.csv.subnode.foo
+        globdata.csv.subnode.goo
+        # excel, kwargs sent
+        assert len(globdata.excel.n10KRows13Cols()) == 9995
+        # naming collision -- acceptable during a single glob specification, should result in a rename
+        globdata.collision.csv
+        globdata.collision.csv_2
+
+    def test_package_getitem(self):
+        # TODO: flesh out this test
+        # TODO: remove any unused files from globbing
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple_nest.yml'
+
+        command.build('test/package_getitem', str(buildfile))
+
+        from quilt.data.test import package_getitem as node
+        package = node._package
+
+        ## Positive tests
+        # simple checks to ensure matching contents for item notation
+        assert node.foo._node == package['foo']
+        assert node.subnode.nuts._node == package['subnode/nuts']
+
+        ## Negative tests
+        # Valid key, but item not present (KeyError)
+        with pytest.raises(KeyError) as error_info:
+            package['subnode/blah']
+        assert error_info.value.args == ('subnode', 'blah')
+
+        # blank node names aren't valid
+        with pytest.raises(TypeError, match="Invalid node reference"):
+            package['']
+
+        # no absolute paths
+        with pytest.raises(TypeError, match="Invalid node reference"):
+            package['/foo']
+
+        # Only valid node names permitted..
+        with pytest.raises(TypeError, match="Invalid node name"):
+            package['subnode/9blah']
+
+        # No subreferencing a non-GroupNode
+        with pytest.raises(TypeError, match="Not a GroupNode"):
+            package['foo/blah']
+
+
+    def test_package_contains(self):
+        # TODO: flesh out this test
+        # TODO: remove any unused files from globbing
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple_nest.yml'
+
+        command.build('test/package_contains', str(buildfile))
+
+        from quilt.data.test import package_contains as node
+        package = node._package
+
+        ## Positive tests
+        # simple checks to ensure checkeng contents works
+        assert 'foo' in package
+        assert 'subnode/nuts' in package
+
+        ## Negative tests
+        # These should all return False, but raise no exceptions.
+        assert not 'subnode/blah' in package
+        assert not '' in package
+        assert not '/foo' in package
+        assert not 'subnode/9blah' in package
+        assert not 'foo/blah' in package

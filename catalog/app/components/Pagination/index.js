@@ -1,4 +1,5 @@
-import React, { PropTypes as PT } from 'react';
+import PT from 'prop-types';
+import React from 'react';
 import {
   compose,
   lifecycle,
@@ -78,7 +79,7 @@ export default compose(
   nextPage,
   prevPage,
   children,
-}) =>
+}) => (
   <div>
     {children({ items })}
     {!!items.length && pages > 1 &&
@@ -97,4 +98,4 @@ export default compose(
       </Controls>
     }
   </div>
-);
+));
