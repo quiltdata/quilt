@@ -8,6 +8,8 @@ Most Quilt commands work just like normal whether you're part of a team or not. 
 
 If you're interested in using this feature, please [contact us](sales@quiltdata.io) to join the Beta.
 
+# Command line
+
 ## `quilt push`
 
 `quilt push --public` is disallowed for team packages. Use `quilt push --team` to push a package visible to everyone in your team.
@@ -25,8 +27,9 @@ Example: `quilt access add myteam:me/mypkg myteam` to make package team-visible.
 
 Run `quilt login team` to login as a member of a team.
 
-## `Python API`
-
-Importing team packages is a little different. Instead of the usual invocation, use `from quilt.team.user import pkg` where team is the name of your team.
-
-Example: `from quilt.myteam.colleague import fancy_team_data`
+# `Python API`
+## Import data
+To import a team package, use the following syntax:
+```python
+from quilt.team.TEAM.USER import PKG`
+```
