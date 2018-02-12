@@ -6,11 +6,12 @@ Access tests
 
 import json
 import time
+from unittest.mock import patch
 import urllib
 
 import requests
 
-from quilt_server.const import PaymentPlan, PUBLIC
+from quilt_server.const import PaymentPlan, PUBLIC, TEAM
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
 
 from .utils import mock_customer, QuiltTestCase
@@ -345,7 +346,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [dict(name=self.pkg, is_public=False)]
+        assert data['packages'] == [dict(name=self.pkg, is_public=False, is_team=False)]
 
         # Anonymous users still can't see it.
         resp = self.app.get(
@@ -370,7 +371,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
+        assert data['packages'] == [dict(name=self.pkg, is_public=True, is_team=False)]
 
         # Anonymous users can now see it.
         resp = self.app.get(
@@ -379,7 +380,7 @@ class AccessTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [{'name': self.pkg, 'is_public': True}]
+        assert data['packages'] == [dict(name=self.pkg, is_public=True, is_team=False)]
 
     @mock_customer()
     def testRemovePublicBasicUser(self, customer):
@@ -448,6 +449,16 @@ class AccessTestCase(QuiltTestCase):
         can_access = data.get('users')
         assert can_access == [self.user]
 
+    def testShareTeamFails(self):
+        resp = self._share_package(self.user, self.pkg, 'team')
+        assert resp.status_code == requests.codes.forbidden
+
+    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    def testSharePublicFails(self):
+        resp = self._share_package(self.user, self.pkg, 'public')
+        assert resp.status_code == requests.codes.forbidden
+
     def testProfile(self):
         """
         List all accessible packages.
@@ -467,8 +478,8 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == [
-            dict(owner=self.user, name=self.pkg, is_public=False),
-            dict(owner=self.user, name=public_pkg, is_public=True),
+            dict(owner=self.user, name=self.pkg, is_public=False, is_team=False),
+            dict(owner=self.user, name=public_pkg, is_public=True, is_team=False),
         ]
         assert data['shared'] == []
 
@@ -505,7 +516,7 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == []
-        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False)]
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False, is_team=False)]
 
 
         # Packages that are both public and shared show up under "shared".
@@ -523,7 +534,85 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))['packages']
 
         assert data['own'] == []
-        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True)]
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True, is_team=False)]
+
+    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    def testTeamProfile(self):
+        """
+        Test the profile endpoint but with teams and no public access.
+        """
+        public_pkg = "publicpkg"
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), team=True)
+
+        # The user can see own packages.
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': self.user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == [
+            dict(owner=self.user, name=self.pkg, is_public=False, is_team=False),
+            dict(owner=self.user, name=public_pkg, is_public=False, is_team=True),
+        ]
+        assert data['shared'] == []
+
+
+        # Other users can't see anything.
+        sharewith = "anotheruser"
+
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == []
+        assert data['shared'] == []
+
+        # Users can see shared packages.
+        resp = self._share_package(self.user, self.pkg, sharewith)
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == []
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False, is_team=False)]
+
+
+        # Packages that are both team and shared show up under "shared".
+        resp = self._share_package(self.user, self.pkg, TEAM)
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == []
+        assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False, is_team=True)]
 
     def testRecentPackages(self):
         # Push two public packages.

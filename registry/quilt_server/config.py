@@ -9,6 +9,7 @@ See `app.config.from_object('...')` in __init__.py.
 import os
 
 DISALLOW_PUBLIC_USERS = bool(os.getenv('DISALLOW_PUBLIC_USERS', ''))
+ALLOW_TEAM_USERS = bool(os.getenv('ALLOW_TEAM_USERS', ''))
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.

@@ -18,6 +18,9 @@ PACKAGE_SCHEMA = {
         'public': {
             'type': 'boolean'
         },
+        'team': {
+            'type': 'boolean'
+        },
         'description': {
             'type': 'string'
         },

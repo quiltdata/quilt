@@ -638,25 +638,13 @@ def push(package, public=False, team=False, reupload=False):
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
-    if using_team and public:
-        raise CommandException("--team and --public are incompatible")
-
-    if using_team and team is None:
-        raise CommandException("--team cannot be used on non-team packages")
-
-    if public and team is not None:
-        raise CommandException("--public is not compatible with team packages, " +
-                               "Maybe you meant --team")
-
-    if using_team and team is not None:
-        public = True
-
     pkghash = pkgobj.get_hash()
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             public=public,
+            team=using_team,
             contents=pkgobj.get_contents(),
             description="",  # TODO
             sizes=sizes

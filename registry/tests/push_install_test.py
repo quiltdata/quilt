@@ -5,6 +5,7 @@ Test push and install endpoints.
 """
 
 import json
+from unittest.mock import patch
 import urllib
 
 import requests
@@ -153,7 +154,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [{'name': 'foo', 'is_public': True}]
+        assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]
 
         # List package instances.
         resp = self.app.get(
@@ -773,3 +774,58 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert len(blobs) == 3
         assert len(instance_blobs) == 4
+
+    def testTeamAccessFails(self):
+        # Verify that --team fails in the public cloud.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.forbidden
+
+    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    def testTeams(self):
+        # Public push fails.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.forbidden
+
+        # Team push succeeds.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
