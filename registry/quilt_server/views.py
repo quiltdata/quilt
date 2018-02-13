@@ -1833,7 +1833,7 @@ def audit_user(user):
 def package_summary():
     events = (
         db.session.query(Event.package_owner, Event.package_name, Event.type, 
-                sa.func.count(Event.type), sa.func.max(Event.created))
+                         sa.func.count(Event.type), sa.func.max(Event.created))
         .group_by(Event.package_owner, Event.package_name, Event.type)
         )
 
@@ -1841,7 +1841,8 @@ def package_summary():
     packages = set()
     for event_owner, event_package, event_type, event_count, latest in events:
         package = "{owner}/{pkg}".format(owner=event_owner, pkg=event_package)
-        event_results[(package, event_type)] = {'latest':latest, 'count':event_count}
+        ts = _utc_datetime_to_ts(latest)
+        event_results[(package, event_type)] = {'latest':ts, 'count':event_count}
         packages.add(package)
 
     results = {

@@ -202,7 +202,7 @@ class AdminTestCase(QuiltTestCase):
         package = data['packages']['{user}/{pkg}'.format(user=self.user, pkg=self.pkg)]
         now = datetime.datetime.utcnow()
         last_push = package['pushes']['latest']
-        then = datetime.datetime.strptime(last_push, "%Y-%m-%dT%H:%M:%S.%f")
+        then = datetime.datetime.utcfromtimestamp(last_push)
         delta = now - then
         acceptable = datetime.timedelta(minutes=2)
         assert abs(acceptable) > abs(delta)
