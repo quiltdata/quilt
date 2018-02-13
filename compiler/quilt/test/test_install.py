@@ -56,7 +56,9 @@ class InstallTest(QuiltTestCase):
     def make_contents(cls, **args):
         contents = RootNode(dict(
             group=GroupNode(dict([
-                (key, TableNode([val], PackageFormat.default.value) if 'table' in key else FileNode([val]))
+                (key, TableNode([val], PackageFormat.default.value)
+                 if 'table' in key
+                 else FileNode([val], metadata={'q_path': key}))
                 for key, val in args.items()]
             ))
         ))
@@ -76,21 +78,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(file_hash, file_data)
 
         command.install('foo/bar')
-        teststore = PackageStore(self._store_dir)
-
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
-                               contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
-
-        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == file_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data)
 
     def test_install_team_latest(self):
         """
@@ -106,21 +94,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(file_hash, file_data)
 
         command.install('qux:foo/bar')
-        teststore = PackageStore(self._store_dir)
-
-        with open(os.path.join(teststore.package_path('qux', 'foo', 'bar'),
-                               Package.CONTENTS_DIR,
-                               contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
-
-        with open(teststore.object_path(objhash=file_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == file_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data, team='qux')
 
     def test_short_hashes(self):
         """
@@ -164,16 +138,7 @@ class InstallTest(QuiltTestCase):
         self._mock_s3(table_hash, table_data)
 
         command.install('foo/bar/group/table')
-
-        teststore = PackageStore(self._store_dir)
-        with open(os.path.join(teststore.package_path(None, 'foo', 'bar'),
-                               Package.CONTENTS_DIR, contents_hash)) as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
-
-        with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
+        self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data)
 
     def test_install_team_subpackage(self):
         """
@@ -420,8 +385,8 @@ packages:
             file_hash_list.append(file_hash)
 
         contents = RootNode(dict(
-            file0=FileNode([file_hash_list[0]]),
-            file1=FileNode([file_hash_list[1]]),
+            file0=FileNode([file_hash_list[0]], metadata={'q_path': 'file0'}),
+            file1=FileNode([file_hash_list[1]], metadata={'q_path': 'file1'}),
         ))
         contents_hash = hash_contents(contents)
 
@@ -500,7 +465,11 @@ packages:
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else
-            dict(contents=contents, urls={h: 'https://example.com/%s' % h for h in hashes})
+            dict(
+                contents=contents,
+                sizes={h: None for h in hashes},
+                urls={h: 'https://example.com/%s' % h for h in hashes}
+            )
         , default=encode_node), match_querystring=True, status=status)
 
     def _mock_s3(self, pkg_hash, contents):

@@ -1,6 +1,7 @@
 /* Package - about a package */
 import { Tabs, Tab } from 'material-ui/Tabs';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { Row, Col } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 import { Helmet } from 'react-helmet';

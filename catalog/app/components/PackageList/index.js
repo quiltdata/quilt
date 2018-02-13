@@ -1,13 +1,14 @@
 /* PackageList */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { List, ListItem } from 'material-ui/List';
 
 import PackageHandle from 'components/PackageHandle';
 import Pagination from 'components/Pagination';
 import { listStyle } from 'constants/style';
 
-const renderPackage = (showOwner) =>
-  ({ is_public, name, owner }) => { // eslint-disable-line camelcase, react/prop-types
+const renderPackage = (showOwner, defaultOwner) =>
+  ({ is_public, name, owner = defaultOwner }) => { // eslint-disable-line camelcase, react/prop-types
     const handle = `${owner}/${name}`;
     const displayHandle = (
       <PackageHandle
@@ -26,7 +27,13 @@ const renderPackage = (showOwner) =>
     );
   };
 
-function PackageList({ emptyMessage = 'Nothing here yet', emptyHref, packages, showOwner }) {
+function PackageList({
+  emptyMessage,
+  emptyHref,
+  packages,
+  showOwner,
+  owner,
+}) {
   if (packages.length === 0) {
     return (
       <List style={listStyle}>
@@ -36,16 +43,18 @@ function PackageList({ emptyMessage = 'Nothing here yet', emptyHref, packages, s
   }
 
   return (
-    <Pagination items={packages}>{
-      ({ items }) =>
+    <Pagination items={packages}>
+      {({ items }) => (
         <List style={listStyle}>
-          {items.map(renderPackage(showOwner))}
+          {items.map(renderPackage(showOwner, owner))}
         </List>
-    }</Pagination>
+      )}
+    </Pagination>
   );
 }
 
 PackageList.defaultProps = {
+  emptyMessage: 'Nothing here yet',
   showOwner: true,
 };
 
@@ -54,6 +63,7 @@ PackageList.propTypes = {
   emptyHref: PropTypes.string,
   packages: PropTypes.array,
   showOwner: PropTypes.bool,
+  owner: PropTypes.string,
 };
 
 export default PackageList;

@@ -1,5 +1,6 @@
 /* UseCases for Quilt */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
@@ -20,6 +21,7 @@ const Styler = styled.div`
   }
 `;
 
+// eslint-disable-next-line object-curly-newline
 const Case = ({ call, callHref, detail, title }) => (
   <Styler>
     <h2>{title}</h2>

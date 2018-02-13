@@ -80,8 +80,8 @@ function rtime() {
   return t.toLocaleString();
 }
 
-function randInt(len) {
-  return Math.floor(Math.random()*10) + 1;
+function randInt() {
+  return Math.floor(Math.random() * 10) + 1;
 }
 
 const memberData = [
@@ -112,9 +112,11 @@ const MembersTable = ({ onOpen }) => (
       {
         memberData.map((m) => (
           <TableRow key={m.name}>
-            <TableRowColumn><a>{m.name}</a></TableRowColumn>
+            <TableRowColumn><a href="#TODO">{m.name}</a></TableRowColumn>
             <TableRowColumn>
-              <a>{ activityMask.map((l) => randInt() + ` ${l}`).join(", ")}</a>
+              <a href="#TODO">
+                {activityMask.map((l) => `${randInt()} ${l}`).join(', ')}
+              </a>
             </TableRowColumn>
             <TableRowColumn>
               <FlatButton onClick={onOpen}>{m.last_seen}</FlatButton>
@@ -169,9 +171,11 @@ const PackageTable = () => (
       {
         packageData.map((p) => (
           <TableRow hoverable key={p.name}>
-            <TableRowColumn><a>{p.name}</a></TableRowColumn>
+            <TableRowColumn><a href="#TODO">{p.name}</a></TableRowColumn>
             <TableRowColumn>
-              <a>{ activityMask.slice(1).map((l) => randInt() + ` ${l}`).join(", ") }</a>
+              <a href="#TODO">
+                {activityMask.slice(1).map((l) => `${randInt()} ${l}`).join(', ')}
+              </a>
             </TableRowColumn>
             <TableRowColumn><FlatButton> {p.last_seen} </FlatButton></TableRowColumn>
             <TableRowColumn><PackageSettingsMenu /></TableRowColumn>
@@ -222,9 +226,11 @@ const AuditTable = () => (
       {
         packageData.map((p) => (
           <TableRow hoverable key={p.name}>
-            <TableRowColumn><FlatButton> {p.last_seen} </FlatButton></TableRowColumn>
-            <TableRowColumn><a>{p.name}</a></TableRowColumn>
-            <TableRowColumn>{ ['preview', 'install', 'push'][Math.floor(Math.random() * 3)]}</TableRowColumn>
+            <TableRowColumn><FlatButton>{p.last_seen}</FlatButton></TableRowColumn>
+            <TableRowColumn><a href="#TODO">{p.name}</a></TableRowColumn>
+            <TableRowColumn>
+              {['preview', 'install', 'push'][Math.floor(Math.random() * 3)]}
+            </TableRowColumn>
           </TableRow>
         ))
       }
