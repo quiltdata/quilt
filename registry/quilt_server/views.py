@@ -1832,15 +1832,17 @@ def audit_user(user):
 @as_json
 def package_summary():
     events = (
-        db.session.query(Event.package_name, Event.type, sa.func.count(Event.type))
-        .group_by(Event.package_name, Event.type)
+        db.session.query(Event.package_owner, Event.package_name, Event.type, 
+                sa.func.count(Event.type), sa.func.max(Event.created))
+        .group_by(Event.package_owner, Event.package_name, Event.type)
         )
 
-    event_results = defaultdict(int)
+    event_results = defaultdict(lambda: {'count':0})
     packages = set()
-    for event_package, event_type, event_count in events:
-        event_results[(event_package, event_type)] = event_count
-        packages.add(event_package)
+    for event_owner, event_package, event_type, event_count, latest in events:
+        package = "{owner}/{pkg}".format(owner=event_owner, pkg=event_package)
+        event_results[(package, event_type)] = {'latest':latest, 'count':event_count}
+        packages.add(package)
 
     results = {
         package : {
