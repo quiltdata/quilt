@@ -1,5 +1,6 @@
 /* Main landing page feature */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 
 import ImageRow from 'components/ImageRow';
@@ -12,7 +13,7 @@ import strings from './messages';
 const xs = `${breaks.sm - 1}px`;
 
 /* eslint-disable jsx-a11y/no-static-element-interactions */
-const Feature = ({ header, tagline }) => (
+const Feature = ({ header, tagline, signUp }) => (
   <ImageRow backgroundColor="#F6B500" src={background}>
     <Content>
       <h1 className="main">
@@ -21,16 +22,16 @@ const Feature = ({ header, tagline }) => (
       <h2 className="main">
         { tagline }
       </h2>
-      <TakeAction />
+      <TakeAction signUp={signUp} />
       <div className="framer">
         <iframe
+          title="Star Quilt on GitHub"
           src="https://ghbtns.com/github-btn.html?user=quiltdata&repo=quilt&type=star&count=true&size=large"
           frameBorder="0"
           scrolling="0"
           width="160px"
           height="30px"
-        >
-        </iframe>
+        />
       </div>
     </Content>
   </ImageRow>
@@ -46,6 +47,7 @@ Feature.defaultProps = {
 Feature.propTypes = {
   header: PropTypes.string,
   tagline: PropTypes.string,
+  signUp: PropTypes.bool,
 };
 
 const Content = styled.div`
@@ -94,6 +96,7 @@ const Content = styled.div`
     h2.main {
       font-size: 1.5em;
     }
+  }
 `;
 
 export default Feature;

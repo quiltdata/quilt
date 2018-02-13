@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import React from 'react';
 import { Row } from 'react-bootstrap';
 import styled from 'styled-components';
@@ -15,6 +16,7 @@ const Back = styled.div`
 
 /* Rows with images as their background */
 // TODO better to just spread props to Back than pipe by hand
+// eslint-disable-next-line object-curly-newline
 const ImageRow = ({ backgroundColor, children, height, src }) => (
   <Row>
     <Back backgroundColor={backgroundColor} height={height} src={src}>
@@ -24,10 +26,10 @@ const ImageRow = ({ backgroundColor, children, height, src }) => (
 );
 
 ImageRow.propTypes = {
-  backgroundColor: React.PropTypes.string,
-  children: React.PropTypes.any,
-  height: React.PropTypes.string,
-  src: React.PropTypes.string.isRequired,
+  backgroundColor: PropTypes.string,
+  children: PropTypes.any,
+  height: PropTypes.string,
+  src: PropTypes.string.isRequired,
 };
 
 ImageRow.defaultProps = {

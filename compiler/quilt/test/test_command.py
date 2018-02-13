@@ -43,22 +43,25 @@ CRUD related:
         - no team
         - not admin
 """
+# Disable no-self-use, protected-access, too-many-public-methods
+# pylint: disable=R0201, W0212, R0904
 
 import hashlib
 import json
 import os
+import shutil
 import time
 
 import requests
 import responses
-import shutil
 
 import pytest
 import pandas as pd
 from six import assertRaisesRegex
 
-from quilt.tools import command, store
 from .utils import QuiltTestCase, patch
+from ..tools import command, store
+
 
 class CommandTest(QuiltTestCase):
     def _mock_error(self, endpoint, status, team=None, message="",
@@ -1004,50 +1007,96 @@ class CommandTest(QuiltTestCase):
 
     def test_parse_package_extended_names(self):
         # good parse strings
-        expected = ('user/package', None, None, None)
+        expected = ('user/package', None, 'user', 'package', [], None, None, None)
         assert command.parse_package_extended('user/package') == expected
 
-        expected = ('team:user/package', None, None, None)
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, None)
+        assert command.parse_package_extended('user/package/sub/path') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, None)
         assert command.parse_package_extended('team:user/package') == expected
 
-        expected = ('team:user/package/sub/path', None, None, None)
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, None)
         assert command.parse_package_extended('team:user/package/sub/path') == expected
 
-        expected = ('user/package', 'abc123', None, None)
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('user/package:h:abc123') == expected
 
-        expected = ('user/package', 'abc123', None, None)
+        expected = ('user/package', None, 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('user/package:hash:abc123') == expected
 
-        expected = ('user/package', None, '123', None)
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('user/package:v:123') == expected
 
-        expected = ('user/package', None, '123', None)
+        expected = ('user/package', None, 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('user/package:version:123') == expected
 
-        expected = ('user/package', None, None, 'some')
+        expected = ('user/package', None, 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('user/package:t:some') == expected
 
-        expected = ('user/package', None, None, 'some')
+        expected = ('user/package', None, 'user', 'package', [],  None, None, 'some')
         assert command.parse_package_extended('user/package:tag:some') == expected
 
-        expected = ('team:user/package', 'abc123', None, None)
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:h:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('user/package/sub/path:hash:abc123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:v:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('user/package/sub/path:version:123') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:t:some') == expected
+
+        expected = ('user/package/sub/path', None, 'user', 'package', ['sub', 'path'],  None, None, 'some')
+        assert command.parse_package_extended('user/package/sub/path:tag:some') == expected
+
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('team:user/package:h:abc123') == expected
 
-        expected = ('team:user/package', 'abc123', None, None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], 'abc123', None, None)
         assert command.parse_package_extended('team:user/package:hash:abc123') == expected
 
-        expected = ('team:user/package', None, '123', None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('team:user/package:v:123') == expected
 
-        expected = ('team:user/package', None, '123', None)
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, '123', None)
         assert command.parse_package_extended('team:user/package:version:123') == expected
 
-        expected = ('team:user/package', None, None, 'some')
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('team:user/package:t:some') == expected
 
-        expected = ('team:user/package', None, None, 'some')
+        expected = ('team:user/package', 'team', 'user', 'package', [], None, None, 'some')
         assert command.parse_package_extended('team:user/package:tag:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:h:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], 'abc123', None, None)
+        assert command.parse_package_extended('team:user/package/sub/path:hash:abc123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:v:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, '123', None)
+        assert command.parse_package_extended('team:user/package/sub/path:version:123') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:t:some') == expected
+
+        expected = ('team:user/package/sub/path',
+                    'team', 'user', 'package', ['sub', 'path'], None, None, 'some')
+        assert command.parse_package_extended('team:user/package/sub/path:tag:some') == expected
 
         # bad parse strings
         with pytest.raises(command.CommandException):
@@ -1058,3 +1107,4 @@ class CommandTest(QuiltTestCase):
 
         with pytest.raises(command.CommandException):
             command.parse_package_extended('foo:bar:baz')
+

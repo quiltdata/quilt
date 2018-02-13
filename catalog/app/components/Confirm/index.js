@@ -1,10 +1,10 @@
 /* Confirm */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 
 export default class Confirm extends React.Component {
-
   handleConfirm = () => {
     this.props.onConfirm();
     this.props.onRequestClose();
@@ -15,11 +15,11 @@ export default class Confirm extends React.Component {
       <FlatButton
         label="Cancel"
         secondary
-        onTouchTap={this.props.onRequestClose}
+        onClick={this.props.onRequestClose}
       />,
       <FlatButton
         label="Downgrade"
-        onTouchTap={this.handleConfirm}
+        onClick={this.handleConfirm}
       />,
     ];
 

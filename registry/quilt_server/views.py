@@ -4,6 +4,7 @@
 API routes.
 """
 
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
@@ -84,7 +85,7 @@ s3_client = boto3.client(
 )
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
-HAVE_PAYMENTS = stripe.api_key is not None
+HAVE_PAYMENTS = bool(stripe.api_key)
 
 
 class QuiltCli(httpagentparser.Browser):
@@ -287,11 +288,14 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None, enabled=True):
+def api(require_login=True, schema=None, enabled=True, require_admin=False):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
     """
+    if require_admin:
+        require_login=True
+
     if schema is not None:
         Draft4Validator.check_schema(schema)
         validator = Draft4Validator(schema)
@@ -335,7 +339,6 @@ def api(require_login=True, schema=None, enabled=True):
                     assert user
                     email = data['email']
                     is_admin = data.get('is_staff', False)
-
                     g.auth = Auth(user, email, is_admin)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
@@ -347,6 +350,13 @@ def api(require_login=True, schema=None, enabled=True):
                         raise ApiException(requests.codes.server_error, "Server error")
                 except (ConnectionError, requests.RequestException) as ex:
                     raise ApiException(requests.codes.server_error, "Server error")
+
+            if require_admin and not g.auth.is_admin:
+                raise ApiException(
+                    requests.codes.forbidden,
+                    "Must be authenticated as an admin to use this endpoint."
+                    )
+
             return f(*args, **kwargs)
         return wrapper
     return innerdec
@@ -627,12 +637,14 @@ def package_put(owner, package_name, package_hash):
             .all()
         ) if all_hashes else []
 
-        existing_hashes = {blob.hash for blob in blobs}
+        blob_by_hash = { blob.hash: blob for blob in blobs }
 
         for blob_hash in all_hashes:
             blob_size = sizes.get(blob_hash)
-            if blob_hash not in existing_hashes:
-                instance.blobs.append(S3Blob(owner=owner, hash=blob_hash, size=blob_size))
+            blob = blob_by_hash.get(blob_hash)
+            if blob is None:
+                blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
+            instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
@@ -862,15 +874,9 @@ def user_packages(owner):
     )
 
 @app.route('/api/admin/package_list/<owner>/', methods=['GET'])
-@api(require_login=True)
+@api(require_login=True, require_admin=True)
 @as_json
 def list_user_packages(owner):
-    if not g.auth.is_admin:
-        raise ApiException(
-            requests.codes.forbidden,
-            "Must be authenticated as an admin to use this endpoint."
-            )
-
     packages = (
         db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .filter_by(owner=owner)
@@ -1417,8 +1423,6 @@ def profile():
         plan = None
         have_cc = None
 
-    public_access = sa.orm.aliased(Access)
-
     # Check for outstanding package sharing invitations
     invitations = (
         db.session.query(Invitation, Package)
@@ -1433,13 +1437,19 @@ def profile():
     if invitations:
         db.session.commit()
 
+    # We want to show only the packages owned by or explicitly shared with the user -
+    # but also show whether they're public, in case a package is both public and shared with the user.
+    # So do a "GROUP BY" to get the public info, then "HAVING" to filter out packages that aren't shared.
     packages = (
-        db.session.query(Package, public_access.user.isnot(None))
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .join(Package.access)
-        .filter(Access.user == g.auth.user)
-        .outerjoin(public_access, sa.and_(
-            Package.id == public_access.package_id, public_access.user == PUBLIC))
-        .order_by(Package.owner, Package.name)
+        .filter(Access.user.in_([g.auth.user, PUBLIC]))
+        .group_by(Package.id)
+        .order_by(
+            sa.func.lower(Package.owner),
+            sa.func.lower(Package.name)
+        )
+        .having(sa.func.bool_or(Access.user == g.auth.user))
         .all()
     )
 
@@ -1449,7 +1459,7 @@ def profile():
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
                 )
                 for package, is_public in packages if package.owner == g.auth.user
             ],
@@ -1457,7 +1467,7 @@ def profile():
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
                 )
                 for package, is_public in packages if package.owner != g.auth.user
             ],
@@ -1588,7 +1598,7 @@ def client_log():
     return dict()
 
 @app.route('/api/users/list', methods=['GET'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_users():
     auth_headers = {
@@ -1612,8 +1622,52 @@ def list_users():
 
     return resp.json()
 
+@app.route('/api/users/list_detailed', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_users_detailed():
+    package_counts_query = (
+        db.session.query(Package.owner, sa.func.count(Package.owner))
+        .group_by(Package.owner)
+        )
+    package_counts = dict(package_counts_query) 
+
+    events = (
+        db.session.query(Event.user, Event.type, sa.func.count(Event.type))
+        .group_by(Event.user, Event.type)
+        )
+
+    event_results = defaultdict(int)
+    for event_user, event_type, event_count in events:
+        event_results[(event_user, event_type)] = event_count
+
+    # replicate code from list_users since endpoints aren't callable from each other
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
+
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+
+    users = requests.get(user_list_api, headers=auth_headers).json()
+
+    results = {
+        user['username'] : {
+            'packages' : package_counts.get(user['username'], 0),
+            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
+            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
+            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
+            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
+            'status' : 'active' if user['is_active'] else 'disabled',
+            'last_seen' : user['last_login']
+            }
+        for user in users['results']
+    }
+
+    return {'users' : results}
+
+
 @app.route('/api/users/create', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def create_user():
     auth_headers = {
@@ -1668,7 +1722,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1705,7 +1759,7 @@ def disable_user():
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
-@api(enabled=False)
+@api(enabled=False, require_admin=True)
 @as_json
 def delete_user():
     auth_headers = {
@@ -1736,12 +1790,9 @@ def delete_user():
     return resp.json()
 
 @app.route('/api/audit/<owner>/<package_name>/')
-@api()
+@api(require_admin=True)
 @as_json
 def audit_package(owner, package_name):
-    if not g.auth.is_admin:
-        raise ApiException(requests.codes.forbidden, "Not allowed")
-
     events = (
         Event.query
         .filter_by(package_owner=owner, package_name=package_name)
@@ -1760,12 +1811,9 @@ def audit_package(owner, package_name):
     )
 
 @app.route('/api/audit/<user>/')
-@api()
+@api(require_admin=True)
 @as_json
 def audit_user(user):
-    if not g.auth.is_admin:
-        raise ApiException(requests.codes.forbidden, "Not allowed")
-
     events = (
         Event.query
         .filter_by(user=user)

@@ -31,6 +31,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
     const { team = {} } = config;
     const header = team.name ? team.name : undefined;
     const tagline = team.name ? 'Team data catalog' : undefined;
+    const signUp = !team.name;
 
     return (
       <UnPad>
@@ -39,6 +40,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
           onClickPrimary={makeScrollToId()}
           onClickSecondary={makeScrollToId(id)}
           tagline={tagline}
+          signUp={signUp}
         />
         <Pad top left right bottom>
           <Intro />
@@ -47,7 +49,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
             <Values />
             <Demo />
             <HCenter>
-              <Pricing signUp />
+              <Pricing signUp={signUp} />
             </HCenter>
           </Styler>
         </Pad>

@@ -1,5 +1,6 @@
 /* Pricing */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 import { Tabs, Tab } from 'material-ui/Tabs';
 
@@ -55,7 +56,7 @@ const Styler = styled.div`
 
 const perUser = <span className="unit">per user / month</span>;
 
-function Pricing({ signUp }) {
+function Pricing({ signUp, takeAction }) {
   return (
     <Styler>
       <h1 id="pricing">Pricing</h1>
@@ -103,13 +104,18 @@ function Pricing({ signUp }) {
           Contact us
         </a> to start Business service.
       </p>
-      { signUp ? <TakeAction /> : null }
+      { takeAction ? <TakeAction signUp={signUp} /> : null }
     </Styler>
   );
 }
 
 Pricing.propTypes = {
   signUp: PropTypes.bool,
+  takeAction: PropTypes.bool,
+};
+
+Pricing.defaultProps = {
+  takeAction: true,
 };
 
 export default Pricing;

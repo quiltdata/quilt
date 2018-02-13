@@ -1,5 +1,6 @@
 /* TakeAction */
 import RaisedButton from 'material-ui/RaisedButton';
+import PT from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -17,17 +18,23 @@ const Container = styled.div`
 
 `;
 
-function TakeAction() {
+function TakeAction({ signUp }) {
   return (
     <Container>
-      <RaisedButton href={makeSignInURL()} label="Sign Up" primary />
+      {signUp &&
+        <RaisedButton href={makeSignInURL()} label="Sign Up" primary />
+      }
       <RaisedButton href={installQuilt} label="Install" />
     </Container>
   );
 }
 
 TakeAction.propTypes = {
+  signUp: PT.bool,
+};
 
+TakeAction.defaultProps = {
+  signUp: true,
 };
 
 export default TakeAction;
