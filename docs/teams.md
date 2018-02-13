@@ -14,10 +14,10 @@ If you're interested in using teams, please [contact us](sales@quiltdata.io) to 
 
 ## `quilt push`
 ```sh
-$ quilt push --team MYTEAM:ME/PKG
+$ quilt push TEAM:USER/PKG --team
 ```
-* Use `quilt push --team` to push a package visible to everyone in your team.
-* ~~`quilt push --public`~~ public packages are currently disabled for team packages
+* `push --team` makes a package visible to everyone on your team
+* ~~`push --public`~~ is currently disabled for team packages
 
 ## `quilt access`
 
@@ -35,7 +35,7 @@ Run `quilt login TEAM` to authenticate to your team registry.
 ## `quilt user create`
 Admin only. Add a team member.
 ```sh
-$ quilt user create team username email
+$ quilt user create TEAM USERNAME EMAIL
 ```
 
 # Python API
