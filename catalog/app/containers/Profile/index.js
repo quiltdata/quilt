@@ -2,7 +2,8 @@
 import Avatar from 'material-ui/Avatar';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import StripeCheckout from 'react-stripe-checkout';
@@ -109,6 +110,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   // behind the waiting spinner for no reason; better if user sees something right away
   render() {
     const { profile } = this.props;
+    // eslint-disable-next-line object-curly-newline
     const { status, error = {}, payment = {}, plan = {}, response = {} } = profile;
     const { response: err } = error;
     switch (status) {

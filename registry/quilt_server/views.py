@@ -4,6 +4,7 @@
 API routes.
 """
 
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
@@ -1422,8 +1423,6 @@ def profile():
         plan = None
         have_cc = None
 
-    public_access = sa.orm.aliased(Access)
-
     # Check for outstanding package sharing invitations
     invitations = (
         db.session.query(Invitation, Package)
@@ -1438,13 +1437,19 @@ def profile():
     if invitations:
         db.session.commit()
 
+    # We want to show only the packages owned by or explicitly shared with the user -
+    # but also show whether they're public, in case a package is both public and shared with the user.
+    # So do a "GROUP BY" to get the public info, then "HAVING" to filter out packages that aren't shared.
     packages = (
-        db.session.query(Package, public_access.user.isnot(None))
+        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
         .join(Package.access)
-        .filter(Access.user == g.auth.user)
-        .outerjoin(public_access, sa.and_(
-            Package.id == public_access.package_id, public_access.user == PUBLIC))
-        .order_by(Package.owner, Package.name)
+        .filter(Access.user.in_([g.auth.user, PUBLIC]))
+        .group_by(Package.id)
+        .order_by(
+            sa.func.lower(Package.owner),
+            sa.func.lower(Package.name)
+        )
+        .having(sa.func.bool_or(Access.user == g.auth.user))
         .all()
     )
 
@@ -1454,7 +1459,7 @@ def profile():
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
                 )
                 for package, is_public in packages if package.owner == g.auth.user
             ],
@@ -1462,7 +1467,7 @@ def profile():
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
                 )
                 for package, is_public in packages if package.owner != g.auth.user
             ],
@@ -1616,6 +1621,50 @@ def list_users():
             )
 
     return resp.json()
+
+@app.route('/api/users/list_detailed', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_users_detailed():
+    package_counts_query = (
+        db.session.query(Package.owner, sa.func.count(Package.owner))
+        .group_by(Package.owner)
+        )
+    package_counts = dict(package_counts_query) 
+
+    events = (
+        db.session.query(Event.user, Event.type, sa.func.count(Event.type))
+        .group_by(Event.user, Event.type)
+        )
+
+    event_results = defaultdict(int)
+    for event_user, event_type, event_count in events:
+        event_results[(event_user, event_type)] = event_count
+
+    # replicate code from list_users since endpoints aren't callable from each other
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header
+    }
+
+    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+
+    users = requests.get(user_list_api, headers=auth_headers).json()
+
+    results = {
+        user['username'] : {
+            'packages' : package_counts.get(user['username'], 0),
+            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
+            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
+            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
+            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
+            'status' : 'active' if user['is_active'] else 'disabled',
+            'last_seen' : user['last_login']
+            }
+        for user in users['results']
+    }
+
+    return {'users' : results}
+
 
 @app.route('/api/users/create', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)

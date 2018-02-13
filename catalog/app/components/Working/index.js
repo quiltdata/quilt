@@ -1,4 +1,5 @@
 /* Authentication progress */
+import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
@@ -23,7 +24,7 @@ function Working({ children }) {
 }
 
 Working.propTypes = {
-  children: React.PropTypes.node,
+  children: PropTypes.node,
 };
 
 Working.defaultProps = {
