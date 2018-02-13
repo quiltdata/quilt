@@ -5,19 +5,31 @@
  */
 
 import { fromJS } from 'immutable';
+import api from 'constants/api';
 import {
-  DEFAULT_ACTION,
+  GET_MEMBERS,
+  GET_MEMBERS_RESPONSE,
 } from './constants';
 
-const initialState = fromJS({});
+const initialState = fromJS({
+  members: {
+    status: null,
+    response: null,
+  },
+  packages: {},
+});
 
-function adminReducer(state = initialState, action) {
+export default function adminReducer(state = initialState, action) {
   switch (action.type) {
-    case DEFAULT_ACTION:
-      return state;
+    case GET_MEMBERS:
+      return state
+        .setIn(['members', 'status'], api.WAITING)
+        .deleteIn(['members', 'response']);
+    case GET_MEMBERS_RESPONSE:
+      return state
+        .setIn(['members', 'status'], action.status)
+        .setIn(['members', 'response'], fromJS(action.response));
     default:
       return state;
   }
-}
-
-export default adminReducer;
+};

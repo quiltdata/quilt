@@ -4,23 +4,25 @@ import { createSelector } from 'reselect';
 /**
  * Direct selector to the admin state domain
  */
-const selectAdminDomain = () => (state) => state.get('admin', Map({}));
+export const selectAdminDomain = (state) => state.get('admin', Map({}));
 
 /**
  * Other specific selectors
  */
 
-
 /**
  * Default selector used by Admin
  */
 
-const makeSelectAdmin = () => createSelector(
-  selectAdminDomain(),
-  (substate) => substate.toJS()
-);
-
-export default makeSelectAdmin;
-export {
+export default createSelector(
   selectAdminDomain,
-};
+  (substate) =>
+    substate
+    .updateIn(['members', 'response'], (members) =>
+      members && members
+        .filter((m) => m.get('status') !== 'disabled')
+        .map((member, name) => member.merge({ name }).toJS())
+        .toArray()
+    )
+    .toJS()
+);

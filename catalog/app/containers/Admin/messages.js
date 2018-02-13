@@ -20,11 +20,11 @@ export default defineMessages({
   },
   teamMembers: {
     id: 'app.containers.Profile.teamMembers',
-    defaultMessage: 'Members (10)',
+    defaultMessage: 'Members',
   },
   teamPackages: {
     id: 'app.containers.Profile.teamMembers',
-    defaultMessage: 'Packages (24)',
+    defaultMessage: 'Packages',
   },
   teamPolicies: {
     id: 'app.containers.Profile.teamPolicies',

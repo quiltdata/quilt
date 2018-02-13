@@ -4,4 +4,5 @@
  *
  */
 
-export const DEFAULT_ACTION = 'app/Admin/DEFAULT_ACTION';
+export const GET_MEMBERS = 'app/Admin/GET_MEMBERS';
+export const GET_MEMBERS_RESPONSE = 'app/Admin/GET_MEMBERS_RESPONSE';

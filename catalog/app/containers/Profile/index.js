@@ -190,11 +190,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
             <Skip />
             <Tabs>
               <Tab label="packages" value="packages">{ pageOne }</Tab>
-              <Tab label="admin" value="admin">
-                <Admin
-                  teamName={config.team.name || ''}
-                />
-              </Tab>
+              <Tab label="admin" value="admin"><Admin /></Tab>
             </Tabs>
             <Skip />
           </div> : pageOne

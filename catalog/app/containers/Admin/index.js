@@ -6,11 +6,10 @@ import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
 import IconMenu from 'material-ui/IconMenu';
 import MenuItem from 'material-ui/MenuItem';
-import PropTypes from 'prop-types';
-import React from 'react';
+import PT from 'prop-types';
+import React, { PureComponent, Fragment } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
-import { createStructuredSelector } from 'reselect';
 import {
   Table,
   TableBody,
@@ -22,32 +21,47 @@ import {
 import TextField from 'material-ui/TextField';
 
 import MIcon from 'components/MIcon';
+import Spinner from 'components/Spinner';
+import api from 'constants/api';
 
+import * as actions from './actions';
 import messages from './messages';
-import makeSelectAdmin from './selectors';
+import selector from './selectors';
 
-export class Admin extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
+import config from 'constants/config';
+
+const teamName = config.team && config.team.name;
+
+export class Admin extends PureComponent { // eslint-disable-line react/prefer-stateless-function
   state = {
     open: false,
   };
   setOpen(flag) {
     this.setState({ open: flag });
   }
+  componentWillMount() {
+    this.props.getMembers();
+  }
+
   render() {
-    const { teamName } = this.props;
+    const { members, packages } = this.props;
+    console.log('admin state', { members, packages });
     return (
       <div>
         <h1><FormattedMessage {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
         <h2><FormattedMessage {...messages.teamPolicies} /></h2>
         <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
         <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
+
         <h2><FormattedMessage {...messages.membersAdd} /></h2>
         <TextField hintText="Email" />
         <FlatButton label="Add" />
-        <h2><FormattedMessage {...messages.teamMembers} /></h2>
-        <MembersTable onOpen={() => this.setOpen(true)} />
+
+        <MembersSection {...members} onOpen={() => this.setOpen(true)} />
+
         <h2><FormattedMessage {...messages.teamPackages} /></h2>
-        <PackageTable />
+        {/*<PackageTable />*/}
+
         <AuditDialog
           onClose={() => this.setOpen(false)}
           open={this.state.open}
@@ -58,48 +72,59 @@ export class Admin extends React.PureComponent { // eslint-disable-line react/pr
 }
 
 Admin.propTypes = {
-  dispatch: PropTypes.func.isRequired,
-  teamName: PropTypes.string,
+  members: PT.shape({
+    status: PT.oneOf([api.WAITING, api.SUCCESS, api.ERROR]),
+    response: PT.array,
+  }).isRequired,
+  packages: PT.shape({
+    status: PT.oneOf([api.WAITING, api.SUCCESS, api.ERROR]),
+    response: PT.object,
+  }).isRequired,
+  getMembers: PT.func.isRequired,
 };
 
-const SettingsMenu = () => (
+const MemberSettingsMenu = () => (
   <IconMenu
     iconButtonElement={<IconButton><MIcon>settings</MIcon></IconButton>}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
   >
-    <MenuItem primaryText="Remove member" />
+  <MenuItem primaryText="Remove member" />
     <Divider style={{ borderBottom: '1px solid' }} />
     <MenuItem primaryText="Reset password" />
   </IconMenu>
 
 );
 
-const now = Date.now();
-function rtime() {
-  const t = new Date(now - (Math.random() * 1000000000));
-  return t.toLocaleString();
-}
 
 function randInt() {
   return Math.floor(Math.random() * 10) + 1;
 }
 
-const memberData = [
-  { name: 'azander', last_seen: rtime() },
-  { name: 'bgross', last_seen: rtime() },
-  { name: 'dcaufield', last_seen: rtime() },
-  { name: 'emobley', last_seen: rtime() },
-  { name: 'fstitches', last_seen: rtime() },
-  { name: 'gvanderplas', last_seen: rtime() },
-  { name: 'hmcauley', last_seen: rtime() },
-  { name: 'hsanders', last_seen: rtime() },
-  { name: 'jkarve', last_seen: rtime() },
-  { name: 'klimnose', last_seen: rtime() },
-];
 
 const activityMask = ['packages', 'installs', 'previews'];
-const MembersTable = ({ onOpen }) => (
+
+const MembersSection = ({ onOpen, status, response }) => (
+  <Fragment>
+    <h2>
+      <FormattedMessage {...messages.teamMembers} />
+      {
+        status === null || status === api.WAITING ?
+        <Spinner /> :
+        status === api.SUCCESS ?
+        ` (${response.length})` : null
+      }
+    </h2>
+    {
+      status === api.SUCCESS ?
+      <MembersTable onOpen={onOpen} members={response} /> :
+      status === api.ERROR ?
+      <p>Error: {response.message}</p> : null
+    }
+  </Fragment>
+);
+
+const MembersTable = ({ onOpen, members }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
@@ -110,42 +135,47 @@ const MembersTable = ({ onOpen }) => (
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {
-        memberData.map((m) => (
-          <TableRow key={m.name}>
-            <TableRowColumn><a href="#TODO">{m.name}</a></TableRowColumn>
-            <TableRowColumn>
-              <a href="#TODO">
-                {activityMask.map((l) => `${randInt()} ${l}`).join(', ')}
-              </a>
-            </TableRowColumn>
-            <TableRowColumn>
-              <FlatButton onClick={onOpen}>{m.last_seen}</FlatButton>
-            </TableRowColumn>
-            <TableRowColumn><SettingsMenu /></TableRowColumn>
-          </TableRow>
-        ))
-      }
+      {members.map((m) => <MemberRow key={m.name} onOpen={onOpen} {...m} />)}
     </TableBody>
   </Table>
 );
 
+
 MembersTable.propTypes = {
-  onOpen: PropTypes.func,
+  onOpen: PT.func.isRequired,
+  members: PT.array.isRequired,
 };
 
-const packageData = [
-  { name: 'emobley/commodities', last_seen: rtime() },
-  { name: 'emobley/models', last_seen: rtime() },
-  { name: 'fstitches/imagedb1', last_seen: rtime() },
-  { name: 'fstitches/imagedb2', last_seen: rtime() },
-  { name: 'fstitches/imagedb3', last_seen: rtime() },
-  { name: 'rob/arbitrage', last_seen: rtime() },
-  { name: 'rob/bonds', last_seen: rtime() },
-  { name: 'rob/imds', last_seen: rtime() },
-  { name: 'rob/treasuries', last_seen: rtime() },
-  { name: 'rob/value', last_seen: rtime() },
+const memberActivities = [
+  'packages',
+  'installs',
+  'previews',
+  // 'deletes',
+  // 'pushes',
 ];
+
+const formatActivity = (map, activity) =>
+  map
+    .filter((key) => key in activity)
+    .map((key) => `${activity[key]} ${key}`)
+    .join(', ');
+
+
+const formatDate = (d) => d ? new Date(d).toLocaleString() : 'N/A';
+
+const MemberRow = ({ onOpen, name, last_seen, ...activity }) => (
+  <TableRow key={name}>
+    <TableRowColumn><a onClick={onOpen}>{name}</a></TableRowColumn>
+    <TableRowColumn>
+      <a onClick={onOpen}>{formatActivity(memberActivities, activity)}</a>
+    </TableRowColumn>
+    <TableRowColumn>
+      <FlatButton onClick={onOpen}>{formatDate(last_seen)}</FlatButton>
+    </TableRowColumn>
+    <TableRowColumn><MemberSettingsMenu /></TableRowColumn>
+  </TableRow>
+);
+
 
 const PackageSettingsMenu = () => (
   <IconMenu
@@ -210,8 +240,8 @@ const AuditDialog = ({ onClose, open }) => {
 };
 
 AuditDialog.propTypes = {
-  onClose: PropTypes.func,
-  open: PropTypes.bool,
+  onClose: PT.func,
+  open: PT.bool,
 };
 
 const AuditTable = () => (
@@ -239,14 +269,4 @@ const AuditTable = () => (
   </Table>
 );
 
-const mapStateToProps = createStructuredSelector({
-  Admin: makeSelectAdmin(),
-});
-
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Admin);
+export default connect(selector, actions)(Admin);
