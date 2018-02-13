@@ -195,8 +195,32 @@ class ImportTest(QuiltTestCase):
             from quilt.data.foo import multiple2
 
             # The first package contains data from the default dir.
+            # no value in re-checking the search order because of python import caching
             from quilt.data.foo import multiple1
             assert multiple1.dataframes
+
+
+            teststore = PackageStore(self._store_dir)
+            contents = open(os.path.join(teststore.package_path(None, 'foo', 'multiple1'),
+                                          Package.CONTENTS_DIR,
+                                          multiple1._package.get_hash())).read()
+            assert contents
+
+            # bad import
+            with self.assertRaises(ImportError):
+                from quilt.data.nonexisting import multiple2
+
+        # TODO: these tests might be useful in case there will be an easy way to change
+        # default build folder
+        # check that invalid folder names fail
+        # bad_build_dir = '?\*;:|<>'
+        # with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+        #     with self.assertRaises(AssertionError):
+        #         command.build('bar/multiple1', simple_build_path)
+        # bad_build_dir = ''
+        # with patch.dict(os.environ, {'QUILT_PRIMARY_PACKAGE_DIR': bad_build_dir}):
+        #     with self.assertRaises(AssertionError):
+        #         command.build('bar/multiple1', simple_build_path)
 
     def test_save(self):
         mydir = os.path.dirname(__file__)
