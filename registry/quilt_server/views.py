@@ -1796,7 +1796,7 @@ def audit_package(owner, package_name):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1817,7 +1817,7 @@ def audit_user(user):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
