@@ -80,21 +80,19 @@ class PushInstallTestCase(QuiltTestCase):
         )),
         file=FileNode(
             hashes=[HASH3],
-            metadata={'q_path': 'example'}
+            metadata=dict()
         )
     ))
 
     CONTENTS_2 = RootNode(dict(
         file=FileNode(
-            hashes=[HASH3],
-            metadata={'q_path': 'example'}
+            hashes=[HASH3]
         )
     ))
 
     HUGE_CONTENTS = RootNode(dict(
         README=FileNode(
-            hashes=[HASH1],
-            metadata={'q_path': 'example'}
+            hashes=[HASH1]
         ),
         group1=GroupNode(dict(
             group2=GroupNode(dict(
