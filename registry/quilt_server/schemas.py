@@ -15,7 +15,13 @@ PACKAGE_SCHEMA = {
         'dry_run': {
             'type': 'boolean'
         },
-        'public': {
+        'is_public': {
+            'type': 'boolean'
+        },
+        'is_team': {
+            'type': 'boolean'
+        },
+        'public': {  # DEPRECATED
             'type': 'boolean'
         },
         'description': {
