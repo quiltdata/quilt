@@ -1320,7 +1320,7 @@ def rm(package, force=False):
     team, owner, pkg = parse_package(package)
 
     if not force:
-        confirmed = input("Remove {0}? (y/n)".format(package))
+        confirmed = input("Remove {0}? (y/n) ".format(package))
         if confirmed.lower() != 'y':
             return
 
