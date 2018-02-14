@@ -2,11 +2,12 @@
 parse build file, serialize package
 """
 from collections import defaultdict, Iterable
+import glob
 import importlib
 import json
-from types import ModuleType
 import os
 import re
+from types import ModuleType
 
 import numpy as np
 import pandas as pd
@@ -16,12 +17,13 @@ from six import iteritems, string_types
 import yaml
 from tqdm import tqdm
 
+from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
 from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename
+from .util import FileWithReadProgress, is_nodename, to_nodename
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -88,6 +90,32 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
             raise BuildException("Data check failed: %s on %s @ %s" % (
                 check, rel_path, target))
 
+def _gen_glob_data(dir, pattern, child_table):
+    """Generates node data by globbing a directory for a pattern"""
+    dir = pathlib.Path(dir)
+    matched = False
+    used_names = set()  # Used by to_nodename to prevent duplicate names
+    # sorted so that renames (if any) are consistently ordered
+    for filepath in sorted(dir.glob(pattern)):
+        if filepath.is_dir():
+            continue
+        else:
+            matched = True
+
+        # create node info
+        node_table = {} if child_table is None else child_table.copy()
+        filepath = filepath.relative_to(dir)
+        node_table[RESERVED['file']] = str(filepath)
+        node_name = to_nodename(filepath.stem, invalid=used_names)
+        used_names.add(node_name)
+        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
+
+        yield node_name, node_table
+
+    if not matched:
+        print("Warning: {!r} matched no files.".format(pattern))
+        return
+
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
@@ -107,19 +135,30 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # to prevent `key: None` from polluting the update
         local_args = {}
         if node.get(RESERVED['transform']):
-            local_args[RESERVED['transform']] = node.get(RESERVED['transform'])
+            local_args[RESERVED['transform']] = node[RESERVED['transform']]
         if node.get(RESERVED['kwargs']):
-            local_args[RESERVED['kwargs']] = node.get(RESERVED['kwargs'])
+            local_args[RESERVED['kwargs']] = node[RESERVED['kwargs']]
         group_args = ancestor_args.copy()
-        group_args.update({ k: v for k, v in iteritems(local_args) })
+        group_args.update(local_args)
         # if it's not a reserved word it's a group that we can descend
-        groups = { k: v for k, v in iteritems(node) if k not in RESERVED }
+        groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
         for child_name, child_table in groups.items():
-            if not isinstance(child_name, str) or not is_nodename(child_name):
-                raise StoreException("Invalid node name: %r" % child_name)
-            _build_node(build_dir, package, name + '/' + child_name, child_table, fmt,
-                checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
-    else: # leaf node
+            if glob.has_magic(child_name):
+                # child_name is a glob string, use it to generate multiple child nodes
+                for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
+                    full_gchild_name = name + '/' + gchild_name if name else gchild_name
+                    _build_node(build_dir, package, full_gchild_name, gchild_table, fmt,
+                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+            else:
+                if not isinstance(child_name, str) or not is_nodename(child_name):
+                    raise StoreException("Invalid node name: %r" % child_name)
+                full_child_name = name + '/' + child_name if name else child_name
+                _build_node(build_dir, package, full_child_name, child_table, fmt,
+                    checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+    else:  # leaf node
+        # prevent overwriting existing node names
+        if name in package:
+            raise BuildException("Naming conflict: {!r} added to package more than once".format(name))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
@@ -409,8 +448,8 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                 existing_name = safename_to_name.get(new_safename)
                 if existing_name is not None:
                     raise BuildException(
-                        "Duplicate node names. %r was renamed to %r, which overlaps with %r" % (
-                            name, new_safename, existing_name)
+                        "Duplicate node names in directory %r. %r was renamed to %r, which overlaps with %r" % (
+                        dir_path, name, new_safename, existing_name)
                     )
                 safename_to_name[new_safename] = name
 

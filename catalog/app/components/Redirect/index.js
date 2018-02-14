@@ -1,5 +1,6 @@
 /* Redirect */
-import React, { PropTypes as PT } from 'react';
+import PT from 'prop-types';
+import React from 'react';
 
 import redirect from 'utils/redirect';
 import Working from 'components/Working';

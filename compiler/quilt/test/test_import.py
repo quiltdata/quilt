@@ -37,9 +37,9 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
-        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv', 'xls_skip', 'nulls'}
+        assert set(dataframes._keys()) == {'csv', 'nulls'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv', 'xls_skip', 'nulls'}
+        assert set(dataframes._data_keys()) == {'csv', 'nulls'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)
@@ -96,9 +96,9 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
-        assert set(dataframes._keys()) == {'xls', 'csv', 'tsv', 'xls_skip', 'nulls'}
+        assert set(dataframes._keys()) == {'csv', 'nulls'}
         assert set(dataframes._group_keys()) == set()
-        assert set(dataframes._data_keys()) == {'xls', 'csv', 'tsv', 'xls_skip', 'nulls'}
+        assert set(dataframes._data_keys()) == {'csv', 'nulls'}
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)

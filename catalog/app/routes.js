@@ -12,8 +12,8 @@ import config from 'constants/config';
 
 const loadRoute = (load) => (_next, cb) =>
   load()
-  .catch(errorLoading)
-  .then((res) => cb(null, res));
+    .catch(errorLoading)
+    .then((res) => cb(null, res));
 
 const errorLoading = (err) => {
   // TODO: show error page
@@ -23,7 +23,7 @@ const errorLoading = (err) => {
 const getDefault = get('default');
 
 const requireAuthIfTeam = (Component) =>
-  config.team && config.team.name && config.catalogRequiresAuth
+  config.team && config.team.name && config.alwaysRequiresAuth
     ? requireAuth(Component) : Component;
 
 
@@ -37,17 +37,17 @@ export default function createRoutes(store) {
       name: 'home',
       getComponent: loadRoute(() =>
         import('containers/HomePage')
-        .then(getDefault)
-        .then(requireAuthIfTeam)
-      ),
+          .then(getDefault)
+          .then(requireAuthIfTeam)
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/package/:owner/:name',
       name: 'package',
       getComponent: loadRoute(() =>
         import('containers/Package')
-        .then(getDefault)
-        .then(requireAuthIfTeam)
-      ),
+          .then(getDefault)
+          .then(requireAuthIfTeam)
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/user/:username',
       name: 'user',
@@ -57,12 +57,12 @@ export default function createRoutes(store) {
           import('containers/User/sagas'),
           import('containers/User'),
         ])
-        .then(([reducer, sagas, component]) => {
-          injectReducer('user', reducer.default);
-          injectSagas(sagas.default);
-          return requireAuthIfTeam(component.default);
-        })
-      ),
+          .then(([reducer, sagas, component]) => {
+            injectReducer('user', reducer.default);
+            injectSagas(sagas.default);
+            return requireAuthIfTeam(component.default);
+          })
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/oauth_callback',
       name: 'oauth2',
@@ -78,15 +78,15 @@ export default function createRoutes(store) {
       },
       getComponent: loadRoute(() =>
         import('containers/OAuth2').then(getDefault)
-      ),
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/grna-search',
       name: 'redirect',
       getComponent: loadRoute(() =>
         import('components/Redirect')
-        .then(getDefault)
-        .then(withProps({ url: 'https://app.quiltdata.com/grna-search/' }))
-      ),
+          .then(getDefault)
+          .then(withProps({ url: 'https://blog.quiltdata.com/designing-crispr-sgrnas-in-python-cd693674237d' }))
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/profile',
       name: 'profile',
@@ -96,35 +96,35 @@ export default function createRoutes(store) {
           import('containers/Profile/sagas'),
           import('containers/Profile'),
         ])
-        .then(([reducer, sagas, component]) => {
-          injectReducer('profile', reducer.default);
-          injectSagas(sagas.default);
-          return requireAuth(component.default);
-        })
-      ),
+          .then(([reducer, sagas, component]) => {
+            injectReducer('profile', reducer.default);
+            injectSagas(sagas.default);
+            return requireAuth(component.default);
+          })
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/search',
       name: 'searchResults',
       getComponent: loadRoute(() =>
         import('containers/SearchResults')
-        .then(getDefault)
-        .then(requireAuthIfTeam)
-      ),
+          .then(getDefault)
+          .then(requireAuthIfTeam)
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '/signout',
       name: 'signout',
       getComponent: loadRoute(() =>
         import('containers/SignOut')
-        .then(getDefault)
-      ),
+          .then(getDefault)
+      ), // eslint-disable-line function-paren-newline
     }, {
       path: '*',
       name: 'notfound',
       getComponent: loadRoute(() =>
         import('containers/NotFoundPage')
-        .then(getDefault)
-        .then(requireAuthIfTeam)
-      ),
+          .then(getDefault)
+          .then(requireAuthIfTeam)
+      ), // eslint-disable-line function-paren-newline
     },
   ];
 }

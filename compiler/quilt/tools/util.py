@@ -1,9 +1,10 @@
 """
 Helper functions.
 """
-import re
 import gzip
+import keyword
 import os
+import re
 
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
@@ -111,6 +112,17 @@ def sub_files(path, invisible=False):
     return files
 
 
+def is_identifier(string):
+    """Check if string could be a valid python identifier
+
+    :param string: string to be tested
+    :returns: True if string can be a python identifier, False otherwise
+    :rtype: bool
+    """
+    val = PYTHON_IDENTIFIER_RE.match(string) and not keyword.iskeyword(string)
+    return True if val else False
+
+
 def is_nodename(string):
     """Check if string could be a valid node name
 
@@ -159,8 +171,8 @@ def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original filename can't be recovered
-    from the change in all cases, so it must be stored separately (as
-    `FileNode` metadata).
+    from the change in all cases, so it must be stored separately (`FileNode`
+    metadata)
 
     If `invalid` is given, it should be an iterable of names that the returned
     string cannot match -- for example, other node names.
@@ -227,12 +239,13 @@ def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
     # PureWindowsPath recognizes c:\\, \\, or / anchors, and / or \ separators.
     filepath = pathlib.PureWindowsPath(filepath)
     if filepath.anchor:
-        raise ValueError("Invalid filepath (relative file path required): " + str(pathlib.Path(filepath)))
+        raise ValueError("Invalid filepath (relative file path required): " 
+                         + str(pathlib.PurePosixPath(filepath)))
 
     nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
     name = nodepath.name
     counter = 1
-    while nodepath_separator.join(nodepath.parts) in invalid:
+    while str(nodepath) in invalid:
         # first conflicted name will be "somenode_2"
         # The result is "somenode", "somenode_2", "somenode_3"..
         counter += 1

@@ -36,8 +36,7 @@ Out[9]: ['raw', 'tables']
 * `quilt.tag_remove(USER/PACKAGE, TAG)` to remove a tag
 
 # Permissions
-* `quilt.login()` to authenticate
-  * Users must authenticate to push packages
+* `quilt.login(["TEAM_NAME"])` to authenticate (required to push packages)
 * `quilt.access_list(USER/PACKAGE)` to see who has access to a package
 * `quilt.access_add(USER/PACKAGE, ANOTHER_USER)` to add read access
  * `quilt.access_add(USER/PACKAGE, "public")` makes a package world readable
@@ -45,11 +44,8 @@ Out[9]: ['raw', 'tables']
 
 * `quilt.delete(USER/PACKAGE)` removes the package from the registry; does not delete local data, so you may still see a local copy in `quilt ls`
 
-
-
 # Search
 * `quilt.search("SEARCH STRING")` to search for packages by user or package name
-
 
 # Import and retrieve
 `from quilt.data.USER import PACKAGE`
@@ -65,5 +61,3 @@ Packages contain three types of nodes:
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
   * All other data types return a string to the path of the object in the package store
-
-***

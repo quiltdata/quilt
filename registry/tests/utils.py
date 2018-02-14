@@ -93,15 +93,15 @@ class QuiltTestCase(TestCase):
 
         self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
 
-    def _mock_admin(self):
-        self._is_admin = True
+    def _mock_admin(self, is_admin=True):
+        self._is_admin = is_admin
 
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
-    def put_package(self, owner, package, contents, public=False):
+    def put_package(self, owner, package, contents, is_public=False, is_team=False):
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=owner,
             pkg=package,
@@ -113,7 +113,8 @@ class QuiltTestCase(TestCase):
             data=json.dumps(dict(
                 description="",
                 contents=contents,
-                public=public,
+                is_public=is_public,
+                is_team=is_team,
             ), default=encode_node),
             content_type='application/json',
             headers={

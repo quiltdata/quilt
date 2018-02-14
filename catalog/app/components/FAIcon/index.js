@@ -1,4 +1,5 @@
 /* FAIcon - FontAwesomeIcon wrapper */
+import PropTypes from 'prop-types';
 import React from 'react';
 
 const lookup = {
@@ -15,8 +16,8 @@ function FAIcon({ className, type }) {
 }
 
 FAIcon.propTypes = {
-  className: React.PropTypes.string,
-  type: React.PropTypes.oneOf(['twitter', 'github', 'medium']).isRequired,
+  className: PropTypes.string,
+  type: PropTypes.oneOf(['twitter', 'github', 'medium']).isRequired,
 };
 
 export default FAIcon;

@@ -13,6 +13,7 @@ import { loadState } from 'utils/storage';
 import createReducer from './reducers';
 
 const sagaMiddleware = createSagaMiddleware();
+// eslint-disable-next-line no-unused-vars
 export default function configureStore(initialState = {}, history) {
   // sagaMiddleware: Makes redux-sagas work
   // routerMiddleware: Syncs the location/URL path to the state
@@ -26,7 +27,7 @@ export default function configureStore(initialState = {}, history) {
       // pure JS is easier to read than Immutable objects
       Iterable.isIterable(state) ? state.toJS() : state
     );
-    const createLogger = require('redux-logger'); // eslint-disable-line global-require
+    const { createLogger } = require('redux-logger'); // eslint-disable-line global-require
     middlewares.push(createLogger({ stateTransformer }));
   }
 
@@ -64,11 +65,7 @@ export default function configureStore(initialState = {}, history) {
   /* istanbul ignore next */
   if (module.hot) {
     module.hot.accept('./reducers', () => {
-      import('./reducers').then((reducerModule) => {
-        const createReducers = reducerModule.default;
-        const nextReducers = createReducers(store.asyncReducers);
-        store.replaceReducer(nextReducers);
-      });
+      store.replaceReducer(createReducer(store.asyncReducers));
     });
   }
   return store;
