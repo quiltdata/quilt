@@ -203,8 +203,8 @@ class AdminTestCase(QuiltTestCase):
         now = time.time()
         last_push = package['pushes']['latest']
         delta = now - last_push
-        acceptable = 5 * 60 # 5 minutes
-        assert acceptable > delta >= 0
+        ACCEPTABLE = 5 * 60 # 5 minutes
+        assert ACCEPTABLE > delta >= 0
         for key in ['deletes', 'installs', 'previews']:
             assert package[key]['count'] == 0
             assert 'latest' not in package[key]
