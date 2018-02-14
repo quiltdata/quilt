@@ -614,6 +614,73 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False, is_team=True)]
 
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
+    def testTeamProfileWithPublic(self):
+        """
+        Test the profile endpoint but with teams *AND* public packages.
+        """
+        self.put_package(self.user, 'pkg1', RootNode(children=dict()), team=True)
+        self.put_package(self.user, 'pkg2', RootNode(children=dict()), public=True)
+        self.put_package(self.user, 'pkg3', RootNode(children=dict()), team=True, public=True)
+
+        # The user can see own packages.
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': self.user
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == [
+            dict(owner=self.user, name='pkg1', is_public=False, is_team=True),
+            dict(owner=self.user, name='pkg2', is_public=True, is_team=False),
+            dict(owner=self.user, name='pkg3', is_public=True, is_team=True),
+            dict(owner=self.user, name=self.pkg, is_public=False, is_team=False),
+        ]
+        assert data['shared'] == []
+
+
+        # Other users can't see anything.
+        sharewith = "anotheruser"
+
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == []
+        assert data['shared'] == []
+
+        # Packages that are both team and shared show up under "shared".
+        resp = self._share_package(self.user, 'pkg1', sharewith)
+        assert resp.status_code == requests.codes.ok
+        resp = self._share_package(self.user, 'pkg3', sharewith)
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get(
+            '/api/profile',
+            headers={
+                'Authorization': sharewith
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))['packages']
+
+        assert data['own'] == []
+        assert data['shared'] == [
+            dict(owner=self.user, name='pkg1', is_public=False, is_team=True),
+            dict(owner=self.user, name='pkg3', is_public=True, is_team=True),
+        ]
+
     def testRecentPackages(self):
         # Push two public packages.
         for i in range(2):

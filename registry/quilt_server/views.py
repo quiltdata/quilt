@@ -1409,9 +1409,9 @@ def recent_packages():
         count = 10
 
     if ALLOW_ANONYMOUS_ACCESS:
-        user = PUBLIC
+        max_visibility = PUBLIC
     elif ALLOW_TEAM_ACCESS:
-        user = TEAM
+        max_visibility = TEAM
     else:
         # Shouldn't really happen, but let's handle this case.
         raise ApiException(requests.codes.forbidden, "Not allowed")
@@ -1419,7 +1419,7 @@ def recent_packages():
     results = (
         db.session.query(Package, sa.func.max(Instance.updated_at))
         .join(Package.access)
-        .filter_by(user=user)
+        .filter_by(user=max_visibility)
         .join(Package.instances)
         .group_by(Package.id)
         .order_by(sa.func.max(Instance.updated_at).desc())
