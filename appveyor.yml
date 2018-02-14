@@ -52,7 +52,7 @@ install:
       }
 
   - ECHO "Install quilt compiler"
-  - ps: pip install --only-binary 'tables' "$env:APPVEYOR_BUILD_FOLDER\compiler"
+  - ps: pip install --only-binary 'tables' "$env:APPVEYOR_BUILD_FOLDER\compiler[tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {

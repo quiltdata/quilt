@@ -28,7 +28,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PaymentPlan, PUBLIC, VALID_NAME_RE, VALID_EMAIL_RE
+from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
@@ -60,7 +60,8 @@ INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
-DISALLOW_PUBLIC_USERS = app.config['DISALLOW_PUBLIC_USERS']
+ALLOW_ANONYMOUS_ACCESS = app.config['ALLOW_ANONYMOUS_ACCESS']
+ALLOW_TEAM_ACCESS = app.config['ALLOW_TEAM_ACCESS']
 
 ENABLE_USER_ENDPOINTS = app.config['ENABLE_USER_ENDPOINTS']
 
@@ -244,9 +245,10 @@ class Auth:
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email, is_admin):
+    def __init__(self, user, email, is_logged_in, is_admin):
         self.user = user
         self.email = email
+        self.is_logged_in = is_logged_in
         self.is_admin = is_admin
 
 
@@ -305,7 +307,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(PUBLIC, None, False)
+            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -323,7 +325,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or DISALLOW_PUBLIC_USERS:
+                if require_login or not ALLOW_ANONYMOUS_ACCESS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
@@ -339,7 +341,8 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     assert user
                     email = data['email']
                     is_admin = data.get('is_staff', False)
-                    g.auth = Auth(user, email, is_admin)
+
+                    g.auth = Auth(user=user, email=email, is_logged_in=True, is_admin=is_admin)
                 except requests.HTTPError as ex:
                     if resp.status_code == requests.codes.unauthorized:
                         raise ApiException(
@@ -361,6 +364,20 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
         return wrapper
     return innerdec
 
+def _access_filter(auth):
+    query = []
+    if ALLOW_ANONYMOUS_ACCESS:
+        query.append(PUBLIC)
+
+    if auth.is_logged_in:
+        assert auth.user not in [None, PUBLIC, TEAM]  # Sanity check
+        query.append(auth.user)
+
+        if ALLOW_TEAM_ACCESS:
+            query.append(TEAM)
+
+    return Access.user.in_(query)
+
 def _get_package(auth, owner, package_name):
     """
     Helper for looking up a package and checking permissions.
@@ -370,11 +387,11 @@ def _get_package(auth, owner, package_name):
         Package.query
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth.user, PUBLIC]))
+        .filter(_access_filter(auth))
         .one_or_none()
     )
     if package is None:
-        raise PackageNotFoundException(owner, package_name, auth.user is not PUBLIC)
+        raise PackageNotFoundException(owner, package_name, auth.is_logged_in)
     return package
 
 def _get_instance(auth, owner, package_name, package_hash):
@@ -385,7 +402,7 @@ def _get_instance(auth, owner, package_name, package_hash):
         .join(Instance.package)
         .filter_by(owner=owner, name=package_name)
         .join(Package.access)
-        .filter(Access.user.in_([auth.user, PUBLIC]))
+        .filter(_access_filter(auth))
         .one_or_none()
     )
     if instance is None:
@@ -408,7 +425,7 @@ def _mp_track(**kwargs):
         source = 'web'
 
     # Use the user ID if the user is logged in; otherwise, let MP use the IP address.
-    distinct_id = g.auth.user if g.auth.user != PUBLIC else None
+    distinct_id = g.auth.user
 
     # Try to get the ELB's forwarded IP, and fall back to the actual IP (in dev).
     ip_addr = request.headers.get('x-forwarded-for', request.remote_addr)
@@ -443,7 +460,7 @@ def _generate_presigned_url(method, owner, blob_hash):
 
 def _get_or_create_customer():
     assert HAVE_PAYMENTS, "Payments are not enabled"
-    assert g.auth.user != PUBLIC
+    assert g.auth.user
 
     db_customer = Customer.query.filter_by(id=g.auth.user).one_or_none()
 
@@ -507,9 +524,15 @@ def package_put(owner, package_name, package_hash):
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
     dry_run = data.get('dry_run', False)
-    public = data.get('public', False)
+    public = data.get('is_public', data.get('public', False))
+    team = data.get('is_team', False)
     contents = data['contents']
     sizes = data.get('sizes', {})
+
+    if public and not ALLOW_ANONYMOUS_ACCESS:
+        raise ApiException(requests.codes.forbidden, "Public access not allowed")
+    if team and not ALLOW_TEAM_ACCESS:
+        raise ApiException(requests.codes.forbidden, "Team access not allowed")
 
     if hash_contents(contents) != package_hash:
         raise ApiException(requests.codes.bad_request, "Wrong contents hash")
@@ -569,6 +592,10 @@ def package_put(owner, package_name, package_hash):
         if public:
             public_access = Access(package=package, user=PUBLIC)
             db.session.add(public_access)
+
+        if team:
+            team_access = Access(package=package, user=TEAM)
+            db.session.add(team_access)
     else:
         if public:
             public_access = (
@@ -584,6 +611,22 @@ def package_put(owner, package_name, package_hash):
                     requests.codes.forbidden,
                     ("%(user)s/%(pkg)s is private. To make it public, " +
                      "run `quilt access add %(user)s/%(pkg)s public`.") %
+                    dict(user=owner, pkg=package_name)
+                )
+        if team:
+            team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+            if team_access is None:
+                raise ApiException(
+                    requests.codes.forbidden,
+                    ("%(user)s/%(pkg)s is private. To share it with the team, " +
+                     "run `quilt access add %(user)s/%(pkg)s team`.") %
                     dict(user=owner, pkg=package_name)
                 )
 
@@ -854,10 +897,14 @@ def package_delete(owner, package_name):
 @as_json
 def user_packages(owner):
     packages = (
-        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC),
+            sa.func.bool_or(Access.user == TEAM)
+        )
         .filter_by(owner=owner)
         .join(Package.access)
-        .filter(Access.user.in_([g.auth.user, PUBLIC]))
+        .filter(_access_filter(g.auth))
         .group_by(Package.id)
         .order_by(Package.name)
         .all()
@@ -867,9 +914,10 @@ def user_packages(owner):
         packages=[
             dict(
                 name=package.name,
-                is_public=is_public
+                is_public=is_public,
+                is_team=is_team,
             )
-            for package, is_public in packages
+            for package, is_public, is_team in packages
         ]
     )
 
@@ -878,7 +926,11 @@ def user_packages(owner):
 @as_json
 def list_user_packages(owner):
     packages = (
-        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC),
+            sa.func.bool_or(Access.user == TEAM)
+        )
         .filter_by(owner=owner)
         .join(Package.access)
         .group_by(Package.id)
@@ -890,9 +942,10 @@ def list_user_packages(owner):
         packages=[
             dict(
                 name=package.name,
-                is_public=is_public
+                is_public=is_public,
+                is_team=is_team,
             )
-            for package, is_public in packages
+            for package, is_public, is_team in packages
         ]
     )
 
@@ -1231,7 +1284,13 @@ def access_put(owner, package_name, user):
 
     else:
         _validate_username(user)
-        if user != PUBLIC:
+        if user == PUBLIC:
+            if not ALLOW_ANONYMOUS_ACCESS:
+                raise ApiException(requests.codes.forbidden, "Public access not allowed")
+        elif user == TEAM:
+            if not ALLOW_TEAM_ACCESS:
+                raise ApiException(requests.codes.forbidden, "Team access not allowed")
+        else:
             resp = requests.get(OAUTH_PROFILE_API % user,
                                 headers=auth_headers)
             if resp.status_code == requests.codes.not_found:
@@ -1331,9 +1390,10 @@ def access_list(owner, package_name):
 
     can_access = [access.user for access in accesses]
     is_collaborator = g.auth.user in can_access
-    is_public = PUBLIC in can_access
+    is_public = ALLOW_ANONYMOUS_ACCESS and (PUBLIC in can_access)
+    is_team = ALLOW_TEAM_ACCESS and (TEAM in can_access)
 
-    if is_public or is_collaborator:
+    if is_public or is_team or is_collaborator:
         return dict(users=can_access)
     else:
         raise PackageNotFoundException(owner, package_name)
@@ -1347,10 +1407,18 @@ def recent_packages():
     except ValueError:
         count = 10
 
+    if ALLOW_ANONYMOUS_ACCESS:
+        max_visibility = PUBLIC
+    elif ALLOW_TEAM_ACCESS:
+        max_visibility = TEAM
+    else:
+        # Shouldn't really happen, but let's handle this case.
+        raise ApiException(requests.codes.forbidden, "Not allowed")
+
     results = (
         db.session.query(Package, sa.func.max(Instance.updated_at))
         .join(Package.access)
-        .filter_by(user=PUBLIC)
+        .filter_by(user=max_visibility)
         .join(Package.instances)
         .group_by(Package.id)
         .order_by(sa.func.max(Instance.updated_at).desc())
@@ -1388,10 +1456,14 @@ def search():
     ]
 
     results = (
-        db.session.query(Package, sa.func.bool_or(Access.user == PUBLIC))
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC),
+            sa.func.bool_or(Access.user == TEAM)
+        )
         .filter(sa.and_(*filter_list))
         .join(Package.access)
-        .filter(Access.user.in_([g.auth.user, PUBLIC]))
+        .filter(_access_filter(g.auth))
         .group_by(Package.id)
         .order_by(
             sa.func.lower(Package.owner),
@@ -1406,7 +1478,8 @@ def search():
                 owner=package.owner,
                 name=package.name,
                 is_public=is_public,
-            ) for package, is_public in results
+                is_team=is_team,
+            ) for package, is_public, is_team in results
         ]
     )
 
@@ -1422,8 +1495,6 @@ def profile():
         plan = None
         have_cc = None
 
-    public_access = sa.orm.aliased(Access)
-
     # Check for outstanding package sharing invitations
     invitations = (
         db.session.query(Invitation, Package)
@@ -1438,13 +1509,23 @@ def profile():
     if invitations:
         db.session.commit()
 
+    # We want to show only the packages owned by or explicitly shared with the user -
+    # but also show whether they're public, in case a package is both public and shared with the user.
+    # So do a "GROUP BY" to get the public info, then "HAVING" to filter out packages that aren't shared.
     packages = (
-        db.session.query(Package, public_access.user.isnot(None))
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC),
+            sa.func.bool_or(Access.user == TEAM)
+        )
         .join(Package.access)
-        .filter(Access.user == g.auth.user)
-        .outerjoin(public_access, sa.and_(
-            Package.id == public_access.package_id, public_access.user == PUBLIC))
-        .order_by(Package.owner, Package.name)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id)
+        .order_by(
+            sa.func.lower(Package.owner),
+            sa.func.lower(Package.name)
+        )
+        .having(sa.func.bool_or(Access.user == g.auth.user))
         .all()
     )
 
@@ -1454,17 +1535,19 @@ def profile():
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
+                    is_team=is_team,
                 )
-                for package, is_public in packages if package.owner == g.auth.user
+                for package, is_public, is_team in packages if package.owner == g.auth.user
             ],
             shared=[
                 dict(
                     owner=package.owner,
                     name=package.name,
-                    is_public=bool(is_public)
+                    is_public=is_public,
+                    is_team=is_team,
                 )
-                for package, is_public in packages if package.owner != g.auth.user
+                for package, is_public, is_team in packages if package.owner != g.auth.user
             ],
         ),
         plan=plan,
@@ -1795,7 +1878,7 @@ def audit_package(owner, package_name):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1816,7 +1899,7 @@ def audit_user(user):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1825,3 +1908,32 @@ def audit_user(user):
             extra=event.extra,
         ) for event in events]
     )
+
+@app.route('/api/admin/package_summary')
+@api(require_admin=True)
+@as_json
+def package_summary():
+    events = (
+        db.session.query(Event.package_owner, Event.package_name, Event.type, 
+                         sa.func.count(Event.type), sa.func.max(Event.created))
+        .group_by(Event.package_owner, Event.package_name, Event.type)
+        )
+
+    event_results = defaultdict(lambda: {'count':0})
+    packages = set()
+    for event_owner, event_package, event_type, event_count, latest in events:
+        package = "{owner}/{pkg}".format(owner=event_owner, pkg=event_package)
+        ts = _utc_datetime_to_ts(latest)
+        event_results[(package, event_type)] = {'latest':ts, 'count':event_count}
+        packages.add(package)
+
+    results = {
+        package : {
+            'installs' : event_results[(package, Event.Type.INSTALL)],
+            'previews' : event_results[(package, Event.Type.PREVIEW)],
+            'pushes' : event_results[(package, Event.Type.PUSH)],
+            'deletes' : event_results[(package, Event.Type.DELETE)]
+        } for package in packages
+    }
+
+    return {'packages' : results}

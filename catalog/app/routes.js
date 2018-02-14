@@ -23,7 +23,7 @@ const errorLoading = (err) => {
 const getDefault = get('default');
 
 const requireAuthIfTeam = (Component) =>
-  config.team && config.team.name && config.catalogRequiresAuth
+  config.team && config.team.name && config.alwaysRequiresAuth
     ? requireAuth(Component) : Component;
 
 

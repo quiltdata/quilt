@@ -22,7 +22,7 @@
 * `quilt tag remove USER/PACKAGE TAG` to remove a tag
 
 # Permissions
-* `quilt login` to authenticate
+* `quilt login [TEAM]` to authenticate
  * Users must authenticate to push packages
 * `quilt access list USER/PACKAGE` to see who has access to a package
 * `quilt access {add, remove} USER/PACKAGE ANOTHER_USER` to add/remove read-only users
