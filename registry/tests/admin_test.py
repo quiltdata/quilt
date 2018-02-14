@@ -4,7 +4,6 @@
 Admin feature tests
 """
 
-import datetime
 import json
 import requests
 import responses
@@ -204,8 +203,8 @@ class AdminTestCase(QuiltTestCase):
         now = time.time()
         last_push = package['pushes']['latest']
         delta = now - last_push
-        acceptable = datetime.timedelta(minutes=20).total_seconds()
-        assert abs(acceptable) > abs(delta)
+        acceptable = 5 * 60 # 5 minutes
+        assert acceptable > delta
         for key in ['deletes', 'installs', 'previews']:
             assert package[key]['count'] == 0
             assert 'latest' not in package[key]
