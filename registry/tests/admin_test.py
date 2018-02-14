@@ -4,10 +4,10 @@
 Admin feature tests
 """
 
-import datetime
 import json
 import requests
 import responses
+import time
 
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
@@ -200,12 +200,11 @@ class AdminTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['status'] == 200
         package = data['packages']['{user}/{pkg}'.format(user=self.user, pkg=self.pkg)]
-        now = datetime.datetime.utcnow()
+        now = time.time()
         last_push = package['pushes']['latest']
-        then = datetime.datetime.utcfromtimestamp(last_push)
-        delta = now - then
-        acceptable = datetime.timedelta(minutes=2)
-        assert abs(acceptable) > abs(delta)
+        delta = now - last_push
+        ACCEPTABLE = 5 * 60 # 5 minutes
+        assert ACCEPTABLE > delta >= 0
         for key in ['deletes', 'installs', 'previews']:
             assert package[key]['count'] == 0
             assert 'latest' not in package[key]
