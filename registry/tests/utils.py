@@ -101,7 +101,7 @@ class QuiltTestCase(TestCase):
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
-    def put_package(self, owner, package, contents, public=False, team=False):
+    def put_package(self, owner, package, contents, is_public=False, is_team=False):
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=owner,
             pkg=package,
@@ -113,8 +113,8 @@ class QuiltTestCase(TestCase):
             data=json.dumps(dict(
                 description="",
                 contents=contents,
-                public=public,
-                team=team,
+                is_public=is_public,
+                is_team=is_team,
             ), default=encode_node),
             content_type='application/json',
             headers={

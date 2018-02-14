@@ -227,10 +227,10 @@ def argument_parser():
     shorthelp = "Push a data package to the server"
     push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp)
     push_p.add_argument("package", type=str, help=HANDLE)
-    push_p.add_argument("--public", action="store_true",
+    push_p.add_argument("--public", action="store_true", dest='is_public',
                         help=("Create or update a public package " +
                               "(fails if the package exists and is private)"))
-    push_p.add_argument("--team", action="store_true",
+    push_p.add_argument("--team", action="store_true", dest='is_team',
                         help=("Create or update a team-visible package " +
                               "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",

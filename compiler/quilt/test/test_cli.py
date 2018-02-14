@@ -694,9 +694,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': False,
-            'public': False,
+            'is_public': False,
             'package': 'fakeuser/fakepackage',
-            'team': False,
+            'is_team': False,
         }
 
         ## Test the flags as well..
@@ -709,9 +709,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
-            'public': True,
+            'is_public': True,
             'package': 'fakeuser/fakepackage',
-            'team': False,
+            'is_team': False,
         }
 
         # team (without reupload)
@@ -729,9 +729,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
-            'public': False,
+            'is_public': False,
             'package': 'blah:fakeuser/fakepackage',
-            'team': True,
+            'is_team': True,
         }
 
 

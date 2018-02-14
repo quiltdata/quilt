@@ -626,11 +626,10 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, team=False, reupload=False):
+def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    using_team = team
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
@@ -643,8 +642,8 @@ def push(package, public=False, team=False, reupload=False):
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
-            public=public,
-            team=using_team,
+            is_public=is_public,
+            is_team=is_team,
             contents=pkgobj.get_contents(),
             description="",  # TODO
             sizes=sizes

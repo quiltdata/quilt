@@ -127,7 +127,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -212,7 +212,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -227,7 +227,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS_WITH_METADATA
             ), default=encode_node),
@@ -355,7 +355,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -370,7 +370,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -385,7 +385,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -400,7 +400,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/Foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -449,7 +449,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -485,7 +485,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/bar/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -535,7 +535,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 dry_run=True,
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -572,7 +572,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % 'bad hash',
             data=json.dumps(dict(
                 dry_run=True,
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -591,7 +591,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -671,7 +671,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % huge_contents_hash,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.HUGE_CONTENTS
             ), default=encode_node),
@@ -737,7 +737,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -758,7 +758,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_2_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS_2
             ), default=encode_node),
@@ -780,7 +780,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                team=True,
+                is_team=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -800,7 +800,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -817,7 +817,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                team=True,
+                is_team=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -829,3 +829,34 @@ class PushInstallTestCase(QuiltTestCase):
         )
 
         assert resp.status_code == requests.codes.ok
+
+    def testOldPublicParamn(self):
+        # Push a package using "public" rather than "is_public".
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that "is_public" is set.
+        resp = self.app.get(
+            '/api/package/test_user/',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]

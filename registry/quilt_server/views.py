@@ -524,8 +524,8 @@ def package_put(owner, package_name, package_hash):
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
     dry_run = data.get('dry_run', False)
-    public = data.get('public', False)
-    team = data.get('team', False)
+    public = data.get('is_public', data.get('public', False))
+    team = data.get('is_team', False)
     contents = data['contents']
     sizes = data.get('sizes', {})
 

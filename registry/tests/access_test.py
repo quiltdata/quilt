@@ -385,7 +385,7 @@ class AccessTestCase(QuiltTestCase):
     @mock_customer()
     def testRemovePublicBasicUser(self, customer):
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), is_public=True)
 
         # Try deleting the PUBLIC user
         resp = self.app.delete(
@@ -399,7 +399,7 @@ class AccessTestCase(QuiltTestCase):
     @mock_customer(plan=PaymentPlan.INDIVIDUAL)
     def testRemovePublicIndividualUser(self, customer):
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), is_public=True)
 
         # Delete the PUBLIC user
         resp = self.app.delete(
@@ -425,7 +425,7 @@ class AccessTestCase(QuiltTestCase):
 
     def testRemovePublicNoPayments(self):
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), is_public=True)
 
         # Delete the PUBLIC user
         resp = self.app.delete(
@@ -464,7 +464,7 @@ class AccessTestCase(QuiltTestCase):
         List all accessible packages.
         """
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()), public=True)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), is_public=True)
 
         # The user can see own packages.
         resp = self.app.get(
@@ -543,7 +543,7 @@ class AccessTestCase(QuiltTestCase):
         Test the profile endpoint but with teams and no public access.
         """
         public_pkg = "publicpkg"
-        self.put_package(self.user, public_pkg, RootNode(children=dict()), team=True)
+        self.put_package(self.user, public_pkg, RootNode(children=dict()), is_team=True)
 
         # The user can see own packages.
         resp = self.app.get(
@@ -619,9 +619,9 @@ class AccessTestCase(QuiltTestCase):
         """
         Test the profile endpoint but with teams *AND* public packages.
         """
-        self.put_package(self.user, 'pkg1', RootNode(children=dict()), team=True)
-        self.put_package(self.user, 'pkg2', RootNode(children=dict()), public=True)
-        self.put_package(self.user, 'pkg3', RootNode(children=dict()), team=True, public=True)
+        self.put_package(self.user, 'pkg1', RootNode(children=dict()), is_team=True)
+        self.put_package(self.user, 'pkg2', RootNode(children=dict()), is_public=True)
+        self.put_package(self.user, 'pkg3', RootNode(children=dict()), is_team=True, is_public=True)
 
         # The user can see own packages.
         resp = self.app.get(
@@ -685,14 +685,14 @@ class AccessTestCase(QuiltTestCase):
         # Push two public packages.
         for i in range(2):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
 
         time.sleep(1)  # This sucks, but package timestamps only have a resolution of 1s.
 
         # Push two more.
         for i in range(2, 4):
             pkg = 'pkg%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
 
         # Update pkg0.
         self.put_package(self.user, 'pkg0', RootNode(children=dict()))
@@ -721,7 +721,7 @@ class AccessTestCase(QuiltTestCase):
     def testSearch(self):
         for i in [1, 2]:
             pkg = 'public%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
 
         def _test_query(query, headers, expected_results):
             params = dict(q=query)
@@ -759,7 +759,7 @@ class AccessTestCase(QuiltTestCase):
 
     def testSearchOrder(self):
         for pkg in ['a', 'B', 'c', 'D']:
-            self.put_package(self.user, pkg, RootNode(children=dict()), public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
 
         params = dict(q=self.user)
         resp = self.app.get(
