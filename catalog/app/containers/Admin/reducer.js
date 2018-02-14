@@ -9,6 +9,8 @@ import api from 'constants/api';
 import {
   GET_MEMBERS,
   GET_MEMBERS_RESPONSE,
+  GET_PACKAGES,
+  GET_PACKAGES_RESPONSE,
 } from './constants';
 
 const initialState = fromJS({
@@ -29,6 +31,14 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['members', 'status'], action.status)
         .setIn(['members', 'response'], fromJS(action.response));
+    case GET_PACKAGES:
+      return state
+        .setIn(['packages', 'status'], api.WAITING)
+        .deleteIn(['packages', 'response']);
+    case GET_PACKAGES_RESPONSE:
+      return state
+        .setIn(['packages', 'status'], action.status)
+        .setIn(['packages', 'response'], fromJS(action.response));
     default:
       return state;
   }
