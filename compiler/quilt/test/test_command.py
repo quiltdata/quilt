@@ -703,7 +703,7 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     @patch('sys.stdout', new_callable=StringIO)
-    def test_access_list(self):
+    def test_access_list(self, mock_stdout):
         self.requests_mock.add(
             responses.GET,
             '%s/api/access/foo/bar' % command.get_registry_url(None),
