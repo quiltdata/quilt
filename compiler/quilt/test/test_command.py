@@ -709,11 +709,11 @@ class CommandTest(QuiltTestCase):
             '%s/api/access/foo/bar' % command.get_registry_url(None),
             status=201,
             json={
-                'users': ['foo']
+                'users': ['foo', 'bob']
             }
         )
         command.access_list('foo/bar')
-        assert mock_stdout.getvalue() == 'foo\n'
+        assert mock_stdout.getvalue() == 'foo\nbob\n'
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_list_no_auth(self):
@@ -722,13 +722,15 @@ class CommandTest(QuiltTestCase):
             command.access_list('foo/bar')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
-    def test_access_remove(self):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_access_remove(self, mock_stdout):
         self.requests_mock.add(
             responses.DELETE,
             '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
             status=201
         )
         command.access_remove('foo/bar', 'bob')
+        assert mock_stdout.getvalue() == u'Access removed for bob\n'
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_remove_no_auth(self):
@@ -758,13 +760,15 @@ class CommandTest(QuiltTestCase):
             command.access_remove('foo/bar', 'foo')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
-    def test_access_add(self):
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_access_add(self, mock_stdout):
         self.requests_mock.add(
             responses.PUT,
             '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
             status=201
         )
         command.access_add('foo/bar', 'bob')
+        assert mock_stdout.getvalue() == u'Access added for bob\n'
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_add_no_auth(self):

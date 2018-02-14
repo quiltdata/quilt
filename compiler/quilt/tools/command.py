@@ -1202,6 +1202,7 @@ def access_add(package, user):
     session = _get_session(team)
 
     session.put("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print(u'Access added for %s' % user)
 
 def access_remove(package, user):
     """
@@ -1211,7 +1212,7 @@ def access_remove(package, user):
     session = _get_session(team)
 
     session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
-    print("Access removed")
+    print(u'Access removed for %s' % user)
 
 def delete(package):
     """
