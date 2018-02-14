@@ -11,12 +11,12 @@ RUN pip3 install uwsgi
 # Create Quilt user
 RUN useradd -s /bin/bash -m quilt
 
-# Setup uwsgi
-COPY uwsgi.ini /etc/uwsgi.ini
-
 # Install the dependencies
 COPY requirements.txt /usr/src/quilt-server/
 RUN pip3 install -r /usr/src/quilt-server/requirements.txt
+
+# Setup uwsgi
+COPY uwsgi.ini /etc/uwsgi.ini
 
 # Install the Flask app
 # Do this as the last step to maximize caching.
@@ -26,6 +26,8 @@ COPY setup.py MANIFEST.in fix_sizes.py /usr/src/quilt-server/
 WORKDIR /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
+USER quilt
+
 ENV QUILT_SERVER_CONFIG=prod_config.py
 
 # Needed to run `flask db ...`
@@ -33,4 +35,4 @@ ENV FLASK_APP=quilt_server
 
 EXPOSE 9000
 
-CMD ["uwsgi", "--ini", "/etc/uwsgi.ini"]
+CMD flask db upgrade && exec uwsgi --ini /etc/uwsgi.ini
