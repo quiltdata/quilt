@@ -4,6 +4,7 @@
 Admin feature tests
 """
 
+import datetime
 import json
 import requests
 import responses
@@ -169,3 +170,42 @@ class AdminTestCase(QuiltTestCase):
         assert user['packages'] == 1
         assert user['status'] == 'active'
         assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
+
+    def testAdminPackageUserUI(self):
+        self._mock_admin()
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
+        self.requests_mock.add(responses.GET, user_list_api, json.dumps({
+            'status': 200,
+            'count': 1,
+            'next': None,
+            'previous': None,
+            'results': [{
+                'username': self.user,
+                'id': 1,
+                'date_joined': '2018-01-14T19:33:27.656835Z',
+                'email': 'admin@quiltdata.io',
+                'is_staff': True,
+                'is_superuser': True,
+                'is_active': True,
+                'last_login': '2018-01-14T19:33:27.656835Z'
+            }]
+            }))
+        resp = self.app.get(
+            '/api/admin/package_summary',
+            headers={
+                'Authorization': self.user
+            }
+        )
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['status'] == 200
+        package = data['packages']['{user}/{pkg}'.format(user=self.user, pkg=self.pkg)]
+        now = datetime.datetime.utcnow()
+        last_push = package['pushes']['latest']
+        then = datetime.datetime.utcfromtimestamp(last_push)
+        delta = now - then
+        acceptable = datetime.timedelta(minutes=2)
+        assert abs(acceptable) > abs(delta)
+        for key in ['deletes', 'installs', 'previews']:
+            assert package[key]['count'] == 0
+            assert 'latest' not in package[key]
