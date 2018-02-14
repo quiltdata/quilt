@@ -22,7 +22,7 @@ from quilt_server.core import (
     RootNode,
     PackageFormat,
 )
-from quilt_server.models import Event, InstanceBlobAssoc, S3Blob
+from quilt_server.models import InstanceBlobAssoc, S3Blob
 
 from .utils import mock_customer, QuiltTestCase
 
@@ -176,7 +176,12 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'test_user'
             }
         )
+        assert resp.status_code == requests.codes.ok
 
+        # Install the package as an anonymous user.
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+        )
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
@@ -194,18 +199,6 @@ class PushInstallTestCase(QuiltTestCase):
         assert url1.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
         assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
         assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
-
-        events = Event.query.all()
-        assert len(events) == 2
-        assert events[0].type == Event.Type.PUSH
-        assert events[0].extra['public'] is True
-        assert events[1].type == Event.Type.INSTALL
-        assert events[1].extra['subpath'] is None
-        for event in events:
-            assert event.user == 'test_user'
-            assert event.package_owner == 'test_user'
-            assert event.package_name == 'foo'
-            assert event.package_hash == self.CONTENTS_HASH
 
     def testPushNewMetadata(self):
         # Push the original contents.
@@ -691,6 +684,12 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
+        # Get preview as an anonymous user.
+        resp = self.app.get(
+            '/api/package_preview/test_user/foo/%s' % huge_contents_hash,
+        )
+        assert resp.status_code == requests.codes.ok
+
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         assert data['readme_url']
         preview = data['preview']
@@ -720,15 +719,6 @@ class PushInstallTestCase(QuiltTestCase):
                 ]]
             ]],
         ]
-
-        events = Event.query.all()
-        assert len(events) == 2
-        event = events[1]
-        assert event.user == 'test_user'
-        assert event.type == Event.Type.PREVIEW
-        assert event.package_owner == 'test_user'
-        assert event.package_name == 'foo'
-        assert event.package_hash == huge_contents_hash
 
     def testInstanceBlob(self):
         # Verify that all blobs are accounted for in the instance<->blob table.
