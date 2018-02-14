@@ -1938,3 +1938,35 @@ def package_summary():
     }
 
     return {'packages' : results}
+
+@app.route('/api/users/reset_password', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def reset_password():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    password_reset_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
