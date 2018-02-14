@@ -69,6 +69,7 @@ import requests
 import responses
 
 import pytest
+from io import StringIO
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -701,6 +702,7 @@ class CommandTest(QuiltTestCase):
             command.audit('foo/bar')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    @patch('sys.stdout', new_callable=StringIO)
     def test_access_list(self):
         self.requests_mock.add(
             responses.GET,
@@ -711,6 +713,7 @@ class CommandTest(QuiltTestCase):
             }
         )
         command.access_list('foo/bar')
+        assert mock_stdout.getvalue() == 'foo\n'
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_list_no_auth(self):
