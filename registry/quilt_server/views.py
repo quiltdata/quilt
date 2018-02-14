@@ -1800,7 +1800,7 @@ def audit_package(owner, package_name):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1821,7 +1821,7 @@ def audit_user(user):
 
     return dict(
         events=[dict(
-            created=event.created,
+            created=_utc_datetime_to_ts(event.created),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1830,3 +1830,32 @@ def audit_user(user):
             extra=event.extra,
         ) for event in events]
     )
+
+@app.route('/api/admin/package_summary')
+@api(require_admin=True)
+@as_json
+def package_summary():
+    events = (
+        db.session.query(Event.package_owner, Event.package_name, Event.type, 
+                         sa.func.count(Event.type), sa.func.max(Event.created))
+        .group_by(Event.package_owner, Event.package_name, Event.type)
+        )
+
+    event_results = defaultdict(lambda: {'count':0})
+    packages = set()
+    for event_owner, event_package, event_type, event_count, latest in events:
+        package = "{owner}/{pkg}".format(owner=event_owner, pkg=event_package)
+        ts = _utc_datetime_to_ts(latest)
+        event_results[(package, event_type)] = {'latest':ts, 'count':event_count}
+        packages.add(package)
+
+    results = {
+        package : {
+            'installs' : event_results[(package, Event.Type.INSTALL)],
+            'previews' : event_results[(package, Event.Type.PREVIEW)],
+            'pushes' : event_results[(package, Event.Type.PUSH)],
+            'deletes' : event_results[(package, Event.Type.DELETE)]
+        } for package in packages
+    }
+
+    return {'packages' : results}
