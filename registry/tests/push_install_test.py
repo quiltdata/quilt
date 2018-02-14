@@ -793,8 +793,8 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.forbidden
 
-    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
-    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
     def testTeams(self):
         # Public push fails.
         resp = self.app.put(

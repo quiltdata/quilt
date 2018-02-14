@@ -60,8 +60,8 @@ INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
-ALLOW_PUBLIC_USERS = not app.config['DISALLOW_PUBLIC_USERS']
-ALLOW_TEAM_USERS = app.config['ALLOW_TEAM_USERS']
+ALLOW_ANONYMOUS_ACCESS = app.config['ALLOW_ANONYMOUS_ACCESS']
+ALLOW_TEAM_ACCESS = app.config['ALLOW_TEAM_ACCESS']
 
 ENABLE_USER_ENDPOINTS = app.config['ENABLE_USER_ENDPOINTS']
 
@@ -325,7 +325,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or not ALLOW_PUBLIC_USERS:
+                if require_login or not ALLOW_ANONYMOUS_ACCESS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 headers = {
@@ -366,14 +366,14 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
 
 def _access_filter(auth):
     query = []
-    if ALLOW_PUBLIC_USERS:
+    if ALLOW_ANONYMOUS_ACCESS:
         query.append(PUBLIC)
 
     if auth.is_logged_in:
         assert auth.user not in [None, PUBLIC, TEAM]  # Sanity check
         query.append(auth.user)
 
-        if ALLOW_TEAM_USERS:
+        if ALLOW_TEAM_ACCESS:
             query.append(TEAM)
 
     return Access.user.in_(query)
@@ -529,9 +529,9 @@ def package_put(owner, package_name, package_hash):
     contents = data['contents']
     sizes = data.get('sizes', {})
 
-    if public and not ALLOW_PUBLIC_USERS:
+    if public and not ALLOW_ANONYMOUS_ACCESS:
         raise ApiException(requests.codes.forbidden, "Public access not allowed")
-    if team and not ALLOW_TEAM_USERS:
+    if team and not ALLOW_TEAM_ACCESS:
         raise ApiException(requests.codes.forbidden, "Team access not allowed")
 
     if hash_contents(contents) != package_hash:
@@ -1288,10 +1288,10 @@ def access_put(owner, package_name, user):
 
     else:
         if user == PUBLIC:
-            if not ALLOW_PUBLIC_USERS:
+            if not ALLOW_ANONYMOUS_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Public access not allowed")
         elif user == TEAM:
-            if not ALLOW_TEAM_USERS:
+            if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
         else:
             resp = requests.get(OAUTH_PROFILE_API % user,
@@ -1391,8 +1391,8 @@ def access_list(owner, package_name):
 
     can_access = [access.user for access in accesses]
     is_collaborator = g.auth.user in can_access
-    is_public = ALLOW_PUBLIC_USERS and (PUBLIC in can_access)
-    is_team = ALLOW_TEAM_USERS and (TEAM in can_access)
+    is_public = ALLOW_ANONYMOUS_ACCESS and (PUBLIC in can_access)
+    is_team = ALLOW_TEAM_ACCESS and (TEAM in can_access)
 
     if is_public or is_team or is_collaborator:
         return dict(users=can_access)
@@ -1408,9 +1408,9 @@ def recent_packages():
     except ValueError:
         count = 10
 
-    if ALLOW_PUBLIC_USERS:
+    if ALLOW_ANONYMOUS_ACCESS:
         user = PUBLIC
-    elif ALLOW_TEAM_USERS:
+    elif ALLOW_TEAM_ACCESS:
         user = TEAM
     else:
         # Shouldn't really happen, but let's handle this case.

@@ -8,8 +8,8 @@ See `app.config.from_object('...')` in __init__.py.
 """
 import os
 
-DISALLOW_PUBLIC_USERS = bool(os.getenv('DISALLOW_PUBLIC_USERS', ''))
-ALLOW_TEAM_USERS = bool(os.getenv('ALLOW_TEAM_USERS', ''))
+ALLOW_ANONYMOUS_ACCESS = not bool(os.getenv('DISALLOW_ANONYMOUS_ACCESS', ''))
+ALLOW_TEAM_ACCESS = bool(os.getenv('ALLOW_TEAM_ACCESS', ''))
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.

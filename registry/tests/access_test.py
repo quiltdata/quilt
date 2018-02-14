@@ -453,8 +453,8 @@ class AccessTestCase(QuiltTestCase):
         resp = self._share_package(self.user, self.pkg, 'team')
         assert resp.status_code == requests.codes.forbidden
 
-    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
-    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
     def testSharePublicFails(self):
         resp = self._share_package(self.user, self.pkg, 'public')
         assert resp.status_code == requests.codes.forbidden
@@ -536,8 +536,8 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=True, is_team=False)]
 
-    @patch('quilt_server.views.ALLOW_PUBLIC_USERS', False)
-    @patch('quilt_server.views.ALLOW_TEAM_USERS', True)
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
     def testTeamProfile(self):
         """
         Test the profile endpoint but with teams and no public access.
