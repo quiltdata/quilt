@@ -1390,8 +1390,7 @@ def audit(user_or_package):
 
     print(json.dumps(response.json(), indent=2))
 
-def reset_password(username):
-    team = _find_logged_in_team()
+def reset_password(team, username):
     session = _get_session(team)
     response = session.post(
         "{url}/api/users/reset_password".format(
