@@ -671,6 +671,7 @@ class TestCLI(BasicQuiltTestCase):
             [0, 'push', '--public'],
             [0, 'push', '--reupload'],
             [0, 'push', '--team'],
+            [0, 'push', '--team', '--public'],
         ])
 
         ## This section tests for circumstances expected to be rejected by argparse.
@@ -680,7 +681,6 @@ class TestCLI(BasicQuiltTestCase):
             'push --reupload'.split(),
             'push --public --reupload'.split(),
             'push --public --team'.split(),
-            'push --public --team fakeuser/fakepackage'.split(),  # mutually exclusive options
             ]
         for args in expect_fail_2_args:
             assert self.execute(args)['return code'] == 2, "using args: " + str(args)
