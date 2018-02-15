@@ -11,7 +11,7 @@ import styled from 'styled-components';
 import { setSearchText } from 'containers/App/actions';
 import logo from 'img/logo/horizontal-white.png';
 import { backgroundColor } from 'constants/style';
-import { blog, company, docs } from 'constants/urls';
+import { blog, company, docs, jobs } from 'constants/urls';
 import UserMenu from 'components/UserMenu';
 
 const Bar = styled(Row)`
@@ -68,6 +68,7 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
             <FlatButton href={blog} label="blog" style={navStyle} />
             <FlatButton href={docs} label="docs" style={navStyle} />
             <FlatButton href={company} label="about" style={navStyle} />
+            <FlatButton href={jobs} label="jobs" style={navStyle} />
           </Right>
         </NavRow>
         <ColNoPad xs={12} sm={6} smPush={6}>

@@ -10,6 +10,7 @@ export const gitWeb = 'https://github.com/quiltdata/quilt';
 export const installGit = 'https://git-scm.com/downloads';
 export const installQuilt = 'https://docs.quiltdata.com/installation.html';
 export const issues = 'https://github.com/quiltdata/quilt/blob/master/README.md#known-issues';
+export const jobs = 'https://quilt-data.breezy.hr/';
 export const makePackage = 'https://docs.quiltdata.com/make-a-package.html';
 export const pipGit = `git+${git}`;
 export const tutorial = 'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial';
