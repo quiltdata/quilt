@@ -872,8 +872,9 @@ def package_list(owner, package_name):
 @as_json
 def package_delete(owner, package_name):
     if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the package owner can delete packages.")
+        if not g.auth.is_admin:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can delete packages.")
 
     package = _get_package(g.auth, owner, package_name)
 
