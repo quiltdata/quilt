@@ -3,6 +3,7 @@ Tests for magic imports.
 """
 
 import os
+import time
 
 import pandas as pd
 from six import string_types
@@ -350,6 +351,72 @@ class ImportTest(QuiltTestCase):
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         with self.assertRaises(AttributeError):
             package4.newdf = df
+
+    def test_load_update(self):
+        # also tests dynamic import
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package5', build_path)
+        from ..data.foo import package5
+
+        # make a copy, to prove we can
+        newpkgname = 'foo/copied_package'
+        command.build(newpkgname, package5)
+
+        newfilename = 'myfile'+str(int(time.time()))
+        with open(newfilename, 'w') as fh:
+            fh.write('hello world1')
+
+        module = command.load(newpkgname)
+        module._set([newfilename], newfilename)
+        command.build(newpkgname, module)
+
+        # current spec requires that build() *not* update the in-memory module tree.
+        newpath1 = getattr(module, newfilename)()
+        assert newpath1 == newfilename
+
+        # current spec requires that load() reload from disk, i.e. gets a reference
+        # to the local object store
+        # this is important because of potential changes to myfile
+        reloaded_module = command.load(newpkgname)
+        assert reloaded_module is not module
+        newpath2 = getattr(reloaded_module, newfilename)()
+        assert 'myfile' not in newpath2
+
+    def test_multiple_updates(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package6', build_path)
+        from ..data.foo import package6
+
+        newfilename1 = 'myfile1'+str(int(time.time()))
+        with open(newfilename1, 'w') as fh:
+            fh.write('hello world1')
+
+        package6._set([newfilename1], newfilename1)
+
+        newfilename2 = 'myfile2'+str(int(time.time()))
+        with open(newfilename2, 'w') as fh:
+            fh.write('hello world2')
+
+        package6._set([newfilename1], newfilename2)
+
+        assert getattr(package6, newfilename1)() == newfilename2
+
+    def test_team_imports(self):
+        mydir = os.path.dirname(__file__)
+        build_path1 = os.path.join(mydir, './build_simple.yml')
+        command.build('my_team:foo/team_imports', build_path1)
+        build_path2 = os.path.join(mydir, './build_empty.yml')
+        command.build('foo/team_imports', build_path2)
+
+        # Verify that both imports work, and packages are in fact different.
+
+        from ..team.my_team.foo import team_imports as pkg1
+        from ..data.foo import team_imports as pkg2
+
+        assert hasattr(pkg1, 'foo')
+        assert not hasattr(pkg2, 'foo')
 
     def test_team_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)
