@@ -973,11 +973,11 @@ def install(package, hash=None, version=None, tag=None, force=False):
             pkghash = _match_hash(session, team, owner, pkg, hash)
     except HTTPResponseException as e:
         logged_in_team = _find_logged_in_team()
-        if team is None and logged_in_team is not None:
-            if e.response.status_code == 404:
-                raise CommandException(("Package {owner}/{pkg} does not exist. " +
-                                        "Maybe you meant {team}:{owner}/{pkg}?").format(
-                                                        owner=owner, pkg=pkg, team=logged_in_team))
+        if (team is None and logged_in_team is not None
+                and e.response.status_code == requests.codes.not_found):
+            raise CommandException(("Package {owner}/{pkg} does not exist. " +
+                                    "Maybe you meant {team}:{owner}/{pkg}?").format(
+                                            owner=owner, pkg=pkg, team=logged_in_team))
         else:
             raise e
 
