@@ -934,28 +934,41 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     print("Downloading package metadata...")
 
-    if version is not None:
-        response = session.get(
-            "{url}/api/version/{owner}/{pkg}/{version}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                version=version
+    try:
+        if version is not None:
+            response = session.get(
+                "{url}/api/version/{owner}/{pkg}/{version}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    version=version
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    elif tag is not None:
-        response = session.get(
-            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                tag=tag
+            pkghash = response.json()['hash']
+        elif tag is not None:
+            response = session.get(
+                "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    tag=tag
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    else:
-        pkghash = _match_hash(session, team, owner, pkg, hash)
+            pkghash = response.json()['hash']
+        else:
+            pkghash = _match_hash(session, team, owner, pkg, hash)
+    except CommandException as e:
+        logged_in_team = _find_logged_in_team()
+        if team is None and logged_in_team is not None:
+            notfoundstr = ("Package {owner}/{pkg} does not exist " +
+                           "(do you need to log in?)").format(owner=owner, pkg=pkg)
+            if str(e).startswith(notfoundstr):
+                raise CommandException(("Package {owner}/{pkg} does not exist. " +
+                                       "Maybe you meant {team}:{owner}/{pkg}?").format(
+                                                        owner=owner, pkg=pkg, team=logged_in_team))
+        else:
+            raise e
+
     assert pkghash is not None
 
     response = session.get(
