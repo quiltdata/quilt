@@ -32,6 +32,10 @@ class Node(object):
         else:
             raise AttributeError("{val} is not a valid package node".format(val=value))
 
+    @property
+    def _datafile(self):
+        return None
+
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
@@ -46,7 +50,7 @@ class DataNode(Node):
         return self._data()
 
     @property
-    def _filename(self):
+    def _datafile(self):
         if isinstance(self._node, core.FileNode):
             return self._data()
 

@@ -1491,20 +1491,20 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     def iter_filename_map(node):
         """Yields (<storage file path>, <original path>) pairs for given `node`.
 
-        If `node._filename` exists and is truthy, yield pair for `node`.
+        If `node._datafile` exists and is truthy, yield pair for `node`.
         If `node` is a group node, yield pairs for children of `node`.
 
         :returns: Iterator of (<original path>, <storage file path>) pairs
         """
-        if getattr(node, '_filename', None):
+        if node._datafile:
             orig_path = node._node.metadata['q_path']
-            yield (node._filename, orig_path)
+            yield (node._datafile, orig_path)
 
         if not isinstance(node, nodes.GroupNode):
             return
 
         for node_path, found_node in node._iteritems(recursive=True):
-            storage_filepath = getattr(found_node, '_filename', None)  # _filename is None if not FileNode
+            storage_filepath = found_node._datafile
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata.get('q_path')
