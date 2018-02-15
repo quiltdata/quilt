@@ -312,6 +312,13 @@ def argument_parser():
     user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
     user_delete_p.set_defaults(func=command.delete_user)
 
+    shorthelp = "Reset a user's password and send them a password reset email."
+    user_reset_password_p = users_subparsers.add_parser("reset-password", help=shorthelp)
+    user_reset_password_p.add_argument("team", type=str)
+    user_reset_password_p.add_argument("username", type=str)
+    user_reset_password_p.set_defaults(func=command.reset_password)
+
+
     # quilt version
     shorthelp = "List or permanently add a package version to the server"
     version_p = subparsers.add_parser("version", description=shorthelp, help=shorthelp)

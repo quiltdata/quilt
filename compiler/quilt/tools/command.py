@@ -1389,3 +1389,11 @@ def audit(user_or_package):
     )
 
     print(json.dumps(response.json(), indent=2))
+
+def reset_password(team, username):
+    session = _get_session(team)
+    response = session.post(
+        "{url}/api/users/reset_password".format(
+            url=get_registry_url(team),
+            ), data=json.dumps({'username':username})
+    )

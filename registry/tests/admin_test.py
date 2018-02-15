@@ -208,3 +208,19 @@ class AdminTestCase(QuiltTestCase):
         for key in ['deletes', 'installs', 'previews']:
             assert package[key]['count'] == 0
             assert 'latest' not in package[key]
+
+    def testPasswordReset(self):
+        self._mock_admin()
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        reset_pass_api = "%s/accounts/users/%s/reset_pass/" % (QUILT_AUTH_URL, self.user)
+        self.requests_mock.add(responses.POST, reset_pass_api, json.dumps({
+            'status': 200
+            }))
+
+        resp = self.app.get(
+            '/api/admin/reset_password',
+            data=json.dumps({"username":self.user}),
+            headers={
+                'Authorization':self.user
+            }
+            )
