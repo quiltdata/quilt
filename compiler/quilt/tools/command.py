@@ -471,10 +471,7 @@ def _log(team, **kwargs):
     session = _get_session(team)
 
     # Disable error handling.
-    orig_response_hooks = session.hooks.get('response')
-    session.hooks.update(dict(
-        response=None
-    ))
+    orig_response_hooks = session.hooks.pop('response')
 
     try:
         session.post(
@@ -487,8 +484,9 @@ def _log(team, **kwargs):
     except requests.exceptions.RequestException:
         # Ignore logging errors.
         pass
-    # restore disabled error-handling
-    session.hooks['response'] = orig_response_hooks
+    finally:
+        # restore disabled error-handling
+        session.hooks['response'] = orig_response_hooks
 
 def build(package, path=None, dry_run=False, env='default'):
     """
