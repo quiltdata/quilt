@@ -11,13 +11,13 @@ import {
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import styled from 'styled-components';
 
-import config from 'constants/config';
 import * as validators from 'utils/validators';
 
 import messages from './messages';
 
+// TODO: proptypes
+// eslint-disable-next obect-curly-newline
 const renderField = ({ input, meta, errors = {}, ...props }) => (
-  console.log('field', { input, meta }),
   <TextField
     style={{ verticalAlign: 'top' }}
     {...input}
@@ -36,7 +36,7 @@ const FormError = styled.p`
 
 const FORM_ERRORS = {
   uniq: 'The user with this username or email already exists',
-}
+};
 
 export default compose(
   setPropTypes({
@@ -52,11 +52,18 @@ export default compose(
           }
           throw err;
         })
-        //TODO: reset form after success
+        // TODO: reset form after success
     ,
   }),
   setDisplayName('Admin.AddMember'),
-)(({ handleSubmit, error, pristine, invalid, submitFailed }) => (
+)(({
+  handleSubmit,
+  error,
+  pristine,
+  invalid,
+  submitting,
+  submitFailed,
+}) => (
   <Fragment>
     <h2><FormattedMessage {...messages.membersAdd} /></h2>
     <Form onSubmit={handleSubmit}>

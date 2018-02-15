@@ -36,16 +36,13 @@ import {
 
 function* apiRequest(endpoint, opts = {}) {
   const headers = yield call(makeHeaders);
-  const response = yield call(requestJSON,
-    `${config.api}/api${endpoint}`,
-    {
-      headers: {
-        'Content-Type': 'application/json',
-        ...headers,
-      },
-      ...opts,
+  const response = yield call(requestJSON, `${config.api}/api${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers,
     },
-  );
+    ...opts,
+  });
   if (response.message) {
     throw makeError(response.message);
   }

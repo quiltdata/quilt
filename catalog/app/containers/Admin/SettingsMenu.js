@@ -10,7 +10,7 @@ import MIcon from 'components/MIcon';
 
 export default compose(
   setPropTypes({
-    actions: PT.arrayOf(
+    actions: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.oneOfType([
         PT.oneOf(['divider']),
         PT.shape({
@@ -18,7 +18,7 @@ export default compose(
           callback: PT.func.isRequired,
         }),
       ]).isRequired
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
   }),
   setDisplayName('Admin.SettingsMenu'),
 )(({ actions }) => (
@@ -30,8 +30,8 @@ export default compose(
     {
       actions.map((a, i) =>
         a === 'divider'
-          ? <Divider key={i} style={{ borderBottom: '1px solid' }} />
-          : <MenuItem key={i} primaryText={a.text} onClick={a.callback} />
+          ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
+          : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={a.callback} />
       )
     }
   </IconMenu>

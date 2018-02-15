@@ -1,6 +1,5 @@
 /* Admin */
 import Checkbox from 'material-ui/Checkbox';
-import FlatButton from 'material-ui/FlatButton';
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
