@@ -7,7 +7,7 @@ Checks can be used to prevent model drift and data deployment errors that result
 - [ ] support data that are larger than a pandas data frame (1GB to 10GB)
 - [ ] display progress bars during checks process
 - [ ] print offending line number when a check fails
-- [ ] Allow package users (other than the owner) to see checks and `build.yml` source
+- [ ] allow package users (other than the owner) to see checks and `build.yml` source
 
 
 ## Syntax
