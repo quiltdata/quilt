@@ -1,4 +1,5 @@
 /* PackageHandle - Generate package handles in the right style */
+import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
@@ -16,11 +17,12 @@ const Text = styled.div`
   white-space: nowrap;
 `;
 
+// eslint-disable-next-line object-curly-newline
 function PackageHandle({ isPublic, name, owner, showOwner }) {
   const ownerString = showOwner ? <Lighter>{owner}/</Lighter> : null;
   const decorator = (
     isPublic === true || typeof isPublic !== 'boolean' ? null
-    : <VisibilityIcon label={'private'} />
+      : <VisibilityIcon label="private" />
   );
   return <Text>{ownerString}{name} {decorator}</Text>;
 }
@@ -30,10 +32,10 @@ PackageHandle.defaultProps = {
 };
 
 PackageHandle.propTypes = {
-  isPublic: React.PropTypes.bool.isRequired,
-  name: React.PropTypes.string.isRequired,
-  owner: React.PropTypes.string.isRequired,
-  showOwner: React.PropTypes.bool,
+  isPublic: PropTypes.bool.isRequired,
+  name: PropTypes.string.isRequired,
+  owner: PropTypes.string.isRequired,
+  showOwner: PropTypes.bool,
 };
 
 export default PackageHandle;

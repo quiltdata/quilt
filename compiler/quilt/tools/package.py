@@ -7,11 +7,14 @@ import tempfile
 
 import pandas as pd
 
+from .compat import pathlib
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
                    FileNode, RootNode, GroupNode, TableNode,
                    PackageFormat)
 from .hashing import digest_file
+from .util import is_nodename
+
 
 ZLIB_LEVEL = 2
 CHUNK_SIZE = 4096
@@ -74,6 +77,54 @@ class Package(object):
 
         self._contents = contents
 
+    def __getitem__(self, item):
+        """Get a (core) node from this package.
+
+        Usage:
+            p['item']
+            p['path/item]
+
+        :param item: Node name or path, as in "node" or "node/subnode".
+        """
+        node = self.get_contents()
+        path = pathlib.PurePosixPath(item)
+
+        # checks
+        if not item:    # No blank node names.
+            raise TypeError("Invalid node reference: Blank node names not permitted.")
+        if path.anchor:
+            raise TypeError("Invalid node reference: Absolute path.  Remove prefix {!r}".format(path.anchor))
+
+        try:
+            count = 0
+            for part in path.parts:
+                if not is_nodename(part):
+                    raise TypeError("Invalid node name: {!r}".format(part))
+                node = node.children[part]
+                count += 1
+            return node
+        except KeyError:
+            traversed = '/'.join(path.parts[:count])
+            raise KeyError(traversed, path.parts[count])
+        except AttributeError:
+            traversed = '/'.join(path.parts[:count])
+            raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
+
+    def __contains__(self, item):
+        """Check package contains a specific node name or node path.
+
+        Usage:
+            'item' in p
+            'path/item' in p
+
+        :param item: Node name or path, as in "node" or "node/subnode".
+        """
+        try:
+            self[item]  #pylint: disable=W0104
+            return True
+        except (KeyError, TypeError):
+            return False
+
     def _load_contents(self, instance_hash=None):
         if instance_hash is None:
             latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
@@ -88,7 +139,7 @@ class Package(object):
         if not os.path.isfile(contents_path):
             msg = "Invalid hash for package {owner}/{pkg}: {hash}"
             raise PackageException(msg.format(hash=instance_hash, owner=self._user, pkg=self._package))
-        
+
         with open(contents_path, 'r') as contents_file:
             return json.load(contents_file, object_hook=decode_node)
 
@@ -251,7 +302,7 @@ class Package(object):
         tag_dir = os.path.join(self._path, self.TAGS_DIR)
         if not os.path.isdir(tag_dir):
             os.mkdir(tag_dir)
-            
+
         latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
         with open (latest_tag, 'w') as tagfile:
             tagfile.write("{hsh}".format(hsh=instance_hash))

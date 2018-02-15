@@ -35,7 +35,7 @@ class VersionTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, public=True)
+            self.put_package(self.user, self.pkg, contents, is_public=True)
 
     def _add_version(self, version, pkghash):
         return self.app.put(

@@ -1,6 +1,6 @@
 /* VisibilityIcon - visually represent public vs private */
-import React, { PropTypes } from 'react';
-
+import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 
 const Tag = styled.span`

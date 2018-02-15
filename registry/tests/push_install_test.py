@@ -5,6 +5,7 @@ Test push and install endpoints.
 """
 
 import json
+from unittest.mock import patch
 import urllib
 
 import requests
@@ -21,7 +22,7 @@ from quilt_server.core import (
     RootNode,
     PackageFormat,
 )
-from quilt_server.models import Event, InstanceBlobAssoc, S3Blob
+from quilt_server.models import InstanceBlobAssoc, S3Blob
 
 from .utils import mock_customer, QuiltTestCase
 
@@ -127,7 +128,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -154,7 +155,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'))
-        assert data['packages'] == [{'name': 'foo', 'is_public': True}]
+        assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]
 
         # List package instances.
         resp = self.app.get(
@@ -176,7 +177,12 @@ class PushInstallTestCase(QuiltTestCase):
                 'Authorization': 'test_user'
             }
         )
+        assert resp.status_code == requests.codes.ok
 
+        # Install the package as an anonymous user.
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+        )
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
@@ -195,24 +201,12 @@ class PushInstallTestCase(QuiltTestCase):
         assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
         assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
-        events = Event.query.all()
-        assert len(events) == 2
-        assert events[0].type == Event.Type.PUSH
-        assert events[0].extra['public'] is True
-        assert events[1].type == Event.Type.INSTALL
-        assert events[1].extra['subpath'] is None
-        for event in events:
-            assert event.user == 'test_user'
-            assert event.package_owner == 'test_user'
-            assert event.package_name == 'foo'
-            assert event.package_hash == self.CONTENTS_HASH
-
     def testPushNewMetadata(self):
         # Push the original contents.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -227,7 +221,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS_WITH_METADATA
             ), default=encode_node),
@@ -355,7 +349,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -370,7 +364,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -385,7 +379,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/Test_User/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -400,7 +394,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/Foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -449,7 +443,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -485,7 +479,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/bar/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -535,7 +529,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 dry_run=True,
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -572,7 +566,7 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % 'bad hash',
             data=json.dumps(dict(
                 dry_run=True,
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -591,7 +585,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS,
                 sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
@@ -671,7 +665,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % huge_contents_hash,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.HUGE_CONTENTS
             ), default=encode_node),
@@ -688,6 +682,12 @@ class PushInstallTestCase(QuiltTestCase):
             headers={
                 'Authorization': 'test_user'
             }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Get preview as an anonymous user.
+        resp = self.app.get(
+            '/api/package_preview/test_user/foo/%s' % huge_contents_hash,
         )
         assert resp.status_code == requests.codes.ok
 
@@ -721,15 +721,6 @@ class PushInstallTestCase(QuiltTestCase):
             ]],
         ]
 
-        events = Event.query.all()
-        assert len(events) == 2
-        event = events[1]
-        assert event.user == 'test_user'
-        assert event.type == Event.Type.PREVIEW
-        assert event.package_owner == 'test_user'
-        assert event.package_name == 'foo'
-        assert event.package_hash == huge_contents_hash
-
     def testInstanceBlob(self):
         # Verify that all blobs are accounted for in the instance<->blob table.
 
@@ -737,7 +728,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS
             ), default=encode_node),
@@ -758,7 +749,7 @@ class PushInstallTestCase(QuiltTestCase):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_2_HASH,
             data=json.dumps(dict(
-                public=True,
+                is_public=True,
                 description="",
                 contents=self.CONTENTS_2
             ), default=encode_node),
@@ -774,3 +765,89 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert len(blobs) == 3
         assert len(instance_blobs) == 4
+
+    def testTeamAccessFails(self):
+        # Verify that --team fails in the public cloud.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                is_team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.forbidden
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', False)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
+    def testTeams(self):
+        # Public push fails.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.forbidden
+
+        # Team push succeeds.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                is_team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+    def testOldPublicParamn(self):
+        # Push a package using "public" rather than "is_public".
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                public=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Verify that "is_public" is set.
+        resp = self.app.get(
+            '/api/package/test_user/',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'))
+        assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]

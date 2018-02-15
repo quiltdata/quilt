@@ -35,7 +35,7 @@ class TagTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, public=True)
+            self.put_package(self.user, self.pkg, contents, is_public=True)
 
     def _add_tag(self, tag, pkghash):
         return self.app.put(

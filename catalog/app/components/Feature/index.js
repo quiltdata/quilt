@@ -1,5 +1,6 @@
 /* Main landing page feature */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import styled from 'styled-components';
 
 import ImageRow from 'components/ImageRow';
@@ -24,13 +25,13 @@ const Feature = ({ header, tagline, signUp }) => (
       <TakeAction signUp={signUp} />
       <div className="framer">
         <iframe
+          title="Star Quilt on GitHub"
           src="https://ghbtns.com/github-btn.html?user=quiltdata&repo=quilt&type=star&count=true&size=large"
           frameBorder="0"
           scrolling="0"
           width="160px"
           height="30px"
-        >
-        </iframe>
+        />
       </div>
     </Content>
   </ImageRow>

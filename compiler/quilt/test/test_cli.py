@@ -208,6 +208,9 @@ KNOWN_PARAMS = [
     [0, 'user', 0, 'disable', 1],
     [0, 'user', 0, 'list'],
     [0, 'user', 0, 'list', 0],
+    [0, 'user', 0, 'reset-password'],
+    [0, 'user', 0, 'reset-password', 0],
+    [0, 'user', 0, 'reset-password', 1],
     [0, 'version'],
     [0, 'version', 0],
     [0, 'version', 0, 'add'],
@@ -670,6 +673,7 @@ class TestCLI(BasicQuiltTestCase):
             [0, 'push', '--public'],
             [0, 'push', '--reupload'],
             [0, 'push', '--team'],
+            [0, 'push', '--team', '--public'],
         ])
 
         ## This section tests for circumstances expected to be rejected by argparse.
@@ -679,7 +683,6 @@ class TestCLI(BasicQuiltTestCase):
             'push --reupload'.split(),
             'push --public --reupload'.split(),
             'push --public --team'.split(),
-            'push --public --team fakeuser/fakepackage'.split(),  # mutually exclusive options
             ]
         for args in expect_fail_2_args:
             assert self.execute(args)['return code'] == 2, "using args: " + str(args)
@@ -692,9 +695,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': False,
-            'public': False,
+            'is_public': False,
             'package': 'fakeuser/fakepackage',
-            'team': False,
+            'is_team': False,
         }
 
         ## Test the flags as well..
@@ -706,9 +709,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
-            'public': True,
+            'is_public': True,
             'package': 'fakeuser/fakepackage',
-            'team': False,
+            'is_team': False,
         }
 
         # team (without reupload)
@@ -726,9 +729,9 @@ class TestCLI(BasicQuiltTestCase):
         kwargs = result['kwargs']
         assert kwargs == {
             'reupload': True,
-            'public': False,
+            'is_public': False,
             'package': 'blah:fakeuser/fakepackage',
-            'team': True,
+            'is_team': True,
         }
 
     def test_cli_command_export(self):

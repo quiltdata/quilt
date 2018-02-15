@@ -5,6 +5,10 @@ Each Quilt package has a unique _handle_ of the form `USER_NAME/PACKAGE_NAME`.
 
 Packages are stored in a server-side registry. The registry controls permissions and stores package meta-data, such as the revision history. Each package has a web landing page for documentation, like this: [like this one](https://quiltdata.com/package/uciml/iris) for `uciml/iris`.
 
+The data in a package are tracked in a hash tree. The _tophash_ for the tree is the hash of all hashes of all data in the package. The combination of a package handle and tophash is a _package_ instance. Package instances are immutable.
+
+Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [_object store_](./quilt_repository_format.md).
+
 # Package lifecycle
 
 Quilt's core commands are _build_, _push_, and _install_. To use a data package you _import_ it.

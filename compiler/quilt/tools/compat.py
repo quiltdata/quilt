@@ -13,6 +13,8 @@ import frequently-used objects here for convenience.
 import sys as _sys
 
 
+# Reflecting requirements in setup.py
+# Python < 3.6
 if _sys.version_info < (3, 6):
     import pathlib2 as pathlib
 else:

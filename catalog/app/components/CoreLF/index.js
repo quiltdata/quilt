@@ -1,4 +1,5 @@
 /* Core Look and Feel provider for web app */
+import PropTypes from 'prop-types';
 import React from 'react';
 import { Grid } from 'react-bootstrap';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
@@ -20,7 +21,7 @@ const CoreLF = ({ children }) => (
 );
 
 CoreLF.propTypes = {
-  children: React.PropTypes.node,
+  children: PropTypes.node,
 };
 
 export default CoreLF;

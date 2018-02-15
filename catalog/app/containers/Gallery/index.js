@@ -1,5 +1,6 @@
 /* Gallery of packages on Quilt */
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
@@ -26,6 +27,7 @@ export class Gallery extends React.PureComponent {
   }
   render() {
     const packages = config.team ? this.props.packages : feed;
+    // eslint-disable-next-line object-curly-newline, camelcase
     const cards = packages.map(({ name, owner, description, updated_at }) => {
       const handle = `${owner}/${name}`;
       const date = new Date(updated_at).toLocaleString();

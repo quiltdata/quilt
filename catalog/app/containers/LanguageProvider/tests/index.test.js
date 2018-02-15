@@ -20,11 +20,12 @@ const messages = defineMessages({
 describe('<LanguageProvider />', () => {
   it('should render its children', () => {
     const children = (<h1>Test</h1>);
+    // eslint-disable-next-line function-paren-newline
     const renderedComponent = shallow(
       <LanguageProvider messages={messages} locale="en">
         {children}
       </LanguageProvider>
-    );
+    ); // eslint-disable-line function-paren-newline
     expect(renderedComponent.contains(children)).toBe(true);
   });
 });
@@ -37,13 +38,14 @@ describe('<ConnectedLanguageProvider />', () => {
   });
 
   it('should render the default language messages', () => {
+    // eslint-disable-next-line function-paren-newline
     const renderedComponent = mount(
       <Provider store={store}>
         <ConnectedLanguageProvider messages={translationMessages}>
           <FormattedMessage {...messages.someMessage} />
         </ConnectedLanguageProvider>
       </Provider>
-    );
+    ); // eslint-disable-line function-paren-newline
     expect(renderedComponent.contains(<FormattedMessage {...messages.someMessage} />)).toBe(true);
   });
 });

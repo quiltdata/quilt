@@ -2,7 +2,8 @@
 import Dialog from 'material-ui/Dialog';
 import { RadioButton, RadioButtonGroup } from 'material-ui/RadioButton';
 import RaisedButton from 'material-ui/RaisedButton';
-import React, { PropTypes } from 'react';
+import PropTypes from 'prop-types';
+import React from 'react';
 import StripeCheckout from 'react-stripe-checkout';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';

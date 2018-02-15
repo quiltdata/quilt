@@ -2,18 +2,8 @@
 contents:
   dataframes:
     csv: 
-      kwargs:
-        parse_dates: ['Date0']
-      file: data/10KRows13Cols.csv
+      file: data/foo.csv
     nulls:
       file: data/nulls.csv
-    tsv:
-      file: data/10KRows13Cols.tsv
-    xls:
-      file: data/10KRows13Cols.xlsx
-    xls_skip:
-      kwargs:
-        skiprows: [0,10,100]
-      file: data/10KRows13Cols.xlsx
   README:
     file: data/README.md
