@@ -507,7 +507,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
         answer = input("You're logged in as a team member, but you aren't specifying " +
                        "a team for the package you're currently building. Maybe you meant:\n" +
                        "quilt build {team}:{package}\n" +
-                       "Are you sure you want to continue? (y/N)".format(
+                       "Are you sure you want to continue? (y/N) ".format(
                                 team=logged_in_team, package=package))
         if answer.lower() != 'y':
             return
@@ -979,7 +979,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                     "Maybe you meant {team}:{owner}/{pkg}?").format(
                                             owner=owner, pkg=pkg, team=logged_in_team))
         else:
-            raise e
+            raise
 
     assert pkghash is not None
 
