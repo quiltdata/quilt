@@ -48,6 +48,19 @@ CRUD related:
         - no admin
         - not found
         - server error
+    7. access list
+        - OK
+        - no auth
+    8. access remove
+        - OK
+        - no auth
+        - not owner
+        - revoke owner
+        - free plan
+    9. access add
+        - OK
+        - no auth
+        - not owner
 """
 # Disable no-self-use, protected-access, too-many-public-methods
 # pylint: disable=R0201, W0212, R0904
@@ -62,6 +75,7 @@ import requests
 import responses
 
 import pytest
+from io import StringIO
 import pandas as pd
 from six import assertRaisesRegex
 
@@ -432,7 +446,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/users/list' % command.get_registry_url(None),
             status=200,
-            json=json.dumps({
+            json={
                 'count':'1',
                 'results':[{
                     'username':'admin',
@@ -443,7 +457,7 @@ class CommandTest(QuiltTestCase):
                     'is_admin':True,
                     'is_staff':True
                 }]
-            })
+            }
         )
         command.list_users()
 
@@ -507,7 +521,7 @@ class CommandTest(QuiltTestCase):
             responses.POST,
             '%s/api/users/create' % command.get_registry_url(None),
             status=201,
-            json=json.dumps({
+            json={
                 'count':'1',
                 'username':'admin',
                 'first_name':'',
@@ -515,7 +529,7 @@ class CommandTest(QuiltTestCase):
                 'is_superuser':True,
                 'is_admin':True,
                 'is_staff':True,
-            })
+            }
         )
         command.create_user('bob', 'bob@quiltdata.io', None)
 
@@ -671,7 +685,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/audit/bob/' % command.get_registry_url("someteam"),
             status=201,
-            json=json.dumps({
+            json={
                 'events': [{
                     'created': '',
                     'user': 'bob',
@@ -681,7 +695,7 @@ class CommandTest(QuiltTestCase):
                     'package_hash': '',
                     'extra': ''
                 }]
-            }))
+            })
         command.audit('bob')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
@@ -690,7 +704,7 @@ class CommandTest(QuiltTestCase):
             responses.GET,
             '%s/api/audit/foo/bar/' % command.get_registry_url("someteam"),
             status=201,
-            json=json.dumps({
+            json={
                 'events': [{
                     'created': '',
                     'user': 'bob',
@@ -700,7 +714,7 @@ class CommandTest(QuiltTestCase):
                     'package_hash': '',
                     'extra': ''
                 }]
-            }))
+            })
         command.audit('foo/bar')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
@@ -732,6 +746,88 @@ class CommandTest(QuiltTestCase):
         self._mock_error('audit/foo/bar/', status=403, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_access_list(self, mock_stdout):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/access/foo/bar' % command.get_registry_url(None),
+            status=201,
+            json={
+                'users': ['foo', 'bob']
+            }
+        )
+        command.access_list('foo/bar')
+        assert mock_stdout.getvalue() == 'foo\nbob\n'
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_list_no_auth(self):
+        self._mock_error('access/foo/bar', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.access_list('foo/bar')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_access_remove(self, mock_stdout):
+        self.requests_mock.add(
+            responses.DELETE,
+            '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
+            status=201
+        )
+        command.access_remove('foo/bar', 'bob')
+        assert mock_stdout.getvalue() == u'Access removed for bob\n'
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_no_auth(self):
+        self._mock_error('access/foo/bar/bob', status=401, method=responses.DELETE)
+        with self.assertRaises(command.CommandException):
+            command.access_remove('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_not_owner(self):
+        self._mock_error('access/foo/bar/bob', status=403, method=responses.DELETE,
+                         message="Only the package owner can revoke access")
+        with assertRaisesRegex(self, command.CommandException, "Only the package owner can revoke access"):
+            command.access_remove('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_owner(self):
+        self._mock_error('access/foo/bar/foo', status=403, method=responses.DELETE,
+                         message="Cannot revoke the owner's access")
+        with assertRaisesRegex(self, command.CommandException, "Cannot revoke the owner's access"):
+            command.access_remove('foo/bar', 'foo')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_remove_free_plan(self):
+        self._mock_error('access/foo/bar/foo', status=402, method=responses.DELETE,
+                         message="Insufficient permissions.")
+        with assertRaisesRegex(self, command.CommandException, "Insufficient permissions."):
+            command.access_remove('foo/bar', 'foo')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_access_add(self, mock_stdout):
+        self.requests_mock.add(
+            responses.PUT,
+            '%s/api/access/foo/bar/bob' % command.get_registry_url(None),
+            status=201
+        )
+        command.access_add('foo/bar', 'bob')
+        assert mock_stdout.getvalue() == u'Access added for bob\n'
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_add_no_auth(self):
+        self._mock_error('access/foo/bar/bob', status=401, method=responses.PUT)
+        with self.assertRaises(command.CommandException):
+            command.access_add('foo/bar', 'bob')
+
+    @patch('quilt.tools.command._find_logged_in_team', lambda: None)
+    def test_access_add_not_owner(self):
+        self._mock_error('access/foo/bar/bob', status=403, method=responses.PUT,
+                         message="Only the package owner can revoke access")
+        with assertRaisesRegex(self, command.CommandException, "Only the package owner can revoke access"):
+            command.access_add('foo/bar', 'bob')
 
 # TODO: work in progress
 #    def test_find_node_by_name(self):

@@ -626,11 +626,10 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, team=False, reupload=False):
+def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    using_team = team
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
@@ -638,25 +637,13 @@ def push(package, public=False, team=False, reupload=False):
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
-    if using_team and public:
-        raise CommandException("--team and --public are incompatible")
-
-    if using_team and team is None:
-        raise CommandException("--team cannot be used on non-team packages")
-
-    if public and team is not None:
-        raise CommandException("--public is not compatible with team packages, " +
-                               "Maybe you meant --team")
-
-    if using_team and team is not None:
-        public = True
-
     pkghash = pkgobj.get_hash()
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
-            public=public,
+            is_public=is_public,
+            is_team=is_team,
             contents=pkgobj.get_contents(),
             description="",  # TODO
             sizes=sizes
@@ -1215,6 +1202,7 @@ def access_add(package, user):
     session = _get_session(team)
 
     session.put("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print(u'Access added for %s' % user)
 
 def access_remove(package, user):
     """
@@ -1224,6 +1212,7 @@ def access_remove(package, user):
     session = _get_session(team)
 
     session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print(u'Access removed for %s' % user)
 
 def delete(package):
     """
@@ -1258,17 +1247,21 @@ def search(query, team=None):
     if team is not None:
         session = _get_session(team)
         response = session.get("%s/api/search/" % get_registry_url(team), params=dict(q=query))
-        print("--- Packages in team %s ---" % team)
+        print("* Packages in team %s" % team)
         packages = response.json()['packages']
         for pkg in packages:
             print(("%s:" % team) + ("%(owner)s/%(name)s" % pkg))
-        print("--- Packages in public cloud ---")
+        if len(packages) == 0:
+            print("(No results)")
+        print("* Packages in public cloud")
 
     public_session = _get_session(None)
     response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
         print("%(owner)s/%(name)s" % pkg)
+    if len(packages) == 0:
+        print("(No results)")
 
 def ls():                       # pylint:disable=C0103
     """
@@ -1329,7 +1322,7 @@ def rm(package, force=False):
     team, owner, pkg = parse_package(package)
 
     if not force:
-        confirmed = input("Remove {0}? (y/n)".format(package))
+        confirmed = input("Remove {0}? (y/n) ".format(package))
         if confirmed.lower() != 'y':
             return
 
@@ -1406,3 +1399,11 @@ def audit(user_or_package):
     )
 
     print(json.dumps(response.json(), indent=2))
+
+def reset_password(team, username):
+    session = _get_session(team)
+    response = session.post(
+        "{url}/api/users/reset_password".format(
+            url=get_registry_url(team),
+            ), data=json.dumps({'username':username})
+    )

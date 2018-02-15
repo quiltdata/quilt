@@ -156,7 +156,7 @@ class Event(db.Model):
 
     id = db.Column(db.BigInteger, primary_key=True)
     created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
-    user = db.Column(USERNAME_TYPE, nullable=False, index=True)
+    user = db.Column(USERNAME_TYPE, index=True)
     type = db.Column(db.SmallInteger, nullable=False)
     package_owner = db.Column(USERNAME_TYPE)
     package_name = db.Column(db.String(64))
