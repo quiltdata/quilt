@@ -1,3 +1,4 @@
+import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -8,10 +9,16 @@ import {
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { compose, setPropTypes, setDisplayName, withProps } from 'recompose';
 
-import SettingsMenu from './SettingsMenu'
-import { formatActivity, formatDate } from './util'
+import Spinner from 'components/Spinner';
+import api, { apiStatus } from 'constants/api';
+
+import messages from './messages';
+import { branch, formatActivity, formatDate } from './util';
+import SettingsMenu from './SettingsMenu';
+
 
 const memberActivities = [
   'packages',
@@ -21,41 +28,25 @@ const memberActivities = [
   // 'pushes',
 ];
 
-const MemberRow = compose(
-  setPropTypes({
-    audit: PT.func.isRequired,
-    name: PT.string.isRequired,
-    last_seen: PT.any, //TODO: specify
-    actions: PT.array.isRequired,
-  }),
-  setDisplayName('Admin.Members.Row'),
-)(({ audit, name, last_seen, actions, ...activity }) => (
-  <TableRow>
-    <TableRowColumn><a onClick={audit}>{name}</a></TableRowColumn>
-    <TableRowColumn>
-      <a onClick={audit}>{formatActivity(memberActivities, activity)}</a>
-    </TableRowColumn>
-    <TableRowColumn>
-      <FlatButton onClick={audit}>{formatDate(last_seen)}</FlatButton>
-    </TableRowColumn>
-    <TableRowColumn>
-      <SettingsMenu actions={actions} />
-    </TableRowColumn>
-  </TableRow>
-));
-
 const MembersTable = compose(
   setPropTypes({
     audit: PT.func.isRequired,
-    members: PT.array.isRequired,
-    remove: PT.func.isRequired,
-    resetPassword: PT.func.isRequired,
+    members: PT.arrayOf(
+      PT.shape({
+        name: PT.string.isRequired,
+        last_seen: PT.any, //TODO: specify
+      }).isRequired,
+    ).isRequired,
+    actions: PT.shape({
+      remove: PT.func.isRequired,
+      resetPassword: PT.func.isRequired,
+    }).isRequired,
   }),
-  withProps(({ remove, resetPassword }) => ({
+  withProps(({ actions }) => ({
     actions: [
-      { text: 'Remove member', callback: remove }, //TODO: bind
-      'divider'
-      { text: 'Reset password', callback: resetPassword }, //TODO: bind
+      { text: 'Remove member', callback: actions.remove }, //TODO: bind
+      'divider',
+      { text: 'Reset password', callback: actions.resetPassword }, //TODO: bind
     ],
   })),
   setDisplayName('Admin.Members.Table'),
@@ -70,7 +61,20 @@ const MembersTable = compose(
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {members.map((m) => <MemberRow key={m.name} audit={audit} {...m} actions={actions} />)}
+      {members.map(({ name, last_seen, ...activity }) => (
+        <TableRow hoverable key={name}>
+          <TableRowColumn><a onClick={() => audit(name)}>{name}</a></TableRowColumn>
+          <TableRowColumn>
+            <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
+          </TableRowColumn>
+          <TableRowColumn>
+            <FlatButton onClick={() => audit(name)}>{formatDate(last_seen)}</FlatButton>
+          </TableRowColumn>
+          <TableRowColumn>
+            <SettingsMenu actions={actions} />
+          </TableRowColumn>
+        </TableRow>
+      ))}
     </TableBody>
   </Table>
 ));
@@ -88,19 +92,20 @@ const ErrorMessage = compose(
 
 export default compose(
   setPropTypes({
+    status: apiStatus,
+    response: PT.oneOfType([
+      PT.array,
+      PT.object,
+    ]),
+    actions: PT.object.isRequired,
     audit: PT.func.isRequired,
-    status: PT.oneOf([api.WAITING, api.SUCCESS, api.ERROR]).isRequired,
-    response: PT.array,
-    remove: PT.func.isRequired,
-    resetPassword: PT.func.isRequired,
   }),
   setDisplayName('Admin.Members'),
 )(({
-  audit,
   status,
   response,
-  remove,
-  resetPassword,
+  actions,
+  audit,
 }) => (
   <Fragment>
     <h2>
@@ -116,10 +121,9 @@ export default compose(
       branch(status, {
         [api.SUCCESS]: () => (
           <MembersTable
-            audit={audit}
             members={response}
-            remove={remove}
-            resetPassword={resetPassword}
+            audit={audit}
+            actions={actions}
           />
         ),
         [api.ERROR]: () => <ErrorMessage error={response} />,

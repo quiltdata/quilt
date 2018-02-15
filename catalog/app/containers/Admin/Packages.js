@@ -1,48 +1,129 @@
-const activityMask = ['packages', 'installs', 'previews'];
+import FlatButton from 'material-ui/FlatButton';
+import {
+  Table,
+  TableBody,
+  TableHeader,
+  TableHeaderColumn,
+  TableRow,
+  TableRowColumn,
+} from 'material-ui/Table';
+import PT from 'prop-types';
+import React, { Fragment } from 'react';
+import { FormattedMessage } from 'react-intl';
+import { compose, setPropTypes, setDisplayName, withProps } from 'recompose';
 
-function randInt() {
-  return Math.floor(Math.random() * 10) + 1;
-}
-export default const Packages = ({ }) => (
-    <h2><FormattedMessage {...messages.teamPackages} /></h2>
-    {/*<PackageTable />*/}
+import Spinner from 'components/Spinner';
+import api, { apiStatus } from 'constants/api';
 
-const PackageSettingsMenu = () => (
-  <IconMenu
-    iconButtonElement={<IconButton><MIcon>settings</MIcon></IconButton>}
-    anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
-    targetOrigin={{ horizontal: 'right', vertical: 'top' }}
-  >
-    <MenuItem primaryText="Delete" />
-  </IconMenu>
+import messages from './messages';
+import { branch, formatActivity, formatDate } from './util';
+import SettingsMenu from './SettingsMenu';
 
-);
 
-const PackageTable = () => (
+const packageActivities = [
+  'installs',
+  'previews',
+  // 'deletes',
+  // 'pushes',
+];
+
+const PackagesTable = compose(
+  setPropTypes({
+    audit: PT.func.isRequired,
+    packages: PT.arrayOf(
+      PT.shape({
+        handle: PT.string.isRequired,
+        last_seen: PT.any, //TODO: specify
+      }).isRequired,
+    ).isRequired,
+    actions: PT.shape({
+      remove: PT.func.isRequired,
+    }).isRequired,
+  }),
+  withProps(({ actions }) => ({
+    actions: [
+      { text: 'Delete', callback: actions.remove }, //TODO: bind
+    ],
+  })),
+  setDisplayName('Admin.Packages.Table'),
+)(({ audit, packages, actions }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
-        <TableHeaderColumn>Name</TableHeaderColumn>
+        <TableHeaderColumn>Handle</TableHeaderColumn>
         <TableHeaderColumn>Activity</TableHeaderColumn>
         <TableHeaderColumn>Last modified</TableHeaderColumn>
         <TableHeaderColumn>Settings</TableHeaderColumn>
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {
-        packageData.map((p) => (
-          <TableRow hoverable key={p.name}>
-            <TableRowColumn><a href="#TODO">{p.name}</a></TableRowColumn>
-            <TableRowColumn>
-              <a href="#TODO">
-                {activityMask.slice(1).map((l) => `${randInt()} ${l}`).join(', ')}
-              </a>
-            </TableRowColumn>
-            <TableRowColumn><FlatButton> {p.last_seen} </FlatButton></TableRowColumn>
-            <TableRowColumn><PackageSettingsMenu /></TableRowColumn>
-          </TableRow>
-        ))
-      }
+      {packages.map(({ handle, last_seen, ...activity }) => (
+        <TableRow hoverable key={handle}>
+          <TableRowColumn><a onClick={() => audit(handle)}>{handle}</a></TableRowColumn>
+          <TableRowColumn>
+            <a onClick={() => audit(handle)}>{formatActivity(packageActivities, activity)}</a>
+          </TableRowColumn>
+          <TableRowColumn>
+            <FlatButton onClick={() => audit(handle)}>{formatDate(last_seen)}</FlatButton>
+          </TableRowColumn>
+          <TableRowColumn>
+            <SettingsMenu actions={actions} />
+          </TableRowColumn>
+        </TableRow>
+      ))}
     </TableBody>
   </Table>
-);
+));
+
+const ErrorMessage = compose(
+  setPropTypes({
+    error: PT.shape({
+      message: PT.string,
+    }).isRequired,
+  }),
+  setDisplayName('Admin.Packages.Error'),
+)(({ error }) => (
+  <p>Error: {error.message}</p>
+));
+
+export default compose(
+  setPropTypes({
+    status: apiStatus,
+    response: PT.oneOfType([
+      PT.array,
+      PT.object,
+    ]),
+    actions: PT.object.isRequired,
+    audit: PT.func.isRequired,
+  }),
+  setDisplayName('Admin.Packages'),
+)(({
+  status,
+  response,
+  actions,
+  audit,
+}) => (
+  <Fragment>
+    <h2>
+      <FormattedMessage {...messages.teamPackages} />
+      {
+        branch(status, {
+          [api.WAITING]: () => <Spinner />,
+          [api.SUCCESS]: () => ` (${response.length})`,
+        })
+      }
+    </h2>
+    {
+      branch(status, {
+        [api.SUCCESS]: () => (
+          <PackagesTable
+            packages={response}
+            audit={audit}
+            actions={actions}
+          />
+        ),
+        [api.ERROR]: () => <ErrorMessage error={response} />,
+      })
+    }
+  </Fragment>
+));

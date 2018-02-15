@@ -1,15 +1,18 @@
 /* Admin */
 import Checkbox from 'material-ui/Checkbox';
-import Divider from 'material-ui/Divider';
 import FlatButton from 'material-ui/FlatButton';
-import IconButton from 'material-ui/IconButton';
-import IconMenu from 'material-ui/IconMenu';
-import MenuItem from 'material-ui/MenuItem';
+import TextField from 'material-ui/TextField';
 import PT from 'prop-types';
-import React, { PureComponent, Fragment } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
-import TextField from 'material-ui/TextField';
+import {
+  compose,
+  lifecycle,
+  setDisplayName,
+  setPropTypes,
+  withProps,
+} from 'recompose';
 
 import config from 'constants/config';
 
@@ -17,8 +20,8 @@ import * as actions from './actions';
 import messages from './messages';
 import selector from './selectors';
 import Members from './Members';
-import MemberAudit from './MemberAudit';
-//import Packages from './Packages';
+//import MemberAudit from './MemberAudit';
+import Packages from './Packages';
 //import PackageAudit from './PackageAudit';
 
 
@@ -37,7 +40,7 @@ export default compose(
     getPackages: PT.func.isRequired,
     packageAudit: PT.object.isRequired,
     getPackageAudit: PT.func.isRequired,
-    deletePackage: PT.func.isRequired,
+    removePackage: PT.func.isRequired,
   }),
   lifecycle({
     componentWillMount() {
@@ -45,52 +48,24 @@ export default compose(
       this.props.getPackages();
     },
   }),
-  withProps(({ removeMember, resetMemberPassword, deletePackage }) => ({
+  withProps(({ removeMember, resetMemberPassword, removePackage }) => ({
     memberActions: {
       remove: removeMember,
       resetPassword: resetMemberPassword,
     },
     packageActions: {
-      delete: deletePackage,
+      remove: removePackage,
     },
-  }),
-  withState('auditedMember', 'setAuditedMember'),
-  withState('auditedPackage', 'setAuditedPackage'),
-  withHandlers({
-    auditMember: ({
-      setAuditedMember,
-      setAuditedPackage,
-      getMemberAudit,
-      getPackageAudit,
-    }) => (name) => {
-      getMemberAudit(name);
-      setAuditedMember(name);
-      setAuditedPackage(false);
-      getPackageAudit(false);
-    },
-    auditPackage: ({
-      setAuditedPackage,
-      setAuditedMember,
-      getPackageAudit,
-      getMemberAudit,
-    }) => (handle) => {
-      getPackageAudit(handle);
-      setAuditedPackage(handle);
-      setAuditedMember(false);
-      getMemberAudit(false);
-    },
-  }),
+  })),
   setDisplayName('Admin'),
 )(({
   members,
   memberActions,
-  auditMember,
-  auditedMember,
+  getMemberAudit,
   memberAudit,
   packages,
   packageActions,
-  auditPackage,
-  auditedPackage,
+  getPackageAudit,
   packageAudit,
 }) => (
   <div>
@@ -104,22 +79,20 @@ export default compose(
     <TextField hintText="Email" />
     <FlatButton label="Add" />
 
-    <Members {...members} auditMember={auditMember} actions={memberActions} />
+    <Members {...members} audit={getMemberAudit} actions={memberActions} />
+
+    <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 
     {/*
-    <Packages {...packages} auditPackage={auditPackage} actions={packageActions} />
-    */}
-
     <MemberAudit
-      onClose={() => auditMember(false)}
-      open={!!auditedMember}
+      onClose={() => getMemberAudit(null)}
       {...memberAudit}
     />
+    */}
 
     {/*
     <PackageAudit
-      onClose={() => auditPackage(false)}
-      open={!!auditedPackage}
+      onClose={() => getPackageAudit(null)}
       {...packageAudit}
     />
     */}

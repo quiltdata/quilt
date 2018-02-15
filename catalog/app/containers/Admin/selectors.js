@@ -18,11 +18,11 @@ export default createSelector(
   selectAdminDomain,
   (substate) =>
     substate
-    .updateIn(['members', 'response'], (members) =>
-      members && members
-        .filter((m) => m.get('status') !== 'disabled')
-        .map((member, name) => member.merge({ name }).toJS())
-        .toArray()
-    )
-    .toJS()
+      .updateIn(['members', 'response'], (members) =>
+        members && members
+          .filter((m) => m.get('status') !== 'disabled')
+          .map((member, name) => member.merge({ name }).toJS())
+          .toArray()
+      ) // eslint-disable-line function-paren-newline
+      .toJS()
 );

@@ -1,6 +1,12 @@
+import Divider from 'material-ui/Divider';
+import IconButton from 'material-ui/IconButton';
+import IconMenu from 'material-ui/IconMenu';
+import MenuItem from 'material-ui/MenuItem';
 import PT from 'prop-types';
 import React from 'react';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
+
+import MIcon from 'components/MIcon';
 
 export default compose(
   setPropTypes({
@@ -9,7 +15,7 @@ export default compose(
         PT.oneOf(['divider']),
         PT.shape({
           text: PT.string.isRequired,
-          callback: PT.string.isRequired,
+          callback: PT.func.isRequired,
         }),
       ]).isRequired
     ).isRequired,
@@ -22,12 +28,10 @@ export default compose(
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
   >
     {
-      actions.map((a) =>
+      actions.map((a, i) =>
         a === 'divider'
-        ?
-        <Divider style={{ borderBottom: '1px solid' }} />
-        :
-        <MenuItem primaryText={a.text} onClick={a.callback} />
+          ? <Divider key={i} style={{ borderBottom: '1px solid' }} />
+          : <MenuItem key={i} primaryText={a.text} onClick={a.callback} />
       )
     }
   </IconMenu>

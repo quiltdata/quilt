@@ -23,7 +23,7 @@ const AuditTable = compose(
       PT.shape({
         //TODO
         time: PT.any, //TODO
-        package: PT.string.isRequired,
+        handle: PT.string.isRequired,
         event: PT.string.isRequired, //TODO: oneOf?
       }).isRequired
     ).isRequired,
@@ -40,10 +40,10 @@ const AuditTable = compose(
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
       {
-        entries.map(({ time, package, event }) => (
-          <TableRow hoverable key={`${time} ${package} ${event}`}>
+        entries.map(({ time, handle, event }) => (
+          <TableRow hoverable key={`${time} ${handle} ${event}`}>
             <TableRowColumn>{time}</TableRowColumn>
-            <TableRowColumn><a href="#TODO">{package}</a></TableRowColumn>
+            <TableRowColumn><a href="#TODO">{handle}</a></TableRowColumn>
             <TableRowColumn>{event}</TableRowColumn>
           </TableRow>
         ))
