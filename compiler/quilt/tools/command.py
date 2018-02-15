@@ -82,6 +82,11 @@ class CommandException(Exception):
     """
     pass
 
+class HTTPResponseException(CommandException):
+    def __init__(self, message, response):
+        super(HTTPResponseException, self).__init__(message)
+        self.response = response
+
 
 #return type for parse_package_extended
 PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
@@ -232,9 +237,9 @@ def _handle_response(resp, **kwargs):
     elif not resp.ok:
         try:
             data = resp.json()
-            raise CommandException(data['message'])
+            raise HTTPResponseException(data['message'], resp)
         except ValueError:
-            raise CommandException("Unexpected failure: error %s" % resp.status_code)
+            raise HTTPResponseException("Unexpected failure: error %s" % resp.status_code, resp)
 
 def _create_auth(team):
     """
@@ -965,14 +970,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
             pkghash = response.json()['hash']
         else:
             pkghash = _match_hash(session, team, owner, pkg, hash)
-    except CommandException as e:
+    except HTTPResponseException as e:
         logged_in_team = _find_logged_in_team()
         if team is None and logged_in_team is not None:
-            notfoundstr = ("Package {owner}/{pkg} does not exist " +
-                           "(do you need to log in?)").format(owner=owner, pkg=pkg)
-            if str(e).startswith(notfoundstr):
+            if e.response.status_code == 404:
                 raise CommandException(("Package {owner}/{pkg} does not exist. " +
-                                       "Maybe you meant {team}:{owner}/{pkg}?").format(
+                                        "Maybe you meant {team}:{owner}/{pkg}?").format(
                                                         owner=owner, pkg=pkg, team=logged_in_team))
         else:
             raise e
