@@ -493,7 +493,7 @@ def _log(team, **kwargs):
     # restore disabled error-handling
     session.hooks['response'] = orig_response_hooks
 
-def build(package, path=None, dry_run=False, env='default'):
+def build(package, path=None, dry_run=False, env='default', force=False):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
 
@@ -503,7 +503,7 @@ def build(package, path=None, dry_run=False, env='default'):
     # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
     logged_in_team = _find_logged_in_team()
-    if logged_in_team is not None and team is None:
+    if logged_in_team is not None and team is None and force is False:
         answer = input("You're logged in as a team member, but you aren't specifying " +
                         "a team for the package you're currently building. Did you mean " +
                         "quilt build {team}:{package}? N to continue. (Y/n)".format(
