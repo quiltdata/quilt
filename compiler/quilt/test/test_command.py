@@ -42,16 +42,22 @@ CRUD related:
         - no auth
         - no team
         - not admin
-    6. access list
+    6. users/list_detailed
         - OK
         - no auth
-    7. access remove
+        - no admin
+        - not found
+        - server error
+    7. access list
+        - OK
+        - no auth
+    8. access remove
         - OK
         - no auth
         - not owner
         - revoke owner
         - free plan
-    8. access add
+    9. access add
         - OK
         - no auth
         - not owner
@@ -470,6 +476,46 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.list_users()
 
+    def test_user_list_detailed(self):
+        self.requests_mock.add(
+            responses.GET,
+            '%s/api/users/list_detailed' % command.get_registry_url(None),
+            status=200,
+            json=json.dumps({
+                'users': {
+                    'admin': {
+                        'packages': '1',
+                        'installs': {'admin': '1'},
+                        'previews': {'admin': '1'},
+                        'pushes': {'admin': '1'},
+                        'deletes': {'admin': '1'},
+                        'status': 'active',
+                        'last_seen': ''
+                    }
+                }
+            }))
+        command.list_users_detailed()
+
+    def test_user_detailed_list_no_auth(self):
+        self._mock_error('users/list_detailed', status=401, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_no_admin(self):
+        self._mock_error('users/list_detailed', status=403, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_not_found(self):
+        self._mock_error('users/list_detailed', status=404, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
+    def test_user_detailed_list_server_error(self):
+        self._mock_error('users/list_detailed', status=500, method=responses.GET)
+        with self.assertRaises(command.CommandException):
+            command.list_users_detailed()
+
     def test_user_create(self):
         self.requests_mock.add(
             responses.POST,
@@ -691,13 +737,13 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_not_admin_user(self):
-        self._mock_error('audit/bob/', status=401, team='someteam', method=responses.GET)
+        self._mock_error('audit/bob/', status=403, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('bob')
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: "someteam")
     def test_audit_not_admin_package(self):
-        self._mock_error('audit/foo/bar/', status=401, team='someteam', method=responses.GET)
+        self._mock_error('audit/foo/bar/', status=403, team='someteam', method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.audit('foo/bar')
 
