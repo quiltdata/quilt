@@ -505,10 +505,11 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
         answer = input("You're logged in as a team member, but you aren't specifying " +
-                        "a team for the package you're currently building. Did you mean " +
-                        "quilt build {team}:{package}? N to continue. (Y/n)".format(
+                       "a team for the package you're currently building. Maybe you meant:\n" +
+                       "quilt build {team}:{package}\n" +
+                       "Are you sure you want to continue? (y/N)".format(
                                 team=logged_in_team, package=package))
-        if answer.lower() != 'n':
+        if answer.lower() != 'y':
             return
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
