@@ -10,7 +10,7 @@ The standard Quilt [CLI](./cli.md) and [Python](api-python.md) APIs work for tea
 
 If you're interested in using teams, please [contact us](sales@quiltdata.io) to join the Beta.
 
-# Command line
+# Command Line
 
 ## `quilt push`
 ```sh
@@ -32,10 +32,36 @@ Public visibility is disabled for team packages.
 
 Run `quilt login TEAM` to authenticate to your team registry.
 
+# Admin Command Line features
+
+## `quilt user list`
+List users and associated metadata for your team.
+```sh
+quilt user list TEAM
+```
+
 ## `quilt user create`
-Admin only. Add a team member.
+Add a team member.
 ```sh
 $ quilt user create TEAM USERNAME EMAIL
+```
+
+## `quilt user disable`
+Disable a team member.
+```sh
+quilt user disable TEAM USERNAME
+```
+
+## `quilt user reset-password`
+Send a user a reset-password email.
+```sh
+quilt user reset-password TEAM USERNAME
+```
+
+## `quilt audit`
+Audit events relating to a user or package.
+```sh
+quilt audit USER_OR_PACKAGE
 ```
 
 # Python API
