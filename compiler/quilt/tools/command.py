@@ -40,6 +40,8 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
 from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from ..imports import _from_core_node
+
 from . import check_functions as qc
 from .. import nodes
 
@@ -1399,3 +1401,21 @@ def reset_password(team, username):
             url=get_registry_url(team),
             ), data=json.dumps({'username':username})
     )
+
+def _load(package):
+    info = parse_package_extended(package)
+    team, user, name = info.team, info.user, info.name
+
+    pkgobj = PackageStore.find_package(team, user, name)
+    if pkgobj is None:
+        teamstr = team + ':' if team else ''
+        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    return node, pkgobj, info
+
+def load(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
+    return _load(pkginfo)[0]
+
+
