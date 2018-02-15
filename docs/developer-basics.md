@@ -16,6 +16,9 @@
 - Code coverage: `python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v`
 - View coverage results by opening cov_html/index.html
 
+## Self-hosted registries
+See the [registry README](https://github.com/quiltdata/quilt/blob/master/registry/README.md) for more.
+
 # Contribute
 - Conversation on [gitter](https://gitter.im/quilt-data/Lobby)
 - Selected projects are posted to [GitHub Issues](https://github.com/quiltdata/quilt-compiler/issues)

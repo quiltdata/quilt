@@ -227,14 +227,12 @@ def argument_parser():
     shorthelp = "Push a data package to the server"
     push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp)
     push_p.add_argument("package", type=str, help=HANDLE)
-    push_mutexgrp_container = push_p.add_argument_group('team selection options', "(mutually exclusive)")
-    push_mutexgrp = push_mutexgrp_container.add_mutually_exclusive_group()
-    push_mutexgrp.add_argument("--public", action="store_true",
-                               help=("Create or update a public package " +
-                                     "(fails if the package exists and is private)"))
-    push_mutexgrp.add_argument("--team", action="store_true",
-                               help=("Create or update a team-visible package " +
-                                     "(fails if the package exists and is private)"))
+    push_p.add_argument("--public", action="store_true", dest='is_public',
+                        help=("Create or update a public package " +
+                              "(fails if the package exists and is private)"))
+    push_p.add_argument("--team", action="store_true", dest='is_team',
+                        help=("Create or update a team-visible package " +
+                              "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",
                         help="Re-upload all fragments, even if fragment is already in registry")
     push_p.set_defaults(func=command.push)
@@ -313,6 +311,13 @@ def argument_parser():
     user_delete_p.add_argument("username", type=str)
     user_delete_p.add_argument("-f", "--force", action="store_true", help="Skip warning prompt")
     user_delete_p.set_defaults(func=command.delete_user)
+
+    shorthelp = "Reset a user's password and send them a password reset email."
+    user_reset_password_p = users_subparsers.add_parser("reset-password", help=shorthelp)
+    user_reset_password_p.add_argument("team", type=str)
+    user_reset_password_p.add_argument("username", type=str)
+    user_reset_password_p.set_defaults(func=command.reset_password)
+
 
     # quilt version
     shorthelp = "List or permanently add a package version to the server"

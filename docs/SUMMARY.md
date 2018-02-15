@@ -25,6 +25,6 @@
 * [Troubleshooting](troubleshooting.md)
 
 ## Developer
-* [How to contribute](developer-basics.md)
+* [Basics](developer-basics.md)
 * [Local storage](quilt_repository_format.md)
 

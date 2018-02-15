@@ -8,6 +8,8 @@ from enum import Enum
 import re
 
 PUBLIC = 'public' # This username is blocked by Quilt signup
+TEAM = 'team'
+
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 VALID_EMAIL_RE = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 

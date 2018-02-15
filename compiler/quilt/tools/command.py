@@ -626,11 +626,10 @@ def log(package):
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         print(format_str % (entry['hash'], nice, entry['author']))
 
-def push(package, public=False, team=False, reupload=False):
+def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    using_team = team
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
@@ -638,25 +637,13 @@ def push(package, public=False, team=False, reupload=False):
     if pkgobj is None:
         raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
 
-    if using_team and public:
-        raise CommandException("--team and --public are incompatible")
-
-    if using_team and team is None:
-        raise CommandException("--team cannot be used on non-team packages")
-
-    if public and team is not None:
-        raise CommandException("--public is not compatible with team packages, " +
-                               "Maybe you meant --team")
-
-    if using_team and team is not None:
-        public = True
-
     pkghash = pkgobj.get_hash()
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
-            public=public,
+            is_public=is_public,
+            is_team=is_team,
             contents=pkgobj.get_contents(),
             description="",  # TODO
             sizes=sizes
@@ -1333,7 +1320,7 @@ def rm(package, force=False):
     team, owner, pkg = parse_package(package)
 
     if not force:
-        confirmed = input("Remove {0}? (y/n)".format(package))
+        confirmed = input("Remove {0}? (y/n) ".format(package))
         if confirmed.lower() != 'y':
             return
 
@@ -1402,3 +1389,11 @@ def audit(user_or_package):
     )
 
     print(json.dumps(response.json(), indent=2))
+
+def reset_password(team, username):
+    session = _get_session(team)
+    response = session.post(
+        "{url}/api/users/reset_password".format(
+            url=get_registry_url(team),
+            ), data=json.dumps({'username':username})
+    )
