@@ -16,14 +16,14 @@ If you're interested in using teams, please [contact us](sales@quiltdata.io) to 
 ```sh
 $ quilt push TEAM:USER/PKG --team
 ```
-* `push --team` makes a package visible to everyone on your team
-* ~~`push --public`~~ is currently disabled for team packages
+* `push --team` makes a package visible to everyone on your team.
+* ~~`push --public`~~ is currently disabled for team packages.
 
 ## `quilt access`
 
 To make a package visible to your entire team:
 ```sh
-$ quilt access add team:user/pkg team
+$ quilt access add TEAM:USER/PKG team
 ```
 
 Public visibility is disabled for team packages.
