@@ -96,6 +96,7 @@ from .tools.command import (
     install,
     list_packages,
     list_users,
+    list_users_detailed,
     log,
     login,
     login_with_token,
