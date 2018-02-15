@@ -22,27 +22,27 @@ const AuditTable = compose(
     entries: PT.arrayOf(
       PT.shape({
         time: PT.number.isRequired,
-        handle: PT.string.isRequired,
+        user: PT.string.isRequired,
         event: PT.string.isRequired,
       }).isRequired
     ).isRequired,
   }),
-  setDisplayName('Admin.MemberAudit.Table'),
+  setDisplayName('Admin.PackageAudit.Table'),
 )(({ entries }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
         <TableHeaderColumn>Time</TableHeaderColumn>
-        <TableHeaderColumn>Package</TableHeaderColumn>
+        <TableHeaderColumn>User</TableHeaderColumn>
         <TableHeaderColumn>Event</TableHeaderColumn>
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
       {
-        entries.map(({ time, handle, event }) => (
-          <TableRow hoverable key={`${time} ${handle} ${event}`}>
+        entries.map(({ time, user, event }) => (
+          <TableRow hoverable key={`${time} ${user} ${event}`}>
             <TableRowColumn>{formatDate(time)}</TableRowColumn>
-            <TableRowColumn><a href="#TODO">{handle}</a></TableRowColumn>
+            <TableRowColumn><a href="#TODO">{user}</a></TableRowColumn>
             <TableRowColumn>{event}</TableRowColumn>
           </TableRow>
         ))
@@ -57,7 +57,7 @@ const ErrorMessage = compose(
       message: PT.string,
     }).isRequired,
   }),
-  setDisplayName('Admin.MemberAudit.Error'),
+  setDisplayName('Admin.PackageAudit.Error'),
 )(({ error }) => (
   <p>Error: {error.message}</p>
 ));
@@ -65,14 +65,14 @@ const ErrorMessage = compose(
 export default compose(
   setPropTypes({
     onClose: PT.func.isRequired,
-    name: PT.string,
+    handle: PT.string,
     status: apiStatus,
     response: PT.any,
   }),
-  setDisplayName('Admin.MemberAudit'),
-)(({ onClose, name, status, response }) => (
+  setDisplayName('Admin.PackageAudit'),
+)(({ onClose, handle, status, response }) => (
   <Dialog
-    title="User Audit"
+    title="Package Audit"
     actions={[
       <FlatButton
         label="Close"
@@ -83,7 +83,7 @@ export default compose(
     contentStyle={{ width: '80%', maxWidth: 'none' }}
     bodyStyle={{ overflowY: 'auto' }}
     modal
-    open={!!name}
+    open={!!handle}
   >
     {
       branch(status, {

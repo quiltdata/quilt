@@ -20,9 +20,9 @@ import * as actions from './actions';
 import messages from './messages';
 import selector from './selectors';
 import Members from './Members';
-//import MemberAudit from './MemberAudit';
+import MemberAudit from './MemberAudit';
 import Packages from './Packages';
-//import PackageAudit from './PackageAudit';
+import PackageAudit from './PackageAudit';
 
 
 const teamName = config.team && config.team.name;
@@ -83,18 +83,14 @@ export default compose(
 
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 
-    {/*
     <MemberAudit
       onClose={() => getMemberAudit(null)}
       {...memberAudit}
     />
-    */}
 
-    {/*
     <PackageAudit
       onClose={() => getPackageAudit(null)}
       {...packageAudit}
     />
-    */}
   </div>
 ));

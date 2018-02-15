@@ -33,7 +33,7 @@ const PackagesTable = compose(
     packages: PT.arrayOf(
       PT.shape({
         handle: PT.string.isRequired,
-        last_seen: PT.any, //TODO: specify
+        lastModified: PT.number,
       }).isRequired,
     ).isRequired,
     actions: PT.shape({
@@ -57,14 +57,14 @@ const PackagesTable = compose(
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {packages.map(({ handle, last_seen, ...activity }) => (
+      {packages.map(({ handle, lastModified, ...activity }) => (
         <TableRow hoverable key={handle}>
           <TableRowColumn><a onClick={() => audit(handle)}>{handle}</a></TableRowColumn>
           <TableRowColumn>
             <a onClick={() => audit(handle)}>{formatActivity(packageActivities, activity)}</a>
           </TableRowColumn>
           <TableRowColumn>
-            <FlatButton onClick={() => audit(handle)}>{formatDate(last_seen)}</FlatButton>
+            <FlatButton onClick={() => audit(handle)}>{formatDate(lastModified)}</FlatButton>
           </TableRowColumn>
           <TableRowColumn>
             <SettingsMenu actions={actions} />

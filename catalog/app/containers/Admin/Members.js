@@ -34,7 +34,7 @@ const MembersTable = compose(
     members: PT.arrayOf(
       PT.shape({
         name: PT.string.isRequired,
-        last_seen: PT.any, //TODO: specify
+        lastSeen: PT.string,
       }).isRequired,
     ).isRequired,
     actions: PT.shape({
@@ -61,14 +61,14 @@ const MembersTable = compose(
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {members.map(({ name, last_seen, ...activity }) => (
+      {members.map(({ name, lastSeen, ...activity }) => (
         <TableRow hoverable key={name}>
           <TableRowColumn><a onClick={() => audit(name)}>{name}</a></TableRowColumn>
           <TableRowColumn>
             <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
           </TableRowColumn>
           <TableRowColumn>
-            <FlatButton onClick={() => audit(name)}>{formatDate(last_seen)}</FlatButton>
+            <FlatButton onClick={() => audit(name)}>{formatDate(lastSeen)}</FlatButton>
           </TableRowColumn>
           <TableRowColumn>
             <SettingsMenu actions={actions} />

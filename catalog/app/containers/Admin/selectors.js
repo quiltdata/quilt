@@ -19,10 +19,9 @@ export default createSelector(
   (substate) =>
     substate
       .updateIn(['members', 'response'], (members) =>
-        members && members
-          .filter((m) => m.get('status') !== 'disabled')
-          .map((member, name) => member.merge({ name }).toJS())
-          .toArray()
+        members && members.filter
+          ? members.filter((m) => m.get('status') !== 'disabled')
+          : members
       ) // eslint-disable-line function-paren-newline
       .toJS()
 );

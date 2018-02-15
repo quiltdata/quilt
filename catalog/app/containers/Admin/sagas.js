@@ -67,7 +67,9 @@ export function* watchAddMember() {
 export function* doGetMembers() {
   try {
     const response = yield call(apiRequest, '/users/list_detailed');
-    yield put(getMembersSuccess(response.users));
+    const entries = Object.entries(response.users)
+      .map(([name, { last_seen, ...member }]) => ({ name, lastSeen: last_seen, ...member }));
+    yield put(getMembersSuccess(entries));
   } catch (err) {
     yield put(getMembersError(err));
   }
@@ -80,12 +82,15 @@ export function* watchGetMembers() {
 
 // member audit
 export function* doGetMemberAudit({ name }) {
-  console.log('doGetMemberAudit', name);
   if (!name) return;
   try {
     const response = yield call(apiRequest, `/audit/${name}/`);
-    console.log('doGetMemberAudit response', response);
-    yield put(getMemberAuditSuccess(response));
+    const events = response.events.map(({ created, package_owner, package_name, type }) => ({
+      time: created * 1000,
+      handle: `${package_owner}/${package_name}`,
+      event: type.toLowerCase(),
+    }));
+    yield put(getMemberAuditSuccess(events));
   } catch (err) {
     yield put(getMemberAuditError(err));
   }
@@ -138,8 +143,16 @@ export function* watchResetMemberPassword() {
 export function* doGetPackages() {
   try {
     const response = yield call(apiRequest, '/admin/package_summary');
-    console.log('doGetPackages resp', response);
-    yield put(getPackagesSuccess(response.packages));
+    const entries = Object.entries(response.packages)
+      .map(([handle, pkg]) => ({pkg,handle}), {
+        handle,
+        lastModified: Math.max(pkg.deletes.latest || 0, pkg.pushes.latest || 0) * 1000,
+        deletes: pkg.deletes.count,
+        installs: pkg.installs.count,
+        previews: pkg.previews.count,
+        pushes: pkg.pushes.count,
+      }));
+    yield put(getPackagesSuccess(entries));
   } catch (err) {
     yield put(getPackagesError(err));
   }
@@ -152,12 +165,15 @@ export function* watchGetPackages() {
 
 // package audit
 export function* doGetPackageAudit({ handle }) {
-  console.log('doGetPackageAudit', handle);
   if (!handle) return;
   try {
-    const response = yield call(apiRequest, `/audit/${handle}`);
-    console.log('doGetPackageAudit response', response);
-    yield put(getPackageAuditSuccess(response));
+    const response = yield call(apiRequest, `/audit/${handle}/`);
+    const events = response.events.map(({ created, user, type }) => ({
+      time: created * 1000,
+      user,
+      event: type.toLowerCase(),
+    }));
+    yield put(getPackageAuditSuccess(events));
   } catch (err) {
     yield put(getPackageAuditError(err));
   }
