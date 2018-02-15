@@ -6,7 +6,6 @@ dist
 *.py[cod]
 tmp_*
 node_modules
-**/.pytest_cache
 
 quilt_packages
 metastore_db
