@@ -6,8 +6,7 @@ import makeError from 'utils/error';
 import { requestJSON } from 'utils/request';
 
 import {
-  addMemberSuccess,
-  addmemberError,
+  memberAdded,
   getMembersSuccess,
   getMembersError,
   getMemberAuditSuccess,
@@ -37,7 +36,16 @@ import {
 
 function* apiRequest(endpoint, opts = {}) {
   const headers = yield call(makeHeaders);
-  const response = yield call(requestJSON, `${config.api}/api${endpoint}`, { headers, ...opts });
+  const response = yield call(requestJSON,
+    `${config.api}/api${endpoint}`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+      ...opts,
+    },
+  );
   if (response.message) {
     throw makeError(response.message);
   }
@@ -46,15 +54,24 @@ function* apiRequest(endpoint, opts = {}) {
 
 
 // add member
-export function* doAddMember({ name, email }) {
+export function* doAddMember({ username, email, resolve, reject }) {
+  console.log('doAddMember', { username, email });
   try {
     const response = yield call(apiRequest, '/users/create', {
       method: 'POST',
-      body: JSON.stringify({ username: name, email }),
+      body: JSON.stringify({ username, email }),
     });
-    yield put(addMemberSuccess(response));
+    console.log('doAddMember resp', response);
+    //TODO: normalize user object, maybe fetch activity
+    const addedMember = {
+      email: response.email,
+      name: response.username,
+      status: response.is_active ? 'active' : 'disabled',
+    }
+    yield put(memberAdded(addedMember));
+    resolve();
   } catch (err) {
-    yield put(addmemberError(err));
+    reject(err);
   }
 }
 
@@ -144,7 +161,7 @@ export function* doGetPackages() {
   try {
     const response = yield call(apiRequest, '/admin/package_summary');
     const entries = Object.entries(response.packages)
-      .map(([handle, pkg]) => ({pkg,handle}), {
+      .map(([handle, pkg]) => ({
         handle,
         lastModified: Math.max(pkg.deletes.latest || 0, pkg.pushes.latest || 0) * 1000,
         deletes: pkg.deletes.count,

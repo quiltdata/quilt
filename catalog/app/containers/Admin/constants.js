@@ -5,7 +5,7 @@
  */
 
 export const ADD_MEMBER = 'app/Admin/ADD_MEMBER';
-export const ADD_MEMBER_RESPONSE = 'app/Admin/ADD_MEMBER_RESPONSE';
+export const MEMBER_ADDED = 'app/Admin/MEMBER_ADDED';
 export const GET_MEMBERS = 'app/Admin/GET_MEMBERS';
 export const GET_MEMBERS_RESPONSE = 'app/Admin/GET_MEMBERS_RESPONSE';
 export const GET_MEMBER_AUDIT = 'app/Admin/GET_MEMBER_AUDIT';

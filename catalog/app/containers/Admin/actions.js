@@ -7,7 +7,7 @@
 import api from 'constants/api';
 import {
   ADD_MEMBER,
-  ADD_MEMBER_RESPONSE,
+  MEMBER_ADDED,
   GET_MEMBERS,
   GET_MEMBERS_RESPONSE,
   GET_MEMBER_AUDIT,
@@ -26,20 +26,18 @@ import {
 
 
 // add member
-export const addMember = (name, email) => ({
+export const addMember = ({ username, email }, { resolve, reject }) => ({
   type: ADD_MEMBER,
-  name,
+  username,
   email,
+  resolve,
+  reject,
 });
 
-export const addMemberResponse = (status, response) => ({
-  type: ADD_MEMBER_RESPONSE,
-  status,
-  response,
+export const memberAdded = (member) => ({
+  type: MEMBER_ADDED,
+  member,
 });
-
-export const addMemberSuccess = (response) => addMemberResponse(api.SUCCESS, response);
-export const addmemberError = (response) => addMemberResponse(api.ERROR, response);
 
 
 // members

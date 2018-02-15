@@ -1,7 +1,6 @@
 /* Admin */
 import Checkbox from 'material-ui/Checkbox';
 import FlatButton from 'material-ui/FlatButton';
-import TextField from 'material-ui/TextField';
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
@@ -19,6 +18,7 @@ import config from 'constants/config';
 import * as actions from './actions';
 import messages from './messages';
 import selector from './selectors';
+import AddMember from './AddMember';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
@@ -30,6 +30,7 @@ const teamName = config.team && config.team.name;
 export default compose(
   connect(selector, actions),
   setPropTypes({
+    addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
     memberAudit: PT.object.isRequired,
@@ -59,6 +60,7 @@ export default compose(
   })),
   setDisplayName('Admin'),
 )(({
+  addMember,
   members,
   memberActions,
   getMemberAudit,
@@ -75,9 +77,7 @@ export default compose(
     <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
     <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
 
-    <h2><FormattedMessage {...messages.membersAdd} /></h2>
-    <TextField hintText="Email" />
-    <FlatButton label="Add" />
+    <AddMember addMember={addMember} />
 
     <Members {...members} audit={getMemberAudit} actions={memberActions} />
 

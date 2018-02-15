@@ -9,6 +9,7 @@ import api from 'constants/api';
 import {
   GET_MEMBERS,
   GET_MEMBERS_RESPONSE,
+  MEMBER_ADDED,
   GET_MEMBER_AUDIT,
   GET_MEMBER_AUDIT_RESPONSE,
   REMOVE_MEMBER,
@@ -46,6 +47,11 @@ const initialState = fromJS({
 
 export default function adminReducer(state = initialState, action) {
   switch (action.type) {
+    case MEMBER_ADDED:
+      return state
+        .updateIn(['members', 'response'], (members) =>
+          members && members.push ? members.push(fromJS(action.member)) : members
+        );
     case GET_MEMBERS:
       return state
         .setIn(['members', 'status'], api.WAITING)
