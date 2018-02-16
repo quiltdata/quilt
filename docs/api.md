@@ -118,7 +118,3 @@ Out[8]: ['README']
 In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
 ```
-
-# Teams
-Quilt [teams](./teams.md) support all of the above Quilt commands
-
