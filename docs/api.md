@@ -36,7 +36,7 @@ packages:
 ```
 
 # API
-## Build, push, and installing
+## Core: build, push, and install packages
 | Command line | Python | Description |
 | --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
