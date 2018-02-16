@@ -52,7 +52,7 @@ See [teams docs](./teams.md) for additional commands and syntax.
 ## Versioning
 | Command line | Python | Description |
 | --- | --- | --- |
-`quilt log USER/PACKAGE` | `quilt.log(USER/PACKAGE)` | Display push history |
+| `quilt log USER/PACKAGE` | `quilt.log(USER/PACKAGE)` | Display push history |
 | `quilt version list USER/PACKAGE` | `quilt.version_list(USER/PACKAGE)` | Display versions of a package |
 | `quilt version add USER/PACKAGE VERSION HASH` | `quilt.version_add(USER/PACKAGE, VERSION, HASH)` |  Associate a version with a hash |
 | `quilt tag list USER/PACKAGE` | `quilt.tag_list(USER/PACKAGE)` | List available tags |
