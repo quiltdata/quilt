@@ -4,7 +4,7 @@
 
 # Building, pushing, and installing packages
 | Command line | Python | Description |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
 | `quilt push USER/PACKAGE [--public|--team]` | `quilt.push("USER/PACKAGE", public=False, team=False)` | Stores the package in the registry |
 | `quilt install USER/PACKAGE[/SUBPATH/...]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
