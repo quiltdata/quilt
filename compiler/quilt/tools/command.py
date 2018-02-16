@@ -1284,7 +1284,7 @@ def search(query, team=None):
     response = public_session.get("%s/api/search/" % get_registry_url(None), params=dict(q=query))
     packages = response.json()['packages']
     for pkg in packages:
-        print("%(owner)s/%(name)s" % pkg)
+        print("%(owner)s/%(name)s  %(readme_preview)s" % pkg)
     if len(packages) == 0:
         print("(No results)")
 

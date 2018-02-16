@@ -12,7 +12,6 @@ import json
 import time
 from urllib.parse import urlencode
 
-from botocore.exceptions import ClientError
 import boto3
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
@@ -1490,7 +1489,7 @@ def search():
     # Get the list of packages.
     packages = (
         db.session.query(
-            Package.id,
+            Package,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
             sa.func.bool_or(Access.user == TEAM).label('is_team')
         )
@@ -1502,26 +1501,25 @@ def search():
             sa.func.lower(Package.owner),
             sa.func.lower(Package.name)
         )
-        .subquery()
     )
+
+    package_ids = [row[0].id for row in packages]
 
     README_SNIPPET_LEN = 1024
 
     # Get the README previews from the latest instance of each package.
-    results = (
+    readmes_by_package_id = dict(
         db.session.query(
-            Package,
-            packages.c.is_public,
-            packages.c.is_team,
+            Package.id,
             sa.func.substr(S3Blob.preview, 0, README_SNIPPET_LEN),
         )
-        .join(packages, Package.id == packages.c.id)
+        .filter(Package.id.in_(package_ids))
         .join(Package.instances)
         .join(Instance.tags)
         .filter(Tag.tag == Tag.LATEST)
         .join(Instance.blobs)
         .filter(Instance.readme_hash() == S3Blob.hash)
-    )
+    ) if package_ids else dict()
 
     return dict(
         packages=[
@@ -1530,8 +1528,8 @@ def search():
                 name=package.name,
                 is_public=is_public,
                 is_team=is_team,
-                readme_preview=preview,
-            ) for package, is_public, is_team, preview in results
+                readme_preview=readmes_by_package_id.get(package.id),
+            ) for package, is_public, is_team in packages
         ]
     )
 
