@@ -48,12 +48,12 @@ packages:
 # Versioning
 | Command line | Python | Description |
 | --- | --- | --- |
-`quilt log USER/PACKAGE` | `quilt.log(USER/PACKAGE)` | Displays push history |
+`quilt log USER/PACKAGE` | `quilt.log(USER/PACKAGE)` | Display push history |
 | `quilt version list USER/PACKAGE` | `quilt.version_list(USER/PACKAGE)` | Display versions of a package |
 | `quilt version add USER/PACKAGE VERSION HASH` | `quilt.version_add(USER/PACKAGE, VERSION, HASH)` |  Associate a version with a hash |
 | `quilt tag list USER/PACKAGE` | `quilt.tag_list(USER/PACKAGE)` | List available tags |
-| `quilt tag add USER/PACKAGE TAG HASH` |`quilt.tag_add(USER/PACKAGE, TAG, HASH)` | Associate a tag with a a hash |
-| `quilt tag remove USER/PACKAGE TAG` | `quilt.tag_remove(USER/PACKAGE, TAG)` | remove a tag |
+| `quilt tag add USER/PACKAGE TAG HASH` |`quilt.tag_add(USER/PACKAGE, TAG, HASH)` | Associate a tag with a hash |
+| `quilt tag remove USER/PACKAGE TAG` | `quilt.tag_remove(USER/PACKAGE, TAG)` | Remove a tag |
 
 ## Instances, hashes, tags, and versions
 * A package _instance_ is a package handle plus a hash. `akarve/sales:fc7f0b` is an instance. Instances are immutable.
