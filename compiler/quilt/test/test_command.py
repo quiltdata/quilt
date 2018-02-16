@@ -1135,7 +1135,7 @@ class CommandTest(QuiltTestCase):
             ('3-bad-identifier/9{}bad-identifier.html', os.urandom(100)),
             ] + subdir_test_data
 
-        shash = lambda data: hashlib.sha256(data).hexdigest()
+        digest = lambda data: hashlib.sha256(data).hexdigest()
 
         temp_dir = Path() / "temp_test_command"
         install_dir = temp_dir / 'install'
@@ -1147,7 +1147,7 @@ class CommandTest(QuiltTestCase):
             path.write_bytes(data)
         command.build(pkg_name, str(install_dir))
 
-        # Test export
+        ## Test export
         test_dir = temp_dir / 'test_export'
 
         command.export(pkg_name, str(test_dir))
@@ -1163,9 +1163,9 @@ class CommandTest(QuiltTestCase):
             # filename matches
             assert export_path in exported_paths
             # data matches
-            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
 
-        # Test force=True
+        ## Test export with force=True
         # We just exported and checked that the files exist,
         # so it's a good spot to check the force option.
         command.export(pkg_name, str(test_dir), force=True)
@@ -1181,9 +1181,9 @@ class CommandTest(QuiltTestCase):
             # filename matches
             assert export_path in exported_paths
             # data matches
-            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
 
-        # Test raise when exporting to overwrite existing files
+        ## Test raise when exporting to overwrite existing files
         files = set(f for f in test_dir.glob('*') if f.is_file())
         # sorted and reversed means files before their containing dirs
         for path in sorted(test_dir.glob('**/*'), reverse=True):
@@ -1196,7 +1196,7 @@ class CommandTest(QuiltTestCase):
         with pytest.raises(command.CommandException, match='file already exists'):
             command.export(pkg_name, str(test_dir))
 
-        # Test raise when exporting to existing dir structure
+        ## Test raise when exporting to existing dir structure
         command.export(pkg_name, str(test_dir), force=True)
         for path in test_dir.glob('**/*'):
             # leave dirs, remove files
@@ -1206,7 +1206,7 @@ class CommandTest(QuiltTestCase):
         with pytest.raises(command.CommandException, match='subdir already exists'):
             command.export(pkg_name, str(test_dir))
 
-        # Test exporting to an unwriteable location
+        ## Test exporting to an unwriteable location
         # disabled on windows, for now
         # TODO: Windows version of permission failure test
         if os.name != 'nt':
@@ -1225,7 +1225,7 @@ class CommandTest(QuiltTestCase):
                     test_dir.chmod(orig_mode)
 
 
-        # Test subpackage exports
+        ## Test subpackage exports
         test_dir = temp_dir / 'test_subpkg_export'
         command.export(pkg_name + '/' + subpkg_name, str(test_dir))
 
@@ -1240,18 +1240,18 @@ class CommandTest(QuiltTestCase):
             # filename matches
             assert export_path in exported_paths
             # data matches
-            assert shash(export_path.read_bytes()) == shash(install_path.read_bytes())
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
 
-        # Test single-file exports
+        ## Test single-file exports
         test_dir = temp_dir / 'test_single_file_export'
         pkg_name_single = pkg_name + '/' + single_name
         single_filepath = test_dir / single_name
 
         command.export(pkg_name_single, str(test_dir))
         assert single_filepath.exists()
-        assert shash(single_bytes) == shash(single_filepath.read_bytes())
+        assert digest(single_bytes) == digest(single_filepath.read_bytes())
 
-        # Test filters
+        ## Test filters
         test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
         included_file = test_dir / single_name
 
@@ -1262,9 +1262,9 @@ class CommandTest(QuiltTestCase):
 
         assert len(exported_paths) == 1
         assert included_file.exists()
-        assert shash(single_bytes) == shash(included_file.read_bytes())
+        assert digest(single_bytes) == digest(included_file.read_bytes())
 
-        # Test map
+        ## Test mapper
         test_dir = temp_dir / 'test_mapper'
         test_filepath = test_dir / single_name    # ok on windows too per pathlib
         mapped_filepath = test_filepath.with_suffix('.zip')
@@ -1274,7 +1274,7 @@ class CommandTest(QuiltTestCase):
 
         assert not test_filepath.exists()
         assert mapped_filepath.exists()
-        assert shash(single_bytes) == shash(mapped_filepath.read_bytes())
+        assert digest(single_bytes) == digest(mapped_filepath.read_bytes())
 
     def test_parse_package_names(self):
         # good parse strings
