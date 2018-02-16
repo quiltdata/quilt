@@ -7,6 +7,7 @@ import os
 import re
 
 from appdirs import user_config_dir, user_data_dir
+from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
 from .compat import pathlib
@@ -18,6 +19,44 @@ BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
 PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(identifier)
+    if match is None:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    full_name, pkg_hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
+
+def parse_package(name, allow_subpath=False):
+    try:
+        values = name.split(':', 1)
+        team = values[0] if len(values) > 1 else None
+
+        values = values[-1].split('/')
+        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
+        (owner, pkg), subpath = values[:2], values[2:]
+        if not owner or not pkg:
+            # Make sure they're not empty.
+            raise ValueError
+        if subpath and not allow_subpath:
+            raise ValueError
+
+    except ValueError:
+        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    if allow_subpath:
+        return team, owner, pkg, subpath
+    return team, owner, pkg
 
 class FileWithReadProgress(Iterator):
     """

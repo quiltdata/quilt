@@ -23,7 +23,7 @@ from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename
+from .util import FileWithReadProgress, is_nodename, to_nodename, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -63,7 +63,7 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    is_leaf = not node or node.get(RESERVED['file'])
+    is_leaf = not node or node.get(RESERVED['file']) or node.get(RESERVED['package'])
     return not is_leaf
 
 def _pythonize_name(name):
@@ -164,86 +164,95 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if not dry_run:
                 package.save_group(name)
             return
-        # handle remaining leaf nodes types
-        rel_path = node.get(RESERVED['file'])
-        if not rel_path:
-            raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
-        path = os.path.join(build_dir, rel_path)
-        # get either the locally defined transform or inherit from an ancestor
-        transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
+       
+        include_package = node.get(RESERVED['package'])
+        if include_package:
+            team, user, pkgname = parse_package(include_package)
+            node = PackageStore.find_package(team, user, pkgname)
 
-        ID = 'id' # pylint:disable=C0103
-        if transform:
-            transform = transform.lower()
-            if (transform not in PARSERS) and (transform != ID):
-                raise BuildException("Unknown transform '%s' for %s @ %s" %
-                                     (transform, rel_path, target))
-        else: # guess transform if user doesn't provide one
-            _, ext = splitext_no_dot(rel_path)
-            transform = ext
-            if transform not in PARSERS:
-                transform = ID
-            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
-        # TODO: parse/check environments:
-        # environments = node.get(RESERVED['environments'])
-
-        checks = node.get(RESERVED['checks'])
-        if transform == ID:
-            #TODO move this to a separate function
-            if checks:
-                with open(path, 'r') as fd:
-                    data = fd.read()
-                    _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
-            if not dry_run:
-                print("Registering %s..." % path)
-                package.save_file(path, name, rel_path)
+            package.save_package_tree(name, node.get_contents())
         else:
-            # copy so we don't modify shared ancestor_args
-            handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
-            # local kwargs win the update
-            handler_args.update(node.get(RESERVED['kwargs'], {}))
-            # Check Cache
-            store = PackageStore()
-            path_hash = _path_hash(path, transform, handler_args)
-            source_hash = digest_file(path)
+            # handle remaining leaf nodes types
+            rel_path = node.get(RESERVED['file'])
+            if not rel_path:
+                raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
+            path = os.path.join(build_dir, rel_path)
 
-            cachedobjs = []
-            if os.path.exists(store.cache_path(path_hash)):
-                with open(store.cache_path(path_hash), 'r') as entry:
-                    cache_entry = json.load(entry)
-                    if cache_entry['source_hash'] == source_hash:
-                        cachedobjs = cache_entry['obj_hashes']
-                        assert isinstance(cachedobjs, list)
+            # get either the locally defined transform or inherit from an ancestor
+            transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
 
-            # Check to see that cached objects actually exist in the store
-            if cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
-                # Use existing objects instead of rebuilding
-                package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
-            else:
-                # read source file into DataFrame
-                print("Serializing %s..." % path)
-                if _have_pyspark():
-                    dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
-                else:
-                    dataframe = _file_to_data_frame(transform, path, target, handler_args)
+            ID = 'id' # pylint:disable=C0103
+            if transform:
+                transform = transform.lower()
+                if (transform not in PARSERS) and (transform != ID):
+                    raise BuildException("Unknown transform '%s' for %s @ %s" %
+                                         (transform, rel_path, target))
+            else: # guess transform if user doesn't provide one
+                _, ext = splitext_no_dot(rel_path)
+                transform = ext
+                if transform not in PARSERS:
+                    transform = ID
+                print("Inferring 'transform: %s' for %s" % (transform, rel_path))
+            # TODO: parse/check environments:
+            # environments = node.get(RESERVED['environments'])
 
+            checks = node.get(RESERVED['checks'])
+            if transform == ID:
+                #TODO move this to a separate function
                 if checks:
-                    # TODO: test that design works for internal nodes... e.g. iterating
-                    # over the children and getting/checking the data, err msgs, etc.
-                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
-
-                # serialize DataFrame to file(s)
+                    with open(path, 'r') as fd:
+                        data = fd.read()
+                        _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
                 if not dry_run:
-                    print("Saving as binary dataframe...")
-                    obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                    print("Registering %s..." % path)
+                    package.save_file(path, name, rel_path)
+            else:
+                # copy so we don't modify shared ancestor_args
+                handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
+                # local kwargs win the update
+                handler_args.update(node.get(RESERVED['kwargs'], {}))
+                # Check Cache
+                store = PackageStore()
+                path_hash = _path_hash(path, transform, handler_args)
+                source_hash = digest_file(path)
 
-                    # Add to cache
-                    cache_entry = dict(
-                        source_hash=source_hash,
-                        obj_hashes=obj_hashes
-                        )
-                    with open(store.cache_path(path_hash), 'w') as entry:
-                        json.dump(cache_entry, entry)
+                cachedobjs = []
+                if os.path.exists(store.cache_path(path_hash)):
+                    with open(store.cache_path(path_hash), 'r') as entry:
+                        cache_entry = json.load(entry)
+                        if cache_entry['source_hash'] == source_hash:
+                            cachedobjs = cache_entry['obj_hashes']
+                            assert isinstance(cachedobjs, list)
+
+                # Check to see that cached objects actually exist in the store
+                if cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
+                    # Use existing objects instead of rebuilding
+                    package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+                else:
+                    # read source file into DataFrame
+                    print("Serializing %s..." % path)
+                    if _have_pyspark():
+                        dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+                    else:
+                        dataframe = _file_to_data_frame(transform, path, target, handler_args)
+
+                    if checks:
+                        # TODO: test that design works for internal nodes... e.g. iterating
+                        # over the children and getting/checking the data, err msgs, etc.
+                        _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+
+                    # serialize DataFrame to file(s)
+                    if not dry_run:
+                        print("Saving as binary dataframe...")
+                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+
+                        # Add to cache
+                        cache_entry = dict(
+                            source_hash=source_hash,
+                            obj_hashes=obj_hashes
+                            )
+                        with open(store.cache_path(path_hash), 'w') as entry:
+                            json.dump(cache_entry, entry)
 
 def _remove_keywords(d):
     """

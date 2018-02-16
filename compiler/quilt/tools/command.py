@@ -5,7 +5,6 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import namedtuple
 from datetime import datetime
 import gzip
 import hashlib
@@ -39,7 +38,7 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename, PackageInfo, parse_package, parse_package_extended
 from ..imports import _from_core_node
 
 from . import check_functions as qc
@@ -88,52 +87,6 @@ class HTTPResponseException(CommandException):
     def __init__(self, message, response):
         super(HTTPResponseException, self).__init__(message)
         self.response = response
-
-
-#return type for parse_package_extended
-PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
-def parse_package_extended(identifier):
-    """
-    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
-    """
-    match = EXTENDED_PACKAGE_RE.match(identifier)
-    if match is None:
-        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
-        raise CommandException("Specify package as %s." % pkg_format)
-
-    full_name, pkg_hash, version, tag = match.groups()
-    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
-
-    # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
-
-def parse_package(name, allow_subpath=False):
-    try:
-        values = name.split(':', 1)
-        team = values[0] if len(values) > 1 else None
-
-        values = values[-1].split('/')
-        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
-        (owner, pkg), subpath = values[:2], values[2:]
-        if not owner or not pkg:
-            # Make sure they're not empty.
-            raise ValueError
-        if subpath and not allow_subpath:
-            raise ValueError
-
-    except ValueError:
-        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
-        raise CommandException("Specify package as %s." % pkg_format)
-
-    try:
-        PackageStore.check_name(team, owner, pkg, subpath)
-    except StoreException as ex:
-        raise CommandException(str(ex))
-
-    if allow_subpath:
-        return team, owner, pkg, subpath
-    return team, owner, pkg
-
 
 _registry_url = None
 
