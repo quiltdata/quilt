@@ -90,7 +90,7 @@ def check_column_regexp(colrx, regexp, envs=None):
         check_column_regexp(colrx, regexp, envs[env])
     for colname in list(data):
         if re.search(colrx, colname):
-            check(data[colname].str.match(regexp).all())
+            check(data[colname].astype(str).str.match(regexp).all())
 
 def check_column_substr(colrx, substr, envs=None):
     if envs not in [None, 'default']:
