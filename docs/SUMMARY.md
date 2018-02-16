@@ -13,8 +13,7 @@
 * [Build.yml specification](buildyml.md)
 
 ## API Reference
-* [Command-line Interface \(CLI\)](cli.md)
-* [Python API](api-python.md)
+* [Python + CLI](api.md)
 * [R API](api-r.md)
 
 ## Advanced Usage
