@@ -32,6 +32,10 @@ Authenticate to  team registry:
 $ quilt login TEAM
 ``` 
 
+### Import and use data
+```python
+from quilt.TEAM.USER import PKG
+```
 ## Admin features
 ### `quilt user list`
 List users and associated metadata for your team.
@@ -83,36 +87,4 @@ Public visibility is disabled for team packages. You can also `quilt access remo
 Authenticate to a team registry:
 ```sh
 quilt login TEAM
-```
-
-# Admin Command Line features
-
-## `quilt user list`
-List team members (and metadata):
-```sh
-quilt user list TEAM
-```
-
-## `quilt user create`
-Add a team member:
-```sh
-$ quilt user create TEAM USERNAME EMAIL
-```
-
-## `quilt user disable`
-Disable a team member. The users packages are retained.
-```
-quilt user disable TEAM USERNAME
-```
-
-## `quilt user reset-password`
-Send a user a reset-password email:
-```sh
-quilt user reset-password TEAM USERNAME
-```
-
-## `quilt audit`
-Audit events relating to a user or package:
-```sh
-quilt audit USER_OR_PACKAGE
 ```

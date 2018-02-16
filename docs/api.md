@@ -36,6 +36,10 @@ packages:
 ```
 
 # API
+
+## Team users
+See [teams docs](./teams.md) for additional commands and syntax.
+
 ## Core: build, push, and install packages
 | Command line | Python | Description |
 | --- | --- | --- |
@@ -81,14 +85,11 @@ packages:
 | `quilt search "SEARCH STRING"` |  `quilt.search("SEARCH STRING")` | Search registry for packages by user or package name |
 
 # Import and use data
-## Public users
 ```python
 from quilt.data.USER import PACKAGE
 ```
-## Team users
-```python
-from quilt.TEAM.USER import PKG
-```
+
+
 # Using packages
 Packages contain three types of nodes:
 * `PackageNode` - the root of the package tree
@@ -100,7 +101,6 @@ Packages contain three types of nodes:
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
   * All other data types return a string to the path of the object in the package store
-
 
 ## Enumerating package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
