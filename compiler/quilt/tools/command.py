@@ -38,7 +38,9 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename, PackageInfo, parse_package, parse_package_extended
+from .util import (BASE_DIR, FileWithReadProgress, gzip_compress,
+                   is_nodename, PackageInfo, parse_package as parse_package_util,
+                   parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
 from . import check_functions as qc
@@ -57,10 +59,6 @@ except ImportError:
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
-
-EXTENDED_PACKAGE_RE = re.compile(
-    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
-)
 
 CHUNK_SIZE = 4096
 
@@ -89,6 +87,34 @@ class HTTPResponseException(CommandException):
         self.response = response
 
 _registry_url = None
+
+def parse_package_extended(identifier):
+    try:
+        return parse_package_extended_util(identifier)
+    except ValueError:
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+def parse_package(name, allow_subpath=False):
+    try:
+        if allow_subpath:
+            team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
+        else:
+            team, owner, pkg = parse_package_util(name, allow_subpath)
+            subpath = None
+    except ValueError:
+        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
+        raise CommandException("Specify package as %s." % pkg_format)
+
+    try:	
+        PackageStore.check_name(team, owner, pkg, subpath)	
+    except StoreException as ex:	
+        raise CommandException(str(ex))
+
+    if allow_subpath:
+        return team, owner, pkg, subpath
+    return team, owner, pkg
+    
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
