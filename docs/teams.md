@@ -8,16 +8,22 @@ The syntax for a team package handle is `TEAM:USER/PKG`.
 
 If you'd like to use Quilt teams, [contact us](sales@quiltdata.io) to join the Beta.
 
-# Command Line
+# Command line API
 Team users can have access to the [standard API](./api.md) with the following differences and additional administrative features.
 
-## Differences
+## Core API differences
 ### `quilt push`
 ```sh
 $ quilt push TEAM:USER/PKG --team
 ```
 * `push --team` makes a package visible to everyone on your team
 * ~~`push --public`~~ is currently disabled for team packages
+
+### `quilt login`
+Authenticate to  team registry:
+```sh
+$ quilt login TEAM
+``` 
 
 ### `quilt access`
 To make a package visible to your entire team:
@@ -26,16 +32,11 @@ $ quilt access add TEAM:USER/PKG team
 ```
 Public visibility is not yet supported for team packages.
 
-### `quilt login`
-Authenticate to  team registry:
-```sh
-$ quilt login TEAM
-``` 
-
 ### Import and use data
 ```python
 from quilt.TEAM.USER import PKG
 ```
+
 ## Admin features
 ### `quilt user list`
 List users and associated metadata for your team.
@@ -65,26 +66,4 @@ quilt user reset-password TEAM USERNAME
 Audit events relating to a user or package.
 ```sh
 quilt audit USER_OR_PACKAGE
-`
-
-## `quilt push`
-```sh
-$ quilt push TEAM:USER/PKG --team
-```
-* `push --team` makes a package visible to everyone on your team.
-* ~~`push --public`~~ is currently disabled for team packages.
-
-## `quilt access`
-
-To make a package visible to your entire team:
-```sh
-$ quilt access add TEAM:USER/PKG team
-```
-
-Public visibility is disabled for team packages. You can also `quilt access remove TEAM:USER/PKG team`.
-
-## `quilt login`
-Authenticate to a team registry:
-```sh
-quilt login TEAM
 ```
