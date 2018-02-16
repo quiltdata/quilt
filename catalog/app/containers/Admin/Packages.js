@@ -42,7 +42,7 @@ const PackagesTable = compose(
   }),
   withProps(({ actions }) => ({
     actions: [
-      { text: 'Delete', callback: actions.remove }, //TODO: bind
+      { text: 'Delete', callback: actions.remove },
     ],
   })),
   setDisplayName('Admin.Packages.Table'),
@@ -67,7 +67,7 @@ const PackagesTable = compose(
             <FlatButton onClick={() => audit(handle)}>{formatDate(lastModified)}</FlatButton>
           </TableRowColumn>
           <TableRowColumn>
-            <SettingsMenu actions={actions} />
+            <SettingsMenu actions={actions} arg={handle} />
           </TableRowColumn>
         </TableRow>
       ))}

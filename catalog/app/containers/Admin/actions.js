@@ -72,9 +72,11 @@ export const getMemberAuditError = (response) => getMemberAuditResponse(api.ERRO
 
 
 // remove member
-export const removeMember = (name) => ({
+export const removeMember = (name, { resolve, reject }) => ({
   type: REMOVE_MEMBER,
   name,
+  resolve,
+  reject,
 });
 
 export const removeMemberResponse = (name, status, response) => ({
@@ -91,9 +93,11 @@ export const removeMemberError = (name, response) =>
 
 
 // reset member password
-export const resetMemberPassword = (name) => ({
+export const resetMemberPassword = (name, { resolve, reject }) => ({
   type: RESET_MEMBER_PASSWORD,
   name,
+  resolve,
+  reject,
 });
 
 export const resetMemberPasswordResponse = (name, status, response) => ({
@@ -141,9 +145,11 @@ export const getPackageAuditError = (response) => getPackageAuditResponse(api.ER
 
 
 // remove package
-export const removePackage = (handle) => ({
+export const removePackage = (handle, { resolve, reject }) => ({
   type: REMOVE_PACKAGE,
   handle,
+  resolve,
+  reject,
 });
 
 export const removePackageResponse = (handle, status, response) => ({

@@ -44,9 +44,9 @@ const MembersTable = compose(
   }),
   withProps(({ actions }) => ({
     actions: [
-      { text: 'Remove member', callback: actions.remove }, //TODO: bind
+      { text: 'Remove member', callback: actions.remove },
       'divider',
-      { text: 'Reset password', callback: actions.resetPassword }, //TODO: bind
+      { text: 'Reset password', callback: actions.resetPassword },
     ],
   })),
   setDisplayName('Admin.Members.Table'),
@@ -71,7 +71,7 @@ const MembersTable = compose(
             <FlatButton onClick={() => audit(name)}>{formatDate(lastSeen)}</FlatButton>
           </TableRowColumn>
           <TableRowColumn>
-            <SettingsMenu actions={actions} />
+            <SettingsMenu actions={actions} arg={name} />
           </TableRowColumn>
         </TableRow>
       ))}

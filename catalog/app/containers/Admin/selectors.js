@@ -25,5 +25,12 @@ export default createSelector(
             .sortBy((m) => m.get('name'))
           : members
       ) // eslint-disable-line function-paren-newline
+      .updateIn(['packages', 'response'], (packages) =>
+        packages && packages.filter
+          ? packages
+            .filter((m) => m.get('deletes') === 0)
+            .sortBy((m) => m.get('handle'))
+          : packages
+      ) // eslint-disable-line function-paren-newline
       .toJS()
 );

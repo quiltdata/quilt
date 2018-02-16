@@ -19,9 +19,10 @@ export default compose(
         }),
       ]).isRequired
     ).isRequired, // eslint-disable-line function-paren-newline
+    arg: PT.any.isRequired,
   }),
   setDisplayName('Admin.SettingsMenu'),
-)(({ actions }) => (
+)(({ actions, arg }) => (
   <IconMenu
     iconButtonElement={<IconButton><MIcon>settings</MIcon></IconButton>}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
@@ -31,7 +32,7 @@ export default compose(
       actions.map((a, i) =>
         a === 'divider'
           ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
-          : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={a.callback} />
+          : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={() => a.callback(arg)} />
       )
     }
   </IconMenu>

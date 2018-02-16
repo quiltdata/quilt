@@ -65,9 +65,9 @@ export function* doAddMember({ username, email, resolve, reject }) {
     const { users } = yield call(apiRequest, '/users/list_detailed');
     const addedMember = { email, ...normalizeMember([username, users[username]]) };
     yield put(memberAdded(addedMember));
-    resolve(addedMember);
+    if (resolve) yield call(resolve, addedMember);
   } catch (err) {
-    reject(err);
+    if (reject) yield call(reject, err);
   }
 }
 
@@ -114,7 +114,7 @@ export function* watchGetMemberAudit() {
 
 
 // remove member
-export function* doRemoveMember({ name }) {
+export function* doRemoveMember({ name, resolve, reject }) {
   console.log('doRemoveMember', name);
   try {
     const response = yield call(apiRequest, '/users/disable', {
@@ -122,8 +122,10 @@ export function* doRemoveMember({ name }) {
       body: JSON.stringify({ username: name }),
     });
     yield put(removeMemberSuccess(name, response));
+    if (resolve) yield call(resolve, response);
   } catch (err) {
     yield put(removeMemberError(name, err));
+    if (reject) yield call(reject, err);
   }
 }
 
@@ -133,7 +135,7 @@ export function* watchRemoveMember() {
 
 
 // reset member password
-export function* doResetMemberPassword({ name }) {
+export function* doResetMemberPassword({ name, resolve, reject }) {
   console.log('doResetMemberPassword', name);
   try {
     const response = yield call(apiRequest, '/users/reset_password', {
@@ -141,8 +143,10 @@ export function* doResetMemberPassword({ name }) {
       body: JSON.stringify({ username: name }),
     });
     yield put(resetMemberPasswordSuccess(name, response));
+    if (resolve) yield call(resolve, response);
   } catch (err) {
     yield put(resetMemberPasswordError(name, err));
+    if (reject) yield call(reject, err);
   }
 }
 
@@ -197,13 +201,15 @@ export function* watchGetPackageAudit() {
 
 
 // remove package
-export function* doRemovePackage({ handle }) {
+export function* doRemovePackage({ handle, resolve, reject }) {
   console.log('doRemovePackage', handle);
   try {
     const response = yield call(apiRequest, `/package/${handle}/`, { method: 'DELETE' });
     yield put(removePackageSuccess(handle, response));
+    if (resolve) yield call(resolve, response);
   } catch (err) {
     yield put(removePackageError(handle, err));
+    if (reject) yield call(reject, err);
   }
 }
 

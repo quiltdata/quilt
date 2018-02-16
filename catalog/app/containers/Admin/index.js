@@ -9,9 +9,11 @@ import {
   lifecycle,
   setDisplayName,
   setPropTypes,
+  withHandlers,
   withProps,
 } from 'recompose';
 
+import { push as pushNotification } from 'containers/Notifications/actions';
 import config from 'constants/config';
 
 import * as actions from './actions';
@@ -26,8 +28,11 @@ import PackageAudit from './PackageAudit';
 
 const teamName = config.team && config.team.name;
 
+const dispatchPromise = (actionCreator, ...args) =>
+  new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
+
 export default compose(
-  connect(selector, actions),
+  connect(selector, { pushNotification, ...actions }),
   setPropTypes({
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
@@ -41,12 +46,39 @@ export default compose(
     packageAudit: PT.object.isRequired,
     getPackageAudit: PT.func.isRequired,
     removePackage: PT.func.isRequired,
+    pushNotification: PT.func.isRequired,
   }),
   lifecycle({
     componentWillMount() {
       this.props.getMembers();
       this.props.getPackages();
     },
+  }),
+  withHandlers({
+    removeMember: ({ removeMember, pushNotification }) => (name) =>
+      dispatchPromise(removeMember, name)
+        .then(() => {
+          pushNotification(`User ${name} has been removed`);
+        })
+        .catch((err) => {
+          pushNotification(`There was an error while removing ${name}`);
+        }),
+    resetMemberPassword: ({ resetMemberPassword, pushNotification }) => (name) =>
+      dispatchPromise(resetMemberPassword, name)
+        .then(() => {
+          pushNotification(`Password for user ${name} has been reset`);
+        })
+        .catch((err) => {
+          pushNotification(`There was an error while resetting password for ${name}`);
+        }),
+    removePackage: ({ removePackage, pushNotification }) => (handle) =>
+      dispatchPromise(removePackage, handle)
+        .then(() => {
+          pushNotification(`Package ${handle} has been deleted`);
+        })
+        .catch((err) => {
+          pushNotification(`There was an error while deleting package ${handle}`);
+        }),
   }),
   withProps(({ removeMember, resetMemberPassword, removePackage }) => ({
     memberActions: {
