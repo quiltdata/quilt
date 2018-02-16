@@ -9,11 +9,11 @@ import {
   compose,
   setDisplayName,
   setPropTypes,
-  withState,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import styled from 'styled-components';
 
+import { push } from 'containers/Notifications/actions';
 import Spinner from 'components/Spinner';
 import * as validators from 'utils/validators';
 
@@ -64,7 +64,6 @@ export default compose(
   setPropTypes({
     addMember: PT.func.isRequired,
   }),
-  withState('addedMember', 'setAddedMember'),
   reduxForm({
     form: 'Admin.AddMember',
     onSubmit: (values, _dispatch, { addMember }) =>
@@ -83,9 +82,9 @@ export default compose(
           throw err;
         })
     ,
-    onSubmitSuccess: (result, _dispatch, { reset, setAddedMember }) => {
+    onSubmitSuccess: ({ name, email }, dispatch, { reset }) => {
       reset();
-      setAddedMember(result);
+      dispatch(push(`User ${name} <${email}> added successfully`));
     },
   }),
   setDisplayName('Admin.AddMember'),
@@ -96,8 +95,6 @@ export default compose(
   invalid,
   submitting,
   submitFailed,
-  addedMember,
-  setAddedMember,
 }) => (
   <Fragment>
     <h2><FormattedMessage {...messages.membersAdd} /></h2>
@@ -135,14 +132,5 @@ export default compose(
         disabled={submitting || pristine || submitFailed && invalid}
       />
     </Form>
-    <Snackbar
-      open={!!addedMember}
-      message={addedMember
-        ? `User ${addedMember.name} <${addedMember.email}> added successfully`
-        : ''
-      }
-      autoHideDuration={NOTIFICATION_TTL}
-      onRequestClose={() => setAddedMember(null)}
-    />
   </Fragment>
 ));

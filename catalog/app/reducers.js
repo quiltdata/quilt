@@ -12,6 +12,7 @@ import languageProviderReducer from 'containers/LanguageProvider/reducer';
 import appReducer from 'containers/App/reducer';
 import galleryReducer from 'containers/Gallery/reducer';
 import searchReducer from 'containers/SearchResults/reducer';
+import notificationsReducer from 'containers/Notifications/reducer';
 
 /*
  * routeReducer
@@ -52,6 +53,7 @@ export default function createReducer(asyncReducers) {
     route: routeReducer,
     // load searchReducer preemptively since any page can initiate search
     search: searchReducer,
+    notifications: notificationsReducer,
     form: formReducer,
     ...asyncReducers,
   });
