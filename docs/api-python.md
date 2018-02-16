@@ -1,21 +1,43 @@
-# Package handles
-* Packages are referenced by a handle of the form `OWNER/NAME`.
+# Background
+## Package handles
+* Packages are referenced by a handle of the form `OWNER/NAME`
 * Teams packages include a prefix, `TEAM:OWNER/NAME`
 
-# Building, pushing, and installing packages
+## READMEs 
+A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/). READMEs are rendered to HTML on the [package landing page](https://quiltdata.com/package/danWebster/sgRNAs).
+
+## Short hashes
+Commands that take hashes support "short hashes".  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e` can be shortened to `quilt install akarve/examples -x 4594b5`. In practice, 6-8 characters is usually sufficient to achieve uniqueness.
+
+## Requirements file (quilt.yml)
+
+```sh
+$ quilt install [@filename]
+# quilt.yml is the default if @filename is absent
+```
+
+Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages of the form  `USER/PACKAGE[/SUBPACKAGE][:hash|:tag|:version][:HASH|TAG|VERSION]`.
+
+### Example
+
+```
+packages:
+  - vgauthier/DynamicPopEstimate   # get the latest version
+  - danWebster/sgRNAs:a972d92      # get a specific version via hash (short hash)
+  - akarve/sales:tag:latest        # get a specific version via tag
+  - asah/snli:v:1.0                # get a specific version via version
+
+```
+
+# API
+## Build, push, and installing
 | Command line | Python | Description |
 | --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
 | `quilt push USER/PACKAGE [--public|--team]` | `quilt.push("USER/PACKAGE", public=False, team=False)` | Stores the package in the registry |
 | `quilt install USER/PACKAGE[/SUBPATH/...]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
-| `quilt install @QUILT_YAML` | Not supported | Installs all specified packages |
+| `quilt install @FILE=quilt.yml` | Not supported | Installs all specified packages using the requirements syntax (below) |
 | `quilt delete USER/PACKAGE` | `quilt.delete("USER/PACKAGE")` | Removes the package from the registry. Does not delete local data. |
-
-## Build tips
-* A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/).
-
-## Short hashes
-All commands such as `quilt install` support "short hashes". Any unique prefix of a hash will be matched against the longer hash.  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e` can be shortened to `quilt install akarve/examples -x 4594b5`. In practice, 6-8 characters is usually sufficient to achieve uniqueness.
 
 
 # Navigation and package contents
