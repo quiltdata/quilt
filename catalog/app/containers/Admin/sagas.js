@@ -49,6 +49,9 @@ function* apiRequest(endpoint, opts = {}) {
   return response;
 }
 
+const normalizeMember = ([name, { last_seen, ...member }]) =>
+  ({ name, lastSeen: last_seen, ...member });
+
 
 // add member
 export function* doAddMember({ username, email, resolve, reject }) {
@@ -59,14 +62,10 @@ export function* doAddMember({ username, email, resolve, reject }) {
       body: JSON.stringify({ username, email }),
     });
     console.log('doAddMember resp', response);
-    //TODO: normalize user object, maybe fetch activity
-    const addedMember = {
-      email: response.email,
-      name: response.username,
-      status: response.is_active ? 'active' : 'disabled',
-    }
+    const { users } = yield call(apiRequest, '/users/list_detailed');
+    const addedMember = { email, ...normalizeMember([username, users[username]]) };
     yield put(memberAdded(addedMember));
-    resolve();
+    resolve(addedMember);
   } catch (err) {
     reject(err);
   }
@@ -81,8 +80,7 @@ export function* watchAddMember() {
 export function* doGetMembers() {
   try {
     const response = yield call(apiRequest, '/users/list_detailed');
-    const entries = Object.entries(response.users)
-      .map(([name, { last_seen, ...member }]) => ({ name, lastSeen: last_seen, ...member }));
+    const entries = Object.entries(response.users).map(normalizeMember);
     yield put(getMembersSuccess(entries));
   } catch (err) {
     yield put(getMembersError(err));

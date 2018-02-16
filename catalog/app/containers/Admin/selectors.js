@@ -20,7 +20,9 @@ export default createSelector(
     substate
       .updateIn(['members', 'response'], (members) =>
         members && members.filter
-          ? members.filter((m) => m.get('status') !== 'disabled')
+          ? members
+            .filter((m) => m.get('status') !== 'disabled')
+            .sortBy((m) => m.get('name'))
           : members
       ) // eslint-disable-line function-paren-newline
       .toJS()
