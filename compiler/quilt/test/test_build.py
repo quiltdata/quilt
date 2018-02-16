@@ -333,7 +333,6 @@ class BuildTest(QuiltTestCase):
         with pytest.raises(TypeError, match="Not a GroupNode"):
             package['foo/blah']
 
-
     def test_package_contains(self):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
@@ -357,3 +356,50 @@ class BuildTest(QuiltTestCase):
         assert not '/foo' in package
         assert not 'subnode/9blah' in package
         assert not 'foo/blah' in package
+
+    def test_package_compose(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        buildfile = mydir / 'build_compose.yml'
+        command.build('test/compose', str(buildfile))
+
+        from quilt.data.test import simple
+        from quilt.data.test import compose
+
+        assert simple.foo().equals(compose.from_simple_foo())
+
+    def test_compose_package_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+            'foo': {
+            'package':
+            'test/notapackage'
+            }
+            }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
+            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+
+    def test_compose_subpackage_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+            'foo': {
+            'package':
+            'test/simple/notasubpackage'
+            }
+            }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
+            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)

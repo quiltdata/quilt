@@ -169,9 +169,18 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         if include_package:
             team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
             existing_pkg = PackageStore.find_package(team, user, pkgname)
+            if existing_pkg is None:
+                raise BuildException("Package not found: %s" % include_package)
 
             if subpath:
-                node = existing_pkg["/".join(subpath)]
+                try:
+                    node = existing_pkg["/".join(subpath)]
+                except KeyError:                    
+                    msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
+                    raise BuildException(msg.format(team=team,
+                                                    owner=user,
+                                                    pkg=pkgname,
+                                                    subpath=subpath))
             else:
                 node = existing_pkg.get_contents()
             package.save_package_tree(name, node)
