@@ -1829,6 +1829,42 @@ def disable_user():
 
     return resp.json()
 
+@app.route('/api/users/enable', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def enable_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+        data=json.dumps({
+            'username' : username,
+            'is_active' : True
+        }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to enable not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
 @api(enabled=False, require_admin=True)
