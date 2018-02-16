@@ -1366,6 +1366,7 @@ def list_users(team=None):
     return resp.json()
 
 def list_users_detailed(team=None):
+    # get team from disk if not specified
     if team is None:
         team = _find_logged_in_team()
     session = _get_session(team)
@@ -1374,13 +1375,13 @@ def list_users_detailed(team=None):
     return resp.json()
 
 def create_user(username, email, team):
-    # get team from disk if not specified
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/create' % url,
             data=json.dumps({'username':username, 'email':email}))
 
 def list_packages(username, team=None):
+    # get team from disk if not specified
     if team is None:
         team = _find_logged_in_team()
     session = _get_session(team)
@@ -1389,14 +1390,18 @@ def list_packages(username, team=None):
     return resp.json()
 
 def disable_user(username, team):
-    # get team from disk if not specified
     session = _get_session(team)
     url = get_registry_url(team)
     resp = session.post('%s/api/users/disable' % url,
             data=json.dumps({'username':username}))
 
+def enable_user(username, team):
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.post('%s/api/users/enable' % url,
+            data=json.dumps({'username':username}))
+
 def delete_user(username, team, force=False):
-    # get team from disk if not specified
     if not force:
         confirmed = input("Really delete user '{0}'? (y/n)".format(username))
         if confirmed.lower() != 'y':
