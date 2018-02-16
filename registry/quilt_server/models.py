@@ -57,9 +57,9 @@ class Instance(db.Model):
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), nullable=False)
     hash = db.Column(db.String(64), nullable=False)
 
-    created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+    created_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     created_by = db.Column(USERNAME_TYPE, nullable=False)
-    updated_at = db.Column(db.DateTime, server_default=db.func.now(),
+    updated_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(),
                            onupdate=db.func.now(), nullable=False)
     updated_by = db.Column(USERNAME_TYPE, nullable=False)
 
@@ -87,7 +87,7 @@ class Log(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), nullable=False, index=True)
     instance_id = db.Column(db.BigInteger, db.ForeignKey('instance.id'))
-    created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+    created = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     author = db.Column(USERNAME_TYPE, nullable=False)
 
     package = db.relationship('Package', back_populates='logs')
@@ -135,7 +135,7 @@ class Invitation(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'))
     email = db.Column(db.String(254), nullable=False)
-    invited_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+    invited_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
 
     package = db.relationship('Package', back_populates='invitation')
 
@@ -155,7 +155,7 @@ class Event(db.Model):
         def __str__(self): return '%d' % self
 
     id = db.Column(db.BigInteger, primary_key=True)
-    created = db.Column(db.DateTime, server_default=db.func.now(), nullable=False, index=True)
+    created = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False, index=True)
     user = db.Column(USERNAME_TYPE, index=True)
     type = db.Column(db.SmallInteger, nullable=False)
     package_owner = db.Column(USERNAME_TYPE)
