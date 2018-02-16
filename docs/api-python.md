@@ -7,26 +7,32 @@
 A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/). READMEs are rendered to HTML on the [package landing page](https://quiltdata.com/package/danWebster/sgRNAs).
 
 ## Short hashes
-Commands that take hashes support "short hashes".  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e` can be shortened to `quilt install akarve/examples -x 4594b5`. In practice, 6-8 characters is usually sufficient to achieve uniqueness.
+Commands that take hashes support "short hashes", up to uniqueness.
+```sh
+quilt install akarve/examples -x 4594b5
+# matches hash 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e
+```
+ In practice, 6-8 characters is sufficient to achieve uniqueness.
 
 ## Requirements file (quilt.yml)
-
 ```sh
 $ quilt install [@filename]
 # quilt.yml is the default if @filename is absent
 ```
 
-Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages of the form  `USER/PACKAGE[/SUBPACKAGE][:hash|:tag|:version][:HASH|TAG|VERSION]`.
+Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages: 
+```yaml
+packages:
+  - USER/PACKAGE[/SUBPACKAGE][:hash|:tag|:version][:HASH|TAG|VERSION]
+```
 
 ### Example
-
 ```
 packages:
-  - vgauthier/DynamicPopEstimate   # get the latest version
-  - danWebster/sgRNAs:a972d92      # get a specific version via hash (short hash)
+  - vgauthier/DynamicPopEstimate   # get latest
+  - danWebster/sgRNAs:a972d92      # get a specific version via hash
   - akarve/sales:tag:latest        # get a specific version via tag
   - asah/snli:v:1.0                # get a specific version via version
-
 ```
 
 # API
@@ -34,56 +40,56 @@ packages:
 | Command line | Python | Description |
 | --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
-| `quilt push USER/PACKAGE [--public|--team]` | `quilt.push("USER/PACKAGE", public=False, team=False)` | Stores the package in the registry |
+| `quilt push USER/PACKAGE [--public` &#124; `--team]` | `quilt.push("USER/PACKAGE", public=False, team=False)` | Stores the package in the registry |
 | `quilt install USER/PACKAGE[/SUBPATH/...]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
-| `quilt install @FILE=quilt.yml` | Not supported | Installs all specified packages using the requirements syntax (below) |
+| `quilt install @FILE=quilt.yml` | Not supported | Installs all specified packages using the requirements syntax (above) |
 | `quilt delete USER/PACKAGE` | `quilt.delete("USER/PACKAGE")` | Removes the package from the registry. Does not delete local data. |
 
-
-# Navigation and package contents
-* `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
-* `NODE._keys()` returns a list of all children
-* `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
-* `NODE._group_keys()` returns a list of all group children (groups are like folders)
-
-## Example
-```
-from quilt.data.uciml import wine
-In [7]: wine._keys()
-Out[7]: ['README', 'raw', 'tables']
-In [8]: wine._data_keys()
-Out[8]: ['README']
-In [9]: wine._group_keys()
-Out[9]: ['raw', 'tables']
-```
-
 # Versioning
-* `quilt.log(USER/PACKAGE)` to see the push history
-* `quilt.version_list(USER/PACKAGE)` to see versions of a package
-* `quilt.version_add(USER/PACKAGE, VERSION, HASH)` to associate a version with a hash
-* `quilt.tag_list(USER/PACKAGE)` to list tags
-* `quilt.tag_add(USER/PACKAGE, TAG, HASH)` to associate a tag with a a hash
-* The most recent push is automatically tagged `"latest"`
-* `quilt.tag_remove(USER/PACKAGE, TAG)` to remove a tag
+| Command line | Python | Description |
+| --- | --- | --- |
+`quilt log USER/PACKAGE` | `quilt.log(USER/PACKAGE)` | Displays push history |
+| `quilt version list USER/PACKAGE` | `quilt.version_list(USER/PACKAGE)` | Display versions of a package |
+| `quilt version add USER/PACKAGE VERSION HASH` | `quilt.version_add(USER/PACKAGE, VERSION, HASH)` |  Associate a version with a hash |
+| `quilt tag list USER/PACKAGE` | `quilt.tag_list(USER/PACKAGE)` | List available tags |
+| `quilt tag add USER/PACKAGE TAG HASH` |`quilt.tag_add(USER/PACKAGE, TAG, HASH)` | Associate a tag with a a hash |
+| `quilt tag remove USER/PACKAGE TAG` | `quilt.tag_remove(USER/PACKAGE, TAG)` | remove a tag |
+
+## Instances, hashes, tags, and versions
+* A package _instance_ is a package handle plus a hash. `akarve/sales:fc7f0b` is an instance. Instances are immutable.
+* _Hashes_ are automatically generated by Quilt for each package build.
+* _Tags_ are human-readable strings associated with a package instance. Tags can be altered to point to different instances of the same package. The most recent build is automatically tagged `"latest"`.
+* _Versions_ are human-readable strings associated with a package instance. Unlike tags, versions can only ever point to a single package instance.
 
 # Access
-* `quilt.login(["TEAM_NAME"])` to authenticate (required to push packages)
-* `quilt.access_list(USER/PACKAGE)` to see who has access to a package
-* `quilt.access_add(USER/PACKAGE, ANOTHER_USER)` to add read access
-* `quilt.access_add(USER/PACKAGE, "public")` makes a package world readable
-* `quilt.access_remove(USER/PACKAGE, EXISTING_USER)` to remove read access
+| Command line | Python | Description |
+| --- | --- | --- |
+| `quilt login [TEAM]` | `quilt.login(["TEAM"])` | Authenticate to a registry |
+| `quilt access list USER/PACKAGE` | `quilt.access_list("USER/PACKAGE")` | List user who have access to a package |
+| `quilt access add USER/PACKAGE USER_OR_GROUP` |  `quilt.access_add("USER/PACKAGE", "USER_OR_GROUP")` | Grant read access to a user or group (one of `public` or `team`) |
+| `quilt access remove USER_OR_GROUP` | `quilt.access_remove("USER/PACKAGE", "USER_OR_GROUP")` | Remove read access |
 
-# Manage local storage
-* `quilt.ls()` to show installed packages
-* `quilt.rm("USER/PACKAGE")` to remove a package from the local store
+# Local storage
+| Command line | Python | Description |
+| --- | --- | --- |
+| `quilt ls` | `quilt.ls()` | List installed packages |
+| `quilt rm USER/PACKAGE` | `quilt.rm("USER/PACKAGE")` | Remove a package from local storage (but not from the registry) |
 
-# Search
-* `quilt.search("SEARCH STRING")` to search for packages by user or package name
+# Registry search
+| Command line | Python | Description |
+| --- | --- | --- |
+| `quilt search "SEARCH STRING"` |  `quilt.search("SEARCH STRING")` | Search registry for packages by user or package name |
 
 # Import and use data
-`from quilt.data.USER import PACKAGE`
-
-## Package contents
+## Public users
+```python
+from quilt.data.USER import PACKAGE
+```
+## Team users
+```python
+from quilt.TEAM.USER import PKG
+```
+# Using packages
 Packages contain three types of nodes:
 * `PackageNode` - the root of the package tree
 * `GroupNode` - like a folder; may contain one or more `GroupNode` or `DataNode` objects
@@ -94,3 +100,25 @@ Packages contain three types of nodes:
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
   * All other data types return a string to the path of the object in the package store
+
+
+## Enumerating package contents
+* `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
+* `NODE._keys()` returns a list of all children
+* `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
+* `NODE._group_keys()` returns a list of all group children (groups are like folders)
+
+### Example
+```
+from quilt.data.uciml import wine
+In [7]: wine._keys()
+Out[7]: ['README', 'raw', 'tables']
+In [8]: wine._data_keys()
+Out[8]: ['README']
+In [9]: wine._group_keys()
+Out[9]: ['raw', 'tables']
+```
+
+# Teams
+Quilt [teams](./teams.md) support all of the above Quilt commands
+
