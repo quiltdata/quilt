@@ -1809,9 +1809,8 @@ def disable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
-            'username' : username,
             'is_active' : False
         }))
 
@@ -1845,9 +1844,8 @@ def enable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
-            'username' : username,
             'is_active' : True
         }))
 
