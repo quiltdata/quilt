@@ -171,7 +171,8 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             existing_pkg = PackageStore.find_package(team, user, pkgname)
 
             if subpath:
-                node = existing_pkg[subpath]
+                print("SUBPATH: %s" % subpath)
+                node = existing_pkg["/".join(subpath)]
             else:
                 node = existing_pkg.get_contents()
             package.save_package_tree(name, node)
