@@ -19,13 +19,13 @@ import { branch, formatDate } from './util';
 
 const AuditTable = compose(
   setPropTypes({
-    entries: PT.arrayOf(
+    entries: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         time: PT.number.isRequired,
         user: PT.string.isRequired,
         event: PT.string.isRequired,
       }).isRequired
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
   }),
   setDisplayName('Admin.PackageAudit.Table'),
 )(({ entries }) => (
@@ -70,6 +70,7 @@ export default compose(
     response: PT.any,
   }),
   setDisplayName('Admin.PackageAudit'),
+// eslint-disable-next-line object-curly-newline
 )(({ onClose, handle, status, response }) => (
   <Dialog
     title="Package Audit"

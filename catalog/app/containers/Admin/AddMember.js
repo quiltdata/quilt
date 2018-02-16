@@ -1,5 +1,4 @@
 import FlatButton from 'material-ui/FlatButton';
-import Snackbar from 'material-ui/Snackbar';
 import TextField from 'material-ui/TextField';
 import { red500 } from 'material-ui/styles/colors';
 import PT from 'prop-types';
@@ -19,8 +18,6 @@ import * as validators from 'utils/validators';
 
 import messages from './messages';
 
-const NOTIFICATION_TTL = 3000;
-
 const FormField = compose(
   setPropTypes({
     input: PT.object.isRequired,
@@ -32,7 +29,7 @@ const FormField = compose(
     errors: PT.objectOf(PT.string),
   }),
   setDisplayName('Admin.AddMember.FormField'),
-// eslint-disable-next object-curly-newline
+// eslint-disable-next-line object-curly-newline
 )(({ input, meta, errors = {}, ...props }) => (
   <TextField
     {...input}
@@ -80,8 +77,7 @@ export default compose(
           }
 
           throw err;
-        })
-    ,
+        }),
     onSubmitSuccess: ({ name, email }, dispatch, { reset }) => {
       reset();
       dispatch(push(`User ${name} <${email}> added successfully`));
@@ -129,7 +125,7 @@ export default compose(
         label="Add"
         labelPosition="before"
         icon={submitting ? <Spinner /> : null}
-        disabled={submitting || pristine || submitFailed && invalid}
+        disabled={submitting || pristine || (submitFailed && invalid)}
       />
     </Form>
   </Fragment>

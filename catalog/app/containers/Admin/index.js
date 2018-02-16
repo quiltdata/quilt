@@ -13,7 +13,7 @@ import {
   withProps,
 } from 'recompose';
 
-import { push as pushNotification } from 'containers/Notifications/actions';
+import { push } from 'containers/Notifications/actions';
 import config from 'constants/config';
 
 import * as actions from './actions';
@@ -32,7 +32,7 @@ const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
 
 export default compose(
-  connect(selector, { pushNotification, ...actions }),
+  connect(selector, { pushNotification: push, ...actions }),
   setPropTypes({
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
@@ -60,7 +60,7 @@ export default compose(
         .then(() => {
           pushNotification(`User ${name} has been removed`);
         })
-        .catch((err) => {
+        .catch(() => {
           pushNotification(`There was an error while removing ${name}`);
         }),
     resetMemberPassword: ({ resetMemberPassword, pushNotification }) => (name) =>
@@ -68,7 +68,7 @@ export default compose(
         .then(() => {
           pushNotification(`Password for user ${name} has been reset`);
         })
-        .catch((err) => {
+        .catch(() => {
           pushNotification(`There was an error while resetting password for ${name}`);
         }),
     removePackage: ({ removePackage, pushNotification }) => (handle) =>
@@ -76,7 +76,7 @@ export default compose(
         .then(() => {
           pushNotification(`Package ${handle} has been deleted`);
         })
-        .catch((err) => {
+        .catch(() => {
           pushNotification(`There was an error while deleting package ${handle}`);
         }),
   }),

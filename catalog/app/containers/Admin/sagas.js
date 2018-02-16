@@ -49,19 +49,19 @@ function* apiRequest(endpoint, opts = {}) {
   return response;
 }
 
+// eslint-disable-next-line camelcase
 const normalizeMember = ([name, { last_seen, ...member }]) =>
   ({ name, lastSeen: last_seen, ...member });
 
 
 // add member
+// eslint-disable-next-line object-curly-newline
 export function* doAddMember({ username, email, resolve, reject }) {
-  console.log('doAddMember', { username, email });
   try {
-    const response = yield call(apiRequest, '/users/create', {
+    yield call(apiRequest, '/users/create', {
       method: 'POST',
       body: JSON.stringify({ username, email }),
     });
-    console.log('doAddMember resp', response);
     const { users } = yield call(apiRequest, '/users/list_detailed');
     const addedMember = { email, ...normalizeMember([username, users[username]]) };
     yield put(memberAdded(addedMember));
@@ -97,8 +97,10 @@ export function* doGetMemberAudit({ name }) {
   if (!name) return;
   try {
     const response = yield call(apiRequest, `/audit/${name}/`);
+    // eslint-disable-next-line object-curly-newline, camelcase
     const events = response.events.map(({ created, package_owner, package_name, type }) => ({
       time: created * 1000,
+      // eslint-disable-next-line camelcase
       handle: `${package_owner}/${package_name}`,
       event: type.toLowerCase(),
     }));
@@ -115,7 +117,6 @@ export function* watchGetMemberAudit() {
 
 // remove member
 export function* doRemoveMember({ name, resolve, reject }) {
-  console.log('doRemoveMember', name);
   try {
     const response = yield call(apiRequest, '/users/disable', {
       method: 'POST',
@@ -136,7 +137,6 @@ export function* watchRemoveMember() {
 
 // reset member password
 export function* doResetMemberPassword({ name, resolve, reject }) {
-  console.log('doResetMemberPassword', name);
   try {
     const response = yield call(apiRequest, '/users/reset_password', {
       method: 'POST',
@@ -202,7 +202,6 @@ export function* watchGetPackageAudit() {
 
 // remove package
 export function* doRemovePackage({ handle, resolve, reject }) {
-  console.log('doRemovePackage', handle);
   try {
     const response = yield call(apiRequest, `/package/${handle}/`, { method: 'DELETE' });
     yield put(removePackageSuccess(handle, response));

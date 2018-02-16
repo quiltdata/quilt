@@ -50,8 +50,7 @@ export default function adminReducer(state = initialState, action) {
     case MEMBER_ADDED:
       return state
         .updateIn(['members', 'response'], (members) =>
-          members && members.push ? members.push(fromJS(action.member)) : members
-        );
+          members && members.push ? members.push(fromJS(action.member)) : members);
     case GET_MEMBERS:
       return state
         .setIn(['members', 'status'], api.WAITING)
@@ -69,13 +68,22 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['memberAudit', 'status'], action.status)
         .setIn(['memberAudit', 'response'], action.response);
+    case REMOVE_MEMBER:
+      // TODO: lock member
+      return state;
     case REMOVE_MEMBER_RESPONSE:
+      // TODO: unlock member
       if (action.status === api.ERROR) return state;
       return state.updateIn(['members', 'response'], (members) =>
         members && members.filter
           ? members.filter((p) => p.get('name') !== action.name)
-          : members
-      );
+          : members);
+    case RESET_MEMBER_PASSWORD:
+      // TODO: lock member
+      return state;
+    case RESET_MEMBER_PASSWORD_RESPONSE:
+      // TODO: unlock member
+      return state;
     case GET_PACKAGES:
       return state
         .setIn(['packages', 'status'], api.WAITING)
@@ -93,13 +101,16 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['packageAudit', 'status'], action.status)
         .setIn(['packageAudit', 'response'], action.response);
+    case REMOVE_PACKAGE:
+      // TODO: lock package
+      return state;
     case REMOVE_PACKAGE_RESPONSE:
+      // TODO: unlock package
       if (action.status === api.ERROR) return state;
       return state.updateIn(['packages', 'response'], (packages) =>
         packages && packages.filter
           ? packages.filter((p) => p.get('handle') !== action.handle)
-          : packages
-      );
+          : packages);
     default:
       return state;
   }

@@ -17,4 +17,4 @@ export const push = (message, { action, ttl = DEFAULT_TTL } = {}) => ({
 export const dismiss = (id) => ({
   type: DISMISS,
   id,
-})
+});

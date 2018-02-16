@@ -31,12 +31,12 @@ const memberActivities = [
 const MembersTable = compose(
   setPropTypes({
     audit: PT.func.isRequired,
-    members: PT.arrayOf(
+    members: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         name: PT.string.isRequired,
         lastSeen: PT.string,
       }).isRequired,
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
       remove: PT.func.isRequired,
       resetPassword: PT.func.isRequired,
@@ -63,6 +63,7 @@ const MembersTable = compose(
     <TableBody displayRowCheckbox={false}>
       {members.map(({ name, lastSeen, ...activity }) => (
         <TableRow hoverable key={name}>
+          {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
           <TableRowColumn><a onClick={() => audit(name)}>{name}</a></TableRowColumn>
           <TableRowColumn>
             <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
@@ -73,6 +74,7 @@ const MembersTable = compose(
           <TableRowColumn>
             <SettingsMenu actions={actions} arg={name} />
           </TableRowColumn>
+          {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
         </TableRow>
       ))}
     </TableBody>

@@ -28,12 +28,13 @@ export default compose(
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
   >
-    {
-      actions.map((a, i) =>
-        a === 'divider'
-          ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
-          : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={() => a.callback(arg)} />
-      )
-    }
+    {actions.map((a, i) =>
+      a === 'divider'
+        // eslint-disable-next-line react/no-array-index-key
+        ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
+        // eslint-disable-next-line react/no-array-index-key
+        : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={() => a.callback(arg)} />
+      // eslint-disable-next-line function-paren-newline
+    )}
   </IconMenu>
 ));

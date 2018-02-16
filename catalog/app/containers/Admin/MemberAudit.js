@@ -19,13 +19,13 @@ import { branch, formatDate } from './util';
 
 const AuditTable = compose(
   setPropTypes({
-    entries: PT.arrayOf(
+    entries: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         time: PT.number.isRequired,
         handle: PT.string.isRequired,
         event: PT.string.isRequired,
       }).isRequired
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
   }),
   setDisplayName('Admin.MemberAudit.Table'),
 )(({ entries }) => (
@@ -70,6 +70,7 @@ export default compose(
     response: PT.any,
   }),
   setDisplayName('Admin.MemberAudit'),
+// eslint-disable-next-line object-curly-newline
 )(({ onClose, name, status, response }) => (
   <Dialog
     title="User Audit"

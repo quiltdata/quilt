@@ -11,7 +11,7 @@ import selector from './selectors';
 export default compose(
   connect(selector, actions),
   setPropTypes({
-    notifications: PT.arrayOf(
+    notifications: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         id: PT.string.isRequired,
         ttl: PT.number.isRequired,
@@ -21,15 +21,16 @@ export default compose(
           onClick: PT.func.isRequired,
         }),
       }).isRequired,
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
     dismiss: PT.func.isRequired,
   }),
   setDisplayName('Notifications'),
 )(({ notifications, dismiss }) =>
+  // eslint-disable-next-line object-curly-newline
   notifications.map(({ id, ttl, message, action }) => (
     <Snackbar
       key={id}
-      open={true}
+      open
       message={message}
       action={action ? action.label : undefined}
       onActionClick={action ? action.onClick : undefined}

@@ -30,12 +30,12 @@ const packageActivities = [
 const PackagesTable = compose(
   setPropTypes({
     audit: PT.func.isRequired,
-    packages: PT.arrayOf(
+    packages: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         handle: PT.string.isRequired,
         lastModified: PT.number,
       }).isRequired,
-    ).isRequired,
+    ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
       remove: PT.func.isRequired,
     }).isRequired,
@@ -59,9 +59,14 @@ const PackagesTable = compose(
     <TableBody displayRowCheckbox={false}>
       {packages.map(({ handle, lastModified, ...activity }) => (
         <TableRow hoverable key={handle}>
-          <TableRowColumn><a onClick={() => audit(handle)}>{handle}</a></TableRowColumn>
+          {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
           <TableRowColumn>
-            <a onClick={() => audit(handle)}>{formatActivity(packageActivities, activity)}</a>
+            <a onClick={() => audit(handle)}>{handle}</a>
+          </TableRowColumn>
+          <TableRowColumn>
+            <a onClick={() => audit(handle)}>
+              {formatActivity(packageActivities, activity)}
+            </a>
           </TableRowColumn>
           <TableRowColumn>
             <FlatButton onClick={() => audit(handle)}>{formatDate(lastModified)}</FlatButton>
@@ -69,6 +74,7 @@ const PackagesTable = compose(
           <TableRowColumn>
             <SettingsMenu actions={actions} arg={handle} />
           </TableRowColumn>
+          {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
         </TableRow>
       ))}
     </TableBody>
