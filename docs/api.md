@@ -16,14 +16,14 @@ quilt install akarve/examples -x 4594b5
 
 ## Requirements file (quilt.yml)
 ```sh
-$ quilt install [@filename]
+$ quilt install [@FILENAME]
 # quilt.yml is the default if @filename is absent
 ```
 
 Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages: 
 ```yaml
 packages:
-  - USER/PACKAGE[/SUBPACKAGE][:hash|:tag|:version][:HASH|TAG|VERSION]
+  - USER/PACKAGE[/SUBPACKAGE][:h[ash]|:t[ag]|:v[ersion]][:HASH|TAG|VERSION]
 ```
 
 ### Example
@@ -85,8 +85,13 @@ See [teams docs](./teams.md) for additional commands and syntax.
 | `quilt search "SEARCH STRING"` |  `quilt.search("SEARCH STRING")` | Search registry for packages by user or package name |
 
 ## Import and use data
+For a package in the public cloud:
 ```python
 from quilt.data.USER import PACKAGE
+```
+For a package in a team registry:
+```python
+from quilt.TEAM.USER import PACKAGE
 ```
 
 
