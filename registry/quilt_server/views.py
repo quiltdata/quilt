@@ -1238,10 +1238,6 @@ def tag_list(owner, package_name):
 @api()
 @as_json
 def access_put(owner, package_name, user):
-    # TODO: use re to check for valid username (e.g., not ../, etc.)
-    if not user:
-        raise ApiException(requests.codes.bad_request, "A valid user is required")
-
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1287,6 +1283,7 @@ def access_put(owner, package_name, user):
         return dict()
 
     else:
+        _validate_username(user)
         if user == PUBLIC:
             if not ALLOW_ANONYMOUS_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Public access not allowed")
@@ -1320,6 +1317,7 @@ def access_put(owner, package_name, user):
 @api()
 @as_json
 def access_get(owner, package_name, user):
+    _validate_username(user)
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1342,6 +1340,7 @@ def access_get(owner, package_name, user):
 @api()
 @as_json
 def access_delete(owner, package_name, user):
+    _validate_username(user)
     if g.auth.user != owner:
         raise ApiException(
             requests.codes.forbidden,
@@ -1709,7 +1708,7 @@ def list_users_detailed():
         db.session.query(Package.owner, sa.func.count(Package.owner))
         .group_by(Package.owner)
         )
-    package_counts = dict(package_counts_query) 
+    package_counts = dict(package_counts_query)
 
     events = (
         db.session.query(Event.user, Event.type, sa.func.count(Event.type))

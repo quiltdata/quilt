@@ -40,6 +40,8 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
 from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from ..imports import _from_core_node
+
 from . import check_functions as qc
 from .. import nodes
 
@@ -81,6 +83,11 @@ class CommandException(Exception):
     Exception class for all command-related failures.
     """
     pass
+
+class HTTPResponseException(CommandException):
+    def __init__(self, message, response):
+        super(HTTPResponseException, self).__init__(message)
+        self.response = response
 
 
 #return type for parse_package_extended
@@ -232,9 +239,9 @@ def _handle_response(resp, **kwargs):
     elif not resp.ok:
         try:
             data = resp.json()
-            raise CommandException(data['message'])
+            raise HTTPResponseException(data['message'], resp)
         except ValueError:
-            raise CommandException("Unexpected failure: error %s" % resp.status_code)
+            raise HTTPResponseException("Unexpected failure: error %s" % resp.status_code, resp)
 
 def _create_auth(team):
     """
@@ -469,10 +476,7 @@ def _log(team, **kwargs):
     session = _get_session(team)
 
     # Disable error handling.
-    orig_response_hooks = session.hooks.get('response')
-    session.hooks.update(dict(
-        response=None
-    ))
+    orig_response_hooks = session.hooks.pop('response')
 
     try:
         session.post(
@@ -485,10 +489,11 @@ def _log(team, **kwargs):
     except requests.exceptions.RequestException:
         # Ignore logging errors.
         pass
-    # restore disabled error-handling
-    session.hooks['response'] = orig_response_hooks
+    finally:
+        # restore disabled error-handling
+        session.hooks['response'] = orig_response_hooks
 
-def build(package, path=None, dry_run=False, env='default'):
+def build(package, path=None, dry_run=False, env='default', force=False):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
 
@@ -497,6 +502,15 @@ def build(package, path=None, dry_run=False, env='default'):
     """
     # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
+    logged_in_team = _find_logged_in_team()
+    if logged_in_team is not None and team is None and force is False:
+        answer = input("You're logged in as a team member, but you aren't specifying " +
+                       "a team for the package you're currently building. Maybe you meant:\n" +
+                       "quilt build {team}:{package}\n" +
+                       "Are you sure you want to continue? (y/N) ".format(
+                                team=logged_in_team, package=package))
+        if answer.lower() != 'y':
+            return
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
         _build_internal(package, path, dry_run, env)
@@ -934,28 +948,39 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     print("Downloading package metadata...")
 
-    if version is not None:
-        response = session.get(
-            "{url}/api/version/{owner}/{pkg}/{version}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                version=version
+    try:
+        if version is not None:
+            response = session.get(
+                "{url}/api/version/{owner}/{pkg}/{version}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    version=version
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    elif tag is not None:
-        response = session.get(
-            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                tag=tag
+            pkghash = response.json()['hash']
+        elif tag is not None:
+            response = session.get(
+                "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    tag=tag
+                )
             )
-        )
-        pkghash = response.json()['hash']
-    else:
-        pkghash = _match_hash(session, team, owner, pkg, hash)
+            pkghash = response.json()['hash']
+        else:
+            pkghash = _match_hash(session, team, owner, pkg, hash)
+    except HTTPResponseException as e:
+        logged_in_team = _find_logged_in_team()
+        if (team is None and logged_in_team is not None
+                and e.response.status_code == requests.codes.not_found):
+            raise CommandException(("Package {owner}/{pkg} does not exist. " +
+                                    "Maybe you meant {team}:{owner}/{pkg}?").format(
+                                            owner=owner, pkg=pkg, team=logged_in_team))
+        else:
+            raise
+
     assert pkghash is not None
 
     response = session.get(
@@ -1202,6 +1227,7 @@ def access_add(package, user):
     session = _get_session(team)
 
     session.put("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print(u'Access added for %s' % user)
 
 def access_remove(package, user):
     """
@@ -1211,6 +1237,7 @@ def access_remove(package, user):
     session = _get_session(team)
 
     session.delete("%s/api/access/%s/%s/%s" % (get_registry_url(team), owner, pkg, user))
+    print(u'Access removed for %s' % user)
 
 def delete(package):
     """
@@ -1338,6 +1365,14 @@ def list_users(team=None):
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
+def list_users_detailed(team=None):
+    if team is None:
+        team = _find_logged_in_team()
+    session = _get_session(team)
+    url = get_registry_url(team)
+    resp = session.get('%s/api/users/list_detailed' % url)
+    return resp.json()
+
 def create_user(username, email, team):
     # get team from disk if not specified
     session = _get_session(team)
@@ -1397,3 +1432,21 @@ def reset_password(team, username):
             url=get_registry_url(team),
             ), data=json.dumps({'username':username})
     )
+
+def _load(package):
+    info = parse_package_extended(package)
+    team, user, name = info.team, info.user, info.name
+
+    pkgobj = PackageStore.find_package(team, user, name)
+    if pkgobj is None:
+        teamstr = team + ':' if team else ''
+        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    return node, pkgobj, info
+
+def load(pkginfo):
+    """functional interface to "from quilt.data.USER import PKG"""
+    # TODO: support hashes/versions/etc.
+    return _load(pkginfo)[0]
+
+

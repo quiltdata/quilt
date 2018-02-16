@@ -20,6 +20,7 @@
 ## Advanced Usage
 * [Shared drives](shared-store.md)
 * [Teams](teams.md)
+* [Checks](checks.md)
 
 ## Support
 * [Troubleshooting](troubleshooting.md)
