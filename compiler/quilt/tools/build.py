@@ -167,10 +167,14 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
        
         include_package = node.get(RESERVED['package'])
         if include_package:
-            team, user, pkgname = parse_package(include_package)
-            node = PackageStore.find_package(team, user, pkgname)
+            team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
+            existing_pkg = PackageStore.find_package(team, user, pkgname)
 
-            package.save_package_tree(name, node.get_contents())
+            if subpath:
+                node = existing_pkg[subpath]
+            else:
+                node = existing_pkg.get_contents()
+            package.save_package_tree(name, node)
         else:
             # handle remaining leaf nodes types
             rel_path = node.get(RESERVED['file'])
