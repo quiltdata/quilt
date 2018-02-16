@@ -546,6 +546,14 @@ class CommandTest(QuiltTestCase):
             )
         command.disable_user('bob', None)
 
+    def test_user_enable(self):
+        self.requests_mock.add(
+            responses.POST,
+            '%s/api/users/enable' % command.get_registry_url(None),
+            status=201
+            )
+        command.enable_user('bob', None)
+
     def test_create_not_found(self):
         self._mock_error('users/create', team='qux', status=404)
         with self.assertRaises(command.CommandException):
