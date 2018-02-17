@@ -104,7 +104,7 @@ function Pricing({ signUp, takeAction }) {
       <p>
         <a href="mailto:sales@quiltdata.io?Subject=Quilt%20Teams%20Tier" target="_top">
           Contact us
-        </a> to start Business service.
+        </a> to start Teams service.
       </p>
       { takeAction ? <TakeAction signUp={signUp} /> : null }
     </Styler>
