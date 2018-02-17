@@ -67,13 +67,10 @@ def _is_internal_node(node):
     return not is_leaf
 
 def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
-
-    if safename and safename[0].isdigit():
-        safename = "n%s" % safename
-
-    if not is_nodename(safename):
-        raise BuildException("Unable to determine a Python-legal name for %r" % name)
+    try:
+        safename = to_nodename(name)
+    except ValueError as error:
+        raise BuildException("Invalid name {!r}: ".format(name) + str(error))
     return safename
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
@@ -106,7 +103,10 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table = {} if child_table is None else child_table.copy()
         filepath = filepath.relative_to(dir)
         node_table[RESERVED['file']] = str(filepath)
-        node_name = to_nodename(filepath.stem, invalid=used_names)
+        try:
+            node_name = to_nodename(filepath.stem, invalid=used_names)
+        except ValueError as error:
+            raise BuildException("Invalid name: " + str(error))
         used_names.add(node_name)
         print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
 

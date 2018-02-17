@@ -16,7 +16,6 @@ APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
-PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 
 
 class FileWithReadProgress(Iterator):
@@ -120,10 +119,11 @@ def is_identifier(string, permit_keyword=False):
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
-    matched = PYTHON_IDENTIFIER_RE.match(string)
+    # Compiled and cached by re lib
+    matched = re.match(r'^[a-zA-Z_]\w*$', string)
     if permit_keyword:
         return bool(matched)
-    return bool(matched and not is_keyword(string))
+    return bool(matched and not keyword.iskeyword(string))
 
 
 def is_nodename(string):
@@ -135,16 +135,17 @@ def is_nodename(string):
     :returns: True if string could be used as a node name, False otherwise
     :rtype: bool
     """
+    # TODO: Permit keywords once node['item'] notation is implemented
     ## Currently a node name has the following characteristics:
     # * Must be a python identifier
-    # * May be a python keyword
+    # * Must not be a python keyword  (technical limitation)
     # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return bool(PYTHON_IDENTIFIER_RE.match(string))
+    return is_identifier(string, permit_keyword=False)
 
 
-def to_identifier(string):
+def to_identifier(string, permit_keyword=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original filename can't be recovered
@@ -156,18 +157,23 @@ def to_identifier(string):
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
+    :param permit_keyword: Permit python keywords like "import" and "for"
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """
-    # Not really useful to expose as a CONSTANT, and python will compile and cache
-    string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
+    # Not really useful to expose as a constant, and python will compile and cache
+    result = re.sub(r'[^0-9a-zA-Z]+', '_', string).strip('_')
 
-    if string[0].isdigit():
-        string = "n" + string
-    if keyword.iskeyword(string):
-        string = string + '_'
+    if result and result[0].isdigit():
+        result = "n" + result
+    if not permit_keyword:
+        if keyword.iskeyword(result):
+            result += '_'   # there are no keywords ending in "_"
 
-    return string
+    if not is_identifier(result, permit_keyword=permit_keyword):
+        raise ValueError("Unable to generate Python identifier from name: {!r}".format(string))
+
+    return result
 
 
 def to_nodename(string, invalid=None, raise_exc=False):
@@ -193,21 +199,24 @@ def to_nodename(string, invalid=None, raise_exc=False):
     >>> to_nodename('9:blah', ['n9_blah', 'n9_blah_2']) -> 'n9_blah_3'
 
     :param string: string to convert to a nodename
-    :param invalid: iterable of names to avoid
+    :param invalid: iterable of names to avoid.  Efficiency: Use a `set()`
     :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
     :type raise_exc: bool
     :returns: valid node name
     :rtype: string
     """
-    string = to_identifier(to_identifier(string).lstrip('_'))
+    # TODO: change to permit_keyword=True by default once switched to node['item'] notation
+    string = to_identifier(string, permit_keyword=False)
 
-    if string[0].isdigit():  # for valid cases like '_903'.lstrip('_') == invalid '903'
+    if string and string[0].isdigit():  # for valid cases like '_903' == invalid '903'
         string = 'n' + string
 
+    # Done if no deduplication
     if invalid is None:
         return string
 
+    # Deduplicate
     if not isinstance(invalid, set):
         invalid = set(invalid)
 
@@ -225,7 +234,7 @@ def to_nodename(string, invalid=None, raise_exc=False):
     return result
 
 
-def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
+def filepath_to_nodepath(filepath, nodepath_separator='/', invalid=None):
     """Converts a single relative file path into a nodepath
 
     For example, 'foo/bar' -> 'foo.bar' -- see `to_nodename` for renaming rules.
@@ -234,26 +243,34 @@ def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
 
     :param filepath: filepath to convert to nodepath
     :param nodepath_separator: separator between node pathnames, typically '.' or '/'
-    :param invalid: List of invalid or already-used results.
+    :param invalid: iterable of conflicting result paths. Efficiency: Use `set()`
     """
-    if not isinstance(invalid, set):
-        invalid = set() if invalid is None else set(invalid)
-
     # PureWindowsPath recognizes c:\\, \\, or / anchors, and / or \ separators.
+    orig = filepath
     filepath = pathlib.PureWindowsPath(filepath)
     if filepath.anchor:
-        raise ValueError("Invalid filepath (relative file path required): " + str(PurePosixPath(filepath)))
+        raise ValueError("Invalid filepath (relative file path required): {!r}".format(orig))
 
+    if invalid is None:
+        invalid = set()
+    elif not isinstance(invalid, set):
+        invalid = set(invalid)
+
+    # convert parts to nodenames
     nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
+
+    # generate result and check against invalid path names (if any)
     name = nodepath.name
     counter = 1
-    while str(nodepath) in invalid:
+    result = nodepath_separator.join(nodepath.parts)
+    while result in invalid:
         # first conflicted name will be "somenode_2"
         # The result is "somenode", "somenode_2", "somenode_3"..
         counter += 1
         nodepath = nodepath.with_name("{}_{}".format(name, counter))
+        result = nodepath_separator.join(nodepath.parts)
 
-    return nodepath_separator.join(nodepath.parts)
+    return result
 
 
 def filepaths_to_nodepaths(filepaths, nodepath_separator='.', iterator=True):
