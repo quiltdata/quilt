@@ -36,7 +36,7 @@ const Styler = styled.div`
 `;
 
 const Terminal = styled.div`
-  backgroundColor: rgb(32, 32, 32);
+  background-color: rgb(32, 32, 32);
   color: #ddd;
   font-size: 1.2em;
   margin: 1em 1em 1em 0;

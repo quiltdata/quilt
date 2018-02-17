@@ -7,6 +7,7 @@ import Demo, { id } from 'components/Demo';
 import Feature from 'components/Feature';
 import Intro from 'components/Intro';
 import { BigSkip, HCenter, Pad, UnPad } from 'components/LayoutHelpers';
+import Lead from 'components/Lead';
 import Pricing from 'components/Pricing';
 import Values from 'components/Values';
 
