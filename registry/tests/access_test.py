@@ -12,7 +12,7 @@ import urllib
 import requests
 
 from quilt_server.const import PaymentPlan, PUBLIC, TEAM
-from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
+from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode, FileNode
 
 from .utils import mock_customer, QuiltTestCase
 
@@ -780,3 +780,39 @@ class AccessTestCase(QuiltTestCase):
 
         names = [pkg['name'] for pkg in data['packages']]
         assert names == ['a', 'B', 'c', 'D']
+
+    def testSearchReadme(self):
+        readme_contents = 'foo' * 1000
+        blob_hash = '8db466bdfc3265dd1347843b31ed34af0a0c2e6ff0fd4d6a5853755f0e68b8a0'
+
+        contents = RootNode(dict(
+            README=FileNode([blob_hash], dict())
+        ))
+
+        self._mock_object(self.user, blob_hash, readme_contents.encode())
+        self.put_package(self.user, 'pkg', contents, is_public=True)
+        resp = self.app.put(
+            '/api/tag/{usr}/{pkg}/{tag}'.format(
+                usr=self.user,
+                pkg='pkg',
+                tag='latest'
+            ),
+            data=json.dumps(dict(
+                hash=hash_contents(contents)
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': self.user
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        resp = self.app.get('/api/search/?q=pkg')
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        packages = data['packages']
+
+        assert len(packages) == 1
+        assert packages[0]['is_public'] is True
+        assert packages[0]['is_team'] is False
+        assert packages[0]['readme_preview'] == readme_contents[0:1024]

@@ -844,12 +844,13 @@ def package_preview(owner, package_name, package_hash):
         assert len(readme.hashes) == 1
         readme_hash = readme.hashes[0]
         readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme_hash)
-        readme_preview = (
+        readme_blob = (
             S3Blob.query
             .filter_by(owner=owner, hash=readme_hash)
             .options(undefer('preview'))
-            .one()
-        ).preview
+            .one_or_none()  # Should be one() once READMEs are backfilled.
+        )
+        readme_preview = readme_blob.preview if readme_blob is not None else None
     else:
         readme_url = None
         readme_preview = None
@@ -1511,7 +1512,7 @@ def search():
     readmes_by_package_id = dict(
         db.session.query(
             Package.id,
-            sa.func.substr(S3Blob.preview, 0, README_SNIPPET_LEN),
+            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN),
         )
         .filter(Package.id.in_(package_ids))
         .join(Package.instances)

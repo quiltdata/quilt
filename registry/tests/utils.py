@@ -5,11 +5,14 @@ Unittest setup.
 """
 
 from functools import wraps
+import gzip
 import json
+from io import BytesIO
 import random
 import string
 from unittest import mock, TestCase
 
+from botocore.stub import Stubber
 from mixpanel import Mixpanel
 import requests
 import responses
@@ -18,6 +21,7 @@ import sqlalchemy_utils
 import quilt_server
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
+from quilt_server.views import s3_client
 
 class MockMixpanelConsumer(object):
     """
@@ -50,6 +54,9 @@ class QuiltTestCase(TestCase):
         self.payments_patcher = mock.patch('quilt_server.views.HAVE_PAYMENTS', False)
         self.payments_patcher.start()
 
+        self.s3_stubber = Stubber(s3_client)
+        self.s3_stubber.activate()
+
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
@@ -66,6 +73,7 @@ class QuiltTestCase(TestCase):
         quilt_server.db.drop_all()
         sqlalchemy_utils.drop_database(self.db_url)
 
+        self.s3_stubber.deactivate()
         self.payments_patcher.stop()
         self.mp_patcher.stop()
 
@@ -145,6 +153,17 @@ class QuiltTestCase(TestCase):
                 'Authorization': owner
             }
         )
+
+    def _mock_object(self, owner, blob_hash, contents):
+        contents_gzipped = gzip.compress(contents)
+
+        self.s3_stubber.add_response('get_object', dict(
+            Body=BytesIO(contents_gzipped)
+        ), dict(
+            Bucket=quilt_server.app.config['PACKAGE_BUCKET_NAME'],
+            Key='objs/%s/%s' % (owner, blob_hash)
+        ))
+
 
 def mock_customer(plan=PaymentPlan.FREE, have_credit_card=False):
     def innerdec(f):
