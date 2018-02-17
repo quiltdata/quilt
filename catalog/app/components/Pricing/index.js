@@ -67,7 +67,7 @@ function Pricing({ signUp, takeAction }) {
               <tr>
                 <th>Free</th>
                 <th>Individual</th>
-                <th>Business</th>
+                <th>Teams</th>
               </tr>
               <tr className="price">
                 <td>
@@ -90,8 +90,10 @@ function Pricing({ signUp, takeAction }) {
                 </td>
                 <td>
                   Unlimited public packages<br />
-                  1TB and up of private packages<br />
-                  24/7 priority support<br />
+                  1TB+ of private packages<br />
+                  Dedicated registry and storage<br />
+                  Priority support<br />
+                  Team administration and auditing<br />
                   * Sold in blocks of 10 users<br />
                 </td>
               </tr>
@@ -100,7 +102,7 @@ function Pricing({ signUp, takeAction }) {
         </Tab>
       </Tabs>
       <p>
-        <a href="mailto:sales@quiltdata.io?Subject=Quilt%20Business%20Tier" target="_top">
+        <a href="mailto:sales@quiltdata.io?Subject=Quilt%20Teams%20Tier" target="_top">
           Contact us
         </a> to start Business service.
       </p>
