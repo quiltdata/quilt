@@ -21,6 +21,7 @@
 * [Shared drives](shared-store.md)
 * [Teams](teams.md)
 * [Checks](checks.md)
+* [Package composition](compose.md)
 
 ## Support
 * [Troubleshooting](troubleshooting.md)
