@@ -11,7 +11,7 @@ Example `build.yml`:
 ``` yaml
 ---
 contents:
-  nodename:                                     # Create a package with a node called `nodename`
-    package: owner/existing_package/dataframe   # Pull its contents from a node, `dataframe`, in an
-                                                # existing package, `owner/existing_package`.
+  NODENAME:                                     # Create a package with a node called `NODENAME`
+    package: OWNER/EXISTING_PACKAGE/DATAFRAME   # Pull its contents from a node, `DATAFRAME`, in an
+                                                # existing package, `OWNER/EXISTING_PACKAGE`.
 ```
