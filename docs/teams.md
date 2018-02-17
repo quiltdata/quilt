@@ -1,72 +1,69 @@
-# Teams (Beta)
+# Teams (BETA)
 
-A Quilt team is a single-tenant, dedicated registry with a private package namespace. As a team member, you can install and push packages in that team namespace.
+A Quilt team is a single-tenant, dedicated registry with a private package namespace. As a team member, you can read and write packages from the team namespace.
 
 Quilt teams include a special administrative interface for auditing data access, adding, and removing users.
 
-The general notation for a team package is `TEAM:USER/PKG`, where `TEAM` is the team name.
+The syntax for a team package handle is `TEAM:USER/PKG`.
 
-The standard Quilt [CLI](./cli.md) and [Python](api-python.md) APIs work for teams. Below are the APIs that differ.
+If you'd like to use Quilt teams, [contact us](sales@quiltdata.io) to join the Beta.
 
-If you're interested in using teams, please [contact us](sales@quiltdata.io) to join the Beta.
+# Command line API
+Team users can have access to the [standard API](./api.md) with the following differences and additional administrative features.
 
-# Command Line
-
-## `quilt push`
+## Core API differences
+### `quilt push`
 ```sh
 $ quilt push TEAM:USER/PKG --team
 ```
-* `push --team` makes a package visible to everyone on your team.
-* ~~`push --public`~~ is currently disabled for team packages.
+* `push --team` makes a package visible to everyone on your team
+* ~~`push --public`~~ is currently disabled for team packages
 
-## `quilt access`
+### `quilt login`
+Authenticate to  team registry:
+```sh
+$ quilt login TEAM
+``` 
 
+### `quilt access`
 To make a package visible to your entire team:
 ```sh
 $ quilt access add TEAM:USER/PKG team
 ```
+Public visibility is not yet supported for team packages.
 
-Public visibility is disabled for team packages.
+### Import and use data
+```python
+from quilt.TEAM.USER import PKG
+```
 
-## `quilt login`
-
-Run `quilt login TEAM` to authenticate to your team registry.
-
-# Admin Command Line features
-
-## `quilt user list`
+## Admin features
+### `quilt user list`
 List users and associated metadata for your team.
 ```sh
 quilt user list TEAM
 ```
 
-## `quilt user create`
+### `quilt user create`
 Add a team member.
 ```sh
 $ quilt user create TEAM USERNAME EMAIL
 ```
 
-## `quilt user disable`
+### `quilt user disable`
 Disable a team member.
 ```sh
 quilt user disable TEAM USERNAME
 ```
 
-## `quilt user reset-password`
+### `quilt user reset-password`
 Send a user a reset-password email.
 ```sh
 quilt user reset-password TEAM USERNAME
 ```
 
-## `quilt audit`
+### `quilt audit`
 Audit events relating to a user or package.
 ```sh
 quilt audit USER_OR_PACKAGE
-```
-
-# Python API
-## Import data
-To import a team package, use the following syntax:
-```python
-from quilt.TEAM.USER import PKG
 ```

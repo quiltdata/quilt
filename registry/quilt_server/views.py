@@ -1809,9 +1809,8 @@ def disable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
-            'username' : username,
             'is_active' : False
         }))
 
@@ -1819,6 +1818,41 @@ def disable_user():
         raise ApiException(
             resp.status_code,
             "User to disable not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+@app.route('/api/users/enable', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def enable_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+        data=json.dumps({
+            'is_active' : True
+        }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to enable not found."
             )
 
     if resp.status_code != requests.codes.ok:
