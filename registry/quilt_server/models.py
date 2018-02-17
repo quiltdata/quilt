@@ -85,12 +85,17 @@ class S3Blob(db.Model):
     hash = db.Column(db.String(64), nullable=False)
     size = db.Column(db.BigInteger)
 
+    # Preview of the content - only used for the READMEs.
     preview = deferred(db.Column(db.TEXT))
+
+    # Only used for READMEs right now - but could be used for anything, including blobs
+    # for which we're not storing a preview (therefore it's a separate column).
+    preview_tsv = deferred(db.Column(postgresql.TSVECTOR))
 
     instances = db.relationship('Instance', secondary=InstanceBlobAssoc)
 
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
-
+db.Index('idx_tsv', S3Blob.preview_tsv, postgresql_using='gin')
 
 class Log(db.Model):
     id = db.Column(db.BigInteger, primary_key=True)

@@ -6,7 +6,7 @@ API routes.
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from functools import wraps
+from functools import reduce, wraps
 import gzip
 import json
 import time
@@ -725,6 +725,7 @@ def package_put(owner, package_name, package_hash):
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
                 if blob_hash == readme_hash:
                     blob.preview = readme_preview
+                    blob.preview_tsv = sa.func.to_tsvector(readme_preview)
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -1492,67 +1493,79 @@ def recent_packages():
 @api(require_login=False)
 @as_json
 def search():
-    query = request.args.get('q', '')
-    keywords = query.split()
+    query_str = request.args.get('q', '')
 
-    if len(keywords) > 5:
-        # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
+    # Get the list of visible packages and their permissions.
 
-    filter_list = [
-        sa.func.strpos(
-            sa.func.lower(sa.func.concat(Package.owner, '/', Package.name)),
-            sa.func.lower(keyword)
-        ) > 0
-        for keyword in keywords
-    ]
-
-    # Subquery to get the list of packages.
-    packages = (
+    instances = (
         db.session.query(
-            Package.id,
+            Instance.id,
             Package.owner,
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
-            sa.func.bool_or(Access.user == TEAM).label('is_team')
+            sa.func.bool_or(Access.user == TEAM).label('is_team'),
+            sa.func.plainto_tsquery(query_str).label('query')  # Just save the query as a variable
         )
-        .filter(sa.and_(*filter_list))
+        .join(Instance.package)
         .join(Package.access)
         .filter(_access_filter(g.auth))
-        .group_by(Package.id)
-        .order_by(
-            sa.func.lower(Package.owner),
-            sa.func.lower(Package.name)
-        )
-        .subquery()
-    )
-
-    README_SNIPPET_LEN = 1024
-
-    # Subquery to get the READMEs.
-    readmes = (
-        db.session.query(
-            Package.id,
-            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
-        )
-        .join(Package.instances)
         .join(Instance.tags)
         .filter(Tag.tag == LATEST_TAG)
-        .join(Instance.blobs)
-        .filter(Instance.readme_hash() == S3Blob.hash)
-        .subquery()
+        .group_by(Package.id, Instance.id)  # Redundant, but we need Instance.id and Package.*
+        .subquery('i')
     )
 
-    # Put the two together using an outer join, so we get search results with or without READMEs.
+    # Get the README contents and full-text search index.
+
+    README_SNIPPET_LEN = 1024
+    readmes = (
+        db.session.query(
+            Instance.id,
+            S3Blob.preview_tsv,
+            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
+        )
+        .join(Instance.blobs)
+        .filter(Instance.readme_hash() == S3Blob.hash)
+        .subquery('r')
+    )
+
+    # Filter and sort the results.
+
+    def _tsvector_concat(*args):
+        return reduce(sa.sql.operators.custom_op('||'), args)
+
+    # Use the "rank / (rank + 1)" normalization; makes it look sort of like percentage.
+    RANK_NORMALIZATION = 32
+
     results = (
         db.session.query(
-            packages.c.owner,
-            packages.c.name,
-            packages.c.is_public,
-            packages.c.is_team,
+            instances.c.owner,
+            instances.c.name,
+            instances.c.is_public,
+            instances.c.is_team,
             readmes.c.readme,
+            sa.func.ts_rank_cd(
+                _tsvector_concat(
+                    # Give higher weight to owner and name than to README.
+                    sa.func.setweight(sa.func.to_tsvector(instances.c.owner), 'A'),
+                    sa.func.setweight(sa.func.to_tsvector(instances.c.name), 'A'),
+                    sa.func.coalesce(readmes.c.preview_tsv, '')
+                ),
+                instances.c.query,
+                RANK_NORMALIZATION
+            ).label('rank')
         )
-        .outerjoin(readmes, packages.c.id == readmes.c.id)
+        .outerjoin(readmes, instances.c.id == readmes.c.id)
+        .filter(sa.or_(
+            # Need to use the original preview_tsv (not concatenated with anything) to take advantage of the index.
+            readmes.c.preview_tsv.op('@@')(instances.c.query),
+            # Match the owner and name; full table scan, but it's just Package.
+            _tsvector_concat(
+                sa.func.to_tsvector(instances.c.owner),
+                sa.func.to_tsvector(instances.c.name)
+            ).op('@@')(instances.c.query)
+        ) if query_str else True)  # Disable the filter if there was no query string.
+        .order_by(sa.desc('rank'), instances.c.owner, instances.c.name)
     )
 
     return dict(
@@ -1563,7 +1576,8 @@ def search():
                 is_public=is_public,
                 is_team=is_team,
                 readme_preview=readme,
-            ) for owner, name, is_public, is_team, readme in results
+                rank=rank,
+            ) for owner, name, is_public, is_team, readme, rank in results
         ]
     )
 
