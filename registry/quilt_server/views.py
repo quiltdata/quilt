@@ -1487,10 +1487,12 @@ def search():
         for keyword in keywords
     ]
 
-    # Get the list of packages.
+    # Subquery to get the list of packages.
     packages = (
         db.session.query(
-            Package,
+            Package.id,
+            Package.owner,
+            Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
             sa.func.bool_or(Access.user == TEAM).label('is_team')
         )
@@ -1502,35 +1504,46 @@ def search():
             sa.func.lower(Package.owner),
             sa.func.lower(Package.name)
         )
+        .subquery()
     )
-
-    package_ids = [row[0].id for row in packages]
 
     README_SNIPPET_LEN = 1024
 
-    # Get the README previews from the latest instance of each package.
-    readmes_by_package_id = dict(
+    # Subquery to get the READMEs.
+    readmes = (
         db.session.query(
             Package.id,
-            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN),
+            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
         )
-        .filter(Package.id.in_(package_ids))
         .join(Package.instances)
         .join(Instance.tags)
         .filter(Tag.tag == Tag.LATEST)
         .join(Instance.blobs)
         .filter(Instance.readme_hash() == S3Blob.hash)
-    ) if package_ids else dict()
+        .subquery()
+    )
+
+    # Put the two together using an outer join, so we get search results with or without READMEs.
+    results = (
+        db.session.query(
+            packages.c.owner,
+            packages.c.name,
+            packages.c.is_public,
+            packages.c.is_team,
+            readmes.c.readme,
+        )
+        .outerjoin(readmes, packages.c.id == readmes.c.id)
+    )
 
     return dict(
         packages=[
             dict(
-                owner=package.owner,
-                name=package.name,
+                owner=owner,
+                name=name,
                 is_public=is_public,
                 is_team=is_team,
-                readme_preview=readmes_by_package_id.get(package.id),
-            ) for package, is_public, is_team in packages
+                readme_preview=readme,
+            ) for owner, name, is_public, is_team, readme in results
         ]
     )
 
