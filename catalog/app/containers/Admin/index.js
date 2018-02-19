@@ -56,6 +56,7 @@ export default compose(
   }),
   withHandlers({
     removeMember: ({ removeMember, pushNotification }) => (name) => {
+      // eslint-disable-next-line no-alert, no-restricted-globals
       if (!confirm(`Are you sure you want to delete user ${name}?`)) {
         return Promise.resolve();
       }
@@ -77,6 +78,7 @@ export default compose(
           pushNotification(`There was an error while resetting password for ${name}`);
         }),
     removePackage: ({ removePackage, pushNotification }) => (handle) => {
+      // eslint-disable-next-line no-alert, no-restricted-globals
       if (!confirm(`Are you sure you want to delete package ${handle}?`)) {
         return Promise.resolve();
       }
