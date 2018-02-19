@@ -34,7 +34,7 @@ Public visibility is not yet supported for team packages.
 
 ### Import and use data
 ```python
-from quilt.TEAM.USER import PKG
+from quilt.team.TEAM_NAME.USER import PKG
 ```
 
 ## Admin features
