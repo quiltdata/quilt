@@ -4,13 +4,14 @@ pip install git+https://github.com/quiltdata/quilt.git#subdirectory=compiler
 ```
 
 # Clone for local registry, compiler, or catalog development
-See also
-- Registry dev (see also [registry README](../registry/README.md))
-- Catalog dev (see also [catalog README](../catalog/README.md))
+- Registry dev (see also [registry README](https://github.com/quiltdata/quilt/blob/master/registry/README.md))
+- Catalog dev (see also [catalog README](https://github.com/quiltdata/quilt/blob/master/catalog/README.md))
 - Compiler dev
-    1. `git clone https://github.com/quiltdata/quilt-compiler.git`
-    1. `cd quilt`
-    1. From the repository root: `pip install -e compiler`
+    ```sh
+    git clone https://github.com/quiltdata/quilt-compiler.git
+    cd quilt # repository root
+    pip install -e compiler
+    ```
 
 ## If the path above `setup.py` changes
 `pip uninstall` (and over-install) will fail you because pip will be unable to find the path from installation time. You can edit `site-packages/quilt.egg-link`  and `site-packages/easy-install.pth` to fix this issue.
