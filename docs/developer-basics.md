@@ -1,10 +1,16 @@
-# Install latest from `master`
-- `pip install git+https://github.com/quiltdata/quilt-compiler.git`
+# Install latest client (compiler) from `master` on GitHub
+```
+pip install git+https://github.com/quiltdata/quilt.git#subdirectory=compiler
+```
 
-# Local installation
-1. `git clone https://github.com/quiltdata/quilt-compiler.git`
-1. `cd quilt`
-1. From the repository root: `pip install -e .`
+# Clone for local registry, compiler, or catalog development
+See also
+- Registry dev (see also [registry README](../registry/README.md))
+- Catalog dev (see also [catalog README](../catalog/README.md))
+- Compiler dev
+    1. `git clone https://github.com/quiltdata/quilt-compiler.git`
+    1. `cd quilt`
+    1. From the repository root: `pip install -e compiler`
 
 ## If the path above `setup.py` changes
 `pip uninstall` (and over-install) will fail you because pip will be unable to find the path from installation time. You can edit `site-packages/quilt.egg-link`  and `site-packages/easy-install.pth` to fix this issue.
@@ -17,10 +23,10 @@
 - View coverage results by opening cov_html/index.html
 
 ## Self-hosted registries
-See the [registry README](https://github.com/quiltdata/quilt/blob/master/registry/README.md) for more.
+See the [registry README](../registry/README.md) for more.
 
 # Contribute
 - Conversation on [gitter](https://gitter.im/quilt-data/Lobby)
-- Selected projects are posted to [GitHub Issues](https://github.com/quiltdata/quilt-compiler/issues)
-- Contributions welcome on [GitHub](https://github.com/quiltdata/quilt-compiler).
+- Selected projects are posted to [GitHub Issues](https://github.com/quiltdata/quilt/issues)
+- Contributions welcome on [GitHub](https://github.com/quiltdata/quilt).
 
