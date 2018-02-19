@@ -1,4 +1,4 @@
-# Teams (BETA)
+# Teams
 
 Quilt Teams offer enhanced security, auditing, and privacy. Only team members can read and write data to and from the team. Teams are controlled by one or more admins who have access to a special web interface where they can audit data usage, add new members, and more.
 
