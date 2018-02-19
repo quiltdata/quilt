@@ -1,4 +1,5 @@
 /* MIcon - wrap material icon for convenience, style control */
+import cx from 'classnames';
 import FontIcon from 'material-ui/FontIcon';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -13,11 +14,11 @@ const Adjust = styled.span`
 `;
 
 // eslint-disable-next-line object-curly-newline
-function MIcon({ children, drop, title, ...rest }) {
+function MIcon({ children, drop, title, className, ...rest }) {
   return (
     <Adjust drop={drop} title={title}>
       <FontIcon
-        className="material-icons"
+        className={cx('material-icons', className)}
         {...rest}
       >
         { children }
