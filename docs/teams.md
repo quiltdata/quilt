@@ -4,7 +4,7 @@ Quilt Teams offer enhanced security, auditing, and privacy. Only team members ca
 
 Technically, a Quilt team is a dedicated, single-tenant registry with a private package namespace. Teams also feature their own web searchable catalog (accessible only to team members), similar to [quiltdata.com](https://quiltdata.com).
 
-To create your own Quilt team, [contact us](sales@quiltdata.io) to join the Beta.
+To create your own Quilt team, [contact us](sales@quiltdata.io).
 
 # Command line API
 Team members have access to the [standard API](./api.md) with the following differences and additional features.
