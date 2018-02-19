@@ -12,15 +12,11 @@ import {
   MEMBER_ADDED,
   GET_MEMBER_AUDIT,
   GET_MEMBER_AUDIT_RESPONSE,
-  REMOVE_MEMBER,
   REMOVE_MEMBER_RESPONSE,
-  RESET_MEMBER_PASSWORD,
-  RESET_MEMBER_PASSWORD_RESPONSE,
   GET_PACKAGES,
   GET_PACKAGES_RESPONSE,
   GET_PACKAGE_AUDIT,
   GET_PACKAGE_AUDIT_RESPONSE,
-  REMOVE_PACKAGE,
   REMOVE_PACKAGE_RESPONSE,
 } from './constants';
 
@@ -68,22 +64,12 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['memberAudit', 'status'], action.status)
         .setIn(['memberAudit', 'response'], action.response);
-    case REMOVE_MEMBER:
-      // TODO: lock member
-      return state;
     case REMOVE_MEMBER_RESPONSE:
-      // TODO: unlock member
       if (action.status === api.ERROR) return state;
       return state.updateIn(['members', 'response'], (members) =>
         members && members.filter
           ? members.filter((p) => p.get('name') !== action.name)
           : members);
-    case RESET_MEMBER_PASSWORD:
-      // TODO: lock member
-      return state;
-    case RESET_MEMBER_PASSWORD_RESPONSE:
-      // TODO: unlock member
-      return state;
     case GET_PACKAGES:
       return state
         .setIn(['packages', 'status'], api.WAITING)
@@ -101,11 +87,7 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['packageAudit', 'status'], action.status)
         .setIn(['packageAudit', 'response'], action.response);
-    case REMOVE_PACKAGE:
-      // TODO: lock package
-      return state;
     case REMOVE_PACKAGE_RESPONSE:
-      // TODO: unlock package
       if (action.status === api.ERROR) return state;
       return state.updateIn(['packages', 'response'], (packages) =>
         packages && packages.filter

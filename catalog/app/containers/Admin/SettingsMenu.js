@@ -20,11 +20,12 @@ export default compose(
       ]).isRequired
     ).isRequired, // eslint-disable-line function-paren-newline
     arg: PT.any.isRequired,
+    busy: PT.bool,
   }),
   setDisplayName('Admin.SettingsMenu'),
-)(({ actions, arg }) => (
+)(({ actions, arg, busy = false }) => (
   <IconMenu
-    iconButtonElement={<IconButton><MIcon>settings</MIcon></IconButton>}
+    iconButtonElement={<IconButton><MIcon spin={busy}>settings</MIcon></IconButton>}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
   >

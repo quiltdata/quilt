@@ -5,18 +5,18 @@ import {
   TableHeader,
   TableHeaderColumn,
   TableRow,
-  TableRowColumn,
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedMessage } from 'react-intl';
-import { compose, setPropTypes, setDisplayName, withProps } from 'recompose';
+import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 
 import messages from './messages';
-import { branch, formatActivity, formatDate } from './util';
+import { branch, formatActivity, formatDate, withStatefulActions } from './util';
+import Cell from './LockableCell';
 import SettingsMenu from './SettingsMenu';
 
 
@@ -42,15 +42,14 @@ const MembersTable = compose(
       resetPassword: PT.func.isRequired,
     }).isRequired,
   }),
-  withProps(({ actions }) => ({
-    actions: [
-      { text: 'Remove member', callback: actions.remove },
-      'divider',
-      { text: 'Reset password', callback: actions.resetPassword },
-    ],
-  })),
+  withStatefulActions((props) => [
+    { text: 'Remove member', callback: props.remove },
+    'divider',
+    { text: 'Reset password', callback: props.resetPassword },
+  ]),
   setDisplayName('Admin.Members.Table'),
-)(({ audit, members, actions }) => (
+// eslint-disable-next-line object-curly-newline
+)(({ audit, members, actions, pending }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
@@ -64,16 +63,16 @@ const MembersTable = compose(
       {members.map(({ name, lastSeen, ...activity }) => (
         <TableRow hoverable key={name}>
           {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-          <TableRowColumn><a onClick={() => audit(name)}>{name}</a></TableRowColumn>
-          <TableRowColumn>
+          <Cell locked={pending[name]}><a onClick={() => audit(name)}>{name}</a></Cell>
+          <Cell locked={pending[name]}>
             <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
-          </TableRowColumn>
-          <TableRowColumn>
+          </Cell>
+          <Cell locked={pending[name]}>
             <FlatButton onClick={() => audit(name)}>{formatDate(lastSeen)}</FlatButton>
-          </TableRowColumn>
-          <TableRowColumn>
-            <SettingsMenu actions={actions} arg={name} />
-          </TableRowColumn>
+          </Cell>
+          <Cell locked={pending[name]}>
+            <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
+          </Cell>
           {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
         </TableRow>
       ))}

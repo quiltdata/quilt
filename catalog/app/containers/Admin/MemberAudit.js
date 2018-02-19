@@ -82,7 +82,7 @@ export default compose(
       />,
     ]}
     contentStyle={{ width: '80%', maxWidth: 'none' }}
-    bodyStyle={{ overflowY: 'auto' }}
+    autoScrollBodyContent
     modal
     open={!!name}
   >

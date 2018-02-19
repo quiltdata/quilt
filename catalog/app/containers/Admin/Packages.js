@@ -5,18 +5,18 @@ import {
   TableHeader,
   TableHeaderColumn,
   TableRow,
-  TableRowColumn,
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedMessage } from 'react-intl';
-import { compose, setPropTypes, setDisplayName, withProps } from 'recompose';
+import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 
 import messages from './messages';
-import { branch, formatActivity, formatDate } from './util';
+import { branch, formatActivity, formatDate, withStatefulActions } from './util';
+import Cell from './LockableCell';
 import SettingsMenu from './SettingsMenu';
 
 
@@ -40,13 +40,12 @@ const PackagesTable = compose(
       remove: PT.func.isRequired,
     }).isRequired,
   }),
-  withProps(({ actions }) => ({
-    actions: [
-      { text: 'Delete', callback: actions.remove },
-    ],
-  })),
+  withStatefulActions((props) => [
+    { text: 'Delete', callback: props.remove },
+  ]),
   setDisplayName('Admin.Packages.Table'),
-)(({ audit, packages, actions }) => (
+// eslint-disable-next-line object-curly-newline
+)(({ audit, packages, actions, pending }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
@@ -60,20 +59,20 @@ const PackagesTable = compose(
       {packages.map(({ handle, lastModified, ...activity }) => (
         <TableRow hoverable key={handle}>
           {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-          <TableRowColumn>
+          <Cell locked={pending[handle]}>
             <a onClick={() => audit(handle)}>{handle}</a>
-          </TableRowColumn>
-          <TableRowColumn>
+          </Cell>
+          <Cell locked={pending[handle]}>
             <a onClick={() => audit(handle)}>
               {formatActivity(packageActivities, activity)}
             </a>
-          </TableRowColumn>
-          <TableRowColumn>
+          </Cell>
+          <Cell locked={pending[handle]}>
             <FlatButton onClick={() => audit(handle)}>{formatDate(lastModified)}</FlatButton>
-          </TableRowColumn>
-          <TableRowColumn>
-            <SettingsMenu actions={actions} arg={handle} />
-          </TableRowColumn>
+          </Cell>
+          <Cell locked={pending[handle]}>
+            <SettingsMenu actions={actions} arg={handle} busy={pending[handle]} />
+          </Cell>
           {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
         </TableRow>
       ))}

@@ -55,14 +55,19 @@ export default compose(
     },
   }),
   withHandlers({
-    removeMember: ({ removeMember, pushNotification }) => (name) =>
-      dispatchPromise(removeMember, name)
+    removeMember: ({ removeMember, pushNotification }) => (name) => {
+      if (!confirm(`Are you sure you want to delete user ${name}?`)) {
+        return Promise.resolve();
+      }
+
+      return dispatchPromise(removeMember, name)
         .then(() => {
           pushNotification(`User ${name} has been removed`);
         })
         .catch(() => {
           pushNotification(`There was an error while removing ${name}`);
-        }),
+        });
+    },
     resetMemberPassword: ({ resetMemberPassword, pushNotification }) => (name) =>
       dispatchPromise(resetMemberPassword, name)
         .then(() => {
@@ -71,14 +76,19 @@ export default compose(
         .catch(() => {
           pushNotification(`There was an error while resetting password for ${name}`);
         }),
-    removePackage: ({ removePackage, pushNotification }) => (handle) =>
-      dispatchPromise(removePackage, handle)
+    removePackage: ({ removePackage, pushNotification }) => (handle) => {
+      if (!confirm(`Are you sure you want to delete package ${handle}?`)) {
+        return Promise.resolve();
+      }
+
+      return dispatchPromise(removePackage, handle)
         .then(() => {
           pushNotification(`Package ${handle} has been deleted`);
         })
         .catch(() => {
           pushNotification(`There was an error while deleting package ${handle}`);
-        }),
+        });
+    },
   }),
   withProps(({ removeMember, resetMemberPassword, removePackage }) => ({
     memberActions: {
