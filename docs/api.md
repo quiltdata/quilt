@@ -91,7 +91,7 @@ from quilt.data.USER import PACKAGE
 ```
 For a package in a team registry:
 ```python
-from quilt.TEAM.USER import PACKAGE
+from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
 
 
