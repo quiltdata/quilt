@@ -16,6 +16,7 @@ import api, { apiStatus } from 'constants/api';
 
 import messages from './messages';
 import { branch, formatActivity, formatDate, withStatefulActions } from './util';
+import ErrorMessage from './ErrorMessage';
 import Cell from './LockableCell';
 import SettingsMenu from './SettingsMenu';
 
@@ -78,17 +79,6 @@ const MembersTable = compose(
       ))}
     </TableBody>
   </Table>
-));
-
-const ErrorMessage = compose(
-  setPropTypes({
-    error: PT.shape({
-      message: PT.string,
-    }).isRequired,
-  }),
-  setDisplayName('Admin.Members.Error'),
-)(({ error }) => (
-  <p>Error: {error.message}</p>
 ));
 
 export default compose(

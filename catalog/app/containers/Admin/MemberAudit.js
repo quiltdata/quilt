@@ -16,6 +16,7 @@ import Working from 'components/Working';
 import api, { apiStatus } from 'constants/api';
 
 import { branch, formatDate } from './util';
+import ErrorMessage from './ErrorMessage';
 
 const AuditTable = compose(
   setPropTypes({
@@ -49,17 +50,6 @@ const AuditTable = compose(
       }
     </TableBody>
   </Table>
-));
-
-const ErrorMessage = compose(
-  setPropTypes({
-    error: PT.shape({
-      message: PT.string,
-    }).isRequired,
-  }),
-  setDisplayName('Admin.MemberAudit.Error'),
-)(({ error }) => (
-  <p>Error: {error.message}</p>
 ));
 
 export default compose(
