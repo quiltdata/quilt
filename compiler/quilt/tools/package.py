@@ -202,13 +202,16 @@ class Package(object):
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
 
-    def save_package_tree(self, fullname, pkgnode):
+    def save_package_tree(self, name, pkgnode):
         """
         Adds a package or sub-package tree from an existing package to this package's
         contents.
         """
         contents = self.get_contents()
-        ipath = fullname.split('.')
+        # Add to contents takes a dot-separated path. Other methods below
+        # switch the path separate from slash to dot before calling add to
+        # contents. Simply splitting on slash here for simplicity and efficiency.
+        ipath = name.split('/')
         leaf = ipath.pop()
 
         ptr = contents
