@@ -20,6 +20,7 @@ import * as actions from './actions';
 import messages from './messages';
 import selector from './selectors';
 import AddMember from './AddMember';
+import AuditDialog from './AuditDialog';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
@@ -45,7 +46,6 @@ export default compose(
     getPackages: PT.func.isRequired,
     packageAudit: PT.object.isRequired,
     getPackageAudit: PT.func.isRequired,
-    removePackage: PT.func.isRequired,
     pushNotification: PT.func.isRequired,
   }),
   lifecycle({
@@ -77,28 +77,11 @@ export default compose(
         .catch(() => {
           pushNotification(`There was an error while resetting password for ${name}`);
         }),
-    removePackage: ({ removePackage, pushNotification }) => (handle) => {
-      // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm(`Are you sure you want to delete package ${handle}?`)) {
-        return Promise.resolve();
-      }
-
-      return dispatchPromise(removePackage, handle)
-        .then(() => {
-          pushNotification(`Package ${handle} has been deleted`);
-        })
-        .catch(() => {
-          pushNotification(`There was an error while deleting package ${handle}`);
-        });
-    },
   }),
-  withProps(({ removeMember, resetMemberPassword, removePackage }) => ({
+  withProps(({ removeMember, resetMemberPassword }) => ({
     memberActions: {
       remove: removeMember,
       resetPassword: resetMemberPassword,
-    },
-    packageActions: {
-      remove: removePackage,
     },
   })),
   setDisplayName('Admin'),
@@ -126,13 +109,17 @@ export default compose(
 
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 
-    <MemberAudit
+    <AuditDialog
       onClose={() => getMemberAudit(null)}
+      title={`Audit user: ${memberAudit.name}`}
+      component={MemberAudit}
       {...memberAudit}
     />
 
-    <PackageAudit
+    <AuditDialog
       onClose={() => getPackageAudit(null)}
+      title={`Audit package: ${packageAudit.handle}`}
+      component={PackageAudit}
       {...packageAudit}
     />
   </div>

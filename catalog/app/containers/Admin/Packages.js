@@ -1,24 +1,23 @@
-import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
   TableHeader,
   TableHeaderColumn,
   TableRow,
+  TableRowColumn,
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedMessage } from 'react-intl';
+import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 
 import messages from './messages';
-import { branch, formatActivity, formatDate, withStatefulActions } from './util';
+import { branch, formatActivity, formatDate } from './util';
 import ErrorMessage from './ErrorMessage';
-import Cell from './LockableCell';
-import SettingsMenu from './SettingsMenu';
 
 
 const packageActivities = [
@@ -37,16 +36,10 @@ const PackagesTable = compose(
         lastModified: PT.number,
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
-    actions: PT.shape({
-      remove: PT.func.isRequired,
-    }).isRequired,
   }),
-  withStatefulActions((props) => [
-    { text: 'Delete', callback: props.remove },
-  ]),
   setDisplayName('Admin.Packages.Table'),
 // eslint-disable-next-line object-curly-newline
-)(({ audit, packages, actions, pending }) => (
+)(({ audit, packages }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
@@ -59,22 +52,17 @@ const PackagesTable = compose(
     <TableBody displayRowCheckbox={false}>
       {packages.map(({ handle, lastModified, ...activity }) => (
         <TableRow hoverable key={handle}>
-          {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-          <Cell locked={pending[handle]}>
-            <a onClick={() => audit(handle)}>{handle}</a>
-          </Cell>
-          <Cell locked={pending[handle]}>
+          <TableRowColumn>
+            <Link to={`/package/${handle}`}>{handle}</Link>
+          </TableRowColumn>
+          <TableRowColumn>
+            {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             <a onClick={() => audit(handle)}>
               {formatActivity(packageActivities, activity)}
             </a>
-          </Cell>
-          <Cell locked={pending[handle]}>
-            <FlatButton onClick={() => audit(handle)}>{formatDate(lastModified)}</FlatButton>
-          </Cell>
-          <Cell locked={pending[handle]}>
-            <SettingsMenu actions={actions} arg={handle} busy={pending[handle]} />
-          </Cell>
-          {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
+            {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
+          </TableRowColumn>
+          <TableRowColumn>{formatDate(lastModified)}</TableRowColumn>
         </TableRow>
       ))}
     </TableBody>
@@ -88,14 +76,12 @@ export default compose(
       PT.array,
       PT.object,
     ]),
-    actions: PT.object.isRequired,
     audit: PT.func.isRequired,
   }),
   setDisplayName('Admin.Packages'),
 )(({
   status,
   response,
-  actions,
   audit,
 }) => (
   <Fragment>
@@ -114,7 +100,6 @@ export default compose(
           <PackagesTable
             packages={response}
             audit={audit}
-            actions={actions}
           />
         ),
         [api.ERROR]: () => <ErrorMessage error={response} />,

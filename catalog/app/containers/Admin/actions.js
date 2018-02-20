@@ -20,8 +20,6 @@ import {
   GET_PACKAGES_RESPONSE,
   GET_PACKAGE_AUDIT,
   GET_PACKAGE_AUDIT_RESPONSE,
-  REMOVE_PACKAGE,
-  REMOVE_PACKAGE_RESPONSE,
 } from './constants';
 
 
@@ -142,25 +140,3 @@ export const getPackageAuditResponse = (status, response) => ({
 
 export const getPackageAuditSuccess = (response) => getPackageAuditResponse(api.SUCCESS, response);
 export const getPackageAuditError = (response) => getPackageAuditResponse(api.ERROR, response);
-
-
-// remove package
-export const removePackage = (handle, { resolve, reject }) => ({
-  type: REMOVE_PACKAGE,
-  handle,
-  resolve,
-  reject,
-});
-
-export const removePackageResponse = (handle, status, response) => ({
-  type: REMOVE_PACKAGE_RESPONSE,
-  handle,
-  status,
-  response,
-});
-
-export const removePackageSuccess = (handle, response) =>
-  removePackageResponse(handle, api.SUCCESS, response);
-
-export const removePackageError = (handle, response) =>
-  removePackageResponse(handle, api.ERROR, response);

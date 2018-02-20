@@ -1,5 +1,3 @@
-import Dialog from 'material-ui/Dialog';
-import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -10,15 +8,12 @@ import {
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React from 'react';
+import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
-import Working from 'components/Working';
-import api, { apiStatus } from 'constants/api';
+import { formatDate } from './util';
 
-import { branch, formatDate } from './util';
-import ErrorMessage from './ErrorMessage';
-
-const AuditTable = compose(
+export default compose(
   setPropTypes({
     entries: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
@@ -28,7 +23,7 @@ const AuditTable = compose(
       }).isRequired
     ).isRequired, // eslint-disable-line function-paren-newline
   }),
-  setDisplayName('Admin.MemberAudit.Table'),
+  setDisplayName('Admin.MemberAudit'),
 )(({ entries }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
@@ -43,45 +38,11 @@ const AuditTable = compose(
         entries.map(({ time, handle, event }) => (
           <TableRow hoverable key={`${time} ${handle} ${event}`}>
             <TableRowColumn>{formatDate(time)}</TableRowColumn>
-            <TableRowColumn><a href="#TODO">{handle}</a></TableRowColumn>
+            <TableRowColumn><Link to={`/package/${handle}`}>{handle}</Link></TableRowColumn>
             <TableRowColumn>{event}</TableRowColumn>
           </TableRow>
         ))
       }
     </TableBody>
   </Table>
-));
-
-export default compose(
-  setPropTypes({
-    onClose: PT.func.isRequired,
-    name: PT.string,
-    status: apiStatus,
-    response: PT.any,
-  }),
-  setDisplayName('Admin.MemberAudit'),
-// eslint-disable-next-line object-curly-newline
-)(({ onClose, name, status, response }) => (
-  <Dialog
-    title="User Audit"
-    actions={[
-      <FlatButton
-        label="Close"
-        primary
-        onClick={onClose}
-      />,
-    ]}
-    contentStyle={{ width: '80%', maxWidth: 'none' }}
-    autoScrollBodyContent
-    modal
-    open={!!name}
-  >
-    {
-      branch(status, {
-        [api.WAITING]: () => <Working />,
-        [api.ERROR]: () => <ErrorMessage error={response} />,
-        [api.SUCCESS]: () => <AuditTable entries={response} />,
-      })
-    }
-  </Dialog>
 ));

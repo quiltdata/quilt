@@ -19,8 +19,6 @@ import {
   getPackagesError,
   getPackageAuditSuccess,
   getPackageAuditError,
-  removePackageSuccess,
-  removePackageError,
 } from './actions';
 import {
   ADD_MEMBER,
@@ -30,7 +28,6 @@ import {
   RESET_MEMBER_PASSWORD,
   GET_PACKAGES,
   GET_PACKAGE_AUDIT,
-  REMOVE_PACKAGE,
 } from './constants';
 
 
@@ -200,23 +197,6 @@ export function* watchGetPackageAudit() {
 }
 
 
-// remove package
-export function* doRemovePackage({ handle, resolve, reject }) {
-  try {
-    const response = yield call(apiRequest, `/package/${handle}/`, { method: 'DELETE' });
-    yield put(removePackageSuccess(handle, response));
-    if (resolve) yield call(resolve, response);
-  } catch (err) {
-    yield put(removePackageError(handle, err));
-    if (reject) yield call(reject, err);
-  }
-}
-
-export function* watchRemovePackage() {
-  yield takeEvery(REMOVE_PACKAGE, doRemovePackage);
-}
-
-
 // All sagas to be loaded
 export default [
   watchAddMember,
@@ -226,5 +206,4 @@ export default [
   watchResetMemberPassword,
   watchGetPackages,
   watchGetPackageAudit,
-  watchRemovePackage,
 ];

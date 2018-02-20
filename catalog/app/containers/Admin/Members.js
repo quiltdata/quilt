@@ -1,4 +1,3 @@
-import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -9,6 +8,7 @@ import {
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedMessage } from 'react-intl';
+import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
@@ -63,18 +63,16 @@ const MembersTable = compose(
     <TableBody displayRowCheckbox={false}>
       {members.map(({ name, lastSeen, ...activity }) => (
         <TableRow hoverable key={name}>
-          {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-          <Cell locked={pending[name]}><a onClick={() => audit(name)}>{name}</a></Cell>
+          <Cell locked={pending[name]}><Link to={`/user/${name}`}>{name}</Link></Cell>
           <Cell locked={pending[name]}>
+            {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
+            {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
           </Cell>
-          <Cell locked={pending[name]}>
-            <FlatButton onClick={() => audit(name)}>{formatDate(lastSeen)}</FlatButton>
-          </Cell>
+          <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
           <Cell locked={pending[name]}>
             <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
           </Cell>
-          {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
         </TableRow>
       ))}
     </TableBody>

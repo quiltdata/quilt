@@ -17,7 +17,6 @@ import {
   GET_PACKAGES_RESPONSE,
   GET_PACKAGE_AUDIT,
   GET_PACKAGE_AUDIT_RESPONSE,
-  REMOVE_PACKAGE_RESPONSE,
 } from './constants';
 
 const initialState = fromJS({
@@ -87,12 +86,6 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['packageAudit', 'status'], action.status)
         .setIn(['packageAudit', 'response'], action.response);
-    case REMOVE_PACKAGE_RESPONSE:
-      if (action.status === api.ERROR) return state;
-      return state.updateIn(['packages', 'response'], (packages) =>
-        packages && packages.filter
-          ? packages.filter((p) => p.get('handle') !== action.handle)
-          : packages);
     default:
       return state;
   }
