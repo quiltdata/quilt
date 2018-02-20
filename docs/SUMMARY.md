@@ -13,9 +13,9 @@
 * [Build.yml specification](buildyml.md)
 
 ## API Reference
-* [Command-line Interface \(CLI\)](cli.md)
-* [Python API](api-python.md)
-* [R API](api-r.md)
+* [Command line](api.md)
+* [Python](api.md)
+* [R](api-r.md)
 
 ## Advanced Usage
 * [Shared drives](shared-store.md)
@@ -28,4 +28,3 @@
 ## Developer
 * [Basics](developer-basics.md)
 * [Local storage](quilt_repository_format.md)
-

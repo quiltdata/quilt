@@ -412,12 +412,6 @@ def _get_instance(auth, owner, package_name, package_hash):
         )
     return instance
 
-def _utc_datetime_to_ts(dt):
-    """
-    Convert a UTC datetime object to a UNIX timestamp.
-    """
-    return dt.replace(tzinfo=timezone.utc).timestamp()
-
 def _mp_track(**kwargs):
     if g.user_agent['browser']['name'] == 'QuiltCli':
         source = 'cli'
@@ -792,9 +786,9 @@ def package_get(owner, package_name, package_hash):
         urls=urls,
         sizes={blob.hash: blob.size for blob in blobs},
         created_by=instance.created_by,
-        created_at=_utc_datetime_to_ts(instance.created_at),
+        created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
-        updated_at=_utc_datetime_to_ts(instance.updated_at),
+        updated_at=instance.updated_at.timestamp(),
     )
 
 def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
@@ -848,9 +842,9 @@ def package_preview(owner, package_name, package_hash):
         preview=contents_preview,
         readme_url=readme_url,
         created_by=instance.created_by,
-        created_at=_utc_datetime_to_ts(instance.created_at),
+        created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
-        updated_at=_utc_datetime_to_ts(instance.updated_at),
+        updated_at=instance.updated_at.timestamp(),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -966,7 +960,7 @@ def logs_list(owner, package_name):
     return dict(
         logs=[dict(
             hash=instance.hash,
-            created=_utc_datetime_to_ts(log.created),
+            created=log.created.timestamp(),
             author=log.author
         ) for log, instance in logs]
     )
@@ -1062,9 +1056,9 @@ def version_get(owner, package_name, package_version):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_at=_utc_datetime_to_ts(instance.created_at),
+        created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
-        updated_at=_utc_datetime_to_ts(instance.updated_at),
+        updated_at=instance.updated_at.timestamp(),
     )
 
 @app.route('/api/version/<owner>/<package_name>/', methods=['GET'])
@@ -1176,9 +1170,9 @@ def tag_get(owner, package_name, package_tag):
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
-        created_at=_utc_datetime_to_ts(instance.created_at),
+        created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
-        updated_at=_utc_datetime_to_ts(instance.updated_at),
+        updated_at=instance.updated_at.timestamp(),
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])
@@ -1815,9 +1809,8 @@ def disable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.put("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
-            'username' : username,
             'is_active' : False
         }))
 
@@ -1825,6 +1818,41 @@ def disable_user():
         raise ApiException(
             resp.status_code,
             "User to disable not found."
+            )
+
+    if resp.status_code != requests.codes.ok:
+        raise ApiException(
+            requests.codes.server_error,
+            "Unknown error"
+            )
+
+    return resp.json()
+
+@app.route('/api/users/enable', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def enable_user():
+    auth_headers = {
+        AUTHORIZATION_HEADER: g.auth_header,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
+
+    data = request.get_json()
+    username = data.get('username')
+    _validate_username(username)
+
+    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+        data=json.dumps({
+            'is_active' : True
+        }))
+
+    if resp.status_code == requests.codes.not_found:
+        raise ApiException(
+            resp.status_code,
+            "User to enable not found."
             )
 
     if resp.status_code != requests.codes.ok:
@@ -1878,7 +1906,7 @@ def audit_package(owner, package_name):
 
     return dict(
         events=[dict(
-            created=_utc_datetime_to_ts(event.created),
+            created=event.created.timestamp(),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1899,7 +1927,7 @@ def audit_user(user):
 
     return dict(
         events=[dict(
-            created=_utc_datetime_to_ts(event.created),
+            created=event.created.timestamp(),
             user=event.user,
             type=Event.Type(event.type).name,
             package_owner=event.package_owner,
@@ -1923,8 +1951,7 @@ def package_summary():
     packages = set()
     for event_owner, event_package, event_type, event_count, latest in events:
         package = "{owner}/{pkg}".format(owner=event_owner, pkg=event_package)
-        ts = _utc_datetime_to_ts(latest)
-        event_results[(package, event_type)] = {'latest':ts, 'count':event_count}
+        event_results[(package, event_type)] = {'latest':latest.timestamp(), 'count':event_count}
         packages.add(package)
 
     results = {
