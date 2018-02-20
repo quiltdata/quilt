@@ -1,29 +1,29 @@
-# Teams (BETA)
+# Teams
 
-A Quilt team is a single-tenant, dedicated registry with a private package namespace. As a team member, you can read and write packages from the team namespace.
+Quilt Teams offer enhanced security, auditing, and privacy. Only team members can read and write data to and from the team. Teams are controlled by one or more admins who have access to a special web interface where they can audit data usage, add new members, and more.
 
-Quilt teams include a special administrative interface for auditing data access, adding, and removing users.
+Technically, a Quilt team is a dedicated, single-tenant registry with a private package namespace. Teams also feature their own web searchable catalog (accessible only to team members), similar to [quiltdata.com](https://quiltdata.com).
 
-The syntax for a team package handle is `TEAM:USER/PKG`.
-
-If you'd like to use Quilt teams, [contact us](sales@quiltdata.io) to join the Beta.
+To create your own Quilt team, [contact us](sales@quiltdata.io).
 
 # Command line API
-Team users can have access to the [standard API](./api.md) with the following differences and additional administrative features.
+Team members have access to the [standard API](./api.md) with the following differences and additional features.
 
-## Core API differences
-### `quilt push`
-```sh
-$ quilt push TEAM:USER/PKG --team
-```
-* `push --team` makes a package visible to everyone on your team
-* ~~`push --public`~~ is currently disabled for team packages
-
+## Differences in the Core API
 ### `quilt login`
 Authenticate to  team registry:
 ```sh
 $ quilt login TEAM
 ``` 
+
+### `quilt build|push|install`
+Team users should prefix package handles with the team namespace:
+```
+$ quilt build|push|install TEAM:USER/PKG
+```
+## `quilt push` visibility
+* `quilt push --team` makes a package visible to everyone on your team
+* ~~`quilt push --public`~~ is currently disabled for team packages
 
 ### `quilt access`
 To make a package visible to your entire team:
@@ -34,7 +34,7 @@ Public visibility is not yet supported for team packages.
 
 ### Import and use data
 ```python
-from quilt.TEAM.USER import PKG
+from quilt.team.TEAM.USER import PKG
 ```
 
 ## Admin features

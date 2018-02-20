@@ -2,7 +2,7 @@
 1. `npm start` to fire up a local web server (or `npm run start:production`)
 1. `npm run lint` to lint
     - You can [customize ES6-lint behavior](http://eslint.org/docs/user-guide/configuring)
-    - // es-line-disable-line error-code
+    - `// es-line-disable-line ERROR-CODE`
 
 # Developer notes
 - `window.__CONFIG` contains environment-specific configuration variables like API endpoints, Stripe keys, etc. `config.js.tmpl` is populated by `quilt.yaml` (see `quilt-deployment` repo) 
