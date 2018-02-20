@@ -96,7 +96,10 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
+    @patch.dict('os.environ')
     def test_config_urls_default(self, mock_input, mock_load_config, mock_save_config):
+        os.environ.pop('QUILT_PKG_URL', None)  # Remove it cause it takes precedence over config.
+
         # test setting default URL with blank string -- result should be default
         mock_load_config.return_value = {}
         mock_input.return_value = ''
@@ -112,7 +115,10 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._save_config')
     @patch('quilt.tools.command._load_config')
     @patch('quilt.tools.command.input')
+    @patch.dict('os.environ')
     def test_config_good_urls(self, mock_input, mock_load_config, mock_save_config):
+        os.environ.pop('QUILT_PKG_URL', None)  # Remove it cause it takes precedence over config.
+
         test_urls = [
             'https://foo.com',
             'http://foo.com',
