@@ -233,7 +233,7 @@ const PackagesArea = ({ packages, shortName, user }) => (
     />
     <h2><FormattedMessage {...messages.shared} /></h2>
     <PackageList packages={packages.shared} />
-    <h2><FormattedMessage {...messages.public} /></h2>
+    <h2><FormattedMessage {...messages[config.team ? 'team' : 'public']} /></h2>
     <Help href="/search/?q=">
       <FormattedMessage {...messages.showPublic} />
     </Help>

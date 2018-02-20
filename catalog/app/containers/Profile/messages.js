@@ -14,6 +14,10 @@ export default defineMessages({
     id: 'app.containers.Profile.public',
     defaultMessage: 'Public',
   },
+  team: {
+    id: 'app.containers.Profile.team',
+    defaultMessage: 'Team',
+  },
   shared: {
     id: 'app.containers.Profile.shared',
     defaultMessage: 'Shared with you',
