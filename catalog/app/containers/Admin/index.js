@@ -3,7 +3,7 @@ import Checkbox from 'material-ui/Checkbox';
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage as FM, injectIntl } from 'react-intl';
 import {
   compose,
   lifecycle,
@@ -33,6 +33,7 @@ const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
 
 export default compose(
+  injectIntl,
   connect(selector, { pushNotification: push, ...actions }),
   setPropTypes({
     addMember: PT.func.isRequired,
@@ -47,6 +48,9 @@ export default compose(
     packageAudit: PT.object.isRequired,
     getPackageAudit: PT.func.isRequired,
     pushNotification: PT.func.isRequired,
+    intl: PT.shape({
+      formatMessage: PT.func.isRequired,
+    }).isRequired,
   }),
   lifecycle({
     componentWillMount() {
@@ -56,6 +60,7 @@ export default compose(
   }),
   withHandlers({
     removeMember: ({ removeMember, pushNotification }) => (name) => {
+      // TODO: use MUI Dialog, i18n
       // eslint-disable-next-line no-alert, no-restricted-globals
       if (!confirm(`Are you sure you want to delete user ${name}?`)) {
         return Promise.resolve();
@@ -63,19 +68,19 @@ export default compose(
 
       return dispatchPromise(removeMember, name)
         .then(() => {
-          pushNotification(`User ${name} has been removed`);
+          pushNotification(<FM {...messages.removeUserSuccess} values={{ name }} />);
         })
         .catch(() => {
-          pushNotification(`There was an error while removing ${name}`);
+          pushNotification(<FM {...messages.removeUserError} values={{ name }} />);
         });
     },
     resetMemberPassword: ({ resetMemberPassword, pushNotification }) => (name) =>
       dispatchPromise(resetMemberPassword, name)
         .then(() => {
-          pushNotification(`Password for user ${name} has been reset`);
+          pushNotification(<FM {...messages.resetUserPasswordSuccess} values={{ name }} />);
         })
         .catch(() => {
-          pushNotification(`There was an error while resetting password for ${name}`);
+          pushNotification(<FM {...messages.resetUserPasswordError} values={{ name }} />);
         }),
   }),
   withProps(({ removeMember, resetMemberPassword }) => ({
@@ -95,13 +100,14 @@ export default compose(
   packageActions,
   getPackageAudit,
   packageAudit,
+  intl: { formatMessage },
 }) => (
   <div>
-    <h1><FormattedMessage {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+    <h1><FM {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
 
-    <h2><FormattedMessage {...messages.teamPolicies} /></h2>
-    <Checkbox checked label={<FormattedMessage {...messages.membersRead} />} />
-    <Checkbox checked={false} label={<FormattedMessage {...messages.membersWrite} />} />
+    <h2><FM {...messages.teamPolicies} /></h2>
+    <Checkbox checked label={<FM {...messages.membersRead} />} />
+    <Checkbox checked={false} label={<FM {...messages.membersWrite} />} />
 
     <AddMember addMember={addMember} />
 
@@ -111,14 +117,14 @@ export default compose(
 
     <AuditDialog
       onClose={() => getMemberAudit(null)}
-      title={`Audit user: ${memberAudit.name}`}
+      title={`${formatMessage(messages.auditUser)}: ${memberAudit.name}`}
       component={MemberAudit}
       {...memberAudit}
     />
 
     <AuditDialog
       onClose={() => getPackageAudit(null)}
-      title={`Audit package: ${packageAudit.handle}`}
+      title={`${formatMessage(messages.auditPackage)}: ${packageAudit.handle}`}
       component={PackageAudit}
       {...packageAudit}
     />

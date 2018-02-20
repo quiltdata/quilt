@@ -3,7 +3,7 @@ import TextField from 'material-ui/TextField';
 import { red500 } from 'material-ui/styles/colors';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage as FM, injectIntl } from 'react-intl';
 import {
   compose,
   setDisplayName,
@@ -16,7 +16,7 @@ import { push } from 'containers/Notifications/actions';
 import Spinner from 'components/Spinner';
 import * as validators from 'utils/validators';
 
-import messages from './messages';
+import msg from './messages';
 
 const FormField = compose(
   setPropTypes({
@@ -53,13 +53,17 @@ const FormError = styled.p`
 `;
 
 const FORM_ERRORS = {
-  uniq: 'The user with this username or email already exists',
-  username: 'Username must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter',
+  uniq: msg.addMemberFormErrorUniq,
+  username: msg.addMemberFormErrorUsername,
 };
 
 export default compose(
+  injectIntl,
   setPropTypes({
     addMember: PT.func.isRequired,
+    intl: PT.shape({
+      formatMessage: PT.func.isRequired,
+    }).isRequired,
   }),
   reduxForm({
     form: 'Admin.AddMember',
@@ -78,9 +82,10 @@ export default compose(
 
           throw err;
         }),
-    onSubmitSuccess: ({ name, email }, dispatch, { reset }) => {
+    // eslint-disable-next-line object-curly-newline
+    onSubmitSuccess: ({ name, email }, dispatch, { reset, intl: { formatMessage } }) => {
       reset();
-      dispatch(push(`User ${name} <${email}> added successfully`));
+      dispatch(push(formatMessage(msg.addMemberSuccess, { name, email })));
     },
   }),
   setDisplayName('Admin.AddMember'),
@@ -91,21 +96,24 @@ export default compose(
   invalid,
   submitting,
   submitFailed,
+  intl: { formatMessage },
 }) => (
   <Fragment>
-    <h2><FormattedMessage {...messages.membersAdd} /></h2>
+    <h2><FM {...msg.membersAdd} /></h2>
     <Form onSubmit={handleSubmit}>
       {error &&
-        <FormError>{FORM_ERRORS[error] || error}</FormError>
+        <FormError>
+          {error in FORM_ERRORS ? formatMessage(FORM_ERRORS[error]) : error}
+        </FormError>
       }
       <Field
         name="username"
         validate={[validators.required]}
         component={FormField}
-        hintText="Username"
+        hintText={formatMessage(msg.addMemberUsername)}
         errors={{
-          required: 'Enter a username please',
-          username: 'Enter a valid username please',
+          required: formatMessage(msg.addMemberUsernameRequired),
+          username: formatMessage(msg.addMemberUsernameInvalid),
         }}
         style={{ marginRight: '12px' }}
       />
@@ -113,16 +121,16 @@ export default compose(
         name="email"
         validate={[validators.required]}
         component={FormField}
-        hintText="Email"
+        hintText={formatMessage(msg.addMemberEmail)}
         errors={{
-          required: 'Enter an email please',
-          email: 'Enter a valid email please',
+          required: formatMessage(msg.addMemberEmailRequired),
+          email: formatMessage(msg.addMemberEmailInvalid),
         }}
         style={{ marginRight: '12px' }}
       />
       <FlatButton
         type="submit"
-        label="Add"
+        label={formatMessage(msg.addMemberSubmit)}
         labelPosition="before"
         icon={submitting ? <Spinner /> : null}
         disabled={submitting || pristine || (submitFailed && invalid)}

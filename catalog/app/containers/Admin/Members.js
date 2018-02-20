@@ -4,17 +4,18 @@ import {
   TableHeader,
   TableHeaderColumn,
   TableRow,
+  TableRowColumn,
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage as FM, injectIntl } from 'react-intl';
 import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 
-import messages from './messages';
+import msg from './messages';
 import { branch, formatActivity, formatDate, withStatefulActions } from './util';
 import ErrorMessage from './ErrorMessage';
 import Cell from './LockableCell';
@@ -30,6 +31,7 @@ const memberActivities = [
 ];
 
 const MembersTable = compose(
+  injectIntl,
   setPropTypes({
     audit: PT.func.isRequired,
     members: PT.arrayOf( // eslint-disable-line function-paren-newline
@@ -42,11 +44,14 @@ const MembersTable = compose(
       remove: PT.func.isRequired,
       resetPassword: PT.func.isRequired,
     }).isRequired,
+    intl: PT.shape({
+      formatMessage: PT.func.isRequired,
+    }).isRequired,
   }),
-  withStatefulActions((props) => [
-    { text: 'Remove member', callback: props.remove },
+  withStatefulActions(({ intl: { formatMessage }, ...props }) => [
+    { text: formatMessage(msg.membersRemove), callback: props.remove },
     'divider',
-    { text: 'Reset password', callback: props.resetPassword },
+    { text: formatMessage(msg.membersResetPassword), callback: props.resetPassword },
   ]),
   setDisplayName('Admin.Members.Table'),
 // eslint-disable-next-line object-curly-newline
@@ -54,27 +59,34 @@ const MembersTable = compose(
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
-        <TableHeaderColumn>Name</TableHeaderColumn>
-        <TableHeaderColumn>Activity</TableHeaderColumn>
-        <TableHeaderColumn>Last seen</TableHeaderColumn>
-        <TableHeaderColumn>Settings</TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.membersName} /></TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.membersSettings} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {members.map(({ name, lastSeen, ...activity }) => (
-        <TableRow hoverable key={name}>
-          <Cell locked={pending[name]}><Link to={`/user/${name}`}>{name}</Link></Cell>
-          <Cell locked={pending[name]}>
-            {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-            <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
-            {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-          </Cell>
-          <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
-          <Cell locked={pending[name]}>
-            <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
-          </Cell>
-        </TableRow>
-      ))}
+      {members.length
+        ? members.map(({ name, lastSeen, ...activity }) => (
+          <TableRow hoverable key={name}>
+            <Cell locked={pending[name]}><Link to={`/user/${name}`}>{name}</Link></Cell>
+            <Cell locked={pending[name]}>
+              {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
+              <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
+              {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
+            </Cell>
+            <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
+            <Cell locked={pending[name]}>
+              <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
+            </Cell>
+          </TableRow>
+        ))
+        : (
+          <TableRow>
+            <TableRowColumn colSpan={4}><FM {...msg.membersEmpty} /></TableRowColumn>
+          </TableRow>
+        )
+      }
     </TableBody>
   </Table>
 ));
@@ -98,7 +110,7 @@ export default compose(
 }) => (
   <Fragment>
     <h2>
-      <FormattedMessage {...messages.teamMembers} />
+      <FM {...msg.teamMembers} />
       {
         branch(status, {
           [api.WAITING]: () => <Spinner />,

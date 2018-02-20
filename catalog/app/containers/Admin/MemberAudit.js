@@ -8,9 +8,11 @@ import {
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React from 'react';
+import { FormattedMessage as FM } from 'react-intl';
 import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
+import msg from './messages';
 import { formatDate } from './util';
 
 export default compose(
@@ -28,20 +30,25 @@ export default compose(
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
-        <TableHeaderColumn>Time</TableHeaderColumn>
-        <TableHeaderColumn>Package</TableHeaderColumn>
-        <TableHeaderColumn>Event</TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.memberAuditTime} /></TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.memberAuditPackage} /></TableHeaderColumn>
+        <TableHeaderColumn><FM {...msg.memberAuditEvent} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
     <TableBody displayRowCheckbox={false}>
-      {
-        entries.map(({ time, handle, event }) => (
+      {entries.length
+        ? entries.map(({ time, handle, event }) => (
           <TableRow hoverable key={`${time} ${handle} ${event}`}>
             <TableRowColumn>{formatDate(time)}</TableRowColumn>
             <TableRowColumn><Link to={`/package/${handle}`}>{handle}</Link></TableRowColumn>
             <TableRowColumn>{event}</TableRowColumn>
           </TableRow>
         ))
+        : (
+          <TableRow>
+            <TableRowColumn colSpan={3}><FM {...msg.memberAuditEmpty} /></TableRowColumn>
+          </TableRow>
+        )
       }
     </TableBody>
   </Table>
