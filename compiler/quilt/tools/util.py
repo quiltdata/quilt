@@ -9,8 +9,6 @@ import re
 from appdirs import user_config_dir, user_data_dir
 from six import BytesIO, string_types, Iterator
 
-from .compat import pathlib
-
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -220,59 +218,3 @@ def to_nodename(string, invalid=None, raise_exc=False):
         result = "{}_{}".format(string, counter)
 
     return result
-
-
-def filepath_to_nodepath(filepath, nodepath_separator='.', invalid=None):
-    """Converts a single relative file path into a nodepath
-
-    For example, 'foo/bar' -> 'foo.bar' -- see `to_nodename` for renaming rules.
-
-    If the result is in 'invalid', the last element is renamed to avoid conflicts.
-
-    :param filepath: filepath to convert to nodepath
-    :param nodepath_separator: separator between node pathnames, typically '.' or '/'
-    :param invalid: List of invalid or already-used results.
-    """
-    if not isinstance(invalid, set):
-        invalid = set() if invalid is None else set(invalid)
-
-    # PureWindowsPath recognizes c:\\, \\, or / anchors, and / or \ separators.
-    filepath = pathlib.PureWindowsPath(filepath)
-    if filepath.anchor:
-        raise ValueError("Invalid filepath (relative file path required): " + str(PurePosixPath(filepath)))
-
-    nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
-    name = nodepath.name
-    counter = 1
-    while str(nodepath) in invalid:
-        # first conflicted name will be "somenode_2"
-        # The result is "somenode", "somenode_2", "somenode_3"..
-        counter += 1
-        nodepath = nodepath.with_name("{}_{}".format(name, counter))
-
-    return nodepath_separator.join(nodepath.parts)
-
-
-def filepaths_to_nodepaths(filepaths, nodepath_separator='.', iterator=True):
-    """Converts multiple relative file paths into nodepaths.
-
-    Automatically prevents naming conflicts amongst generated nodepath names.
-
-    See `filepath_to_nodepath` for more info.
-
-    :param filepaths: relative paths to convert to nodepaths
-    :param nodepath_separator: used between node pathnames, typically '.' or '/'
-    :param iterator: [default True] If falsey, return a list instead of an iterator.
-    """
-    result = _filepaths_to_nodepaths(filepaths, nodepath_separator)
-    if iterator:
-        return result
-    return list(result)
-
-
-def _filepaths_to_nodepaths(filepaths, nodepath_separator='.'):
-    invalid = set()
-    for path in filepaths:
-        result = filepath_to_nodepath(path, nodepath_separator, invalid=invalid)
-        invalid.add(result)
-        yield result
