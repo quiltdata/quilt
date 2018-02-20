@@ -621,7 +621,7 @@ def package_put(owner, package_name, package_hash):
                     requests.codes.forbidden,
                     ("%(user)s/%(pkg)s is private. To share it with the team, " +
                         "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
-                    dict(team=app.config['TEAM_NAME'], user=owner, pkg=package_name)
+                    dict(team=app.config['TEAM_NAME'].lower(), user=owner, pkg=package_name)
                 )
 
     # Insert an instance if it doesn't already exist.
