@@ -605,10 +605,6 @@ class CommandTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.create_user('bob', 'bob@quiltdata.io', team='nonexisting')
 
-    def test_user_disable(self):
-        self._mock_error('users/disable', team='qux', status=201)
-        command.disable_user('bob', team='qux')
-
     def test_user_disable_not_found(self):
         self._mock_error('users/disable', status=404, team='qux')
         with self.assertRaises(command.CommandException):
