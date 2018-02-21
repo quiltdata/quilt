@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
 import time
+import threading
 from urllib.parse import urlencode
 
 import boto3
@@ -87,6 +88,8 @@ s3_client = boto3.client(
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
+
+tls = threading.local()
 
 
 class QuiltCli(httpagentparser.Browser):
@@ -273,6 +276,18 @@ class PackageNotFoundException(ApiException):
         super().__init__(requests.codes.not_found, message)
 
 
+def get_auth_session():
+    """
+    Returns a requests.Session object for this thread.
+
+    requests.Session allows us to reuse existing HTTPS connections to the auth server -
+    however, it's not quite thread-safe. So, use thread-local storage to get around that.
+    """
+    session = getattr(tls, 'auth_session', None)
+    if session is None:
+        session = tls.auth_session = requests.Session()
+    return session
+
 @app.errorhandler(ApiException)
 def handle_api_exception(error):
     """
@@ -332,7 +347,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     AUTHORIZATION_HEADER: auth
                 }
                 try:
-                    resp = requests.get(OAUTH_USER_API, headers=headers)
+                    resp = get_auth_session().get(OAUTH_USER_API, headers=headers)
                     resp.raise_for_status()
 
                     data = resp.json()
@@ -1258,7 +1273,7 @@ def access_put(owner, package_name, user):
         db.session.commit()
 
         # Call to Auth to send invitation email
-        resp = requests.post(INVITE_SEND_URL,
+        resp = get_auth_session().post(INVITE_SEND_URL,
                              headers=auth_headers,
                              data=dict(email=email,
                                        owner=g.auth.user,
@@ -1285,8 +1300,10 @@ def access_put(owner, package_name, user):
             if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
         else:
-            resp = requests.get(OAUTH_PROFILE_API % user,
-                                headers=auth_headers)
+            resp = get_auth_session().get(
+                OAUTH_PROFILE_API % user,
+                headers=auth_headers
+            )
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
                     requests.codes.not_found,
@@ -1679,7 +1696,7 @@ def list_users():
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
 
-    resp = requests.get(user_list_api, headers=auth_headers)
+    resp = get_auth_session().get(user_list_api, headers=auth_headers)
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
@@ -1720,7 +1737,7 @@ def list_users_detailed():
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
 
-    users = requests.get(user_list_api, headers=auth_headers).json()
+    users = get_auth_session().get(user_list_api, headers=auth_headers).json()
 
     results = {
         user['username'] : {
@@ -1755,7 +1772,7 @@ def create_user():
     username = request_data.get('username')
     _validate_username(username)
 
-    resp = requests.post(user_create_api, headers=auth_headers,
+    resp = get_auth_session().post(user_create_api, headers=auth_headers,
         data=json.dumps({
             "username": username,
             "first_name": "",
@@ -1809,7 +1826,7 @@ def disable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = get_auth_session().patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'is_active' : False
         }))
@@ -1844,7 +1861,7 @@ def enable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = get_auth_session().patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'is_active' : True
         }))
@@ -1981,7 +1998,7 @@ def reset_password():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
+    resp = get_auth_session().post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
