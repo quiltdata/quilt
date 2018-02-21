@@ -102,11 +102,11 @@ export default compose(
   intl: { formatMessage },
 }) => (
   <div>
-    <h1><FM {...msg.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+    <h1><FM {...msg.teamHeader} values={{ name: teamName }} /></h1>
 
     <h2><FM {...msg.teamPolicies} /></h2>
-    <Checkbox checked label={<FM {...msg.membersRead} />} />
-    <Checkbox checked={false} label={<FM {...msg.membersWrite} />} />
+    <Checkbox disabled checked label={<FM {...msg.membersRead} />} />
+    <Checkbox disabled checked={false} label={<FM {...msg.membersWrite} />} />
 
     <AddMember addMember={addMember} />
 
