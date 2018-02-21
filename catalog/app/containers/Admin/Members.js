@@ -63,7 +63,7 @@ const MembersTable = compose(
         <TableHeaderColumn><FM {...msg.membersSettings} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
-    <TableBody displayRowCheckbox={false}>
+    <TableBody displayRowCheckbox={false} stripedRows>
       {members.length
         ? members.map(({ name, lastSeen, ...activity }) => (
           <TableRow hoverable key={name}>
