@@ -38,6 +38,10 @@ export default defineMessages({
     id: 'app.containers.Admin.auditPackage',
     defaultMessage: 'Audit package',
   },
+  removeUserConfirm: {
+    id: 'app.containers.Admin.removeUserConfirm',
+    defaultMessage: 'Are you sure you want to remove user {name}?',
+  },
   removeUserSuccess: {
     id: 'app.containers.Admin.removeUserSuccess',
     defaultMessage: 'User {name} has been removed',

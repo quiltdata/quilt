@@ -17,7 +17,7 @@ import { push } from 'containers/Notifications/actions';
 import config from 'constants/config';
 
 import * as actions from './actions';
-import messages from './messages';
+import msg from './messages';
 import selector from './selectors';
 import AddMember from './AddMember';
 import AuditDialog from './AuditDialog';
@@ -59,28 +59,27 @@ export default compose(
     },
   }),
   withHandlers({
-    removeMember: ({ removeMember, pushNotification }) => (name) => {
-      // TODO: use MUI Dialog, i18n
+    removeMember: ({ removeMember, pushNotification, intl: { formatMessage } }) => (name) => {
       // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm(`Are you sure you want to delete user ${name}?`)) {
+      if (!confirm(formatMessage(msg.removeUserConfirm, { name }))) {
         return Promise.resolve();
       }
 
       return dispatchPromise(removeMember, name)
         .then(() => {
-          pushNotification(<FM {...messages.removeUserSuccess} values={{ name }} />);
+          pushNotification(formatMessage(msg.removeUserSuccess, { name }));
         })
         .catch(() => {
-          pushNotification(<FM {...messages.removeUserError} values={{ name }} />);
+          pushNotification(formatMessage(msg.removeUserError, { name }));
         });
     },
-    resetMemberPassword: ({ resetMemberPassword, pushNotification }) => (name) =>
+    resetMemberPassword: ({ resetMemberPassword, pushNotification, intl: { formatMessage } }) => (name) =>
       dispatchPromise(resetMemberPassword, name)
         .then(() => {
-          pushNotification(<FM {...messages.resetUserPasswordSuccess} values={{ name }} />);
+          pushNotification(formatMessage(msg.resetUserPasswordSuccess, { name }));
         })
         .catch(() => {
-          pushNotification(<FM {...messages.resetUserPasswordError} values={{ name }} />);
+          pushNotification(formatMessage(msg.resetUserPasswordError, { name }));
         }),
   }),
   withProps(({ removeMember, resetMemberPassword }) => ({
@@ -103,11 +102,11 @@ export default compose(
   intl: { formatMessage },
 }) => (
   <div>
-    <h1><FM {...messages.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+    <h1><FM {...msg.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
 
-    <h2><FM {...messages.teamPolicies} /></h2>
-    <Checkbox checked label={<FM {...messages.membersRead} />} />
-    <Checkbox checked={false} label={<FM {...messages.membersWrite} />} />
+    <h2><FM {...msg.teamPolicies} /></h2>
+    <Checkbox checked label={<FM {...msg.membersRead} />} />
+    <Checkbox checked={false} label={<FM {...msg.membersWrite} />} />
 
     <AddMember addMember={addMember} />
 
@@ -117,14 +116,14 @@ export default compose(
 
     <AuditDialog
       onClose={() => getMemberAudit(null)}
-      title={`${formatMessage(messages.auditUser)}: ${memberAudit.name}`}
+      title={`${formatMessage(msg.auditUser)}: ${memberAudit.name}`}
       component={MemberAudit}
       {...memberAudit}
     />
 
     <AuditDialog
       onClose={() => getPackageAudit(null)}
-      title={`${formatMessage(messages.auditPackage)}: ${packageAudit.handle}`}
+      title={`${formatMessage(msg.auditPackage)}: ${packageAudit.handle}`}
       component={PackageAudit}
       {...packageAudit}
     />
