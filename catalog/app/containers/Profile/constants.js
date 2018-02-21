@@ -12,20 +12,30 @@ export const UPDATE_PLAN_ERROR = 'app/Profile/UPDATE_PLAN_ERROR';
 export const UPDATE_PLAN_SUCCESS = 'app/Profile/UPDATE_PLAN_SUCCESS';
 
 export const PLANS = {
-  free: {
+  // free: {
+  //   cost: 0,
+  //   menu: 'Free',
+  //   rank: 0,
+  // },
+  // individual_monthly_7: {
+  //   cost: 700,
+  //   menu: 'Individual',
+  //   rank: 1,
+  // },
+  // business_monthly_490: {
+  //   cost: 49000,
+  //   menu: 'Business (Contact Us)',
+  //   rank: 2,
+  // },
+  team_unpaid: {
     cost: 0,
-    menu: 'Free',
-    rank: 0,
+    menu: 'Team (Unpaid)',
+    rank: 3,
   },
-  individual_monthly_7: {
-    cost: 700,
-    menu: 'Individual',
-    rank: 1,
-  },
-  business_monthly_490: {
+  team_monthly_490: {
     cost: 49000,
-    menu: 'Business (Contact Us)',
-    rank: 2,
+    menu: 'Team',
+    rank: 4,
   },
 };
 Object.freeze(PLANS);
