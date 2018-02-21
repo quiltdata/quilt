@@ -193,7 +193,6 @@ class CommandTest(QuiltTestCase):
 
     def test_ambiguous_hash(self):
         registry_url = command.get_registry_url(None)
-        session = command._get_session(None)
         ambiguous_token = "795a7b"
         # There should be at least two results that start with the ambiguous_token, plus some non-ambiguous
         # results in fake_data to test against.
@@ -219,7 +218,7 @@ class CommandTest(QuiltTestCase):
         # ..it allows for formatting changes in the error, but requires the same order.
         fake_data_regexp = r'(.|\n)+'.join(fake_data_ambiguous)
         with assertRaisesRegex(self, command.CommandException, fake_data_regexp):
-            command._match_hash(session, team=None, owner='user', pkg='test', hash='795a7b')
+            command._match_hash('user/test', hash='795a7b')
 
     def test_push_invalid_package(self):
         with assertRaisesRegex(self, command.CommandException, "owner/package_name"):
