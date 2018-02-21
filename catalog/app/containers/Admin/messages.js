@@ -32,11 +32,11 @@ export default defineMessages({
   },
   auditUser: {
     id: 'app.containers.Admin.auditUser',
-    defaultMessage: 'Audit user',
+    defaultMessage: 'User audit',
   },
   auditPackage: {
     id: 'app.containers.Admin.auditPackage',
-    defaultMessage: 'Audit package',
+    defaultMessage: 'Package audit',
   },
   disableUserConfirm: {
     id: 'app.containers.Admin.disableUserConfirm',
