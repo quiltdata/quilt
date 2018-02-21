@@ -60,6 +60,7 @@ INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
 
+TEAM_ID = app.config['TEAM_ID']
 ALLOW_ANONYMOUS_ACCESS = app.config['ALLOW_ANONYMOUS_ACCESS']
 ALLOW_TEAM_ACCESS = app.config['ALLOW_TEAM_ACCESS']
 
@@ -458,24 +459,37 @@ def _get_or_create_customer():
     assert HAVE_PAYMENTS, "Payments are not enabled"
     assert g.auth.user
 
-    db_customer = Customer.query.filter_by(id=g.auth.user).one_or_none()
+    if TEAM_ID:
+        # In teams instances, we only create one Stripe customer for the whole team.
+        db_customer_id = ''
+    else:
+        db_customer_id = g.auth.user
+
+    db_customer = Customer.query.filter_by(id=db_customer_id).one_or_none()
 
     if db_customer is None:
         try:
             # Insert a placeholder with no Stripe ID just to lock the row.
-            db_customer = Customer(id=g.auth.user)
+            db_customer = Customer(id=db_customer_id)
             db.session.add(db_customer)
             db.session.flush()
         except IntegrityError:
             # Someone else just created it, so look it up.
             db.session.rollback()
-            db_customer = Customer.query.filter_by(id=g.auth.user).one()
+            db_customer = Customer.query.filter_by(id=db_customer_id).one()
         else:
             # Create a new customer.
-            plan = PaymentPlan.FREE.value
+            if TEAM_ID:
+                plan = PaymentPlan.TEAM_UNPAID.value
+                email = None  # TODO: Use an admin email?
+                description = 'Team %s' % TEAM_ID
+            else:
+                plan = PaymentPlan.FREE.value
+                email = g.auth.email
+                description = g.auth.user,
             customer = stripe.Customer.create(
-                email=g.auth.email,
-                description=g.auth.user,
+                email=email,
+                description=description
             )
             stripe.Subscription.create(
                 customer=customer.id,
@@ -567,7 +581,7 @@ def package_put(owner, package_name, package_hash):
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
 
-        if HAVE_PAYMENTS and not public:
+        if HAVE_PAYMENTS and not TEAM_ID and not public:
             customer = _get_or_create_customer()
             plan = _get_customer_plan(customer)
             if plan == PaymentPlan.FREE:
@@ -1353,7 +1367,7 @@ def access_delete(owner, package_name, user):
             "Cannot revoke the owner's access"
         )
 
-    if HAVE_PAYMENTS and user == PUBLIC:
+    if HAVE_PAYMENTS and not TEAM_ID and user == PUBLIC:
         customer = _get_or_create_customer()
         plan = _get_customer_plan(customer)
         if plan == PaymentPlan.FREE:
@@ -1556,21 +1570,26 @@ def profile():
     )
 
 @app.route('/api/payments/update_plan', methods=['POST'])
-@api()
+@api(enabled=HAVE_PAYMENTS)
 @as_json
 def payments_update_plan():
-    if not HAVE_PAYMENTS:
-        raise ApiException(requests.codes.not_found, "Payments not enabled")
-
     plan = request.values.get('plan')
     try:
         plan = PaymentPlan(plan)
     except ValueError:
         raise ApiException(requests.codes.bad_request, "Invalid plan: %r" % plan)
 
-    if plan not in (PaymentPlan.FREE, PaymentPlan.INDIVIDUAL, PaymentPlan.BUSINESS_ADMIN):
-        # Cannot switch to the BUSINESS_MEMBER plan manually.
-        raise ApiException(requests.codes.forbidden, "Not allowed to switch to plan: %r" % plan)
+    if TEAM_ID:
+        if not g.auth.is_admin:
+            raise ApiException(requests.codes.forbidden, "Only the admin can update plans")
+        # Can only switch to TEAM (from TEAM_UNPAID)
+        # if plan != PaymentPlan.TEAM:
+        if plan not in (PaymentPlan.TEAM, PaymentPlan.TEAM_UNPAID):
+            raise ApiException(requests.codes.forbidden, "Can only switch between team plans")
+    else:
+        if plan not in (PaymentPlan.FREE, PaymentPlan.INDIVIDUAL, PaymentPlan.BUSINESS_ADMIN):
+            # Cannot switch to the BUSINESS_MEMBER plan manually.
+            raise ApiException(requests.codes.forbidden, "Not allowed to switch to plan: %r" % plan)
 
     stripe_token = request.values.get('token')
 
@@ -1612,15 +1631,15 @@ def payments_update_plan():
     )
 
 @app.route('/api/payments/update_payment', methods=['POST'])
-@api()
+@api(enabled=HAVE_PAYMENTS)
 @as_json
 def payments_update_payment():
-    if not HAVE_PAYMENTS:
-        raise ApiException(requests.codes.not_found, "Payments not enabled")
-
     stripe_token = request.values.get('token')
     if not stripe_token:
         raise ApiException(requests.codes.bad_request, "Missing token")
+
+    if TEAM_ID and not g.auth.is_admin:
+        raise ApiException(requests.codes.forbidden, "Only the admin can update payment info")
 
     customer = _get_or_create_customer()
     customer.source = stripe_token
