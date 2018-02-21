@@ -8,8 +8,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import json
-import time
 import threading
+import time
 from urllib.parse import urlencode
 
 import boto3
