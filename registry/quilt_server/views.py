@@ -1811,7 +1811,7 @@ def disable_user():
 
     if g.auth.user == username:
         raise ApiException(
-            403,
+            requests.codes.forbidden,
             "Can't disable your own account."
             )
 
