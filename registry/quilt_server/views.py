@@ -13,6 +13,7 @@ import time
 from urllib.parse import urlencode
 
 import boto3
+from botocore.exceptions import ClientError
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
@@ -508,17 +509,29 @@ def blob_get(owner, blob_hash):
 
 
 def download_object_preview(owner, obj_hash):
-    resp = s3_client.get_object(
-        Bucket=PACKAGE_BUCKET_NAME,
-        Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash)
-    )
-    body = resp['Body']
-    with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-        data = fd.read(MAX_PREVIEW_SIZE)
+    try:
+        resp = s3_client.get_object(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+        )
 
-    text = data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
+        body = resp['Body']
+        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+            data = fd.read(100)  # MAX_PREVIEW_SIZE)
 
-    return text
+        return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
+    except ClientError as ex:
+        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
+            # The client somehow failed to upload the README.
+            return None
+        else:
+            # Something unexpected happened.
+            raise
+    except OSError:
+        # Failed to ungzip: either the contents is not actually gzipped,
+        # or the response was truncated because it was too big.
+        return None
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
