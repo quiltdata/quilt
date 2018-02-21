@@ -1809,6 +1809,12 @@ def disable_user():
     username = data.get('username')
     _validate_username(username)
 
+    if g.auth.user == username:
+        raise ApiException(
+            403,
+            "Can't disable your own account."
+            )
+
     resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'is_active' : False
