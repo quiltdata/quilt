@@ -3,8 +3,8 @@ if (window.location.hostname === 'quiltdata.com') {
   window.__CONFIG = {
     api: 'https://pkg.quiltdata.com',
     stripeKey: 'pk_live_aV44tCGHpBZr5FfFCUqbXqid',
-    userApi: 'https://app.quiltdata.com/api-root',
-    signOutUrl: 'https://app.quiltdata.com/api-auth/logout?next=%2F'
+    userApi: 'https://app.quiltdata.com/accounts/api-root',
+    signOutUrl: 'https://app.quiltdata.com/accounts/logout?next=%2F'
   };
 } else {
   window.__CONFIG = {
