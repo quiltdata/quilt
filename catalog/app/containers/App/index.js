@@ -9,6 +9,7 @@ import status from 'constants/api';
 import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
+import Notifications from 'containers/Notifications';
 
 import { routerStart } from './actions';
 import {
@@ -46,6 +47,7 @@ export class App extends React.PureComponent { // eslint-disable-line react/pref
           { children }
         </Pad>
         <Footer />
+        <Notifications />
       </CoreLF>
     );
   }

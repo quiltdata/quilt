@@ -14,6 +14,10 @@ export default defineMessages({
     id: 'app.containers.Profile.public',
     defaultMessage: 'Public',
   },
+  team: {
+    id: 'app.containers.Profile.team',
+    defaultMessage: 'Team',
+  },
   shared: {
     id: 'app.containers.Profile.shared',
     defaultMessage: 'Shared with you',
@@ -33,6 +37,10 @@ export default defineMessages({
   learnMore: {
     id: 'app.containers.Profile.learnMore',
     defaultMessage: 'Compare plans',
+  },
+  membersAdd: {
+    id: 'app.containers.Profile.membersAdd',
+    defaultMessage: 'Add member',
   },
   updatePayment: {
     id: 'app.containers.Profile.updatePayment',
