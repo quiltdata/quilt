@@ -1,16 +1,39 @@
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
+import IconButton from 'material-ui/IconButton';
 import PT from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { injectIntl } from 'react-intl';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
+import styled from 'styled-components';
 
+import MIcon from 'components/MIcon';
 import Working from 'components/Working';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
 import { branch } from './util';
 import ErrorMessage from './ErrorMessage';
+
+const TitleContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+`;
+
+const Title = compose(
+  setPropTypes({
+    onClose: PT.func.isRequired,
+  }),
+  setDisplayName('Admin.AuditDialog.Title'),
+)(({ onClose, ...props }) => (
+  <TitleContainer>
+    <h3 {...props} />
+    <IconButton
+      style={{ width: '72px', height: '72px', padding: '24px' }}
+      onClick={onClose}
+    ><MIcon>close</MIcon></IconButton>
+  </TitleContainer>
+));
 
 export default compose(
   injectIntl,
@@ -37,7 +60,7 @@ export default compose(
   intl: { formatMessage },
 }) => (
   <Dialog
-    title={title}
+    title={<Title onClose={onClose}>{title}</Title>}
     actions={[
       <FlatButton
         label={formatMessage(msg.closeAuditDialog)}
