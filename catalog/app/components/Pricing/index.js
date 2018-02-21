@@ -67,7 +67,7 @@ function Pricing({ signUp, takeAction }) {
               <tr>
                 <th>Free</th>
                 <th>Individual</th>
-                <th>Teams</th>
+                <th>Team</th>
               </tr>
               <tr className="price">
                 <td>
@@ -82,18 +82,18 @@ function Pricing({ signUp, takeAction }) {
               </tr>
               <tr>
                 <td>
-                  Unlimited public packages<br />
+                  • Unlimited public packages<br />
                 </td>
                 <td>
-                  Unlimited public packages<br />
-                  Up to 1TB of private packages<br />
+                  • Unlimited public packages<br />
+                  • Up to 1TB of private packages<br />
                 </td>
                 <td>
-                  Unlimited public packages<br />
-                  1TB+ of private packages<br />
-                  Dedicated registry and storage<br />
-                  Priority support<br />
-                  Team administration and auditing<br />
+                  • Unlimited public packages<br />
+                  • 1TB and up of private packages<br />
+                  • Priority support<br />
+                  • Admin and auditing features<br />
+                  • Dedicated registry and catalog<br />
                   * Sold in blocks of 10 users<br />
                 </td>
               </tr>
