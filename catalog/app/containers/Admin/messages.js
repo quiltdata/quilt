@@ -38,17 +38,17 @@ export default defineMessages({
     id: 'app.containers.Admin.auditPackage',
     defaultMessage: 'Audit package',
   },
-  removeUserConfirm: {
-    id: 'app.containers.Admin.removeUserConfirm',
-    defaultMessage: 'Are you sure you want to remove user {name}?',
+  disableUserConfirm: {
+    id: 'app.containers.Admin.disableUserConfirm',
+    defaultMessage: 'Are you sure you want to disable user {name}?',
   },
-  removeUserSuccess: {
-    id: 'app.containers.Admin.removeUserSuccess',
-    defaultMessage: 'User {name} has been removed',
+  disableUserSuccess: {
+    id: 'app.containers.Admin.disableUserSuccess',
+    defaultMessage: 'User {name} has been disabled',
   },
-  removeUserError: {
-    id: 'app.containers.Admin.removeUserError',
-    defaultMessage: 'Error removing user {name}',
+  disableUserError: {
+    id: 'app.containers.Admin.disableUserError',
+    defaultMessage: 'Error disabling user {name}',
   },
   resetUserPasswordSuccess: {
     id: 'app.containers.Admin.resetUserPasswordSuccess',
@@ -142,9 +142,9 @@ export default defineMessages({
     id: 'app.containers.Admin.Members.empty',
     defaultMessage: 'No one here yet',
   },
-  membersRemove: {
-    id: 'app.containers.Admin.Members.remove',
-    defaultMessage: 'Remove member',
+  membersDisable: {
+    id: 'app.containers.Admin.Members.disable',
+    defaultMessage: 'Disable user',
   },
   membersResetPassword: {
     id: 'app.containers.Admin.Members.resetPassword',

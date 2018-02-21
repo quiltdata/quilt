@@ -12,7 +12,7 @@ import {
   MEMBER_ADDED,
   GET_MEMBER_AUDIT,
   GET_MEMBER_AUDIT_RESPONSE,
-  REMOVE_MEMBER_RESPONSE,
+  DISABLE_MEMBER_RESPONSE,
   GET_PACKAGES,
   GET_PACKAGES_RESPONSE,
   GET_PACKAGE_AUDIT,
@@ -63,7 +63,7 @@ export default function adminReducer(state = initialState, action) {
       return state
         .setIn(['memberAudit', 'status'], action.status)
         .setIn(['memberAudit', 'response'], action.response);
-    case REMOVE_MEMBER_RESPONSE:
+    case DISABLE_MEMBER_RESPONSE:
       if (action.status === api.ERROR) return state;
       return state.updateIn(['members', 'response'], (members) =>
         members && members.filter

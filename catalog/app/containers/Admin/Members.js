@@ -39,7 +39,7 @@ const MembersTable = compose(
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
-      remove: PT.func.isRequired,
+      disable: PT.func.isRequired,
       resetPassword: PT.func.isRequired,
     }).isRequired,
     intl: PT.shape({
@@ -47,7 +47,7 @@ const MembersTable = compose(
     }).isRequired,
   }),
   withStatefulActions(({ intl: { formatMessage }, ...props }) => [
-    { text: formatMessage(msg.membersRemove), callback: props.remove },
+    { text: formatMessage(msg.membersDisable), callback: props.disable },
     'divider',
     { text: formatMessage(msg.membersResetPassword), callback: props.resetPassword },
   ]),

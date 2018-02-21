@@ -12,8 +12,8 @@ import {
   GET_MEMBERS_RESPONSE,
   GET_MEMBER_AUDIT,
   GET_MEMBER_AUDIT_RESPONSE,
-  REMOVE_MEMBER,
-  REMOVE_MEMBER_RESPONSE,
+  DISABLE_MEMBER,
+  DISABLE_MEMBER_RESPONSE,
   RESET_MEMBER_PASSWORD,
   RESET_MEMBER_PASSWORD_RESPONSE,
   GET_PACKAGES,
@@ -69,25 +69,25 @@ export const getMemberAuditSuccess = (response) => getMemberAuditResponse(api.SU
 export const getMemberAuditError = (response) => getMemberAuditResponse(api.ERROR, response);
 
 
-// remove member
-export const removeMember = (name, { resolve, reject }) => ({
-  type: REMOVE_MEMBER,
+// disable member
+export const disableMember = (name, { resolve, reject }) => ({
+  type: DISABLE_MEMBER,
   name,
   resolve,
   reject,
 });
 
-export const removeMemberResponse = (name, status, response) => ({
-  type: REMOVE_MEMBER_RESPONSE,
+export const disableMemberResponse = (name, status, response) => ({
+  type: DISABLE_MEMBER_RESPONSE,
   name,
   status,
   response,
 });
 
-export const removeMemberSuccess = (name, response) =>
-  removeMemberResponse(name, api.SUCCESS, response);
-export const removeMemberError = (name, response) =>
-  removeMemberResponse(name, api.ERROR, response);
+export const disableMemberSuccess = (name, response) =>
+  disableMemberResponse(name, api.SUCCESS, response);
+export const disableMemberError = (name, response) =>
+  disableMemberResponse(name, api.ERROR, response);
 
 
 // reset member password

@@ -41,7 +41,7 @@ export default compose(
     getMembers: PT.func.isRequired,
     memberAudit: PT.object.isRequired,
     getMemberAudit: PT.func.isRequired,
-    removeMember: PT.func.isRequired,
+    disableMember: PT.func.isRequired,
     resetMemberPassword: PT.func.isRequired,
     packages: PT.object.isRequired,
     getPackages: PT.func.isRequired,
@@ -59,18 +59,18 @@ export default compose(
     },
   }),
   withHandlers({
-    removeMember: ({ removeMember, pushNotification, intl: { formatMessage } }) => (name) => {
+    disableMember: ({ disableMember, pushNotification, intl: { formatMessage } }) => (name) => {
       // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm(formatMessage(msg.removeUserConfirm, { name }))) {
+      if (!confirm(formatMessage(msg.disableUserConfirm, { name }))) {
         return Promise.resolve();
       }
 
-      return dispatchPromise(removeMember, name)
+      return dispatchPromise(disableMember, name)
         .then(() => {
-          pushNotification(formatMessage(msg.removeUserSuccess, { name }));
+          pushNotification(formatMessage(msg.disableUserSuccess, { name }));
         })
         .catch(() => {
-          pushNotification(formatMessage(msg.removeUserError, { name }));
+          pushNotification(formatMessage(msg.disableUserError, { name }));
         });
     },
     resetMemberPassword: ({ resetMemberPassword, pushNotification, intl: { formatMessage } }) => (name) =>
@@ -82,9 +82,9 @@ export default compose(
           pushNotification(formatMessage(msg.resetUserPasswordError, { name }));
         }),
   }),
-  withProps(({ removeMember, resetMemberPassword }) => ({
+  withProps(({ disableMember, resetMemberPassword }) => ({
     memberActions: {
-      remove: removeMember,
+      disable: disableMember,
       resetPassword: resetMemberPassword,
     },
   })),

@@ -11,8 +11,8 @@ import {
   getMembersError,
   getMemberAuditSuccess,
   getMemberAuditError,
-  removeMemberSuccess,
-  removeMemberError,
+  disableMemberSuccess,
+  disableMemberError,
   resetMemberPasswordSuccess,
   resetMemberPasswordError,
   getPackagesSuccess,
@@ -24,7 +24,7 @@ import {
   ADD_MEMBER,
   GET_MEMBERS,
   GET_MEMBER_AUDIT,
-  REMOVE_MEMBER,
+  DISABLE_MEMBER,
   RESET_MEMBER_PASSWORD,
   GET_PACKAGES,
   GET_PACKAGE_AUDIT,
@@ -112,23 +112,23 @@ export function* watchGetMemberAudit() {
 }
 
 
-// remove member
-export function* doRemoveMember({ name, resolve, reject }) {
+// disable member
+export function* doDisableMember({ name, resolve, reject }) {
   try {
     const response = yield call(apiRequest, '/users/disable', {
       method: 'POST',
       body: JSON.stringify({ username: name }),
     });
-    yield put(removeMemberSuccess(name, response));
+    yield put(disableMemberSuccess(name, response));
     if (resolve) yield call(resolve, response);
   } catch (err) {
-    yield put(removeMemberError(name, err));
+    yield put(disableMemberError(name, err));
     if (reject) yield call(reject, err);
   }
 }
 
-export function* watchRemoveMember() {
-  yield takeEvery(REMOVE_MEMBER, doRemoveMember);
+export function* watchDisableMember() {
+  yield takeEvery(DISABLE_MEMBER, doDisableMember);
 }
 
 
@@ -202,7 +202,7 @@ export default [
   watchAddMember,
   watchGetMembers,
   watchGetMemberAudit,
-  watchRemoveMember,
+  watchDisableMember,
   watchResetMemberPassword,
   watchGetPackages,
   watchGetPackageAudit,
