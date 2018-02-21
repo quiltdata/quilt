@@ -23,8 +23,6 @@ import ErrorMessage from './ErrorMessage';
 const packageActivities = [
   'installs',
   'previews',
-  // 'deletes',
-  // 'pushes',
 ];
 
 const PackagesTable = compose(

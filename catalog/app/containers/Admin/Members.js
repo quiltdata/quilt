@@ -26,8 +26,6 @@ const memberActivities = [
   'packages',
   'installs',
   'previews',
-  // 'deletes',
-  // 'pushes',
 ];
 
 const MembersTable = compose(

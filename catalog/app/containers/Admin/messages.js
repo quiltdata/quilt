@@ -44,7 +44,7 @@ export default defineMessages({
   },
   removeUserError: {
     id: 'app.containers.Admin.removeUserError',
-    defaultMessage: 'There was an error while removing user {name}',
+    defaultMessage: 'Error removing user {name}',
   },
   resetUserPasswordSuccess: {
     id: 'app.containers.Admin.resetUserPasswordSuccess',
@@ -52,7 +52,7 @@ export default defineMessages({
   },
   resetUserPasswordError: {
     id: 'app.containers.Admin.resetUserPasswordError',
-    defaultMessage: 'There was an error while resetting password for user {name}',
+    defaultMessage: 'Error resetting password for user {name}',
   },
   defaultErrorMessage: {
     id: 'app.containers.Admin.defaultErrorMessage',
@@ -64,11 +64,11 @@ export default defineMessages({
   },
   addMemberFormErrorUniq: {
     id: 'app.containers.Admin.AddMember.formErrorUniq',
-    defaultMessage: 'The user with this username or email already exists',
+    defaultMessage: 'Username or email already taken',
   },
   addMemberFormErrorUsername: {
     id: 'app.containers.Admin.AddMember.formErrorUsername',
-    defaultMessage: 'Username must start with a letter or underscore, and contain only alphanumeric characters and underscores thereafter',
+    defaultMessage: 'Username must start with a letter or underscore, and contain only alphanumeric characters and underscores',
   },
   addMemberUsername: {
     id: 'app.containers.Admin.AddMember.username',
@@ -76,11 +76,11 @@ export default defineMessages({
   },
   addMemberUsernameRequired: {
     id: 'app.containers.Admin.AddMember.usernameRequired',
-    defaultMessage: 'Enter a username please',
+    defaultMessage: 'Enter a username',
   },
   addMemberUsernameInvalid: {
     id: 'app.containers.Admin.AddMember.usernameInvalid',
-    defaultMessage: 'Enter a valid username please',
+    defaultMessage: 'Enter a valid username',
   },
   addMemberEmail: {
     id: 'app.containers.Admin.AddMember.email',
@@ -88,11 +88,11 @@ export default defineMessages({
   },
   addMemberEmailRequired: {
     id: 'app.containers.Admin.AddMember.emailRequired',
-    defaultMessage: 'Enter an email please',
+    defaultMessage: 'Enter an email address',
   },
   addMemberEmailInvalid: {
     id: 'app.containers.Admin.AddMember.emailInvalid',
-    defaultMessage: 'Enter a valid email please',
+    defaultMessage: 'Enter a valid email',
   },
   addMemberSubmit: {
     id: 'app.containers.Admin.AddMember.submit',
@@ -100,7 +100,7 @@ export default defineMessages({
   },
   addMemberSuccess: {
     id: 'app.containers.Admin.AddMember.success',
-    defaultMessage: 'User {name} <{email}> added successfully',
+    defaultMessage: 'User {name} ({email}) invited',
   },
   pkgHandle: {
     id: 'app.containers.Admin.Packages.handle',
@@ -136,7 +136,7 @@ export default defineMessages({
   },
   membersEmpty: {
     id: 'app.containers.Admin.Members.empty',
-    defaultMessage: 'Noone here yet',
+    defaultMessage: 'No one here yet',
   },
   membersRemove: {
     id: 'app.containers.Admin.Members.remove',
