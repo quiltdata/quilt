@@ -32,6 +32,7 @@ const memberActivities = [
 const MembersTable = compose(
   injectIntl,
   setPropTypes({
+    user: PT.string.isRequired,
     audit: PT.func.isRequired,
     members: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
@@ -48,10 +49,14 @@ const MembersTable = compose(
       formatMessage: PT.func.isRequired,
     }).isRequired,
   }),
-  withStatefulActions(({ intl: { formatMessage }, ...props }) => ({ name, status }) =>
+  withStatefulActions(({ intl: { formatMessage }, user, ...props }) => ({ name, status }) =>
     status === 'active'
       ? [
-        { text: formatMessage(msg.membersDisable), callback: () => props.disable(name) },
+        {
+          text: formatMessage(msg.membersDisable),
+          callback: () => props.disable(name),
+          disabled: user === name,
+        },
         'divider',
         { text: formatMessage(msg.membersResetPassword), callback: () => props.resetPassword(name) },
       ]
@@ -145,6 +150,7 @@ export default compose(
   response,
   actions,
   audit,
+  ...props
 }) => (
   <Fragment>
     <h2>
@@ -163,6 +169,7 @@ export default compose(
             members={response}
             audit={audit}
             actions={actions}
+            {...props}
           />
         ),
         [api.ERROR]: () => <ErrorMessage error={response} />,

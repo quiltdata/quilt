@@ -16,6 +16,7 @@ export default compose(
         PT.shape({
           text: PT.string.isRequired,
           callback: PT.func.isRequired,
+          disabled: PT.bool,
         }),
       ]).isRequired
     ).isRequired, // eslint-disable-line function-paren-newline
@@ -36,7 +37,7 @@ export default compose(
         // eslint-disable-next-line react/no-array-index-key
         ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
         // eslint-disable-next-line react/no-array-index-key
-        : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={a.callback} />
+        : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={a.callback} disabled={a.disabled} />
       // eslint-disable-next-line function-paren-newline
     )}
   </IconMenu>

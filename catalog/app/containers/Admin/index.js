@@ -11,9 +11,11 @@ import {
   withHandlers,
   withProps,
 } from 'recompose';
+import { createSelector } from 'reselect';
 
-import { push } from 'containers/Notifications/actions';
 import config from 'constants/config';
+import { makeSelectUserName } from 'containers/App/selectors';
+import { push } from 'containers/Notifications/actions';
 
 import * as actions from './actions';
 import msg from './messages';
@@ -34,8 +36,12 @@ const dispatchPromise = (actionCreator, ...args) =>
 
 export default compose(
   injectIntl,
-  connect(selector, { pushNotification: push, ...actions }),
+  connect(
+    createSelector(selector, makeSelectUserName(), (admin, user) => ({ user, ...admin })),
+    { pushNotification: push, ...actions }
+  ),
   setPropTypes({
+    user: PT.string.isRequired,
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
@@ -103,6 +109,7 @@ export default compose(
   })),
   setDisplayName('Admin'),
 )(({
+  user,
   addMember,
   members,
   memberActions,
@@ -127,7 +134,7 @@ export default compose(
 
     <AddMember addMember={addMember} />
 
-    <Members {...members} audit={getMemberAudit} actions={memberActions} />
+    <Members {...members} audit={getMemberAudit} actions={memberActions} user={user} />
 
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 
