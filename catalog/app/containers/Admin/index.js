@@ -1,9 +1,8 @@
 /* Admin */
-import Checkbox from 'material-ui/Checkbox';
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { FormattedMessage as FM, injectIntl } from 'react-intl';
+import { injectIntl } from 'react-intl';
 import {
   compose,
   lifecycle,
@@ -25,6 +24,7 @@ import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
+import Policies from './Policies';
 
 
 const teamName = config.team && config.team.name;
@@ -90,6 +90,9 @@ export default compose(
         .catch(() => {
           pushNotification(formatMessage(msg.resetUserPasswordError, { name }));
         }),
+    changePolicy: ({ pushNotification, intl: { formatMessage } }) => () => {
+      pushNotification(formatMessage(msg.changePolicy));
+    },
   }),
   withProps((props) => ({
     memberActions: {
@@ -110,13 +113,17 @@ export default compose(
   getPackageAudit,
   packageAudit,
   intl: { formatMessage },
+  changePolicy,
 }) => (
   <div>
-    <h1><FM {...msg.teamHeader} values={{ name: teamName }} /></h1>
+    <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
 
-    <h2><FM {...msg.teamPolicies} /></h2>
-    <Checkbox disabled checked label={<FM {...msg.membersRead} />} />
-    <Checkbox disabled checked={false} label={<FM {...msg.membersWrite} />} />
+    <Policies
+      read
+      write={false}
+      onReadCheck={changePolicy}
+      onWriteCheck={changePolicy}
+    />
 
     <AddMember addMember={addMember} />
 

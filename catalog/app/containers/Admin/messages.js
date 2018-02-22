@@ -30,6 +30,10 @@ export default defineMessages({
     id: 'app.containers.Admin.teamPolicies',
     defaultMessage: 'Policies',
   },
+  changePolicy: {
+    id: 'app.containers.Admin.changePolicy',
+    defaultMessage: 'Contact support@quiltdata.io to change these settings',
+  },
   auditUser: {
     id: 'app.containers.Admin.auditUser',
     defaultMessage: 'User audit',
