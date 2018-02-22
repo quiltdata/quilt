@@ -1,9 +1,8 @@
 /* Admin */
-import Checkbox from 'material-ui/Checkbox';
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { FormattedMessage as FM, injectIntl } from 'react-intl';
+import { injectIntl } from 'react-intl';
 import {
   compose,
   lifecycle,
@@ -12,9 +11,11 @@ import {
   withHandlers,
   withProps,
 } from 'recompose';
+import { createSelector } from 'reselect';
 
-import { push } from 'containers/Notifications/actions';
 import config from 'constants/config';
+import { makeSelectUserName } from 'containers/App/selectors';
+import { push } from 'containers/Notifications/actions';
 
 import * as actions from './actions';
 import msg from './messages';
@@ -25,6 +26,7 @@ import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
+import Policies from './Policies';
 
 
 const teamName = config.team && config.team.name;
@@ -34,14 +36,19 @@ const dispatchPromise = (actionCreator, ...args) =>
 
 export default compose(
   injectIntl,
-  connect(selector, { pushNotification: push, ...actions }),
+  connect(
+    createSelector(selector, makeSelectUserName(), (admin, user) => ({ user, ...admin })),
+    { pushNotification: push, ...actions }
+  ),
   setPropTypes({
+    user: PT.string.isRequired,
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
     memberAudit: PT.object.isRequired,
     getMemberAudit: PT.func.isRequired,
-    removeMember: PT.func.isRequired,
+    disableMember: PT.func.isRequired,
+    enableMember: PT.func.isRequired,
     resetMemberPassword: PT.func.isRequired,
     packages: PT.object.isRequired,
     getPackages: PT.func.isRequired,
@@ -59,20 +66,28 @@ export default compose(
     },
   }),
   withHandlers({
-    removeMember: ({ removeMember, pushNotification, intl: { formatMessage } }) => (name) => {
+    disableMember: ({ disableMember, pushNotification, intl: { formatMessage } }) => (name) => {
       // eslint-disable-next-line no-alert, no-restricted-globals
-      if (!confirm(formatMessage(msg.removeUserConfirm, { name }))) {
+      if (!confirm(formatMessage(msg.disableUserConfirm, { name }))) {
         return Promise.resolve();
       }
 
-      return dispatchPromise(removeMember, name)
+      return dispatchPromise(disableMember, name)
         .then(() => {
-          pushNotification(formatMessage(msg.removeUserSuccess, { name }));
+          pushNotification(formatMessage(msg.disableUserSuccess, { name }));
         })
         .catch(() => {
-          pushNotification(formatMessage(msg.removeUserError, { name }));
+          pushNotification(formatMessage(msg.disableUserError, { name }));
         });
     },
+    enableMember: ({ enableMember, pushNotification, intl: { formatMessage } }) => (name) =>
+      dispatchPromise(enableMember, name)
+        .then(() => {
+          pushNotification(formatMessage(msg.enableUserSuccess, { name }));
+        })
+        .catch(() => {
+          pushNotification(formatMessage(msg.enableUserError, { name }));
+        }),
     resetMemberPassword: ({ resetMemberPassword, pushNotification, intl: { formatMessage } }) => (name) =>
       dispatchPromise(resetMemberPassword, name)
         .then(() => {
@@ -81,15 +96,20 @@ export default compose(
         .catch(() => {
           pushNotification(formatMessage(msg.resetUserPasswordError, { name }));
         }),
+    changePolicy: ({ pushNotification, intl: { formatMessage } }) => () => {
+      pushNotification(formatMessage(msg.changePolicy));
+    },
   }),
-  withProps(({ removeMember, resetMemberPassword }) => ({
+  withProps((props) => ({
     memberActions: {
-      remove: removeMember,
-      resetPassword: resetMemberPassword,
+      disable: props.disableMember,
+      enable: props.enableMember,
+      resetPassword: props.resetMemberPassword,
     },
   })),
   setDisplayName('Admin'),
 )(({
+  user,
   addMember,
   members,
   memberActions,
@@ -100,17 +120,21 @@ export default compose(
   getPackageAudit,
   packageAudit,
   intl: { formatMessage },
+  changePolicy,
 }) => (
   <div>
-    <h1><FM {...msg.teamHeader} values={{ name: teamName.toUpperCase() }} /></h1>
+    <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
 
-    <h2><FM {...msg.teamPolicies} /></h2>
-    <Checkbox checked label={<FM {...msg.membersRead} />} />
-    <Checkbox checked={false} label={<FM {...msg.membersWrite} />} />
+    <Policies
+      read
+      write={false}
+      onReadCheck={changePolicy}
+      onWriteCheck={changePolicy}
+    />
 
     <AddMember addMember={addMember} />
 
-    <Members {...members} audit={getMemberAudit} actions={memberActions} />
+    <Members {...members} audit={getMemberAudit} actions={memberActions} user={user} />
 
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 

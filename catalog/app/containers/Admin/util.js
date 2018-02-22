@@ -13,7 +13,7 @@ export const formatActivity = (map, activity) =>
 
 export const formatDate = (d) => d ? new Date(d).toLocaleString() : 'N/A';
 
-export const withStatefulActions = (displayActions) => compose(
+export const withStatefulActions = (bindActions) => compose(
   withStateHandlers({ pending: {} }, {
     startAction: ({ pending }) => (key) => ({
       pending: Object.assign({}, pending, { [key]: true }),
@@ -32,5 +32,5 @@ export const withStatefulActions = (displayActions) => compose(
           .then(() => endAction(arg))
           .catch((e) => { endAction(arg); throw e; });
       })),
-  withProps((p) => ({ actions: displayActions(p) })),
+  withProps((props) => ({ bindActions: bindActions(props) })),
 );

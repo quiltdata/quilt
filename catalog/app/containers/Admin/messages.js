@@ -30,25 +30,37 @@ export default defineMessages({
     id: 'app.containers.Admin.teamPolicies',
     defaultMessage: 'Policies',
   },
+  changePolicy: {
+    id: 'app.containers.Admin.changePolicy',
+    defaultMessage: 'Contact support@quiltdata.io to change these settings',
+  },
   auditUser: {
     id: 'app.containers.Admin.auditUser',
-    defaultMessage: 'Audit user',
+    defaultMessage: 'User audit',
   },
   auditPackage: {
     id: 'app.containers.Admin.auditPackage',
-    defaultMessage: 'Audit package',
+    defaultMessage: 'Package audit',
   },
-  removeUserConfirm: {
-    id: 'app.containers.Admin.removeUserConfirm',
-    defaultMessage: 'Are you sure you want to remove user {name}?',
+  disableUserConfirm: {
+    id: 'app.containers.Admin.disableUserConfirm',
+    defaultMessage: 'Are you sure you want to disable user {name}?',
   },
-  removeUserSuccess: {
-    id: 'app.containers.Admin.removeUserSuccess',
-    defaultMessage: 'User {name} has been removed',
+  disableUserSuccess: {
+    id: 'app.containers.Admin.disableUserSuccess',
+    defaultMessage: 'User {name} has been disabled',
   },
-  removeUserError: {
-    id: 'app.containers.Admin.removeUserError',
-    defaultMessage: 'Error removing user {name}',
+  disableUserError: {
+    id: 'app.containers.Admin.disableUserError',
+    defaultMessage: 'Error disabling user {name}',
+  },
+  enableUserSuccess: {
+    id: 'app.containers.Admin.enableUserSuccess',
+    defaultMessage: 'User {name} has been enabled',
+  },
+  enableUserError: {
+    id: 'app.containers.Admin.enableUserError',
+    defaultMessage: 'Error enabling user {name}',
   },
   resetUserPasswordSuccess: {
     id: 'app.containers.Admin.resetUserPasswordSuccess',
@@ -134,17 +146,21 @@ export default defineMessages({
     id: 'app.containers.Admin.Members.lastSeen',
     defaultMessage: 'Last seen',
   },
-  membersSettings: {
-    id: 'app.containers.Admin.Members.settings',
-    defaultMessage: 'Settings',
-  },
   membersEmpty: {
     id: 'app.containers.Admin.Members.empty',
     defaultMessage: 'No one here yet',
   },
-  membersRemove: {
-    id: 'app.containers.Admin.Members.remove',
-    defaultMessage: 'Remove member',
+  membersDisabled: {
+    id: 'app.containers.Admin.Members.disabled',
+    defaultMessage: 'disabled',
+  },
+  membersDisable: {
+    id: 'app.containers.Admin.Members.disable',
+    defaultMessage: 'Disable user',
+  },
+  membersEnable: {
+    id: 'app.containers.Admin.Members.enable',
+    defaultMessage: 'Enable user',
   },
   membersResetPassword: {
     id: 'app.containers.Admin.Members.resetPassword',

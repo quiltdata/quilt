@@ -11,8 +11,10 @@ import {
   getMembersError,
   getMemberAuditSuccess,
   getMemberAuditError,
-  removeMemberSuccess,
-  removeMemberError,
+  disableMemberSuccess,
+  disableMemberError,
+  enableMemberSuccess,
+  enableMemberError,
   resetMemberPasswordSuccess,
   resetMemberPasswordError,
   getPackagesSuccess,
@@ -24,7 +26,8 @@ import {
   ADD_MEMBER,
   GET_MEMBERS,
   GET_MEMBER_AUDIT,
-  REMOVE_MEMBER,
+  DISABLE_MEMBER,
+  ENABLE_MEMBER,
   RESET_MEMBER_PASSWORD,
   GET_PACKAGES,
   GET_PACKAGE_AUDIT,
@@ -46,9 +49,16 @@ function* apiRequest(endpoint, opts = {}) {
   return response;
 }
 
-// eslint-disable-next-line camelcase
-const normalizeMember = ([name, { last_seen, ...member }]) =>
-  ({ name, lastSeen: last_seen, ...member });
+// some magic here to mitigate the differences between the DTOs used by different endpoints
+// eslint-disable-next-line camelcase, object-curly-newline
+const normalizeMember = ([name, { last_seen, is_active = 'none', status, ...member }]) => ({
+  name,
+  // eslint-disable-next-line camelcase
+  lastSeen: last_seen,
+  // eslint-disable-next-line camelcase, no-nested-ternary
+  status: is_active === 'none' ? status : is_active ? 'active' : 'disabled',
+  ...member,
+});
 
 
 // add member
@@ -112,23 +122,43 @@ export function* watchGetMemberAudit() {
 }
 
 
-// remove member
-export function* doRemoveMember({ name, resolve, reject }) {
+// disable member
+export function* doDisableMember({ name, resolve, reject }) {
   try {
     const response = yield call(apiRequest, '/users/disable', {
       method: 'POST',
       body: JSON.stringify({ username: name }),
     });
-    yield put(removeMemberSuccess(name, response));
+    yield put(disableMemberSuccess(name, response));
     if (resolve) yield call(resolve, response);
   } catch (err) {
-    yield put(removeMemberError(name, err));
+    yield put(disableMemberError(name, err));
     if (reject) yield call(reject, err);
   }
 }
 
-export function* watchRemoveMember() {
-  yield takeEvery(REMOVE_MEMBER, doRemoveMember);
+export function* watchDisableMember() {
+  yield takeEvery(DISABLE_MEMBER, doDisableMember);
+}
+
+
+// enable member
+export function* doEnableMember({ name, resolve, reject }) {
+  try {
+    const response = yield call(apiRequest, '/users/enable', {
+      method: 'POST',
+      body: JSON.stringify({ username: name }),
+    });
+    yield put(enableMemberSuccess(name, response));
+    if (resolve) yield call(resolve, response);
+  } catch (err) {
+    yield put(enableMemberError(name, err));
+    if (reject) yield call(reject, err);
+  }
+}
+
+export function* watchEnableMember() {
+  yield takeEvery(ENABLE_MEMBER, doEnableMember);
 }
 
 
@@ -202,7 +232,8 @@ export default [
   watchAddMember,
   watchGetMembers,
   watchGetMemberAudit,
-  watchRemoveMember,
+  watchDisableMember,
+  watchEnableMember,
   watchResetMemberPassword,
   watchGetPackages,
   watchGetPackageAudit,

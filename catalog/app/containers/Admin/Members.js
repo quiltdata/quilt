@@ -13,6 +13,7 @@ import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
+import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
@@ -31,6 +32,7 @@ const memberActivities = [
 const MembersTable = compose(
   injectIntl,
   setPropTypes({
+    user: PT.string.isRequired,
     audit: PT.func.isRequired,
     members: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
@@ -39,49 +41,92 @@ const MembersTable = compose(
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
-      remove: PT.func.isRequired,
+      enable: PT.func.isRequired,
+      disable: PT.func.isRequired,
       resetPassword: PT.func.isRequired,
     }).isRequired,
     intl: PT.shape({
       formatMessage: PT.func.isRequired,
     }).isRequired,
   }),
-  withStatefulActions(({ intl: { formatMessage }, ...props }) => [
-    { text: formatMessage(msg.membersRemove), callback: props.remove },
-    'divider',
-    { text: formatMessage(msg.membersResetPassword), callback: props.resetPassword },
-  ]),
+  withStatefulActions(({ intl: { formatMessage }, user, ...props }) => ({ name, status }) =>
+    status === 'active'
+      ? [
+        {
+          text: formatMessage(msg.membersDisable),
+          callback: () => props.disable(name),
+          disabled: user === name,
+        },
+        'divider',
+        { text: formatMessage(msg.membersResetPassword), callback: () => props.resetPassword(name) },
+      ]
+      : [
+        { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
+      ]
+  ), // eslint-disable-line function-paren-newline
   setDisplayName('Admin.Members.Table'),
 // eslint-disable-next-line object-curly-newline
-)(({ audit, members, actions, pending }) => (
+)(({ audit, members, bindActions, pending, intl: { formatMessage } }) => (
   <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
-        <TableHeaderColumn><FM {...msg.membersName} /></TableHeaderColumn>
+        <TableHeaderColumn style={{ paddingLeft: '48px' }}><FM {...msg.membersName} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.membersSettings} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
-    <TableBody displayRowCheckbox={false}>
+    <TableBody displayRowCheckbox={false} stripedRows showRowHover>
       {members.length
-        ? members.map(({ name, lastSeen, ...activity }) => (
-          <TableRow hoverable key={name}>
-            <Cell locked={pending[name]}><Link to={`/user/${name}`}>{name}</Link></Cell>
+        // eslint-disable-next-line object-curly-newline
+        ? members.map(({ name, status, lastSeen, ...activity }) => (
+          <TableRow key={name}>
+            <Cell
+              locked={pending[name]}
+              style={{
+                paddingLeft: 0,
+              }}
+            >
+              <SettingsMenu
+                actions={bindActions({ name, status })}
+                busy={pending[name]}
+                style={{
+                  verticalAlign: 'middle',
+                }}
+                buttonProps={{
+                  // adjustments to keep the table row at 48px height
+                  style: {
+                    height: '46px',
+                    paddingTop: '10px',
+                    paddingBottom: '10px',
+                  },
+                }}
+              />
+              <Link
+                to={`/user/${name}`}
+                style={{
+                  verticalAlign: 'middle',
+                  opacity: status === 'disabled' ? 0.5 : undefined,
+                }}
+              >
+                {name}
+              </Link>
+              {' '}
+              {status === 'disabled'
+                ? <Badge label={formatMessage(msg.membersDisabled)} />
+                : null
+              }
+            </Cell>
             <Cell locked={pending[name]}>
               {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
               <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
               {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             </Cell>
             <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
-            <Cell locked={pending[name]}>
-              <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
-            </Cell>
           </TableRow>
         ))
         : (
           <TableRow>
-            <TableRowColumn colSpan={4}><FM {...msg.membersEmpty} /></TableRowColumn>
+            <TableRowColumn colSpan={3}><FM {...msg.membersEmpty} /></TableRowColumn>
           </TableRow>
         )
       }
@@ -105,6 +150,7 @@ export default compose(
   response,
   actions,
   audit,
+  ...props
 }) => (
   <Fragment>
     <h2>
@@ -123,6 +169,7 @@ export default compose(
             members={response}
             audit={audit}
             actions={actions}
+            {...props}
           />
         ),
         [api.ERROR]: () => <ErrorMessage error={response} />,
