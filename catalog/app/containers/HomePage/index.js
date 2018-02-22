@@ -30,7 +30,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
   render() {
     const { team = {} } = config;
     const header = team.name ? team.name : undefined;
-    const tagline = team.name ? 'Team data catalog' : undefined;
+    const tagline = team.name ? 'Team data registry' : undefined;
     const signUp = !team.name;
 
     return (
@@ -48,9 +48,13 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
             <h1>Work with your favorite tools</h1>
             <Values />
             <Demo />
-            <HCenter>
-              <Pricing signUp={signUp} />
-            </HCenter>
+            {
+              config.team.name ? null : (
+                <HCenter>
+                  <Pricing signUp={signUp} />
+                </HCenter>
+              )
+            }
           </Styler>
         </Pad>
         <BigSkip />

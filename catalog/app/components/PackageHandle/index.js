@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
+import config from 'constants/config';
 import VisibilityIcon from 'components/VisibilityIcon';
 
 const Lighter = styled.span`
@@ -18,24 +19,25 @@ const Text = styled.div`
 `;
 
 // eslint-disable-next-line object-curly-newline
-function PackageHandle({ isPublic, name, owner, showOwner }) {
-  const ownerString = showOwner ? <Lighter>{owner}/</Lighter> : null;
+function PackageHandle({ isPublic, name, owner, showPrefix }) {
+  const team = config.team.name;
+  const prefix = showPrefix ? `${team}:${owner}/` : null;
   const decorator = (
     isPublic === true || typeof isPublic !== 'boolean' ? null
       : <VisibilityIcon label="private" />
   );
-  return <Text>{ownerString}{name} {decorator}</Text>;
+  return <Text><Lighter>{prefix}</Lighter>{name} {decorator}</Text>;
 }
 
 PackageHandle.defaultProps = {
-  showOwner: true,
+  showPrefix: true,
 };
 
 PackageHandle.propTypes = {
   isPublic: PropTypes.bool.isRequired,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
-  showOwner: PropTypes.bool,
+  showPrefix: PropTypes.bool,
 };
 
 export default PackageHandle;

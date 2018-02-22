@@ -54,6 +54,11 @@ const Styler = styled.div`
   }
 `;
 
+const Small = styled.div`
+  font-size: 80%;
+  opacity: 0.5;
+`;
+
 const perUser = <span className="unit">per user / month</span>;
 
 function Pricing({ signUp, takeAction }) {
@@ -78,15 +83,16 @@ function Pricing({ signUp, takeAction }) {
                 </td>
                 <td>
                   <h2>$49* { perUser }</h2>
+                  <Small> * Sold in blocks of 10 users </Small>
                 </td>
               </tr>
               <tr>
                 <td>
-                  • Unlimited public packages<br />
+                  •&nbsp;Unlimited public packages<br />
                 </td>
                 <td>
-                  • Unlimited public packages<br />
-                  • Up to 1TB of private packages<br />
+                  •&nbsp;Unlimited public packages<br />
+                  •&nbsp;Up to 1TB of private packages<br />
                 </td>
                 <td>
                   • Unlimited public packages<br />
@@ -94,7 +100,6 @@ function Pricing({ signUp, takeAction }) {
                   • Priority support<br />
                   • Admin and auditing features<br />
                   • Dedicated registry and catalog<br />
-                  * Sold in blocks of 10 users<br />
                 </td>
               </tr>
             </tbody>
@@ -103,8 +108,8 @@ function Pricing({ signUp, takeAction }) {
       </Tabs>
       <p>
         <a href="mailto:sales@quiltdata.io?Subject=Quilt%20Teams%20Tier" target="_top">
-          Contact us
-        </a> to start Teams service.
+          Contact Quilt
+        </a> to start Team service.
       </p>
       { takeAction ? <TakeAction signUp={signUp} /> : null }
     </Styler>

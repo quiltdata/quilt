@@ -14,6 +14,8 @@ import { backgroundColor } from 'constants/style';
 import { blog, company, docs, jobs } from 'constants/urls';
 import UserMenu from 'components/UserMenu';
 
+import config from 'constants/config';
+
 const Bar = styled(Row)`
   background-color: ${backgroundColor};
   color: white;
@@ -64,11 +66,17 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
       <Bar>
         <NavRow>
           <Right>
-            <FlatButton href="/#pricing" label="pricing" style={navStyle} />
-            <FlatButton href={blog} label="blog" style={navStyle} />
             <FlatButton href={docs} label="docs" style={navStyle} />
+            {
+              config.team.name ? null : (
+                <div>
+                  <FlatButton href="/#pricing" label="pricing" style={navStyle} />
+                  <FlatButton href={jobs} label="jobs" style={navStyle} />
+                </div>
+              )
+            }
+            <FlatButton href={blog} label="blog" style={navStyle} />
             <FlatButton href={company} label="about" style={navStyle} />
-            <FlatButton href={jobs} label="jobs" style={navStyle} />
           </Right>
         </NavRow>
         <ColNoPad xs={12} sm={6} smPush={6}>

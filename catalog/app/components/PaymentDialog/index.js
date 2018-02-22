@@ -77,7 +77,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
           amount={next.cost}
           description={description}
           email={email}
-          image="https://d1j3mlw4fz6jw9.cloudfront.net/quilt-packages-stripe-checkout-logo.png"
+          image="https://d1zvn9rasera71.cloudfront.net/q-256-square.png"
           locale={locale}
           name="Quilt Data, Inc."
           panelLabel="Pay"

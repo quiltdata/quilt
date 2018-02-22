@@ -229,7 +229,7 @@ const PackagesArea = ({ packages, shortName, user }) => (
       emptyMessage={<FormattedMessage {...messages.noOwned} />}
       emptyHref={makePackage}
       packages={packages.own}
-      showOwner={false}
+      showPrefix={false}
     />
     <h2><FormattedMessage {...messages.shared} /></h2>
     <PackageList packages={packages.shared} />
