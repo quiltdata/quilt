@@ -31,7 +31,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
-from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
+from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode, LATEST_TAG
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
@@ -1530,7 +1530,7 @@ def search():
         )
         .join(Package.instances)
         .join(Instance.tags)
-        .filter(Tag.tag == Tag.LATEST)
+        .filter(Tag.tag == LATEST_TAG)
         .join(Instance.blobs)
         .filter(Instance.readme_hash() == S3Blob.hash)
         .subquery()

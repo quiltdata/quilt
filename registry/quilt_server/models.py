@@ -125,8 +125,6 @@ class Version(db.Model):
         return PackagingVersion(self.version)
 
 class Tag(db.Model):
-    LATEST = 'latest'
-
     package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), primary_key=True)
     tag = db.Column(db.String(64), primary_key=True)
     instance_id = db.Column(db.BigInteger, db.ForeignKey('instance.id'))
