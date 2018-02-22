@@ -13,6 +13,8 @@ import {
   getMemberAuditError,
   disableMemberSuccess,
   disableMemberError,
+  enableMemberSuccess,
+  enableMemberError,
   resetMemberPasswordSuccess,
   resetMemberPasswordError,
   getPackagesSuccess,
@@ -25,6 +27,7 @@ import {
   GET_MEMBERS,
   GET_MEMBER_AUDIT,
   DISABLE_MEMBER,
+  ENABLE_MEMBER,
   RESET_MEMBER_PASSWORD,
   GET_PACKAGES,
   GET_PACKAGE_AUDIT,
@@ -46,9 +49,16 @@ function* apiRequest(endpoint, opts = {}) {
   return response;
 }
 
+// some magic here to mitigate the differences between the DTOs used by different endpoints
 // eslint-disable-next-line camelcase
-const normalizeMember = ([name, { last_seen, ...member }]) =>
-  ({ name, lastSeen: last_seen, ...member });
+const normalizeMember = ([name, { last_seen, is_active = 'none', status, ...member }]) => ({
+  name,
+  // eslint-disable-next-line camelcase
+  lastSeen: last_seen,
+  // eslint-disable-next-line camelcase
+  status: is_active !== 'none' ? is_active ? 'active' : 'disabled' : status,
+  ...member,
+});
 
 
 // add member
@@ -132,6 +142,26 @@ export function* watchDisableMember() {
 }
 
 
+// enable member
+export function* doEnableMember({ name, resolve, reject }) {
+  try {
+    const response = yield call(apiRequest, '/users/enable', {
+      method: 'POST',
+      body: JSON.stringify({ username: name }),
+    });
+    yield put(enableMemberSuccess(name, response));
+    if (resolve) yield call(resolve, response);
+  } catch (err) {
+    yield put(enableMemberError(name, err));
+    if (reject) yield call(reject, err);
+  }
+}
+
+export function* watchEnableMember() {
+  yield takeEvery(ENABLE_MEMBER, doEnableMember);
+}
+
+
 // reset member password
 export function* doResetMemberPassword({ name, resolve, reject }) {
   try {
@@ -203,6 +233,7 @@ export default [
   watchGetMembers,
   watchGetMemberAudit,
   watchDisableMember,
+  watchEnableMember,
   watchResetMemberPassword,
   watchGetPackages,
   watchGetPackageAudit,

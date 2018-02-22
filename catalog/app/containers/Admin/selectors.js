@@ -12,7 +12,6 @@ export default createSelector(
       .updateIn(['members', 'response'], (members) =>
         members && members.filter
           ? members
-            .filter((m) => m.get('status') !== 'disabled')
             .sortBy((m) => m.get('name'))
           : members
       ) // eslint-disable-line function-paren-newline

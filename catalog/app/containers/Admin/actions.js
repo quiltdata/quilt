@@ -14,6 +14,8 @@ import {
   GET_MEMBER_AUDIT_RESPONSE,
   DISABLE_MEMBER,
   DISABLE_MEMBER_RESPONSE,
+  ENABLE_MEMBER,
+  ENABLE_MEMBER_RESPONSE,
   RESET_MEMBER_PASSWORD,
   RESET_MEMBER_PASSWORD_RESPONSE,
   GET_PACKAGES,
@@ -88,6 +90,27 @@ export const disableMemberSuccess = (name, response) =>
   disableMemberResponse(name, api.SUCCESS, response);
 export const disableMemberError = (name, response) =>
   disableMemberResponse(name, api.ERROR, response);
+
+
+// enable member
+export const enableMember = (name, { resolve, reject }) => ({
+  type: ENABLE_MEMBER,
+  name,
+  resolve,
+  reject,
+});
+
+export const enableMemberResponse = (name, status, response) => ({
+  type: ENABLE_MEMBER_RESPONSE,
+  name,
+  status,
+  response,
+});
+
+export const enableMemberSuccess = (name, response) =>
+  enableMemberResponse(name, api.SUCCESS, response);
+export const enableMemberError = (name, response) =>
+  enableMemberResponse(name, api.ERROR, response);
 
 
 // reset member password

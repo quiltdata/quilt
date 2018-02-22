@@ -42,6 +42,7 @@ export default compose(
     memberAudit: PT.object.isRequired,
     getMemberAudit: PT.func.isRequired,
     disableMember: PT.func.isRequired,
+    enableMember: PT.func.isRequired,
     resetMemberPassword: PT.func.isRequired,
     packages: PT.object.isRequired,
     getPackages: PT.func.isRequired,
@@ -73,6 +74,14 @@ export default compose(
           pushNotification(formatMessage(msg.disableUserError, { name }));
         });
     },
+    enableMember: ({ enableMember, pushNotification, intl: { formatMessage } }) => (name) =>
+      dispatchPromise(enableMember, name)
+        .then(() => {
+          pushNotification(formatMessage(msg.enableUserSuccess, { name }));
+        })
+        .catch(() => {
+          pushNotification(formatMessage(msg.enableUserError, { name }));
+        }),
     resetMemberPassword: ({ resetMemberPassword, pushNotification, intl: { formatMessage } }) => (name) =>
       dispatchPromise(resetMemberPassword, name)
         .then(() => {
@@ -82,10 +91,11 @@ export default compose(
           pushNotification(formatMessage(msg.resetUserPasswordError, { name }));
         }),
   }),
-  withProps(({ disableMember, resetMemberPassword }) => ({
+  withProps((props) => ({
     memberActions: {
-      disable: disableMember,
-      resetPassword: resetMemberPassword,
+      disable: props.disableMember,
+      enable: props.enableMember,
+      resetPassword: props.resetMemberPassword,
     },
   })),
   setDisplayName('Admin'),

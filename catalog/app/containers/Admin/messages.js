@@ -50,6 +50,14 @@ export default defineMessages({
     id: 'app.containers.Admin.disableUserError',
     defaultMessage: 'Error disabling user {name}',
   },
+  enableUserSuccess: {
+    id: 'app.containers.Admin.enableUserSuccess',
+    defaultMessage: 'User {name} has been enabled',
+  },
+  enableUserError: {
+    id: 'app.containers.Admin.enableUserError',
+    defaultMessage: 'Error enabling user {name}',
+  },
   resetUserPasswordSuccess: {
     id: 'app.containers.Admin.resetUserPasswordSuccess',
     defaultMessage: 'Password for user {name} has been reset',
@@ -134,17 +142,21 @@ export default defineMessages({
     id: 'app.containers.Admin.Members.lastSeen',
     defaultMessage: 'Last seen',
   },
-  membersSettings: {
-    id: 'app.containers.Admin.Members.settings',
-    defaultMessage: 'Settings',
-  },
   membersEmpty: {
     id: 'app.containers.Admin.Members.empty',
     defaultMessage: 'No one here yet',
   },
+  membersDisabled: {
+    id: 'app.containers.Admin.Members.disabled',
+    defaultMessage: 'disabled',
+  },
   membersDisable: {
     id: 'app.containers.Admin.Members.disable',
     defaultMessage: 'Disable user',
+  },
+  membersEnable: {
+    id: 'app.containers.Admin.Members.enable',
+    defaultMessage: 'Enable user',
   },
   membersResetPassword: {
     id: 'app.containers.Admin.Members.resetPassword',

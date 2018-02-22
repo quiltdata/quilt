@@ -19,22 +19,24 @@ export default compose(
         }),
       ]).isRequired
     ).isRequired, // eslint-disable-line function-paren-newline
-    arg: PT.any.isRequired,
     busy: PT.bool,
+    buttonProps: PT.object,
   }),
   setDisplayName('Admin.SettingsMenu'),
-)(({ actions, arg, busy = false }) => (
+// eslint-disable-next-line object-curly-newline
+)(({ actions, busy = false, buttonProps = {}, ...props }) => (
   <IconMenu
-    iconButtonElement={<IconButton><MIcon spin={busy}>settings</MIcon></IconButton>}
+    iconButtonElement={<IconButton {...buttonProps}><MIcon spin={busy}>settings</MIcon></IconButton>}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
+    {...props}
   >
     {actions.map((a, i) =>
       a === 'divider'
         // eslint-disable-next-line react/no-array-index-key
         ? <Divider key={`${i} divider`} style={{ borderBottom: '1px solid' }} />
         // eslint-disable-next-line react/no-array-index-key
-        : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={() => a.callback(arg)} />
+        : <MenuItem key={`${i} ${a.text}`} primaryText={a.text} onClick={a.callback} />
       // eslint-disable-next-line function-paren-newline
     )}
   </IconMenu>

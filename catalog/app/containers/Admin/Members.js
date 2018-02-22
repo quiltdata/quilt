@@ -13,6 +13,7 @@ import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import Spinner from 'components/Spinner';
+import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
@@ -39,6 +40,7 @@ const MembersTable = compose(
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
+      enable: PT.func.isRequired,
       disable: PT.func.isRequired,
       resetPassword: PT.func.isRequired,
     }).isRequired,
@@ -46,37 +48,66 @@ const MembersTable = compose(
       formatMessage: PT.func.isRequired,
     }).isRequired,
   }),
-  withStatefulActions(({ intl: { formatMessage }, ...props }) => [
-    { text: formatMessage(msg.membersDisable), callback: props.disable },
+  withStatefulActions(({ intl: { formatMessage }, ...props }) => ({ name, status }) => [
+    status === 'active'
+      ? { text: formatMessage(msg.membersDisable), callback: () => props.disable(name) }
+      : { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
     'divider',
-    { text: formatMessage(msg.membersResetPassword), callback: props.resetPassword },
+    { text: formatMessage(msg.membersResetPassword), callback: () => props.resetPassword(name) },
   ]),
   setDisplayName('Admin.Members.Table'),
 // eslint-disable-next-line object-curly-newline
-)(({ audit, members, actions, pending }) => (
-  <Table selectable={false}>
+)(({ audit, members, bindActions, pending, intl: { formatMessage } }) => (
+  <Table selectable={true}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
+        <TableHeaderColumn style={{ width: '48px' }}></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersName} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.membersSettings} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
-    <TableBody displayRowCheckbox={false} stripedRows>
+    <TableBody displayRowCheckbox={false} stripedRows showRowHover>
       {members.length
-        ? members.map(({ name, lastSeen, ...activity }) => (
-          <TableRow hoverable key={name}>
-            <Cell locked={pending[name]}><Link to={`/user/${name}`}>{name}</Link></Cell>
+        ? members.map(({ name, status, lastSeen, ...activity }) => (
+          <TableRow key={name}>
+            <Cell
+              locked={pending[name]}
+              style={{
+                width: '48px',
+                padding: 0,
+              }}
+            >
+              <SettingsMenu
+                actions={bindActions({ name, status })}
+                busy={pending[name]}
+                style={{
+                  verticalAlign: 'middle',
+                }}
+                buttonProps={{
+                  // adjustments to keep the table row at 48px height
+                  style: {
+                    height: '46px',
+                    paddingTop: '10px',
+                    paddingBottom: '10px',
+                  },
+                }}
+              />
+            </Cell>
+            <Cell locked={pending[name]}>
+              <Link style={{ verticalAlign: 'middle' }} to={`/user/${name}`}>{name}</Link>
+              {' '}
+              {status === 'disabled'
+                ? <Badge label={formatMessage(msg.membersDisabled)} />
+                : null
+              }
+            </Cell>
             <Cell locked={pending[name]}>
               {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
               <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
               {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             </Cell>
             <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
-            <Cell locked={pending[name]}>
-              <SettingsMenu actions={actions} arg={name} busy={pending[name]} />
-            </Cell>
           </TableRow>
         ))
         : (

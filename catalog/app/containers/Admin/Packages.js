@@ -46,10 +46,10 @@ const PackagesTable = compose(
         <TableHeaderColumn><FM {...msg.pkgLastModified} /></TableHeaderColumn>
       </TableRow>
     </TableHeader>
-    <TableBody displayRowCheckbox={false} stripedRows>
+    <TableBody displayRowCheckbox={false} stripedRows showRowHover>
       {packages.length
         ? packages.map(({ handle, lastModified, ...activity }) => (
-          <TableRow hoverable key={handle}>
+          <TableRow key={handle}>
             <TableRowColumn>
               <Link to={`/package/${handle}`}>{handle}</Link>
             </TableRowColumn>
