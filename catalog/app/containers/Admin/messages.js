@@ -4,7 +4,7 @@ import { defineMessages } from 'react-intl';
 export default defineMessages({
   membersAdd: {
     id: 'app.containers.Admin.membersAdd',
-    defaultMessage: 'Add member',
+    defaultMessage: 'Add',
   },
   membersRead: {
     id: 'app.containers.Admin.membersRead',

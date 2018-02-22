@@ -16,6 +16,7 @@ import Spinner from 'components/Spinner';
 import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
+import AddMember from './AddMember';
 import msg from './messages';
 import { branch, formatActivity, formatDate, withStatefulActions } from './util';
 import ErrorMessage from './ErrorMessage';
@@ -142,6 +143,7 @@ export default compose(
       PT.object,
     ]),
     actions: PT.object.isRequired,
+    addMember: PT.func.isRequired,
     audit: PT.func.isRequired,
   }),
   setDisplayName('Admin.Members'),
@@ -149,6 +151,7 @@ export default compose(
   status,
   response,
   actions,
+  addMember,
   audit,
   ...props
 }) => (
@@ -162,6 +165,7 @@ export default compose(
         })
       }
     </h2>
+    <AddMember addMember={addMember} />
     {
       branch(status, {
         [api.SUCCESS]: () => (

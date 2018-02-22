@@ -38,10 +38,6 @@ export default defineMessages({
     id: 'app.containers.Profile.learnMore',
     defaultMessage: 'Compare plans',
   },
-  membersAdd: {
-    id: 'app.containers.Profile.membersAdd',
-    defaultMessage: 'Add member',
-  },
   updatePayment: {
     id: 'app.containers.Profile.updatePayment',
     defaultMessage: 'Change card',

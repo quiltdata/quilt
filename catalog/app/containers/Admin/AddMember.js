@@ -99,7 +99,7 @@ export default compose(
   intl: { formatMessage },
 }) => (
   <Fragment>
-    <h2><FM {...msg.membersAdd} /></h2>
+    <h3><FM {...msg.membersAdd} /></h3>
     <Form onSubmit={handleSubmit}>
       {error &&
         <FormError>

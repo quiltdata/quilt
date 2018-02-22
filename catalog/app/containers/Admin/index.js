@@ -132,9 +132,7 @@ export default compose(
       onWriteCheck={changePolicy}
     />
 
-    <AddMember addMember={addMember} />
-
-    <Members {...members} audit={getMemberAudit} actions={memberActions} user={user} />
+    <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
 
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
 
