@@ -85,6 +85,8 @@ s3_client = boto3.client(
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
 
+auth_session = requests.Session()
+
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
 
@@ -332,7 +334,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     AUTHORIZATION_HEADER: auth
                 }
                 try:
-                    resp = requests.get(OAUTH_USER_API, headers=headers)
+                    resp = auth_session.get(OAUTH_USER_API, headers=headers)
                     resp.raise_for_status()
 
                     data = resp.json()
@@ -1258,14 +1260,18 @@ def access_put(owner, package_name, user):
         db.session.commit()
 
         # Call to Auth to send invitation email
-        resp = requests.post(INVITE_SEND_URL,
-                             headers=auth_headers,
-                             data=dict(email=email,
-                                       owner=g.auth.user,
-                                       package=package.name,
-                                       client_id=OAUTH_CLIENT_ID,
-                                       client_secret=OAUTH_CLIENT_SECRET,
-                                       callback_url=OAUTH_REDIRECT_URL))
+        resp = auth_session.post(
+            INVITE_SEND_URL,
+            headers=auth_headers,
+            data=dict(
+                email=email,
+                owner=g.auth.user,
+                package=package.name,
+                client_id=OAUTH_CLIENT_ID,
+                client_secret=OAUTH_CLIENT_SECRET,
+                callback_url=OAUTH_REDIRECT_URL
+            )
+        )
 
         if resp.status_code == requests.codes.unauthorized:
             raise ApiException(
@@ -1285,8 +1291,8 @@ def access_put(owner, package_name, user):
             if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
         else:
-            resp = requests.get(OAUTH_PROFILE_API % user,
-                                headers=auth_headers)
+            resp = auth_session.get(OAUTH_PROFILE_API % user,
+                                    headers=auth_headers)
             if resp.status_code == requests.codes.not_found:
                 raise ApiException(
                     requests.codes.not_found,
@@ -1679,7 +1685,7 @@ def list_users():
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
 
-    resp = requests.get(user_list_api, headers=auth_headers)
+    resp = auth_session.get(user_list_api, headers=auth_headers)
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
@@ -1720,7 +1726,7 @@ def list_users_detailed():
 
     user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
 
-    users = requests.get(user_list_api, headers=auth_headers).json()
+    users = auth_session.get(user_list_api, headers=auth_headers).json()
 
     results = {
         user['username'] : {
@@ -1755,7 +1761,7 @@ def create_user():
     username = request_data.get('username')
     _validate_username(username)
 
-    resp = requests.post(user_create_api, headers=auth_headers,
+    resp = auth_session.post(user_create_api, headers=auth_headers,
         data=json.dumps({
             "username": username,
             "first_name": "",
@@ -1815,7 +1821,7 @@ def disable_user():
             "Can't disable your own account."
             )
 
-    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'is_active' : False
         }))
@@ -1850,7 +1856,7 @@ def enable_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
+    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
         data=json.dumps({
             'is_active' : True
         }))
@@ -1885,7 +1891,7 @@ def delete_user():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
+    resp = auth_session.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
@@ -1987,7 +1993,7 @@ def reset_password():
     username = data.get('username')
     _validate_username(username)
 
-    resp = requests.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
+    resp = auth_session.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
 
     if resp.status_code == requests.codes.not_found:
         raise ApiException(
