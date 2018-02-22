@@ -34,18 +34,13 @@ export const PLANS = config.team.name ? {
   // public cloud plans
   free: {
     cost: 0,
-    menu: 'Free',
-    rank: 0,
+    menu: 'Team (Unpaid)',
+    rank: 3,
   },
-  individual_monthly_7: {
-    cost: 700,
-    menu: 'Individual',
-    rank: 1,
-  },
-  business_monthly_490: {
+  team_monthly_490: {
     cost: 49000,
-    menu: 'Business (Contact Us)',
-    rank: 2,
+    menu: 'Team',
+    rank: 4,
   },
 };
 Object.freeze(PLANS);
