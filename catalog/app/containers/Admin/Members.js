@@ -48,21 +48,24 @@ const MembersTable = compose(
       formatMessage: PT.func.isRequired,
     }).isRequired,
   }),
-  withStatefulActions(({ intl: { formatMessage }, ...props }) => ({ name, status }) => [
+  withStatefulActions(({ intl: { formatMessage }, ...props }) => ({ name, status }) =>
     status === 'active'
-      ? { text: formatMessage(msg.membersDisable), callback: () => props.disable(name) }
-      : { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
-    'divider',
-    { text: formatMessage(msg.membersResetPassword), callback: () => props.resetPassword(name) },
-  ]),
+      ? [
+        { text: formatMessage(msg.membersDisable), callback: () => props.disable(name) },
+        'divider',
+        { text: formatMessage(msg.membersResetPassword), callback: () => props.resetPassword(name) },
+      ]
+      : [
+        { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
+      ]
+  ),
   setDisplayName('Admin.Members.Table'),
 // eslint-disable-next-line object-curly-newline
 )(({ audit, members, bindActions, pending, intl: { formatMessage } }) => (
   <Table selectable={true}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
-        <TableHeaderColumn style={{ width: '48px' }}></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.membersName} /></TableHeaderColumn>
+        <TableHeaderColumn style={{ paddingLeft: '48px' }}><FM {...msg.membersName} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
         <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
       </TableRow>
@@ -74,8 +77,7 @@ const MembersTable = compose(
             <Cell
               locked={pending[name]}
               style={{
-                width: '48px',
-                padding: 0,
+                paddingLeft: 0,
               }}
             >
               <SettingsMenu
@@ -93,9 +95,13 @@ const MembersTable = compose(
                   },
                 }}
               />
-            </Cell>
-            <Cell locked={pending[name]}>
-              <Link style={{ verticalAlign: 'middle' }} to={`/user/${name}`}>{name}</Link>
+              <Link
+                style={{
+                  verticalAlign: 'middle',
+                  opacity: status === 'disabled' ? .5 : undefined,
+                }}
+                to={`/user/${name}`}
+              >{name}</Link>
               {' '}
               {status === 'disabled'
                 ? <Badge label={formatMessage(msg.membersDisabled)} />
@@ -112,7 +118,7 @@ const MembersTable = compose(
         ))
         : (
           <TableRow>
-            <TableRowColumn colSpan={4}><FM {...msg.membersEmpty} /></TableRowColumn>
+            <TableRowColumn colSpan={3}><FM {...msg.membersEmpty} /></TableRowColumn>
           </TableRow>
         )
       }
