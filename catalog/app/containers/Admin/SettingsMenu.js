@@ -30,6 +30,7 @@ export default compose(
     iconButtonElement={<IconButton {...buttonProps}><MIcon spin={busy}>settings</MIcon></IconButton>}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
+    useLayerForClickAway
     {...props}
   >
     {actions.map((a, i) =>
