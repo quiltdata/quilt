@@ -16,7 +16,7 @@ export const UPDATE_PLAN_SUCCESS = 'app/Profile/UPDATE_PLAN_SUCCESS';
 
 
 // public cloud plans
-export const PLANS = config.team.name  ? {
+export const PLANS = config.team.name ? {
   // team plans
   team_unpaid: {
     confirmTitle: 'Cancel team account',
@@ -49,4 +49,3 @@ export const PLANS = config.team.name  ? {
   },
 };
 Object.freeze(PLANS);
-
