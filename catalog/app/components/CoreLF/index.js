@@ -4,7 +4,7 @@ import React from 'react';
 import { Grid } from 'react-bootstrap';
 import getMuiTheme from 'material-ui/styles/getMuiTheme';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import { fade, lighten } from 'material-ui/utils/colorManipulator'
+import { fade, lighten } from 'material-ui/utils/colorManipulator';
 
 import { palette } from 'constants/style';
 

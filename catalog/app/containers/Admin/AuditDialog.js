@@ -2,7 +2,7 @@ import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
 import PT from 'prop-types';
-import React, { Fragment } from 'react';
+import React from 'react';
 import { injectIntl } from 'react-intl';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 import styled from 'styled-components';
@@ -31,7 +31,9 @@ const Title = compose(
     <IconButton
       style={{ width: '72px', height: '72px', padding: '24px' }}
       onClick={onClose}
-    ><MIcon>close</MIcon></IconButton>
+    >
+      <MIcon>close</MIcon>
+    </IconButton>
   </TitleContainer>
 ));
 

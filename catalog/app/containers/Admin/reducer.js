@@ -74,11 +74,11 @@ export default function adminReducer(state = initialState, action) {
     case DISABLE_MEMBER_RESPONSE:
       return action.status === api.ERROR
         ? state
-        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'disabled'))
+        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'disabled'));
     case ENABLE_MEMBER_RESPONSE:
       return action.status === api.ERROR
         ? state
-        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'active'))
+        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'active'));
     case GET_PACKAGES:
       return state
         .setIn(['packages', 'status'], api.WAITING)

@@ -58,11 +58,11 @@ const MembersTable = compose(
       : [
         { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
       ]
-  ),
+  ), // eslint-disable-line function-paren-newline
   setDisplayName('Admin.Members.Table'),
 // eslint-disable-next-line object-curly-newline
 )(({ audit, members, bindActions, pending, intl: { formatMessage } }) => (
-  <Table selectable={true}>
+  <Table selectable={false}>
     <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
       <TableRow>
         <TableHeaderColumn style={{ paddingLeft: '48px' }}><FM {...msg.membersName} /></TableHeaderColumn>
@@ -72,6 +72,7 @@ const MembersTable = compose(
     </TableHeader>
     <TableBody displayRowCheckbox={false} stripedRows showRowHover>
       {members.length
+        // eslint-disable-next-line object-curly-newline
         ? members.map(({ name, status, lastSeen, ...activity }) => (
           <TableRow key={name}>
             <Cell
@@ -96,12 +97,14 @@ const MembersTable = compose(
                 }}
               />
               <Link
+                to={`/user/${name}`}
                 style={{
                   verticalAlign: 'middle',
-                  opacity: status === 'disabled' ? .5 : undefined,
+                  opacity: status === 'disabled' ? 0.5 : undefined,
                 }}
-                to={`/user/${name}`}
-              >{name}</Link>
+              >
+                {name}
+              </Link>
               {' '}
               {status === 'disabled'
                 ? <Badge label={formatMessage(msg.membersDisabled)} />

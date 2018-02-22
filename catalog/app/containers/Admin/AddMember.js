@@ -134,7 +134,7 @@ export default compose(
         disabled={submitting || pristine || (submitFailed && invalid)}
       />
       {submitting
-        ? <Spinner style={{ fontSize: '2em', marginLeft: '12px', opacity: .5 }} />
+        ? <Spinner style={{ fontSize: '2em', marginLeft: '12px', opacity: 0.5 }} />
         : null
       }
     </Form>

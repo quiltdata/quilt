@@ -50,13 +50,13 @@ function* apiRequest(endpoint, opts = {}) {
 }
 
 // some magic here to mitigate the differences between the DTOs used by different endpoints
-// eslint-disable-next-line camelcase
+// eslint-disable-next-line camelcase, object-curly-newline
 const normalizeMember = ([name, { last_seen, is_active = 'none', status, ...member }]) => ({
   name,
   // eslint-disable-next-line camelcase
   lastSeen: last_seen,
-  // eslint-disable-next-line camelcase
-  status: is_active !== 'none' ? is_active ? 'active' : 'disabled' : status,
+  // eslint-disable-next-line camelcase, no-nested-ternary
+  status: is_active === 'none' ? status : is_active ? 'active' : 'disabled',
   ...member,
 });
 
