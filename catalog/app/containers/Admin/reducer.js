@@ -70,7 +70,7 @@ export default function adminReducer(state = initialState, action) {
     case GET_MEMBER_AUDIT_RESPONSE:
       return state
         .setIn(['memberAudit', 'status'], action.status)
-        .setIn(['memberAudit', 'response'], action.response);
+        .setIn(['memberAudit', 'response'], fromJS(action.response));
     case DISABLE_MEMBER_RESPONSE:
       return action.status === api.ERROR
         ? state
@@ -95,7 +95,7 @@ export default function adminReducer(state = initialState, action) {
     case GET_PACKAGE_AUDIT_RESPONSE:
       return state
         .setIn(['packageAudit', 'status'], action.status)
-        .setIn(['packageAudit', 'response'], action.response);
+        .setIn(['packageAudit', 'response'], fromJS(action.response));
     default:
       return state;
   }
