@@ -126,3 +126,28 @@ LOG_SCHEMA = {
         ]
     }
 }
+
+USERNAME_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        }
+    },
+    'required': ['username'],
+    'additionalProperties': False
+}
+
+USERNAME_EMAIL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'email': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'email'],
+    'additionalProperties': False
+}

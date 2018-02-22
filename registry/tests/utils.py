@@ -40,7 +40,6 @@ class QuiltTestCase(TestCase):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
         self._mock_user()
-        self._is_admin = False
         self._mock_email()
 
         mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
@@ -85,16 +84,16 @@ class QuiltTestCase(TestCase):
             if auth is None:
                 return (401, {}, "Not logged in")
             else:
+                # Hack to make it easy to simulate admin users:
+                # if the username contains "admin", it's an "admin".
+                is_staff = 'admin' in auth
                 return (200, {}, json.dumps(dict(
                     current_user=auth,
                     email='%s@example.com' % auth,
-                    is_staff=self._is_admin
+                    is_staff=is_staff
                 )))
 
         self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
-
-    def _mock_admin(self, is_admin=True):
-        self._is_admin = is_admin
 
     def _mock_check_user(self, user):
         """Mocks the username check call and returns just the username"""

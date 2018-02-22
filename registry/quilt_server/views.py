@@ -32,7 +32,7 @@ from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
-from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
+from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -1745,7 +1745,7 @@ def list_users_detailed():
 
 
 @app.route('/api/users/create', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_EMAIL_SCHEMA)
 @as_json
 def create_user():
     auth_headers = {
@@ -1754,11 +1754,10 @@ def create_user():
         "Accept": "application/json",
     }
 
-    request_data = request.get_json()
-
     user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
-    username = request_data.get('username')
+    data = request.get_json()
+    username = data['username']
     _validate_username(username)
 
     resp = auth_session.post(user_create_api, headers=auth_headers,
@@ -1766,7 +1765,7 @@ def create_user():
             "username": username,
             "first_name": "",
             "last_name": "",
-            "email": request_data.get('email'),
+            "email": data['email'],
             "is_superuser": False,
             "is_staff": False,
             "is_active": True,
@@ -1800,7 +1799,7 @@ def create_user():
     return resp.json()
 
 @app.route('/api/users/disable', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def disable_user():
     auth_headers = {
@@ -1812,7 +1811,7 @@ def disable_user():
     user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     data = request.get_json()
-    username = data.get('username')
+    username = data['username']
     _validate_username(username)
 
     if g.auth.user == username:
@@ -1841,7 +1840,7 @@ def disable_user():
     return resp.json()
 
 @app.route('/api/users/enable', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def enable_user():
     auth_headers = {
@@ -1853,7 +1852,7 @@ def enable_user():
     user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     data = request.get_json()
-    username = data.get('username')
+    username = data['username']
     _validate_username(username)
 
     resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
@@ -1877,7 +1876,7 @@ def enable_user():
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
-@api(enabled=False, require_admin=True)
+@api(enabled=False, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def delete_user():
     auth_headers = {
@@ -1888,7 +1887,7 @@ def delete_user():
     user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     data = request.get_json()
-    username = data.get('username')
+    username = data['username']
     _validate_username(username)
 
     resp = auth_session.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
@@ -1978,7 +1977,7 @@ def package_summary():
     return {'packages' : results}
 
 @app.route('/api/users/reset_password', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def reset_password():
     auth_headers = {
@@ -1990,7 +1989,7 @@ def reset_password():
     password_reset_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
     data = request.get_json()
-    username = data.get('username')
+    username = data['username']
     _validate_username(username)
 
     resp = auth_session.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
