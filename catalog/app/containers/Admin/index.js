@@ -20,7 +20,6 @@ import { push } from 'containers/Notifications/actions';
 import * as actions from './actions';
 import msg from './messages';
 import selector from './selectors';
-import AddMember from './AddMember';
 import AuditDialog from './AuditDialog';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
