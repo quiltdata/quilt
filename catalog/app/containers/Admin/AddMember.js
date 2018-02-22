@@ -1,4 +1,4 @@
-import FlatButton from 'material-ui/FlatButton';
+import Button from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import { red500 } from 'material-ui/styles/colors';
 import PT from 'prop-types';
@@ -40,7 +40,7 @@ const FormField = compose(
 ));
 
 const Form = styled.form`
-  align-items: baseline;
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
 `;
@@ -128,13 +128,15 @@ export default compose(
         }}
         style={{ marginRight: '12px' }}
       />
-      <FlatButton
+      <Button
         type="submit"
         label={formatMessage(msg.addMemberSubmit)}
-        labelPosition="before"
-        icon={submitting ? <Spinner /> : null}
         disabled={submitting || pristine || (submitFailed && invalid)}
       />
+      {submitting
+        ? <Spinner style={{ fontSize: '2em', marginLeft: '12px', opacity: 0.5 }} />
+        : null
+      }
     </Form>
   </Fragment>
 ));

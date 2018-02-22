@@ -12,7 +12,8 @@ import {
   MEMBER_ADDED,
   GET_MEMBER_AUDIT,
   GET_MEMBER_AUDIT_RESPONSE,
-  REMOVE_MEMBER_RESPONSE,
+  DISABLE_MEMBER_RESPONSE,
+  ENABLE_MEMBER_RESPONSE,
   GET_PACKAGES,
   GET_PACKAGES_RESPONSE,
   GET_PACKAGE_AUDIT,
@@ -40,6 +41,13 @@ const initialState = fromJS({
   },
 });
 
+const updateMember = (name, k, v) => (members) => {
+  if (!members.findIndex) return members;
+  const idx = members.findIndex((m) => m.get('name') === name);
+  if (idx === -1) return members;
+  return members.setIn([idx, k], v);
+};
+
 export default function adminReducer(state = initialState, action) {
   switch (action.type) {
     case MEMBER_ADDED:
@@ -62,13 +70,15 @@ export default function adminReducer(state = initialState, action) {
     case GET_MEMBER_AUDIT_RESPONSE:
       return state
         .setIn(['memberAudit', 'status'], action.status)
-        .setIn(['memberAudit', 'response'], action.response);
-    case REMOVE_MEMBER_RESPONSE:
-      if (action.status === api.ERROR) return state;
-      return state.updateIn(['members', 'response'], (members) =>
-        members && members.filter
-          ? members.filter((p) => p.get('name') !== action.name)
-          : members);
+        .setIn(['memberAudit', 'response'], fromJS(action.response));
+    case DISABLE_MEMBER_RESPONSE:
+      return action.status === api.ERROR
+        ? state
+        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'disabled'));
+    case ENABLE_MEMBER_RESPONSE:
+      return action.status === api.ERROR
+        ? state
+        : state.updateIn(['members', 'response'], updateMember(action.name, 'status', 'active'));
     case GET_PACKAGES:
       return state
         .setIn(['packages', 'status'], api.WAITING)
@@ -85,7 +95,7 @@ export default function adminReducer(state = initialState, action) {
     case GET_PACKAGE_AUDIT_RESPONSE:
       return state
         .setIn(['packageAudit', 'status'], action.status)
-        .setIn(['packageAudit', 'response'], action.response);
+        .setIn(['packageAudit', 'response'], fromJS(action.response));
     default:
       return state;
   }

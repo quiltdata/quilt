@@ -8,10 +8,10 @@ const Drop = styled.div`
   padding-top: ${(props) => props.paddingTop};
 `;
 
-function Spinner({ className, drop }) {
+function Spinner({ className, drop, ...props }) {
   const myClass = `fa fa-cog fa-fw fa-spin ${className || ''}`;
   return (
-    <Drop paddingTop={drop}>
+    <Drop paddingTop={drop} {...props}>
       <i className={myClass}></i>
     </Drop>
   );
