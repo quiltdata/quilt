@@ -23,8 +23,12 @@ export default defineMessages({
     defaultMessage: 'Individual',
   },
   team_monthly_490: {
-    id: 'app.containers.Profile.business_monthly_490',
+    id: 'app.containers.Profile.team_monthly_490',
     defaultMessage: 'Team',
+  },
+  team_unpaid: {
+    id: 'app.containers.Profile.team_unpaid',
+    defaultMessage: 'Team (trial)',
   },
   updatePayment: {
     id: 'app.containers.Profile.updatePayment',
