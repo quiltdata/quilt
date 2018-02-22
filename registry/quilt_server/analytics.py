@@ -12,8 +12,12 @@ try:
     from uwsgidecorators import spool
 except ImportError:
     # Running using Flask in dev; just run everything synchronously.
-    assert app.debug
-    spool = lambda x: x
+    class spool(object):
+        def __init__(self, func):
+            self.func = func
+        def spool(self, **args):
+            assert app.debug
+            self.func(args)
 
 
 MIXPANEL_EVENT = 'SERVER'
