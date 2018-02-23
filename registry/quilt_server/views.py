@@ -1751,7 +1751,8 @@ def list_users_detailed():
             'pushes' : event_results[(user['username'], Event.Type.PUSH)],
             'deletes' : event_results[(user['username'], Event.Type.DELETE)],
             'status' : 'active' if user['is_active'] else 'disabled',
-            'last_seen' : user['last_login']
+            'last_seen' : user['last_login'],
+            'is_admin' : user['is_staff']
             }
         for user in users['results']
     }
