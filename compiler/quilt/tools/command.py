@@ -1511,7 +1511,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
                 if not orig_filepath:
                     # This really shouldn't happen -- print a warning.
                     orig_filepath = node_path
-                    msg = "WARNING: original file path not stored.  Based on node path, guessed: {}"
+                    msg = "WARNING: original file path not stored in metadata.  Based on node path, used: {}"
                     print(msg.format(orig_filepath))
                 yield (storage_filepath, orig_filepath)
 
@@ -1536,6 +1536,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             * Change path strings to `Path` objects
             * Ensure source exists
             * Ensure destination doesn't exist
+            * Remove absolute anchor in dest, if any
             * Prefix destination with target dir
             * Locate and record any zero-byte files in source (see comments)
 
@@ -1547,12 +1548,13 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
 
         for src, dest in exports:
             # general cleanup
-            src = pathlib.Path(src).expanduser().absolute()
-            dest = (outpath / dest).expanduser().absolute()
+            src = pathlib.Path(src)
+            dest = pathlib.PureWindowsPath(dest)
+            dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
 
             # existence checks
             # this src check replaces previous existence assertion, doubling as zero-byte file check
-            # Adam was running into an issue where shutil wasn't copy zero-byte files correctly (see below)
+            # Adam was running into an issue where shutil wasn't copying zero-byte files correctly (see below)
             if src.stat().st_size == 0:
                 zero_byte_files.add(src)
             if dest.parent != outpath and dest.parent.exists() and not force:
@@ -1608,9 +1610,6 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             dirs.update(file.parents)
         file_dir_conflicts = files & dirs
 
-        from pprint import pprint
-        pprint({'dirs': dirs})
-        pprint({'files': files})
         if file_dir_conflicts:
             conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
             conflict_error = CommandException(

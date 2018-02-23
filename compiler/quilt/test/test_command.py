@@ -1151,6 +1151,34 @@ class CommandTest(QuiltTestCase):
                            match="Invalid Export: Filename\(s\) conflict with folder name\(s\):"):
             command.export(pkg_name, str(tempdir))
 
+    def test_export_absolute(self):
+        Path = pathlib.Path
+        mydir = Path(__file__).parent
+        tempdir = Path() / "test_export_absolute"
+        pkg_name = "testing/export_absolute"
+        data = os.urandom(200)
+
+        # prep
+        tempdir.mkdir()
+        command.build(pkg_name, str(mydir / 'build_empty.yml'))
+
+        # make FileNode with absolute path
+        node = command.load(pkg_name)
+        abs_file = tempdir.absolute() / "abs_file"
+        abs_file.write_bytes(data)
+        node._set(['abs_file'], str(abs_file))
+        command.build(pkg_name, node)
+        abs_file.unlink()
+
+        # export
+        export_dir = tempdir / 'export'
+        expected_file = export_dir.joinpath(*abs_file.parts[1:])
+
+        command.export(pkg_name, export_dir)
+
+        assert expected_file.exists()
+        assert expected_file.read_bytes() == data
+
     def test_export(self):
         # pathlib will translate paths to windows or posix paths when needed
         Path = pathlib.Path
@@ -1174,7 +1202,7 @@ class CommandTest(QuiltTestCase):
 
         digest = lambda data: hashlib.sha256(data).hexdigest()
 
-        temp_dir = Path() / "temp_test_command"
+        temp_dir = Path() / "temp_test_command_export"
         install_dir = temp_dir / 'install'
 
         # Create and and install build
