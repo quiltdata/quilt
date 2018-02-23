@@ -49,7 +49,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
     const next = PLANS[selectedPlan];
 
     let primaryAction;
-    /* if the transition is undefined or same => same there's nothing to do */
+    /* if the transition is undefined or idempotent, do nothing  */
     if (!curr || !next || curr === next) {
       primaryAction = (
         <RaisedButton
@@ -67,15 +67,11 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
         />
       );
     } else if (next.rank > curr.rank) {
-      const description = next.rank === 2 ?
-        'Monthly Business Plan (10 users)' :
-        `Monthly ${next.menu} Plan`;
-
       primaryAction = (
         <StripeCheckout
           allowRememberMe
           amount={next.cost}
-          description={description}
+          description={`Monthly ${next.menu} Plan`}
           email={email}
           image="https://d1zvn9rasera71.cloudfront.net/q-256-square.png"
           locale={locale}
@@ -85,7 +81,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
           stripeKey={config.stripeKey}
           zipCode
         >
-          <RaisedButton label="Pay and upgrade" primary />
+          <RaisedButton label="Upgrade" primary />
         </StripeCheckout>
       );
     }
@@ -107,13 +103,11 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
             />
             { primaryAction }
             <RaisedButton
-              label="Cancel"
+              label="Close"
               onClick={onRequestClose}
               style={{ marginLeft: 16 }}
             />
-            <br />
-            <br />
-            <Pricing takeAction={false} />
+            <Pricing takeAction={false} title="" />
           </Content>
         </Dialog>
         <Confirm
@@ -140,7 +134,7 @@ PaymentDialog.propTypes = {
 
 const PlanSelect = ({ onSelectPlan, selectedPlan }) => {
   const values = Object.keys(PLANS);
-  const choices = values.map((v) => (
+  const choices = values.filter((v) => !v.disallow).map((v) => (
     <RadioButton
       key={v}
       style={{ marginBottom: 16 }}

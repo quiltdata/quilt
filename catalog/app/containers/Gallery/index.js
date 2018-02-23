@@ -37,7 +37,7 @@ export class Gallery extends React.PureComponent {
         <Card
           href={`${window.location.origin}/package/${handle}`}
           key={handle}
-          team={Boolean(config.team.name)}
+          team={Boolean(config.team)}
         >
           <h1>{makeHandle(owner, name)}</h1>
           <p>{body}</p>

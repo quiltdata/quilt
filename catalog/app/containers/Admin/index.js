@@ -25,6 +25,7 @@ import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
+import Payments from './Payments';
 import Policies from './Policies';
 
 
@@ -123,6 +124,8 @@ export default compose(
 }) => (
   <div>
     <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
+
+    <Payments />
 
     <Policies
       read

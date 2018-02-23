@@ -68,7 +68,7 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
           <Right>
             <FlatButton href={docs} label="docs" style={navStyle} />
             {
-              config.team.name ? null : (
+              config.team ? null : (
                 <div>
                   <FlatButton href="/#pricing" label="pricing" style={navStyle} />
                   <FlatButton href={jobs} label="jobs" style={navStyle} />

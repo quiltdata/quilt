@@ -24,11 +24,13 @@ export default compose(
     <h2><FM {...msg.teamPolicies} /></h2>
     <Checkbox
       checked={read}
+      disabled
       label={<FM {...msg.membersRead} />}
       onCheck={onReadCheck}
     />
     <Checkbox
       checked={write}
+      disabled
       label={<FM {...msg.membersWrite} />}
       onCheck={onWriteCheck}
     />

@@ -98,7 +98,7 @@ injectGlobal`
 
     p, label, li, dd {
       font-family: 'Georgia', 'Times New Roman', 'Times', serif;
-      font-size: ${bodySize}
+      font-size: ${bodySize};
       line-height: 1.5em;
     }
   }

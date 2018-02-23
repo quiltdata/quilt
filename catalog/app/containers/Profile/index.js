@@ -78,7 +78,8 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   }
 
   onToken = (token) => {
-    const { dispatch, currentPlan } = this.props;
+    const { dispatch, profile: { plan = {} } } = this.props;
+    const currentPlan = plan.response;
     const { selectedPlan } = this.state;
     if (selectedPlan && (currentPlan !== selectedPlan)) {
       dispatch(updatePlan(selectedPlan, token.id));
@@ -95,11 +96,28 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     }
   }
 
+  maybeWarn(plan, payment) {
+    let error = false;
+    if (plan.error) {
+      console.error(printObject(plan.error)); // eslint-disable-line no-console
+      error = true;
+    }
+    if (payment.error) {
+      console.error(printObject(payment.error)); // eslint-disable-line no-console
+      error = true;
+    }
+    if (!(plan.response in PLANS)) {
+      console.error(`Unrecognized plan: ${plan.response}`); // eslint-disable-line no-console
+      error = true;
+    }
+    return error;
+  }
+
   showDialog = (showDialog) => {
-    const { currentPlan } = this.props;
+    const { profile: { plan = {} } } = this.props;
     if (!showDialog) {
       // when closing dialog forget selection
-      this.setState({ selectedPlan: currentPlan });
+      this.setState({ selectedPlan: plan.response });
     }
     this.setState({ showDialog });
   };
@@ -126,28 +144,17 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
         break;
     }
 
-    const shortName = this.props.user.slice(0, 2).toUpperCase();
-
+    const shortName = this.props.user.slice(0, 2);
     const planWaiting = !plan.status || plan.status === apiStatus.WAITING;
-    // payment is undefined in the store by default, don't wait on undefined
+    // payment is undefined in the store by default, so don't wait on undefined
     const paymentWaiting = payment.status === apiStatus.WAITING;
 
     const isLoading = planWaiting || paymentWaiting;
-    const isWarning = (
-      plan.status === apiStatus.ERROR
-      || payment.status === apiStatus.ERROR
-      || !plan.response
-    );
+    const isWarning = this.maybeWarn(plan, payment);
 
-    const planError = plan.error || {};
-    const payError = payment.error || {};
-    const warningString = `${printObject(planError)}\n${printObject(payError)}\n${!plan.response ? 'Unrecognized plan' : ''}`;
-
-    const businessMember = plan.response === 'business_member';
-
-    const planMessage = (plan.response in PLANS || businessMember) ?
+    const planMessage = plan.response in paymentMessages ?
       <FormattedMessage {...paymentMessages[plan.response]} />
-      : plan.response;
+      : <FormattedMessage {...paymentMessages.unrecognized} />;
 
     const pageOne = (
       <Content>
@@ -157,8 +164,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           user={this.props.user}
         />
         <PlanArea
-          businessMember={businessMember}
-          currentPlan={this.props.currentPlan}
+          currentPlan={plan.response}
           email={this.props.email}
           handleShowDialog={() => this.showDialog(true)}
           handleUpdatePayment={this.updatePayment}
@@ -167,7 +173,6 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           isWarning={isWarning}
           locale={this.props.intl.locale}
           planMessage={planMessage}
-          warningString={warningString}
         />
       </Content>
     );
@@ -247,8 +252,6 @@ PackagesArea.propTypes = {
 };
 
 const PlanArea = ({
-  businessMember,
-  currentPlan,
   email,
   handleShowDialog,
   handleUpdatePayment,
@@ -257,7 +260,6 @@ const PlanArea = ({
   isWarning,
   locale,
   planMessage,
-  warningString,
 }) => (
   <div>
     <h1>Service plan</h1>
@@ -265,9 +267,9 @@ const PlanArea = ({
       <ToolbarGroup>
         { isLoading ? <LoadingMargin /> : null }
         <ToolbarTitle text={planMessage} />
-        { isWarning ? <WarningIcon title={warningString} /> : null }
+        { isWarning ? <WarningIcon /> : null }
         {
-          currentPlan !== 'free' && !businessMember && haveCreditCard ?
+          haveCreditCard ?
             <StripeCheckout
               allowRememberMe
               amount={0}
@@ -285,18 +287,22 @@ const PlanArea = ({
                 tooltip="Update payment card"
                 touch
               >
-                <MIcon>credit_card</MIcon>;
+                <MIcon drop="4px">credit_card</MIcon>;
               </IconButton>
             </StripeCheckout> : null
         }
-        <ToolbarSeparator />
-        { !businessMember ?
-          <RaisedButton
-            disabled={isLoading}
-            label={<FormattedMessage {...messages.learnMore} />}
-            onClick={handleShowDialog}
-            primary
-          /> : null
+        {
+          config.team ? null : (
+            <div>
+              <ToolbarSeparator />
+              <RaisedButton
+                disabled={isLoading}
+                label={<FormattedMessage {...messages.learnMore} />}
+                onClick={handleShowDialog}
+                primary
+              />
+            </div>
+          )
         }
       </ToolbarGroup>
     </Toolbar>
@@ -304,7 +310,6 @@ const PlanArea = ({
 );
 
 PlanArea.propTypes = {
-  businessMember: PropTypes.bool,
   currentPlan: PropTypes.string,
   email: PropTypes.string,
   handleShowDialog: PropTypes.func,
@@ -314,17 +319,12 @@ PlanArea.propTypes = {
   isWarning: PropTypes.bool,
   locale: PropTypes.string,
   planMessage: PropTypes.object,
-  warningString: PropTypes.string,
 };
 
-const WarningIcon = ({ title }) => (
-  <MIcon drop="4px" title={title}>
+const WarningIcon = () => (
+  <MIcon drop="4px" title="See browser console for details">
     warning
   </MIcon>
 );
-
-WarningIcon.propTypes = {
-  title: PropTypes.string.isRequired,
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(injectIntl(Profile));

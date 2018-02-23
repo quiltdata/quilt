@@ -177,9 +177,10 @@ const Install = ({ name, owner }) => (
     <h2><FormattedMessage {...strings.access} /></h2>
     <Tabs>
       <Tab label="Python">
-        {config.team.name ?
-          <Code>from quilt.team.{config.team.name}{owner} import {name}</Code> :
-          <Code>from quilt.data.{owner} import {name}</Code>
+        {
+          config.team ?
+            <Code>from quilt.team.{config.team.name}.{owner} import {name}</Code>
+            : <Code>from quilt.data.{owner} import {name}</Code>
         }
       </Tab>
     </Tabs>

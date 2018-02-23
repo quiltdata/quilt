@@ -2,8 +2,7 @@
 import config from 'constants/config';
 
 export function makeHandle(owner, pkg) {
-  const team = config.team.name;
-  return team ? `${team}:${owner}/${pkg}` : `${owner}/${pkg}`;
+  return config.team ? `${config.team.name}:${owner}/${pkg}` : `${owner}/${pkg}`;
 }
 
 export function makeMatcher(exp, flags = 'i') {

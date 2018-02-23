@@ -26,6 +26,10 @@ export default defineMessages({
     id: 'app.containers.Admin.teamMembers',
     defaultMessage: 'Packages',
   },
+  teamPayment: {
+    id: 'app.containers.Admin.teamPayment',
+    defaultMessage: 'Status',
+  },
   teamPolicies: {
     id: 'app.containers.Admin.teamPolicies',
     defaultMessage: 'Policies',
