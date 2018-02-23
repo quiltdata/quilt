@@ -1,15 +1,29 @@
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
+import React from 'react';
 import { compose, withHandlers, withProps, withStateHandlers } from 'recompose';
+
+import MIcon from 'components/MIcon';
 
 
 export const branch = (subj, cases) => subj in cases && cases[subj]();
 
-export const formatActivity = (map, activity) =>
-  map
-    .filter((key) => key in activity)
-    .map((key) => `${activity[key]} ${key}`)
-    .join(', ');
+const toIcon = {
+  packages: 'cloud_upload',
+  previews: 'remove_red_eye',
+  installs: 'cloud_download',
+};
+
+export const formatActivity = (map, activity) => map
+  .filter((key) => key in activity)
+  .map((key) => (
+    <span key={key} title="great">
+      <MIcon drop="4px" style={{ fontSize: '170%', opacity: 0.5 }}>
+        {toIcon[key]}&nbsp;
+      </MIcon>{activity[key]}
+      &nbsp;&nbsp;&nbsp;&nbsp;
+    </span>
+  ));
 
 export const formatDate = (d) => d ? new Date(d).toLocaleString() : 'N/A';
 

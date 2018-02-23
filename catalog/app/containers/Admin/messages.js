@@ -140,7 +140,7 @@ export default defineMessages({
   },
   membersName: {
     id: 'app.containers.Admin.Members.name',
-    defaultMessage: 'Name',
+    defaultMessage: 'Username',
   },
   membersActivity: {
     id: 'app.containers.Admin.Members.activity',

@@ -1,3 +1,4 @@
+import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -119,7 +120,7 @@ const MembersTable = compose(
             </Cell>
             <Cell locked={pending[name]}>
               {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-              <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
+              <FlatButton onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</FlatButton>
               {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             </Cell>
             <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
