@@ -49,7 +49,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
             <Values />
             <Demo />
             {
-              config.team.name ? null : (
+              team.name ? null : (
                 <HCenter>
                   <Pricing signUp={signUp} />
                 </HCenter>

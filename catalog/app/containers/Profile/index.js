@@ -4,7 +4,7 @@ import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import StripeCheckout from 'react-stripe-checkout';
@@ -176,6 +176,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           handleShowDialog={() => this.showDialog(true)}
           handleUpdatePayment={this.updatePayment}
           haveCreditCard={response.have_credit_card}
+          isAdmin={profile.response.is_admin}
           isLoading={isLoading}
           isWarning={isWarning}
           locale={this.props.intl.locale}
@@ -248,6 +249,7 @@ const PlanArea = ({
   handleShowDialog,
   handleUpdatePayment,
   haveCreditCard,
+  isAdmin,
   isLoading,
   isWarning,
   locale,
@@ -279,21 +281,20 @@ const PlanArea = ({
                 tooltip="Update payment card"
                 touch
               >
-                <MIcon drop="4px">credit_card</MIcon>;
+                <MIcon drop="0px">credit_card</MIcon>;
               </IconButton>
             </StripeCheckout> : null
         }
         {
-          config.team && false ? null : [
-              <ToolbarSeparator key="0"/>,
+          config.team && isAdmin ?
+            <Fragment>
               <RaisedButton
                 disabled={isLoading}
-                key="1"
                 label={<FormattedMessage {...messages.learnMore} />}
                 onClick={handleShowDialog}
-                primary
+                style={{'marginLeft': '20px'}}
               />
-          ]
+            </Fragment> : null
         }
       </ToolbarGroup>
     </Toolbar>
@@ -306,6 +307,7 @@ PlanArea.propTypes = {
   handleShowDialog: PropTypes.func,
   handleUpdatePayment: PropTypes.func,
   haveCreditCard: PropTypes.bool,
+  isAdmin: PropTypes.bool,
   isLoading: PropTypes.bool,
   isWarning: PropTypes.bool,
   locale: PropTypes.string,

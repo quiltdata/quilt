@@ -2,7 +2,7 @@
 import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { Link } from 'react-router';
 import { push } from 'react-router-redux';
@@ -69,10 +69,10 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
             <FlatButton href={docs} label="docs" style={navStyle} />
             {
               config.team ? null : (
-                <div>
-                  <FlatButton href="/#pricing" label="pricing" style={navStyle} />
-                  <FlatButton href={jobs} label="jobs" style={navStyle} />
-                </div>
+                <Fragment>
+                  <FlatButton href="/#pricing" label="pricing" key="pricing" style={navStyle} />
+                  <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
+                </Fragment>
               )
             }
             <FlatButton href={blog} label="blog" style={navStyle} />

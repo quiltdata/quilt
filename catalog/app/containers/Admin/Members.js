@@ -166,6 +166,7 @@ export default compose(
       }
     </h2>
     <AddMember addMember={addMember} />
+    <br />
     {
       branch(status, {
         [api.SUCCESS]: () => (

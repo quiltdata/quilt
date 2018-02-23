@@ -20,8 +20,8 @@ const Text = styled.div`
 
 // eslint-disable-next-line object-curly-newline
 function PackageHandle({ isPublic, name, owner, showPrefix }) {
-  const team = config.team.name;
-  const prefix = showPrefix ? `${team}:${owner}/` : null;
+  const team = config.team  ? `%{config.team.name}:`: '';
+  const prefix = showPrefix ? `${team}${owner}/` : null;
   const decorator = (
     isPublic === true || typeof isPublic !== 'boolean' ? null
       : <VisibilityIcon label="private" />
