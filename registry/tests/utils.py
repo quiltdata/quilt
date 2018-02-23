@@ -85,8 +85,8 @@ class QuiltTestCase(TestCase):
                 return (401, {}, "Not logged in")
             else:
                 # Hack to make it easy to simulate admin users:
-                # if the username contains "admin", it's an "admin".
-                is_staff = 'admin' in auth
+                # if the username is "admin", it's an "admin".
+                is_staff = auth == 'admin'
                 return (200, {}, json.dumps(dict(
                     current_user=auth,
                     email='%s@example.com' % auth,

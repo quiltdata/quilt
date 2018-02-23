@@ -21,8 +21,8 @@ class AdminTestCase(QuiltTestCase):
     def setUp(self):
         super(AdminTestCase, self).setUp()
 
-        self.admin = "test_admin"
-        self.user = "test_user"
+        self.admin = "admin"
+        self.user = "user"
         self.pkg = "pkg"
         self.contents_list = [
             RootNode(dict(
