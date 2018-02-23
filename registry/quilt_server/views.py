@@ -519,7 +519,7 @@ def download_object_preview(owner, obj_hash):
 
         body = resp['Body']
         with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-            data = fd.read(100)  # MAX_PREVIEW_SIZE)
+            data = fd.read(MAX_PREVIEW_SIZE)
 
         return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
     except ClientError as ex:

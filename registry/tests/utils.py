@@ -21,7 +21,7 @@ import sqlalchemy_utils
 import quilt_server
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
-from quilt_server.views import s3_client
+from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
 
 class MockMixpanelConsumer(object):
     """
@@ -161,7 +161,8 @@ class QuiltTestCase(TestCase):
             Body=BytesIO(contents_gzipped)
         ), dict(
             Bucket=quilt_server.app.config['PACKAGE_BUCKET_NAME'],
-            Key='objs/%s/%s' % (owner, blob_hash)
+            Key='objs/%s/%s' % (owner, blob_hash),
+            Range='bytes=-%d' % MAX_PREVIEW_SIZE
         ))
 
 
