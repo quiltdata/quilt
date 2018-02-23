@@ -30,7 +30,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
   handleConfirm(curr, next, onDowngrade) {
     if (next.confirmTitle) {
       // eslint-disable-next-line no-alert no-restricted-globals
-      const proceed = Window.confirm(`${next.confirmTitle}\n${next.confirmBody}`);
+      const proceed = window.confirm(`${next.confirmTitle}\n${next.confirmBody}`);
       if (proceed) {
         onDowngrade();
       }
