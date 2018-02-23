@@ -19,7 +19,6 @@ export default compose(
 // eslint-disable-next-line object-curly-newline
 )(() => (
   <Fragment>
-    <h2><FM {...msg.teamPayment} /></h2>
-    <MIcon>undefined</MIcon>
+    <MIcon></MIcon>
   </Fragment>
 ));

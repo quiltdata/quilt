@@ -23,6 +23,7 @@ export const PLANS = config.team ? {
     menu: 'Team (30-day trial)',
     rank: 0,
     statusIcon: 'warning',
+    statusMessage: 'Upgrade',
   },
   team_monthly_490: {
     cost: 49000,

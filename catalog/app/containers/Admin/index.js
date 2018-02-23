@@ -42,6 +42,7 @@ export default compose(
   ),
   setPropTypes({
     user: PT.string.isRequired,
+    plan: PT.string.isRequired,
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
@@ -110,6 +111,7 @@ export default compose(
   setDisplayName('Admin'),
 )(({
   user,
+  plan,
   addMember,
   members,
   memberActions,
@@ -125,7 +127,7 @@ export default compose(
   <div>
     <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
 
-    <Payments />
+    <Payments plan={plan} />
 
     <Policies
       read

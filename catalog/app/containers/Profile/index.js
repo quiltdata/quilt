@@ -36,12 +36,6 @@ import { PLANS } from './constants';
 import { makeSelectProfile } from './selectors';
 import messages from './messages';
 
-const Content = styled.div`
-  h1:not(:first-child) {
-    margin-top: 1em;
-  }
-`;
-
 const LoadingMargin = styled(Loading)`
   margin-right: 1em;
 `;
@@ -157,12 +151,25 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
       : <FormattedMessage {...paymentMessages.unrecognized} />;
 
     const pageOne = (
-      <Content>
-        <PackagesArea
-          packages={response.packages}
-          shortName={shortName}
-          user={this.props.user}
-        />
+      <PackagesArea
+        packages={response.packages}
+        shortName={shortName}
+        user={this.props.user}
+      />
+    );
+
+    return (
+      <div>
+        { config.team ?
+          <div>
+            <Skip />
+            <Tabs>
+              <Tab label="packages" value="packages">{ pageOne }</Tab>
+              <Tab label="admin" value="admin"><Admin plan={plan.response} /></Tab>
+            </Tabs>
+            <Skip />
+          </div> : pageOne
+        }
         <PlanArea
           currentPlan={plan.response}
           email={this.props.email}
@@ -174,11 +181,6 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           locale={this.props.intl.locale}
           planMessage={planMessage}
         />
-      </Content>
-    );
-
-    return (
-      <div>
         <PaymentDialog
           currentPlan={plan.response}
           email={this.props.email}
@@ -190,16 +192,6 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           onToken={this.onToken}
           selectedPlan={this.state.selectedPlan}
         />
-        { config.team ?
-          <div>
-            <Skip />
-            <Tabs>
-              <Tab label="packages" value="packages">{ pageOne }</Tab>
-              <Tab label="admin" value="admin"><Admin /></Tab>
-            </Tabs>
-            <Skip />
-          </div> : pageOne
-        }
       </div>
     );
   }
@@ -292,17 +284,15 @@ const PlanArea = ({
             </StripeCheckout> : null
         }
         {
-          config.team ? null : (
-            <div>
-              <ToolbarSeparator />
+          config.team && false ? null : [
+              <ToolbarSeparator />,
               <RaisedButton
                 disabled={isLoading}
                 label={<FormattedMessage {...messages.learnMore} />}
                 onClick={handleShowDialog}
                 primary
               />
-            </div>
-          )
+          ]
         }
       </ToolbarGroup>
     </Toolbar>
