@@ -32,7 +32,6 @@ class Node(object):
         else:
             raise AttributeError("{val} is not a valid package node".format(val=value))
 
-
 class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.

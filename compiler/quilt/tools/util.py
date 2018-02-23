@@ -162,6 +162,7 @@ def to_identifier(string, permit_keyword=False):
     :rtype: string
     """
     # Not really useful to expose as a constant, and python will compile and cache
+    # .strip('_') not necessary, but is consistent with older behavior
     result = re.sub(r'[^0-9a-zA-Z]+', '_', string).strip('_')
 
     if result and result[0].isdigit():
