@@ -1,7 +1,7 @@
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
-import { FormattedMessage as FM } from 'react-intl';
 
+import { PLANS } from 'containers/Profile/constants';
 import MIcon from 'components/MIcon';
 
 import {
@@ -14,11 +14,22 @@ import msg from './messages';
 
 export default compose(
   setPropTypes({
+    plan: PT.string,
   }),
   setDisplayName('Admin.Payments'),
 // eslint-disable-next-line object-curly-newline
-)(() => (
-  <Fragment>
-    <MIcon></MIcon>
-  </Fragment>
-));
+)(({ plan }) => {
+  let icon, detail;
+  if (plan in PLANS) {
+    icon = PLANS[plan].statusIcon || 'warning';
+    detail = PLANS[plan].statusMessage;
+  } else {
+    icon = 'warning';
+    detail = `Unrecognized Service plan, "${plan}". Please contact support@quiltdata.io.`;
+  }
+  return (
+    <Fragment>
+      <MIcon drop="4px">{icon}</MIcon> {detail}
+    </Fragment>
+  )
+});

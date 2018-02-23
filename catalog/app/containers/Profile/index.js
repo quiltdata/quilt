@@ -285,9 +285,10 @@ const PlanArea = ({
         }
         {
           config.team && false ? null : [
-              <ToolbarSeparator />,
+              <ToolbarSeparator key="0"/>,
               <RaisedButton
                 disabled={isLoading}
+                key="1"
                 label={<FormattedMessage {...messages.learnMore} />}
                 onClick={handleShowDialog}
                 primary

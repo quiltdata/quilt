@@ -17,13 +17,13 @@ export const UPDATE_PLAN_SUCCESS = 'app/Profile/UPDATE_PLAN_SUCCESS';
 export const PLANS = config.team ? {
   // team plans
   team_unpaid: {
-    confirmTitle: 'Cancel team account',
-    confirmBody: 'Warning: Your team will lose access to all data.',
+    confirmTitle: 'Cancel team account?',
+    confirmBody: 'Your team will lose access to all data.',
     cost: 0,
     menu: 'Team (30-day trial)',
     rank: 0,
     statusIcon: 'warning',
-    statusMessage: 'Upgrade',
+    statusMessage: 'Temporary Service plan. Upgrade to avoid data loss.',
   },
   team_monthly_490: {
     cost: 49000,
@@ -34,7 +34,7 @@ export const PLANS = config.team ? {
   },
 } : {
   free: {
-    confirmTitle: 'Downgrade to free',
+    confirmTitle: 'Downgrade to free?',
     confirmBody: 'You will no longer be able to create private packages.',
     cost: 0,
     menu: 'Free',
@@ -44,11 +44,6 @@ export const PLANS = config.team ? {
     cost: 700,
     menu: 'Individual',
     rank: 1,
-  },
-  team_aspire: {
-    disallow: true,
-    menu: 'Team',
-    rank: 2,
   },
 };
 

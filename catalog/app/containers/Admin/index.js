@@ -126,27 +126,21 @@ export default compose(
 }) => (
   <div>
     <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
-
     <Payments plan={plan} />
-
     <Policies
       read
       write={false}
       onReadCheck={changePolicy}
       onWriteCheck={changePolicy}
     />
-
     <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
-
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
-
     <AuditDialog
       onClose={() => getMemberAudit(null)}
       title={`${formatMessage(msg.auditUser)}: ${memberAudit.name}`}
       component={MemberAudit}
       {...memberAudit}
     />
-
     <AuditDialog
       onClose={() => getPackageAudit(null)}
       title={`${formatMessage(msg.auditPackage)}: ${packageAudit.handle}`}
