@@ -10,8 +10,6 @@ import {
   setPropTypes,
 } from 'recompose';
 
-import msg from './messages';
-
 export default compose(
   setPropTypes({
     plan: PT.string,
@@ -19,7 +17,9 @@ export default compose(
   setDisplayName('Admin.Payments'),
 // eslint-disable-next-line object-curly-newline
 )(({ plan }) => {
-  let icon, detail;
+  let icon;
+  let detail;
+
   if (plan in PLANS) {
     icon = PLANS[plan].statusIcon || 'warning';
     detail = PLANS[plan].statusMessage;
@@ -27,9 +27,10 @@ export default compose(
     icon = 'warning';
     detail = `Unrecognized Service plan, "${plan}". Please contact support@quiltdata.io.`;
   }
+
   return (
     <Fragment>
       <MIcon drop="4px">{icon}</MIcon> {detail}
     </Fragment>
-  )
+  );
 });

@@ -4,13 +4,13 @@ import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
-import React, { Fragment } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import StripeCheckout from 'react-stripe-checkout';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
-import { Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle } from 'material-ui/Toolbar';
+import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
 
 import Admin from 'containers/Admin';
 import apiStatus from 'constants/api';
@@ -286,15 +286,14 @@ const PlanArea = ({
             </StripeCheckout> : null
         }
         {
-          config.team && isAdmin ?
-            <Fragment>
-              <RaisedButton
-                disabled={isLoading}
-                label={<FormattedMessage {...messages.learnMore} />}
-                onClick={handleShowDialog}
-                style={{'marginLeft': '20px'}}
-              />
-            </Fragment> : null
+          config.team && isAdmin ? (
+            <RaisedButton
+              disabled={isLoading}
+              label={<FormattedMessage {...messages.learnMore} />}
+              onClick={handleShowDialog}
+              style={{ marginLeft: '20px' }}
+            />
+          ) : null
         }
       </ToolbarGroup>
     </Toolbar>
