@@ -286,7 +286,7 @@ const PlanArea = ({
             </StripeCheckout> : null
         }
         {
-          config.team && isAdmin ? (
+          config.team && isAdmin || !config.team ? (
             <RaisedButton
               disabled={isLoading}
               label={<FormattedMessage {...messages.learnMore} />}
