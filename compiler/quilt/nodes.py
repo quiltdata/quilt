@@ -32,9 +32,6 @@ class Node(object):
         else:
             raise AttributeError("{val} is not a valid package node".format(val=value))
 
-    @property
-    def _datafile(self):
-        return None
 
 class DataNode(Node):
     """
@@ -51,7 +48,7 @@ class DataNode(Node):
 
     @property
     def _datafile(self):
-        if isinstance(self._node, core.FileNode):
+        if isinstance(getattr(self, '_node', None), core.FileNode):
             return self._data()
 
     def _data(self):

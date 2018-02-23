@@ -1465,28 +1465,14 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
     :param filter: function -- takes a node path string, returns True to export
-    :param mapper: function -- takes and returns a node path string
+    :param mapper: function -- takes an export path, returns an export path
     :param force: if True, overwrite existing files
     """
-    # TODO: Update docs
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes (not too painful, probably)
 
     ## Helpers
-    # TODO: Change this over to `node.Node` item notation once implemented
-    def get_node_child_by_path(node, path):
-        """get a node's children by path list or string: 'foo', 'foo/bar/baz' or ['foo', 'bar', 'baz']
-        :returns: Child Node
-        """
-        assert isinstance(node, nodes.GroupNode)
-        assert path
-        if isinstance(path, str):
-            path = path.split('/')
-        for name in path:
-            node = getattr(node, name)
-        return node
-
     def iter_filename_map(node):
         """Yields (<storage file path>, <original path>) pairs for given `node`.
 
@@ -1622,7 +1608,9 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     node, _, info = _load(package)
 
     if info.subpath:
-        node = get_node_child_by_path(node, info.subpath)
+        # TODO: Change this over to `node['item/subitem']` notation once implemented
+        for name in info.subpath:
+            node = getattr(node, name)
 
     exports = iter_filename_map(node)                                   # Create src / dest map iterator
     exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports

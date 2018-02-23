@@ -23,7 +23,7 @@ from .core import PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename
+from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -66,12 +66,22 @@ def _is_internal_node(node):
     is_leaf = not node or node.get(RESERVED['file'])
     return not is_leaf
 
-def _pythonize_name(name):
+def _to_identifier(name):
+    """Convert `name` to a Python Identifier, but raise BuildException on failure."""
     try:
-        safename = to_nodename(name)
+        safename = to_identifier(name)
     except ValueError as error:
-        raise BuildException("Invalid name {!r}: ".format(name) + str(error))
+        raise BuildException("Invalid name: " + str(error))
     return safename
+
+def _to_nodename(name, invalid=None):
+    """Convert `name` to a Quilt Node Name, but raise BuildException on failure."""
+    try:
+        safename = to_nodename(name, invalid=invalid)
+    except ValueError as error:
+        raise BuildException("Invalid name: " + str(error))
+    return safename
+
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
@@ -103,12 +113,9 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table = {} if child_table is None else child_table.copy()
         filepath = filepath.relative_to(dir)
         node_table[RESERVED['file']] = str(filepath)
-        try:
-            node_name = to_nodename(filepath.stem, invalid=used_names)
-        except ValueError as error:
-            raise BuildException("Invalid name: " + str(error))
+        node_name = _to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
-        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
+        print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 
         yield node_name, node_table
 
@@ -217,7 +224,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
             # Check to see that cached objects actually exist in the store
             # TODO: check for changes in checks else use cache
-            # below is a heavy-handed fix but it's OK for check builds to be slow  
+            # below is a heavy-handed fix but it's OK for check builds to be slow
             if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                 # Use existing objects instead of rebuilding
                 package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
@@ -277,7 +284,7 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = _pythonize_name(col)
+            pcol = _to_identifier(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -437,14 +444,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = _pythonize_name(nodename)
+            safename = _to_nodename(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = _pythonize_name(name)  # Name with ext
+                    new_safename = _to_nodename(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)

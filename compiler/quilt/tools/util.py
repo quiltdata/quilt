@@ -148,7 +148,7 @@ def is_nodename(string):
 def to_identifier(string, permit_keyword=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
-    This isn't an isomorphic change, the original filename can't be recovered
+    This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately.
 
     Examples:
@@ -179,7 +179,7 @@ def to_identifier(string, permit_keyword=False):
 def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
-    This isn't an isomorphic change, the original filename can't be recovered
+    This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately (`FileNode`
     metadata)
 
