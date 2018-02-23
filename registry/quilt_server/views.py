@@ -1552,6 +1552,7 @@ def profile():
         ),
         plan=plan,
         have_credit_card=have_cc,
+        is_admin=g.auth.is_admin,
     )
 
 @app.route('/api/payments/update_plan', methods=['POST'])
