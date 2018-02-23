@@ -501,7 +501,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?
+    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
     team, _, _ = parse_package(package)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
@@ -1515,31 +1515,6 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
                     print(msg.format(orig_filepath))
                 yield (storage_filepath, orig_filepath)
 
-    def check_for_conflicts(export_list):
-        """Checks for conflicting exports in the final export map of (src, dest) pairs"""
-
-        conflict_counter = Counter(dest for src, dest in export_list)
-        conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
-        verified_conflicts = []
-
-        if conflicts:
-            # kinda slow, but only happens if a conflict has definitely occurred.
-            for conflict in conflicts:
-                matches = [item for item in final_export_map if item[1] == conflict]
-                # if all are from the same source, it's not really a conflict.
-                src = matches[0][0]
-                if all(src == item[0] for item in matches[1:]):
-                    continue
-                verified_conflicts.append(conflict)
-
-        if verified_conflicts:
-            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_conflicts)
-            conflict_error = CommandException(
-                "Invalid export: Conflicting filenames contain different contents:\n\t" + conflict_strings
-                )
-            conflict_error.conflicts = verified_conflicts
-            raise conflict_error
-
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
         :returns: absolute, resolved dirpath
@@ -1563,6 +1538,8 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             * Ensure destination doesn't exist
             * Prefix destination with target dir
             * Locate and record any zero-byte files in source (see comments)
+
+        :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
         """
         # We return list instead of yielding, so that all prep logic is done before write is attempted.
         final_export_map = []
@@ -1587,6 +1564,61 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             final_export_map.append((src, dest))
         return final_export_map, zero_byte_files
 
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs
+
+        Export conflicts can be introduced in various ways -- for example:
+            * export-time mapping -- user maps two files to the same name
+            * coded builds -- user creates two FileNodes with the same path
+            * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
+            * build-time duplication -- user enters the same file path twice under different nodes
+
+        This checks for these conflicts and raises an error if they have occurred.
+
+        :raises: CommandException
+        """
+        # Check for file conflicts -- data coming from more than one source to the same dest.
+        files = set(dest for src, dest in export_list)
+        conflict_counter = Counter(files)
+        file_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
+        verified_file_conflicts = []
+
+        if file_conflicts:
+            # kinda slow, but only happens if a conflict has definitely occurred.
+            for conflict in file_conflicts:
+                matches = [item for item in export_list if item[1] == conflict]
+                # if all are from the same source, it's not really a conflict.
+                src = matches[0][0]
+                if all(src == item[0] for item in matches[1:]):
+                    continue
+                verified_file_conflicts.append(conflict)
+
+        if verified_file_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_file_conflicts)
+            conflict_error = CommandException(
+                ("Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
+                 + conflict_strings)
+                )
+            conflict_error.file_conflicts = verified_file_conflicts
+            raise conflict_error
+
+        # Check for dir conflicts
+        dirs = set()
+        for file in files:
+            dirs.update(file.parents)
+        file_dir_conflicts = files & dirs
+
+        from pprint import pprint
+        pprint({'dirs': dirs})
+        pprint({'files': files})
+        if file_dir_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
+            conflict_error = CommandException(
+                "Invalid Export: Filename(s) conflict with folder name(s):\n\t" + conflict_strings
+                )
+            conflict_error.dir_file_conflicts = file_dir_conflicts
+            raise conflict_error
+
     ## Export Logic
     output_path = pathlib.Path(output_path)
     node, _, info = _load(package)
@@ -1602,7 +1634,7 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
     # Checks src/dest existence/nonexistence, converts to Path objects
     exports, zero_byte_files = finalize(resolved_output, exports)
 
-    # Prevent conflicts introduced by mapping, coded builds, or build-time globbing
+    # Prevent various conflicts
     check_for_conflicts(exports)
 
     # Skip it if there's nothing to do

@@ -82,8 +82,6 @@ from six import assertRaisesRegex
 
 from .utils import QuiltTestCase, patch
 from ..tools import command, store
-
-
 from ..tools.compat import pathlib
 
 
@@ -1113,6 +1111,45 @@ class CommandTest(QuiltTestCase):
 
         with pytest.raises(command.CommandException, match="Package .* not found"):
             command.export("testuser/nonexistentpackage")
+
+    def test_export_dir_file_conflict(self):
+        # This tests how export handles a conflict between a filename and a dirname,
+        #   for example, "foo/bar" and the file "foo".  This may not seem very probable,
+        #   but it's a condition that can definitely be created by re-rooting absolute
+        #   paths into the export dir -- for example, '/foo/bar' and 'foo' would create
+        #   this kind of conflict.
+        Path = pathlib.Path
+        mydir = Path(__file__).parent
+        tempdir = Path() / 'test_export_dir_file_conflict'
+        pkg_name = "testing/dirfileconflict"
+        data = os.urandom(200)
+
+        # prep
+        tempdir.mkdir()
+        command.build(pkg_name, str(mydir / 'build_empty.yml'))
+
+        # make FileNode with filename 'foo'
+        node = command.load(pkg_name)
+        conflict = (tempdir / 'foo')
+        conflict.write_bytes(data)
+        node._set(['foofile'], str(conflict))
+        command.build(pkg_name, node)
+        conflict.unlink()
+
+        # make FileNode with filepath 'foo/baz'
+        node = command.load(pkg_name)
+        conflict.mkdir()
+        conflict_file = (conflict / 'baz')
+        conflict_file.write_bytes(data)
+        node._set(['foodir', 'baz'], str(conflict_file))
+        command.build(pkg_name, node)
+        conflict_file.unlink()
+        conflict.rmdir()
+
+        # export conflicted files
+        with pytest.raises(command.CommandException,
+                           match="Invalid Export: Filename\(s\) conflict with folder name\(s\):"):
+            command.export(pkg_name, str(tempdir))
 
     def test_export(self):
         # pathlib will translate paths to windows or posix paths when needed
