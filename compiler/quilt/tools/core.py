@@ -7,7 +7,6 @@
 
 from enum import Enum
 import hashlib
-import os
 import struct
 
 from six import iteritems, itervalues, string_types
@@ -74,7 +73,6 @@ class TableNode(Node):
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
         assert isinstance(metadata, dict)
-        assert not os.path.isabs(metadata.get('q_path') or '')  # handles q_path when None
 
         self.hashes = hashes
         self.format = PackageFormat(format)
@@ -94,7 +92,6 @@ class FileNode(Node):
 
         assert isinstance(hashes, list)
         assert isinstance(metadata, dict)
-        assert not os.path.isabs(metadata.get('q_path') or '')  # handles q_path when None
 
         self.hashes = hashes
         self.metadata = metadata
