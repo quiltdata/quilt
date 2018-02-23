@@ -8,7 +8,6 @@ import StripeCheckout from 'react-stripe-checkout';
 import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
 
-import Confirm from 'components/Confirm';
 import { PLANS } from 'containers/Profile/constants';
 import config from 'constants/config';
 import Pricing, { width } from 'components/Pricing';
@@ -28,8 +27,14 @@ const style = {
 };
 
 class PaymentDialog extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
-  state = {
-    showConfirm: false,
+  handleConfirm(curr, next, onDowngrade) {
+    if (next.confirmTitle) {
+      // eslint-disable-next-line no-alert no-restricted-globals
+      const proceed = Window.confirm(`${next.confirmTitle}\n${next.confirmBody}`);
+      if (proceed) {
+        onDowngrade();
+      }
+    }
   }
 
   render() {
@@ -62,7 +67,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
       primaryAction = (
         <RaisedButton
           label="Downgrade"
-          onClick={() => this.setState({ showConfirm: true })}
+          onClick={() => this.handleConfirm(curr, next, onDowngrade)}
           primary
         />
       );
@@ -110,11 +115,6 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
             <Pricing takeAction={false} title="" />
           </Content>
         </Dialog>
-        <Confirm
-          onConfirm={() => onDowngrade()}
-          onRequestClose={() => this.setState({ showConfirm: false })}
-          open={this.state.showConfirm}
-        />
       </div>
     );
   }

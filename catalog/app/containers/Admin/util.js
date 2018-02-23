@@ -19,8 +19,8 @@ export const formatActivity = (map, activity) => map
   .map((key) => (
     <span key={key} title="great">
       <MIcon drop="4px" style={{ fontSize: '170%', opacity: 0.5 }}>
-        {toIcon[key]}&nbsp;
-      </MIcon>{activity[key]}
+        {toIcon[key]}
+      </MIcon>&nbsp;{activity[key]}
       &nbsp;&nbsp;&nbsp;&nbsp;
     </span>
   ));
