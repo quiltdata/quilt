@@ -33,6 +33,10 @@
 # Search
 * `quilt search "SEARCH STRING"` to search for packages by user or package name
 
+# Export
+* `quilt export USER/PACKAGE[/SUBPATH]` exports non-columnar data to current directory
+* `quilt export USER/PACKAGE[/SUBPATH] DEST` exports non-columnar data to specified destination directory
+
 # Short hashes
 
 All commands such as `quilt install` support "short hashes," i.e. any unique prefix of a hash will be matched against the longer hash.  For example, `quilt install akarve/examples -x 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e can be shortened to `quilt install akarve/examples -x 4594b5` assuming there's no other hashes that start with this sequence.  In practice, 6-8 characters is usually sufficient to achieve uniqueness.

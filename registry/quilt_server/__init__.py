@@ -37,7 +37,7 @@ class QuiltSQLAlchemy(SQLAlchemy):
 db = QuiltSQLAlchemy(app)
 
 FlaskJSON(app)
-Migrate(app, db)
+Migrate(app, db, compare_type=True)
 
 @app.cli.command('createdb')
 def createdb_command():

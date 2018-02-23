@@ -138,7 +138,7 @@ def is_nodename(string):
     # TODO: Permit keywords once node['item'] notation is implemented
     ## Currently a node name has the following characteristics:
     # * Must be a python identifier
-    # * Must not be a python keyword  (technical limitation)
+    # * Must not be a python keyword  (current technical limitation)
     # * Must not start with an underscore
     if string.startswith('_'):
         return False
@@ -199,7 +199,7 @@ def to_nodename(string, invalid=None, raise_exc=False):
     >>> to_nodename('9:blah', ['n9_blah', 'n9_blah_2']) -> 'n9_blah_3'
 
     :param string: string to convert to a nodename
-    :param invalid: iterable of names to avoid.  Efficiency: Use a `set()`
+    :param invalid: Container of names to avoid.  Efficiency: Use a `set()`
     :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
     :type raise_exc: bool
@@ -217,9 +217,6 @@ def to_nodename(string, invalid=None, raise_exc=False):
         return string
 
     # Deduplicate
-    if not isinstance(invalid, set):
-        invalid = set(invalid)
-
     if string in invalid and raise_exc:
         raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
 
@@ -232,67 +229,3 @@ def to_nodename(string, invalid=None, raise_exc=False):
         result = "{}_{}".format(string, counter)
 
     return result
-
-
-def filepath_to_nodepath(filepath, nodepath_separator='/', invalid=None):
-    """Converts a single relative file path into a nodepath
-
-    For example, 'foo/bar' -> 'foo.bar' -- see `to_nodename` for renaming rules.
-
-    If the result is in 'invalid', the last element is renamed to avoid conflicts.
-
-    :param filepath: filepath to convert to nodepath
-    :param nodepath_separator: separator between node pathnames, typically '.' or '/'
-    :param invalid: iterable of conflicting result paths. Efficiency: Use `set()`
-    """
-    # PureWindowsPath recognizes c:\\, \\, or / anchors, and / or \ separators.
-    orig = filepath
-    filepath = pathlib.PureWindowsPath(filepath)
-    if filepath.anchor:
-        raise ValueError("Invalid filepath (relative file path required): {!r}".format(orig))
-
-    if invalid is None:
-        invalid = set()
-    elif not isinstance(invalid, set):
-        invalid = set(invalid)
-
-    # convert parts to nodenames
-    nodepath = pathlib.PurePath('/'.join(to_nodename(part) for part in filepath.parts))
-
-    # generate result and check against invalid path names (if any)
-    name = nodepath.name
-    counter = 1
-    result = nodepath_separator.join(nodepath.parts)
-    while result in invalid:
-        # first conflicted name will be "somenode_2"
-        # The result is "somenode", "somenode_2", "somenode_3"..
-        counter += 1
-        nodepath = nodepath.with_name("{}_{}".format(name, counter))
-        result = nodepath_separator.join(nodepath.parts)
-
-    return result
-
-
-def filepaths_to_nodepaths(filepaths, nodepath_separator='.', iterator=True):
-    """Converts multiple relative file paths into nodepaths.
-
-    Automatically prevents naming conflicts amongst generated nodepath names.
-
-    See `filepath_to_nodepath` for more info.
-
-    :param filepaths: relative paths to convert to nodepaths
-    :param nodepath_separator: used between node pathnames, typically '.' or '/'
-    :param iterator: [default True] If falsey, return a list instead of an iterator.
-    """
-    result = _filepaths_to_nodepaths(filepaths, nodepath_separator)
-    if iterator:
-        return result
-    return list(result)
-
-
-def _filepaths_to_nodepaths(filepaths, nodepath_separator='.'):
-    invalid = set()
-    for path in filepaths:
-        result = filepath_to_nodepath(path, nodepath_separator, invalid=invalid)
-        invalid.add(result)
-        yield result

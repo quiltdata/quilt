@@ -312,6 +312,13 @@ def argument_parser():
     user_disable_p.add_argument("username", type=str)
     user_disable_p.set_defaults(func=command.disable_user)
 
+    # user disable
+    shorthelp = "Enable a user."
+    user_enable_p = users_subparsers.add_parser("enable", help=shorthelp)
+    user_enable_p.add_argument("team", type=str)
+    user_enable_p.add_argument("username", type=str)
+    user_enable_p.set_defaults(func=command.enable_user)
+
     # user delete
     shorthelp = "Delete a user. Use with caution."
     user_delete_p = users_subparsers.add_parser("delete", help=shorthelp)

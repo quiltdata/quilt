@@ -1,35 +1,69 @@
-# Teams (Beta)
+# Teams
 
-A team in Quilt is a private package namespace and access control specification. As a team member, you can install and push packages in that team namespace.
+Quilt Teams offer enhanced security, auditing, and privacy. Only team members can read and write data to and from the team. Teams are controlled by one or more admins who have access to a special web interface where they can audit data usage, add new members, and more.
 
-The general notation for a team package is `TEAM:USER/PKG`.
+Technically, a Quilt team is a dedicated, single-tenant registry with a private package namespace. Teams also feature their own web searchable catalog (accessible only to team members), similar to [quiltdata.com](https://quiltdata.com).
 
-Most Quilt commands work just like normal whether you're part of a team or not. The rest of this document lists all the exceptions.
+To create your own Quilt team, [contact us](sales@quiltdata.io).
 
-If you're interested in using this feature, please [contact us](sales@quiltdata.io) to join the Beta.
+# Command line API
+Team members have access to the [standard API](./api.md) with the following differences and additional features.
 
-# Command line
+## Differences in the Core API/disbl
+### `quilt login`
+Authenticate to  team registry:
+```
+quilt login TEAM
+``` 
 
-## `quilt push`
+### `quilt build|push|install`
+Team users should prefix package handles with the team namespace:
+```
+quilt build|push|install TEAM:USER/PKG
+```
+## `quilt push` visibility
+* `quilt push --team` makes a package visible to everyone on your team
+* ~~`quilt push --public`~~ is currently disabled for team packages
 
-`quilt push --public` is disallowed for team packages. Use `quilt push --team` to push a package visible to everyone in your team.
+### `quilt access`
+To make a package visible to your entire team:
+```
+quilt access add TEAM:USER/PKG team
+```
+Public visibility is not yet supported for team packages.
 
-Example: `quilt push --team myteam:me/my_pkg`
-
-## `quilt access`
-
-Public visibility is disabled for team packages. To make a private team package visible to your team, run `quilt access add team:user/pkg team` where `team` is the name of your team. To make a private package visible to select other members of your team, run `quilt access add team:user/pkg other_user` for each user you want to add.
-
-Example: `quilt access add myteam:me/mypkg myteam` to make package team-visible.
-`quilt access add myteam:me/mypkg other_user_on_my_team` to share a private package.
-
-## `quilt login`
-
-Run `quilt login team` to login as a member of a team.
-
-# Python API
-## Import data
-To import a team package, use the following syntax:
+### Import and use data
 ```python
-from quilt.TEAM.USER import PKG
+from quilt.team.TEAM.USER import PKG
+```
+
+## Admin features
+### `quilt user list`
+List users and associated metadata for your team.
+```
+quilt user list TEAM
+```
+
+### `quilt user create`
+Add a team member.
+```
+quilt user create TEAM USERNAME EMAIL
+```
+
+### `quilt user disable`
+Disable a team member.
+```
+quilt user disable TEAM USERNAME
+```
+
+### `quilt user reset-password`
+Send a user a reset-password email.
+```
+quilt user reset-password TEAM USERNAME
+```
+
+### `quilt audit`
+Audit events relating to a user or package.
+```
+quilt audit USER_OR_PACKAGE
 ```

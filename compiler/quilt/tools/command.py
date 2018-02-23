@@ -333,7 +333,10 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
-def _match_hash(session, team, owner, pkg, hash):
+def _match_hash(package, hash):
+    team, owner, pkg = parse_package(package)
+    session = _get_session(team)
+
     hash = hash.lower()
 
     if not (6 <= len(hash) <= 64):
@@ -362,9 +365,9 @@ def _match_hash(session, team, owner, pkg, hash):
         # Sorting for consistency in testing, as well as visual comparison of hashes
         ambiguous = '\n'.join(sorted(matches))
         raise CommandException(
-            "Ambiguous hash for package {owner}/{pkg}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
-            .format(**locals()))
-    raise CommandException("Invalid hash for package {owner}/{pkg}: {hash}".format(**locals()))
+            "Ambiguous hash for package {package}: {hash!r} matches the folowing hashes:\n\n{ambiguous}"
+            .format(package=package, hash=hash, ambiguous=ambiguous))
+    raise CommandException("Invalid hash for package {package}: {hash}".format(package=package, hash=hash))
 
 def _find_logged_in_team():
     """
@@ -650,7 +653,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
 
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
-        raise CommandException("Package {owner}/{pkg} not found.".format(owner=owner, pkg=pkg))
+        raise CommandException("Package {package} not found.".format(package=package))
 
     pkghash = pkgobj.get_hash()
 
@@ -786,12 +789,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
         ))
     )
 
-    if team is None:
-        teamstr = ""
-    else:
-        teamstr = "%s:" % (team,)
-
-    print("Push complete. %s%s/%s is live:\n%s" % (teamstr, owner, pkg, package_url))
+    print("Push complete. %s is live:\n%s" % (package, package_url))
 
 def version_list(package):
     """
@@ -842,7 +840,7 @@ def version_add(package, version, pkghash, force=False):
             version=version
         ),
         data=json.dumps(dict(
-            hash=_match_hash(session, team, owner, pkg, pkghash)
+            hash=_match_hash(package, pkghash)
         ))
     )
 
@@ -884,7 +882,7 @@ def tag_add(package, tag, pkghash):
             tag=tag
         ),
         data=json.dumps(dict(
-            hash=_match_hash(session, team, owner, pkg, pkghash)
+            hash=_match_hash(package, pkghash)
         ))
     )
 
@@ -942,7 +940,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert [hash, version, tag].count(None) == 2
 
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
-    teamstr = "{}:".format(team) if team else ""
     session = _get_session(team)
     store = PackageStore()
     existing_pkg = store.get_package(team, owner, pkg)
@@ -971,7 +968,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
             )
             pkghash = response.json()['hash']
         else:
-            pkghash = _match_hash(session, team, owner, pkg, hash)
+            pkghash = _match_hash(package, hash)
     except HTTPResponseException as e:
         logged_in_team = _find_logged_in_team()
         if (team is None and logged_in_team is not None
@@ -998,7 +995,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert response.ok # other responses handled by _handle_response
 
     if existing_pkg is not None and not force:
-        print("{teamstr}{owner}/{pkg} already installed.".format(teamstr=teamstr, owner=owner, pkg=pkg))
+        print("{package} already installed.".format(package=package))
         overwrite = input("Overwrite? (y/n) ")
         if overwrite.lower() != 'y':
             return
@@ -1248,13 +1245,12 @@ def delete(package):
     """
     team, owner, pkg = parse_package(package)
 
-    teamstr = "{}:".format(team) if team else ""
     answer = input(
         "Are you sure you want to delete this package and its entire history? " +
-        "Type '%s%s/%s' to confirm: " % (teamstr, owner, pkg)
+        "Type '%s' to confirm: " % package
     )
 
-    if answer != '%s%s/%s' % (teamstr, owner, pkg):
+    if answer != package:
         print("Not deleting.")
         return 1
 
@@ -1296,7 +1292,7 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for idx, (package, tag, pkghash) in enumerate(packages):
+        for package, tag, pkghash in packages:
             print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
@@ -1304,11 +1300,10 @@ def inspect(package):
     Inspect package details
     """
     team, owner, pkg = parse_package(package)
-    teamstr = "{}:".format(team) if team else ""
 
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
-        raise CommandException("Package {teamstr}{owner}/{pkg} not found.".format(teamstr=teamstr, owner=owner, pkg=pkg))
+        raise CommandException("Package {package} not found.".format(package=package))
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1367,6 +1362,7 @@ def list_users(team=None):
     return resp.json()
 
 def list_users_detailed(team=None):
+    # get team from disk if not specified
     if team is None:
         team = _find_logged_in_team()
     session = _get_session(team)
@@ -1375,13 +1371,13 @@ def list_users_detailed(team=None):
     return resp.json()
 
 def create_user(username, email, team):
-    # get team from disk if not specified
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.post('%s/api/users/create' % url,
+    session.post('%s/api/users/create' % url,
             data=json.dumps({'username':username, 'email':email}))
 
 def list_packages(username, team=None):
+    # get team from disk if not specified
     if team is None:
         team = _find_logged_in_team()
     session = _get_session(team)
@@ -1390,14 +1386,18 @@ def list_packages(username, team=None):
     return resp.json()
 
 def disable_user(username, team):
-    # get team from disk if not specified
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.post('%s/api/users/disable' % url,
+    session.post('%s/api/users/disable' % url,
+            data=json.dumps({'username':username}))
+
+def enable_user(username, team):
+    session = _get_session(team)
+    url = get_registry_url(team)
+    session.post('%s/api/users/enable' % url,
             data=json.dumps({'username':username}))
 
 def delete_user(username, team, force=False):
-    # get team from disk if not specified
     if not force:
         confirmed = input("Really delete user '{0}'? (y/n)".format(username))
         if confirmed.lower() != 'y':
@@ -1405,7 +1405,7 @@ def delete_user(username, team, force=False):
 
     session = _get_session(team)
     url = get_registry_url(team)
-    resp = session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
+    session.post('%s/api/users/delete' % url, data=json.dumps({'username':username}))
 
 def audit(user_or_package):
     parts = user_or_package.split('/')
@@ -1428,7 +1428,7 @@ def audit(user_or_package):
 
 def reset_password(team, username):
     session = _get_session(team)
-    response = session.post(
+    session.post(
         "{url}/api/users/reset_password".format(
             url=get_registry_url(team),
             ), data=json.dumps({'username':username})
@@ -1440,8 +1440,7 @@ def _load(package):
 
     pkgobj = PackageStore.find_package(team, user, name)
     if pkgobj is None:
-        teamstr = team + ':' if team else ''
-        raise CommandException("Package {teamstr}{user}/{name} not found.".format(**locals()))
+        raise CommandException("Package {package} not found.".format(package=package))
     node = _from_core_node(pkgobj, pkgobj.get_contents())
     return node, pkgobj, info
 

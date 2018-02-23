@@ -1,10 +1,31 @@
-# Development
-1. `npm start` to fire up a local web server (or `npm run start:production`)
-1. `npm run lint` to lint
-    - You can [customize ES6-lint behavior](http://eslint.org/docs/user-guide/configuring)
-    - // es-line-disable-line error-code
+# Developer 
+## Running the catalog locally
+```sh
+$ cd registry
+# Docker minus catalog
+$ docker-compose -f docker-compose-uidev.yml up
+# local web server for catalog w/hot reload
+$ cd ../catalog
+$ npm start 
+```
+To activate team features, modify `/static/config.js` to include something
+like the following under `window.__CONFIG`:
+```javascript
+team: {
+  name: "TEST",
+},
+```
 
-# Developer notes
+### Update docker images as backend components evolve
+* `docker-compose build [catalog|flask|auth|etc.]`
+* `docker-compose pull django`
+
+## Common operations
+* `npm run lint` to lint
+* You can [customize ES6-lint behavior](http://eslint.org/docs/user-guide/configuring)
+* `// eslint-disable-line <ERROR-CODE>`
+
+## Notes
 - `window.__CONFIG` contains environment-specific configuration variables like API endpoints, Stripe keys, etc. `config.js.tmpl` is populated by `quilt.yaml` (see `quilt-deployment` repo) 
 
 - As a rule all UI component classes should return react-bootstrap `Row`s;
@@ -26,10 +47,10 @@ but that's handled in a separate domain (`state.route`) via reducer composition;
   - leaf nodes may be primitive types
   - use toJS() and fromJS from 'immutable' to convert
 
-## Connecting to the router
+### Connecting to the router
 - all route handling components already get a bunch of params injected as props
-- for everything else: [`withRouter`](https://github.com/ReactTraining/react-router/blob/c3cd9675bd8a31368f87da74ac588981cbd6eae7/upgrade-guides/v2.4.0.md)
+- for everything else: [`withRouter`](https://github.com/ReactTraining/react-router/blob/c3cd9675bd8a31368f87da74ac588981cbd6eae7/upgrade-guides/v2.4.0.#d)
 
-## Fetch
+### Fetch
 - An accurate check for a successful fetch() would include checking that the promise resolved, then checking that the Response.ok property has a value of true. The code would look something like this:
 [msdn fetch doc](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
