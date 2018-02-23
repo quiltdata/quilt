@@ -31,7 +31,8 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
-from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode, LATEST_TAG
+from .core import (decode_node, find_object_hashes, hash_contents,
+                   FileNode, GroupNode, RootNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA
@@ -682,7 +683,7 @@ def package_put(owner, package_name, package_hash):
         return Response(_generate(), content_type='application/json')
 
     if instance is None:
-        readme = contents.children.get('README')
+        readme = contents.children.get(README)
         if isinstance(readme, FileNode):
             assert len(readme.hashes) == 1
             readme_hash = readme.hashes[0]
@@ -852,7 +853,7 @@ def package_preview(owner, package_name, package_hash):
     instance = _get_instance(g.auth, owner, package_name, package_hash)
     assert isinstance(instance.contents, RootNode)
 
-    readme = instance.contents.children.get('README')
+    readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
         readme_hash = readme.hashes[0]

@@ -14,6 +14,7 @@ from six import iteritems, itervalues, string_types
 
 
 LATEST_TAG = 'latest'
+README = 'README'
 
 
 class PackageFormat(Enum):
