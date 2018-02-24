@@ -486,7 +486,7 @@ def _get_or_create_customer():
             else:
                 plan = PaymentPlan.FREE.value
                 email = g.auth.email
-                description = g.auth.user,
+                description = g.auth.user
             customer = stripe.Customer.create(
                 email=email,
                 description=description
