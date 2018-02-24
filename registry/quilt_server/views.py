@@ -1570,9 +1570,12 @@ def profile():
     )
 
 @app.route('/api/payments/update_plan', methods=['POST'])
-@api(enabled=HAVE_PAYMENTS)
+@api()
 @as_json
 def payments_update_plan():
+    if not HAVE_PAYMENTS:
+        raise ApiException(requests.codes.not_found, "Payments not enabled")
+
     plan = request.values.get('plan')
     try:
         plan = PaymentPlan(plan)
@@ -1631,9 +1634,12 @@ def payments_update_plan():
     )
 
 @app.route('/api/payments/update_payment', methods=['POST'])
-@api(enabled=HAVE_PAYMENTS)
+@api()
 @as_json
 def payments_update_payment():
+    if not HAVE_PAYMENTS:
+        raise ApiException(requests.codes.not_found, "Payments not enabled")
+
     stripe_token = request.values.get('token')
     if not stripe_token:
         raise ApiException(requests.codes.bad_request, "Missing token")
