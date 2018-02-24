@@ -89,11 +89,11 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
           </tr>
           <tr>
             <td>
-              •&nbsp;Unlimited public packages<br />
+              • Unlimited public packages<br />
             </td>
             <td>
-              •&nbsp;Unlimited public packages<br />
-              •&nbsp;Up to 1TB of private packages<br />
+              • Unlimited public packages<br />
+              • Up to 1TB of private packages<br />
             </td>
             <td>
               • Unlimited public packages<br />

@@ -29,7 +29,7 @@ const style = {
 class PaymentDialog extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   handleConfirm(curr, next, onDowngrade) {
     if (next.confirmTitle) {
-      // eslint-disable-next-line no-alert no-restricted-globals
+      // eslint-disable-next-line no-alert
       const proceed = window.confirm(`${next.confirmTitle}\n${next.confirmBody}`);
       if (proceed) {
         onDowngrade();

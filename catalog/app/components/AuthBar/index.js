@@ -162,7 +162,7 @@ class LeftGroup extends React.PureComponent { //  eslint-disable-line react/no-m
         {/* eslint-enable jsx-a11y/anchor-is-valid */}
         <TextField
           hintStyle={hintStyle}
-          hintText={`Search ${team ? team.name :''}`}
+          hintText={`Search ${team ? team.name : ''}`}
           inputStyle={inputStyle}
           onChange={this.handleChange}
           onKeyPress={this.handleEnter}
