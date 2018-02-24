@@ -506,6 +506,20 @@ def _get_or_create_customer():
 def _get_customer_plan(customer):
     return PaymentPlan(customer.subscriptions.data[0].plan.id)
 
+def _private_packages_allowed():
+    """
+    Checks if the current user is allowed to create private packages.
+
+    In the public cloud, the user needs to be on a paid plan.
+    There are no restrictions in other deployments.
+    """
+    if not HAVE_PAYMENTS or TEAM_ID:
+        return True
+
+    customer = _get_or_create_customer()
+    plan = _get_customer_plan(customer)
+    return plan != PaymentPlan.FREE
+
 @app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
 @api()
 @as_json
@@ -581,17 +595,14 @@ def package_put(owner, package_name, package_hash):
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
 
-        if HAVE_PAYMENTS and not TEAM_ID and not public:
-            customer = _get_or_create_customer()
-            plan = _get_customer_plan(customer)
-            if plan == PaymentPlan.FREE:
-                raise ApiException(
-                    requests.codes.payment_required,
-                    ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
-                     "this package public, or upgrade your service plan to create " +
-                     "private packages: https://quiltdata.com/profile.") %
-                    (owner, package_name)
-                )
+        if public and not _private_packages_allowed():
+            raise ApiException(
+                requests.codes.payment_required,
+                ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                    "this package public, or upgrade your service plan to create " +
+                    "private packages: https://quiltdata.com/profile.") %
+                (owner, package_name)
+            )
 
         package = Package(owner=owner, name=package_name)
         db.session.add(package)
@@ -1367,15 +1378,12 @@ def access_delete(owner, package_name, user):
             "Cannot revoke the owner's access"
         )
 
-    if HAVE_PAYMENTS and not TEAM_ID and user == PUBLIC:
-        customer = _get_or_create_customer()
-        plan = _get_customer_plan(customer)
-        if plan == PaymentPlan.FREE:
-            raise ApiException(
-                requests.codes.payment_required,
-                "Insufficient permissions. " +
-                "Upgrade your plan to create private packages: https://quiltdata.com/profile."
-            )
+    if user == PUBLIC and not _private_packages_allowed():
+        raise ApiException(
+            requests.codes.payment_required,
+            "Insufficient permissions. " +
+            "Upgrade your plan to create private packages: https://quiltdata.com/profile."
+        )
 
     access = (
         Access.query
