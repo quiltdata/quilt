@@ -595,7 +595,7 @@ def package_put(owner, package_name, package_hash):
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
 
-        if public and not _private_packages_allowed():
+        if not public and not _private_packages_allowed():
             raise ApiException(
                 requests.codes.payment_required,
                 ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
