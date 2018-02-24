@@ -134,7 +134,7 @@ PaymentDialog.propTypes = {
 
 const PlanSelect = ({ onSelectPlan, selectedPlan }) => {
   const values = Object.keys(PLANS);
-  const choices = values.filter((v) => !v.disallow).map((v) => (
+  const choices = values.map((v) => (
     <RadioButton
       key={v}
       style={{ marginBottom: 16 }}
