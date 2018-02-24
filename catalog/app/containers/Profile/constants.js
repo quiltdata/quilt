@@ -23,7 +23,7 @@ export const PLANS = config.team ? {
     menu: 'Team (30-day trial)',
     rank: 0,
     statusIcon: 'warning',
-    statusMessage: 'Temporary Service plan. Upgrade to avoid data loss.',
+    statusMessage: 'Temporary Service plan. Upgrade for uninterrupted service.',
   },
   team_monthly_490: {
     cost: 49000,
