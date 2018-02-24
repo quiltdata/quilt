@@ -10,6 +10,7 @@ import styled from 'styled-components';
 
 import { setSearchText } from 'containers/App/actions';
 import logo from 'img/logo/horizontal-white.png';
+import logoTeam from 'img/logo/horizontal-white-team.png';
 import { backgroundColor } from 'constants/style';
 import { blog, company, docs, jobs } from 'constants/urls';
 import UserMenu from 'components/UserMenu';
@@ -149,18 +150,19 @@ class LeftGroup extends React.PureComponent { //  eslint-disable-line react/no-m
   }
 
   render() {
+    const { team } = config;
     return (
       <div style={{ marginTop: '16px' }}>
         {/* eslint-disable jsx-a11y/anchor-is-valid */}
         <Link to="/">
           <Lockup>
-            <img alt="Quilt logo" src={logo} />
+            <img alt="Quilt logo" src={team ? logoTeam : logo} />
           </Lockup>
         </Link>
         {/* eslint-enable jsx-a11y/anchor-is-valid */}
         <TextField
           hintStyle={hintStyle}
-          hintText="Search packages"
+          hintText={`Search ${team ? team.name :''}`}
           inputStyle={inputStyle}
           onChange={this.handleChange}
           onKeyPress={this.handleEnter}
