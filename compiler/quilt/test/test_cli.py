@@ -740,7 +740,6 @@ class TestCLI(BasicQuiltTestCase):
             'is_team': True,
         }
 
-
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
         if os.name == 'nt':
@@ -763,15 +762,20 @@ class TestCLI(BasicQuiltTestCase):
 
         # We need to run a command that blocks.  To do so, I'm disabling the
         # test mocking of the command module, and executing a command that
-        # blocks waiting for input ('config').
+        # blocks while waiting for input ('config').
         no_mock = os.environ.copy()
         no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
+
+        # Wait for some expected text
+        expected = b"Please enter the URL"
+        response = proc.stdout.read(len(expected))
+        assert response == expected
+
+        # Send interrupt, and check result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
         assert 'Traceback' not in stderr
@@ -781,8 +785,13 @@ class TestCLI(BasicQuiltTestCase):
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
         proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
+
+        # Wait for some expected text
+        expected = b"Please enter the URL"
+        response = proc.stdout.read(len(expected))
+        assert response == expected
+
+        # Send interrupt, and check result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
         print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
