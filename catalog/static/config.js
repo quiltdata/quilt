@@ -1,29 +1,14 @@
 /* config.js */
-// process the object
-const mustHave = {
-  'api':  'string',
-  'stripeKey': 'string',
-  'userApi': 'string',
-  'signOutUrl': 'string',
-}
 
-for(let k in mustHave) {
-  if(typeof window.__CONFIG[k] !== mustHave[k]) {
-    console.error(`Unexpected config[${k}]: ${window.__CONFIG[k]}`);
-  }
-}
-
-if(window.__CONFIG.team && !team.id) {
-  // if deploy script sets an empty team.id, that doesn't mean this is a team
-  window.__CONFIG.team = undefined;
-}
+/* eslint-disable no-underscore-dangle */
+import assert from 'assert';
 
 if (window.location.hostname === 'quiltdata.com') {
   window.__CONFIG = {
     api: 'https://pkg.quiltdata.com',
     stripeKey: 'pk_live_aV44tCGHpBZr5FfFCUqbXqid',
     userApi: 'https://app.quiltdata.com/accounts/api-root',
-    signOutUrl: 'https://app.quiltdata.com/accounts/logout?next=%2F'
+    signOutUrl: 'https://app.quiltdata.com/accounts/logout?next=%2F',
   };
 } else {
   window.__CONFIG = {
@@ -35,14 +20,46 @@ if (window.location.hostname === 'quiltdata.com') {
     signOutUrl: 'https://stage-auth.quiltdata.com/accounts/logout?next=%2F',
 
     // Team feature dev
-    //team: {
-      //id: "SuperCorp"
-    //},
-    //userApi: 'http://localhost:5002/accounts/api-root',
-    //signOutUrl: 'http://localhost:5002/accounts/logout?next=%2F',
+    // team: {
+    //   id: "SuperCorp",
+    // },
+    // userApi: 'http://localhost:5002/accounts/api-root',
+    // signOutUrl: 'http://localhost:5002/accounts/logout?next=%2F',
 
     // GitHub
     // userApi: 'https://api.github.com/user',
-    // signOutUrl: '/'
+    // signOutUrl: '/',
   };
 }
+
+const mustHave = {
+  alwaysRequireAuth: 'boolean',
+  api: 'string',
+  stripeKey: 'string',
+  userApi: 'string',
+  signOutUrl: 'string',
+};
+
+// test the config object
+const keys = Object.keys(window.__CONFIG);
+// eslint has good reasons not to like for .. of, so do it the old-fashioned way:
+for (let i = 0; i < keys.length; i += 1) {
+  const k = window.__CONFIG[k];
+  if (k in mustHave) {
+    assert(
+      // eslint-disable-next-line valid-typeof
+      typeof window.__CONFIG[k] === mustHave[k],
+      `Unexpected config['${k}'}]: ${window.__CONFIG[k]}`
+    );
+  }
+}
+
+// if deployment script sets an empty team.id, there is no team
+if (window.__CONFIG.team && !window.__CONFIG.team.id) {
+  // eslint-disable-next-line no-console
+  console.warning(`Empty team.id; unsetting 'config.team': ${window.__CONFIG.team}`);
+  // blow away the object so JS can use `config.team` to detect team instances
+  window.__CONFIG.team = undefined;
+}
+
+/* eslint-enable no-underscore-dangle */
