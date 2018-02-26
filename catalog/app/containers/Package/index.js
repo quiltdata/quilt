@@ -17,7 +17,7 @@ import Help from 'components/Help';
 import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
-import { makeSelectPackage, makeSelectReadMe, makeSelectUserName } from 'containers/App/selectors';
+import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
 import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
@@ -36,6 +36,10 @@ const Tree = styled.pre`
   border-radius: 0;
   border: none;
   line-height: 1em;
+`;
+
+const Message = styled.p`
+  opacity: 0.5;
 `;
 
 export class Package extends React.PureComponent {
@@ -66,8 +70,26 @@ export class Package extends React.PureComponent {
       }
     }
   }
+  renderReadme(manifest) {
+    const { status, error = {}, response = {} } = manifest;
+    switch (status) {
+      case undefined:
+      case apiStatus.WAITING:
+        return <Working />;
+      case apiStatus.ERROR:
+        return <Error {...error} />;
+      default:
+        break;
+    }
+
+    if (response.readme_preview) {
+      return <Markdown data={response.readme_preview} />;
+    } else {
+      return <Message><FormattedMessage {...strings.noReadme} /></Message>;
+    }
+  }
   render() {
-    const { pkg, params, readme = {} } = this.props;
+    const { pkg, params } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
       case undefined:
@@ -98,11 +120,7 @@ export class Package extends React.PureComponent {
           <Header>
             <h1><PackageHandle name={name} owner={owner} /></h1>
           </Header>
-          <Markdown
-            data={readme.response || ''}
-            status={readme.status}
-            useStatus
-          />
+          { this.renderReadme(manifest || {}) }
           <h1><FormattedMessage {...strings.contents} /></h1>
           <Tree>{previewBuffer.join('')}</Tree>
         </Col>
@@ -127,13 +145,11 @@ Package.propTypes = {
   dispatch: PropTypes.func.isRequired,
   pkg: PropTypes.object,
   params: PropTypes.object.isRequired,
-  readme: PropTypes.object,
   user: PropTypes.string,
 };
 
 const mapStateToProps = createStructuredSelector({
   pkg: makeSelectPackage(),
-  readme: makeSelectReadMe(),
   user: makeSelectUserName(),
 });
 

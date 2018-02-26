@@ -17,8 +17,6 @@ import {
 import {
   getAuthError,
   getAuthSuccess,
-  getBlobError,
-  getBlobSuccess,
   getManifestError,
   getManifestSuccess,
   getPackageError,
@@ -93,7 +91,6 @@ function* doGetAuth(action) {
 }
 
 // incoming action is the response from GET_MANIFEST_SUCCESS
-// TODO: maybe use the more general GET_BLOB for this
 // and use takeLatest(function) to discriminate
 function* doGetManifest() {
   try {
@@ -130,23 +127,6 @@ function* doGetPackage(action) {
       err.detail = `doGetPackage: ${err.message}`;
     }
     yield put(getPackageError(err));
-  }
-}
-
-function* doGetReadMe(action) {
-  const readmeUrl = action.response.readme_url;
-  const storePath = ['package', 'readme'];
-  if (readmeUrl) {
-    try {
-      const readmeText = yield call(requestText, readmeUrl);
-      yield put(getBlobSuccess(readmeText, storePath));
-    } catch (error) {
-      error.headline = 'Readme hiccup';
-      error.detail = `doGetReadMe: ${error.message}`;
-      yield put(getBlobError(error, storePath));
-    }
-  } else {
-    yield put(getBlobSuccess('', storePath));
   }
 }
 
@@ -253,15 +233,6 @@ function* watchGetAuth() {
   yield takeLatest(GET_AUTH, doGetAuth);
 }
 
-function* watchGetReadMe() {
-  yield takeLatest((action) => (
-    action
-    && action.type === GET_MANIFEST_SUCCESS
-    && action.response
-    && action.response.readme_url !== undefined
-  ), doGetReadMe);
-}
-
 function* watchGetAuthSuccess() {
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
@@ -301,7 +272,6 @@ function* watchStoreTokens() {
 export default [
   watchGetAuth,
   watchGetAuthSuccess,
-  watchGetReadMe,
   watchGetPackage,
   watchGetPackageSuccess,
   watchLocationChange,
