@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 """
 Changes the object layout in S3 from user/package/hash to user/hash.
