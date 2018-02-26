@@ -4,35 +4,46 @@
 Analytics code: Mixpanel, async consumer.
 """
 
-import atexit
-from concurrent.futures import ThreadPoolExecutor
-
 from mixpanel import Consumer, Mixpanel
 
 from . import app
 
+try:
+    from uwsgidecorators import spool
+except ImportError:
+    # Running using Flask in dev; just run everything synchronously.
+    class spool(object):
+        def __init__(self, func):
+            self.func = func
+        def spool(self, **args):
+            assert app.debug
+            self.func(args)
+
+
 MIXPANEL_EVENT = 'SERVER'
+
+_consumer_impl = Consumer()
+
+@spool
+def _send_event_task(args):
+    """
+    Actually sends the MixPanel event. Runs in a uwsgi worker process.
+    """
+    endpoint = args['endpoint']
+    json_message = args['json_message']
+    _consumer_impl.send(endpoint, json_message)
 
 
 class AsyncConsumer(object):
     """
-    Wrapper around mixpanel.Consumer that sends messages in a background thread.
+    Forwards MixPanel events to a task running in a background process.
     """
-    def __init__(self):
-        self._consumer = Consumer()
-        self._executor = ThreadPoolExecutor(max_workers=1)
-
     def send(self, endpoint, json_message):
         """
         Queues the message to be sent.
         """
-        self._executor.submit(self._consumer.send, endpoint, json_message)
+        _send_event_task.spool(endpoint=endpoint, json_message=json_message)
 
-    def shutdown(self):
-        """
-        Shuts down the background thread.
-        """
-        self._executor.shutdown(wait=True)
 
 class NoopConsumer(object):
     def send(self, endpoint, json_message):
@@ -46,7 +57,6 @@ if mp_token is None:
 
 if mp_token:
     mp_consumer = AsyncConsumer()
-    atexit.register(mp_consumer.shutdown)
 else:
     # For testing, dev, etc.
     mp_consumer = NoopConsumer()
