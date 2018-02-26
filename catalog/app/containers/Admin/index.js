@@ -29,7 +29,7 @@ import Payments from './Payments';
 import Policies from './Policies';
 
 
-const teamName = config.team && config.team.name;
+const teamName = config.team && config.team.id;
 
 const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
