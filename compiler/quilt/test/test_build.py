@@ -265,7 +265,7 @@ class BuildTest(QuiltTestCase):
 
     def test_build_glob_naming_conflict(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build_name_conflict.yml'
+        buildfile = mydir / 'build_globbing_name_conflict.yml'
 
         with pytest.raises(command.CommandException, match="Naming conflict:"):
             command.build('test/globdata', str(buildfile))
@@ -274,7 +274,7 @@ class BuildTest(QuiltTestCase):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build.yml'
+        buildfile = mydir / 'build_globbing.yml'
 
         command.build('test/globdata', str(buildfile))
 
@@ -285,12 +285,12 @@ class BuildTest(QuiltTestCase):
         globdata.csv.foo
         globdata.csv.nulls
         globdata.csv.nuts
-        globdata.csv.n10KRows13Cols
+        globdata.csv.n100Rows13Cols
         globdata.csv.subnode.csv
         globdata.csv.subnode.foo
         globdata.csv.subnode.goo
         # excel, kwargs sent
-        assert len(globdata.excel.n10KRows13Cols()) == 9995
+        assert len(globdata.excel.n100Rows13Cols()) == 95
         # naming collision -- acceptable during a single glob specification, should result in a rename
         globdata.collision.csv
         globdata.collision.csv_2
