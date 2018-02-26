@@ -1,8 +1,6 @@
 /* config.js */
 
 /* eslint-disable no-underscore-dangle */
-import assert from 'assert';
-
 if (window.location.hostname === 'quiltdata.com') {
   window.__CONFIG = {
     api: 'https://pkg.quiltdata.com',
@@ -16,15 +14,15 @@ if (window.location.hostname === 'quiltdata.com') {
     stripeKey: 'pk_test_DzvjoWzXwIB1DRtQqywxDjWp',
 
     // Quilt auth
-    userApi: 'https://stage-auth.quiltdata.com/accounts/api-root',
-    signOutUrl: 'https://stage-auth.quiltdata.com/accounts/logout?next=%2F',
+    // userApi: 'https://stage-auth.quiltdata.com/accounts/api-root',
+    // signOutUrl: 'https://stage-auth.quiltdata.com/accounts/logout?next=%2F',
 
     // Team feature dev
     // team: {
     //   id: "SuperCorp",
     // },
-    // userApi: 'http://localhost:5002/accounts/api-root',
-    // signOutUrl: 'http://localhost:5002/accounts/logout?next=%2F',
+    userApi: 'http://localhost:5002/accounts/api-root',
+    signOutUrl: 'http://localhost:5002/accounts/logout?next=%2F',
 
     // GitHub
     // userApi: 'https://api.github.com/user',
@@ -44,13 +42,11 @@ const mustHave = {
 const keys = Object.keys(window.__CONFIG);
 // eslint has good reasons not to like for .. of, so do it the old-fashioned way:
 for (let i = 0; i < keys.length; i += 1) {
-  const k = window.__CONFIG[k];
-  if (k in mustHave) {
-    assert(
-      // eslint-disable-next-line valid-typeof
-      typeof window.__CONFIG[k] === mustHave[k],
-      `Unexpected config['${k}'}]: ${window.__CONFIG[k]}`
-    );
+  const k = keys[i];
+  const v = window.__CONFIG[k];
+  // eslint-disable-next-line valid-typeof
+  if (k in mustHave && typeof v !== mustHave[k]) {
+    throw new Error(`Unexpected config['${k}'}]: ${v}`);
   }
 }
 
@@ -61,5 +57,4 @@ if (window.__CONFIG.team && !window.__CONFIG.team.id) {
   // blow away the object so JS can use `config.team` to detect team instances
   window.__CONFIG.team = undefined;
 }
-
 /* eslint-enable no-underscore-dangle */
