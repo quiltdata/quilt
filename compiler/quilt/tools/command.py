@@ -34,9 +34,9 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .const import DEFAULT_BUILDFILE, LATEST_TAG
+from .const import DEFAULT_BUILDFILE
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node)
+                   decode_node, encode_node, LATEST_TAG)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
 from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename

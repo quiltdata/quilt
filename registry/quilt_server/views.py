@@ -7,11 +7,13 @@ API routes.
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
+import gzip
 import json
 import time
 from urllib.parse import urlencode
 
 import boto3
+from botocore.exceptions import ClientError
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
@@ -29,7 +31,8 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
-from .core import decode_node, find_object_hashes, hash_contents, FileNode, GroupNode, RootNode
+from .core import (decode_node, find_object_hashes, hash_contents,
+                   FileNode, GroupNode, RootNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
@@ -77,6 +80,8 @@ MAX_METADATA_SIZE = 100 * 1024 * 1024
 
 PREVIEW_MAX_CHILDREN = 10
 PREVIEW_MAX_DEPTH = 4
+
+MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
 
 s3_client = boto3.client(
     's3',
@@ -505,6 +510,32 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+
+def download_object_preview(owner, obj_hash):
+    try:
+        resp = s3_client.get_object(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+        )
+
+        body = resp['Body']
+        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+            data = fd.read(MAX_PREVIEW_SIZE)
+
+        return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
+    except ClientError as ex:
+        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
+            # The client somehow failed to upload the README.
+            return None
+        else:
+            # Something unexpected happened.
+            raise
+    except OSError:
+        # Failed to ungzip: either the contents is not actually gzipped,
+        # or the response was truncated because it was too big.
+        return None
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
@@ -654,6 +685,15 @@ def package_put(owner, package_name, package_hash):
         return Response(_generate(), content_type='application/json')
 
     if instance is None:
+        readme = contents.children.get(README)
+        if isinstance(readme, FileNode):
+            assert len(readme.hashes) == 1
+            readme_hash = readme.hashes[0]
+            readme_preview = download_object_preview(owner, readme_hash)
+        else:
+            readme_hash = None
+            readme_preview = None
+
         instance = Instance(
             package=package,
             contents=contents,
@@ -683,6 +723,8 @@ def package_put(owner, package_name, package_hash):
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
+                if blob_hash == readme_hash:
+                    blob.preview = readme_preview
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -813,12 +855,21 @@ def package_preview(owner, package_name, package_hash):
     instance = _get_instance(g.auth, owner, package_name, package_hash)
     assert isinstance(instance.contents, RootNode)
 
-    readme = instance.contents.children.get('README')
+    readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
-        readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme.hashes[0])
+        readme_hash = readme.hashes[0]
+        readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme_hash)
+        readme_blob = (
+            S3Blob.query
+            .filter_by(owner=owner, hash=readme_hash)
+            .options(undefer('preview'))
+            .one_or_none()  # Should be one() once READMEs are backfilled.
+        )
+        readme_preview = readme_blob.preview if readme_blob is not None else None
     else:
         readme_url = None
+        readme_preview = None
 
     contents_preview = _generate_preview(instance.contents)
 
@@ -843,6 +894,7 @@ def package_preview(owner, package_name, package_hash):
     return dict(
         preview=contents_preview,
         readme_url=readme_url,
+        readme_preview=readme_preview,
         created_by=instance.created_by,
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
@@ -1455,11 +1507,14 @@ def search():
         for keyword in keywords
     ]
 
-    results = (
+    # Subquery to get the list of packages.
+    packages = (
         db.session.query(
-            Package,
-            sa.func.bool_or(Access.user == PUBLIC),
-            sa.func.bool_or(Access.user == TEAM)
+            Package.id,
+            Package.owner,
+            Package.name,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
         )
         .filter(sa.and_(*filter_list))
         .join(Package.access)
@@ -1469,17 +1524,46 @@ def search():
             sa.func.lower(Package.owner),
             sa.func.lower(Package.name)
         )
-        .all()
+        .subquery()
+    )
+
+    README_SNIPPET_LEN = 1024
+
+    # Subquery to get the READMEs.
+    readmes = (
+        db.session.query(
+            Package.id,
+            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
+        )
+        .join(Package.instances)
+        .join(Instance.tags)
+        .filter(Tag.tag == LATEST_TAG)
+        .join(Instance.blobs)
+        .filter(Instance.readme_hash() == S3Blob.hash)
+        .subquery()
+    )
+
+    # Put the two together using an outer join, so we get search results with or without READMEs.
+    results = (
+        db.session.query(
+            packages.c.owner,
+            packages.c.name,
+            packages.c.is_public,
+            packages.c.is_team,
+            readmes.c.readme,
+        )
+        .outerjoin(readmes, packages.c.id == readmes.c.id)
     )
 
     return dict(
         packages=[
             dict(
-                owner=package.owner,
-                name=package.name,
+                owner=owner,
+                name=name,
                 is_public=is_public,
                 is_team=is_team,
-            ) for package, is_public, is_team in results
+                readme_preview=readme,
+            ) for owner, name, is_public, is_team, readme in results
         ]
     )
 
