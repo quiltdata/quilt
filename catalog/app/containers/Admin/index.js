@@ -20,16 +20,16 @@ import { push } from 'containers/Notifications/actions';
 import * as actions from './actions';
 import msg from './messages';
 import selector from './selectors';
-import AddMember from './AddMember';
 import AuditDialog from './AuditDialog';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
+import Payments from './Payments';
 import Policies from './Policies';
 
 
-const teamName = config.team && config.team.name;
+const teamName = config.team && config.team.id;
 
 const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
@@ -42,6 +42,7 @@ export default compose(
   ),
   setPropTypes({
     user: PT.string.isRequired,
+    plan: PT.string.isRequired,
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
@@ -110,6 +111,7 @@ export default compose(
   setDisplayName('Admin'),
 )(({
   user,
+  plan,
   addMember,
   members,
   memberActions,
@@ -124,27 +126,21 @@ export default compose(
 }) => (
   <div>
     <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
-
+    <Payments plan={plan} />
     <Policies
       read
       write={false}
       onReadCheck={changePolicy}
       onWriteCheck={changePolicy}
     />
-
-    <AddMember addMember={addMember} />
-
-    <Members {...members} audit={getMemberAudit} actions={memberActions} user={user} />
-
+    <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
     <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
-
     <AuditDialog
       onClose={() => getMemberAudit(null)}
       title={`${formatMessage(msg.auditUser)}: ${memberAudit.name}`}
       component={MemberAudit}
       {...memberAudit}
     />
-
     <AuditDialog
       onClose={() => getPackageAudit(null)}
       title={`${formatMessage(msg.auditPackage)}: ${packageAudit.handle}`}

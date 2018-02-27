@@ -4,7 +4,7 @@ import { defineMessages } from 'react-intl';
 export default defineMessages({
   membersAdd: {
     id: 'app.containers.Admin.membersAdd',
-    defaultMessage: 'Add member',
+    defaultMessage: 'Add',
   },
   membersRead: {
     id: 'app.containers.Admin.membersRead',
@@ -25,6 +25,10 @@ export default defineMessages({
   teamPackages: {
     id: 'app.containers.Admin.teamMembers',
     defaultMessage: 'Packages',
+  },
+  teamPayment: {
+    id: 'app.containers.Admin.teamPayment',
+    defaultMessage: 'Status',
   },
   teamPolicies: {
     id: 'app.containers.Admin.teamPolicies',
@@ -136,7 +140,7 @@ export default defineMessages({
   },
   membersName: {
     id: 'app.containers.Admin.Members.name',
-    defaultMessage: 'Name',
+    defaultMessage: 'Username',
   },
   membersActivity: {
     id: 'app.containers.Admin.Members.activity',

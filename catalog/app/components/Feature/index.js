@@ -69,7 +69,6 @@ const Content = styled.div`
   h1.main {
     font-size: 5vw;
     font-weight: bold;
-    text-transform: uppercase;
   }
 
   h2.main {

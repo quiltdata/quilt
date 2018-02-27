@@ -1,3 +1,4 @@
+import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -16,6 +17,7 @@ import Spinner from 'components/Spinner';
 import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
+import AddMember from './AddMember';
 import msg from './messages';
 import { branch, formatActivity, formatDate, withStatefulActions } from './util';
 import ErrorMessage from './ErrorMessage';
@@ -118,7 +120,7 @@ const MembersTable = compose(
             </Cell>
             <Cell locked={pending[name]}>
               {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-              <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
+              <FlatButton onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</FlatButton>
               {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
             </Cell>
             <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
@@ -142,6 +144,7 @@ export default compose(
       PT.object,
     ]),
     actions: PT.object.isRequired,
+    addMember: PT.func.isRequired,
     audit: PT.func.isRequired,
   }),
   setDisplayName('Admin.Members'),
@@ -149,6 +152,7 @@ export default compose(
   status,
   response,
   actions,
+  addMember,
   audit,
   ...props
 }) => (
@@ -162,6 +166,8 @@ export default compose(
         })
       }
     </h2>
+    <AddMember addMember={addMember} />
+    <br />
     {
       branch(status, {
         [api.SUCCESS]: () => (

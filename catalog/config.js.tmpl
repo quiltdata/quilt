@@ -3,8 +3,6 @@ window.__CONFIG = {
   api: '$REGISTRY_URL',
   signOutUrl: '$SIGN_OUT_URL',
   stripeKey: '$STRIPE_KEY',
-  team: {
-    name: '$TEAM_NAME'
-  },
+  team: '$TEAM_ID' ? { id: '$TEAM_ID' } : undefined,
   userApi: '$USER_API'
 };

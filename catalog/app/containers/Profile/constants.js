@@ -1,4 +1,6 @@
 /* Profile constants */
+import config from 'constants/config';
+
 export const GET_PROFILE = 'app/Profile/GET_PROFILE';
 export const GET_PROFILE_ERROR = 'app/Profile/GET_PROFILE_ERROR';
 export const GET_PROFILE_SUCCESS = 'app/Profile/GET_PROFILE_SUCCESS';
@@ -11,8 +13,29 @@ export const UPDATE_PLAN = 'app/Profile/UPDATE_PLAN';
 export const UPDATE_PLAN_ERROR = 'app/Profile/UPDATE_PLAN_ERROR';
 export const UPDATE_PLAN_SUCCESS = 'app/Profile/UPDATE_PLAN_SUCCESS';
 
-export const PLANS = {
+// public cloud plans
+export const PLANS = config.team ? {
+  // team plans
+  team_unpaid: {
+    confirmTitle: 'Cancel team account?',
+    confirmBody: 'Your team will lose access to all data.',
+    cost: 0,
+    menu: 'Team (30-day trial)',
+    rank: 0,
+    statusIcon: 'warning',
+    statusMessage: 'Temporary Service plan. Upgrade for uninterrupted service.',
+  },
+  team_monthly_490: {
+    cost: 49000,
+    menu: 'Team',
+    menuIcon: 'stars',
+    rank: 1,
+    statusIcon: 'check_circle',
+  },
+} : {
   free: {
+    confirmTitle: 'Downgrade to free?',
+    confirmBody: 'You will no longer be able to create private packages.',
     cost: 0,
     menu: 'Free',
     rank: 0,
@@ -22,10 +45,6 @@ export const PLANS = {
     menu: 'Individual',
     rank: 1,
   },
-  business_monthly_490: {
-    cost: 49000,
-    menu: 'Business (Contact Us)',
-    rank: 2,
-  },
 };
+
 Object.freeze(PLANS);
