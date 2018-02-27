@@ -763,14 +763,6 @@ class TestCLI(BasicQuiltTestCase):
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
-        def strip_eoferror(stderr):
-            """Remove the expected EOFError from stderr text"""
-            tb_msg = 'Traceback (most recent call last)'
-            expected_error = "EOFError: EOF when reading a line"
-            first, last = stderr.split(expected_error)
-            first, junk = first.rsplit(tb_msg)
-            return first + last
-
         result = self.execute(cmd)
 
         # was the --dev arg accepted by argparse?
@@ -785,7 +777,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags)
 
         # Wait for some expected text
@@ -796,8 +788,6 @@ class TestCLI(BasicQuiltTestCase):
         # Send interrupt, and fetch result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
-        if os.name == 'nt':
-            stderr = strip_eoferror(stderr)
 
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
@@ -805,7 +795,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags)
 
         # Wait for some expected text
@@ -816,8 +806,6 @@ class TestCLI(BasicQuiltTestCase):
         # Send interrupt, and check result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
-        if os.name == 'nt':
-            stderr = strip_eoferror(stderr)
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
