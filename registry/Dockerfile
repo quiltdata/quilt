@@ -36,4 +36,4 @@ ENV FLASK_APP=quilt_server
 
 EXPOSE 9000
 
-CMD flask db upgrade && exec uwsgi --ini /etc/uwsgi.ini
+CMD ["uwsgi", "--ini", "/etc/uwsgi.ini"]
