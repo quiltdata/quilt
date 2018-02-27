@@ -750,12 +750,18 @@ class TestCLI(BasicQuiltTestCase):
         TESTED_PARAMS.append(['--dev'])
 
         cmd = ['--dev', 'install', 'user/test']
+        nodev_cmd = self.quilt_command + ['config']
+        dev_cmd = self.quilt_command + ['--dev', 'config']
         if os.name == 'posix':
             SIGINT = signal.SIGINT
             creation_flags = 0
+            shell = False
         elif os.name == 'nt':
             SIGINT = signal.CTRL_C_EVENT
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+            shell = True
+            nodev_cmd = ' '.join(nodev_cmd)
+            dev_cmd = ' '.join(dev_cmd)
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
@@ -772,9 +778,8 @@ class TestCLI(BasicQuiltTestCase):
         test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
 
         # With no '--dev' arg, the process should exit without a traceback
-        cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags)
+        proc = Popen(nodev_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags, shell=shell)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -789,9 +794,8 @@ class TestCLI(BasicQuiltTestCase):
         assert proc.returncode == EXIT_KB_INTERRUPT
 
         # With the '--dev' arg, the process should display a traceback
-        cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags)
+        proc = Popen(dev_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags, shell=shell)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
