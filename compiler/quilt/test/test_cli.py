@@ -781,8 +781,11 @@ class TestCLI(BasicQuiltTestCase):
         proc = Popen(nodev_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags, shell=shell)
 
+        import time
+        
         # Wait for some expected text
         expected = b"Please enter the URL"
+        time.sleep(3)
         response = proc.stdout.read(len(expected))
         assert response == expected
 
@@ -799,6 +802,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # Wait for some expected text
         expected = b"Please enter the URL"
+        time.sleep(3)
         response = proc.stdout.read(len(expected))
         assert response == expected
 
