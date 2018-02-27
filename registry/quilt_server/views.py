@@ -764,8 +764,12 @@ def package_put(owner, package_name, package_hash):
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
-            if blob_hash == readme_hash and readme_preview is not None:
-                blob.preview = readme_preview
+            if blob_hash == readme_hash:
+                if readme_preview is not None:
+                    # If we've just downloaded the README, save it in the blob.
+                    # Otherwise, it was already set.
+                    blob.preview = readme_preview
+                instance.readme_blob = blob
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
