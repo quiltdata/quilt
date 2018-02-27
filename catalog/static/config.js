@@ -25,8 +25,8 @@ if (window.location.hostname === 'quiltdata.com') {
     // team: {
     //   id: "SuperCorp",
     // },
-    // userApi: 'http://localhost:5002/accounts/api-root',
-    // signOutUrl: 'http://localhost:5002/accounts/logout?next=%2F',
+    // userApi: 'http://auth:5002/accounts/api-root',
+    // signOutUrl: 'http://auth:5002/accounts/logout?next=%2F',
 
     // GitHub
     // userApi: 'https://api.github.com/user',
