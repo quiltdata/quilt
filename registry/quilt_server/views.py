@@ -1529,10 +1529,8 @@ def search():
         for keyword in keywords
     ]
 
-    # Subquery to get the list of packages.
     packages = (
         db.session.query(
-            Package.id,
             Package.owner,
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
@@ -1546,35 +1544,6 @@ def search():
             sa.func.lower(Package.owner),
             sa.func.lower(Package.name)
         )
-        .subquery()
-    )
-
-    README_SNIPPET_LEN = 1024
-
-    # Subquery to get the READMEs.
-    readmes = (
-        db.session.query(
-            Package.id,
-            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
-        )
-        .join(Package.instances)
-        .join(Instance.tags)
-        .filter(Tag.tag == LATEST_TAG)
-        .join(Instance.blobs)
-        .filter(Instance.readme_hash() == S3Blob.hash)
-        .subquery()
-    )
-
-    # Put the two together using an outer join, so we get search results with or without READMEs.
-    results = (
-        db.session.query(
-            packages.c.owner,
-            packages.c.name,
-            packages.c.is_public,
-            packages.c.is_team,
-            readmes.c.readme,
-        )
-        .outerjoin(readmes, packages.c.id == readmes.c.id)
     )
 
     return dict(
@@ -1584,8 +1553,7 @@ def search():
                 name=name,
                 is_public=is_public,
                 is_team=is_team,
-                readme_preview=readme,
-            ) for owner, name, is_public, is_team, readme in results
+            ) for owner, name, is_public, is_team in packages
         ]
     )
 
