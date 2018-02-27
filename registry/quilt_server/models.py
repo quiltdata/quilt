@@ -71,11 +71,6 @@ class Instance(db.Model):
     tags = db.relationship('Tag', back_populates='instance')
     blobs = db.relationship('S3Blob', secondary=InstanceBlobAssoc)
 
-    @classmethod
-    def readme_hash(cls):
-        """Helper method for querying the hash of the README file"""
-        return cls.contents['children']['README']['hashes'][0].astext  # pylint:disable=E1136
-
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
 
 
