@@ -92,10 +92,10 @@ import json
 import os
 import pkg_resources
 import signal
+import subprocess
 import sys
 
 from subprocess import check_output, CalledProcessError, Popen, PIPE
-from time import sleep
 
 import pytest
 from six import string_types, PY2
@@ -742,16 +742,20 @@ class TestCLI(BasicQuiltTestCase):
 
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
-        if os.name == 'nt':
-            pytest.xfail("This test causes appveyor to freeze in windows.")
+
+        # fixed?
+        # if os.name == 'nt':
+        #     pytest.xfail("This test causes appveyor to freeze in windows.")
 
         TESTED_PARAMS.append(['--dev'])
 
         cmd = ['--dev', 'install', 'user/test']
         if os.name == 'posix':
             SIGINT = signal.SIGINT
+            creation_flags = 0
         elif os.name == 'nt':
             SIGINT = signal.CTRL_C_EVENT
+            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
@@ -763,12 +767,13 @@ class TestCLI(BasicQuiltTestCase):
         # We need to run a command that blocks.  To do so, I'm disabling the
         # test mocking of the command module, and executing a command that
         # blocks while waiting for input ('config').
-        no_mock = os.environ.copy()
-        no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
+        test_environ = os.environ.copy()
+        test_environ['QUILT_TEST_CLI_SUBPROC'] = 'false'
+        test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -784,7 +789,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
