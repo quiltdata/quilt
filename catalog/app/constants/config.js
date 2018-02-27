@@ -17,7 +17,7 @@ Object.keys(mustHaveType).forEach((key) => {
   const actualValue = window.__CONFIG[key];
   const actualType = typeof actualValue;
   if ((actualType !== expectedType) || (actualType === 'string' && actualValue.length < 1)) {
-    throw new Error(`Unexpected config[${key}}]: ${actualValue}`);
+    throw new Error(`Unexpected config['${key}']: ${actualValue}`);
   }
 });
 
