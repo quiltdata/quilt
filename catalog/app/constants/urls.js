@@ -13,6 +13,7 @@ export const issues = 'https://github.com/quiltdata/quilt/blob/master/README.md#
 export const jobs = 'https://quilt-data.breezy.hr/';
 export const makePackage = 'https://docs.quiltdata.com/make-a-package.html';
 export const pipGit = `git+${git}`;
+export const icon256 = 'https://d1zvn9rasera71.cloudfront.net/q-256-square.png';
 export const tutorial = 'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial';
 export const twitter = 'https://twitter.com/quiltdata';
 // paths - leading / by convention
