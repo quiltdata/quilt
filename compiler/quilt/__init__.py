@@ -71,7 +71,7 @@ def _install_interrupt_handler():
         # Normal exit
         # avoid annoying prompt displacement when hitting ctrl-c
         print()
-        exit(const.EXIT_KB_INTERRUPT)
+        sys.exit(const.EXIT_KB_INTERRUPT)
 
     return signal.signal(signal.SIGINT, handle_interrupt)
 
