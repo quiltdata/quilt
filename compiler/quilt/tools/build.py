@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat
+from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
@@ -182,7 +182,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                                                     pkg=pkgname,
                                                     subpath=subpath))
             else:
-                node = existing_pkg.get_contents()
+                node = GroupNode(existing_pkg.get_contents().children)
             package.save_package_tree(name, node)
         else:
             # handle remaining leaf nodes types
