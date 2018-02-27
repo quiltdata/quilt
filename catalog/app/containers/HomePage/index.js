@@ -7,7 +7,6 @@ import Demo, { id } from 'components/Demo';
 import Feature from 'components/Feature';
 import Intro from 'components/Intro';
 import { BigSkip, HCenter, Pad, UnPad } from 'components/LayoutHelpers';
-import Lead from 'components/Lead';
 import Pricing from 'components/Pricing';
 import Values from 'components/Values';
 
@@ -30,9 +29,9 @@ const Styler = styled.div`
 export default class HomePage extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render() {
     const { team = {} } = config;
-    const header = team.name ? team.name : undefined;
-    const tagline = team.name ? 'Team data catalog' : undefined;
-    const signUp = !team.name;
+    const header = team.id ? team.id : undefined;
+    const tagline = team.id ? 'Team data registry' : undefined;
+    const signUp = !team.id;
 
     return (
       <UnPad>
@@ -49,9 +48,13 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
             <h1>Work with your favorite tools</h1>
             <Values />
             <Demo />
-            <HCenter>
-              <Pricing signUp={signUp} />
-            </HCenter>
+            {
+              team.id ? null : (
+                <HCenter>
+                  <Pricing signUp={signUp} />
+                </HCenter>
+              )
+            }
           </Styler>
         </Pad>
         <BigSkip />

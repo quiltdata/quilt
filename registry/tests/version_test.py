@@ -7,7 +7,7 @@ Version tests
 import json
 import requests
 
-from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
+from quilt_server.core import hash_contents, GroupNode, RootNode
 from .utils import QuiltTestCase
 
 
@@ -46,7 +46,7 @@ class VersionTestCase(QuiltTestCase):
             ),
             data=json.dumps(dict(
                 hash=pkghash
-            ), default=encode_node),
+            )),
             content_type='application/json',
             headers={
                 'Authorization': self.user

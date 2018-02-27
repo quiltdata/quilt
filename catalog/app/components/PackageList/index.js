@@ -7,7 +7,7 @@ import PackageHandle from 'components/PackageHandle';
 import Pagination from 'components/Pagination';
 import { listStyle } from 'constants/style';
 
-const renderPackage = (showOwner, defaultOwner) =>
+const renderPackage = (showPrefix, defaultOwner) =>
   ({ is_public, name, owner = defaultOwner }) => { // eslint-disable-line camelcase, react/prop-types
     const handle = `${owner}/${name}`;
     const displayHandle = (
@@ -15,7 +15,7 @@ const renderPackage = (showOwner, defaultOwner) =>
         isPublic={is_public} // eslint-disable-line camelcase
         name={name}
         owner={owner}
-        showOwner={showOwner}
+        showPrefix={showPrefix}
       />
     );
     return (
@@ -31,7 +31,7 @@ function PackageList({
   emptyMessage,
   emptyHref,
   packages,
-  showOwner,
+  showPrefix,
   owner,
 }) {
   if (packages.length === 0) {
@@ -46,7 +46,7 @@ function PackageList({
     <Pagination items={packages}>
       {({ items }) => (
         <List style={listStyle}>
-          {items.map(renderPackage(showOwner, owner))}
+          {items.map(renderPackage(showPrefix, owner))}
         </List>
       )}
     </Pagination>
@@ -55,14 +55,14 @@ function PackageList({
 
 PackageList.defaultProps = {
   emptyMessage: 'Nothing here yet',
-  showOwner: true,
+  showPrefix: true,
 };
 
 PackageList.propTypes = {
   emptyMessage: PropTypes.node,
   emptyHref: PropTypes.string,
   packages: PropTypes.array,
-  showOwner: PropTypes.bool,
+  showPrefix: PropTypes.bool,
   owner: PropTypes.string,
 };
 

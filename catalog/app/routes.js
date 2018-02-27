@@ -23,7 +23,7 @@ const errorLoading = (err) => {
 const getDefault = get('default');
 
 const requireAuthIfTeam = (Component) =>
-  config.team && config.team.name && config.alwaysRequiresAuth
+  config.team && config.alwaysRequiresAuth
     ? requireAuth(Component) : Component;
 
 
@@ -95,10 +95,14 @@ export default function createRoutes(store) {
           import('containers/Profile/reducer'),
           import('containers/Profile/sagas'),
           import('containers/Profile'),
+          import('containers/Admin/reducer'),
+          import('containers/Admin/sagas'),
         ])
-          .then(([reducer, sagas, component]) => {
+          .then(([reducer, sagas, component, adminReducer, adminSagas]) => {
             injectReducer('profile', reducer.default);
             injectSagas(sagas.default);
+            injectReducer('admin', adminReducer.default);
+            injectSagas(adminSagas.default);
             return requireAuth(component.default);
           })
       ), // eslint-disable-line function-paren-newline

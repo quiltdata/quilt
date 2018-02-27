@@ -14,7 +14,6 @@ class TargetType(Enum):
 DATEF = '%Y-%m-%d'
 TIMEF = '%H:%M:%S'
 DTIMEF = '%s %s' % (DATEF, TIMEF)
-LATEST_TAG = 'latest'
 PACKAGE_DIR_NAME = 'quilt_packages'
 DEFAULT_BUILDFILE = 'build.yml'
 DEFAULT_QUILT_YML = 'quilt.yml'

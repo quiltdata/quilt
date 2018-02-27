@@ -2,6 +2,7 @@
 import Avatar from 'material-ui/Avatar';
 import IconButton from 'material-ui/IconButton';
 import RaisedButton from 'material-ui/RaisedButton';
+import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
@@ -9,12 +10,14 @@ import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import StripeCheckout from 'react-stripe-checkout';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
-import { Toolbar, ToolbarGroup, ToolbarSeparator, ToolbarTitle } from 'material-ui/Toolbar';
+import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
 
+import Admin from 'containers/Admin';
 import apiStatus from 'constants/api';
 import config from 'constants/config';
 import Error from 'components/Error';
 import Help from 'components/Help';
+import { Skip } from 'components/LayoutHelpers';
 import Loading from 'components/Loading';
 import MIcon from 'components/MIcon';
 import PackageList from 'components/PackageList';
@@ -25,19 +28,13 @@ import {
   makeSelectUserName,
 } from 'containers/App/selectors';
 import { printObject } from 'utils/string';
-import { makePackage } from 'constants/urls';
+import { icon256, makePackage } from 'constants/urls';
 import Working from 'components/Working';
 
 import { getProfile, updatePayment, updatePlan } from './actions';
 import { PLANS } from './constants';
 import { makeSelectProfile } from './selectors';
 import messages from './messages';
-
-const Content = styled.div`
-  h1:not(:first-child) {
-    margin-top: 1em;
-  }
-`;
 
 const LoadingMargin = styled(Loading)`
   margin-right: 1em;
@@ -75,7 +72,8 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   }
 
   onToken = (token) => {
-    const { dispatch, currentPlan } = this.props;
+    const { dispatch, profile: { plan = {} } } = this.props;
+    const currentPlan = plan.response;
     const { selectedPlan } = this.state;
     if (selectedPlan && (currentPlan !== selectedPlan)) {
       dispatch(updatePlan(selectedPlan, token.id));
@@ -92,11 +90,28 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     }
   }
 
+  maybeWarn(plan, payment) {
+    let error = false;
+    if (plan.error) {
+      console.error(printObject(plan.error)); // eslint-disable-line no-console
+      error = true;
+    }
+    if (payment.error) {
+      console.error(printObject(payment.error)); // eslint-disable-line no-console
+      error = true;
+    }
+    if (!(plan.response in PLANS)) {
+      console.error(`Unrecognized plan: ${plan.response}`); // eslint-disable-line no-console
+      error = true;
+    }
+    return error;
+  }
+
   showDialog = (showDialog) => {
-    const { currentPlan } = this.props;
+    const { profile: { plan = {} } } = this.props;
     if (!showDialog) {
       // when closing dialog forget selection
-      this.setState({ selectedPlan: currentPlan });
+      this.setState({ selectedPlan: plan.response });
     }
     this.setState({ showDialog });
   };
@@ -123,30 +138,50 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
         break;
     }
 
-    const shortName = this.props.user.slice(0, 2).toUpperCase();
-
+    const shortName = this.props.user.slice(0, 2);
     const planWaiting = !plan.status || plan.status === apiStatus.WAITING;
-    // payment is undefined in the store by default, don't wait on undefined
+    // payment is undefined in the store by default, so don't wait on undefined
     const paymentWaiting = payment.status === apiStatus.WAITING;
 
     const isLoading = planWaiting || paymentWaiting;
-    const isWarning = (
-      plan.status === apiStatus.ERROR
-      || payment.status === apiStatus.ERROR
-      || !plan.response
+    const isWarning = this.maybeWarn(plan, payment);
+
+    const planMessage = plan.response in paymentMessages ?
+      <FormattedMessage {...paymentMessages[plan.response]} />
+      : <FormattedMessage {...paymentMessages.unrecognized} />;
+
+    const pageOne = (
+      <PackagesArea
+        packages={response.packages}
+        shortName={shortName}
+        user={this.props.user}
+      />
     );
 
-    const planError = plan.error || {};
-    const payError = payment.error || {};
-    const warningString = `${printObject(planError)}\n${printObject(payError)}\n${!plan.response ? 'Unrecognized plan' : ''}`;
-
-    const businessMember = plan.response === 'business_member';
-
-    const planMessage = (plan.response in PLANS || businessMember) ?
-      <FormattedMessage {...paymentMessages[plan.response]} />
-      : plan.response;
     return (
       <div>
+        { config.team ?
+          <div>
+            <Skip />
+            <Tabs>
+              <Tab label="packages" value="packages">{ pageOne }</Tab>
+              <Tab label="admin" value="admin"><Admin plan={plan.response} /></Tab>
+            </Tabs>
+            <Skip />
+          </div> : pageOne
+        }
+        <PlanArea
+          currentPlan={plan.response}
+          email={this.props.email}
+          handleShowDialog={() => this.showDialog(true)}
+          handleUpdatePayment={this.updatePayment}
+          haveCreditCard={response.have_credit_card}
+          isAdmin={profile.response.is_admin}
+          isLoading={isLoading}
+          isWarning={isWarning}
+          locale={this.props.intl.locale}
+          planMessage={planMessage}
+        />
         <PaymentDialog
           currentPlan={plan.response}
           email={this.props.email}
@@ -158,62 +193,6 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           onToken={this.onToken}
           selectedPlan={this.state.selectedPlan}
         />
-        <Content>
-          <h1><Avatar>{shortName}</Avatar> {this.props.user}</h1>
-          <h2><FormattedMessage {...messages.own} /></h2>
-          <PackageList
-            emptyMessage={<FormattedMessage {...messages.noOwned} />}
-            emptyHref={makePackage}
-            packages={response.packages.own}
-            showOwner={false}
-          />
-          <h2><FormattedMessage {...messages.shared} /></h2>
-          <PackageList packages={response.packages.shared} />
-          <h2><FormattedMessage {...messages.public} /></h2>
-          <Help href="/search/?q=">
-            <FormattedMessage {...messages.showPublic} />
-          </Help>
-          <h1>Service plan</h1>
-          <Toolbar>
-            <ToolbarGroup>
-              { isLoading ? <LoadingMargin /> : null }
-              <ToolbarTitle text={planMessage} />
-              { isWarning ? <WarningIcon title={warningString} /> : null }
-              {
-                this.props.currentPlan !== 'free' && !businessMember && response.have_credit_card ?
-                  <StripeCheckout
-                    allowRememberMe
-                    amount={0}
-                    email={this.props.email}
-                    image="https://d1j3mlw4fz6jw9.cloudfront.net/quilt-packages-stripe-checkout-logo.png"
-                    locale={this.props.intl.locale}
-                    name="Quilt Data, Inc."
-                    panelLabel="Update"
-                    token={this.updatePayment}
-                    stripeKey={config.stripeKey}
-                    zipCode
-                  >
-                    <IconButton
-                      disabled={isLoading}
-                      tooltip="Update payment card"
-                      touch
-                    >
-                      <MIcon>credit_card</MIcon>;
-                    </IconButton>
-                  </StripeCheckout> : null
-              }
-              <ToolbarSeparator />
-              { !businessMember ?
-                <RaisedButton
-                  disabled={isLoading}
-                  label={<FormattedMessage {...messages.learnMore} />}
-                  onClick={() => this.showDialog(true)}
-                  primary
-                /> : null
-              }
-            </ToolbarGroup>
-          </Toolbar>
-        </Content>
       </div>
     );
   }
@@ -240,14 +219,104 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-const WarningIcon = ({ title }) => (
-  <MIcon drop="4px" title={title}>
+const PackagesArea = ({ packages, shortName, user }) => (
+  <div>
+    <h1><Avatar>{shortName}</Avatar> {user}</h1>
+    <h2><FormattedMessage {...messages.own} /></h2>
+    <PackageList
+      emptyMessage={<FormattedMessage {...messages.noOwned} />}
+      emptyHref={makePackage}
+      packages={packages.own}
+      showPrefix={false}
+    />
+    <h2><FormattedMessage {...messages.shared} /></h2>
+    <PackageList packages={packages.shared} />
+    <h2><FormattedMessage {...messages[config.team ? 'team' : 'public']} /></h2>
+    <Help href="/search/?q=">
+      <FormattedMessage {...messages.showPublic} />
+    </Help>
+  </div>
+);
+
+PackagesArea.propTypes = {
+  packages: PropTypes.object,
+  shortName: PropTypes.string,
+  user: PropTypes.string,
+};
+
+const PlanArea = ({
+  email,
+  handleShowDialog,
+  handleUpdatePayment,
+  haveCreditCard,
+  isAdmin,
+  isLoading,
+  isWarning,
+  locale,
+  planMessage,
+}) => (
+  <div>
+    <h1>Service plan</h1>
+    <Toolbar>
+      <ToolbarGroup>
+        { isLoading ? <LoadingMargin /> : null }
+        <ToolbarTitle text={planMessage} />
+        { isWarning ? <WarningIcon /> : null }
+        {
+          haveCreditCard ?
+            <StripeCheckout
+              allowRememberMe
+              amount={0}
+              email={email}
+              image={icon256}
+              locale={locale}
+              name="Quilt Data, Inc."
+              panelLabel="Update"
+              token={handleUpdatePayment}
+              stripeKey={config.stripeKey}
+              zipCode
+            >
+              <IconButton
+                disabled={isLoading}
+                tooltip="Update payment card"
+                touch
+              >
+                <MIcon drop="0px">credit_card</MIcon>;
+              </IconButton>
+            </StripeCheckout> : null
+        }
+        {
+          (config.team && isAdmin) || !config.team ? (
+            <RaisedButton
+              disabled={isLoading}
+              label={<FormattedMessage {...messages.learnMore} />}
+              onClick={handleShowDialog}
+              style={{ marginLeft: '20px' }}
+            />
+          ) : null
+        }
+      </ToolbarGroup>
+    </Toolbar>
+  </div>
+);
+
+PlanArea.propTypes = {
+  currentPlan: PropTypes.string,
+  email: PropTypes.string,
+  handleShowDialog: PropTypes.func,
+  handleUpdatePayment: PropTypes.func,
+  haveCreditCard: PropTypes.bool,
+  isAdmin: PropTypes.bool,
+  isLoading: PropTypes.bool,
+  isWarning: PropTypes.bool,
+  locale: PropTypes.string,
+  planMessage: PropTypes.object,
+};
+
+const WarningIcon = () => (
+  <MIcon drop="4px" title="See browser console for details">
     warning
   </MIcon>
 );
-
-WarningIcon.propTypes = {
-  title: PropTypes.string.isRequired,
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(injectIntl(Profile));

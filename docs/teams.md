@@ -9,17 +9,17 @@ To create your own Quilt team, [contact us](sales@quiltdata.io).
 # Command line API
 Team members have access to the [standard API](./api.md) with the following differences and additional features.
 
-## Differences in the Core API
+## Differences in the Core API/disbl
 ### `quilt login`
 Authenticate to  team registry:
-```sh
-$ quilt login TEAM
+```
+quilt login TEAM
 ``` 
 
 ### `quilt build|push|install`
 Team users should prefix package handles with the team namespace:
 ```
-$ quilt build|push|install TEAM:USER/PKG
+quilt build|push|install TEAM:USER/PKG
 ```
 ## `quilt push` visibility
 * `quilt push --team` makes a package visible to everyone on your team
@@ -27,8 +27,8 @@ $ quilt build|push|install TEAM:USER/PKG
 
 ### `quilt access`
 To make a package visible to your entire team:
-```sh
-$ quilt access add TEAM:USER/PKG team
+```
+quilt access add TEAM:USER/PKG team
 ```
 Public visibility is not yet supported for team packages.
 
@@ -40,30 +40,30 @@ from quilt.team.TEAM.USER import PKG
 ## Admin features
 ### `quilt user list`
 List users and associated metadata for your team.
-```sh
+```
 quilt user list TEAM
 ```
 
 ### `quilt user create`
 Add a team member.
-```sh
-$ quilt user create TEAM USERNAME EMAIL
+```
+quilt user create TEAM USERNAME EMAIL
 ```
 
 ### `quilt user disable`
 Disable a team member.
-```sh
+```
 quilt user disable TEAM USERNAME
 ```
 
 ### `quilt user reset-password`
 Send a user a reset-password email.
-```sh
+```
 quilt user reset-password TEAM USERNAME
 ```
 
 ### `quilt audit`
 Audit events relating to a user or package.
-```sh
+```
 quilt audit USER_OR_PACKAGE
 ```

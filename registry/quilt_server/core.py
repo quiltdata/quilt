@@ -13,6 +13,10 @@ import struct
 from six import iteritems, itervalues, string_types
 
 
+LATEST_TAG = 'latest'
+README = 'README'
+
+
 class PackageFormat(Enum):
     HDF5 = 'HDF5'
     PARQUET = 'PARQUET'
