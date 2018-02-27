@@ -25,11 +25,11 @@ import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
-import Payments from './Payments';
+import Status from './Status';
 import Policies from './Policies';
 
 
-const teamName = config.team && config.team.id;
+const teamName = config.team && config.team.name;
 
 const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
@@ -126,7 +126,7 @@ export default compose(
 }) => (
   <div>
     <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
-    <Payments plan={plan} />
+    <Status plan={plan} />
     <Policies
       read
       write={false}

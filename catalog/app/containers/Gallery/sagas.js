@@ -15,7 +15,8 @@ function* doGetLatest() {
   try {
     const { api: server } = config;
     const endpoint = `${server}/api/recent_packages`;
-    const response = yield call(requestJSON, endpoint, { method: 'GET' });
+    const headers = makeHeadersFromTokens(action.tokens);
+    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
     if (response.message) {
       throw makeError('Package hiccup', response.message);
     }

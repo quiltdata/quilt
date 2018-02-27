@@ -31,6 +31,7 @@ export const PLANS = config.team ? {
     menuIcon: 'stars',
     rank: 1,
     statusIcon: 'check_circle',
+    statusMessage: 'Active',
   },
 } : {
   free: {
