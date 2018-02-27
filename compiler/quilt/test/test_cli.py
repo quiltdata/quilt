@@ -786,7 +786,7 @@ class TestCLI(BasicQuiltTestCase):
         stdout, stderr = (b.decode() for b in proc.communicate())
         if os.name == 'nt':
             # stderr error from testing bleeds into test on windows.
-            expected_error = b"EOFError: EOF when reading a line"
+            expected_error = "EOFError: EOF when reading a line"
             junk, stderr = stderr.split(expected_error)
 
         assert 'Traceback' not in stderr
@@ -805,12 +805,12 @@ class TestCLI(BasicQuiltTestCase):
 
         # Send interrupt, and check result
         proc.send_signal(SIGINT)
+        stdout, stderr = (b.decode() for b in proc.communicate())
         if os.name == 'nt':
             # stderr error from testing bleeds into test on windows.
-            expected_error = b"EOFError: EOF when reading a line"
+            expected_error = "EOFError: EOF when reading a line"
             junk, stderr = stderr.split(expected_error)
-        stdout, stderr = proc.communicate()
-        assert b'Traceback (most recent call last)' in stderr
+        assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
 
