@@ -773,7 +773,8 @@ class TestCLI(BasicQuiltTestCase):
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -789,7 +790,8 @@ class TestCLI(BasicQuiltTestCase):
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
