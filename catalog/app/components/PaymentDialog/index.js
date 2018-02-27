@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import { PLANS } from 'containers/Profile/constants';
 import config from 'constants/config';
 import Pricing, { width } from 'components/Pricing';
+import { icon256 } from 'constants/urls';
 
 import messages from './messages';
 
@@ -78,7 +79,7 @@ class PaymentDialog extends React.PureComponent { // eslint-disable-line react/p
           amount={next.cost}
           description={`Monthly ${next.menu} Plan`}
           email={email}
-          image="https://d1zvn9rasera71.cloudfront.net/q-256-square.png"
+          image={icon256}
           locale={locale}
           name="Quilt Data, Inc."
           panelLabel="Pay"

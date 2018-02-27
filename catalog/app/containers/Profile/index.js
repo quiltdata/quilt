@@ -28,7 +28,7 @@ import {
   makeSelectUserName,
 } from 'containers/App/selectors';
 import { printObject } from 'utils/string';
-import { makePackage } from 'constants/urls';
+import { icon256, makePackage } from 'constants/urls';
 import Working from 'components/Working';
 
 import { getProfile, updatePayment, updatePlan } from './actions';
@@ -268,7 +268,7 @@ const PlanArea = ({
               allowRememberMe
               amount={0}
               email={email}
-              image="https://d1zvn9rasera71.cloudfront.net/q-256-square.png"
+              image={icon256}
               locale={locale}
               name="Quilt Data, Inc."
               panelLabel="Update"
