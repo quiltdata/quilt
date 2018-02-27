@@ -750,18 +750,12 @@ class TestCLI(BasicQuiltTestCase):
         TESTED_PARAMS.append(['--dev'])
 
         cmd = ['--dev', 'install', 'user/test']
-        nodev_cmd = self.quilt_command + ['config']
-        dev_cmd = self.quilt_command + ['--dev', 'config']
         if os.name == 'posix':
             SIGINT = signal.SIGINT
             creation_flags = 0
-            shell = False
         elif os.name == 'nt':
             SIGINT = signal.CTRL_C_EVENT
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
-            shell = True
-            nodev_cmd = ' '.join(nodev_cmd)
-            dev_cmd = ' '.join(dev_cmd)
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
@@ -778,39 +772,45 @@ class TestCLI(BasicQuiltTestCase):
         test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
 
         # With no '--dev' arg, the process should exit without a traceback
-        proc = Popen(nodev_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags, shell=shell)
+        cmd = self.quilt_command + ['config']
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags)
 
-        import time
-        
         # Wait for some expected text
         expected = b"Please enter the URL"
-        time.sleep(3)
-        response = proc.stdout.read(len(expected))
+        response = proc.stdout.read(len(expected))  # blocks if 'quilt config' produces too little output.
         assert response == expected
 
-        # Send interrupt, and check result
+        # Send interrupt, and fetch result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
+        if os.name == 'nt':
+            # stderr error from testing bleeds into test on windows.
+            expected_error = b"EOFError: EOF when reading a line"
+            junk, stderr = stderr.split(expected_error)
+
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
         assert proc.returncode == EXIT_KB_INTERRUPT
 
         # With the '--dev' arg, the process should display a traceback
-        proc = Popen(dev_cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags, shell=shell)
+        cmd = self.quilt_command + ['--dev', 'config']
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+                     creationflags=creation_flags)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
-        time.sleep(3)
-        response = proc.stdout.read(len(expected))
+        response = proc.stdout.read(len(expected))  # blocks if 'quilt config' produces too little output.
         assert response == expected
 
         # Send interrupt, and check result
         proc.send_signal(SIGINT)
-        stdout, stderr = (b.decode() for b in proc.communicate())
-        print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
-        assert 'Traceback (most recent call last)' in stderr
+        if os.name == 'nt':
+            # stderr error from testing bleeds into test on windows.
+            expected_error = b"EOFError: EOF when reading a line"
+            junk, stderr = stderr.split(expected_error)
+        stdout, stderr = proc.communicate()
+        assert b'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
 
