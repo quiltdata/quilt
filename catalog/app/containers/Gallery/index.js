@@ -7,6 +7,7 @@ import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import config from 'constants/config';
+import { makeHandle } from 'utils/string';
 
 import { getLatest } from './actions';
 import feed from './feed';
@@ -38,7 +39,7 @@ export class Gallery extends React.PureComponent {
           key={handle}
           team={Boolean(config.team)}
         >
-          <h1>{handle}</h1>
+          <h1>{makeHandle(owner, name)}</h1>
           <p>{body}</p>
         </Card>
       );

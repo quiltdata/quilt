@@ -22,7 +22,8 @@ COPY uwsgi.ini /etc/uwsgi.ini
 # Do this as the last step to maximize caching.
 COPY quilt_server /usr/src/quilt-server/quilt_server
 COPY migrations /usr/src/quilt-server/migrations
-COPY setup.py MANIFEST.in fix_sizes.py /usr/src/quilt-server/
+COPY scripts /usr/src/quilt-server/scripts
+COPY setup.py MANIFEST.in /usr/src/quilt-server/
 WORKDIR /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 

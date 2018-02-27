@@ -1,3 +1,6 @@
+import PT from 'prop-types';
+
+
 /* constants for API calls */
 const status = {
   ERROR: 'API_ERROR',
@@ -8,3 +11,5 @@ const status = {
 Object.freeze(status);
 
 export default status;
+
+export const apiStatus = PT.oneOf(Object.values(status));

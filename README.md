@@ -12,7 +12,7 @@
 
 Visit [docs.quiltdata.com](https://docs.quiltdata.com/). Or [browse the docs on GitHub](/docs/SUMMARY.md).
 
-# Quilt is a data router
+# Quilt is a data registry
 
 With Quilt you can build, push, and install data packages. Data packages are versioned, reusable data structures that can be  loaded into Python. Quilt is designed to support reproducible, auditable, and compliant workflows.
 

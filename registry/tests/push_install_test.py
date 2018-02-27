@@ -660,6 +660,9 @@ class PushInstallTestCase(QuiltTestCase):
     def testPreview(self):
         huge_contents_hash = hash_contents(self.HUGE_CONTENTS)
 
+        readme_contents = 'Hello, World!'
+        self._mock_object('test_user', self.HASH1, readme_contents.encode())
+
         # Push.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % huge_contents_hash,
@@ -692,6 +695,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         assert data['readme_url']
+        assert data['readme_preview'] == readme_contents
         preview = data['preview']
 
         assert preview == [

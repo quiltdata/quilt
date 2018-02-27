@@ -71,6 +71,11 @@ class Instance(db.Model):
     tags = db.relationship('Tag', back_populates='instance')
     blobs = db.relationship('S3Blob', secondary=InstanceBlobAssoc)
 
+    @classmethod
+    def readme_hash(cls):
+        """Helper method for querying the hash of the README file"""
+        return cls.contents['children']['README']['hashes'][0].astext  # pylint:disable=E1136
+
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
 
 
@@ -79,6 +84,10 @@ class S3Blob(db.Model):
     owner = db.Column(USERNAME_TYPE, nullable=False)
     hash = db.Column(db.String(64), nullable=False)
     size = db.Column(db.BigInteger)
+
+    preview = deferred(db.Column(db.TEXT))
+
+    instances = db.relationship('Instance', secondary=InstanceBlobAssoc)
 
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
 

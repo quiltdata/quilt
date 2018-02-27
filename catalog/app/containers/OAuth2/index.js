@@ -23,7 +23,8 @@ export class OAuth2 extends React.PureComponent { // eslint-disable-line react/p
     const tokens = {
       refresh_token,
       access_token,
-      expires_at: expires_at ? parseFloat(expires_at, 10) : Infinity, // eslint-disable-line camelcase
+      // eslint-disable-next-line camelcase
+      expires_at: expires_at ? parseFloat(expires_at, 10) : Infinity,
     };
     dispatch(storeTokens(tokens));
     dispatch(getAuth(tokens));
