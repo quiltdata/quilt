@@ -192,7 +192,7 @@ def get_registry_url(team):
     return _registry_url
 
 def config():
-    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
+    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
                    "or leave this line blank to use the default registry: ")
     if answer:
         url = urlparse(answer.rstrip('/'))
@@ -507,9 +507,9 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     team, _, _ = parse_package(package)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
-        answer = input("You're logged in as a team member, but you aren't specifying " +
-                       "a team for the package you're currently building. Maybe you meant:\n" +
-                       "quilt build {team}:{package}\n" +
+        answer = input("You're logged in as a team member, but you aren't specifying "
+                       "a team for the package you're currently building. Maybe you meant:\n"
+                       "quilt build {team}:{package}\n"
                        "Are you sure you want to continue? (y/N) ".format(
                                 team=logged_in_team, package=package))
         if answer.lower() != 'y':
@@ -972,9 +972,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
         logged_in_team = _find_logged_in_team()
         if (team is None and logged_in_team is not None
                 and e.response.status_code == requests.codes.not_found):
-            raise CommandException(("Package {owner}/{pkg} does not exist. " +
-                                    "Maybe you meant {team}:{owner}/{pkg}?").format(
-                                            owner=owner, pkg=pkg, team=logged_in_team))
+            raise CommandException("Package {owner}/{pkg} does not exist. "
+                                   "Maybe you meant {team}:{owner}/{pkg}?".format(
+                                   owner=owner, pkg=pkg, team=logged_in_team))
         else:
             raise
 
@@ -1245,7 +1245,7 @@ def delete(package):
     team, owner, pkg = parse_package(package)
 
     answer = input(
-        "Are you sure you want to delete this package and its entire history? " +
+        "Are you sure you want to delete this package and its entire history? "
         "Type '%s' to confirm: " % package
     )
 
