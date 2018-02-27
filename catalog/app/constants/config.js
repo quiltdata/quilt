@@ -4,7 +4,7 @@ const config = window.__CONFIG;
 Object.freeze(config);
 
 const mustHaveType = {
-  alwaysRequireAuth: 'boolean',
+  alwaysRequiresAuth: 'boolean',
   api: 'string',
   userApi: 'string',
   // eslint-disable-next-line comma-dangle
