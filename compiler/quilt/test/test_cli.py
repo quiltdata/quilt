@@ -753,9 +753,13 @@ class TestCLI(BasicQuiltTestCase):
         if os.name == 'posix':
             SIGINT = signal.SIGINT
             creation_flags = 0
+            acceptable_exit_codes = [EXIT_KB_INTERRUPT]
         elif os.name == 'nt':
             SIGINT = signal.CTRL_C_EVENT
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
+            # see https://bugs.python.org/issue31863, which also applies to killing via ctrl-c.
+            # If anyone wants to improve this situation, feel free..
+            acceptable_exit_codes = [EXIT_KB_INTERRUPT, 1, -15, 15]
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
@@ -791,7 +795,7 @@ class TestCLI(BasicQuiltTestCase):
 
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
-        assert proc.returncode == EXIT_KB_INTERRUPT
+        assert proc.returncode in acceptable_exit_codes
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
