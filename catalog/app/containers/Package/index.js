@@ -200,7 +200,7 @@ const UpdateInfo = ({ author, date, version }) => (
       <dd>{date}</dd>
 
       <dt><FormattedMessage {...strings.author} /></dt>
-      <dd>@{author}</dd>
+      <dd>{config.team ? config.team.id : ''}{author}</dd>
 
       <dt><FormattedMessage {...strings.version} /></dt>
       <dd>
