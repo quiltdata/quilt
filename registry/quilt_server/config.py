@@ -12,8 +12,6 @@ TEAM_ID = os.getenv('TEAM_ID')
 ALLOW_ANONYMOUS_ACCESS = not bool(os.getenv('DISALLOW_ANONYMOUS_ACCESS', ''))
 ALLOW_TEAM_ACCESS = bool(os.getenv('ALLOW_TEAM_ACCESS', ''))
 
-TEAM_ID = os.getenv('TEAM_ID', '')
-
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 SQLALCHEMY_ECHO = False  # Turn it on for debugging.
 
