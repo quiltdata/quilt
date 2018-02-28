@@ -497,6 +497,9 @@ class TestCLI(BasicQuiltTestCase):
 
         self.quilt_command = [sys.executable, '-c', 'from quilt.tools import main; main.main()',
                               'quilt testing']
+        self.quilt_shell_command = ' '.join([sys.executable, '-c',
+                                             '"from quilt.tools import main; main.main()"',
+                                             '"quilt testing"'])
 
     def tearDown(self):
         # restore the real 'command' module back to the 'main' module
@@ -776,8 +779,9 @@ class TestCLI(BasicQuiltTestCase):
         test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
 
         # With no '--dev' arg, the process should exit without a traceback
-        cmd = self.quilt_command + ['config']
-        proc = Popen(' '.join(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+        cmd = self.quilt_shell_command + ' config'
+        print(cmd)
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags, shell=True)
 
         # Wait for some expected text
@@ -794,8 +798,9 @@ class TestCLI(BasicQuiltTestCase):
         assert proc.returncode in acceptable_exit_codes
 
         # With the '--dev' arg, the process should display a traceback
-        cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(' '.join(cmd), stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
+        cmd = self.quilt_shell_command + ' --dev config'
+        print(cmd)
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags, shell=True)
 
         # Wait for some expected text
