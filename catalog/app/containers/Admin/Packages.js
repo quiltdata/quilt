@@ -9,12 +9,13 @@ import {
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
-import { FormattedMessage as FM } from 'react-intl';
+import { FormattedMessage as FM, injectIntl } from 'react-intl';
 import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
+import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
@@ -28,21 +29,31 @@ const packageActivities = [
 ];
 
 const PackagesTable = compose(
+  injectIntl,
   setPropTypes({
     audit: PT.func.isRequired,
     packages: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
         handle: PT.string.isRequired,
         lastModified: PT.number,
+        deletes: PT.number.isRequired,
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
+    intl: PT.shape({
+      formatMessage: PT.func.isRequired,
+    }).isRequired,
   }),
   withPagination({
     key: 'packages',
     getItemId: (p) => p.handle,
   }),
   setDisplayName('Admin.Packages.Table'),
-)(({ audit, packages, pagination }) => (
+)(({
+  audit,
+  packages,
+  intl: { formatMessage },
+  pagination,
+}) => (
   <Fragment>
     <Table selectable={false}>
       <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
@@ -54,10 +65,14 @@ const PackagesTable = compose(
       </TableHeader>
       <TableBody displayRowCheckbox={false} showRowHover>
         {packages.length
-          ? packages.map(({ handle, lastModified, ...activity }) => (
+          // eslint-disable-next-line object-curly-newline
+          ? packages.map(({ handle, lastModified, deletes, ...activity }) => (
             <TableRow key={handle}>
               <TableRowColumn>
-                <Link to={`/package/${handle}`}>{handle}</Link>
+                {deletes
+                  ? <Fragment>{handle} <Badge label={formatMessage(msg.pkgDeleted)} /></Fragment>
+                  : <Link to={`/package/${handle}`}>{handle}</Link>
+                }
               </TableRowColumn>
               <TableRowColumn>
                 <FlatButton onClick={() => audit(handle)}>
