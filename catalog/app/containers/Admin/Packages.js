@@ -1,3 +1,4 @@
+import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -12,6 +13,7 @@ import { FormattedMessage as FM } from 'react-intl';
 import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
+import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 
@@ -35,42 +37,46 @@ const PackagesTable = compose(
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
   }),
+  withPagination({
+    key: 'packages',
+    getItemId: (p) => p.handle,
+  }),
   setDisplayName('Admin.Packages.Table'),
-// eslint-disable-next-line object-curly-newline
-)(({ audit, packages }) => (
-  <Table selectable={false}>
-    <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
-      <TableRow>
-        <TableHeaderColumn><FM {...msg.pkgHandle} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.pkgActivity} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.pkgLastModified} /></TableHeaderColumn>
-      </TableRow>
-    </TableHeader>
-    <TableBody displayRowCheckbox={false} stripedRows showRowHover>
-      {packages.length
-        ? packages.map(({ handle, lastModified, ...activity }) => (
-          <TableRow key={handle}>
-            <TableRowColumn>
-              <Link to={`/package/${handle}`}>{handle}</Link>
-            </TableRowColumn>
-            <TableRowColumn>
-              {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-              <a onClick={() => audit(handle)}>
-                {formatActivity(packageActivities, activity)}
-              </a>
-              {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-            </TableRowColumn>
-            <TableRowColumn>{formatDate(lastModified)}</TableRowColumn>
-          </TableRow>
-        ))
-        : (
-          <TableRow>
-            <TableRowColumn colSpan={3}><FM {...msg.pkgEmpty} /></TableRowColumn>
-          </TableRow>
-        )
-      }
-    </TableBody>
-  </Table>
+)(({ audit, packages, pagination }) => (
+  <Fragment>
+    <Table selectable={false}>
+      <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
+        <TableRow>
+          <TableHeaderColumn><FM {...msg.pkgHandle} /></TableHeaderColumn>
+          <TableHeaderColumn><FM {...msg.pkgActivity} /></TableHeaderColumn>
+          <TableHeaderColumn><FM {...msg.pkgLastModified} /></TableHeaderColumn>
+        </TableRow>
+      </TableHeader>
+      <TableBody displayRowCheckbox={false} stripedRows showRowHover>
+        {packages.length
+          ? packages.map(({ handle, lastModified, ...activity }) => (
+            <TableRow key={handle}>
+              <TableRowColumn>
+                <Link to={`/package/${handle}`}>{handle}</Link>
+              </TableRowColumn>
+              <TableRowColumn>
+                <FlatButton onClick={() => audit(handle)}>
+                  {formatActivity(packageActivities, activity)}
+                </FlatButton>
+              </TableRowColumn>
+              <TableRowColumn>{formatDate(lastModified)}</TableRowColumn>
+            </TableRow>
+          ))
+          : (
+            <TableRow>
+              <TableRowColumn colSpan={3}><FM {...msg.pkgEmpty} /></TableRowColumn>
+            </TableRow>
+          )
+        }
+      </TableBody>
+    </Table>
+    {pagination}
+  </Fragment>
 ));
 
 export default compose(
