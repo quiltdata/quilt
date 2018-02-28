@@ -36,7 +36,7 @@
     "generate": "plop --plopfile internals/generators/index.js",
     "lint": "npm run lint:js",
     "lint:eslint": "eslint --ignore-path .gitignore --ignore-pattern internals/scripts",
-    "lint:js": "npm run lint:eslint -- . ",
+    "lint:js": "npm run lint:eslint -- '**/*.js' '**/*.js.tmpl'",
     "lint:staged": "lint-staged",
     "pretest": "npm run test:clean && npm run lint",
     "test:clean": "rimraf ./coverage",
