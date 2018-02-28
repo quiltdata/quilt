@@ -394,7 +394,7 @@ def _check_team_login(team):
                 "Can't log in as a public user; log out from team %r first." % existing_team
             )
 
-team_regex = re.compile('$[a-z]+^')
+team_regex = re.compile('^[a-z]+$')
 def _check_team_id(team):
     if team is not None and team_regex.match(team) is None:
         raise CommandException(
