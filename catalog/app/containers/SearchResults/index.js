@@ -1,6 +1,6 @@
 /* SearchResults */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
 import { createStructuredSelector } from 'reselect';
@@ -22,7 +22,7 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
       search: {
         error,
         status,
-        response,
+        response = { packages: [] },
       },
     } = this.props;
 
@@ -48,8 +48,14 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
           Browse all packages
         </Help>
         <br />
-        <h1>New packages</h1>
-        <Gallery />
+        {
+          response.packages.length === 0 ? null : (
+            <Fragment>
+              <h1>New packages</h1>
+              <Gallery />
+            </Fragment>
+          )
+        }
         <br />
       </div>
     );
