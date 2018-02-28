@@ -81,7 +81,7 @@ from six import assertRaisesRegex
 
 from .utils import QuiltTestCase, patch
 from ..tools import command, store
-
+from ..tools.const import TEAM_ID_ERROR
 
 class CommandTest(QuiltTestCase):
     def _mock_error(self, endpoint, status, team=None, message="",
@@ -281,7 +281,7 @@ class CommandTest(QuiltTestCase):
         mock_input.return_value = old_refresh_token
 
         with pytest.raises(command.CommandException,
-                match='The team you specified is not a valid team.'):
+                match=TEAM_ID_ERROR):
             command.login('fo!o')
 
         mock_open.assert_not_called()
@@ -289,7 +289,7 @@ class CommandTest(QuiltTestCase):
 
     def test_login_with_token_invalid_team(self):
         with pytest.raises(command.CommandException,
-                match='The team you specified is not a valid team.'):
+                match=TEAM_ID_ERROR):
             command.login_with_token('123', 'fo!o')
 
     @patch('quilt.tools.command._save_auth')

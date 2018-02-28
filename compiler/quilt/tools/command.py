@@ -398,8 +398,7 @@ team_regex = re.compile('^[a-z]+$')
 def _check_team_id(team):
     if team is not None and team_regex.match(team) is None:
         raise CommandException(
-            "The team you specified is not a valid team. Teams are specified " +
-            "with only lowercase letters."
+            "Invalid team name: {team}. Lowercase letters only.".format(team=team)
             )
 
 
