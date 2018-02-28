@@ -4,7 +4,7 @@ import { defineMessages } from 'react-intl';
 export default defineMessages({
   membersAdd: {
     id: 'app.containers.Admin.membersAdd',
-    defaultMessage: 'Add',
+    defaultMessage: 'Add member',
   },
   membersRead: {
     id: 'app.containers.Admin.membersRead',
@@ -137,6 +137,10 @@ export default defineMessages({
   pkgEmpty: {
     id: 'app.containers.Admin.Packages.empty',
     defaultMessage: 'Nothing here yet',
+  },
+  pkgDeleted: {
+    id: 'app.containers.Admin.Packages.deleted',
+    defaultMessage: 'deleted',
   },
   membersName: {
     id: 'app.containers.Admin.Members.name',

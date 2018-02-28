@@ -33,7 +33,7 @@ const Icon = styled(mapProps(omit(['spin']))(FontIcon))`
 `;
 
 // eslint-disable-next-line object-curly-newline
-function MIcon({ drop, title, className, ...rest }) {
+function MIcon({ className, drop, title, ...rest }) {
   return (
     <Adjust drop={drop} title={title}>
       <Icon
@@ -51,6 +51,7 @@ MIcon.propTypes = {
   drop: PropTypes.string,
   title: PropTypes.string,
   spin: PropTypes.bool,
+  style: PropTypes.object,
 };
 
 MIcon.defaultProps = {

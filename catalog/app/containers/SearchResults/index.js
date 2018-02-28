@@ -1,6 +1,6 @@
 /* SearchResults */
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage } from 'react-intl';
 import { createStructuredSelector } from 'reselect';
@@ -17,7 +17,15 @@ import { makeSelectSearch } from './selectors';
 
 export class SearchResults extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render() {
-    const { search: { error, status, response } } = this.props;
+    const {
+      router: { push },
+      search: {
+        error,
+        status,
+        response = { packages: [] },
+      },
+    } = this.props;
+
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
@@ -33,14 +41,21 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
         <PackageList
           emptyMessage={<FormattedMessage {...messages.empty} />}
           packages={response.packages}
+          push={push}
         />
         <br />
         <Help href="/search/?q=">
           Browse all packages
         </Help>
         <br />
-        <h1>New packages</h1>
-        <Gallery />
+        {
+          response.packages.length === 0 ? null : (
+            <Fragment>
+              <h1>New packages</h1>
+              <Gallery />
+            </Fragment>
+          )
+        }
         <br />
       </div>
     );
@@ -48,11 +63,19 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
 }
 
 SearchResults.propTypes = {
+  dispatch: PropTypes.func.isRequired,
+  router: PropTypes.object.isRequired,
   search: PropTypes.object.isRequired,
 };
+
+function mapDispatchToProps(dispatch) {
+  return {
+    dispatch,
+  };
+}
 
 const mapStateToProps = createStructuredSelector({
   search: makeSelectSearch(),
 });
 
-export default connect(mapStateToProps)(SearchResults);
+export default connect(mapStateToProps, mapDispatchToProps)(SearchResults);
