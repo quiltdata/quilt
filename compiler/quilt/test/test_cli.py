@@ -755,11 +755,9 @@ class TestCLI(BasicQuiltTestCase):
         cmd = ['--dev', 'install', 'user/test']
         if os.name == 'posix':
             SIGINT = signal.SIGINT
-            creation_flags = 0
             acceptable_exit_codes = [EXIT_KB_INTERRUPT]
         elif os.name == 'nt':
             SIGINT = signal.CTRL_C_EVENT
-            creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
             # see https://bugs.python.org/issue31863, which also applies to killing via ctrl-c.
             # If anyone wants to improve this situation, feel free..
             acceptable_exit_codes = [EXIT_KB_INTERRUPT, 0]
@@ -781,8 +779,7 @@ class TestCLI(BasicQuiltTestCase):
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_shell_command + ' config'
         print(cmd)
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags, shell=True)
+        proc = Popen(['start', 'cmd', '/C', cmd], stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -800,7 +797,7 @@ class TestCLI(BasicQuiltTestCase):
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_shell_command + ' --dev config'
         print(cmd)
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
+        proc = Popen(['start', 'cmd', '/C', cmd], stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags, shell=True)
 
         # Wait for some expected text
