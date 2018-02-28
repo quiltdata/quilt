@@ -87,7 +87,7 @@ const MembersTable = compose(
           <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
         </TableRow>
       </TableHeader>
-      <TableBody displayRowCheckbox={false} stripedRows showRowHover>
+      <TableBody displayRowCheckbox={false} showRowHover>
         {members.length
           // eslint-disable-next-line object-curly-newline
           ? members.map(({ name, status, lastSeen, ...activity }) => (

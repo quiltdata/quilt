@@ -52,7 +52,7 @@ const PackagesTable = compose(
           <TableHeaderColumn><FM {...msg.pkgLastModified} /></TableHeaderColumn>
         </TableRow>
       </TableHeader>
-      <TableBody displayRowCheckbox={false} stripedRows showRowHover>
+      <TableBody displayRowCheckbox={false} showRowHover>
         {packages.length
           ? packages.map(({ handle, lastModified, ...activity }) => (
             <TableRow key={handle}>
