@@ -759,7 +759,7 @@ class TestCLI(BasicQuiltTestCase):
             creation_flags = subprocess.CREATE_NEW_PROCESS_GROUP
             # see https://bugs.python.org/issue31863, which also applies to killing via ctrl-c.
             # If anyone wants to improve this situation, feel free..
-            acceptable_exit_codes = [EXIT_KB_INTERRUPT, 1, -15, 15]
+            acceptable_exit_codes = [EXIT_KB_INTERRUPT, 0]
         else:
             raise ValueError("Unknown OS type: " + os.name)
 
