@@ -409,8 +409,8 @@ def login(team=None):
 
     Launches a web browser and asks the user for a token.
     """
-    _check_team_login(team)
     _check_team_id(team)
+    _check_team_login(team)
 
     login_url = "%s/login" % get_registry_url(team)
 
@@ -429,6 +429,7 @@ def login_with_token(refresh_token, team=None):
     Authenticate using an existing token.
     """
     # Get an access token and a new refresh token.
+    _check_team_id(team)
     auth = _update_auth(team, refresh_token)
 
     url = get_registry_url(team)
