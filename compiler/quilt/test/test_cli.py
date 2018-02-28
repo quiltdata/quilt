@@ -777,9 +777,8 @@ class TestCLI(BasicQuiltTestCase):
         test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
 
         # With no '--dev' arg, the process should exit without a traceback
-        cmd = self.quilt_shell_command + ' config'
-        print(cmd)
-        proc = Popen(['start', 'cmd', '/C', cmd], stdout=PIPE, stderr=PIPE, env=test_environ)
+        cmd = ['start', 'cmd', '/C'] + self.quilt_command + ['--dev', 'config']
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -795,10 +794,8 @@ class TestCLI(BasicQuiltTestCase):
         assert proc.returncode in acceptable_exit_codes
 
         # With the '--dev' arg, the process should display a traceback
-        cmd = self.quilt_shell_command + ' --dev config'
-        print(cmd)
-        proc = Popen(['start', 'cmd', '/C', cmd], stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=creation_flags, shell=True)
+        cmd = ['start', 'cmd', '/C'] + self.quilt_command + ['--dev', 'config']
+        proc = Popen(['start', 'cmd', '/C', cmd], stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
