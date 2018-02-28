@@ -23,7 +23,8 @@ if (window.location.hostname === 'quiltdata.com') {
 
     // Team feature dev
     // team: {
-    //   id: "SuperCorp",
+    //   id: "supercorp",
+    //   name: "SuperCorp (TM)"
     // },
     // userApi: 'http://auth:5002/accounts/api-root',
     // signOutUrl: 'http://auth:5002/accounts/logout?next=%2F',

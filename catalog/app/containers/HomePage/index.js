@@ -29,7 +29,7 @@ const Styler = styled.div`
 export default class HomePage extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render() {
     const { team = {} } = config;
-    const header = team.name ? team.name : undefined;
+    const header = team.id ? team.name || team.id : undefined;
     const tagline = team.id ? 'Team data registry' : undefined;
     const signUp = Boolean(!team.id);
 
