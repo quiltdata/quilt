@@ -32,7 +32,7 @@ Object.keys(mustHave).forEach((k) => check(k, mustHave, window.__CONFIG));
 if (window.__CONFIG.team) {
   Object.keys(mustHaveTeam).forEach((k) => check(k, mustHaveTeam, window.__CONFIG));
   Object.keys(mustHaveInTeam).forEach((k) => check(k, mustHaveInTeam, window.__CONFIG.team));
-  Object.keys(shouldHaveInTeam).forEach((k) => check(k, mustHaveInTeam, window.__CONFIG.team, false));
+  Object.keys(shouldHaveInTeam).forEach((k) => check(k, shouldHaveInTeam, window.__CONFIG.team, false));
 }
 
 function check(key, expected, actual, error = true) {
