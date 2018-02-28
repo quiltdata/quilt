@@ -1,5 +1,6 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
+import { makeHeaders } from 'utils/auth';
 import makeError from 'utils/error';
 import config from 'constants/config';
 import { requestJSON } from 'utils/request';
@@ -15,7 +16,11 @@ function* doGetLatest() {
   try {
     const { api: server } = config;
     const endpoint = `${server}/api/recent_packages`;
-    const response = yield call(requestJSON, endpoint, { method: 'GET' });
+    const response = yield call(requestJSON, endpoint, {
+      method: 'GET',
+      headers: makeHeaders(),
+    });
+
     if (response.message) {
       throw makeError('Package hiccup', response.message);
     }
