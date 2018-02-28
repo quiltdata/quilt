@@ -14,28 +14,28 @@ const mustHave = {
 const mustHaveTeam = {
   // eslint-disable-next-line comma-dangle
   team: 'object'
-}
+};
 
 const mustHaveInTeam = {
   // eslint-disable-next-line comma-dangle
   id: 'string'
-}
+};
 
 const shouldHaveInTeam = {
   // eslint-disable-next-line comma-dangle
   name: 'string'
-}
+};
 
 // test the config object
-Object.keys(mustHave).forEach(k => check(k, mustHave, window.__CONFIG));
+Object.keys(mustHave).forEach((k) => check(k, mustHave, window.__CONFIG));
 
 if (window.__CONFIG.team) {
-  Object.keys(mustHaveTeam).forEach(k => check(k, mustHaveTeam, window.__CONFIG));
-  Object.keys(mustHaveInTeam).forEach(k => check(k, mustHaveInTeam, window.__CONFIG.team));
-  Object.keys(shouldHaveInTeam).forEach(k => check(k, mustHaveInTeam, window.__CONFIG.team, false));
+  Object.keys(mustHaveTeam).forEach((k) => check(k, mustHaveTeam, window.__CONFIG));
+  Object.keys(mustHaveInTeam).forEach((k) => check(k, mustHaveInTeam, window.__CONFIG.team));
+  Object.keys(shouldHaveInTeam).forEach((k) => check(k, mustHaveInTeam, window.__CONFIG.team, false));
 }
 
-function check(key, expected, actual, error=true) {
+function check(key, expected, actual, error = true) {
   const expectedType = expected[key];
   const actualValue = actual[key];
   const actualType = typeof actualValue;
@@ -44,7 +44,8 @@ function check(key, expected, actual, error=true) {
     if (error) {
       throw new Error(msg);
     }
-    console.warn(msg, window.__CONFIG)
+    // eslint-disable-next-line no-console
+    console.warn(msg, window.__CONFIG);
   }
 }
 /* eslint-enable no-underscore-dangle */
