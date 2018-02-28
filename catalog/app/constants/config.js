@@ -27,26 +27,27 @@ const shouldHaveInTeam = {
 };
 
 // test the config object
-Object.keys(mustHave).forEach((k) => check(k, mustHave, window.__CONFIG));
-
+check(mustHave, window.__CONFIG);
 if (window.__CONFIG.team) {
-  Object.keys(mustHaveTeam).forEach((k) => check(k, mustHaveTeam, window.__CONFIG));
-  Object.keys(mustHaveInTeam).forEach((k) => check(k, mustHaveInTeam, window.__CONFIG.team));
-  Object.keys(shouldHaveInTeam).forEach((k) => check(k, shouldHaveInTeam, window.__CONFIG.team, false));
+  check(mustHaveTeam, window.__CONFIG);
+  check(mustHaveInTeam, window.__CONFIG.team);
+  check(shouldHaveInTeam, window.__CONFIG.team, false);
 }
 
-function check(key, expected, actual, error = true) {
-  const expectedType = expected[key];
-  const actualValue = actual[key];
-  const actualType = typeof actualValue;
-  if ((actualType !== expectedType) || (actualType === 'string' && actualValue.length < 1)) {
-    const msg = `Unexpected config['${key}']: ${actualValue}`;
-    if (error) {
-      throw new Error(msg);
+function check(expected, actual, error = true) {
+  Object.keys(expected).forEach((key) => {
+    const expectedType = expected[key];
+    const actualValue = actual[key];
+    const actualType = typeof actualValue;
+    if ((actualType !== expectedType) || (actualType === 'string' && actualValue.length < 1)) {
+      const msg = `Unexpected config['${key}']: ${actualValue}`;
+      if (error) {
+        throw new Error(msg);
+      }
+      // eslint-disable-next-line no-console
+      console.warn(msg, window.__CONFIG);
     }
-    // eslint-disable-next-line no-console
-    console.warn(msg, window.__CONFIG);
-  }
+  });
 }
 /* eslint-enable no-underscore-dangle */
 
