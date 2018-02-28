@@ -1,7 +1,10 @@
+import isEqual from 'lodash/isEqual';
+import pick from 'lodash/pick';
 import PT from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import {
   compose,
+  defaultProps,
   lifecycle,
   pure,
   setDisplayName,
@@ -9,93 +12,76 @@ import {
   withStateHandlers,
   withProps,
 } from 'recompose';
-import styled from 'styled-components';
-import { FormattedMessage as FM } from 'react-intl';
-import IconButton from 'material-ui/IconButton';
 
-import MIcon from 'components/MIcon';
+import { saveProps, restoreProps } from 'utils/reactTools';
 
-import messages from './messages';
+import DefaultControls from './Controls';
 
 const PER_PAGE = 10;
-const UNIT_SIZE = '24px';
 
-const Controls = styled.div`
-  display: flex;
-  margin-top: 16px;
-`;
-
-const Chevron = compose(
-  setPropTypes({
-    direction: PT.oneOf(['left', 'right']).isRequired,
+// TODO: static vs dynamic pagination
+// TODO: support usage as controlled component
+export const withPagination = ({
+  key = 'items',
+  namespace = 'pagination',
+  getItemId = (i) => i,
+  perPage = PER_PAGE,
+  controls: Controls = DefaultControls,
+} = {}) => compose(
+  saveProps({ keep: [key, 'getItemId', 'perPage'] }),
+  defaultProps({
+    getItemId,
+    perPage,
   }),
-  withProps(({ direction }) => ({
-    children: <MIcon>{`chevron_${direction}`}</MIcon>,
-    style: {
-      height: UNIT_SIZE,
-      padding: 0,
-      width: UNIT_SIZE,
-    },
-  })),
-)(IconButton);
-
-const Pages = styled.span`
-  margin-left: 12px;
-`;
-
-export default compose(
   setPropTypes({
-    items: PT.array.isRequired,
-    children: PT.func.isRequired,
+    [key]: PT.array.isRequired,
+    getItemId: PT.func.isRequired,
+    perPage: PT.number.isRequired,
   }),
-  withProps(({ items }) => ({
-    pages: Math.max(1, Math.ceil(items.length / PER_PAGE)),
+  // eslint-disable-next-line no-shadow
+  withProps(({ perPage, [key]: items }) => ({
+    pages: Math.max(1, Math.ceil(items.length / perPage)),
   })),
   withStateHandlers(
     { page: 1 },
     {
       nextPage: ({ page }, { pages }) => () => ({ page: Math.min(pages, page + 1) }),
       prevPage: ({ page }) => () => ({ page: Math.max(1, page - 1) }),
-      resetPage: () => () => ({ page: 1 }),
+      goToPage: () => (page) => ({ page }),
     },
   ),
   pure,
   lifecycle({
-    componentWillReceiveProps({ items }) {
-      if (items !== this.props.items) this.props.resetPage();
+    componentWillReceiveProps({ [key]: items }) {
+      // eslint-disable-next-line no-shadow
+      const { getItemId, [key]: oldItems, goToPage } = this.props;
+      if (!isEqual(items.map(getItemId), oldItems.map(getItemId))) goToPage(1);
     },
   }),
-  withProps(({ page, items }) => {
-    const offset = (page - 1) * PER_PAGE;
+  // eslint-disable-next-line no-shadow
+  withProps(({ page, perPage, [key]: items }) => {
+    const offset = (page - 1) * perPage;
     return {
-      items: items.slice(offset, offset + PER_PAGE),
+      [key]: items.slice(offset, offset + perPage),
     };
   }),
+  withProps((props) => {
+    const pgProps = pick(props, ['page', 'pages', 'nextPage', 'prevPage', 'goToPage']);
+    return { [namespace]: Controls ? <Controls {...pgProps} /> : pgProps };
+  }),
+  restoreProps({ keep: [namespace, key] }),
+);
+
+
+export default compose(
+  withPagination(),
+  setPropTypes({
+    children: PT.func.isRequired,
+  }),
   setDisplayName('Pagination'),
-)(({
-  items,
-  page,
-  pages,
-  nextPage,
-  prevPage,
-  children,
-}) => (
-  <div>
+)(({ pagination, items, children }) => (
+  <Fragment>
     {children({ items })}
-    {!!items.length && pages > 1 &&
-      <Controls>
-        <Chevron
-          direction="left"
-          onClick={prevPage}
-          disabled={page <= 1}
-        />
-        <Chevron
-          direction="right"
-          onClick={nextPage}
-          disabled={page >= pages}
-        />
-        <Pages>{page} <FM {...messages.of} /> {pages}</Pages>
-      </Controls>
-    }
-  </div>
+    {pagination}
+  </Fragment>
 ));
