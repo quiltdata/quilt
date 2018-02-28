@@ -1,4 +1,4 @@
-import { deepOrangeA700 as warnColor } from 'material-ui/styles/colors';
+import { red300 as warnColor } from 'material-ui/styles/colors';
 import IconButton from 'material-ui/IconButton';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
