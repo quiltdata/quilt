@@ -176,8 +176,6 @@ export default compose(
         })
       }
     </h2>
-    <AddMember addMember={addMember} />
-    <br />
     {
       branch(status, {
         [api.SUCCESS]: () => (
@@ -191,5 +189,6 @@ export default compose(
         [api.ERROR]: () => <ErrorMessage error={response} />,
       })
     }
+    <AddMember addMember={addMember} />
   </Fragment>
 ));

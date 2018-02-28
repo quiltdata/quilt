@@ -12,6 +12,7 @@ import {
   withProps,
 } from 'recompose';
 import { createSelector } from 'reselect';
+import styled from 'styled-components';
 
 import config from 'constants/config';
 import { makeSelectUserName } from 'containers/App/selectors';
@@ -34,6 +35,11 @@ const teamName = config.team ? config.team.name || config.team.id : '?';
 const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
 
+const Show = styled.div`
+  h1 {
+    overflow: visible;
+  }
+`;
 export default compose(
   injectIntl,
   connect(
@@ -125,16 +131,17 @@ export default compose(
   changePolicy,
 }) => (
   <div>
-    <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
-    <Status plan={plan} />
+    <Show>
+      <h1>{formatMessage(msg.teamHeader, { name: teamName })} <Status plan={plan} /></h1>
+    </Show>
+    <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
+    <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
     <Policies
       read
       write={false}
       onReadCheck={changePolicy}
       onWriteCheck={changePolicy}
     />
-    <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
-    <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
     <AuditDialog
       onClose={() => getMemberAudit(null)}
       title={`${formatMessage(msg.auditUser)}: ${memberAudit.name}`}

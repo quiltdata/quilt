@@ -15,11 +15,9 @@ import { GET_LATEST } from './constants';
 function* doGetLatest() {
   try {
     const { api: server } = config;
-    const endpoint = `${server}/api/recent_packages`;
-    const response = yield call(requestJSON, endpoint, {
-      method: 'GET',
-      headers: makeHeaders(),
-    });
+    const endpoint = `${server}/api/recent_packages/`;
+    const headers = yield call(makeHeaders);
+    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
 
     if (response.message) {
       throw makeError('Package hiccup', response.message);
