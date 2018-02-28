@@ -394,6 +394,15 @@ def _check_team_login(team):
                 "Can't log in as a public user; log out from team %r first." % existing_team
             )
 
+team_regex = re.compile('$[a-z]+^')
+def _check_team_id(team):
+    if team is not None and team_regex.match(team) is None:
+        raise CommandException(
+            "The team you specified is not a valid team. Teams are specified " +
+            "with only lowercase letters."
+            )
+
+
 def login(team=None):
     """
     Authenticate.
@@ -401,6 +410,7 @@ def login(team=None):
     Launches a web browser and asks the user for a token.
     """
     _check_team_login(team)
+    _check_team_id(team)
 
     login_url = "%s/login" % get_registry_url(team)
 
@@ -505,6 +515,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     """
     # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
+    _check_team_id(team)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
         answer = input("You're logged in as a team member, but you aren't specifying " +
@@ -566,6 +577,7 @@ def build_from_node(package, node):
     Compile a Quilt data package from an existing package node.
     """
     team, owner, pkg = parse_package(package)
+    _check_team_id(team)
     # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(team, owner, pkg)
@@ -648,6 +660,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     Push a Quilt data package to the server
     """
     team, owner, pkg = parse_package(package)
+    _check_team_id(team)
     session = _get_session(team)
 
     pkgobj = PackageStore.find_package(team, owner, pkg)
@@ -939,6 +952,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert [hash, version, tag].count(None) == 2
 
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    _check_team_id(team)
     session = _get_session(team)
     store = PackageStore()
     existing_pkg = store.get_package(team, owner, pkg)
@@ -1370,6 +1384,7 @@ def list_users_detailed(team=None):
     return resp.json()
 
 def create_user(username, email, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/create' % url,
@@ -1385,18 +1400,21 @@ def list_packages(username, team=None):
     return resp.json()
 
 def disable_user(username, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/disable' % url,
             data=json.dumps({'username':username}))
 
 def enable_user(username, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/enable' % url,
             data=json.dumps({'username':username}))
 
 def delete_user(username, team, force=False):
+    _check_team_id(team)
     if not force:
         confirmed = input("Really delete user '{0}'? (y/n)".format(username))
         if confirmed.lower() != 'y':
@@ -1426,6 +1444,7 @@ def audit(user_or_package):
     print(json.dumps(response.json(), indent=2))
 
 def reset_password(team, username):
+    _check_team_id(team)
     session = _get_session(team)
     session.post(
         "{url}/api/users/reset_password".format(
