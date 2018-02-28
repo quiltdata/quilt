@@ -17,7 +17,15 @@ import { makeSelectSearch } from './selectors';
 
 export class SearchResults extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render() {
-    const { search: { error, status, response } } = this.props;
+    const {
+      search: {
+        error,
+        status,
+        response,
+        router,
+      },
+    } = this.props;
+
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
@@ -33,6 +41,7 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
         <PackageList
           emptyMessage={<FormattedMessage {...messages.empty} />}
           packages={response.packages}
+          push={router.push}
         />
         <br />
         <Help href="/search/?q=">
@@ -48,11 +57,19 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
 }
 
 SearchResults.propTypes = {
+  dispatch: PropTypes.func.isRequired,
+  router: PropTypes.object.isRequired,
   search: PropTypes.object.isRequired,
 };
+
+function mapDispatchToProps(dispatch) {
+  return {
+    dispatch,
+  };
+}
 
 const mapStateToProps = createStructuredSelector({
   search: makeSelectSearch(),
 });
 
-export default connect(mapStateToProps)(SearchResults);
+export default connect(mapStateToProps, mapDispatchToProps)(SearchResults);
