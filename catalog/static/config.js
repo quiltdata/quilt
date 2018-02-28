@@ -2,7 +2,7 @@
 if (window.location.hostname === 'quiltdata.com') {
   // eslint-disable-next-line no-underscore-dangle
   window.__CONFIG = {
-    alwaysRequireAuth: false,
+    alwaysRequiresAuth: false,
     api: 'https://pkg.quiltdata.com',
     stripeKey: 'pk_live_aV44tCGHpBZr5FfFCUqbXqid',
     userApi: 'https://app.quiltdata.com/accounts/api-root',
@@ -12,7 +12,7 @@ if (window.location.hostname === 'quiltdata.com') {
 } else {
   // eslint-disable-next-line no-underscore-dangle
   window.__CONFIG = {
-    alwaysRequireAuth: false,
+    alwaysRequiresAuth: false,
     api: window.location.hostname === 'localhost' ? 'http://localhost:5000' : 'https://stage-registry.quiltdata.com',
     stripeKey: 'pk_test_DzvjoWzXwIB1DRtQqywxDjWp',
 
