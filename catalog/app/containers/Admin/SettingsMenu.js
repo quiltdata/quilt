@@ -29,7 +29,7 @@ export default compose(
   <IconMenu
     iconButtonElement={(
       <IconButton {...buttonProps}>
-        <MIcon spin={busy}>{busy ? 'settings' : 'arrow_drop_down_circle'}</MIcon>
+        <MIcon spin={busy}>{busy ? 'settings' : 'arrow_drop_down'}</MIcon>
       </IconButton>
     )}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}

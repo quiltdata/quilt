@@ -1,5 +1,7 @@
+import { red300 as warnColor } from 'material-ui/styles/colors';
+import IconButton from 'material-ui/IconButton';
 import PT from 'prop-types';
-import React, { Fragment } from 'react';
+import React from 'react';
 
 import { PLANS } from 'containers/Profile/constants';
 import MIcon from 'components/MIcon';
@@ -29,8 +31,10 @@ export default compose(
   }
 
   return (
-    <Fragment>
-      <MIcon drop="4px">{icon}</MIcon> {detail}
-    </Fragment>
+    <IconButton tooltip={detail}>
+      <MIcon color={warnColor} drop="4px">
+        {icon}
+      </MIcon>
+    </IconButton>
   );
 });
