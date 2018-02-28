@@ -807,7 +807,7 @@ class TestCLI(BasicQuiltTestCase):
         # Send interrupt, and check result
         #proc.send_signal(SIGINT)
         import ctypes
-        ctypes.windll.kernel32.GenerateConsoleCtrlEvent(1, proc.pid)
+        ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, proc.pid)
         stdout, stderr = (b.decode() for b in proc.communicate())
 
         assert 'Traceback (most recent call last)' in stderr
