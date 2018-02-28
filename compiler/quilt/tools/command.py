@@ -14,6 +14,7 @@ import os
 import platform
 import re
 from shutil import copyfileobj, move, rmtree
+import socket
 import stat
 import subprocess
 import sys
@@ -394,6 +395,23 @@ def _check_team_login(team):
                 "Can't log in as a public user; log out from team %r first." % existing_team
             )
 
+def _check_team_exists(team):
+    """
+    Check that the team registry actually exists.
+    """
+    hostname = '%s-registry.team.quiltdata.com' % team
+    try:
+        socket.gethostbyname(hostname)
+    except IOError:
+        try:
+            # Do we have internet?
+            socket.gethostbyname('quiltdata.com')
+        except IOError:
+            message = "Can't find quiltdata.com. Check your internet connection."
+        else:
+            message = "Can't find the registry at %s. Make sure your team name is correct." % hostname
+        raise CommandException(message)
+
 def login(team=None):
     """
     Authenticate.
@@ -401,6 +419,9 @@ def login(team=None):
     Launches a web browser and asks the user for a token.
     """
     _check_team_login(team)
+
+    if team is not None:
+        _check_team_exists(team)
 
     login_url = "%s/login" % get_registry_url(team)
 
