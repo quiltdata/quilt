@@ -18,11 +18,11 @@ import { makeSelectSearch } from './selectors';
 export class SearchResults extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   render() {
     const {
+      router: { push },
       search: {
         error,
         status,
         response,
-        router,
       },
     } = this.props;
 
@@ -41,7 +41,7 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
         <PackageList
           emptyMessage={<FormattedMessage {...messages.empty} />}
           packages={response.packages}
-          push={router.push}
+          push={push}
         />
         <br />
         <Help href="/search/?q=">
