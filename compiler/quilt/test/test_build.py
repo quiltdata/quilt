@@ -12,6 +12,7 @@ from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
+from ..nodes import GroupNode, PackageNode
 from ..tools.package import ParquetLib, Package
 from ..tools.compat import pathlib
 from ..tools import build, command, store
@@ -403,3 +404,36 @@ class BuildTest(QuiltTestCase):
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
             build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+
+    def test_included_package_is_group_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+            'from_simple_foo': {
+            'package': 'test/simple'
+            }
+            }
+            }
+        build.build_package_from_contents(None, 'test', 'compose', str(mydir), build_compose_contents)
+        from quilt.data.test import compose
+
+        assert type(compose.from_simple_foo) is GroupNode
+
+    def test_top_level_include_is_root_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+            'package': 'test/simple'
+            }
+            }
+        build.build_package_from_contents(None, 'test', 'compose_root', str(mydir), build_compose_contents)
+        from quilt.data.test import compose_root, simple
+
+        assert type(compose_root) is PackageNode
+        assert simple.foo().equals(compose_root.foo())
