@@ -777,7 +777,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags)
 
         # Wait for some expected text
@@ -795,7 +795,7 @@ class TestCLI(BasicQuiltTestCase):
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ,
                      creationflags=creation_flags)
 
         # Wait for some expected text
@@ -806,6 +806,9 @@ class TestCLI(BasicQuiltTestCase):
         # Send interrupt, and check result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
+
+        assert stdout == stderr
+        
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1
