@@ -27,7 +27,11 @@ export default compose(
 // eslint-disable-next-line object-curly-newline
 )(({ actions, busy = false, buttonProps = {}, ...props }) => (
   <IconMenu
-    iconButtonElement={<IconButton {...buttonProps}><MIcon spin={busy}>settings</MIcon></IconButton>}
+    iconButtonElement={(
+      <IconButton {...buttonProps}>
+        <MIcon spin={busy}>{busy ? 'settings' : 'arrow_drop_down_circle'}</MIcon>
+      </IconButton>
+    )}
     anchorOrigin={{ horizontal: 'left', vertical: 'top' }}
     targetOrigin={{ horizontal: 'right', vertical: 'top' }}
     useLayerForClickAway
