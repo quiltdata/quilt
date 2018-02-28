@@ -211,14 +211,17 @@ class Package(object):
         # Add to contents takes a dot-separated path. Other methods below
         # switch the path separate from slash to dot before calling add to
         # contents. Simply splitting on slash here for simplicity and efficiency.
-        ipath = name.split('/')
-        leaf = ipath.pop()
-
-        ptr = contents
-        for node in ipath:
-            ptr = ptr.children.setdefault(node, GroupNode(dict()))
-        
-        ptr.children[leaf] = pkgnode
+        if name:
+            ipath = name.split('/')
+            leaf = ipath.pop()
+            ptr = contents
+            for node in ipath:
+                ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr.children[leaf] = pkgnode
+        else:
+            if contents.children:
+                raise PackageException("Attempting to overwrite root node of a non-empty package.")
+            contents.children = pkgnode.children.copy()
 
     def save_cached_df(self, hashes, name, path, ext, target, fmt):
         """
