@@ -95,6 +95,7 @@ services:
       - OAUTH_REDIRECT_URI=http://flask:5000/oauth_callback
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
+      - AUTH_ADMIN_PASSWORD=quilt
     depends_on:
       db:
         condition: service_healthy
