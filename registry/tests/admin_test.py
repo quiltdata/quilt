@@ -8,6 +8,7 @@ import json
 import requests
 import responses
 import time
+from unittest.mock import patch
 
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
