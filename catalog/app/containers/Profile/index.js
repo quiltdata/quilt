@@ -159,9 +159,10 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
       />
     );
 
+    const { is_admin: isAdmin } = response;
     return (
       <div>
-        { config.team ?
+        { config.team && isAdmin ?
           <div>
             <Skip />
             <Tabs>
@@ -177,7 +178,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           handleShowDialog={() => this.showDialog(true)}
           handleUpdatePayment={this.updatePayment}
           haveCreditCard={response.have_credit_card}
-          isAdmin={profile.response.is_admin}
+          isAdmin={isAdmin}
           isLoading={isLoading}
           isWarning={isWarning}
           locale={this.props.intl.locale}
