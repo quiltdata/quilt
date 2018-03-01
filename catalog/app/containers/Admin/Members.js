@@ -129,10 +129,7 @@ const MembersTable = compose(
                 }
               </Cell>
               <Cell locked={pending[name]}>
-                <FlatButton
-                  onClick={() => audit(name)}
-                  style={{ marginTop: '.33em' }}
-                >
+                <FlatButton onClick={() => audit(name)}>
                   {formatActivity(memberActivities, activity)}
                 </FlatButton>
               </Cell>
