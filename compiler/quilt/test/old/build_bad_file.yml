@@ -1,0 +1,11 @@
+---
+contents:
+  dataframes:
+    csv: 
+      fake_key: fake_value
+    tsv:
+      file: data/10KRows13Cols.tsv
+    xls:
+      file: data/10KRows13Cols.xlsx
+  README:
+    file: data/README.md
