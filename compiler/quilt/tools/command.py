@@ -58,6 +58,7 @@ except ImportError:
 
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
+TEAM_REGISTRY_SUFFIX = '-registry.team.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
 
 EXTENDED_PACKAGE_RE = re.compile(
@@ -173,7 +174,7 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        return "https://%s-registry.team.quiltdata.com" % team
+        return "https://%s%s" % (team, TEAM_REGISTRY_SUFFIX)
 
     global _registry_url
     if _registry_url is not None:
@@ -189,6 +190,13 @@ def get_registry_url(team):
     # '' means default URL.
     _registry_url = url or DEFAULT_REGISTRY_URL
     return _registry_url
+
+def get_team_from_registry_url(url):
+    hostname = urlparse(url).hostname
+    if hostname.endswith(TEAM_REGISTRY_SUFFIX):
+        return hostname[:-len(TEAM_REGISTRY_SUFFIX)]
+
+    return None
 
 def config():
     answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
@@ -234,7 +242,11 @@ def _update_auth(team, refresh_token):
 def _handle_response(resp, **kwargs):
     _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
-        raise CommandException("Authentication failed. Run `quilt login` again.")
+        team = get_team_from_registry_url(resp.request.url)
+        raise CommandException(
+            "Authentication failed. Run `quilt login%s` again." %
+            (' ' + team if team else '')
+        )
     elif not resp.ok:
         try:
             data = resp.json()
@@ -257,7 +269,8 @@ def _create_auth(team):
                 auth = _update_auth(team, auth['refresh_token'])
             except CommandException as ex:
                 raise CommandException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt login%s` again." %
+                    (ex, ' ' + team if team else '')
                 )
             contents[url] = auth
             _save_auth(contents)
@@ -407,7 +420,7 @@ def _check_team_exists(team):
     if team is None:
         return
 
-    hostname = '%s-registry.team.quiltdata.com' % team
+    hostname = team + TEAM_REGISTRY_SUFFIX
     try:
         socket.gethostbyname(hostname)
     except IOError:
