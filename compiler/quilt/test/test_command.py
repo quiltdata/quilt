@@ -261,6 +261,7 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command.login_with_token')
+    @patch('socket.gethostbyname', lambda name: '1.2.3.4')
     def test_login_with_team(self, mock_login_with_token, mock_input, mock_open):
         old_refresh_token = "123"
 
@@ -357,6 +358,7 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input', lambda x: '')
     @patch('quilt.tools.command.login_with_token', lambda x, y: None)
+    @patch('socket.gethostbyname', lambda name: '1.2.3.4')
     def test_login_not_allowed(self, mock_open, mock_load, mock_save):
         # Already logged is as a public user.
         mock_load.return_value = {
