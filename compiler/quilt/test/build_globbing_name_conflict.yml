@@ -1,0 +1,7 @@
+---
+contents:
+  naming_collision:
+    "data/csv.*":          # csv.txt will be named 'csv'
+      transform: csv
+    csv:
+      file: data/nuts.csv
