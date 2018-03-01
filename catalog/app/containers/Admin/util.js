@@ -19,6 +19,7 @@ const HStack = styled.div`
   display: inline-block;
   overflow: hidden;
   margin: 0 1em 0 1em;
+  opacity: .5;
   padding: 0;
   max-width: 5em;
   text-align: left;
