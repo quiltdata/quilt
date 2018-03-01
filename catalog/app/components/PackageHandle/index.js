@@ -26,10 +26,10 @@ function PackageHandle({ isPublic, isTeam, name, owner, showPrefix }) {
   let label;
   if (isTeam) {
     label = 'team';
-  } else if (!isPublic) {
+  } else if (typeof isPublic === false) { // don't show 'private' if undefined
     label = 'private';
   }
-  const decorator = label ? <VisibilityIcon label /> : null;
+  const decorator = label ? <VisibilityIcon label={label} /> : null;
 
   return <Text><Lighter>{prefix}</Lighter>{name} {decorator}</Text>;
 }
