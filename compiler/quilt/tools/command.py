@@ -14,6 +14,7 @@ import os
 import platform
 import re
 from shutil import copyfileobj, move, rmtree
+import socket
 import stat
 import subprocess
 import sys
@@ -172,8 +173,6 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        if not is_nodename(team):
-            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
@@ -394,13 +393,29 @@ def _check_team_login(team):
                 "Can't log in as a public user; log out from team %r first." % existing_team
             )
 
+def _check_team_exists(team):
+    """
+    Check that the team registry actually exists.
+    """
+    hostname = '%s-registry.team.quiltdata.com' % team
+    try:
+        socket.gethostbyname(hostname)
+    except IOError:
+        try:
+            # Do we have internet?
+            socket.gethostbyname('quiltdata.com')
+        except IOError:
+            message = "Can't find quiltdata.com. Check your internet connection."
+        else:
+            message = "Can't find the registry at %s. Make sure your team name is correct." % hostname
+        raise CommandException(message)
+
 team_regex = re.compile('^[a-z]+$')
 def _check_team_id(team):
     if team is not None and team_regex.match(team) is None:
         raise CommandException(
             "Invalid team name: {team}. Lowercase letters only.".format(team=team)
             )
-
 
 def login(team=None):
     """
@@ -410,6 +425,9 @@ def login(team=None):
     """
     _check_team_id(team)
     _check_team_login(team)
+
+    if team is not None:
+        _check_team_exists(team)
 
     login_url = "%s/login" % get_registry_url(team)
 
