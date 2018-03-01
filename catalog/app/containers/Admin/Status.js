@@ -32,7 +32,7 @@ export default compose(
 
   return (
     <IconButton tooltip={detail}>
-      <MIcon color={warnColor} drop="4px">
+      <MIcon color={icon === 'warning' ? warnColor : undefined} drop="4px">
         {icon}
       </MIcon>
     </IconButton>
