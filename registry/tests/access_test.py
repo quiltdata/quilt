@@ -226,6 +226,7 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testNonSharerCantPushToPublicPkg(self):
         """
         Push a package, share it publicly, and test that other users
@@ -289,6 +290,7 @@ class AccessTestCase(QuiltTestCase):
         assert self.user in can_access
         assert sharewith in can_access
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testCanListAccessPublicPkg(self):
         """
         Push a package, share it publicly, and test that other users
@@ -315,6 +317,7 @@ class AccessTestCase(QuiltTestCase):
         assert PUBLIC in can_access
         assert otheruser not in can_access
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testListPackages(self):
         """
         List private, privately-shared, and public packages.
@@ -392,6 +395,7 @@ class AccessTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['packages'] == [dict(name=self.pkg, is_public=True, is_team=False)]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     @mock_customer()
     def testRemovePublicBasicUser(self, customer):
         public_pkg = "publicpkg"
@@ -406,6 +410,7 @@ class AccessTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.payment_required
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     @mock_customer(plan=PaymentPlan.INDIVIDUAL)
     def testRemovePublicIndividualUser(self, customer):
         public_pkg = "publicpkg"
@@ -433,6 +438,7 @@ class AccessTestCase(QuiltTestCase):
         can_access = data.get('users')
         assert can_access == [self.user]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testRemovePublicNoPayments(self):
         public_pkg = "publicpkg"
         self.put_package(self.user, public_pkg, RootNode(children=dict()), is_public=True)
@@ -459,6 +465,7 @@ class AccessTestCase(QuiltTestCase):
         can_access = data.get('users')
         assert can_access == [self.user]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testShareTeamFails(self):
         resp = self._share_package(self.user, self.pkg, 'team')
         assert resp.status_code == requests.codes.forbidden
@@ -469,6 +476,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self._share_package(self.user, self.pkg, 'public')
         assert resp.status_code == requests.codes.forbidden
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testProfile(self):
         """
         List all accessible packages.
@@ -624,6 +632,7 @@ class AccessTestCase(QuiltTestCase):
         assert data['own'] == []
         assert data['shared'] == [dict(owner=self.user, name=self.pkg, is_public=False, is_team=True)]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
     def testTeamProfileWithPublic(self):
         """
@@ -691,6 +700,7 @@ class AccessTestCase(QuiltTestCase):
             dict(owner=self.user, name='pkg3', is_public=True, is_team=True),
         ]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testRecentPackages(self):
         # Push two public packages.
         for i in range(2):
@@ -728,6 +738,7 @@ class AccessTestCase(QuiltTestCase):
         assert len(names) == 4
         assert set(names) == set(['pkg0', 'pkg1', 'pkg2', 'pkg3'])
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSearch(self):
         for i in [1, 2]:
             pkg = 'public%d' % i
@@ -767,6 +778,7 @@ class AccessTestCase(QuiltTestCase):
             "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
         ])
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSearchOrder(self):
         for pkg in ['a', 'B', 'c', 'D']:
             self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)

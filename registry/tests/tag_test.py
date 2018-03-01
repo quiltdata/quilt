@@ -6,6 +6,7 @@ Tag tests
 
 import json
 import requests
+from unittest.mock import patch
 
 from quilt_server.core import hash_contents, GroupNode, RootNode
 from .utils import QuiltTestCase
@@ -64,6 +65,7 @@ class TagTestCase(QuiltTestCase):
             }
         )
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testGetTag(self):
         resp = self._add_tag('foo', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -84,6 +86,7 @@ class TagTestCase(QuiltTestCase):
         assert data['created_by'] == data['updated_by'] == self.user
         assert data['created_at'] == data['updated_at']
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testMultipleTags(self):
         # Add a few tags.
         resp = self._add_tag('old', self.hashes[0])
@@ -116,6 +119,7 @@ class TagTestCase(QuiltTestCase):
             )
         ]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInvalidHash(self):
         resp = self._add_tag('latest', '000')
         assert resp.status_code == requests.codes.not_found
@@ -123,6 +127,7 @@ class TagTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testUpdateTag(self):
         resp = self._add_tag('latest', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -141,6 +146,7 @@ class TagTestCase(QuiltTestCase):
             )
         ]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDelete(self):
         resp = self._add_tag('foo', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -163,6 +169,7 @@ class TagTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['tags'] == []
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testAccess(self):
         resp = self._add_tag('foo', self.hashes[0])
         assert resp.status_code == requests.codes.ok
