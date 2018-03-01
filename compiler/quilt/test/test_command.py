@@ -788,7 +788,7 @@ class CommandTest(QuiltTestCase):
     def test_access_list(self, mock_stdout):
         self.requests_mock.add(
             responses.GET,
-            '%s/api/access/foo/bar' % command.get_registry_url(None),
+            '%s/api/access/foo/bar/' % command.get_registry_url(None),
             status=201,
             json={
                 'users': ['foo', 'bob']
@@ -799,7 +799,7 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_list_no_auth(self):
-        self._mock_error('access/foo/bar', status=401, method=responses.GET)
+        self._mock_error('access/foo/bar/', status=401, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.access_list('foo/bar')
 
