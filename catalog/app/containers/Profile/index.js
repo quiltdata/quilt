@@ -273,7 +273,7 @@ const PlanArea = ({
         <ToolbarTitle text={planMessage} />
         { isWarning ? <WarningIcon /> : null }
         {
-          haveCreditCard ?
+          haveCreditCard && (!config.team || (config.team && isAdmin)) ?
             <StripeCheckout
               allowRememberMe
               amount={0}
