@@ -404,6 +404,9 @@ def _check_team_exists(team):
     """
     Check that the team registry actually exists.
     """
+    if team is None:
+        return
+
     hostname = '%s-registry.team.quiltdata.com' % team
     try:
         socket.gethostbyname(hostname)
