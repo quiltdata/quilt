@@ -746,24 +746,24 @@ class TestCLI(BasicQuiltTestCase):
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
 
-        # fixed?
-        # if os.name == 'nt':
-        #     pytest.xfail("This test causes appveyor to freeze in windows.")
+        if os.name == 'nt':
+            # Due to how Windows handles ctrl-c events with process groups and consoles,
+            # it's not really feasible to test this on Windows because it will want to kill
+            # PyTest (and/or the console on the testing system), or to just kill the
+            # subprocess (kill -9 equivalent).
+            #
+            # It *may* be possible if we create a separate terminal for testing, join it,
+            # disable ctrl-c events in our own process and our parent process (if any, f.e.
+            # when running in appveyor), send a ctrl-c event, then re-enable ctrl-c events
+            # for our own and parent process.  ..that *might* work, but I'm not really
+            # familiar with the win32 api.
+            pytest.xfail("This test is problematic on Windows.")
 
         TESTED_PARAMS.append(['--dev'])
 
-        cmd = ['--dev', 'install', 'user/test']
-        if os.name == 'posix':
-            SIGINT = signal.SIGINT
-            acceptable_exit_codes = [EXIT_KB_INTERRUPT]
-        elif os.name == 'nt':
-            SIGINT = signal.CTRL_C_EVENT
-            # see https://bugs.python.org/issue31863, which also applies to killing via ctrl-c.
-            # If anyone wants to improve this situation, feel free..
-            acceptable_exit_codes = [EXIT_KB_INTERRUPT, 0]
-        else:
-            raise ValueError("Unknown OS type: " + os.name)
+        SIGINT = signal.SIGINT
 
+        cmd = ['--dev', 'install', 'user/test']
         result = self.execute(cmd)
 
         # was the --dev arg accepted by argparse?
@@ -774,12 +774,11 @@ class TestCLI(BasicQuiltTestCase):
         # blocks while waiting for input ('config').
         test_environ = os.environ.copy()
         test_environ['QUILT_TEST_CLI_SUBPROC'] = 'false'
-        test_environ['PYTHONUNBUFFERED'] = "true"   # bye-bye, two hours on an obscure 2.7-specific issue..
+        test_environ['PYTHONUNBUFFERED'] = "true"   # prevent blank stdout due to buffering
 
         # With no '--dev' arg, the process should exit without a traceback
-        cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=subprocess.CREATE_NEW_CONSOLE)
+        cmd = self.quilt_command + ['config']
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -792,12 +791,11 @@ class TestCLI(BasicQuiltTestCase):
 
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
-        assert proc.returncode in acceptable_exit_codes
+        assert proc.returncode == EXIT_KB_INTERRUPT
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdout=PIPE, stderr=PIPE, env=test_environ,
-                     creationflags=subprocess.CREATE_NEW_CONSOLE)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
 
         # Wait for some expected text
         expected = b"Please enter the URL"
@@ -805,9 +803,7 @@ class TestCLI(BasicQuiltTestCase):
         assert response == expected
 
         # Send interrupt, and check result
-        #proc.send_signal(SIGINT)
-        import ctypes
-        ctypes.windll.kernel32.GenerateConsoleCtrlEvent(0, proc.pid)
+        proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
 
         assert 'Traceback (most recent call last)' in stderr
