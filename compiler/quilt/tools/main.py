@@ -71,16 +71,12 @@ class CustomHelpParser(argparse.ArgumentParser):
         helpcommand = kwargs.pop('helpcommand', False)
 
         kwargs['add_help'] = False
+        kwargs.setdefault('formatter_class', argparse.RawDescriptionHelpFormatter)
         super(CustomHelpParser, self).__init__(*args, **kwargs)
         if helpcommand:
             self.add_argument('--help', '-h', action='help', help="Show this message")
-            # self.add_argument('-h', action=UsageAction, help="Show short help (usage) for the 'help' command",
-            #                   nargs=0, default=argparse.SUPPRESS)
         else:
-            self.add_argument('--help', '-h', action='help', help="Show help")
-            # self.add_argument('--help', action='help', help="Show full help for given command")
-            # self.add_argument('-h', action=UsageAction, help="Show short help (usage) for given command",
-            #                   nargs=0, default=argparse.SUPPRESS)
+            self.add_argument('--help', '-h', action='help', help="Show help for given command")
 
 
 def argument_parser():
@@ -101,8 +97,8 @@ def argument_parser():
 
 
     ## Note for `add_parser()` parameters:
-    #   `description` can be long-form help.
-    #   `help` is short help, listed in the base `quilt help` view.
+    #   `description` can be a full, detailed description of usage and characteristics  (displayed as-is/raw)
+    #   `help` is short help, shown in command lists like 'quilt help' or 'quilt help access' (auto-formatted)
 
     # quilt access
     shorthelp = "List, add, or remove who has access to a given package"
