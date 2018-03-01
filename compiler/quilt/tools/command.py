@@ -7,6 +7,7 @@ from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from collections import namedtuple
 from datetime import datetime
+from functools import partial
 import gzip
 import hashlib
 import json
@@ -231,10 +232,13 @@ def _update_auth(team, refresh_token):
         expires_at=data['expires_at']
     )
 
-def _handle_response(resp, **kwargs):
+def _handle_response(team, resp, **kwargs):
     _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
-        raise CommandException("Authentication failed. Run `quilt login` again.")
+        raise CommandException(
+            "Authentication failed. Run `quilt login%s` again." %
+            (' ' + team if team else '')
+        )
     elif not resp.ok:
         try:
             data = resp.json()
@@ -257,20 +261,21 @@ def _create_auth(team):
                 auth = _update_auth(team, auth['refresh_token'])
             except CommandException as ex:
                 raise CommandException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt login%s` again." %
+                    (ex, ' ' + team if team else '')
                 )
             contents[url] = auth
             _save_auth(contents)
 
     return auth
 
-def _create_session(auth):
+def _create_session(team, auth):
     """
     Creates a session object to be used for `push`, `install`, etc.
     """
     session = requests.Session()
     session.hooks.update(dict(
-        response=_handle_response
+        response=partial(_handle_response, team)
     ))
     session.headers.update({
         "Content-Type": "application/json",
@@ -295,7 +300,7 @@ def _get_session(team):
     session = _sessions.get(team)
     if session is None:
         auth = _create_auth(team)
-        _sessions[team] = session = _create_session(auth)
+        _sessions[team] = session = _create_session(team, auth)
 
     assert session is not None
 
