@@ -1241,7 +1241,7 @@ def access_list(package):
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
-    lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=get_registry_url(team), owner=owner, pkg=pkg)
+    lookup_url = "{url}/api/access/{owner}/{pkg}/".format(url=get_registry_url(team), owner=owner, pkg=pkg)
     response = session.get(lookup_url)
 
     data = response.json()
