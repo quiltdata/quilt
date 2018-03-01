@@ -19,13 +19,18 @@ const Text = styled.div`
 `;
 
 // eslint-disable-next-line object-curly-newline
-function PackageHandle({ isPublic, name, owner, showPrefix }) {
+function PackageHandle({ isPublic, isTeam, name, owner, showPrefix }) {
   const team = config.team ? `${config.team.id}:` : '';
   const prefix = showPrefix ? `${team}${owner}/` : null;
-  const decorator = (
-    isPublic === true || typeof isPublic !== 'boolean' ? null
-      : <VisibilityIcon label="private" />
-  );
+
+  let label;
+  if (isTeam) {
+    label = 'team';
+  } else if (!isPublic) {
+    label = 'private';
+  }
+  const decorator = label ? <VisibilityIcon label /> : null;
+
   return <Text><Lighter>{prefix}</Lighter>{name} {decorator}</Text>;
 }
 
@@ -34,7 +39,8 @@ PackageHandle.defaultProps = {
 };
 
 PackageHandle.propTypes = {
-  isPublic: PropTypes.bool.isRequired,
+  isPublic: PropTypes.bool,
+  isTeam: PropTypes.bool,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
   showPrefix: PropTypes.bool,
