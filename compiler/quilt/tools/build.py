@@ -63,7 +63,10 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    is_leaf = not node or node.get(RESERVED['file'])
+    try:
+        is_leaf = not node or node.get(RESERVED['file'])
+    except AttributeError:
+        raise BuildException("Invalid yml for quilt: expected node data, but got {!r} instead".format(node))
     return not is_leaf
 
 def _pythonize_name(name):
@@ -217,7 +220,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
             # Check to see that cached objects actually exist in the store
             # TODO: check for changes in checks else use cache
-            # below is a heavy-handed fix but it's OK for check builds to be slow  
+            # below is a heavy-handed fix but it's OK for check builds to be slow
             if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                 # Use existing objects instead of rebuilding
                 package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)

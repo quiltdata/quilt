@@ -116,6 +116,18 @@ class BuildTest(QuiltTestCase):
         from quilt.data.empty import pkg
         assert not pkg._keys(), 'Expected package to be empty'
 
+    def test_build_bad_transform(self):
+        path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
+
+    def test_build_bad_file(self):
+        path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
+
     def test_build_group_args(self):
         """
         test building from build_group_args.yml
