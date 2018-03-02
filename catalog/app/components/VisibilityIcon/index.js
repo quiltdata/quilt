@@ -26,5 +26,5 @@ export default function VisibilityIcon({ label }) {
 }
 
 VisibilityIcon.propTypes = {
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
 };
