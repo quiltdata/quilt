@@ -18,7 +18,7 @@ import Help from 'components/Help';
 import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
-import { makeSelectPackage, makeSelectReadMe, makeSelectUserName } from 'containers/App/selectors';
+import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
 import { makeHandle } from 'utils/string';
 import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
@@ -86,6 +86,7 @@ export class Package extends React.PureComponent {
 
     if (response.readme_preview) {
       return <Markdown data={response.readme_preview} />;
+    // eslint-disable-next-line no-else-return
     } else {
       return <Message><FormattedMessage {...strings.noReadme} /></Message>;
     }

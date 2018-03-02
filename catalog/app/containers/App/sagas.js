@@ -5,7 +5,7 @@ import { call, put, select, takeLatest } from 'redux-saga/effects';
 import { makeHeaders, makeHeadersFromTokens } from 'utils/auth';
 import makeError from 'utils/error';
 import config from 'constants/config';
-import { requestJSON, requestText } from 'utils/request';
+import { requestJSON } from 'utils/request';
 import { keys, removeStorage, setStorage } from 'utils/storage';
 import { timestamp } from 'utils/time';
 import { tokenPath } from 'constants/urls';
@@ -28,7 +28,6 @@ import {
 import {
   GET_AUTH,
   GET_AUTH_SUCCESS,
-  GET_MANIFEST_SUCCESS,
   GET_PACKAGE,
   GET_PACKAGE_SUCCESS,
   intercomAppId as app_id, // eslint-disable-line camelcase
