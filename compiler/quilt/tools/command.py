@@ -7,6 +7,7 @@ from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from collections import namedtuple
 from datetime import datetime
+from functools import partial
 import gzip
 import hashlib
 import json
@@ -14,6 +15,7 @@ import os
 import platform
 import re
 from shutil import copyfileobj, move, rmtree
+import socket
 import stat
 import subprocess
 import sys
@@ -172,8 +174,6 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        if not is_nodename(team):
-            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
@@ -192,7 +192,7 @@ def get_registry_url(team):
     return _registry_url
 
 def config():
-    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n" +
+    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
                    "or leave this line blank to use the default registry: ")
     if answer:
         url = urlparse(answer.rstrip('/'))
@@ -232,10 +232,13 @@ def _update_auth(team, refresh_token):
         expires_at=data['expires_at']
     )
 
-def _handle_response(resp, **kwargs):
+def _handle_response(team, resp, **kwargs):
     _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
-        raise CommandException("Authentication failed. Run `quilt login` again.")
+        raise CommandException(
+            "Authentication failed. Run `quilt login%s` again." %
+            (' ' + team if team else '')
+        )
     elif not resp.ok:
         try:
             data = resp.json()
@@ -258,20 +261,21 @@ def _create_auth(team):
                 auth = _update_auth(team, auth['refresh_token'])
             except CommandException as ex:
                 raise CommandException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt login%s` again." %
+                    (ex, ' ' + team if team else '')
                 )
             contents[url] = auth
             _save_auth(contents)
 
     return auth
 
-def _create_session(auth):
+def _create_session(team, auth):
     """
     Creates a session object to be used for `push`, `install`, etc.
     """
     session = requests.Session()
     session.hooks.update(dict(
-        response=_handle_response
+        response=partial(_handle_response, team)
     ))
     session.headers.update({
         "Content-Type": "application/json",
@@ -296,7 +300,7 @@ def _get_session(team):
     session = _sessions.get(team)
     if session is None:
         auth = _create_auth(team)
-        _sessions[team] = session = _create_session(auth)
+        _sessions[team] = session = _create_session(team, auth)
 
     assert session is not None
 
@@ -394,12 +398,41 @@ def _check_team_login(team):
                 "Can't log in as a public user; log out from team %r first." % existing_team
             )
 
+team_regex = re.compile('^[a-z]+$')
+def _check_team_id(team):
+    if team is not None and team_regex.match(team) is None:
+        raise CommandException(
+            "Invalid team name: {team}. Lowercase letters only.".format(team=team)
+            )
+
+def _check_team_exists(team):
+    """
+    Check that the team registry actually exists.
+    """
+    if team is None:
+        return
+
+    hostname = '%s-registry.team.quiltdata.com' % team
+    try:
+        socket.gethostbyname(hostname)
+    except IOError:
+        try:
+            # Do we have internet?
+            socket.gethostbyname('quiltdata.com')
+        except IOError:
+            message = "Can't find quiltdata.com. Check your internet connection."
+        else:
+            message = "Unable to connect to registry. Is the team name %r correct?" % team
+        raise CommandException(message)
+
 def login(team=None):
     """
     Authenticate.
 
     Launches a web browser and asks the user for a token.
     """
+    _check_team_id(team)
+    _check_team_exists(team)
     _check_team_login(team)
 
     login_url = "%s/login" % get_registry_url(team)
@@ -419,6 +452,7 @@ def login_with_token(refresh_token, team=None):
     Authenticate using an existing token.
     """
     # Get an access token and a new refresh token.
+    _check_team_id(team)
     auth = _update_auth(team, refresh_token)
 
     url = get_registry_url(team)
@@ -505,11 +539,12 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     """
     # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
+    _check_team_id(team)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
-        answer = input("You're logged in as a team member, but you aren't specifying " +
-                       "a team for the package you're currently building. Maybe you meant:\n" +
-                       "quilt build {team}:{package}\n" +
+        answer = input("You're logged in as a team member, but you aren't specifying "
+                       "a team for the package you're currently building. Maybe you meant:\n"
+                       "quilt build {team}:{package}\n"
                        "Are you sure you want to continue? (y/N) ".format(
                                 team=logged_in_team, package=package))
         if answer.lower() != 'y':
@@ -566,6 +601,7 @@ def build_from_node(package, node):
     Compile a Quilt data package from an existing package node.
     """
     team, owner, pkg = parse_package(package)
+    _check_team_id(team)
     # deliberate access of protected member
     store = node._package.get_store()
     package_obj = store.create_package(team, owner, pkg)
@@ -648,6 +684,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     Push a Quilt data package to the server
     """
     team, owner, pkg = parse_package(package)
+    _check_team_id(team)
     session = _get_session(team)
 
     pkgobj = PackageStore.find_package(team, owner, pkg)
@@ -939,6 +976,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
     assert [hash, version, tag].count(None) == 2
 
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
+    _check_team_id(team)
     session = _get_session(team)
     store = PackageStore()
     existing_pkg = store.get_package(team, owner, pkg)
@@ -972,9 +1010,9 @@ def install(package, hash=None, version=None, tag=None, force=False):
         logged_in_team = _find_logged_in_team()
         if (team is None and logged_in_team is not None
                 and e.response.status_code == requests.codes.not_found):
-            raise CommandException(("Package {owner}/{pkg} does not exist. " +
-                                    "Maybe you meant {team}:{owner}/{pkg}?").format(
-                                            owner=owner, pkg=pkg, team=logged_in_team))
+            raise CommandException("Package {owner}/{pkg} does not exist. "
+                                   "Maybe you meant {team}:{owner}/{pkg}?".format(
+                                   owner=owner, pkg=pkg, team=logged_in_team))
         else:
             raise
 
@@ -1208,7 +1246,7 @@ def access_list(package):
     team, owner, pkg = parse_package(package)
     session = _get_session(team)
 
-    lookup_url = "{url}/api/access/{owner}/{pkg}".format(url=get_registry_url(team), owner=owner, pkg=pkg)
+    lookup_url = "{url}/api/access/{owner}/{pkg}/".format(url=get_registry_url(team), owner=owner, pkg=pkg)
     response = session.get(lookup_url)
 
     data = response.json()
@@ -1245,7 +1283,7 @@ def delete(package):
     team, owner, pkg = parse_package(package)
 
     answer = input(
-        "Are you sure you want to delete this package and its entire history? " +
+        "Are you sure you want to delete this package and its entire history? "
         "Type '%s' to confirm: " % package
     )
 
@@ -1370,6 +1408,7 @@ def list_users_detailed(team=None):
     return resp.json()
 
 def create_user(username, email, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/create' % url,
@@ -1385,18 +1424,21 @@ def list_packages(username, team=None):
     return resp.json()
 
 def disable_user(username, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/disable' % url,
             data=json.dumps({'username':username}))
 
 def enable_user(username, team):
+    _check_team_id(team)
     session = _get_session(team)
     url = get_registry_url(team)
     session.post('%s/api/users/enable' % url,
             data=json.dumps({'username':username}))
 
 def delete_user(username, team, force=False):
+    _check_team_id(team)
     if not force:
         confirmed = input("Really delete user '{0}'? (y/n)".format(username))
         if confirmed.lower() != 'y':
@@ -1426,6 +1468,7 @@ def audit(user_or_package):
     print(json.dumps(response.json(), indent=2))
 
 def reset_password(team, username):
+    _check_team_id(team)
     session = _get_session(team)
     session.post(
         "{url}/api/users/reset_password".format(

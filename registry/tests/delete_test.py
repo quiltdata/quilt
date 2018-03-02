@@ -6,6 +6,7 @@ Delete tests
 
 import json
 import requests
+from unittest.mock import patch
 
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode
 from quilt_server.models import Event
@@ -37,6 +38,7 @@ class DeleteTestCase(QuiltTestCase):
         for contents in self.contents_list:
             self.put_package(self.user, self.pkg, contents, True)
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSimpleDelete(self):
         resp = self.app.delete(
             '/api/package/{usr}/{pkg}/'.format(
@@ -68,6 +70,7 @@ class DeleteTestCase(QuiltTestCase):
         assert event.package_owner == self.user
         assert event.package_name == self.pkg
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDeleteAccessTagVersionLog(self):
         hashes = [hash_contents(contents) for contents in self.contents_list]
 
@@ -203,6 +206,7 @@ class DeleteTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.not_found
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testNoAccess(self):
         # Wrong user
         resp = self.app.delete(

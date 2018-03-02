@@ -11,6 +11,7 @@ from io import BytesIO
 import random
 import string
 from unittest import mock, TestCase
+from unittest.mock import patch
 
 from botocore.stub import Stubber
 from mixpanel import Mixpanel
@@ -108,6 +109,7 @@ class QuiltTestCase(TestCase):
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def put_package(self, owner, package, contents, is_public=False, is_team=False):
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=owner,

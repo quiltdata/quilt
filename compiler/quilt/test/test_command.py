@@ -81,7 +81,7 @@ from six import assertRaisesRegex
 
 from .utils import QuiltTestCase, patch
 from ..tools import command, store
-
+from ..tools.const import TEAM_ID_ERROR
 
 class CommandTest(QuiltTestCase):
     def _mock_error(self, endpoint, status, team=None, message="",
@@ -261,6 +261,7 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input')
     @patch('quilt.tools.command.login_with_token')
+    @patch('socket.gethostbyname', lambda name: '1.2.3.4')
     def test_login_with_team(self, mock_login_with_token, mock_input, mock_open):
         old_refresh_token = "123"
 
@@ -280,14 +281,39 @@ class CommandTest(QuiltTestCase):
 
         mock_input.return_value = old_refresh_token
 
-        with pytest.raises(command.CommandException, match='Invalid team name'):
+        with pytest.raises(command.CommandException,
+                match=TEAM_ID_ERROR):
             command.login('fo!o')
 
         mock_open.assert_not_called()
         mock_login_with_token.assert_not_called()
 
+    @patch('quilt.tools.command._open_url')
+    @patch('quilt.tools.command.input')
+    @patch('quilt.tools.command.login_with_token')
+    @patch('socket.gethostbyname')
+    def test_login_non_existent_team(self, gethostbyname, mock_login_with_token, mock_input, mock_open):
+        # No team, but have internet.
+        gethostbyname.side_effect = [IOError(), None]
+
+        with pytest.raises(command.CommandException, match="Unable to connect to registry"):
+            command.login('blah')
+
+        mock_open.assert_not_called()
+        mock_login_with_token.assert_not_called()
+
+        # No internet.
+        gethostbyname.side_effect = [IOError(), IOError()]
+
+        with pytest.raises(command.CommandException, match="Check your internet"):
+            command.login('blah')
+
+        mock_open.assert_not_called()
+        mock_login_with_token.assert_not_called()
+
     def test_login_with_token_invalid_team(self):
-        with pytest.raises(command.CommandException, match='Invalid team name'):
+        with pytest.raises(command.CommandException,
+                match=TEAM_ID_ERROR):
             command.login_with_token('123', 'fo!o')
 
     @patch('quilt.tools.command._save_auth')
@@ -355,6 +381,7 @@ class CommandTest(QuiltTestCase):
     @patch('quilt.tools.command._open_url')
     @patch('quilt.tools.command.input', lambda x: '')
     @patch('quilt.tools.command.login_with_token', lambda x, y: None)
+    @patch('socket.gethostbyname', lambda name: '1.2.3.4')
     def test_login_not_allowed(self, mock_open, mock_load, mock_save):
         # Already logged is as a public user.
         mock_load.return_value = {
@@ -761,7 +788,7 @@ class CommandTest(QuiltTestCase):
     def test_access_list(self, mock_stdout):
         self.requests_mock.add(
             responses.GET,
-            '%s/api/access/foo/bar' % command.get_registry_url(None),
+            '%s/api/access/foo/bar/' % command.get_registry_url(None),
             status=201,
             json={
                 'users': ['foo', 'bob']
@@ -772,7 +799,7 @@ class CommandTest(QuiltTestCase):
 
     @patch('quilt.tools.command._find_logged_in_team', lambda: None)
     def test_access_list_no_auth(self):
-        self._mock_error('access/foo/bar', status=401, method=responses.GET)
+        self._mock_error('access/foo/bar/', status=401, method=responses.GET)
         with self.assertRaises(command.CommandException):
             command.access_list('foo/bar')
 

@@ -12,6 +12,7 @@ import {
   withProps,
 } from 'recompose';
 import { createSelector } from 'reselect';
+import styled from 'styled-components';
 
 import config from 'constants/config';
 import { makeSelectUserName } from 'containers/App/selectors';
@@ -20,20 +21,25 @@ import { push } from 'containers/Notifications/actions';
 import * as actions from './actions';
 import msg from './messages';
 import selector from './selectors';
-import AddMember from './AddMember';
 import AuditDialog from './AuditDialog';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
 import Packages from './Packages';
 import PackageAudit from './PackageAudit';
+import Status from './Status';
 import Policies from './Policies';
 
 
-const teamName = config.team && config.team.name;
+const teamName = config.team ? config.team.name || config.team.id : '?';
 
 const dispatchPromise = (actionCreator, ...args) =>
   new Promise((resolve, reject) => actionCreator(...args, { resolve, reject }));
 
+const Show = styled.div`
+  h1 {
+    overflow: visible;
+  }
+`;
 export default compose(
   injectIntl,
   connect(
@@ -42,6 +48,7 @@ export default compose(
   ),
   setPropTypes({
     user: PT.string.isRequired,
+    plan: PT.string.isRequired,
     addMember: PT.func.isRequired,
     members: PT.object.isRequired,
     getMembers: PT.func.isRequired,
@@ -110,6 +117,7 @@ export default compose(
   setDisplayName('Admin'),
 )(({
   user,
+  plan,
   addMember,
   members,
   memberActions,
@@ -123,28 +131,23 @@ export default compose(
   changePolicy,
 }) => (
   <div>
-    <h1>{formatMessage(msg.teamHeader, { name: teamName })}</h1>
-
+    <Show>
+      <h1>{formatMessage(msg.teamHeader, { name: teamName })} <Status plan={plan} /></h1>
+    </Show>
+    <Members {...members} addMember={addMember} audit={getMemberAudit} actions={memberActions} user={user} />
+    <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
     <Policies
       read
       write={false}
       onReadCheck={changePolicy}
       onWriteCheck={changePolicy}
     />
-
-    <AddMember addMember={addMember} />
-
-    <Members {...members} audit={getMemberAudit} actions={memberActions} user={user} />
-
-    <Packages {...packages} audit={getPackageAudit} actions={packageActions} />
-
     <AuditDialog
       onClose={() => getMemberAudit(null)}
       title={`${formatMessage(msg.auditUser)}: ${memberAudit.name}`}
       component={MemberAudit}
       {...memberAudit}
     />
-
     <AuditDialog
       onClose={() => getPackageAudit(null)}
       title={`${formatMessage(msg.auditPackage)}: ${packageAudit.handle}`}

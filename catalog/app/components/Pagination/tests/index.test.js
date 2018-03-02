@@ -53,9 +53,7 @@ describe('<Pagination />', () => {
   const render = (items, children = SimpleList) =>
     shallow(<Pagination items={items}>{children}</Pagination>)
       // dive into HoCs
-      .dive().dive().dive().dive().dive();
-
-  const controlsSel = 'FormattedMessage[id="app.components.Pagination.of"]';
+      .dive().dive().dive().dive().dive().dive().dive().dive().dive();
 
   // TODO
   // const clickNext = (wrapper) =>
@@ -66,10 +64,6 @@ describe('<Pagination />', () => {
   describe('when there is 0 items', () => {
     it('should match the snapshot', () => {
       expect(render(itemsEmpty).render()).toMatchSnapshot();
-    });
-
-    it('should not show pagination controls', () => {
-      expect(render(itemsEmpty).find(controlsSel)).toHaveLength(0);
     });
 
     it('should pass items to the children', () => {
@@ -84,10 +78,6 @@ describe('<Pagination />', () => {
       expect(render(items1page).render()).toMatchSnapshot();
     });
 
-    it('should not show pagination controls', () => {
-      expect(render(items1page).find(controlsSel)).toHaveLength(0);
-    });
-
     it('should pass items to the children', () => {
       const children = jest.fn();
       render(items1page, children);
@@ -98,10 +88,6 @@ describe('<Pagination />', () => {
   describe('when there are items for more than one page', () => {
     it('should match the snapshot', () => {
       expect(render(items2pages)).toMatchSnapshot();
-    });
-
-    it('should show pagination controls', () => {
-      expect(render(items2pages).find(controlsSel)).toHaveLength(1);
     });
 
     it('should pass paginated items to the children', () => {

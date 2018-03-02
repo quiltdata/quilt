@@ -8,7 +8,8 @@ See `app.config.from_object('...')` in __init__.py.
 """
 import os
 
-ALLOW_ANONYMOUS_ACCESS = not bool(os.getenv('DISALLOW_ANONYMOUS_ACCESS', ''))
+TEAM_ID = os.getenv('TEAM_ID')
+ALLOW_ANONYMOUS_ACCESS = bool(os.getenv('ALLOW_ANONYMOUS_ACCESS', ''))
 ALLOW_TEAM_ACCESS = bool(os.getenv('ALLOW_TEAM_ACCESS', ''))
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False

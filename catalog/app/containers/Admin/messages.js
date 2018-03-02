@@ -26,6 +26,10 @@ export default defineMessages({
     id: 'app.containers.Admin.teamMembers',
     defaultMessage: 'Packages',
   },
+  teamPayment: {
+    id: 'app.containers.Admin.teamPayment',
+    defaultMessage: 'Status',
+  },
   teamPolicies: {
     id: 'app.containers.Admin.teamPolicies',
     defaultMessage: 'Policies',
@@ -134,9 +138,13 @@ export default defineMessages({
     id: 'app.containers.Admin.Packages.empty',
     defaultMessage: 'Nothing here yet',
   },
+  pkgDeleted: {
+    id: 'app.containers.Admin.Packages.deleted',
+    defaultMessage: 'deleted',
+  },
   membersName: {
     id: 'app.containers.Admin.Members.name',
-    defaultMessage: 'Name',
+    defaultMessage: 'Username',
   },
   membersActivity: {
     id: 'app.containers.Admin.Members.activity',

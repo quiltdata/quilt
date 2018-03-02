@@ -2,11 +2,22 @@
 import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
-import { Tabs, Tab } from 'material-ui/Tabs';
 
 import TakeAction from 'components/TakeAction';
 
 export const width = 900;
+
+const emailBody = `To get started, tell us about your team.%0D%0A
+%0D%0A
+Team size:%0D%0A
+Team id (short alphabetical string e.g. "MegaCorp"):%0D%0A
+Admin name:%0D%0A
+Admin username:%0D%0A
+Admin email:%0D%0A
+Admin phone:%0D%0A
+%0D%0A
+Thanks. We'll get back to you right away.%0D%0A
+`;
 
 const Styler = styled.div`
   overflow: auto;
@@ -14,11 +25,6 @@ const Styler = styled.div`
 
   .faint {
     opacity: 0.5;
-  }
-
-  p {
-    color: black;
-    text-align: left;
   }
 
   table {
@@ -54,59 +60,60 @@ const Styler = styled.div`
   }
 `;
 
+const Detail = styled.p`
+  text-align: right;
+`;
+
 const perUser = <span className="unit">per user / month</span>;
 
-function Pricing({ signUp, takeAction }) {
+function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
   return (
     <Styler>
-      <h1 id="pricing">Pricing</h1>
-      <Tabs>
-        <Tab label="Cloud">
-          <table>
-            <tbody>
-              <tr>
-                <th>Free</th>
-                <th>Individual</th>
-                <th>Teams</th>
-              </tr>
-              <tr className="price">
-                <td>
-                  <h2>$0 { perUser }</h2>
-                </td>
-                <td>
-                  <h2>$7 { perUser }</h2>
-                </td>
-                <td>
-                  <h2>$49* { perUser }</h2>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  Unlimited public packages<br />
-                </td>
-                <td>
-                  Unlimited public packages<br />
-                  Up to 1TB of private packages<br />
-                </td>
-                <td>
-                  Unlimited public packages<br />
-                  1TB+ of private packages<br />
-                  Dedicated registry and storage<br />
-                  Priority support<br />
-                  Team administration and auditing<br />
-                  * Sold in blocks of 10 users<br />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </Tab>
-      </Tabs>
+      <h1 id="pricing">{title}</h1>
+      <table>
+        <tbody>
+          <tr>
+            <th>Free</th>
+            <th>Individual</th>
+            <th>Team</th>
+          </tr>
+          <tr className="price">
+            <td>
+              <h2>$0 { perUser }</h2>
+            </td>
+            <td>
+              <h2>$7 { perUser }</h2>
+            </td>
+            <td>
+              <h2>$49* { perUser }</h2>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              • Unlimited public packages<br />
+            </td>
+            <td>
+              • Unlimited public packages<br />
+              • Up to 1TB of private packages<br />
+            </td>
+            <td>
+              • Unlimited public packages<br />
+              • 1TB and up of private packages<br />
+              • Priority support<br />
+              • Admin and auditing features<br />
+              • Dedicated registry and web catalog, exclusive to your team<br />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <Detail>* Sold in packs of 10 users</Detail>
       <p>
-        <a href="mailto:sales@quiltdata.io?Subject=Quilt%20Teams%20Tier" target="_top">
+        <a href={`mailto:sales@quiltdata.io?Subject=Quilt%20Teams&body=${emailBody}`} target="_top" >
           Contact us
-        </a> to start Teams service.
+        </a>
+        &nbsp;to start Team service.
       </p>
-      { takeAction ? <TakeAction signUp={signUp} /> : null }
+      {takeAction ? <TakeAction signUp={signUp} /> : null}
     </Styler>
   );
 }
@@ -114,10 +121,7 @@ function Pricing({ signUp, takeAction }) {
 Pricing.propTypes = {
   signUp: PropTypes.bool,
   takeAction: PropTypes.bool,
-};
-
-Pricing.defaultProps = {
-  takeAction: true,
+  title: PropTypes.string,
 };
 
 export default Pricing;

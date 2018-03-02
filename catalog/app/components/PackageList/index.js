@@ -7,7 +7,7 @@ import PackageHandle from 'components/PackageHandle';
 import Pagination from 'components/Pagination';
 import { listStyle } from 'constants/style';
 
-const renderPackage = (showOwner, defaultOwner) =>
+const renderPackage = (showPrefix, defaultOwner, push) =>
   ({ is_public, name, owner = defaultOwner }) => { // eslint-disable-line camelcase, react/prop-types
     const handle = `${owner}/${name}`;
     const displayHandle = (
@@ -15,14 +15,14 @@ const renderPackage = (showOwner, defaultOwner) =>
         isPublic={is_public} // eslint-disable-line camelcase
         name={name}
         owner={owner}
-        showOwner={showOwner}
+        showPrefix={showPrefix}
       />
     );
     return (
       <ListItem
         key={handle}
+        onClick={() => push(`/package/${handle}`)}
         primaryText={displayHandle}
-        href={`/package/${handle}`}
       />
     );
   };
@@ -31,7 +31,8 @@ function PackageList({
   emptyMessage,
   emptyHref,
   packages,
-  showOwner,
+  push,
+  showPrefix,
   owner,
 }) {
   if (packages.length === 0) {
@@ -46,7 +47,7 @@ function PackageList({
     <Pagination items={packages}>
       {({ items }) => (
         <List style={listStyle}>
-          {items.map(renderPackage(showOwner, owner))}
+          {items.map(renderPackage(showPrefix, owner, push))}
         </List>
       )}
     </Pagination>
@@ -55,14 +56,15 @@ function PackageList({
 
 PackageList.defaultProps = {
   emptyMessage: 'Nothing here yet',
-  showOwner: true,
+  showPrefix: true,
 };
 
 PackageList.propTypes = {
   emptyMessage: PropTypes.node,
   emptyHref: PropTypes.string,
   packages: PropTypes.array,
-  showOwner: PropTypes.bool,
+  push: PropTypes.func.isRequired,
+  showPrefix: PropTypes.bool,
   owner: PropTypes.string,
 };
 

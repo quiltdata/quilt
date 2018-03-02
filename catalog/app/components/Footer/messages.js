@@ -4,6 +4,6 @@ import { defineMessages } from 'react-intl';
 export default defineMessages({
   copy: {
     id: 'app.components.Footer.copy',
-    defaultMessage: '2017 Quilt Data, Inc',
+    defaultMessage: '2018 Quilt Data, Inc',
   },
 });

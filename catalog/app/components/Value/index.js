@@ -27,7 +27,6 @@ const Detail = styled.div`
 `;
 
 const Height = styled.div`
-  filter: grayscale(33%);
   /*  HACK fragile magic number tested by hand;
    * better to get actual heights in JS but that requires hooking window resize
    * and could be slow */

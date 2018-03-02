@@ -73,3 +73,4 @@ PARSERS = {
 
 # Exit codes
 EXIT_KB_INTERRUPT = 4
+TEAM_ID_ERROR = "Invalid team name: "

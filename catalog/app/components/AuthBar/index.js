@@ -2,7 +2,7 @@
 import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { Link } from 'react-router';
 import { push } from 'react-router-redux';
@@ -10,9 +10,12 @@ import styled from 'styled-components';
 
 import { setSearchText } from 'containers/App/actions';
 import logo from 'img/logo/horizontal-white.png';
+import logoTeam from 'img/logo/horizontal-white-team.png';
 import { backgroundColor } from 'constants/style';
 import { blog, company, docs, jobs } from 'constants/urls';
 import UserMenu from 'components/UserMenu';
+
+import config from 'constants/config';
 
 const Bar = styled(Row)`
   background-color: ${backgroundColor};
@@ -64,11 +67,17 @@ export class AuthBar extends React.PureComponent { // eslint-disable-line react/
       <Bar>
         <NavRow>
           <Right>
-            <FlatButton href="/#pricing" label="pricing" style={navStyle} />
-            <FlatButton href={blog} label="blog" style={navStyle} />
             <FlatButton href={docs} label="docs" style={navStyle} />
+            {
+              config.team ? null : (
+                <Fragment>
+                  <FlatButton href="/#pricing" label="pricing" key="pricing" style={navStyle} />
+                  <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
+                </Fragment>
+              )
+            }
+            <FlatButton href={blog} label="blog" style={navStyle} />
             <FlatButton href={company} label="about" style={navStyle} />
-            <FlatButton href={jobs} label="jobs" style={navStyle} />
           </Right>
         </NavRow>
         <ColNoPad xs={12} sm={6} smPush={6}>
@@ -141,18 +150,19 @@ class LeftGroup extends React.PureComponent { //  eslint-disable-line react/no-m
   }
 
   render() {
+    const { team } = config;
     return (
       <div style={{ marginTop: '16px' }}>
         {/* eslint-disable jsx-a11y/anchor-is-valid */}
         <Link to="/">
           <Lockup>
-            <img alt="Quilt logo" src={logo} />
+            <img alt="Quilt logo" src={team ? logoTeam : logo} />
           </Lockup>
         </Link>
         {/* eslint-enable jsx-a11y/anchor-is-valid */}
         <TextField
           hintStyle={hintStyle}
-          hintText="Search packages"
+          hintText={`Search ${team ? team.name || team.id : ''}`}
           inputStyle={inputStyle}
           onChange={this.handleChange}
           onKeyPress={this.handleEnter}

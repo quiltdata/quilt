@@ -36,11 +36,7 @@ export default defineMessages({
   },
   learnMore: {
     id: 'app.containers.Profile.learnMore',
-    defaultMessage: 'Compare plans',
-  },
-  membersAdd: {
-    id: 'app.containers.Profile.membersAdd',
-    defaultMessage: 'Add member',
+    defaultMessage: 'Select plan',
   },
   updatePayment: {
     id: 'app.containers.Profile.updatePayment',
