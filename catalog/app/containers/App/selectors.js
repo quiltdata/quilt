@@ -2,19 +2,21 @@
 import { Map } from 'immutable';
 import { createSelector } from 'reselect';
 
+import { REDUX_KEY } from './constants';
+
 const emptyMap = Map({});
 
-const selectAuth = (state) => state.getIn(['app', 'user', 'auth'], emptyMap);
-const selectLocation = (state) => state.getIn(['app', 'location'], emptyMap);
-const selectPackage = (state) => state.getIn(['app', 'package'], emptyMap);
-const selectSearchText = (state) => state.getIn(['app', 'searchText'], '');
+const selectAuth = (state) => state.getIn([REDUX_KEY, 'user', 'auth'], emptyMap);
+const selectLocation = (state) => state.getIn([REDUX_KEY, 'location'], emptyMap);
+const selectPackage = (state) => state.getIn([REDUX_KEY, 'package'], emptyMap);
+const selectSearchText = (state) => state.getIn([REDUX_KEY, 'searchText'], '');
 // eslint-disable-next-line function-paren-newline
 const selectUserName = (state) => state.getIn(
-  ['app', 'user', 'auth', 'response', 'current_user'], ''
+  [REDUX_KEY, 'user', 'auth', 'response', 'current_user'], ''
 ); // eslint-disable-line function-paren-newline
 // eslint-disable-next-line function-paren-newline
 const selectEmail = (state) => state.getIn(
-  ['app', 'user', 'auth', 'response', 'email'], ''
+  [REDUX_KEY, 'user', 'auth', 'response', 'email'], ''
 ); // eslint-disable-line function-paren-newline
 
 const makeSelectAuth = () => createSelector(

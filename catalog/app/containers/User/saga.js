@@ -29,11 +29,6 @@ export function* doGetPackages({ username }) {
   }
 }
 
-export function* watchGetPackages() {
+export default function*() {
   yield takeLatest(GET_PACKAGES, doGetPackages);
 }
-
-
-export default [
-  watchGetPackages,
-];

@@ -2,6 +2,7 @@
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
+import { setPropTypes } from 'recompose';
 import { FormattedMessage } from 'react-intl';
 import { createStructuredSelector } from 'reselect';
 
@@ -11,21 +12,34 @@ import Gallery from 'containers/Gallery';
 import Help from 'components/Help';
 import PackageList from 'components/PackageList';
 import Working from 'components/Working';
+import { composeComponent } from 'utils/reactTools';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
 
+import { REDUX_KEY } from './constants';
 import messages from './messages';
+import reducer from './reducer';
+import saga from './saga';
 import { makeSelectSearch } from './selectors';
 
-export class SearchResults extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
-  render() {
-    const {
-      router: { push },
-      search: {
-        error,
-        status,
-        response = { packages: [] },
-      },
-    } = this.props;
-
+// TODO: get query from location / router, dispatch getSearch()
+export default composeComponent('SearchResults',
+  injectSaga(REDUX_KEY, saga),
+  injectReducer(REDUX_KEY, reducer),
+  connect(createStructuredSelector({ search: makeSelectSearch() })),
+  setPropTypes({
+    dispatch: PropTypes.func.isRequired,
+    router: PropTypes.object.isRequired,
+    search: PropTypes.object.isRequired,
+  }),
+  ({
+    router: { push },
+    search: {
+      error,
+      status,
+      response = { packages: [] },
+    },
+  }) => {
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
@@ -60,22 +74,4 @@ export class SearchResults extends React.PureComponent { // eslint-disable-line 
       </div>
     );
   }
-}
-
-SearchResults.propTypes = {
-  dispatch: PropTypes.func.isRequired,
-  router: PropTypes.object.isRequired,
-  search: PropTypes.object.isRequired,
-};
-
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-const mapStateToProps = createStructuredSelector({
-  search: makeSelectSearch(),
-});
-
-export default connect(mapStateToProps, mapDispatchToProps)(SearchResults);
+);

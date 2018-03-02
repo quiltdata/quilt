@@ -228,54 +228,26 @@ function* doStoreTokens(action) {
   yield call(setStorage, keys.TOKENS, JSON.stringify(action.response));
 }
 
-function* watchGetAuth() {
-  yield takeLatest(GET_AUTH, doGetAuth);
-}
 
-function* watchGetAuthSuccess() {
+export default function* () {
+  yield takeLatest(GET_AUTH, doGetAuth);
+
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
-}
 
-function* watchGetPackage() {
   yield takeLatest(GET_PACKAGE, doGetPackage);
-}
-
-function* watchGetPackageSuccess() {
   yield takeLatest(GET_PACKAGE_SUCCESS, doGetManifest);
-}
 
-function* watchRouterStart() {
   yield takeLatest(ROUTER_START, doRefresh);
   yield takeLatest(ROUTER_START, doIntercom);
-}
 
-function* watchLocationChange() {
   yield takeLatest(LOCATION_CHANGE, doRefresh);
   yield takeLatest(LOCATION_CHANGE, doIntercom);
-}
 
-function* watchSearch() {
   yield takeLatest([LOCATION_CHANGE, ROUTER_START], doSearch);
-}
 
-function* watchSignOut() {
   yield takeLatest(SIGN_OUT, doSignOut);
   yield takeLatest(SIGN_OUT, doIntercom);
-}
 
-function* watchStoreTokens() {
   yield takeLatest(STORE_TOKENS, doStoreTokens);
 }
-
-export default [
-  watchGetAuth,
-  watchGetAuthSuccess,
-  watchGetPackage,
-  watchGetPackageSuccess,
-  watchLocationChange,
-  watchRouterStart,
-  watchSearch,
-  watchSignOut,
-  watchStoreTokens,
-];

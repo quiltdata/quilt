@@ -31,11 +31,7 @@ export function* doGetSearch(action) {
   }
 }
 
-export function* watchGetSearch() {
+export default function*() {
+  console.log('search saga started');
   yield takeLatest(GET_SEARCH, doGetSearch);
 }
-
-export default [
-  watchGetSearch,
-];
-

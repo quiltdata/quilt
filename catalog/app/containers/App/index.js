@@ -1,7 +1,9 @@
 /* App */
+import { fromJS } from 'immutable';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
+import { compose } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 
 import AuthBar from 'components/AuthBar';
@@ -10,8 +12,14 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 import Notifications from 'containers/Notifications';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
+import { loadState } from 'utils/storage';
 
 import { routerStart } from './actions';
+import { REDUX_KEY } from './constants';
+import reducer from './reducer';
+import saga from './saga';
 import {
   makeSelectAuth,
   makeSelectSearchText,
@@ -75,4 +83,11 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default compose(
+  injectReducer(REDUX_KEY, reducer, () => {
+    const { RESPONSE, TOKENS } = loadState();
+    return fromJS({ user: { auth: { response: RESPONSE, tokens: TOKENS } } });
+  }),
+  injectSaga(REDUX_KEY, saga),
+  connect(mapStateToProps, mapDispatchToProps),
+)(App);

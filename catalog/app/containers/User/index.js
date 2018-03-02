@@ -14,15 +14,23 @@ import Error from 'components/Error';
 import PackageList from 'components/PackageList';
 import Working from 'components/Working';
 import { makeSelectUserName } from 'containers/App/selectors';
+import { composeComponent } from 'utils/reactTools';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
 
 import { getPackages } from './actions';
+import { REDUX_KEY } from './constants';
 import messages from './messages';
+import reducer from './reducer';
+import saga from './saga';
 import { makeSelectPackages } from './selectors';
 
 
 const getShortName = (name) => name.slice(0, 2).toUpperCase();
 
-export default compose(
+export default composeComponent('User',
+  injectReducer(REDUX_KEY, reducer),
+  injectSaga(REDUX_KEY, saga),
   connect(
     createStructuredSelector({
       packages: makeSelectPackages(),
@@ -45,24 +53,23 @@ export default compose(
       }
     },
   }),
-  setDisplayName('User'),
-)(({
-  packages: { status, response },
-  params: { username },
-  router: { push },
-}) =>
-  status === apiStatus.ERROR ? <Error {...response} /> : (
-    <div>
-      <h1><Avatar>{getShortName(username)}</Avatar> {username}</h1>
-      <h2><FM {...messages.owned} values={{ username }} /></h2>
-      {status !== apiStatus.SUCCESS ? <Working /> : (
-        <PackageList
-          packages={response.packages}
-          push={push}
-          owner={username}
-          showOwner={false}
-        />
-      )}
-    </div>
-  )
+  ({
+    packages: { status, response },
+    params: { username },
+    router: { push },
+  }) =>
+    status === apiStatus.ERROR ? <Error {...response} /> : (
+      <div>
+        <h1><Avatar>{getShortName(username)}</Avatar> {username}</h1>
+        <h2><FM {...messages.owned} values={{ username }} /></h2>
+        {status !== apiStatus.SUCCESS ? <Working /> : (
+          <PackageList
+            packages={response.packages}
+            push={push}
+            owner={username}
+            showOwner={false}
+          />
+        )}
+      </div>
+    )
 ); // eslint-disable-line function-paren-newline

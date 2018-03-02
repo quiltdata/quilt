@@ -21,6 +21,8 @@ import App from 'containers/App';
 import { makeSelectLocationState } from 'containers/App/selectors';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
+import { ReducerInjector } from 'utils/ReducerInjector';
+import { SagaInjector } from 'utils/SagaInjector';
 // Load the favicon, the manifest.json file and the .htaccess file
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico';
@@ -34,7 +36,7 @@ import { translationMessages } from './i18n';
 // Import CSS reset and Global Styles
 import './global-styles';
 // Import root routes
-import createRoutes from './routes';
+import routes from './routes';
 
 Raven.config('https://e0c7810a7a0b4ce898d6e78c1b63f52d@sentry.io/300712').install()
 
@@ -68,7 +70,7 @@ Raven.context(function () {
   // Set up the router, wrapping all Routes in the App component
   const rootRoute = {
     component: App,
-    childRoutes: createRoutes(store),
+    childRoutes: routes,
   };
 
   // TODO: this does not work when element has yet to load
@@ -88,15 +90,19 @@ Raven.context(function () {
     ReactDOM.render(
       <Provider store={store}>
         <LanguageProvider messages={messages}>
-          <Router
-            history={history}
-            routes={rootRoute}
-            render={
-              // Scroll to top when going to a new page, imitating default browser
-              // behaviour
-              applyRouterMiddleware(useScroll(hashScroll))
-            }
-          />
+          <ReducerInjector inject={store.injectReducer}>
+            <SagaInjector run={store.runSaga}>
+              <Router
+                history={history}
+                routes={rootRoute}
+                render={
+                  // Scroll to top when going to a new page, imitating default browser
+                  // behaviour
+                  applyRouterMiddleware(useScroll(hashScroll))
+                }
+              />
+            </SagaInjector>
+          </ReducerInjector>
         </LanguageProvider>
       </Provider>,
       document.getElementById('app')
