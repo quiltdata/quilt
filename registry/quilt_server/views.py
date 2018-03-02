@@ -905,7 +905,7 @@ def package_preview(owner, package_name, package_hash):
     contents_preview = _generate_preview(instance.contents)
 
     total_size = int((
-        db.session.query(sa.func.sum(S3Blob.size))
+        db.session.query(sa.func.coalesce(sa.func.sum(S3Blob.size), 0))
         # We could do a join on S3Blob.instances - but that results in two joins instead of one.
         # So do a completely manual join to make it efficient.
         .join(InstanceBlobAssoc, sa.and_(
