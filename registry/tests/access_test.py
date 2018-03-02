@@ -794,7 +794,7 @@ class AccessTestCase(QuiltTestCase):
         names = [pkg['name'] for pkg in data['packages']]
         assert names == ['a', 'B', 'c', 'D']
 
-    @pytest.mark.xfail  # TODO(dima): Re-enable after fixing READMEs in search results.
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSearchReadme(self):
         readme_contents = 'foo' * 1000
         blob_hash = '8db466bdfc3265dd1347843b31ed34af0a0c2e6ff0fd4d6a5853755f0e68b8a0'
