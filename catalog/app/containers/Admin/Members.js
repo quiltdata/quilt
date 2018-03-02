@@ -1,3 +1,4 @@
+import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -12,10 +13,12 @@ import { FormattedMessage as FM, injectIntl } from 'react-intl';
 import { Link } from 'react-router';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
+import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
 import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
+import AddMember from './AddMember';
 import msg from './messages';
 import { branch, formatActivity, formatDate, withStatefulActions } from './util';
 import ErrorMessage from './ErrorMessage';
@@ -38,6 +41,7 @@ const MembersTable = compose(
       PT.shape({
         name: PT.string.isRequired,
         lastSeen: PT.string,
+        status: PT.oneOf(['active', 'disabled']).isRequired,
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
     actions: PT.shape({
@@ -64,74 +68,84 @@ const MembersTable = compose(
         { text: formatMessage(msg.membersEnable), callback: () => props.enable(name) },
       ]
   ), // eslint-disable-line function-paren-newline
+  withPagination({ key: 'members', getItemId: (m) => m.name }),
   setDisplayName('Admin.Members.Table'),
-// eslint-disable-next-line object-curly-newline
-)(({ audit, members, bindActions, pending, intl: { formatMessage } }) => (
-  <Table selectable={false}>
-    <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
-      <TableRow>
-        <TableHeaderColumn style={{ paddingLeft: '48px' }}><FM {...msg.membersName} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
-        <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
-      </TableRow>
-    </TableHeader>
-    <TableBody displayRowCheckbox={false} stripedRows showRowHover>
-      {members.length
-        // eslint-disable-next-line object-curly-newline
-        ? members.map(({ name, status, lastSeen, ...activity }) => (
-          <TableRow key={name}>
-            <Cell
-              locked={pending[name]}
-              style={{
-                paddingLeft: 0,
-              }}
-            >
-              <SettingsMenu
-                actions={bindActions({ name, status })}
-                busy={pending[name]}
+)(({
+  audit,
+  members,
+  bindActions,
+  pending,
+  intl: { formatMessage },
+  pagination,
+}) => (
+  <Fragment>
+    <Table selectable={false}>
+      <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
+        <TableRow>
+          <TableHeaderColumn style={{ paddingLeft: '48px' }}><FM {...msg.membersName} /></TableHeaderColumn>
+          <TableHeaderColumn><FM {...msg.membersActivity} /></TableHeaderColumn>
+          <TableHeaderColumn><FM {...msg.membersLastSeen} /></TableHeaderColumn>
+        </TableRow>
+      </TableHeader>
+      <TableBody displayRowCheckbox={false} showRowHover>
+        {members.length
+          // eslint-disable-next-line object-curly-newline
+          ? members.map(({ name, status, lastSeen, ...activity }) => (
+            <TableRow key={name}>
+              <Cell
+                locked={pending[name]}
                 style={{
-                  verticalAlign: 'middle',
-                }}
-                buttonProps={{
-                  // adjustments to keep the table row at 48px height
-                  style: {
-                    height: '46px',
-                    paddingTop: '10px',
-                    paddingBottom: '10px',
-                  },
-                }}
-              />
-              <Link
-                to={`/user/${name}`}
-                style={{
-                  verticalAlign: 'middle',
-                  opacity: status === 'disabled' ? 0.5 : undefined,
+                  paddingLeft: 0,
                 }}
               >
-                {name}
-              </Link>
-              {' '}
-              {status === 'disabled'
-                ? <Badge label={formatMessage(msg.membersDisabled)} />
-                : null
-              }
-            </Cell>
-            <Cell locked={pending[name]}>
-              {/* eslint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-              <a onClick={() => audit(name)}>{formatActivity(memberActivities, activity)}</a>
-              {/* eslint-enable jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions, jsx-a11y/anchor-is-valid */}
-            </Cell>
-            <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
-          </TableRow>
-        ))
-        : (
-          <TableRow>
-            <TableRowColumn colSpan={3}><FM {...msg.membersEmpty} /></TableRowColumn>
-          </TableRow>
-        )
-      }
-    </TableBody>
-  </Table>
+                <SettingsMenu
+                  actions={bindActions({ name, status })}
+                  busy={pending[name]}
+                  style={{
+                    verticalAlign: 'middle',
+                  }}
+                  buttonProps={{
+                    // adjustments to keep the table row at 48px height
+                    style: {
+                      height: '46px',
+                      paddingTop: '10px',
+                      paddingBottom: '10px',
+                    },
+                  }}
+                />
+                <Link
+                  to={`/user/${name}`}
+                  style={{
+                    verticalAlign: 'middle',
+                    opacity: status === 'disabled' ? 0.5 : undefined,
+                  }}
+                >
+                  {name}
+                </Link>
+                {' '}
+                {status === 'disabled'
+                  ? <Badge label={formatMessage(msg.membersDisabled)} />
+                  : null
+                }
+              </Cell>
+              <Cell locked={pending[name]}>
+                <FlatButton onClick={() => audit(name)}>
+                  {formatActivity(memberActivities, activity)}
+                </FlatButton>
+              </Cell>
+              <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
+            </TableRow>
+          ))
+          : (
+            <TableRow>
+              <TableRowColumn colSpan={3}><FM {...msg.membersEmpty} /></TableRowColumn>
+            </TableRow>
+          )
+        }
+      </TableBody>
+    </Table>
+    {pagination}
+  </Fragment>
 ));
 
 export default compose(
@@ -142,6 +156,7 @@ export default compose(
       PT.object,
     ]),
     actions: PT.object.isRequired,
+    addMember: PT.func.isRequired,
     audit: PT.func.isRequired,
   }),
   setDisplayName('Admin.Members'),
@@ -149,6 +164,7 @@ export default compose(
   status,
   response,
   actions,
+  addMember,
   audit,
   ...props
 }) => (
@@ -175,5 +191,6 @@ export default compose(
         [api.ERROR]: () => <ErrorMessage error={response} />,
       })
     }
+    <AddMember addMember={addMember} />
   </Fragment>
 ));

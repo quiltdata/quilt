@@ -6,6 +6,8 @@ Config file for dev. Overrides values in config.py.
 import os
 import socket
 
+DEBUG = True
+
 SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/packages'
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')

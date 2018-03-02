@@ -90,6 +90,7 @@ from .tools.command import (
     config,
     create_user,
     delete_user,
+    enable_user,
     disable_user,
     export,
     generate,

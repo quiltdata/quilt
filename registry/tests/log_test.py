@@ -6,6 +6,7 @@ Log tests
 
 import json
 import requests
+from unittest.mock import patch
 
 from quilt_server.const import PaymentPlan, PUBLIC
 from quilt_server.core import hash_contents, GroupNode, RootNode
@@ -58,6 +59,7 @@ class LogTestCase(QuiltTestCase):
             assert log['author'] == self.user
             assert log['hash'] == hash_contents(contents)
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testAccess(self):
         sharewith = "share_with"
 

@@ -80,6 +80,10 @@ class S3Blob(db.Model):
     hash = db.Column(db.String(64), nullable=False)
     size = db.Column(db.BigInteger)
 
+    preview = deferred(db.Column(db.TEXT))
+
+    instances = db.relationship('Instance', secondary=InstanceBlobAssoc)
+
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
 
 

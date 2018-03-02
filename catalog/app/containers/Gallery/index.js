@@ -3,10 +3,12 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { connect } from 'react-redux';
+import { push } from 'react-router-redux';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import config from 'constants/config';
+import { makeHandle } from 'utils/string';
 
 import { getLatest } from './actions';
 import feed from './feed';
@@ -34,11 +36,11 @@ export class Gallery extends React.PureComponent {
       const body = description || `Updated on ${date}`;
       return (
         <Card
-          href={`${window.location.origin}/package/${handle}`}
+          onClick={() => this.props.dispatch(push(`/package/${handle}/`))}
           key={handle}
           team={Boolean(config.team)}
         >
-          <h1>{handle}</h1>
+          <h1>{makeHandle(owner, name)}</h1>
           <p>{body}</p>
         </Card>
       );
@@ -63,7 +65,7 @@ Gallery.propTypes = {
   packages: PropTypes.array.isRequired,
 };
 
-const Card = styled.a`
+const Card = styled.div`
   display: inline-block;
   vertical-align: top;
   white-space: normal;

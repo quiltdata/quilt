@@ -11,6 +11,7 @@ import styled from 'styled-components';
 
 import apiStatus from 'constants/api';
 import { getPackage } from 'containers/App/actions';
+import config from 'constants/config';
 import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
 import Help from 'components/Help';
@@ -18,6 +19,7 @@ import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectReadMe, makeSelectUserName } from 'containers/App/selectors';
+import { makeHandle } from 'utils/string';
 import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
@@ -96,7 +98,14 @@ export class Package extends React.PureComponent {
         </Helmet>
         <Col xs={12} md={7}>
           <Header>
-            <h1><PackageHandle name={name} owner={owner} /></h1>
+            <h1>
+              <PackageHandle
+                isPublic={response.is_public}
+                isTeam={response.is_team}
+                name={name}
+                owner={owner}
+              />
+            </h1>
           </Header>
           <Markdown
             data={readme.response || ''}
@@ -168,14 +177,18 @@ const Install = ({ name, owner }) => (
       <FormattedMessage {...strings.installThen} />
     </p>
     <Code>
-      <Unselectable>$ </Unselectable>quilt install {owner}/{name}
+      <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
     </Code>
     <p><FormattedMessage {...strings.sell} /></p>
     <Help href={blogManage} />
     <h2><FormattedMessage {...strings.access} /></h2>
     <Tabs>
       <Tab label="Python">
-        <Code>from quilt.data.{owner} import {name}</Code>
+        {
+          config.team ?
+            <Code>from quilt.team.{config.team.id}.{owner} import {name}</Code>
+            : <Code>from quilt.data.{owner} import {name}</Code>
+        }
       </Tab>
     </Tabs>
   </div>
@@ -194,7 +207,7 @@ const UpdateInfo = ({ author, date, version }) => (
       <dd>{date}</dd>
 
       <dt><FormattedMessage {...strings.author} /></dt>
-      <dd>@{author}</dd>
+      <dd>{config.team ? `${config.team.id}:` : ''}{author}</dd>
 
       <dt><FormattedMessage {...strings.version} /></dt>
       <dd>

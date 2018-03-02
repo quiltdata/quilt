@@ -8,6 +8,7 @@ import json
 import requests
 import responses
 import time
+from unittest.mock import patch
 
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
@@ -21,7 +22,8 @@ class AdminTestCase(QuiltTestCase):
     def setUp(self):
         super(AdminTestCase, self).setUp()
 
-        self.user = "test_user"
+        self.admin = "admin"
+        self.user = "user"
         self.pkg = "pkg"
         self.contents_list = [
             RootNode(dict(
@@ -40,13 +42,12 @@ class AdminTestCase(QuiltTestCase):
             self.put_package(self.user, self.pkg, contents)
 
     def testListPackage(self):
-        self._mock_admin()
         resp = self.app.get(
             '/api/admin/package_list/{usr}/'.format(
                 usr=self.user
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
         assert resp.status_code == requests.codes.ok
@@ -57,22 +58,22 @@ class AdminTestCase(QuiltTestCase):
                 usr=self.user
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': 'random_user'
             }
         )
         assert resp.status_code == requests.codes.forbidden
 
     def testAuditUser(self):
         # actions as user test_user
-        self._mock_admin()
         resp = self.app.get(
             '/api/audit/{usr}/'.format(
                 usr=self.user
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 3
         for event in data:
@@ -86,23 +87,24 @@ class AdminTestCase(QuiltTestCase):
                 usr=self.user
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
 
     def testAuditPackage(self):
-        self._mock_admin()
         resp = self.app.get(
             '/api/audit/{usr}/{pkg}/'.format(
                 usr=self.user,
                 pkg=self.pkg
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 3
         for event in data:
@@ -117,9 +119,10 @@ class AdminTestCase(QuiltTestCase):
                 pkg=self.pkg
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
 
@@ -130,14 +133,14 @@ class AdminTestCase(QuiltTestCase):
                 pkg=self.pkg
             ),
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8')).get('events')
         assert len(data) == 4
 
     def testAdminListUserUI(self):
-        self._mock_admin()
         QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
         self.requests_mock.add(responses.GET, user_list_api, json.dumps({
@@ -149,9 +152,9 @@ class AdminTestCase(QuiltTestCase):
                 'username': self.user,
                 'id': 1,
                 'date_joined': '2018-01-14T19:33:27.656835Z',
-                'email': 'admin@quiltdata.io',
-                'is_staff': True,
-                'is_superuser': True,
+                'email': 'user@quiltdata.io',
+                'is_staff': False,
+                'is_superuser': False,
                 'is_active': True,
                 'last_login': '2018-01-14T19:33:27.656835Z'
             }]
@@ -159,11 +162,12 @@ class AdminTestCase(QuiltTestCase):
         resp = self.app.get(
             '/api/users/list_detailed',
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['status'] == 200
+
         user = data['users'][self.user]
         assert user['installs'] == 0
         assert user['pushes'] == 3
@@ -172,7 +176,6 @@ class AdminTestCase(QuiltTestCase):
         assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
 
     def testAdminPackageUserUI(self):
-        self._mock_admin()
         QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
         self.requests_mock.add(responses.GET, user_list_api, json.dumps({
@@ -184,9 +187,9 @@ class AdminTestCase(QuiltTestCase):
                 'username': self.user,
                 'id': 1,
                 'date_joined': '2018-01-14T19:33:27.656835Z',
-                'email': 'admin@quiltdata.io',
-                'is_staff': True,
-                'is_superuser': True,
+                'email': 'user@quiltdata.io',
+                'is_staff': False,
+                'is_superuser': False,
                 'is_active': True,
                 'last_login': '2018-01-14T19:33:27.656835Z'
             }]
@@ -194,11 +197,11 @@ class AdminTestCase(QuiltTestCase):
         resp = self.app.get(
             '/api/admin/package_summary',
             headers={
-                'Authorization': self.user
+                'Authorization': self.admin
             }
         )
+        assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'))
-        assert data['status'] == 200
         package = data['packages']['{user}/{pkg}'.format(user=self.user, pkg=self.pkg)]
         now = time.time()
         last_push = package['pushes']['latest']
@@ -210,17 +213,18 @@ class AdminTestCase(QuiltTestCase):
             assert 'latest' not in package[key]
 
     def testPasswordReset(self):
-        self._mock_admin()
         QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         reset_pass_api = "%s/accounts/users/%s/reset_pass/" % (QUILT_AUTH_URL, self.user)
         self.requests_mock.add(responses.POST, reset_pass_api, json.dumps({
             'status': 200
             }))
 
-        resp = self.app.get(
-            '/api/admin/reset_password',
+        resp = self.app.post(
+            '/api/users/reset_password',
             data=json.dumps({"username":self.user}),
+            content_type='application/json',
             headers={
-                'Authorization':self.user
+                'Authorization':self.admin
             }
-            )
+        )
+        assert resp.status_code == requests.codes.ok

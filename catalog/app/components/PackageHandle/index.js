@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
+import config from 'constants/config';
 import VisibilityIcon from 'components/VisibilityIcon';
 
 const Lighter = styled.span`
@@ -10,32 +11,44 @@ const Lighter = styled.span`
 `;
 
 const Text = styled.div`
-  height: 1.5em;
-  line-height: 1.5em;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 // eslint-disable-next-line object-curly-newline
-function PackageHandle({ isPublic, name, owner, showOwner }) {
-  const ownerString = showOwner ? <Lighter>{owner}/</Lighter> : null;
-  const decorator = (
-    isPublic === true || typeof isPublic !== 'boolean' ? null
-      : <VisibilityIcon label="private" />
+function PackageHandle({ drop = false, isPublic, isTeam, name, owner, showPrefix }) {
+  const team = config.team ? `${config.team.id}:` : '';
+  const prefix = showPrefix ? `${team}${owner}/` : null;
+
+  let label = 'private';
+  if (isPublic === true) {
+    label = 'public';
+  } else if (isTeam === true) {
+    label = 'team';
+  } else {
+    label = 'private';
+  }
+
+  return (
+    <Text>
+      <Lighter>{prefix}</Lighter>{name} <VisibilityIcon drop={drop} label={label} />
+    </Text>
   );
-  return <Text>{ownerString}{name} {decorator}</Text>;
 }
 
 PackageHandle.defaultProps = {
-  showOwner: true,
+  showPrefix: true,
 };
 
 PackageHandle.propTypes = {
-  isPublic: PropTypes.bool.isRequired,
+  drop: PropTypes.bool,
+  isPublic: PropTypes.bool,
+  isTeam: PropTypes.bool,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
-  showOwner: PropTypes.bool,
+  showPrefix: PropTypes.bool,
 };
 
 export default PackageHandle;

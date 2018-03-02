@@ -119,6 +119,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert hash_contents(self.CONTENTS) == self.CONTENTS_HASH
         assert hash_contents(self.CONTENTS_WITH_METADATA) == self.CONTENTS_HASH
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSuccessfulPushInstall(self):
         """
         Push a package, then install it.
@@ -200,6 +201,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
         assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPushNewMetadata(self):
         # Push the original contents.
         resp = self.app.put(
@@ -243,6 +245,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         assert data['contents'] == self.CONTENTS_WITH_METADATA
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testNotLoggedIn(self):
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
@@ -343,6 +346,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testCase(self):
         # Can't create a package if the username has the wrong case.
         resp = self.app.put(
@@ -436,6 +440,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.forbidden
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     @mock_customer(plan=PaymentPlan.INDIVIDUAL)
     def testCreatePublic(self, customer):
         # Create a new public package.
@@ -522,6 +527,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDryRun(self):
         # Create a new package.
         resp = self.app.put(
@@ -576,6 +582,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.bad_request
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInstallSubpath(self):
         """
         Push a package, then install it a subpath.
@@ -657,8 +664,12 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.not_found
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPreview(self):
         huge_contents_hash = hash_contents(self.HUGE_CONTENTS)
+
+        readme_contents = 'Hello, World!'
+        self._mock_object('test_user', self.HASH1, readme_contents.encode())
 
         # Push.
         resp = self.app.put(
@@ -692,6 +703,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         assert data['readme_url']
+        assert data['readme_preview'] == readme_contents
         preview = data['preview']
 
         assert preview == [
@@ -720,6 +732,7 @@ class PushInstallTestCase(QuiltTestCase):
             ]],
         ]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInstanceBlob(self):
         # Verify that all blobs are accounted for in the instance<->blob table.
 
@@ -765,6 +778,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert len(blobs) == 3
         assert len(instance_blobs) == 4
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testTeamAccessFails(self):
         # Verify that --team fails in the public cloud.
         resp = self.app.put(
@@ -820,6 +834,7 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testOldPublicParamn(self):
         # Push a package using "public" rather than "is_public".
         resp = self.app.put(
