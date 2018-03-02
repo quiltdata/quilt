@@ -2,6 +2,12 @@
 
 """
 API routes.
+
+NOTE: By default, SQLAlchemy expires all objects when the transaction is committed:
+http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
+
+We disable this behavior because it can cause lots of unexpected queries with
+major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
 from collections import defaultdict
