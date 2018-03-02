@@ -13,7 +13,6 @@ const Lighter = styled.span`
 const Text = styled.div`
   height: 1.5em;
   line-height: 1.5em;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
@@ -26,7 +25,7 @@ function PackageHandle({ isPublic, isTeam, name, owner, showPrefix }) {
   let label;
   if (isTeam) {
     label = 'team';
-  } else if (typeof isPublic === false) { // don't show 'private' if undefined
+  } else if (isPublic === false) { // don't show 'private' if undefined
     label = 'private';
   }
   const decorator = label ? <VisibilityIcon label={label} /> : null;
