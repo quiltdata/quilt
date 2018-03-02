@@ -13,7 +13,7 @@ const Lighter = styled.span`
 const Text = styled.div`
   height: 1.5em;
   line-height: 1.5em;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
