@@ -1246,12 +1246,18 @@ def tag_get(owner, package_name, package_tag):
         package_tag=package_tag,
     )
 
+    users = [access.user for access in package.access]
+    is_public = 'public' in users
+    is_team = 'team' in users
+
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        is_public=is_public,
+        is_team=is_team,
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])

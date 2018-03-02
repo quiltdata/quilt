@@ -7,25 +7,32 @@ import PackageHandle from 'components/PackageHandle';
 import Pagination from 'components/Pagination';
 import { listStyle } from 'constants/style';
 
-const renderPackage = (showPrefix, defaultOwner, push) =>
-  ({ is_public, name, owner = defaultOwner }) => { // eslint-disable-line camelcase, react/prop-types
-    const handle = `${owner}/${name}`;
-    const displayHandle = (
-      <PackageHandle
-        isPublic={is_public} // eslint-disable-line camelcase
-        name={name}
-        owner={owner}
-        showPrefix={showPrefix}
-      />
-    );
-    return (
-      <ListItem
-        key={handle}
-        onClick={() => push(`/package/${handle}`)}
-        primaryText={displayHandle}
-      />
-    );
-  };
+const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-disable-line camelcase, react/prop-types
+  const {
+    is_public: isPublic,
+    is_team: isTeam,
+    name,
+    owner = defaultOwner,
+  } = item;
+  const handle = `${owner}/${name}`;
+  const displayHandle = (
+    <PackageHandle
+      drop
+      isPublic={isPublic}
+      isTeam={isTeam}
+      name={name}
+      owner={owner}
+      showPrefix={showPrefix}
+    />
+  );
+  return (
+    <ListItem
+      key={handle}
+      onClick={() => push(`/package/${handle}`)}
+      primaryText={displayHandle}
+    />
+  );
+};
 
 function PackageList({
   emptyMessage,
