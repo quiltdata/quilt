@@ -1,6 +1,3 @@
-# let users have their own local ignores
-**/*.gitignore
-
 *.swp
 build
 .cache
@@ -14,6 +11,9 @@ quilt_packages
 metastore_db
 derby.log
 node_modules
+
+# let users have their own local ignores
+**/*.gitignore
 
 # Visual Studio Code
 .vscode
