@@ -733,6 +733,38 @@ class PushInstallTestCase(QuiltTestCase):
         ]
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testReadmeDownload(self):
+        readme_contents = '123'
+
+        # Upload a package with no README.
+        contents1 = RootNode(dict(
+            foo=FileNode(
+                hashes=[self.HASH1]
+            )
+        ))
+        self.put_package('test_user', 'foo', contents1, is_public=True)
+
+        # Upload a package with a README that has the same hash as an existing object.
+        # README should now get downloaded.
+        contents2 = RootNode(dict(
+            README=FileNode(
+                hashes=[self.HASH1]
+            )
+        ))
+        self._mock_object('test_user', self.HASH1, readme_contents.encode())
+        self.put_package('test_user', 'foo', contents2, is_public=True)
+        self.s3_stubber.assert_no_pending_responses()
+
+        # Upload a different package with the same README. Nothing should get downloaded.
+        contents3 = RootNode(dict(
+            README=FileNode(
+                hashes=[self.HASH1]
+            ),
+            bar=GroupNode(dict())
+        ))
+        self.put_package('test_user', 'foo2', contents3, is_public=True)
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInstanceBlob(self):
         # Verify that all blobs are accounted for in the instance<->blob table.
 
