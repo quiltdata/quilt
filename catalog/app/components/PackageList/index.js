@@ -17,6 +17,7 @@ const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-
   const handle = `${owner}/${name}`;
   const displayHandle = (
     <PackageHandle
+      drop
       isPublic={isPublic}
       isTeam={isTeam}
       name={name}

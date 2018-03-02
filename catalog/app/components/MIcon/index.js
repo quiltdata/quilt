@@ -45,7 +45,7 @@ function MIcon({ className, drop, title, ...rest }) {
 }
 
 MIcon.propTypes = {
-  children: PropTypes.string.isRequired,
+  children: PropTypes.string,
   className: PropTypes.string,
   color: PropTypes.string,
   drop: PropTypes.string,

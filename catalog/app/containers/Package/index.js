@@ -98,7 +98,14 @@ export class Package extends React.PureComponent {
         </Helmet>
         <Col xs={12} md={7}>
           <Header>
-            <h1><PackageHandle name={name} owner={owner} /></h1>
+            <h1>
+              <PackageHandle
+                isPublic={response.is_public}
+                isTeam={response.is_team}
+                name={name}
+                owner={owner}
+              />
+            </h1>
           </Header>
           <Markdown
             data={readme.response || ''}
