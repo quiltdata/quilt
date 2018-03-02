@@ -92,7 +92,6 @@ import json
 import os
 import pkg_resources
 import signal
-import subprocess
 import sys
 
 from subprocess import check_output, CalledProcessError, Popen, PIPE
