@@ -940,7 +940,7 @@ def package_preview(owner, package_name, package_hash):
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
-        total_size=total_size,
+        total_size_uncompressed=total_size,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
