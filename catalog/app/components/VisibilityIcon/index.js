@@ -11,7 +11,7 @@ const toIcon = {
 
 export default function VisibilityIcon({ drop = false, label }) {
   return (
-    <MIcon drop={drop ? '4px' : undefined} style={{ opacity: 0.5 }} title={label}>
+    <MIcon drop={drop ? '4px' : undefined} style={{ opacity: 0.3 }} title={label}>
       {toIcon[label]}
     </MIcon>
   );
