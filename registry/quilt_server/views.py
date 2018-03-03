@@ -883,13 +883,21 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @api(require_login=False)
 @as_json
 def package_preview(owner, package_name, package_hash):
-    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    (instance, is_public, is_team) = (
+        db.session.query(
+            Instance,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(hash=package_hash)
+        .join(Instance.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id, Instance.id)
+        .one_or_none()
+    )
     assert isinstance(instance.contents, RootNode)
-
-    package = _get_package(g.auth, owner, package_name)
-    users = [access.user for access in package.access]
-    is_public = PUBLIC in users
-    is_team = TEAM in users
 
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
