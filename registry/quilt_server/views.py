@@ -2,6 +2,12 @@
 
 """
 API routes.
+
+NOTE: By default, SQLAlchemy expires all objects when the transaction is committed:
+http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
+
+We disable this behavior because it can cause lots of unexpected queries with
+major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
 from collections import defaultdict
@@ -33,7 +39,7 @@ from .analytics import MIXPANEL_EVENT, mp
 from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
+from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 
@@ -710,14 +716,24 @@ def package_put(owner, package_name, package_hash):
         return Response(_generate(), content_type='application/json')
 
     if instance is None:
+        readme_hash = None
+        readme_preview = None
+
         readme = contents.children.get(README)
         if isinstance(readme, FileNode):
             assert len(readme.hashes) == 1
             readme_hash = readme.hashes[0]
-            readme_preview = download_object_preview(owner, readme_hash)
-        else:
-            readme_hash = None
-            readme_preview = None
+
+            # Download the README if necessary. We want to do this early, before we call
+            # with_for_update() on S3Blob, since it's potentially expensive.
+            have_readme = (
+                db.session.query(sa.func.count(S3Blob.id))
+                .filter_by(owner=owner, hash=readme_hash)
+                .filter(S3Blob.preview.isnot(None))
+            ).one()[0] == 1
+
+            if not have_readme:
+                readme_preview = download_object_preview(owner, readme_hash)
 
         instance = Instance(
             package=package,
@@ -748,8 +764,12 @@ def package_put(owner, package_name, package_hash):
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
-                if blob_hash == readme_hash:
+            if blob_hash == readme_hash:
+                if readme_preview is not None:
+                    # If we've just downloaded the README, save it in the blob.
+                    # Otherwise, it was already set.
                     blob.preview = readme_preview
+                instance.readme_blob = blob
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -877,7 +897,28 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @api(require_login=False)
 @as_json
 def package_preview(owner, package_name, package_hash):
-    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    result = (
+        db.session.query(
+            Instance,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(hash=package_hash)
+        .join(Instance.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id, Instance.id)
+        .one_or_none()
+    )
+
+    if result is None:
+        raise ApiException(
+            requests.codes.not_found,
+            "Package hash does not exist"
+        )
+
+    (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
     readme = instance.contents.children.get(README)
@@ -897,6 +938,16 @@ def package_preview(owner, package_name, package_hash):
         readme_preview = None
 
     contents_preview = _generate_preview(instance.contents)
+
+    total_size = int((
+        db.session.query(sa.func.coalesce(sa.func.sum(S3Blob.size), 0))
+        # We could do a join on S3Blob.instances - but that results in two joins instead of one.
+        # So do a completely manual join to make it efficient.
+        .join(InstanceBlobAssoc, sa.and_(
+            InstanceBlobAssoc.c.blob_id == S3Blob.id,
+            InstanceBlobAssoc.c.instance_id == instance.id
+        ))
+    ).one()[0])
 
     # Insert an event.
     event = Event(
@@ -924,6 +975,9 @@ def package_preview(owner, package_name, package_hash):
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        is_public=is_public,
+        is_team=is_team,
+        total_size_uncompressed=total_size,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -1246,12 +1300,18 @@ def tag_get(owner, package_name, package_tag):
         package_tag=package_tag,
     )
 
+    users = [access.user for access in package.access]
+    is_public = 'public' in users
+    is_team = 'team' in users
+
     return dict(
         hash=instance.hash,
         created_by=instance.created_by,
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        is_public=is_public,
+        is_team=is_team,
     )
 
 @app.route('/api/tag/<owner>/<package_name>/<package_tag>', methods=['DELETE'])

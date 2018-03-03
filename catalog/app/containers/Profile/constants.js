@@ -30,7 +30,7 @@ export const PLANS = config.team ? {
     menu: 'Team',
     menuIcon: 'stars',
     rank: 1,
-    statusIcon: 'check_circle',
+    statusIcon: 'verified_user',
     statusMessage: 'Active',
   },
 } : {
