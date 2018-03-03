@@ -1,5 +1,11 @@
 const feed = [
   {
+    name: 'aicsjackson',
+    owner: 'prod',
+    description: 'This package contains many of the cells seen, imaged, measured, and cataloged by the Allen Institute for Cell Science.',
+  },
+
+  {
     name: 'sgRNAs',
     owner: 'danWebster',
     description: 'sgRNA designs that target the human genome, together with metadata about the sgRNA sequence and genomic location',
