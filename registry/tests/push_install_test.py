@@ -702,6 +702,8 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        assert data['is_public'] == True
+        assert data['is_team'] == False
         assert data['readme_url']
         assert data['readme_preview'] == readme_contents
         preview = data['preview']
