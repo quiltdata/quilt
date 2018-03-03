@@ -4,7 +4,6 @@ const feed = [
     owner: 'prod',
     description: 'This package contains many of the cells seen, imaged, measured, and cataloged by the Allen Institute for Cell Science.',
   },
-
   {
     name: 'sgRNAs',
     owner: 'danWebster',
