@@ -19,7 +19,7 @@ import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectReadMe, makeSelectUserName } from 'containers/App/selectors';
-import { makeHandle } from 'utils/string';
+import { makeHandle, numberToCommaString } from 'utils/string';
 import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
@@ -83,9 +83,10 @@ export class Package extends React.PureComponent {
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
     const date = new Date(ts * 1000).toLocaleString();
-    const { manifest } = pkg;
+    const { manifest = { response: {} } } = pkg;
     const previewBuffer = [];
-    if (manifest && manifest.response && manifest.response.preview) {
+
+    if (manifest.response.preview) {
       this.printManifest(previewBuffer, manifest.response.preview);
     }
 
@@ -122,6 +123,7 @@ export class Package extends React.PureComponent {
               <UpdateInfo
                 author={author}
                 date={date}
+                size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
             </Col>
@@ -199,7 +201,24 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
-const UpdateInfo = ({ author, date, version }) => (
+function readableBytes(bytes) {
+  const mb = bytes / 1000000;
+  const fracStr = (mb - Math.floor(mb)).toFixed(6);
+  if (mb < 1) {
+    // show fractional MB to 3 digits
+    return `${fracStr} MB`;
+  }
+  // only show whole MB
+  return `${numberToCommaString(Math.floor(mb))} MB`;
+}
+
+
+const UpdateInfo = ({
+  author,
+  date,
+  size,
+  version,
+}) => (
   <div>
     <h1><FormattedMessage {...strings.latest} /></h1>
     <dl>
@@ -215,6 +234,10 @@ const UpdateInfo = ({ author, date, version }) => (
           {version}
         </Ellipsis>
       </dd>
+      <dt><FormattedMessage {...strings.stats} /></dt>
+      <dd>
+        {readableBytes(size)}
+      </dd>
     </dl>
   </div>
 );
@@ -222,6 +245,7 @@ const UpdateInfo = ({ author, date, version }) => (
 UpdateInfo.propTypes = {
   author: PropTypes.string,
   date: PropTypes.string,
+  size: PropTypes.number,
   version: PropTypes.string,
 };
 
