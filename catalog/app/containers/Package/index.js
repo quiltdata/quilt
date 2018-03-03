@@ -203,15 +203,14 @@ Install.propTypes = {
 
 function readableBytes(bytes) {
   const mb = bytes / 1000000;
-  const fracStr = (mb - Math.floor(mb)).toFixed(6);
   if (mb < 1) {
-    // show fractional MB to 3 digits
+    const fracStr = (mb - Math.floor(mb)).toFixed(6);
+    // show fractional MB to 6 sig-digits
     return `${fracStr} MB`;
   }
   // only show whole MB
   return `${numberToCommaString(Math.floor(mb))} MB`;
 }
-
 
 const UpdateInfo = ({
   author,
