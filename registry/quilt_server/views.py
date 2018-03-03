@@ -886,6 +886,11 @@ def package_preview(owner, package_name, package_hash):
     instance = _get_instance(g.auth, owner, package_name, package_hash)
     assert isinstance(instance.contents, RootNode)
 
+    package = _get_package(g.auth, owner, package_name)
+    users = [access.user for access in package.access]
+    is_public = PUBLIC in users
+    is_team = TEAM in users
+
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
@@ -930,6 +935,8 @@ def package_preview(owner, package_name, package_hash):
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        is_public=is_public,
+        is_team=is_team,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
