@@ -39,7 +39,7 @@ from .analytics import MIXPANEL_EVENT, mp
 from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
+from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 
@@ -904,6 +904,16 @@ def package_preview(owner, package_name, package_hash):
 
     contents_preview = _generate_preview(instance.contents)
 
+    total_size = int((
+        db.session.query(sa.func.coalesce(sa.func.sum(S3Blob.size), 0))
+        # We could do a join on S3Blob.instances - but that results in two joins instead of one.
+        # So do a completely manual join to make it efficient.
+        .join(InstanceBlobAssoc, sa.and_(
+            InstanceBlobAssoc.c.blob_id == S3Blob.id,
+            InstanceBlobAssoc.c.instance_id == instance.id
+        ))
+    ).one()[0])
+
     # Insert an event.
     event = Event(
         type=Event.Type.PREVIEW,
@@ -930,6 +940,7 @@ def package_preview(owner, package_name, package_hash):
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        total_size_uncompressed=total_size,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
