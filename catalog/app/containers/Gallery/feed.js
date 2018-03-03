@@ -1,7 +1,7 @@
 const feed = [
   {
-    name: 'aicsjackson',
-    owner: 'prod',
+    owner: 'aicsjackson',
+    name: 'prod',
     description: 'This package contains many of the cells seen, imaged, measured, and cataloged by the Allen Institute for Cell Science.',
   },
   {
