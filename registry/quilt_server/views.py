@@ -883,7 +883,7 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @api(require_login=False)
 @as_json
 def package_preview(owner, package_name, package_hash):
-    (instance, is_public, is_team) = (
+    result = (
         db.session.query(
             Instance,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
@@ -897,6 +897,14 @@ def package_preview(owner, package_name, package_hash):
         .group_by(Package.id, Instance.id)
         .one_or_none()
     )
+
+    if result is None:
+        raise ApiException(
+            requests.codes.not_found,
+            "Package hash does not exist"
+        )
+
+    (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
     readme = instance.contents.children.get(README)
