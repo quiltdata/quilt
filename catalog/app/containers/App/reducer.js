@@ -8,9 +8,6 @@ import {
   GET_AUTH,
   GET_AUTH_ERROR,
   GET_AUTH_SUCCESS,
-  GET_BLOB,
-  GET_BLOB_ERROR,
-  GET_BLOB_SUCCESS,
   GET_MANIFEST,
   GET_MANIFEST_ERROR,
   GET_MANIFEST_SUCCESS,
@@ -39,16 +36,6 @@ function appReducer(state = initialState, action) {
     case GET_AUTH_SUCCESS:
       return state.setIn(['user', 'auth', 'status'], status.SUCCESS)
         .setIn(['user', 'auth', 'response'], fromJS(action.response));
-    case GET_BLOB:
-      return state.setIn(action.path.concat(['status']), status.WAITING)
-        .deleteIn(action.path.concat(['error']))
-        .deleteIn(action.path.concat(['response']));
-    case GET_BLOB_ERROR:
-      return state.setIn(action.path.concat(['status']), status.ERROR)
-        .setIn(action.path.concat(['error']), action.error);
-    case GET_BLOB_SUCCESS:
-      return state.setIn(action.path.concat(['status']), status.SUCCESS)
-        .setIn(action.path.concat(['response']), fromJS(action.response));
     case GET_MANIFEST:
       return state.setIn(['package', 'manifest', 'status'], status.WAITING)
         .deleteIn(['package', 'manifest', 'error'])

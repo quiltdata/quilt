@@ -55,4 +55,8 @@ export default defineMessages({
     id: 'app.components.Package.version',
     defaultMessage: 'version',
   },
+  noReadme: {
+    id: 'app.components.Package.noReadme',
+    defaultMessage: 'No README.md provided',
+  },
 });
