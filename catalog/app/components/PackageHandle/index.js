@@ -11,8 +11,7 @@ const Lighter = styled.span`
 `;
 
 const Text = styled.div`
-  overflow-x: hidden;
-  overflow-y: visible;
+  overflow: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
