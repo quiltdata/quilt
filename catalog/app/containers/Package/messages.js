@@ -49,11 +49,11 @@ export default defineMessages({
   },
   stats: {
     id: 'app.components.Package.stats',
-    defaultMessage: 'size',
+    defaultMessage: 'size (deduplicated, uncompressed)',
   },
   version: {
     id: 'app.components.Package.version',
-    defaultMessage: 'version',
+    defaultMessage: 'hash',
   },
   noReadme: {
     id: 'app.components.Package.noReadme',
