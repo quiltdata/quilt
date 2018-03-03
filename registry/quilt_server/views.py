@@ -716,14 +716,24 @@ def package_put(owner, package_name, package_hash):
         return Response(_generate(), content_type='application/json')
 
     if instance is None:
+        readme_hash = None
+        readme_preview = None
+
         readme = contents.children.get(README)
         if isinstance(readme, FileNode):
             assert len(readme.hashes) == 1
             readme_hash = readme.hashes[0]
-            readme_preview = download_object_preview(owner, readme_hash)
-        else:
-            readme_hash = None
-            readme_preview = None
+
+            # Download the README if necessary. We want to do this early, before we call
+            # with_for_update() on S3Blob, since it's potentially expensive.
+            have_readme = (
+                db.session.query(sa.func.count(S3Blob.id))
+                .filter_by(owner=owner, hash=readme_hash)
+                .filter(S3Blob.preview.isnot(None))
+            ).one()[0] == 1
+
+            if not have_readme:
+                readme_preview = download_object_preview(owner, readme_hash)
 
         instance = Instance(
             package=package,
@@ -754,8 +764,8 @@ def package_put(owner, package_name, package_hash):
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
-                if blob_hash == readme_hash:
-                    blob.preview = readme_preview
+            if blob_hash == readme_hash and readme_preview is not None:
+                blob.preview = readme_preview
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
