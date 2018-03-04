@@ -11,13 +11,14 @@ import styled from 'styled-components';
 import { setSearchText } from 'containers/App/actions';
 import logo from 'img/logo/horizontal-white.png';
 import logoTeam from 'img/logo/horizontal-white-team.png';
+import { backgroundColor } from 'constants/style';
 import { blog, company, docs, jobs } from 'constants/urls';
 import UserMenu from 'components/UserMenu';
 
 import config from 'constants/config';
 
 const Bar = styled(Row)`
-  background-color: rgb(16, 16, 16);
+  background-color: ${backgroundColor};
   color: white;
   padding: 0 16px 16px 16px
 `;
