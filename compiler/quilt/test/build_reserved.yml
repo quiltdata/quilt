@@ -1,4 +1,12 @@
 ---
 contents:
-  reserved_filename:
+  file:
     file: data/file.csv
+  checks:
+    file: data/foo.csv
+  environments:
+    file: data/foo.csv
+  kwargs:
+    file: data/foo.csv
+  transform:
+    file: data/foo.csv

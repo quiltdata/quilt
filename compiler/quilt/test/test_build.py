@@ -121,7 +121,11 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_reserved.yml')
         build.build_package(None, 'reserved', 'pkg', path)
         from quilt.data.reserved import pkg
-        assert pkg.reserved_filename
+        assert pkg.file, 'Expected package'
+        assert pkg.checks, 'Expected package'
+        assert pkg.environments, 'Expected package'
+        assert pkg.kwargs, 'Expected package'
+        assert pkg.transform, 'Expected package'
 
     def test_build_group_args(self):
         """
