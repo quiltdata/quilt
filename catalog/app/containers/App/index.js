@@ -4,7 +4,6 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
 import { lifecycle, setPropTypes } from 'recompose';
-import { createStructuredSelector } from 'reselect';
 
 import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
