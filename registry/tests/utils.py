@@ -109,7 +109,6 @@ class QuiltTestCase(TestCase):
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def put_package(self, owner, package, contents, is_public=False, is_team=False, tag_latest=False):
         contents_hash = hash_contents(contents)
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
