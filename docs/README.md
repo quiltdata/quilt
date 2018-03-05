@@ -1,6 +1,5 @@
 # A data registry
-
-Quilt is a data registry. Just as software package managers provide versioned, reusable building blocks for execution, Quilt provides versioned, reusable building blocks for analysis.
+Just as software package managers provide versioned, reusable building blocks for execution, Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_.
 
 ## Motivations
 
