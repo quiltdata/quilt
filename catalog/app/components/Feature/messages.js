@@ -11,7 +11,7 @@ export default defineMessages({
   },
   header: {
     id: 'app.components.Feature.header',
-    defaultMessage: 'Quilt is a data registry',
+    defaultMessage: 'Create a library of data',
   },
   primaryCall: {
     id: 'app.components.Feature.primaryCall',
@@ -27,6 +27,6 @@ export default defineMessages({
   },
   tagline: {
     id: 'app.components.Feature.tagline',
-    defaultMessage: 'Version, package, and deploy data',
+    defaultMessage: 'Quilt versions and deploys data',
   },
 });

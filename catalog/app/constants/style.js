@@ -5,7 +5,7 @@ export const appBackgroundColor = '#fafafa';
 export const authButtonStyle = {
   color: grey200,
 };
-const back = [0, 27, 39];
+const back = [16, 16, 16];
 export const backgroundColor = `rgb(${back[0]}, ${back[1]}, ${back[2]})`;
 export const backgroundColorAlpha = (alpha) =>
   `rgba(${back[0]}, ${back[1]}, ${back[2]}, ${alpha})`;
