@@ -18,8 +18,7 @@ export function* doGetPackages({ username }) {
     // eslint-disable-next-line function-paren-newline
     const response = yield call(requestJSON,
       `${config.api}/api/package/${username}/`,
-      { headers }
-    );
+      { headers });
     if (response.status !== 200 || response.message) {
       throw makeError('Server hiccup', response.message, response);
     }
@@ -29,6 +28,6 @@ export function* doGetPackages({ username }) {
   }
 }
 
-export default function*() {
+export default function* () {
   yield takeLatest(GET_PACKAGES, doGetPackages);
 }

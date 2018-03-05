@@ -1,9 +1,5 @@
 import React from 'react';
-import {
-  compose,
-  lifecycle,
-  setDisplayName,
-} from 'recompose';
+import { lifecycle } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import { connect } from 'react-redux';
 import { FormattedMessage as FM } from 'react-intl';
