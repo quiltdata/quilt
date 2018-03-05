@@ -11,10 +11,6 @@ import { timestamp } from 'utils/time';
 import { tokenPath } from 'constants/urls';
 
 import {
-  getSearch,
-} from 'containers/SearchResults/actions';
-
-import {
   getAuthError,
   getAuthSuccess,
   getManifestError,
@@ -22,7 +18,6 @@ import {
   getPackageError,
   getPackageSuccess,
   refreshAuth,
-  setSearchText,
   storeTokens,
 } from './actions';
 import {
@@ -38,7 +33,6 @@ import {
 import {
   makeSelectAuth,
   makeSelectPackageSummary,
-  makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,
 } from './selectors';
@@ -190,27 +184,6 @@ function* doRefresh(action) {
   }
 }
 
-function* doSearch(action) {
-  const { payload } = action;
-  // execute the search if we've landed on the search page
-  if (payload.pathname && payload.pathname.startsWith('/search/')) {
-    // check for query parameters; ideally we'd use the router to parse this for
-    // us but we don't have that luxury with the ROUTER_START event
-    // doSearch catches both ROUTER_START and LOCATION_CHANGE since we may
-    // hit /search on a cold start
-    const re = /[^\w%]q=([^&]*)/;
-    const match = re.exec(payload.search || '');
-    if (match) {
-      yield put(setSearchText(decodeURIComponent(match[1])));
-    }
-    const search = yield select(makeSelectSearchText());
-    yield put(getSearch(search));
-  // otherwise clear the search text box
-  } else {
-    yield put(setSearchText(''));
-  }
-}
-
 function* doSignOut() {
   // wipe auth tokens and username from storage
   yield call(removeStorage, keys.TOKENS);
@@ -243,8 +216,6 @@ export default function* () {
 
   yield takeLatest(LOCATION_CHANGE, doRefresh);
   yield takeLatest(LOCATION_CHANGE, doIntercom);
-
-  yield takeLatest([LOCATION_CHANGE, ROUTER_START], doSearch);
 
   yield takeLatest(SIGN_OUT, doSignOut);
   yield takeLatest(SIGN_OUT, doIntercom);
