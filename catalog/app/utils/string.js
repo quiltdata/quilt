@@ -10,6 +10,10 @@ export function makeMatcher(exp, flags = 'i') {
   return (s) => re.test(s);
 }
 
+export function numberToCommaString(num) {
+  return num.toLocaleString('en-US');
+}
+
 export function printObject(obj) {
   return JSON.stringify(obj, null, '  ');
 }

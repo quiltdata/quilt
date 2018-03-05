@@ -41,11 +41,6 @@ const makeSelectPackageSummary = () => createSelector(
   })
 );
 
-const makeSelectReadMe = () => createSelector(
-  selectPackage,
-  (pkg) => pkg.get('readme', emptyMap).toJS()
-);
-
 const makeSelectSearchText = () => createSelector(
   selectSearchText,
   (txt) => txt,
@@ -89,7 +84,6 @@ export {
   makeSelectLocationState,
   makeSelectPackage,
   makeSelectPackageSummary,
-  makeSelectReadMe,
   makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,

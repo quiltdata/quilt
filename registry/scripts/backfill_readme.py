@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Changes the object layout in S3 from user/package/hash to user/hash.
-Only copies the objects; does not delete the old ones. Safe to run multiple times.
+Backfills s3_blob.preview by downloading the contents from S3.
 """
 
 import sys
@@ -14,9 +13,9 @@ from quilt_server.views import download_object_preview
 def main(argv):
     rows = (
         S3Blob.query
+        .select_from(Instance)
+        .join(Instance.readme_blob)
         .filter(S3Blob.preview.is_(None))
-        .join(S3Blob.instances)
-        .filter(Instance.readme_hash() == S3Blob.hash)
     )
 
     for blob in rows:

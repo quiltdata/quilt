@@ -66,10 +66,14 @@ class Instance(db.Model):
     # Contents can be a potentially large JSON blob, so load it lazily.
     contents = deferred(db.Column(postgresql.JSONB, nullable=False))
 
+    readme_blob_id = db.Column(db.BigInteger, db.ForeignKey('s3_blob.id'), index=True)
+
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')
     tags = db.relationship('Tag', back_populates='instance')
     blobs = db.relationship('S3Blob', secondary=InstanceBlobAssoc)
+
+    readme_blob = db.relationship('S3Blob', uselist=False)
 
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
 
