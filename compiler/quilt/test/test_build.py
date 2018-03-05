@@ -364,12 +364,12 @@ class BuildTest(QuiltTestCase):
         command.build('test/simple', str(buildfile))
 
         buildfile = mydir / 'build_compose.yml'
-        command.build('test/compose', str(buildfile))
+        command.build('test/compose1', str(buildfile))
 
         from quilt.data.test import simple
-        from quilt.data.test import compose
+        from quilt.data.test import compose1
 
-        assert simple.foo().equals(compose.from_simple_foo())
+        assert simple.foo().equals(compose1.from_simple_foo())
 
     def test_compose_package_not_found(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -386,7 +386,7 @@ class BuildTest(QuiltTestCase):
             }
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
-            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+            build.build_package_from_contents(None, 'test', 'compose2', str(mydir), missing_dep_build)
 
     def test_compose_subpackage_not_found(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -417,10 +417,10 @@ class BuildTest(QuiltTestCase):
             }
             }
             }
-        build.build_package_from_contents(None, 'test', 'compose', str(mydir), build_compose_contents)
-        from quilt.data.test import compose
+        build.build_package_from_contents(None, 'test', 'compose3', str(mydir), build_compose_contents)
+        from quilt.data.test import compose3
 
-        assert type(compose.from_simple_foo) is GroupNode
+        assert type(compose3.from_simple_foo) is GroupNode
 
     def test_top_level_include_is_root_node(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
