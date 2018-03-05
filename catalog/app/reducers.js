@@ -9,7 +9,6 @@ import { LOCATION_CHANGE } from 'react-router-redux';
 import { reducer as formReducer } from 'redux-form/immutable';
 
 import languageProviderReducer from 'containers/LanguageProvider/reducer';
-import notificationsReducer from 'containers/Notifications/reducer';
 
 /*
  * routeReducer
@@ -47,7 +46,6 @@ export default function createReducer(injected) {
     // TODO: inject language and notifications reducers at the container level
     language: languageProviderReducer,
     route: routeReducer,
-    notifications: notificationsReducer,
     form: formReducer,
     ...injected,
   });
