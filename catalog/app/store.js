@@ -46,7 +46,6 @@ export default function configureStore(initialState = {}, history) {
   );
 
   const reducerRegistry = createReducerRegistry((injected) => {
-    console.log('reducers injected', injected);
     store.replaceReducer(createReducer(injected));
   });
 
