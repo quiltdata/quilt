@@ -6,7 +6,7 @@ import styled from 'styled-components';
 import { backgroundColor as bgc } from 'constants/style';
 
 const Back = styled.div`
-  backgroundColor: ${(props) => props.backgroundColor};
+  background-color: ${(props) => props.backgroundColor};
   background-image: url(${(props) => props.src});
   background-repeat: no-repeat;
   background-size: cover;

@@ -3,7 +3,7 @@
 const config = window.__CONFIG;
 Object.freeze(config);
 
-const mustHaveType = {
+const mustHave = {
   alwaysRequiresAuth: 'boolean',
   api: 'string',
   userApi: 'string',
@@ -11,19 +11,43 @@ const mustHaveType = {
   signOutUrl: 'string'
 };
 
-// test the config object
-Object.keys(mustHaveType).forEach((key) => {
-  const expectedType = mustHaveType[key];
-  const actualValue = window.__CONFIG[key];
-  const actualType = typeof actualValue;
-  if ((actualType !== expectedType) || (actualType === 'string' && actualValue.length < 1)) {
-    throw new Error(`Unexpected config['${key}']: ${actualValue}`);
-  }
-});
+const mustHaveTeam = {
+  // eslint-disable-next-line comma-dangle
+  team: 'object'
+};
 
-if (window.__CONFIG.team && !window.__CONFIG.team.id) {
-  // eslint-disable-next-line no-console
-  console.warning(`Unexpected: config.team set but missing team.id ${window.__CONFIG.team}`);
+const mustHaveInTeam = {
+  // eslint-disable-next-line comma-dangle
+  id: 'string'
+};
+
+const shouldHaveInTeam = {
+  // eslint-disable-next-line comma-dangle
+  name: 'string'
+};
+
+// test the config object
+check(mustHave, window.__CONFIG);
+if (window.__CONFIG.team) {
+  check(mustHaveTeam, window.__CONFIG);
+  check(mustHaveInTeam, window.__CONFIG.team);
+  check(shouldHaveInTeam, window.__CONFIG.team, false);
+}
+
+function check(expected, actual, error = true) {
+  Object.keys(expected).forEach((key) => {
+    const expectedType = expected[key];
+    const actualValue = actual[key];
+    const actualType = typeof actualValue;
+    if ((actualType !== expectedType) || (actualType === 'string' && actualValue.length < 1)) {
+      const msg = `Unexpected config['${key}']: ${actualValue}`;
+      if (error) {
+        throw new Error(msg);
+      }
+      // eslint-disable-next-line no-console
+      console.warn(msg, window.__CONFIG);
+    }
+  });
 }
 /* eslint-enable no-underscore-dangle */
 

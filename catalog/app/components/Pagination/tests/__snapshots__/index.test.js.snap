@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`<Pagination /> when there are items for more than one page should match the snapshot 1`] = `
-<div>
+<React.Fragment>
   <list>
     <item
       key="1"
@@ -54,50 +54,28 @@ exports[`<Pagination /> when there are items for more than one page should match
       10
     </item>
   </list>
-  <Pagination__Controls>
-    <withProps(IconButton)
-      direction="left"
-      disabled={true}
-      onClick={[Function]}
-    />
-    <withProps(IconButton)
-      direction="right"
-      disabled={false}
-      onClick={[Function]}
-    />
-    <Pagination__Pages>
-      1
-       
-      <FormattedMessage
-        defaultMessage="of"
-        id="app.components.Pagination.of"
-        values={Object {}}
-      />
-       
-      2
-    </Pagination__Pages>
-  </Pagination__Controls>
-</div>
+  <Pagination.Controls
+    goToPage={[Function]}
+    nextPage={[Function]}
+    page={1}
+    pages={2}
+    prevPage={[Function]}
+  />
+</React.Fragment>
 `;
 
 exports[`<Pagination /> when there are items for only one page should match the snapshot 1`] = `
-<div>
-  <list>
-    <item>
-      1
-    </item>
-    <item>
-      2
-    </item>
-    <item>
-      3
-    </item>
-  </list>
-</div>
+<list>
+  <item>
+    1
+  </item>
+  <item>
+    2
+  </item>
+  <item>
+    3
+  </item>
+</list>
 `;
 
-exports[`<Pagination /> when there is 0 items should match the snapshot 1`] = `
-<div>
-  <list />
-</div>
-`;
+exports[`<Pagination /> when there is 0 items should match the snapshot 1`] = `<list />`;

@@ -11,6 +11,7 @@ from io import BytesIO
 import random
 import string
 from unittest import mock, TestCase
+from unittest.mock import patch
 
 from botocore.stub import Stubber
 from mixpanel import Mixpanel

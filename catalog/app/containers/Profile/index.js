@@ -124,7 +124,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   // TODO separate first h1 (user name) from rest of page so that it's not hidden
   // behind the waiting spinner for no reason; better if user sees something right away
   render() {
-    const { profile } = this.props;
+    const { profile, router } = this.props;
     // eslint-disable-next-line object-curly-newline
     const { status, error = {}, payment = {}, plan = {}, response = {} } = profile;
     const { response: err } = error;
@@ -152,15 +152,17 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
 
     const pageOne = (
       <PackagesArea
+        push={router.push}
         packages={response.packages}
         shortName={shortName}
         user={this.props.user}
       />
     );
 
+    const { is_admin: isAdmin } = response;
     return (
       <div>
-        { config.team ?
+        { config.team && isAdmin ?
           <div>
             <Skip />
             <Tabs>
@@ -176,7 +178,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           handleShowDialog={() => this.showDialog(true)}
           handleUpdatePayment={this.updatePayment}
           haveCreditCard={response.have_credit_card}
-          isAdmin={profile.response.is_admin}
+          isAdmin={isAdmin}
           isLoading={isLoading}
           isWarning={isWarning}
           locale={this.props.intl.locale}
@@ -203,6 +205,7 @@ Profile.propTypes = {
   intl: intlShape.isRequired,
   dispatch: PropTypes.func.isRequired,
   profile: PropTypes.object.isRequired,
+  router: PropTypes.object.isRequired,
   user: PropTypes.string,
   email: PropTypes.string,
 };
@@ -219,18 +222,24 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-const PackagesArea = ({ packages, shortName, user }) => (
+const PackagesArea = ({
+  packages,
+  push,
+  shortName,
+  user,
+}) => (
   <div>
     <h1><Avatar>{shortName}</Avatar> {user}</h1>
     <h2><FormattedMessage {...messages.own} /></h2>
     <PackageList
+      push={push}
       emptyMessage={<FormattedMessage {...messages.noOwned} />}
       emptyHref={makePackage}
       packages={packages.own}
       showPrefix={false}
     />
     <h2><FormattedMessage {...messages.shared} /></h2>
-    <PackageList packages={packages.shared} />
+    <PackageList push={push} packages={packages.shared} />
     <h2><FormattedMessage {...messages[config.team ? 'team' : 'public']} /></h2>
     <Help href="/search/?q=">
       <FormattedMessage {...messages.showPublic} />
@@ -240,6 +249,7 @@ const PackagesArea = ({ packages, shortName, user }) => (
 
 PackagesArea.propTypes = {
   packages: PropTypes.object,
+  push: PropTypes.func.isRequired,
   shortName: PropTypes.string,
   user: PropTypes.string,
 };
@@ -263,7 +273,7 @@ const PlanArea = ({
         <ToolbarTitle text={planMessage} />
         { isWarning ? <WarningIcon /> : null }
         {
-          haveCreditCard ?
+          haveCreditCard && (!config.team || (config.team && isAdmin)) ?
             <StripeCheckout
               allowRememberMe
               amount={0}

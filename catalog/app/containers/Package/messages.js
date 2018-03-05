@@ -47,8 +47,16 @@ export default defineMessages({
     defaultMessage: `Quilt packages import in one line of code
       and load five to twenty times faster than files.`,
   },
+  stats: {
+    id: 'app.components.Package.stats',
+    defaultMessage: 'size (deduplicated, uncompressed)',
+  },
   version: {
     id: 'app.components.Package.version',
-    defaultMessage: 'version',
+    defaultMessage: 'hash',
+  },
+  noReadme: {
+    id: 'app.components.Package.noReadme',
+    defaultMessage: 'No README.md provided',
   },
 });

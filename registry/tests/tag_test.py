@@ -6,6 +6,7 @@ Tag tests
 
 import json
 import requests
+from unittest.mock import patch
 
 from quilt_server.core import hash_contents, GroupNode, RootNode
 from .utils import QuiltTestCase
@@ -35,7 +36,7 @@ class TagTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, is_public=True)
+            self.put_package(self.user, self.pkg, contents)
 
     def _add_tag(self, tag, pkghash):
         return self.app.put(

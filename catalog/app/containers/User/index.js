@@ -49,6 +49,7 @@ export default compose(
 )(({
   packages: { status, response },
   params: { username },
+  router: { push },
 }) =>
   status === apiStatus.ERROR ? <Error {...response} /> : (
     <div>
@@ -57,6 +58,7 @@ export default compose(
       {status !== apiStatus.SUCCESS ? <Working /> : (
         <PackageList
           packages={response.packages}
+          push={push}
           owner={username}
           showOwner={false}
         />
