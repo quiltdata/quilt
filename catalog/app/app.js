@@ -89,9 +89,9 @@ Raven.context(function () {
   const render = (messages) => {
     ReactDOM.render(
       <Provider store={store}>
-        <LanguageProvider messages={messages}>
-          <ReducerInjector inject={store.injectReducer}>
-            <SagaInjector run={store.runSaga}>
+        <ReducerInjector inject={store.injectReducer}>
+          <SagaInjector run={store.runSaga}>
+            <LanguageProvider messages={messages}>
               <Router
                 history={history}
                 routes={rootRoute}
@@ -101,9 +101,9 @@ Raven.context(function () {
                   applyRouterMiddleware(useScroll(hashScroll))
                 }
               />
-            </SagaInjector>
-          </ReducerInjector>
-        </LanguageProvider>
+            </LanguageProvider>
+          </SagaInjector>
+        </ReducerInjector>
       </Provider>,
       document.getElementById('app')
     );
@@ -120,16 +120,11 @@ Raven.context(function () {
 
   // Chunked polyfill for browsers without Intl support
   if (!window.Intl) {
-    (new Promise((resolve) => {
-      resolve(import('intl'));
-    }))
+    import('intl')
       .then(() => Promise.all([
         import('intl/locale-data/jsonp/en.js'),
       ]))
-      .then(() => render(translationMessages))
-      .catch((err) => {
-        throw err;
-      });
+      .then(() => render(translationMessages));
   } else {
     render(translationMessages);
   }
