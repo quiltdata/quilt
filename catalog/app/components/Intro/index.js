@@ -76,8 +76,8 @@ function Intro() {
             <span> $ pip install quilt</span>
             <span> $ quilt install uciml/iris</span>
             <span> $ python</span>
-            <span> &rt;&rt;&rt; from quilt.data.uciml import iris</span>
-            <span> &hash; you&#39;ve got data</span>
+            <span> &gt;&gt;&gt; from quilt.data.uciml import iris</span>
+            <span> &#35; you&#39;ve got data</span>
           </div>
         }
       />
