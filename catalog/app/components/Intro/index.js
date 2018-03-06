@@ -12,7 +12,8 @@ import pkg from 'img/art/package.png';
 
 const Styler = styled.div`
   margin-top: 2em;
-  .intro-row:not(:first-child) {
+
+  .intro-row:not(:nth-child(2)) {
     margin-top: 5em;
   }
 
