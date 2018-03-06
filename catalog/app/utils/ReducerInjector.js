@@ -3,7 +3,7 @@ import isEmpty from 'lodash/isEmpty';
 import isFunction from 'lodash/isFunction';
 import isString from 'lodash/isString';
 import PT from 'prop-types';
-import { Fragment } from 'react';
+import React, { Fragment } from 'react';
 import {
   lifecycle,
   setPropTypes,
@@ -23,17 +23,15 @@ const scope = 'app/utils/ReducerInjector';
 
 const isValidKey = (key) => isString(key) && !isEmpty(key);
 
-export const createReducerRegistry = (onSet) => {
-  const innerScope = `${scope}/createReducerRegistry`;
+export const createReducerInjector = (onSet) => {
+  const innerScope = `${scope}/createReducerInjector`;
   invariant(isFunction(onSet),
     `${innerScope}: Expected 'onSet' to be a function`);
 
   let reducers = {};
 
-  const get = () => reducers;
-
-  const set = (key, reducer) => {
-    const innerScope2 = `${scope}/ReducerRegistry/set`;
+  return (key, reducer) => {
+    const innerScope2 = `${scope}/injectReducer`;
     invariant(isValidKey(key),
       `${innerScope2}: Expected 'key' to be a non-empty string`);
     invariant(isFunction(reducer),
@@ -43,8 +41,6 @@ export const createReducerRegistry = (onSet) => {
 
     onSet(reducers = { ...reducers, [key]: reducer });
   };
-
-  return { get, set };
 };
 
 const ReducerInjectorShape = PT.shape({
@@ -63,23 +59,43 @@ export const ReducerInjector = composeComponent('ReducerInjector',
   restoreProps(),
   Fragment);
 
-const withInitialState = (reducer, initialState) =>
+export const InjectReducer = composeComponent('InjectReducer',
+  setPropTypes({
+    mount: PT.string.isRequired,
+    reducer: PT.func.isRequired,
+  }),
+  saveProps({ keep: ['mount', 'reducer'] }),
+  getContext({
+    reducerInjector: ReducerInjectorShape.isRequired,
+  }),
+  lifecycle({
+    componentWillMount() {
+      this.props.reducerInjector.inject(this.props.mount, this.props.reducer);
+    },
+  }),
+  restoreProps(),
+  Fragment);
+
+export const withInitialState = (reducer, initialState) =>
   (state = initialState, action) => reducer(state, action);
 
-const ownPropsKey = 'ownProps';
+export const injectReducer = (mount, reducer, initial) =>
+  composeHOC(`injectReducer(${mount})`, (Component) => (props) => (
+    <InjectReducer
+      mount={mount}
+      reducer={initial ? withInitialState(reducer, initial(props)) : reducer}
+    >
+      <Component {...props} />
+    </InjectReducer>
+  ));
 
-export const injectReducer = (key, reducer, initial) =>
-  composeHOC(`injectReducer(${key})`,
-    saveProps({ key: ownPropsKey }),
-    getContext({
-      reducerInjector: ReducerInjectorShape.isRequired,
-    }),
-    lifecycle({
-      componentWillMount() {
-        const newReducer = initial
-          ? withInitialState(reducer, initial(this.props[ownPropsKey]))
-          : reducer;
-        this.props.reducerInjector.inject(key, newReducer);
-      },
-    }),
-    restoreProps({ key: ownPropsKey }));
+export const withInjectableReducers = (createReducer) => (createStore) => (...args) => {
+  const store = createStore(...args);
+  const inject = createReducerInjector((injected) => {
+    store.replaceReducer(createReducer(injected));
+  });
+  return {
+    ...store,
+    injectReducer: inject,
+  };
+};
