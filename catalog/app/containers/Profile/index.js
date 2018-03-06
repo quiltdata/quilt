@@ -5,8 +5,9 @@ import RaisedButton from 'material-ui/RaisedButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
 import React from 'react';
-import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
+import { connect } from 'react-redux';
+import { push } from 'react-router-redux';
 import StripeCheckout from 'react-stripe-checkout';
 import { compose } from 'recompose';
 import { createStructuredSelector } from 'reselect';
@@ -129,7 +130,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   // TODO separate first h1 (user name) from rest of page so that it's not hidden
   // behind the waiting spinner for no reason; better if user sees something right away
   render() {
-    const { profile, router } = this.props;
+    const { profile, dispatch } = this.props;
     // eslint-disable-next-line object-curly-newline
     const { status, error = {}, payment = {}, plan = {}, response = {} } = profile;
     const { response: err } = error;
@@ -157,7 +158,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
 
     const pageOne = (
       <PackagesArea
-        push={router.push}
+        push={compose(dispatch, push)}
         packages={response.packages}
         shortName={shortName}
         user={this.props.user}
@@ -210,7 +211,6 @@ Profile.propTypes = {
   intl: intlShape.isRequired,
   dispatch: PropTypes.func.isRequired,
   profile: PropTypes.object.isRequired,
-  router: PropTypes.object.isRequired,
   user: PropTypes.string,
   email: PropTypes.string,
 };
@@ -229,7 +229,7 @@ function mapDispatchToProps(dispatch) {
 
 const PackagesArea = ({
   packages,
-  push,
+  push, // eslint-disable-line no-shadow
   shortName,
   user,
 }) => (

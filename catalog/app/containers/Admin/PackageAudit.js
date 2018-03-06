@@ -9,7 +9,7 @@ import {
 import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import msg from './messages';

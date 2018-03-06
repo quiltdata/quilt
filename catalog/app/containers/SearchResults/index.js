@@ -2,8 +2,9 @@
 import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import { connect } from 'react-redux';
-import { lifecycle, setPropTypes } from 'recompose';
+import { lifecycle, setPropTypes, compose } from 'recompose';
 import { FormattedMessage } from 'react-intl';
+import { push } from 'react-router-redux';
 import { createStructuredSelector } from 'reselect';
 
 import apiStatus from 'constants/api';
@@ -17,6 +18,7 @@ import { makeSelectSearchText } from 'containers/App/selectors';
 import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
+import withParsedQuery from 'utils/withParsedQuery';
 
 import { getSearch } from './actions';
 import { REDUX_KEY } from './constants';
@@ -28,13 +30,13 @@ import { makeSelectSearch } from './selectors';
 export default composeComponent('SearchResults',
   injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
+  withParsedQuery,
   connect(createStructuredSelector({
     search: makeSelectSearch(),
     searchText: makeSelectSearchText(),
   })),
   setPropTypes({
     dispatch: PropTypes.func.isRequired,
-    router: PropTypes.object.isRequired,
     location: PropTypes.shape({
       query: PropTypes.object.isRequired,
     }).isRequired,
@@ -63,7 +65,7 @@ export default composeComponent('SearchResults',
     },
   }),
   ({
-    router: { push },
+    dispatch,
     search: {
       error,
       status,
@@ -85,7 +87,7 @@ export default composeComponent('SearchResults',
         <PackageList
           emptyMessage={<FormattedMessage {...messages.empty} />}
           packages={response.packages}
-          push={push}
+          push={compose(dispatch, push)}
         />
         <br />
         <Help to="/search/?q=">Browse all packages</Help>

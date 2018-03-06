@@ -4,6 +4,7 @@ import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { connect } from 'react-redux';
 import { replace } from 'react-router-redux';
+import { parse } from 'query-string';
 
 import { getAuth, storeTokens } from 'containers/App/actions';
 import Working from 'components/Working';
@@ -16,10 +17,12 @@ export class OAuth2 extends React.PureComponent { // eslint-disable-line react/p
   // the component to remain in scope in spite of a click on Sign In;
   // but Sign In always redirects the user to a non-SPA route, so that should never happen
   componentWillMount() {
-    const { dispatch } = this.props;
-    const { query } = this.props.location;
-    // eslint-disable-next-line object-curly-newline, camelcase
-    const { refresh_token, access_token, expires_at, next = '/' } = query;
+    const { dispatch, location } = this.props;
+
+    // eslint-disable-next-line camelcase
+    const { refresh_token, access_token, expires_at } = parse(location.hash);
+    const { next } = parse(location.search);
+
     const tokens = {
       refresh_token,
       access_token,
@@ -45,10 +48,4 @@ OAuth2.propTypes = {
   location: PropTypes.object.isRequired,
 };
 
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-export default connect(undefined, mapDispatchToProps)(OAuth2);
+export default connect()(OAuth2);

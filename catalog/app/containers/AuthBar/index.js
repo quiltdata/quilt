@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { push } from 'react-router-redux';
 import { setPropTypes, withHandlers } from 'recompose';
 import { createStructuredSelector } from 'reselect';

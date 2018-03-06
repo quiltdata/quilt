@@ -10,7 +10,7 @@ import {
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedMessage as FM, injectIntl } from 'react-intl';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { compose, setPropTypes, setDisplayName } from 'recompose';
 
 import { withPagination } from 'components/Pagination';
