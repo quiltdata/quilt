@@ -4,6 +4,7 @@
 Access tests
 """
 
+import hashlib
 import json
 import time
 from unittest.mock import patch
@@ -739,10 +740,12 @@ class AccessTestCase(QuiltTestCase):
         assert set(names) == set(['pkg0', 'pkg1', 'pkg2', 'pkg3'])
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
-    def testSearch(self):
+    def testBasicSearch(self):
         for i in [1, 2]:
             pkg = 'public%d' % i
-            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True, tag_latest=True)
+
+        self.put_package(self.user, 'private', RootNode(children=dict()), tag_latest=True)
 
         def _test_query(query, headers, expected_results):
             params = dict(q=query)
@@ -760,7 +763,7 @@ class AccessTestCase(QuiltTestCase):
         _test_query("test_user/public1", {}, ["test_user/public1"])
         _test_query("Test_User/Public1", {}, ["test_user/public1"])
         _test_query("test_user/public", {}, ["test_user/public1", "test_user/public2"])
-        _test_query("test_user/pkgtoshare", {}, [])
+        _test_query("test_user/private", {}, [])
         _test_query("test_user/", {}, ["test_user/public1", "test_user/public2"])
         _test_query("test_user public1", {}, ["test_user/public1"])
         _test_query("test user 2", {}, ["test_user/public2"])
@@ -770,18 +773,18 @@ class AccessTestCase(QuiltTestCase):
         auth = {'Authorization': self.user}
 
         _test_query("test_user/public1", auth, ["test_user/public1"])
-        _test_query("share", auth, ["test_user/pkgtoshare"])
+        _test_query("private", auth, ["test_user/private"])
         _test_query("test", auth, [
-            "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
+            "test_user/private", "test_user/public1", "test_user/public2"
         ])
         _test_query("", auth, [
-            "test_user/pkgtoshare", "test_user/public1", "test_user/public2"
+            "test_user/private", "test_user/public1", "test_user/public2"
         ])
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
-    def testSearchOrder(self):
+    def testBasicSearchOrder(self):
         for pkg in ['a', 'B', 'c', 'D']:
-            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True)
+            self.put_package(self.user, pkg, RootNode(children=dict()), is_public=True, tag_latest=True)
 
         params = dict(q=self.user)
         resp = self.app.get(
@@ -795,7 +798,7 @@ class AccessTestCase(QuiltTestCase):
         assert names == ['a', 'B', 'c', 'D']
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
-    def testSearchReadme(self):
+    def testSearchReadmeSnippet(self):
         readme_contents = 'foo' * 1000
         blob_hash = '8db466bdfc3265dd1347843b31ed34af0a0c2e6ff0fd4d6a5853755f0e68b8a0'
 
@@ -804,22 +807,7 @@ class AccessTestCase(QuiltTestCase):
         ))
 
         self._mock_object(self.user, blob_hash, readme_contents.encode())
-        self.put_package(self.user, 'pkg', contents, is_public=True)
-        resp = self.app.put(
-            '/api/tag/{usr}/{pkg}/{tag}'.format(
-                usr=self.user,
-                pkg='pkg',
-                tag='latest'
-            ),
-            data=json.dumps(dict(
-                hash=hash_contents(contents)
-            )),
-            content_type='application/json',
-            headers={
-                'Authorization': self.user
-            }
-        )
-        assert resp.status_code == requests.codes.ok
+        self.put_package(self.user, 'pkg', contents, is_public=True, tag_latest=True)
 
         resp = self.app.get('/api/search/?q=pkg')
         assert resp.status_code == requests.codes.ok
@@ -830,3 +818,57 @@ class AccessTestCase(QuiltTestCase):
         assert packages[0]['is_public'] is True
         assert packages[0]['is_team'] is False
         assert packages[0]['readme_preview'] == readme_contents[0:1024]
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testFullTextSearch(self):
+        packages = {
+            "clinton_email": (
+                "On Monday, August 31, the State Department released nearly 7,000 pages of Clinton’s "
+                "heavily redacted emails (its biggest release of emails to date)."
+            ),
+            "wine": (
+                "From the UCI Machine Learning Repository: Lichman, M. (2013). UCI Machine Learning Repository. "
+                "Irvine, CA: University of California, School of Information and Computer Science."
+            ),
+            "dogscats": "",
+            "nothing": "There are no Clinton's emails or wine data here.",
+        }
+
+        for name, readme in packages.items():
+            blob_hash = hashlib.sha256(readme.encode()).hexdigest()
+            contents = RootNode(dict(
+                README=FileNode([blob_hash], dict())
+            ))
+
+            self._mock_object(self.user, blob_hash, readme.encode())
+            self.put_package(self.user, name, contents, is_public=True, tag_latest=True)
+
+        def _test_query(query, headers, expected_results):
+            params = dict(q=query)
+            resp = self.app.get(
+                '/api/search/?%s' % urllib.parse.urlencode(params),
+                headers=headers
+            )
+
+            assert resp.status_code == requests.codes.ok
+            data = json.loads(resp.data.decode('utf8'))
+
+            results = ['%(owner)s/%(name)s' % pkg for pkg in data['packages']]
+            assert results == expected_results
+
+        # Stemming
+        _test_query("redact", {}, ["test_user/clinton_email"])
+        _test_query("releasing", {}, ["test_user/clinton_email"])
+
+        # Stemming on package name
+        _test_query("no wining", {}, ["test_user/wine", "test_user/nothing"])
+
+        # Multiple words
+        _test_query("state department's biggest release", {}, ["test_user/clinton_email"])
+
+        # Substring matching still works on package names
+        _test_query("dogs cats", {}, ["test_user/dogscats"])
+
+        # Package name takes precedence over README
+        _test_query("clinton", {}, ["test_user/clinton_email", "test_user/nothing"])
+        _test_query("wine", {}, ["test_user/wine", "test_user/nothing"])
