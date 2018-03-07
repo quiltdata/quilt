@@ -36,7 +36,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
+from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
@@ -769,7 +769,7 @@ def package_put(owner, package_name, package_hash):
                     # If we've just downloaded the README, save it in the blob.
                     # Otherwise, it was already set.
                     blob.preview = readme_preview
-                    blob.preview_tsv = sa.func.to_tsvector(readme_preview)
+                    blob.preview_tsv = sa.func.to_tsvector(FTS_LANGUAGE, readme_preview)
                 instance.readme_blob = blob
             instance.blobs.append(blob)
     else:
@@ -1592,7 +1592,7 @@ def search():
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
             sa.func.bool_or(Access.user == TEAM).label('is_team'),
-            sa.func.plainto_tsquery(query).label('query')  # Just save the query as a variable
+            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')  # Just save the query as a variable
         )
         .join(Instance.package)
         .join(Package.access)
@@ -1643,8 +1643,8 @@ def search():
             sa.func.ts_rank_cd(
                 _tsvector_concat(
                     # Give higher weight to owner and name than to README.
-                    sa.func.setweight(sa.func.to_tsvector(instances.c.owner), 'A'),
-                    sa.func.setweight(sa.func.to_tsvector(instances.c.name), 'A'),
+                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner), 'A'),
+                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name), 'A'),
                     sa.func.coalesce(readmes.c.preview_tsv, '')
                 ),
                 instances.c.query,
@@ -1657,8 +1657,8 @@ def search():
             readmes.c.preview_tsv.op('@@')(instances.c.query),
             # Match the owner and name; full table scan, but it's just Package.
             _tsvector_concat(
-                sa.func.to_tsvector(instances.c.owner),
-                sa.func.to_tsvector(instances.c.name)
+                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner),
+                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name)
             ).op('@@')(instances.c.query),
             # Substring matching.
             sa.and_(*basic_filter_list)

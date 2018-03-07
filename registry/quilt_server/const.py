@@ -20,3 +20,5 @@ class PaymentPlan(Enum):
     BUSINESS_MEMBER = 'business_member'
     TEAM = 'team_monthly_490'
     TEAM_UNPAID = 'team_unpaid'
+
+FTS_LANGUAGE = 'english'

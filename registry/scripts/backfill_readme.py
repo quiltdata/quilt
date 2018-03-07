@@ -17,14 +17,13 @@ def main(argv):
         S3Blob.query
         .select_from(Instance)
         .join(Instance.readme_blob)
-        .filter(S3Blob.preview_tsv.is_(None))
+        .filter(S3Blob.preview.is_(None))
     )
 
     for blob in rows:
         print("Downloading %s/%s..." % (blob.owner, blob.hash))
         preview = download_object_preview(blob.owner, blob.hash)
         blob.preview = preview
-        blob.preview_tsv = sa.func.to_tsvector(preview)
         db.session.commit()
 
     print("Done!")

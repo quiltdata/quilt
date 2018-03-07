@@ -18,7 +18,6 @@ depends_on = None
 
 def upgrade():
     op.add_column('s3_blob', sa.Column('preview_tsv', postgresql.TSVECTOR(), nullable=True))
-    op.execute('UPDATE s3_blob SET preview_tsv = to_tsvector(preview)')
     op.create_index('idx_tsv', 's3_blob', ['preview_tsv'], unique=False, postgresql_using='gin')
 
 
