@@ -116,6 +116,17 @@ class BuildTest(QuiltTestCase):
         from quilt.data.empty import pkg
         assert not pkg._keys(), 'Expected package to be empty'
 
+    def test_build_reserved(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_reserved.yml')
+        build.build_package(None, 'reserved', 'pkg', path)
+        from quilt.data.reserved import pkg
+        assert pkg.file, 'Expected package'
+        assert pkg.checks, 'Expected package'
+        assert pkg.environments, 'Expected package'
+        assert pkg.kwargs, 'Expected package'
+        assert pkg.transform, 'Expected package'
+
     def test_build_group_args(self):
         """
         test building from build_group_args.yml

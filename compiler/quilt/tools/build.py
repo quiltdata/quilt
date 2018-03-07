@@ -63,8 +63,21 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    is_leaf = not node or node.get(RESERVED['file'])
+    is_leaf = not node or isinstance(node.get(RESERVED['file']), str)
     return not is_leaf
+
+def _get_local_args(node, keys):
+    result = {}
+    for key in keys:
+        if key in node:
+            # do not consider value as argument in case it has 'file' key
+            if (not isinstance(node[key], dict) or
+                (isinstance(node[key], dict) and not RESERVED['file'] in node[key])):
+                result[key] = node[key]
+    return result
+
+def _is_valid_group(group):
+    return isinstance(group, dict) or group is None
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -133,15 +146,11 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         # NOTE: YAML parsing does not guarantee key order
         # fetch local transform and kwargs values; we do it using ifs
         # to prevent `key: None` from polluting the update
-        local_args = {}
-        if node.get(RESERVED['transform']):
-            local_args[RESERVED['transform']] = node[RESERVED['transform']]
-        if node.get(RESERVED['kwargs']):
-            local_args[RESERVED['kwargs']] = node[RESERVED['kwargs']]
+        local_args = _get_local_args(node, [RESERVED['transform'], RESERVED['kwargs']])
         group_args = ancestor_args.copy()
         group_args.update(local_args)
         # if it's not a reserved word it's a group that we can descend
-        groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
+        groups = {k: v for k, v in iteritems(node) if _is_valid_group(v)}
         for child_name, child_table in groups.items():
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
@@ -217,7 +226,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
 
             # Check to see that cached objects actually exist in the store
             # TODO: check for changes in checks else use cache
-            # below is a heavy-handed fix but it's OK for check builds to be slow  
+            # below is a heavy-handed fix but it's OK for check builds to be slow
             if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                 # Use existing objects instead of rebuilding
                 package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
