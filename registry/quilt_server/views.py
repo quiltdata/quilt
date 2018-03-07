@@ -559,16 +559,34 @@ def download_object_preview(owner, obj_hash):
 
         return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
     except ClientError as ex:
-        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
+        _mp_track(
+            type="download_exception",
+            obj_owner=owner,
+            obj_hash=obj_hash,
+            error=str(ex),
+        )
+        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.forbidden:
             # The client somehow failed to upload the README.
-            return None
+            raise ApiException(
+                requests.codes.forbidden,
+                "Failed to download the README; make sure it has been uploaded correctly."
+            )
         else:
             # Something unexpected happened.
             raise
-    except OSError:
+    except OSError as ex:
         # Failed to ungzip: either the contents is not actually gzipped,
         # or the response was truncated because it was too big.
-        return None
+        _mp_track(
+            type="download_exception",
+            obj_owner=owner,
+            obj_hash=obj_hash,
+            error=str(ex),
+        )
+        raise ApiException(
+            requests.codes.forbidden,
+            "Failed to ungzip the README; make sure it has been uploaded correctly."
+        )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
