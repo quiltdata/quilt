@@ -7,10 +7,11 @@ import config from 'constants/config';
 import VisibilityIcon from 'components/VisibilityIcon';
 
 const Lighter = styled.span`
-  opacity: 0.6;
+  opacity: 0.7;
 `;
 
 const Preview = styled.span`
+  font-size: 80%;
   opacity: 0.5;
 `;
 
