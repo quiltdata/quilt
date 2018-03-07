@@ -40,8 +40,8 @@ export default function configureStore(initialState = {}, history) {
     (state) => state, // noop reducer, the actual ones will be injected
     fromJS(initialState),
     composeEnhancers(
-      applyMiddleware(...middlewares),
       withSaga,
+      applyMiddleware(...middlewares),
       withInjectableReducers(combineReducers),
     )
   );
