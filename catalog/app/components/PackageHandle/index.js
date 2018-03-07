@@ -10,15 +10,27 @@ const Lighter = styled.span`
   opacity: 0.6;
 `;
 
+const Preview = styled.span`
+  opacity: 0.5;
+`;
+
 const Text = styled.div`
   line-height: 1.5em;
-  overflow: visible;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 // eslint-disable-next-line object-curly-newline
-function PackageHandle({ drop = false, isPublic, isTeam, name, owner, showPrefix }) {
+function PackageHandle({
+  drop = false,
+  isPublic,
+  isTeam,
+  name,
+  owner,
+  readmePreview,
+  showPrefix,
+}) {
   const team = config.team ? `${config.team.id}:` : '';
   const prefix = showPrefix ? `${team}${owner}/` : null;
 
@@ -33,7 +45,8 @@ function PackageHandle({ drop = false, isPublic, isTeam, name, owner, showPrefix
 
   return (
     <Text>
-      <Lighter>{prefix}</Lighter>{name} <VisibilityIcon drop={drop} label={label} />
+      <VisibilityIcon drop={drop} label={label} />
+      <Lighter>{prefix}</Lighter>{name} <Preview>{readmePreview}</Preview>
     </Text>
   );
 }
@@ -48,6 +61,7 @@ PackageHandle.propTypes = {
   isTeam: PropTypes.bool,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
+  readmePreview: PropTypes.string,
   showPrefix: PropTypes.bool,
 };
 

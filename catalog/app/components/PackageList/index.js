@@ -13,23 +13,28 @@ const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-
     is_team: isTeam,
     name,
     owner = defaultOwner,
+    readme_preview: readmePreview,
   } = item;
   const handle = `${owner}/${name}`;
-  const displayHandle = (
-    <PackageHandle
-      drop
-      isPublic={isPublic}
-      isTeam={isTeam}
-      name={name}
-      owner={owner}
-      showPrefix={showPrefix}
-    />
+  const display = (
+    <span>
+      <PackageHandle
+        drop
+        isPublic={isPublic}
+        isTeam={isTeam}
+        name={name}
+        owner={owner}
+        showPrefix={showPrefix}
+        readmePreview={readmePreview}
+      />
+    </span>
   );
   return (
     <ListItem
       key={handle}
       onClick={() => push(`/package/${handle}`)}
-      primaryText={displayHandle}
+      primaryText={display}
+      title={readmePreview}
     />
   );
 };
