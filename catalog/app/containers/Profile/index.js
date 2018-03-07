@@ -1,28 +1,19 @@
 /* Profile */
-import Avatar from 'material-ui/Avatar';
-import IconButton from 'material-ui/IconButton';
-import RaisedButton from 'material-ui/RaisedButton';
+import invoke from 'lodash/fp/invoke';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { Fragment } from 'react';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import { connect } from 'react-redux';
 import { push } from 'react-router-redux';
-import StripeCheckout from 'react-stripe-checkout';
 import { compose } from 'recompose';
 import { createStructuredSelector } from 'reselect';
-import styled from 'styled-components';
-import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
 
 import Admin from 'containers/Admin/Loadable';
 import apiStatus from 'constants/api';
 import config from 'constants/config';
 import Error from 'components/Error';
-import Help from 'components/Help';
 import { Skip } from 'components/LayoutHelpers';
-import Loading from 'components/Loading';
-import MIcon from 'components/MIcon';
-import PackageList from 'components/PackageList';
 import PaymentDialog from 'components/PaymentDialog';
 import paymentMessages from 'components/PaymentDialog/messages';
 import {
@@ -30,21 +21,20 @@ import {
   makeSelectUserName,
 } from 'containers/App/selectors';
 import { printObject } from 'utils/string';
-import { icon256, makePackage } from 'constants/urls';
 import Working from 'components/Working';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
 
+import Packages from './Packages';
+import Plan from './Plan';
 import { getProfile, updatePayment, updatePlan } from './actions';
 import { PLANS, REDUX_KEY } from './constants';
 import reducer from './reducer';
 import { makeSelectProfile } from './selectors';
-import messages from './messages';
 import saga from './saga';
 
-const LoadingMargin = styled(Loading)`
-  margin-right: 1em;
-`;
+const makeSectionUrl = (section) =>
+  `/profile${section === 'packages' ? '' : `/${section}`}`;
 
 export class Profile extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   state = {
@@ -152,33 +142,43 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     const isLoading = planWaiting || paymentWaiting;
     const isWarning = this.maybeWarn(plan, payment);
 
-    const planMessage = plan.response in paymentMessages ?
-      <FormattedMessage {...paymentMessages[plan.response]} />
+    const planMessage = plan.response in paymentMessages
+      ? <FormattedMessage {...paymentMessages[plan.response]} />
       : <FormattedMessage {...paymentMessages.unrecognized} />;
 
-    const pageOne = (
-      <PackagesArea
-        push={compose(dispatch, push)}
-        packages={response.packages}
-        shortName={shortName}
-        user={this.props.user}
-      />
-    );
-
     const { is_admin: isAdmin } = response;
+    const { section = 'packages' } = this.props.match.params;
+
     return (
       <div>
-        { config.team && isAdmin ?
-          <div>
-            <Skip />
-            <Tabs>
-              <Tab label="packages" value="packages">{ pageOne }</Tab>
-              <Tab label="admin" value="admin"><Admin plan={plan.response} /></Tab>
-            </Tabs>
-            <Skip />
-          </div> : pageOne
+        {config.team && isAdmin
+          ? (
+            <Fragment>
+              <Skip />
+              <Tabs
+                value={section}
+                onChange={compose(dispatch, push, makeSectionUrl)}
+              >
+                <Tab label="packages" value="packages" />
+                <Tab label="admin" value="admin" />
+              </Tabs>
+              <Skip />
+            </Fragment>
+          ) : null
         }
-        <PlanArea
+        {invoke(section, {
+          packages: () => (
+            <Packages
+              push={compose(dispatch, push)}
+              packages={response.packages}
+              shortName={shortName}
+              user={this.props.user}
+            />
+          ),
+          admin: () => <Admin plan={plan.response} />,
+        })}
+
+        <Plan
           currentPlan={plan.response}
           email={this.props.email}
           handleShowDialog={() => this.showDialog(true)}
@@ -213,130 +213,20 @@ Profile.propTypes = {
   profile: PropTypes.object.isRequired,
   user: PropTypes.string,
   email: PropTypes.string,
+  match: PropTypes.shape({
+    params: PropTypes.shape({
+      section: PropTypes.string,
+    }).isRequired,
+  }).isRequired,
 };
-
-const mapStateToProps = createStructuredSelector({
-  profile: makeSelectProfile(),
-  user: makeSelectUserName(),
-  email: makeSelectEmail(),
-});
-
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-const PackagesArea = ({
-  packages,
-  push, // eslint-disable-line no-shadow
-  shortName,
-  user,
-}) => (
-  <div>
-    <h1><Avatar>{shortName}</Avatar> {user}</h1>
-    <h2><FormattedMessage {...messages.own} /></h2>
-    <PackageList
-      push={push}
-      emptyMessage={<FormattedMessage {...messages.noOwned} />}
-      emptyHref={makePackage}
-      packages={packages.own}
-      showPrefix={false}
-    />
-    <h2><FormattedMessage {...messages.shared} /></h2>
-    <PackageList push={push} packages={packages.shared} />
-    <h2><FormattedMessage {...messages[config.team ? 'team' : 'public']} /></h2>
-    <Help to="/search/?q=">
-      <FormattedMessage {...messages.showPublic} />
-    </Help>
-  </div>
-);
-
-PackagesArea.propTypes = {
-  packages: PropTypes.object,
-  push: PropTypes.func.isRequired,
-  shortName: PropTypes.string,
-  user: PropTypes.string,
-};
-
-const PlanArea = ({
-  email,
-  handleShowDialog,
-  handleUpdatePayment,
-  haveCreditCard,
-  isAdmin,
-  isLoading,
-  isWarning,
-  locale,
-  planMessage,
-}) => (
-  <div>
-    <h1>Service plan</h1>
-    <Toolbar>
-      <ToolbarGroup>
-        { isLoading ? <LoadingMargin /> : null }
-        <ToolbarTitle text={planMessage} />
-        { isWarning ? <WarningIcon /> : null }
-        {
-          haveCreditCard && (!config.team || (config.team && isAdmin)) ?
-            <StripeCheckout
-              allowRememberMe
-              amount={0}
-              email={email}
-              image={icon256}
-              locale={locale}
-              name="Quilt Data, Inc."
-              panelLabel="Update"
-              token={handleUpdatePayment}
-              stripeKey={config.stripeKey}
-              zipCode
-            >
-              <IconButton
-                disabled={isLoading}
-                tooltip="Update payment card"
-                touch
-              >
-                <MIcon drop="0px">credit_card</MIcon>;
-              </IconButton>
-            </StripeCheckout> : null
-        }
-        {
-          (config.team && isAdmin) || !config.team ? (
-            <RaisedButton
-              disabled={isLoading}
-              label={<FormattedMessage {...messages.learnMore} />}
-              onClick={handleShowDialog}
-              style={{ marginLeft: '20px' }}
-            />
-          ) : null
-        }
-      </ToolbarGroup>
-    </Toolbar>
-  </div>
-);
-
-PlanArea.propTypes = {
-  currentPlan: PropTypes.string,
-  email: PropTypes.string,
-  handleShowDialog: PropTypes.func,
-  handleUpdatePayment: PropTypes.func,
-  haveCreditCard: PropTypes.bool,
-  isAdmin: PropTypes.bool,
-  isLoading: PropTypes.bool,
-  isWarning: PropTypes.bool,
-  locale: PropTypes.string,
-  planMessage: PropTypes.object,
-};
-
-const WarningIcon = () => (
-  <MIcon drop="4px" title="See browser console for details">
-    warning
-  </MIcon>
-);
 
 export default compose(
   injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
   injectIntl,
-  connect(mapStateToProps, mapDispatchToProps),
+  connect(createStructuredSelector({
+    profile: makeSelectProfile(),
+    user: makeSelectUserName(),
+    email: makeSelectEmail(),
+  })),
 )(Profile);
