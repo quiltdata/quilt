@@ -83,14 +83,17 @@ export default composeComponent('AuthBar',
       <NavRow>
         <Right>
           <FlatButton href={docs} label="docs" style={navStyle} />
-          {
-            config.team ? null : (
-              <Fragment>
-                <FlatButton href="/#pricing" label="pricing" key="pricing" style={navStyle} />
-                <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
-              </Fragment>
-            )
-          }
+          {config.team ? null : (
+            <Fragment>
+              <FlatButton
+                containerElement={<Link to="/#pricing" />}
+                label="pricing"
+                key="pricing"
+                style={{ ...navStyle, verticalAlign: 'middle' }}
+              />
+              <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
+            </Fragment>
+          )}
           <FlatButton href={blog} label="blog" style={navStyle} />
           <FlatButton href={company} label="about" style={navStyle} />
         </Right>

@@ -4,6 +4,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 import TakeAction from 'components/TakeAction';
+import scrollIntoView from 'utils/scrollIntoView';
 
 export const width = 900;
 
@@ -69,7 +70,7 @@ const perUser = <span className="unit">per user / month</span>;
 function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
   return (
     <Styler>
-      <h1 id="pricing">{title}</h1>
+      <h1 id="pricing" ref={scrollIntoView()}>{title}</h1>
       <table>
         <tbody>
           <tr>
