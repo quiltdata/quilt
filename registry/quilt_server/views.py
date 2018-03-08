@@ -565,7 +565,7 @@ def download_object_preview(owner, obj_hash):
             obj_hash=obj_hash,
             error=str(ex),
         )
-        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.forbidden:
+        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
             # The client somehow failed to upload the README.
             raise ApiException(
                 requests.codes.forbidden,
