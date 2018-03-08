@@ -6,11 +6,12 @@ Backfills s3_blob.preview by downloading the contents from S3.
 
 import sys
 
+from botocore.exceptions import ClientError
 import sqlalchemy as sa
 
 from quilt_server import db
 from quilt_server.models import Instance, Package, S3Blob
-from quilt_server.views import download_object_preview
+from quilt_server.views import download_object_preview_impl
 
 def main(argv):
     rows = (
@@ -21,10 +22,13 @@ def main(argv):
     )
 
     for blob in rows:
-        print("Downloading %s/%s..." % (blob.owner, blob.hash))
-        preview = download_object_preview(blob.owner, blob.hash)
-        blob.preview = preview
-        db.session.commit()
+        try:
+            print("Downloading %s/%s..." % (blob.owner, blob.hash))
+            preview = download_object_preview_impl(blob.owner, blob.hash)
+            blob.preview = preview
+            db.session.commit()
+        except (ClientError, OSError) as ex:
+            print("Failed: %s" % ex)
 
     print("Done!")
 

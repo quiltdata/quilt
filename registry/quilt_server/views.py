@@ -544,20 +544,22 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+def download_object_preview_impl(owner, obj_hash):
+    resp = s3_client.get_object(
+        Bucket=PACKAGE_BUCKET_NAME,
+        Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+        Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+    )
+
+    body = resp['Body']
+    with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+        data = fd.read(MAX_PREVIEW_SIZE)
+
+    return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
 
 def download_object_preview(owner, obj_hash):
     try:
-        resp = s3_client.get_object(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
-            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
-        )
-
-        body = resp['Body']
-        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-            data = fd.read(MAX_PREVIEW_SIZE)
-
-        return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
+        return download_object_preview_impl(owner, obj_hash)
     except ClientError as ex:
         _mp_track(
             type="download_exception",
