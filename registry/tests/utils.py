@@ -109,11 +109,12 @@ class QuiltTestCase(TestCase):
         user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
         self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
-    def put_package(self, owner, package, contents, is_public=False, is_team=False):
+    def put_package(self, owner, package, contents, is_public=False, is_team=False, tag_latest=False):
+        contents_hash = hash_contents(contents)
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
             usr=owner,
             pkg=package,
-            hash=hash_contents(contents)
+            hash=contents_hash
         )
 
         resp = self.app.put(
@@ -130,6 +131,24 @@ class QuiltTestCase(TestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+
+        if tag_latest:
+            resp = self.app.put(
+                '/api/tag/{usr}/{pkg}/{tag}'.format(
+                    usr=owner,
+                    pkg=package,
+                    tag='latest'
+                ),
+                data=json.dumps(dict(
+                    hash=contents_hash
+                )),
+                content_type='application/json',
+                headers={
+                    'Authorization': owner
+                }
+            )
+            assert resp.status_code == requests.codes.ok
+
         return pkgurl
 
     def _share_package(self, owner, pkg, other_user):

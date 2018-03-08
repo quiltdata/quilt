@@ -12,7 +12,8 @@ import pkg from 'img/art/package.png';
 
 const Styler = styled.div`
   margin-top: 2em;
-  .intro-row:not(:first-child) {
+
+  .intro-row:not(:nth-child(2)) {
     margin-top: 5em;
   }
 
@@ -58,6 +59,32 @@ function Intro() {
         detail={
           <div>
             <p>
+              Move data with one command.
+              Discover packages from the community.
+              Share your packages (or keep them private).
+            </p>
+            <p>
+              Just finished some heroic data collection?
+              Package it for the benefit of others.
+            </p>
+          </div>
+        }
+        src={pkg}
+        title="Get started"
+        typing={
+          <div>
+            <span> $ pip install quilt</span>
+            <span> $ quilt install uciml/iris</span>
+            <span> $ python</span>
+            <span> &gt;&gt;&gt; from quilt.data.uciml import iris</span>
+            <span> &#35; you&#39;ve got data</span>
+          </div>
+        }
+      />
+      <IntroRow
+        detail={
+          <div>
+            <p>
               Quilt stores immutable versions for every piece of data.
               Reproduce analyses from any point in time.
               Lose something? Roll back and start over.
@@ -71,31 +98,8 @@ function Intro() {
           </div>
         }
         src={palette}
-        title="Reproduce analysis"
-      />
-      <IntroRow
-        detail={
-          <div>
-            <p>
-              Move data with one command.
-              Discover packages from the community.
-              Share your packages (or keep them private).
-            </p>
-            <p>
-              Just finished some heroic data collection?
-              Package it for the benefit of others.
-            </p>
-          </div>
-        }
-        src={pkg}
         textRight
-        title="Put data at your command"
-        typing={
-          <div>
-            <span> $ pip install quilt</span>
-            <span> $ quilt install uciml/iris</span>
-          </div>
-        }
+        title="Reproduce analysis"
       />
       <IntroRow
         detail={
