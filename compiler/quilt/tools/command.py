@@ -108,7 +108,7 @@ def parse_package(name, allow_subpath=False):
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    try:	
+    try:
         PackageStore.check_name(team, owner, pkg, subpath)	
     except StoreException as ex:	
         raise CommandException(str(ex))
