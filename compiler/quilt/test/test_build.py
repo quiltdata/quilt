@@ -448,3 +448,19 @@ class BuildTest(QuiltTestCase):
 
         assert type(compose_root) is PackageNode
         assert simple.foo().equals(compose_root.foo())
+
+    def test_package_and_file_raises_exception(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        bad_build_contents = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage',
+                    'file':
+                        'mydir/myfile.csv'
+                    }
+                }
+            }
+        with self.assertRaises(build.BuildException):
+            build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+

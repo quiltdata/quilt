@@ -175,7 +175,10 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             return
        
         include_package = node.get(RESERVED['package'])
-        if include_package:
+        rel_path = node.get(RESERVED['file'])
+        if rel_path and include_package:
+            raise BuildException("A node must define only one of {0} or {1}".format(RESERVED['file'], RESERVED['package']))
+        elif include_package: # package composition
             team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
             existing_pkg = PackageStore.find_package(team, user, pkgname)
             if existing_pkg is None:
@@ -193,11 +196,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             else:
                 node = GroupNode(existing_pkg.get_contents().children)
             package.save_package_tree(name, node)
-        else:
-            # handle remaining leaf nodes types
-            rel_path = node.get(RESERVED['file'])
-            if not rel_path:
-                raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
+        elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
 
             # get either the locally defined transform or inherit from an ancestor
@@ -276,6 +275,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                             )
                         with open(store.cache_path(path_hash), 'w') as entry:
                             json.dump(cache_entry, entry)
+        else: # rel_path and package are both None
+            raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
+        
 
 def _remove_keywords(d):
     """
