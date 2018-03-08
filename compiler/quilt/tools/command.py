@@ -110,7 +110,7 @@ def parse_package(name, allow_subpath=False):
 
     try:
         PackageStore.check_name(team, owner, pkg, subpath)
-    except StoreException as ex:	
+    except StoreException as ex:
         raise CommandException(str(ex))
 
     if allow_subpath:
