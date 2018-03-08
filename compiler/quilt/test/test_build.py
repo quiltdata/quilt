@@ -389,11 +389,11 @@ class BuildTest(QuiltTestCase):
 
         missing_dep_build = {
             'contents': {
-            'foo': {
-            'package':
-            'test/notapackage'
-            }
-            }
+                'foo': {
+                    'package':
+                        'test/notapackage'
+                    }
+                }
             }
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
@@ -406,11 +406,11 @@ class BuildTest(QuiltTestCase):
 
         missing_dep_build = {
             'contents': {
-            'foo': {
-            'package':
-            'test/simple/notasubpackage'
-            }
-            }
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage'
+                    }
+                }
             }
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
@@ -423,10 +423,10 @@ class BuildTest(QuiltTestCase):
 
         build_compose_contents = {
             'contents': {
-            'from_simple_foo': {
-            'package': 'test/simple'
-            }
-            }
+                'from_simple_foo': {
+                    'package': 'test/simple'
+                    }
+                }
             }
         build.build_package_from_contents(None, 'test', 'compose3', str(mydir), build_compose_contents)
         from quilt.data.test import compose3
@@ -440,8 +440,8 @@ class BuildTest(QuiltTestCase):
 
         build_compose_contents = {
             'contents': {
-            'package': 'test/simple'
-            }
+                'package': 'test/simple'
+                }
             }
         build.build_package_from_contents(None, 'test', 'compose_root', str(mydir), build_compose_contents)
         from quilt.data.test import compose_root, simple
