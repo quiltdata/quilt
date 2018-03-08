@@ -39,6 +39,7 @@ services:
       - OAUTH_CLIENT_SECRET=TESTING
       - OAUTHLIB_INSECURE_TRANSPORT=1
       - AUTH_PROVIDER=quilt
+      - DEPLOYMENT_ID=dev
     depends_on:
       db:
         condition: service_healthy
