@@ -212,9 +212,10 @@ def config():
     global _registry_url
     _registry_url = None
 
-def _update_auth(team, refresh_token):
+def _update_auth(team, refresh_token, timeout=None):
     response = requests.post("%s/api/token" % get_registry_url(team), data=dict(
-        refresh_token=refresh_token
+        refresh_token=refresh_token,
+        timeout=timeout
     ))
 
     if response.status_code != requests.codes.ok:
@@ -246,7 +247,7 @@ def _handle_response(team, resp, **kwargs):
         except ValueError:
             raise HTTPResponseException("Unexpected failure: error %s" % resp.status_code, resp)
 
-def _create_auth(team):
+def _create_auth(team, timeout=None):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
@@ -258,7 +259,7 @@ def _create_auth(team):
         # If the access token expires within a minute, update it.
         if auth['expires_at'] < time.time() + 60:
             try:
-                auth = _update_auth(team, auth['refresh_token'])
+                auth = _update_auth(team, auth['refresh_token'], timeout)
             except CommandException as ex:
                 raise CommandException(
                     "Failed to update the access token (%s). Run `quilt login%s` again." %
@@ -292,14 +293,14 @@ def _create_session(team, auth):
 
 _sessions = {}                  # pylint:disable=C0103
 
-def _get_session(team):
+def _get_session(team, timeout=None):
     """
     Creates a session or returns an existing session.
     """
     global _sessions            # pylint:disable=C0103
     session = _sessions.get(team)
     if session is None:
-        auth = _create_auth(team)
+        auth = _create_auth(team, timeout)
         _sessions[team] = session = _create_session(team, auth)
 
     assert session is not None
@@ -510,7 +511,7 @@ def _log(team, **kwargs):
     if cfg.get('disable_analytics'):
         return
 
-    session = _get_session(team)
+    session = _get_session(team, timeout=LOG_TIMEOUT)
 
     # Disable error handling.
     orig_response_hooks = session.hooks.pop('response')
