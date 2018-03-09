@@ -8,7 +8,6 @@ import json
 import requests
 import responses
 import time
-from unittest.mock import patch
 
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
@@ -228,3 +227,23 @@ class AdminTestCase(QuiltTestCase):
             }
         )
         assert resp.status_code == requests.codes.ok
+
+    def testCreateUser(self):
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        create_user_api = '%s/accounts/users/' % QUILT_AUTH_URL
+        self.requests_mock.add(responses.POST, create_user_api, status=201, body=json.dumps({
+            'status': 201
+            }))
+
+        resp = self.app.post(
+            '/api/users/create',
+            data=json.dumps({"username":"usertwo", "email":"user2@quiltdata.io"}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.admin
+            }
+            )
+
+        assert resp.status_code == requests.codes.ok
+
+        pass
