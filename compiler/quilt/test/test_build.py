@@ -12,6 +12,7 @@ from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
+from ..nodes import GroupNode, PackageNode
 from ..tools.package import ParquetLib, Package
 from ..tools.compat import pathlib
 from ..tools import build, command, store
@@ -344,7 +345,6 @@ class BuildTest(QuiltTestCase):
         with pytest.raises(TypeError, match="Not a GroupNode"):
             package['foo/blah']
 
-
     def test_package_contains(self):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
@@ -368,3 +368,99 @@ class BuildTest(QuiltTestCase):
         assert not '/foo' in package
         assert not 'subnode/9blah' in package
         assert not 'foo/blah' in package
+
+    def test_package_compose(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        buildfile = mydir / 'build_compose.yml'
+        command.build('test/compose1', str(buildfile))
+
+        from quilt.data.test import simple
+        from quilt.data.test import compose1
+
+        assert simple.foo().equals(compose1.from_simple_foo())
+
+    def test_compose_package_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/notapackage'
+                    }
+                }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
+            build.build_package_from_contents(None, 'test', 'compose2', str(mydir), missing_dep_build)
+
+    def test_compose_subpackage_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage'
+                    }
+                }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
+            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+
+    def test_included_package_is_group_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+                'from_simple_foo': {
+                    'package': 'test/simple'
+                    }
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'compose3', str(mydir), build_compose_contents)
+        from quilt.data.test import compose3
+
+        assert type(compose3.from_simple_foo) is GroupNode
+
+    def test_top_level_include_is_root_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+                'package': 'test/simple'
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'compose_root', str(mydir), build_compose_contents)
+        from quilt.data.test import compose_root, simple
+
+        assert type(compose_root) is PackageNode
+        assert simple.foo().equals(compose_root.foo())
+
+    def test_package_and_file_raises_exception(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        bad_build_contents = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage',
+                    'file':
+                        'mydir/myfile.csv'
+                    }
+                }
+            }
+        with self.assertRaises(build.BuildException):
+            build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+
