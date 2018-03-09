@@ -1597,9 +1597,9 @@ def search():
 
     keywords = query.split()
 
-    if len(keywords) > 5:
+    if len(keywords) > 10:
         # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
+        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 10)")
 
     # Get the list of visible packages and their permissions.
 
