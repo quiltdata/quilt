@@ -5,9 +5,10 @@ import React from 'react';
 import MIcon from 'components/MIcon';
 
 const toIcon = {
-  private: 'lock',
-  team: 'people',
-};
+  public: 'language',
+  private: 'lock_outline',
+  team: 'people_outline',
+}
 
 export default function VisibilityIcon({ drop = false, label }) {
   return (
@@ -19,5 +20,5 @@ export default function VisibilityIcon({ drop = false, label }) {
 
 VisibilityIcon.propTypes = {
   drop: PropTypes.bool,
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
 };
