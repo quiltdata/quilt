@@ -11,7 +11,7 @@ const Lighter = styled.span`
 `;
 
 const Preview = styled.span`
-  font-size: 80%;
+  margin-left: 16px;
   opacity: 0.5;
 `;
 
@@ -46,8 +46,9 @@ function PackageHandle({
 
   return (
     <Text>
-      <VisibilityIcon drop={drop} label={label} />
-      <Lighter>{prefix}</Lighter>{name} <Preview>{readmePreview}</Preview>
+      <VisibilityIcon drop={drop} label={label} />&nbsp;
+      <Lighter>{prefix}</Lighter>{name}
+      <Preview>{readmePreview}</Preview>
     </Text>
   );
 }
