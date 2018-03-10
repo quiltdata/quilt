@@ -511,12 +511,12 @@ def _log(team, **kwargs):
     if cfg.get('disable_analytics'):
         return
 
-    session = _get_session(team, timeout=LOG_TIMEOUT)
-
-    # Disable error handling.
-    orig_response_hooks = session.hooks.pop('response')
-
     try:
+        session = _get_session(team, timeout=LOG_TIMEOUT)
+
+        # Disable error handling.
+        orig_response_hooks = session.hooks.pop('response')
+
         session.post(
             "{url}/api/log".format(
                 url=get_registry_url(team),
