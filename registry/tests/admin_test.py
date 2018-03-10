@@ -293,3 +293,36 @@ class AdminTestCase(QuiltTestCase):
             )
 
         assert resp.status_code == requests.codes.forbidden
+
+    def testEnableUser(self):
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        enable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
+        self.requests_mock.add(responses.PATCH, enable_user_api, status=200, body=json.dumps({
+            'status': 200
+            }))
+
+        resp = self.app.post(
+            '/api/users/enable',
+            data=json.dumps({"username":"usertwo"}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.admin
+            }
+            )
+
+        assert resp.status_code == requests.codes.ok
+
+    def testEnableUserNonAdmin(self):
+        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
+        enable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
+
+        resp = self.app.post(
+            '/api/users/enable',
+            data=json.dumps({"username":"usertwo"}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.user
+            }
+            )
+
+        assert resp.status_code == requests.codes.forbidden
