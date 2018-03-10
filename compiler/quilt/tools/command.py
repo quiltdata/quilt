@@ -1377,6 +1377,30 @@ def list_users(team=None):
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
+def _print_table(table, padding=2):
+    col_width = max(len(word) for row in table for word in row) + 2
+    cols = list(zip(*table))
+    cols_width = [max(len(word) + padding for word in col) for col in cols]
+    for row in table:
+        i = 0
+        line = ""
+        for word in row:
+            line += "".join(word.ljust(cols_width[i]))
+            i += 1
+        print(line)
+
+def _cli_list_users(team=None):
+    res = command.list_users(team)
+    l = [['Name', 'Email', 'Active', 'Superuser']]
+    for user in res.get('results'):
+        name = user.get('username')
+        email = user.get('email')
+        active = user.get('is_active')
+        su = user.get('is_superuser')
+        l.append([name, email, str(active), str(su)])
+
+    _print_table(l)
+
 def list_users_detailed(team=None):
     # get team from disk if not specified
     if team is None:
@@ -1444,7 +1468,23 @@ def audit(user_or_package):
         )
     )
 
-    print(json.dumps(response.json(), indent=2))
+    return response.json().get('events')
+
+def _cli_audit(user_or_package):
+    events = audit(user_or_package)
+    team = _find_logged_in_team()
+    teamstr = '%s:' % team
+    rows = [['Time', 'User', 'Package', 'Type']]
+    for item in events:
+        time = item.get('created')
+        pretty_time = datetime.fromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S")
+        user = item.get('user')
+        pkg = '%s%s/%s' % (teamstr, item.get('package_owner'), item.get('package_name'))
+        t = item.get('type')
+        i = list(map(str, (pretty_time, user, pkg, t)))
+        rows.append(i)
+
+    _print_table(rows)
 
 def reset_password(team, username):
     _check_team_id(team)
