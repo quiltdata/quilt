@@ -247,6 +247,7 @@
     "minimist": "^1.2.0",
     "prop-types": "^15.6.0",
     "query-string": "^5.1.0",
+    "raven-js": "^3.23.1",
     "react": "^16.2.0",
     "react-bootstrap": "^0.32.1",
     "react-dom": "^16.2.0",
