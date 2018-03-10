@@ -49,7 +49,7 @@ export default defineMessages({
   },
   stats: {
     id: 'app.components.Package.stats',
-    defaultMessage: 'size (deduplicated, uncompressed)',
+    defaultMessage: 'size',
   },
   version: {
     id: 'app.components.Package.version',
