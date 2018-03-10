@@ -326,3 +326,23 @@ class AdminTestCase(QuiltTestCase):
             )
 
         assert resp.status_code == requests.codes.forbidden
+
+    def testAuditUserNonAdmin(self):
+        resp = self.app.get(
+            '/api/audit/%s/' % self.user,
+            headers={
+                'Authorization':self.user
+            }
+            )
+
+        assert resp.status_code == requests.codes.forbidden
+
+    def testAuditPackageNonAdmin(self):
+        resp = self.app.get(
+            '/api/audit/%s/%s/' % (self.user, self.pkg),
+            headers={
+                'Authorization':self.user
+            }
+            )
+
+        assert resp.status_code == requests.codes.forbidden
