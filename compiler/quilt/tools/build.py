@@ -173,7 +173,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if not dry_run:
                 package.save_group(name)
             return
-       
+
         include_package = node.get(RESERVED['package'])
         rel_path = node.get(RESERVED['file'])
         if rel_path and include_package:
@@ -187,7 +187,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if subpath:
                 try:
                     node = existing_pkg["/".join(subpath)]
-                except KeyError:                    
+                except KeyError:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
                                                     owner=user,
@@ -246,7 +246,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                             assert isinstance(cachedobjs, list)
 
                 # TODO: check for changes in checks else use cache
-                # below is a heavy-handed fix but it's OK for check builds to be slow  
+                # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
                     package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
@@ -277,7 +277,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                             json.dump(cache_entry, entry)
         else: # rel_path and package are both None
             raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
-        
+
 
 def _remove_keywords(d):
     """
@@ -527,6 +527,8 @@ def load_yaml(filename, optional=False):
         data = fd.read()
     try:
         res = yaml.load(data)
+        if not any(k in res.keys() for k in ['contents', 'packages']):
+            raise BuildException('"contents" or "packages" node must be specified')
     except yaml.scanner.ScannerError as error:
         mark = error.problem_mark
         message = ["Bad yaml syntax in {!r}".format(filename),

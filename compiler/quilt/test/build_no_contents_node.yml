@@ -1,0 +1,2 @@
+does_not:
+  contain: contents.node

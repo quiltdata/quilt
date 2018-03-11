@@ -264,6 +264,16 @@ class BuildTest(QuiltTestCase):
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
             build.build_package(None, 'test_syntax_error', PACKAGE, path)
 
+    def test_build_no_contents_node(self):
+        """
+        Attempt to build a yml file without contents node nor packages
+        """
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_no_contents_node.yml')
+
+        with assertRaisesRegex(self, build.BuildException, r'"contents" or "packages" node must be'):
+            build.build_package(None, 'no_contents', PACKAGE, path)
+
     def test_build_checks_yaml_syntax_error(self):    # pylint: disable=C0103
         """
         Attempt to build a yml file with a syntax error
@@ -463,4 +473,3 @@ class BuildTest(QuiltTestCase):
             }
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
-
