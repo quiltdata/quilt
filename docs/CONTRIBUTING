@@ -1,8 +1,15 @@
-### Getting Started
+## Getting Started
+### Registry
 See `registry/README.md` for instructions to run a local registry. Quilt runs in both Python 2.7 and Python 3.
 
-### License
+### Compiler
+See `compiler/README.md` for instructions to run the Quilt CLI and Python API in developer mode.
+
+### Catalog
+See `catalog/README.md` for instructions to run the catalog Web service in development mode.
+
+## License
 Quilt is open source software, licensed under the Apache License, Version 2.0.
 
-### Code of Conduct
+## Code of Conduct
 Contributors must adhere to our Code of Conduct, found at `docs/CODE_OF_CONDUCT.md`
