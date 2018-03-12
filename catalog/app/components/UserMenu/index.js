@@ -39,15 +39,11 @@ export default composeComponent('UserMenu',
     </Container>
   ));
 
-const Item = composeComponent('UserMenu.AuthMenu.Item',
-  setPropTypes({
-    to: PropTypes.string.isRequired,
-  }),
-  mapProps(({ to, ...props }) => ({
-    containerElement: <Link to={to} />,
-    ...props,
-  })),
-  MenuItem);
+const renderItem = (to, msg) => (
+  <MenuItem containerElement={<Link to={to} />}>
+    <FormattedMessage {...msg} />
+  </MenuItem>
+);
 
 const AuthMenu = composeComponent('UserMenu.AuthMenu',
   setStatic('muiName', 'IconMenu'),
@@ -69,12 +65,8 @@ const AuthMenu = composeComponent('UserMenu.AuthMenu',
       targetOrigin={{ horizontal: 'right', vertical: 'top' }}
       anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
     >
-      <Item to="/profile">
-        <FormattedMessage {...strings.profile} />
-      </Item>
+      {renderItem('/profile', strings.profile)}
       <Divider />
-      <Item to="/signout">
-        <FormattedMessage {...strings.logOut} />
-      </Item>
+      {renderItem('/signout', strings.logOut)}
     </IconMenu>
   ));
