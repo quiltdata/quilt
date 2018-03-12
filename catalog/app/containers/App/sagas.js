@@ -5,7 +5,7 @@ import { call, put, select, takeLatest } from 'redux-saga/effects';
 import { makeHeaders, makeHeadersFromTokens } from 'utils/auth';
 import makeError from 'utils/error';
 import config from 'constants/config';
-import { requestJSON, requestText } from 'utils/request';
+import { requestJSON } from 'utils/request';
 import { keys, removeStorage, setStorage } from 'utils/storage';
 import { timestamp } from 'utils/time';
 import { tokenPath } from 'constants/urls';
@@ -17,8 +17,6 @@ import {
 import {
   getAuthError,
   getAuthSuccess,
-  getBlobError,
-  getBlobSuccess,
   getManifestError,
   getManifestSuccess,
   getPackageError,
@@ -30,7 +28,6 @@ import {
 import {
   GET_AUTH,
   GET_AUTH_SUCCESS,
-  GET_MANIFEST_SUCCESS,
   GET_PACKAGE,
   GET_PACKAGE_SUCCESS,
   intercomAppId as app_id, // eslint-disable-line camelcase
@@ -93,7 +90,6 @@ function* doGetAuth(action) {
 }
 
 // incoming action is the response from GET_MANIFEST_SUCCESS
-// TODO: maybe use the more general GET_BLOB for this
 // and use takeLatest(function) to discriminate
 function* doGetManifest() {
   try {
@@ -130,23 +126,6 @@ function* doGetPackage(action) {
       err.detail = `doGetPackage: ${err.message}`;
     }
     yield put(getPackageError(err));
-  }
-}
-
-function* doGetReadMe(action) {
-  const readmeUrl = action.response.readme_url;
-  const storePath = ['package', 'readme'];
-  if (readmeUrl) {
-    try {
-      const readmeText = yield call(requestText, readmeUrl);
-      yield put(getBlobSuccess(readmeText, storePath));
-    } catch (error) {
-      error.headline = 'Readme hiccup';
-      error.detail = `doGetReadMe: ${error.message}`;
-      yield put(getBlobError(error, storePath));
-    }
-  } else {
-    yield put(getBlobSuccess('', storePath));
   }
 }
 
@@ -253,15 +232,6 @@ function* watchGetAuth() {
   yield takeLatest(GET_AUTH, doGetAuth);
 }
 
-function* watchGetReadMe() {
-  yield takeLatest((action) => (
-    action
-    && action.type === GET_MANIFEST_SUCCESS
-    && action.response
-    && action.response.readme_url !== undefined
-  ), doGetReadMe);
-}
-
 function* watchGetAuthSuccess() {
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
@@ -301,7 +271,6 @@ function* watchStoreTokens() {
 export default [
   watchGetAuth,
   watchGetAuthSuccess,
-  watchGetReadMe,
   watchGetPackage,
   watchGetPackageSuccess,
   watchLocationChange,

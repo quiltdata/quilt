@@ -5,8 +5,8 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import namedtuple
 from datetime import datetime
+from functools import partial
 import gzip
 import hashlib
 import json
@@ -40,7 +40,9 @@ from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, 
                    decode_node, encode_node, LATEST_TAG)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from .util import (BASE_DIR, FileWithReadProgress, gzip_compress,
+                   is_nodename, PackageInfo, parse_package as parse_package_util,
+                   parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
 from . import check_functions as qc
@@ -59,10 +61,6 @@ except ImportError:
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
-
-EXTENDED_PACKAGE_RE = re.compile(
-    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
-)
 
 CHUNK_SIZE = 4096
 
@@ -90,38 +88,22 @@ class HTTPResponseException(CommandException):
         super(HTTPResponseException, self).__init__(message)
         self.response = response
 
+_registry_url = None
 
-#return type for parse_package_extended
-PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
 def parse_package_extended(identifier):
-    """
-    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
-    """
-    match = EXTENDED_PACKAGE_RE.match(identifier)
-    if match is None:
+    try:
+        return parse_package_extended_util(identifier)
+    except ValueError:
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    full_name, pkg_hash, version, tag = match.groups()
-    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
-
-    # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
-
 def parse_package(name, allow_subpath=False):
     try:
-        values = name.split(':', 1)
-        team = values[0] if len(values) > 1 else None
-
-        values = values[-1].split('/')
-        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
-        (owner, pkg), subpath = values[:2], values[2:]
-        if not owner or not pkg:
-            # Make sure they're not empty.
-            raise ValueError
-        if subpath and not allow_subpath:
-            raise ValueError
-
+        if allow_subpath:
+            team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
+        else:
+            team, owner, pkg = parse_package_util(name, allow_subpath)
+            subpath = None
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
         raise CommandException("Specify package as %s." % pkg_format)
@@ -134,9 +116,7 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
-
-
-_registry_url = None
+    
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
@@ -231,10 +211,13 @@ def _update_auth(team, refresh_token):
         expires_at=data['expires_at']
     )
 
-def _handle_response(resp, **kwargs):
+def _handle_response(team, resp, **kwargs):
     _ = kwargs                  # unused    pylint:disable=W0613
     if resp.status_code == requests.codes.unauthorized:
-        raise CommandException("Authentication failed. Run `quilt login` again.")
+        raise CommandException(
+            "Authentication failed. Run `quilt login%s` again." %
+            (' ' + team if team else '')
+        )
     elif not resp.ok:
         try:
             data = resp.json()
@@ -257,20 +240,21 @@ def _create_auth(team):
                 auth = _update_auth(team, auth['refresh_token'])
             except CommandException as ex:
                 raise CommandException(
-                    "Failed to update the access token (%s). Run `quilt login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt login%s` again." %
+                    (ex, ' ' + team if team else '')
                 )
             contents[url] = auth
             _save_auth(contents)
 
     return auth
 
-def _create_session(auth):
+def _create_session(team, auth):
     """
     Creates a session object to be used for `push`, `install`, etc.
     """
     session = requests.Session()
     session.hooks.update(dict(
-        response=_handle_response
+        response=partial(_handle_response, team)
     ))
     session.headers.update({
         "Content-Type": "application/json",
@@ -295,7 +279,7 @@ def _get_session(team):
     session = _sessions.get(team)
     if session is None:
         auth = _create_auth(team)
-        _sessions[team] = session = _create_session(auth)
+        _sessions[team] = session = _create_session(team, auth)
 
     assert session is not None
 

@@ -36,7 +36,7 @@ class VersionTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, is_public=True)
+            self.put_package(self.user, self.pkg, contents)
 
     def _add_version(self, version, pkghash):
         return self.app.put(
@@ -54,7 +54,6 @@ class VersionTestCase(QuiltTestCase):
             }
         )
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testGetVersion(self):
         resp = self._add_version('1', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -91,7 +90,6 @@ class VersionTestCase(QuiltTestCase):
         assert data['created_by'] == data['updated_by'] == self.user
         assert data['created_at'] == data['updated_at']
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testListVersions(self):
         # Add a few versions in a random order, with random whitespace.
 
@@ -145,7 +143,6 @@ class VersionTestCase(QuiltTestCase):
             )
         ]
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInvalidVersion(self):
         resp = self._add_version('foo', self.hashes[0])
         assert resp.status_code == requests.codes.bad_request
@@ -165,7 +162,6 @@ class VersionTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testInvalidHash(self):
         resp = self._add_version('1.0', '000')
         assert resp.status_code == requests.codes.not_found
@@ -173,7 +169,6 @@ class VersionTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDuplicateVersion(self):
         resp = self._add_version('1.0', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -192,7 +187,6 @@ class VersionTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert 'message' in data
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDelete(self):
         resp = self._add_version('1.0', self.hashes[0])
         assert resp.status_code == requests.codes.ok
@@ -210,7 +204,6 @@ class VersionTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.method_not_allowed
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testAccess(self):
         resp = self._add_version('1.0', self.hashes[0])
         assert resp.status_code == requests.codes.ok

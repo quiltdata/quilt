@@ -1,21 +1,23 @@
 /* VisibilityIcon - visually represent public vs private */
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'styled-components';
 
-const Tag = styled.span`
-  border: 1px solid;
-  border-radius: 4px;
-  font-size: 70%;
-  margin-left: .5em;
-  opacity: .5;
-  padding: 0px 4px 1px 4px;
-`;
+import MIcon from 'components/MIcon';
 
-export default function VisibilityIcon({ label }) {
-  return <Tag className="fixed">{label}</Tag>;
+const toIcon = {
+  private: 'lock',
+  team: 'people',
+};
+
+export default function VisibilityIcon({ drop = false, label }) {
+  return (
+    <MIcon drop={drop ? '4px' : undefined} style={{ opacity: 0.3 }} title={label}>
+      {toIcon[label]}
+    </MIcon>
+  );
 }
 
 VisibilityIcon.propTypes = {
-  label: PropTypes.string.isRequired,
+  drop: PropTypes.bool,
+  label: PropTypes.string,
 };

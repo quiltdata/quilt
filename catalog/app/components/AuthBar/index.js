@@ -32,8 +32,8 @@ const navStyle = {
 };
 
 const NavRow = styled(Row)`
-  background-color: rgba(0, 0, 0, .3);
-  border-bottom: 1px solid #222;
+  background-color: rgb(0, 0, 0);
+  border-bottom: 1px solid rgb(24, 24, 24);
   margin-left: -16px;
   margin-right: -16px;
 `;
@@ -125,7 +125,7 @@ const inputStyle = {
 };
 
 const searchStyle = {
-  backgroundColor: 'rgba(255, 255, 255, .20)',
+  backgroundColor: 'rgba(255, 255, 255, .10)',
   borderRadius: '4px',
   fontSize: '15px',
   height: '36px',

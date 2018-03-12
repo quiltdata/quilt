@@ -21,13 +21,13 @@ COPY uwsgi.ini /etc/uwsgi.ini
 # Install the Flask app
 # Do this as the last step to maximize caching.
 COPY quilt_server /usr/src/quilt-server/quilt_server
-COPY migrations /usr/src/quilt-server/migrations
-COPY scripts /usr/src/quilt-server/scripts
 COPY setup.py MANIFEST.in /usr/src/quilt-server/
-WORKDIR /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
 USER quilt
+WORKDIR /home/quilt
+COPY scripts ./scripts
+COPY migrations ./migrations
 
 ENV QUILT_SERVER_CONFIG=prod_config.py
 
