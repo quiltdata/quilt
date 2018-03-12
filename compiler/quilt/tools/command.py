@@ -511,6 +511,7 @@ def _log(team, **kwargs):
     if cfg.get('disable_analytics'):
         return
 
+    session = None
     try:
         session = _get_session(team, timeout=LOG_TIMEOUT)
 
@@ -529,7 +530,8 @@ def _log(team, **kwargs):
         pass
     finally:
         # restore disabled error-handling
-        session.hooks['response'] = orig_response_hooks
+        if session:
+            session.hooks['response'] = orig_response_hooks
 
 def build(package, path=None, dry_run=False, env='default', force=False):
     """
