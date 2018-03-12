@@ -12,6 +12,7 @@ import time
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
 from .utils import QuiltTestCase
+from quilt_server.views import QUILT_AUTH_URL
 
 class AdminTestCase(QuiltTestCase):
     """
@@ -140,7 +141,6 @@ class AdminTestCase(QuiltTestCase):
         assert len(data) == 4
 
     def testAdminListUserUI(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
         self.requests_mock.add(responses.GET, user_list_api, json.dumps({
             'status': 200,
@@ -175,7 +175,6 @@ class AdminTestCase(QuiltTestCase):
         assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
 
     def testAdminPackageUserUI(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
         self.requests_mock.add(responses.GET, user_list_api, json.dumps({
             'status': 200,
@@ -212,7 +211,6 @@ class AdminTestCase(QuiltTestCase):
             assert 'latest' not in package[key]
 
     def testPasswordReset(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         reset_pass_api = "%s/accounts/users/%s/reset_pass/" % (QUILT_AUTH_URL, self.user)
         self.requests_mock.add(responses.POST, reset_pass_api, json.dumps({
             'status': 200
@@ -229,7 +227,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testCreateUser(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         create_user_api = '%s/accounts/users/' % QUILT_AUTH_URL
         self.requests_mock.add(responses.POST, create_user_api, status=201, body=json.dumps({
             'status': 201
@@ -247,7 +244,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testCreateUserNonAdmin(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         create_user_api = '%s/accounts/users/' % QUILT_AUTH_URL
 
         resp = self.app.post(
@@ -262,7 +258,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.forbidden
 
     def testDisableUser(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         disable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
         self.requests_mock.add(responses.PATCH, disable_user_api, status=200, body=json.dumps({
             'status': 200
@@ -280,7 +275,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testDisableUserNonAdmin(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         disable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
 
         resp = self.app.post(
@@ -295,7 +289,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.forbidden
 
     def testEnableUser(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
         enable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
         self.requests_mock.add(responses.PATCH, enable_user_api, status=200, body=json.dumps({
             'status': 200
@@ -313,9 +306,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testEnableUserNonAdmin(self):
-        QUILT_AUTH_URL = quilt_server.app.config['QUILT_AUTH_URL']
-        enable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
-
         resp = self.app.post(
             '/api/users/enable',
             data=json.dumps({"username":"usertwo"}),
