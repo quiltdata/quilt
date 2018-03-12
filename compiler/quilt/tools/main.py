@@ -61,7 +61,9 @@ def argument_parser():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
-    parser = CustomHelpParser(description="Quilt Command Line", add_help=False)
+    description = ("Quilt Command Line\n"
+                   "Visit our online docs at https://docs.quiltdata.com/")
+    parser = CustomHelpParser(description=description, add_help=False)
     parser.add_argument('--version', action='version', version=get_full_version(),
                         help="Show version number and exit")
 
