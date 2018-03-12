@@ -35,7 +35,7 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .const import DEFAULT_BUILDFILE
+from .const import DEFAULT_BUILDFILE, DTIMEF
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .hashing import digest_file
@@ -1378,19 +1378,12 @@ def list_users(team=None):
     return resp.json()
 
 def _print_table(table, padding=2):
-    col_width = max(len(word) for row in table for word in row) + 2
-    cols = list(zip(*table))
-    cols_width = [max(len(word) + padding for word in col) for col in cols]
+    cols_width = [max(len(word) for word in col) for col in zip(*table)]
     for row in table:
-        i = 0
-        line = ""
-        for word in row:
-            line += "".join(word.ljust(cols_width[i]))
-            i += 1
-        print(line)
+        print((" " * padding).join(word.ljust(width) for word, width in zip(row, cols_width)))
 
 def _cli_list_users(team=None):
-    res = command.list_users(team)
+    res = list_users(team)
     l = [['Name', 'Email', 'Active', 'Superuser']]
     for user in res.get('results'):
         name = user.get('username')
@@ -1477,12 +1470,11 @@ def _cli_audit(user_or_package):
     rows = [['Time', 'User', 'Package', 'Type']]
     for item in events:
         time = item.get('created')
-        pretty_time = datetime.fromtimestamp(time).strftime("%Y-%m-%d %H:%M:%S")
+        pretty_time = datetime.fromtimestamp(time).strftime(DTIMEF)
         user = item.get('user')
         pkg = '%s%s/%s' % (teamstr, item.get('package_owner'), item.get('package_name'))
         t = item.get('type')
-        i = list(map(str, (pretty_time, user, pkg, t)))
-        rows.append(i)
+        rows.append((pretty_time, user, pkg, t))
 
     _print_table(rows)
 
