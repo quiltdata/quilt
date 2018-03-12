@@ -3,6 +3,7 @@
 import 'babel-polyfill';
 
 // Import all the third party stuff
+import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
@@ -36,9 +37,11 @@ import './global-styles';
 // Import root routes
 import createRoutes from './routes';
 
-Raven.config('https://e0c7810a7a0b4ce898d6e78c1b63f52d@sentry.io/300712').install()
+Raven
+  .config('https://e0c7810a7a0b4ce898d6e78c1b63f52d@sentry.io/300712')
+  .install();
 
-Raven.context(function () {
+Raven.context(() => {
   // listen for Roboto fonts
   const robo = new FontFaceObserver('Roboto', {});
   const roboMono = new FontFaceObserver('Roboto Mono', {});
@@ -46,8 +49,6 @@ Raven.context(function () {
   // reload doc when we have all custom fonts
   Promise.all([robo.load(), roboSlab.load(), roboMono.load()]).then(() => {
     document.body.classList.add('fontLoaded');
-  }, () => {
-    document.body.classList.remove('fontLoaded');
   });
 
 
