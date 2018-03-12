@@ -35,30 +35,6 @@ def get_full_version():
     # ..otherwise, just the version
     return "quilt " + VERSION
 
-def _print_table(table, padding=2):
-    col_width = max(len(word) for row in table for word in row) + 2
-    cols = list(zip(*table))
-    cols_width = [max(len(word) + padding for word in col) for col in cols]
-    for row in table:
-        i = 0
-        line = ""
-        for word in row:
-            line += "".join(word.ljust(cols_width[i]))
-            i += 1
-        print(line)
-
-def _cli_list_users(team=None):
-    res = command.list_users(team)
-    l = [['Name', 'Email', 'Active', 'Superuser']]
-    for user in res.get('results'):
-        name = user.get('username')
-        email = user.get('email')
-        active = user.get('is_active')
-        su = user.get('is_superuser')
-        l.append([name, email, str(active), str(su)])
-
-    _print_table(l)
-
 class UsageAction(argparse.Action):
     """Argparse action to print usage (short help)"""
     def __call__(self, parser, namespace, values, option_string=None):
@@ -130,7 +106,7 @@ def argument_parser():
     shorthelp = "Audit a user or a package."
     audit_p = subparsers.add_parser("audit", description=shorthelp, help=shorthelp)
     audit_p.add_argument("user_or_package", type=str, help=shorthelp)
-    audit_p.set_defaults(func=command.audit)
+    audit_p.set_defaults(func=command._cli_audit)
 
     # quilt build
     shorthelp = "Compile a Quilt data package from directory or YAML file"
@@ -281,7 +257,7 @@ def argument_parser():
     shorthelp = "List users in your team."
     user_list_p = users_subparsers.add_parser("list", help=shorthelp)
     user_list_p.add_argument("team", type=str)
-    user_list_p.set_defaults(func=_cli_list_users)
+    user_list_p.set_defaults(func=command._cli_list_users)
 
     # user create
     shorthelp = "Create a user. Must provide username and email. Username must be unique."
