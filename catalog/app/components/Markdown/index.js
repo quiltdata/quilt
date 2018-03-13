@@ -1,17 +1,11 @@
 /* Markdown */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { FormattedMessage } from 'react-intl';
 import styled from 'styled-components';
 
 import Remarkable from 'remarkable';
 import hljs from 'highlight.js';
 
-
-import apiStatus from 'constants/api';
-import Working from 'components/Working';
-
-import strings from './messages';
 
 const highlight = (str, lang) => {
   if (lang === 'none') {
@@ -40,27 +34,7 @@ const md = new Remarkable('full', {
   typographer: true,
 });
 
-const Message = styled.p`
-  opacity: 0.5;
-`;
-
-function Markdown({ data, status, useStatus }) {
-  if (useStatus) {
-    switch (status) {
-      case undefined:
-      case apiStatus.WAITING:
-        return <Working />;
-      case apiStatus.ERROR:
-        return <Message><FormattedMessage {...strings.error} /></Message>;
-      case apiStatus.SUCCESS:
-        if (!data) {
-          return <Message><FormattedMessage {...strings.none} /></Message>;
-        }
-        break;
-      default:
-        break;
-    }
-  }
+function Markdown({ data }) {
   // would prefer to render in a saga but md.render() fails when called in
   // a generator
   const html = { __html: md.render(data) };
@@ -71,12 +45,6 @@ function Markdown({ data, status, useStatus }) {
 
 Markdown.propTypes = {
   data: PropTypes.string,
-  useStatus: PropTypes.bool,
-  status: PropTypes.string,
-};
-
-Markdown.defaultProps = {
-  useStatus: false,
 };
 
 /* Ensure that markdown styles are smaller than page h1, h2, etc. since

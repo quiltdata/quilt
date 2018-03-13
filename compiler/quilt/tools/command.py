@@ -5,7 +5,6 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import namedtuple
 from datetime import datetime
 from functools import partial
 import gzip
@@ -36,12 +35,14 @@ from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .const import DEFAULT_BUILDFILE
+from .const import DEFAULT_BUILDFILE, DTIMEF
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .hashing import digest_file
 from .store import PackageStore, StoreException
-from .util import BASE_DIR, FileWithReadProgress, gzip_compress, is_nodename
+from .util import (BASE_DIR, FileWithReadProgress, gzip_compress,
+                   is_nodename, PackageInfo, parse_package as parse_package_util,
+                   parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
 from . import check_functions as qc
@@ -60,10 +61,6 @@ except ImportError:
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
-
-EXTENDED_PACKAGE_RE = re.compile(
-    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
-)
 
 CHUNK_SIZE = 4096
 
@@ -91,38 +88,22 @@ class HTTPResponseException(CommandException):
         super(HTTPResponseException, self).__init__(message)
         self.response = response
 
+_registry_url = None
 
-#return type for parse_package_extended
-PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
 def parse_package_extended(identifier):
-    """
-    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
-    """
-    match = EXTENDED_PACKAGE_RE.match(identifier)
-    if match is None:
+    try:
+        return parse_package_extended_util(identifier)
+    except ValueError:
         pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
         raise CommandException("Specify package as %s." % pkg_format)
 
-    full_name, pkg_hash, version, tag = match.groups()
-    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
-
-    # namedtuple return value
-    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
-
 def parse_package(name, allow_subpath=False):
     try:
-        values = name.split(':', 1)
-        team = values[0] if len(values) > 1 else None
-
-        values = values[-1].split('/')
-        # Can't do "owner, pkg, *subpath = ..." in Python2 :(
-        (owner, pkg), subpath = values[:2], values[2:]
-        if not owner or not pkg:
-            # Make sure they're not empty.
-            raise ValueError
-        if subpath and not allow_subpath:
-            raise ValueError
-
+        if allow_subpath:
+            team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
+        else:
+            team, owner, pkg = parse_package_util(name, allow_subpath)
+            subpath = None
     except ValueError:
         pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
         raise CommandException("Specify package as %s." % pkg_format)
@@ -135,9 +116,7 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
-
-
-_registry_url = None
+    
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
@@ -212,9 +191,10 @@ def config():
     global _registry_url
     _registry_url = None
 
-def _update_auth(team, refresh_token):
+def _update_auth(team, refresh_token, timeout=None):
     response = requests.post("%s/api/token" % get_registry_url(team), data=dict(
-        refresh_token=refresh_token
+        refresh_token=refresh_token,
+        timeout=timeout
     ))
 
     if response.status_code != requests.codes.ok:
@@ -246,7 +226,7 @@ def _handle_response(team, resp, **kwargs):
         except ValueError:
             raise HTTPResponseException("Unexpected failure: error %s" % resp.status_code, resp)
 
-def _create_auth(team):
+def _create_auth(team, timeout=None):
     """
     Reads the credentials, updates the access token if necessary, and returns it.
     """
@@ -258,7 +238,7 @@ def _create_auth(team):
         # If the access token expires within a minute, update it.
         if auth['expires_at'] < time.time() + 60:
             try:
-                auth = _update_auth(team, auth['refresh_token'])
+                auth = _update_auth(team, auth['refresh_token'], timeout)
             except CommandException as ex:
                 raise CommandException(
                     "Failed to update the access token (%s). Run `quilt login%s` again." %
@@ -292,14 +272,14 @@ def _create_session(team, auth):
 
 _sessions = {}                  # pylint:disable=C0103
 
-def _get_session(team):
+def _get_session(team, timeout=None):
     """
     Creates a session or returns an existing session.
     """
     global _sessions            # pylint:disable=C0103
     session = _sessions.get(team)
     if session is None:
-        auth = _create_auth(team)
+        auth = _create_auth(team, timeout)
         _sessions[team] = session = _create_session(team, auth)
 
     assert session is not None
@@ -510,12 +490,13 @@ def _log(team, **kwargs):
     if cfg.get('disable_analytics'):
         return
 
-    session = _get_session(team)
-
-    # Disable error handling.
-    orig_response_hooks = session.hooks.pop('response')
-
+    session = None
     try:
+        session = _get_session(team, timeout=LOG_TIMEOUT)
+
+        # Disable error handling.
+        orig_response_hooks = session.hooks.pop('response')
+
         session.post(
             "{url}/api/log".format(
                 url=get_registry_url(team),
@@ -528,7 +509,8 @@ def _log(team, **kwargs):
         pass
     finally:
         # restore disabled error-handling
-        session.hooks['response'] = orig_response_hooks
+        if session:
+            session.hooks['response'] = orig_response_hooks
 
 def build(package, path=None, dry_run=False, env='default', force=False):
     """
@@ -1398,6 +1380,23 @@ def list_users(team=None):
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
 
+def _print_table(table, padding=2):
+    cols_width = [max(len(word) for word in col) for col in zip(*table)]
+    for row in table:
+        print((" " * padding).join(word.ljust(width) for word, width in zip(row, cols_width)))
+
+def _cli_list_users(team=None):
+    res = list_users(team)
+    l = [['Name', 'Email', 'Active', 'Superuser']]
+    for user in res.get('results'):
+        name = user.get('username')
+        email = user.get('email')
+        active = user.get('is_active')
+        su = user.get('is_superuser')
+        l.append([name, email, str(active), str(su)])
+
+    _print_table(l)
+
 def list_users_detailed(team=None):
     # get team from disk if not specified
     if team is None:
@@ -1465,7 +1464,22 @@ def audit(user_or_package):
         )
     )
 
-    print(json.dumps(response.json(), indent=2))
+    return response.json().get('events')
+
+def _cli_audit(user_or_package):
+    events = audit(user_or_package)
+    team = _find_logged_in_team()
+    teamstr = '%s:' % team
+    rows = [['Time', 'User', 'Package', 'Type']]
+    for item in events:
+        time = item.get('created')
+        pretty_time = datetime.fromtimestamp(time).strftime(DTIMEF)
+        user = item.get('user')
+        pkg = '%s%s/%s' % (teamstr, item.get('package_owner'), item.get('package_name'))
+        t = item.get('type')
+        rows.append((pretty_time, user, pkg, t))
+
+    _print_table(rows)
 
 def reset_password(team, username):
     _check_team_id(team)

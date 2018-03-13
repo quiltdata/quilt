@@ -61,7 +61,6 @@ const normalizeMember = ([name, { last_seen, is_active = 'none', status, ...memb
 });
 
 
-// add member
 // eslint-disable-next-line object-curly-newline
 export function* doAddMember({ username, email, resolve, reject }) {
   try {
@@ -78,12 +77,6 @@ export function* doAddMember({ username, email, resolve, reject }) {
   }
 }
 
-export function* watchAddMember() {
-  yield takeLatest(ADD_MEMBER, doAddMember);
-}
-
-
-// members
 export function* doGetMembers() {
   try {
     const response = yield call(apiRequest, '/users/list_detailed');
@@ -94,12 +87,6 @@ export function* doGetMembers() {
   }
 }
 
-export function* watchGetMembers() {
-  yield takeLatest(GET_MEMBERS, doGetMembers);
-}
-
-
-// member audit
 export function* doGetMemberAudit({ name }) {
   if (!name) return;
   try {
@@ -117,12 +104,6 @@ export function* doGetMemberAudit({ name }) {
   }
 }
 
-export function* watchGetMemberAudit() {
-  yield takeLatest(GET_MEMBER_AUDIT, doGetMemberAudit);
-}
-
-
-// disable member
 export function* doDisableMember({ name, resolve, reject }) {
   try {
     const response = yield call(apiRequest, '/users/disable', {
@@ -137,12 +118,6 @@ export function* doDisableMember({ name, resolve, reject }) {
   }
 }
 
-export function* watchDisableMember() {
-  yield takeEvery(DISABLE_MEMBER, doDisableMember);
-}
-
-
-// enable member
 export function* doEnableMember({ name, resolve, reject }) {
   try {
     const response = yield call(apiRequest, '/users/enable', {
@@ -157,12 +132,6 @@ export function* doEnableMember({ name, resolve, reject }) {
   }
 }
 
-export function* watchEnableMember() {
-  yield takeEvery(ENABLE_MEMBER, doEnableMember);
-}
-
-
-// reset member password
 export function* doResetMemberPassword({ name, resolve, reject }) {
   try {
     const response = yield call(apiRequest, '/users/reset_password', {
@@ -177,12 +146,6 @@ export function* doResetMemberPassword({ name, resolve, reject }) {
   }
 }
 
-export function* watchResetMemberPassword() {
-  yield takeEvery(RESET_MEMBER_PASSWORD, doResetMemberPassword);
-}
-
-
-// packages
 export function* doGetPackages() {
   try {
     const response = yield call(apiRequest, '/admin/package_summary');
@@ -201,12 +164,6 @@ export function* doGetPackages() {
   }
 }
 
-export function* watchGetPackages() {
-  yield takeLatest(GET_PACKAGES, doGetPackages);
-}
-
-
-// package audit
 export function* doGetPackageAudit({ handle }) {
   if (!handle) return;
   try {
@@ -222,19 +179,13 @@ export function* doGetPackageAudit({ handle }) {
   }
 }
 
-export function* watchGetPackageAudit() {
+export default function* () {
+  yield takeLatest(ADD_MEMBER, doAddMember);
+  yield takeLatest(GET_MEMBERS, doGetMembers);
+  yield takeLatest(GET_MEMBER_AUDIT, doGetMemberAudit);
+  yield takeEvery(DISABLE_MEMBER, doDisableMember);
+  yield takeEvery(ENABLE_MEMBER, doEnableMember);
+  yield takeEvery(RESET_MEMBER_PASSWORD, doResetMemberPassword);
+  yield takeLatest(GET_PACKAGES, doGetPackages);
   yield takeLatest(GET_PACKAGE_AUDIT, doGetPackageAudit);
 }
-
-
-// All sagas to be loaded
-export default [
-  watchAddMember,
-  watchGetMembers,
-  watchGetMemberAudit,
-  watchDisableMember,
-  watchEnableMember,
-  watchResetMemberPassword,
-  watchGetPackages,
-  watchGetPackageAudit,
-];

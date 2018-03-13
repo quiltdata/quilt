@@ -95,7 +95,6 @@ import signal
 import sys
 
 from subprocess import check_output, CalledProcessError, Popen, PIPE
-from time import sleep
 
 import pytest
 from six import string_types, PY2
@@ -497,6 +496,9 @@ class TestCLI(BasicQuiltTestCase):
 
         self.quilt_command = [sys.executable, '-c', 'from quilt.tools import main; main.main()',
                               'quilt testing']
+        self.quilt_shell_command = ' '.join([sys.executable, '-c',
+                                             '"from quilt.tools import main; main.main()"',
+                                             '"quilt testing"'])
 
     def tearDown(self):
         # restore the real 'command' module back to the 'main' module
@@ -740,22 +742,27 @@ class TestCLI(BasicQuiltTestCase):
             'is_team': True,
         }
 
-
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
+
         if os.name == 'nt':
-            pytest.xfail("This test causes appveyor to freeze in windows.")
+            # Due to how Windows handles ctrl-c events with process groups and consoles,
+            # it's not really feasible to test this on Windows because it will want to kill
+            # PyTest (and/or the console on the testing system), or to just kill the
+            # subprocess (kill -9 equivalent).
+            #
+            # It *may* be possible if we create a separate terminal for testing, join it,
+            # disable ctrl-c events in our own process and our parent process (if any, f.e.
+            # when running in appveyor), send a ctrl-c event, then re-enable ctrl-c events
+            # for our own and parent process.  ..that *might* work, but I'm not really
+            # familiar with the win32 api.
+            pytest.xfail("This test is problematic on Windows.")
 
         TESTED_PARAMS.append(['--dev'])
 
-        cmd = ['--dev', 'install', 'user/test']
-        if os.name == 'posix':
-            SIGINT = signal.SIGINT
-        elif os.name == 'nt':
-            SIGINT = signal.CTRL_C_EVENT
-        else:
-            raise ValueError("Unknown OS type: " + os.name)
+        SIGINT = signal.SIGINT
 
+        cmd = ['--dev', 'install', 'user/test']
         result = self.execute(cmd)
 
         # was the --dev arg accepted by argparse?
@@ -763,29 +770,41 @@ class TestCLI(BasicQuiltTestCase):
 
         # We need to run a command that blocks.  To do so, I'm disabling the
         # test mocking of the command module, and executing a command that
-        # blocks waiting for input ('config').
-        no_mock = os.environ.copy()
-        no_mock['QUILT_TEST_CLI_SUBPROC'] = 'false'
+        # blocks while waiting for input ('config').
+        test_environ = os.environ.copy()
+        test_environ['QUILT_TEST_CLI_SUBPROC'] = 'false'
+        test_environ['PYTHONUNBUFFERED'] = "true"   # prevent blank stdout due to buffering
 
         # With no '--dev' arg, the process should exit without a traceback
         cmd = self.quilt_command + ['config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
+
+        # Wait for some expected text
+        expected = b"Please enter the URL"
+        response = proc.stdout.read(len(expected))  # blocks if 'quilt config' produces too little output.
+        assert response == expected
+
+        # Send interrupt, and fetch result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
+
         assert 'Traceback' not in stderr
         # Return code should indicate keyboard interrupt
         assert proc.returncode == EXIT_KB_INTERRUPT
 
         # With the '--dev' arg, the process should display a traceback
         cmd = self.quilt_command + ['--dev', 'config']
-        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=no_mock)
-        # if interrupt is sent too fast, the files won't even be parsed.
-        sleep(3)
+        proc = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, env=test_environ)
+
+        # Wait for some expected text
+        expected = b"Please enter the URL"
+        response = proc.stdout.read(len(expected))  # blocks if 'quilt config' produces too little output.
+        assert response == expected
+
+        # Send interrupt, and check result
         proc.send_signal(SIGINT)
         stdout, stderr = (b.decode() for b in proc.communicate())
-        print("\n\n{}\n\n{}\n\n".format(stdout, stderr))
+
         assert 'Traceback (most recent call last)' in stderr
         # Return code should be the generic exit code '1' for unhandled exception
         assert proc.returncode == 1

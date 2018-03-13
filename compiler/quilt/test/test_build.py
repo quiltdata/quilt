@@ -1,8 +1,6 @@
 """
 Test the build process
 """
-#TODO: we should really test the CLI interface itself, rather than
-#the functions that cli calls
 import os
 
 import pytest
@@ -12,6 +10,7 @@ from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
+from ..nodes import GroupNode, PackageNode
 from ..tools.package import ParquetLib, Package
 from ..tools.compat import pathlib
 from ..tools import build, command, store
@@ -105,6 +104,19 @@ class BuildTest(QuiltTestCase):
             'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
 
+    def test_build_bad_transform(self):
+        path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
+
+    def test_build_bad_file(self):
+        # Ensure we generate an error on bad build files
+        path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
+
     def test_build_empty(self):
         """
         test building from build_empty.yml
@@ -116,17 +128,16 @@ class BuildTest(QuiltTestCase):
         from quilt.data.empty import pkg
         assert not pkg._keys(), 'Expected package to be empty'
 
-    def test_build_bad_transform(self):
-        path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
-
-        with pytest.raises(build.BuildException):
-            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
-
-    def test_build_bad_file(self):
-        path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
-
-        with pytest.raises(build.BuildException):
-            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
+    def test_build_reserved(self):
+        mydir = os.path.dirname(__file__)
+        path = os.path.join(mydir, './build_reserved.yml')
+        build.build_package(None, 'reserved', 'pkg', path)
+        from quilt.data.reserved import pkg
+        assert pkg.file, 'Expected package'
+        assert pkg.checks, 'Expected package'
+        assert pkg.environments, 'Expected package'
+        assert pkg.kwargs, 'Expected package'
+        assert pkg.transform, 'Expected package'
 
     def test_build_group_args(self):
         """
@@ -277,7 +288,7 @@ class BuildTest(QuiltTestCase):
 
     def test_build_glob_naming_conflict(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build_name_conflict.yml'
+        buildfile = mydir / 'build_globbing_name_conflict.yml'
 
         with pytest.raises(command.CommandException, match="Naming conflict:"):
             command.build('test/globdata', str(buildfile))
@@ -286,7 +297,7 @@ class BuildTest(QuiltTestCase):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build.yml'
+        buildfile = mydir / 'build_globbing.yml'
 
         command.build('test/globdata', str(buildfile))
 
@@ -297,12 +308,12 @@ class BuildTest(QuiltTestCase):
         globdata.csv.foo
         globdata.csv.nulls
         globdata.csv.nuts
-        globdata.csv.n10KRows13Cols
+        globdata.csv.n100Rows13Cols
         globdata.csv.subnode.csv
         globdata.csv.subnode.foo
         globdata.csv.subnode.goo
         # excel, kwargs sent
-        assert len(globdata.excel.n10KRows13Cols()) == 9995
+        assert len(globdata.excel.n100Rows13Cols()) == 95
         # naming collision -- acceptable during a single glob specification, should result in a rename
         globdata.collision.csv
         globdata.collision.csv_2
@@ -345,7 +356,6 @@ class BuildTest(QuiltTestCase):
         with pytest.raises(TypeError, match="Not a GroupNode"):
             package['foo/blah']
 
-
     def test_package_contains(self):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
@@ -369,3 +379,99 @@ class BuildTest(QuiltTestCase):
         assert not '/foo' in package
         assert not 'subnode/9blah' in package
         assert not 'foo/blah' in package
+
+    def test_package_compose(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        buildfile = mydir / 'build_compose.yml'
+        command.build('test/compose1', str(buildfile))
+
+        from quilt.data.test import simple
+        from quilt.data.test import compose1
+
+        assert simple.foo().equals(compose1.from_simple_foo())
+
+    def test_compose_package_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/notapackage'
+                    }
+                }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
+            build.build_package_from_contents(None, 'test', 'compose2', str(mydir), missing_dep_build)
+
+    def test_compose_subpackage_not_found(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        missing_dep_build = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage'
+                    }
+                }
+            }
+
+        with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
+            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+
+    def test_included_package_is_group_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+                'from_simple_foo': {
+                    'package': 'test/simple'
+                    }
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'compose3', str(mydir), build_compose_contents)
+        from quilt.data.test import compose3
+
+        assert type(compose3.from_simple_foo) is GroupNode
+
+    def test_top_level_include_is_root_node(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        buildfile = mydir / 'build_simple.yml'
+        command.build('test/simple', str(buildfile))
+
+        build_compose_contents = {
+            'contents': {
+                'package': 'test/simple'
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'compose_root', str(mydir), build_compose_contents)
+        from quilt.data.test import compose_root, simple
+
+        assert type(compose_root) is PackageNode
+        assert simple.foo().equals(compose_root.foo())
+
+    def test_package_and_file_raises_exception(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        bad_build_contents = {
+            'contents': {
+                'foo': {
+                    'package':
+                        'test/simple/notasubpackage',
+                    'file':
+                        'mydir/myfile.csv'
+                    }
+                }
+            }
+        with self.assertRaises(build.BuildException):
+            build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+

@@ -7,36 +7,57 @@ import config from 'constants/config';
 import VisibilityIcon from 'components/VisibilityIcon';
 
 const Lighter = styled.span`
-  opacity: 0.6;
+  opacity: 0.7;
+`;
+
+const Preview = styled.span`
+  margin-left: 16px;
+  opacity: 0.5;
 `;
 
 const Text = styled.div`
-  height: 1.5em;
   line-height: 1.5em;
-  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 `;
 
 // eslint-disable-next-line object-curly-newline
-function PackageHandle({ isPublic, name, owner, showPrefix }) {
+function PackageHandle({
+  drop,
+  isPublic,
+  isTeam,
+  name,
+  owner,
+  readmePreview,
+  showPrefix,
+}) {
   const team = config.team ? `${config.team.id}:` : '';
   const prefix = showPrefix ? `${team}${owner}/` : null;
-  const decorator = (
-    isPublic === true || typeof isPublic !== 'boolean' ? null
-      : <VisibilityIcon label="private" />
+  // eslint-disable-next-line no-nested-ternary
+  const label = isPublic ? 'public' : isTeam ? 'team' : 'private';
+
+  return (
+    <Text>
+      <VisibilityIcon drop={drop} label={label} />&nbsp;
+      <Lighter>{prefix}</Lighter>{name}
+      <Preview>{readmePreview}</Preview>
+    </Text>
   );
-  return <Text><Lighter>{prefix}</Lighter>{name} {decorator}</Text>;
 }
 
 PackageHandle.defaultProps = {
+  drop: false,
+  isPublic: true,
   showPrefix: true,
 };
 
 PackageHandle.propTypes = {
-  isPublic: PropTypes.bool.isRequired,
+  drop: PropTypes.bool,
+  isPublic: PropTypes.bool,
+  isTeam: PropTypes.bool,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
+  readmePreview: PropTypes.string,
   showPrefix: PropTypes.bool,
 };
 

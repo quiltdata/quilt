@@ -1,7 +1,0 @@
----
-contents:
-  naming_collision:
-    "csv.*":          # csv.txt will be named 'csv'
-      transform: csv
-    csv:
-      file: nuts.csv

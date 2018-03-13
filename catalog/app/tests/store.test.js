@@ -12,9 +12,9 @@ describe('configureStore', () => {
     store = configureStore({}, browserHistory);
   });
 
-  describe('asyncReducers', () => {
-    it('should contain an object for async reducers', () => {
-      expect(typeof store.asyncReducers).toBe('object');
+  describe('injectReducer', () => {
+    it('should contain a hook for `reducerRegistry.set`', () => {
+      expect(typeof store.injectReducer).toBe('function');
     });
   });
 

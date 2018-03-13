@@ -17,10 +17,16 @@ import styled from 'styled-components';
 import config from 'constants/config';
 import { makeSelectUserName } from 'containers/App/selectors';
 import { push } from 'containers/Notifications/actions';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
 
 import * as actions from './actions';
+import { REDUX_KEY } from './constants';
 import msg from './messages';
+import reducer from './reducer';
+import saga from './saga';
 import selector from './selectors';
+
 import AuditDialog from './AuditDialog';
 import Members from './Members';
 import MemberAudit from './MemberAudit';
@@ -41,6 +47,8 @@ const Show = styled.div`
   }
 `;
 export default compose(
+  injectReducer(REDUX_KEY, reducer),
+  injectSaga(REDUX_KEY, saga),
   injectIntl,
   connect(
     createSelector(selector, makeSelectUserName(), (admin, user) => ({ user, ...admin })),

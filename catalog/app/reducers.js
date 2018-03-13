@@ -8,12 +8,6 @@ import { fromJS } from 'immutable';
 import { LOCATION_CHANGE } from 'react-router-redux';
 import { reducer as formReducer } from 'redux-form/immutable';
 
-import languageProviderReducer from 'containers/LanguageProvider/reducer';
-import appReducer from 'containers/App/reducer';
-import galleryReducer from 'containers/Gallery/reducer';
-import searchReducer from 'containers/SearchResults/reducer';
-import notificationsReducer from 'containers/Notifications/reducer';
-
 /*
  * routeReducer
  *
@@ -45,16 +39,10 @@ function routeReducer(state = routeInitialState, action) {
 /**
  * Creates the main reducer with the asynchronously loaded ones
  */
-export default function createReducer(asyncReducers) {
+export default function createReducer(injected) {
   return combineReducers({
-    app: appReducer,
-    gallery: galleryReducer,
-    language: languageProviderReducer,
     route: routeReducer,
-    // load searchReducer preemptively since any page can initiate search
-    search: searchReducer,
-    notifications: notificationsReducer,
     form: formReducer,
-    ...asyncReducers,
+    ...injected,
   });
 }

@@ -36,9 +36,8 @@ class DeleteTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents, True)
+            self.put_package(self.user, self.pkg, contents)
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testSimpleDelete(self):
         resp = self.app.delete(
             '/api/package/{usr}/{pkg}/'.format(
@@ -70,7 +69,6 @@ class DeleteTestCase(QuiltTestCase):
         assert event.package_owner == self.user
         assert event.package_name == self.pkg
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testDeleteAccessTagVersionLog(self):
         hashes = [hash_contents(contents) for contents in self.contents_list]
 
@@ -186,7 +184,7 @@ class DeleteTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         # Create a new package with the same name
-        self.put_package(self.user, self.pkg, self.contents_list[0], True)
+        self.put_package(self.user, self.pkg, self.contents_list[0])
 
         # Verify that users, tags, and versions didn't survive
         assert not _has_access()
@@ -206,7 +204,6 @@ class DeleteTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.not_found
 
-    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testNoAccess(self):
         # Wrong user
         resp = self.app.delete(

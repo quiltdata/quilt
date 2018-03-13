@@ -36,10 +36,6 @@ export function* doGetPackages() {
   }
 }
 
-export function* watchGetPackages() {
-  yield takeLatest(GET_PROFILE, doGetPackages);
-}
-
 export function* doUpdatePayment(action) {
   try {
     const { api: server } = config;
@@ -55,10 +51,6 @@ export function* doUpdatePayment(action) {
   } catch (err) {
     yield put(updatePaymentError(err));
   }
-}
-
-export function* watchUpdatePayment() {
-  yield takeLatest(UPDATE_PAYMENT, doUpdatePayment);
 }
 
 export function* doUpdatePlan(action) {
@@ -81,13 +73,8 @@ export function* doUpdatePlan(action) {
   }
 }
 
-export function* watchUpdatePlan() {
+export default function* () {
+  yield takeLatest(GET_PROFILE, doGetPackages);
+  yield takeLatest(UPDATE_PAYMENT, doUpdatePayment);
   yield takeLatest(UPDATE_PLAN, doUpdatePlan);
 }
-
-// All sagas to be loaded
-export default [
-  watchGetPackages,
-  watchUpdatePayment,
-  watchUpdatePlan,
-];

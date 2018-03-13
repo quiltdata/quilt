@@ -1,7 +1,7 @@
 /* storage - abstract persistence; currently uses
  * enforce write/read from predefined keys only */
 import assert from 'assert';
-import { fromJS } from 'immutable';
+import mapValues from 'lodash/mapValues';
 
 export const keys = {
   RESPONSE: 'RESPONSE',
@@ -24,26 +24,12 @@ export function removeStorage(key) {
   return localStorage.removeItem(key);
 }
 
-export const loadState = () => {
+export function loadState() {
   // user privacy may cause reads from localStorage to fail and throw
   try {
-    // we only store a subset of the state, related to auth
-    const response = JSON.parse(getStorage(keys.RESPONSE));
-    const tokens = JSON.parse(getStorage(keys.TOKENS));
-    const state = {
-      app: {
-        user: {
-          auth: {
-            response,
-            tokens,
-          },
-        },
-      },
-    };
-    // hydrate the store if we can
-    return fromJS(state);
+    return mapValues(keys, (key) => JSON.parse(getStorage(key)));
   } catch (err) {
     console.error('loadState:', err); // eslint-disable-line no-console
     return undefined; // let reducers determine state
   }
-};
+}

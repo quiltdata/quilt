@@ -32,10 +32,6 @@ function* doGetLatest() {
   }
 }
 
-function* watchGetLatest() {
+export default function* () {
   yield takeLatest(GET_LATEST, doGetLatest);
 }
-
-export default [
-  watchGetLatest,
-];

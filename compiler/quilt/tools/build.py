@@ -19,11 +19,11 @@ from tqdm import tqdm
 
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
-from .core import PackageFormat
+from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename
+from .util import FileWithReadProgress, is_nodename, to_nodename, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -63,11 +63,21 @@ def _path_hash(path, transform, kwargs):
     return digest_string(srcinfo)
 
 def _is_internal_node(node):
-    try:
-        is_leaf = not node or node.get(RESERVED['file'])
-    except AttributeError:
-        raise BuildException("Invalid yml for quilt: expected node data, but got {!r} instead".format(node))
+    is_leaf = not node or isinstance(node.get(RESERVED['file']), str) or node.get(RESERVED['package'])
     return not is_leaf
+
+def _get_local_args(node, keys):
+    result = {}
+    for key in keys:
+        if key in node:
+            # do not consider value as argument in case it has 'file' key
+            if (not isinstance(node[key], dict) or
+                (isinstance(node[key], dict) and not RESERVED['file'] in node[key])):
+                result[key] = node[key]
+    return result
+
+def _is_valid_group(group):
+    return isinstance(group, dict) or group is None
 
 def _pythonize_name(name):
     safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
@@ -119,6 +129,10 @@ def _gen_glob_data(dir, pattern, child_table):
         print("Warning: {!r} matched no files.".format(pattern))
         return
 
+def _consume(node, keys):
+    for key in keys:
+        node.pop(key)
+
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
@@ -133,18 +147,28 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
       Child transform or kwargs override ancestor k:v pairs.
     """
     if _is_internal_node(node):
+        # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
+        # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
+        # the node, or it gets treated like a subnode (or like a node with invalid content)
+        node = node.copy()
+
         # NOTE: YAML parsing does not guarantee key order
         # fetch local transform and kwargs values; we do it using ifs
         # to prevent `key: None` from polluting the update
-        local_args = {}
-        if node.get(RESERVED['transform']):
-            local_args[RESERVED['transform']] = node[RESERVED['transform']]
-        if node.get(RESERVED['kwargs']):
-            local_args[RESERVED['kwargs']] = node[RESERVED['kwargs']]
+        local_args = _get_local_args(node, [RESERVED['transform'], RESERVED['kwargs']])
         group_args = ancestor_args.copy()
         group_args.update(local_args)
+        _consume(node, local_args)
+
         # if it's not a reserved word it's a group that we can descend
-        groups = {k: v for k, v in iteritems(node) if k not in RESERVED}
+        groups = {k: v for k, v in iteritems(node) if _is_valid_group(v)}
+        _consume(node, groups)
+
+        if node:
+            # Unused keys -- either keyword typos or node names with invalid values.
+            #   For now, until build.yml schemas, pointing out one should do.
+            key, value = node.popitem()
+            raise BuildException("Invalid syntax: expected node data for {!r}, got {!r}".format(key, value))
         for child_name, child_table in groups.items():
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
@@ -167,88 +191,111 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if not dry_run:
                 package.save_group(name)
             return
-        # handle remaining leaf nodes types
+
+        include_package = node.get(RESERVED['package'])
         rel_path = node.get(RESERVED['file'])
-        if not rel_path:
-            raise BuildException("Leaf nodes must define a %s key" % RESERVED['file'])
-        path = os.path.join(build_dir, rel_path)
-        # get either the locally defined transform or inherit from an ancestor
-        transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
+        if rel_path and include_package:
+            raise BuildException("A node must define only one of {0} or {1}".format(RESERVED['file'], RESERVED['package']))
+        elif include_package: # package composition
+            team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
+            existing_pkg = PackageStore.find_package(team, user, pkgname)
+            if existing_pkg is None:
+                raise BuildException("Package not found: %s" % include_package)
 
-        ID = 'id' # pylint:disable=C0103
-        if transform:
-            transform = transform.lower()
-            if (transform not in PARSERS) and (transform != ID):
-                raise BuildException("Unknown transform '%s' for %s @ %s" %
-                                     (transform, rel_path, target))
-        else: # guess transform if user doesn't provide one
-            _, ext = splitext_no_dot(rel_path)
-            transform = ext
-            if transform not in PARSERS:
-                transform = ID
-            print("Inferring 'transform: %s' for %s" % (transform, rel_path))
-        # TODO: parse/check environments:
-        # environments = node.get(RESERVED['environments'])
-
-        checks = node.get(RESERVED['checks'])
-        if transform == ID:
-            #TODO move this to a separate function
-            if checks:
-                with open(path, 'r') as fd:
-                    data = fd.read()
-                    _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
-            if not dry_run:
-                print("Registering %s..." % path)
-                package.save_file(path, name, rel_path)
-        else:
-            # copy so we don't modify shared ancestor_args
-            handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
-            # local kwargs win the update
-            handler_args.update(node.get(RESERVED['kwargs'], {}))
-            # Check Cache
-            store = PackageStore()
-            path_hash = _path_hash(path, transform, handler_args)
-            source_hash = digest_file(path)
-
-            cachedobjs = []
-            if os.path.exists(store.cache_path(path_hash)):
-                with open(store.cache_path(path_hash), 'r') as entry:
-                    cache_entry = json.load(entry)
-                    if cache_entry['source_hash'] == source_hash:
-                        cachedobjs = cache_entry['obj_hashes']
-                        assert isinstance(cachedobjs, list)
-
-            # Check to see that cached objects actually exist in the store
-            # TODO: check for changes in checks else use cache
-            # below is a heavy-handed fix but it's OK for check builds to be slow
-            if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
-                # Use existing objects instead of rebuilding
-                package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+            if subpath:
+                try:
+                    node = existing_pkg["/".join(subpath)]
+                except KeyError:
+                    msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
+                    raise BuildException(msg.format(team=team,
+                                                    owner=user,
+                                                    pkg=pkgname,
+                                                    subpath=subpath))
             else:
-                # read source file into DataFrame
-                print("Serializing %s..." % path)
-                if _have_pyspark():
-                    dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
-                else:
-                    dataframe = _file_to_data_frame(transform, path, target, handler_args)
+                node = GroupNode(existing_pkg.get_contents().children)
+            package.save_package_tree(name, node)
+        elif rel_path: # handle nodes built from input files
+            path = os.path.join(build_dir, rel_path)
 
+            # get either the locally defined transform or inherit from an ancestor
+            transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
+
+            ID = 'id' # pylint:disable=C0103
+            if transform:
+                transform = transform.lower()
+                if (transform not in PARSERS) and (transform != ID):
+                    raise BuildException("Unknown transform '%s' for %s @ %s" %
+                                         (transform, rel_path, target))
+            else: # guess transform if user doesn't provide one
+                _, ext = splitext_no_dot(rel_path)
+                transform = ext
+                if transform not in PARSERS:
+                    transform = ID
+                print("Inferring 'transform: %s' for %s" % (transform, rel_path))
+            # TODO: parse/check environments:
+            # environments = node.get(RESERVED['environments'])
+
+            checks = node.get(RESERVED['checks'])
+            if transform == ID:
+                #TODO move this to a separate function
                 if checks:
-                    # TODO: test that design works for internal nodes... e.g. iterating
-                    # over the children and getting/checking the data, err msgs, etc.
-                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
-
-                # serialize DataFrame to file(s)
+                    with open(path, 'r') as fd:
+                        data = fd.read()
+                        _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
                 if not dry_run:
-                    print("Saving as binary dataframe...")
-                    obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                    print("Registering %s..." % path)
+                    package.save_file(path, name, rel_path)
+            else:
+                # copy so we don't modify shared ancestor_args
+                handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
+                # local kwargs win the update
+                handler_args.update(node.get(RESERVED['kwargs'], {}))
+                # Check Cache
+                store = PackageStore()
+                path_hash = _path_hash(path, transform, handler_args)
+                source_hash = digest_file(path)
 
-                    # Add to cache
-                    cache_entry = dict(
-                        source_hash=source_hash,
-                        obj_hashes=obj_hashes
-                        )
-                    with open(store.cache_path(path_hash), 'w') as entry:
-                        json.dump(cache_entry, entry)
+                cachedobjs = []
+                if os.path.exists(store.cache_path(path_hash)):
+                    with open(store.cache_path(path_hash), 'r') as entry:
+                        cache_entry = json.load(entry)
+                        if cache_entry['source_hash'] == source_hash:
+                            cachedobjs = cache_entry['obj_hashes']
+                            assert isinstance(cachedobjs, list)
+
+                # TODO: check for changes in checks else use cache
+                # below is a heavy-handed fix but it's OK for check builds to be slow
+                if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
+                    # Use existing objects instead of rebuilding
+                    package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+                else:
+                    # read source file into DataFrame
+                    print("Serializing %s..." % path)
+                    if _have_pyspark():
+                        dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+                    else:
+                        dataframe = _file_to_data_frame(transform, path, target, handler_args)
+
+                    if checks:
+                        # TODO: test that design works for internal nodes... e.g. iterating
+                        # over the children and getting/checking the data, err msgs, etc.
+                        _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+
+                    # serialize DataFrame to file(s)
+                    if not dry_run:
+                        print("Saving as binary dataframe...")
+                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+
+                        # Add to cache
+                        cache_entry = dict(
+                            source_hash=source_hash,
+                            obj_hashes=obj_hashes
+                            )
+                        with open(store.cache_path(path_hash), 'w') as entry:
+                            json.dump(cache_entry, entry)
+        else: # rel_path and package are both None
+            raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
+
 
 def _remove_keywords(d):
     """

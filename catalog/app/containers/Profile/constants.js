@@ -1,6 +1,8 @@
 /* Profile constants */
 import config from 'constants/config';
 
+export const REDUX_KEY = 'app/Profile';
+
 export const GET_PROFILE = 'app/Profile/GET_PROFILE';
 export const GET_PROFILE_ERROR = 'app/Profile/GET_PROFILE_ERROR';
 export const GET_PROFILE_SUCCESS = 'app/Profile/GET_PROFILE_SUCCESS';
@@ -30,7 +32,7 @@ export const PLANS = config.team ? {
     menu: 'Team',
     menuIcon: 'stars',
     rank: 1,
-    statusIcon: 'check_circle',
+    statusIcon: 'verified_user',
     statusMessage: 'Active',
   },
 } : {

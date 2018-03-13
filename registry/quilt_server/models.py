@@ -66,10 +66,14 @@ class Instance(db.Model):
     # Contents can be a potentially large JSON blob, so load it lazily.
     contents = deferred(db.Column(postgresql.JSONB, nullable=False))
 
+    readme_blob_id = db.Column(db.BigInteger, db.ForeignKey('s3_blob.id'), index=True)
+
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')
     tags = db.relationship('Tag', back_populates='instance')
     blobs = db.relationship('S3Blob', secondary=InstanceBlobAssoc)
+
+    readme_blob = db.relationship('S3Blob', uselist=False)
 
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
 
@@ -80,11 +84,17 @@ class S3Blob(db.Model):
     hash = db.Column(db.String(64), nullable=False)
     size = db.Column(db.BigInteger)
 
+    # Preview of the content - only used for the READMEs.
     preview = deferred(db.Column(db.TEXT))
+
+    # Only used for READMEs right now - but could be used for anything, including blobs
+    # for which we're not storing a preview (therefore it's a separate column).
+    preview_tsv = deferred(db.Column(postgresql.TSVECTOR))
 
     instances = db.relationship('Instance', secondary=InstanceBlobAssoc)
 
 db.Index('idx', S3Blob.owner, S3Blob.hash, unique=True)
+db.Index('idx_tsv', S3Blob.preview_tsv, postgresql_using='gin')
 
 
 class Log(db.Model):

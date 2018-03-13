@@ -202,6 +202,27 @@ class Package(object):
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
 
+    def save_package_tree(self, name, pkgnode):
+        """
+        Adds a package or sub-package tree from an existing package to this package's
+        contents.
+        """
+        contents = self.get_contents()
+        # Add to contents takes a dot-separated path. Other methods below
+        # switch the path separate from slash to dot before calling add to
+        # contents. Simply splitting on slash here for simplicity and efficiency.
+        if name:
+            ipath = name.split('/')
+            leaf = ipath.pop()
+            ptr = contents
+            for node in ipath:
+                ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr.children[leaf] = pkgnode
+        else:
+            if contents.children:
+                raise PackageException("Attempting to overwrite root node of a non-empty package.")
+            contents.children = pkgnode.children.copy()
+
     def save_cached_df(self, hashes, name, path, ext, target, fmt):
         """
         Save a DataFrame to the store.

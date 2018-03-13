@@ -5,32 +5,24 @@ import { call, put, select, takeLatest } from 'redux-saga/effects';
 import { makeHeaders, makeHeadersFromTokens } from 'utils/auth';
 import makeError from 'utils/error';
 import config from 'constants/config';
-import { requestJSON, requestText } from 'utils/request';
+import { requestJSON } from 'utils/request';
 import { keys, removeStorage, setStorage } from 'utils/storage';
 import { timestamp } from 'utils/time';
 import { tokenPath } from 'constants/urls';
 
 import {
-  getSearch,
-} from 'containers/SearchResults/actions';
-
-import {
   getAuthError,
   getAuthSuccess,
-  getBlobError,
-  getBlobSuccess,
   getManifestError,
   getManifestSuccess,
   getPackageError,
   getPackageSuccess,
   refreshAuth,
-  setSearchText,
   storeTokens,
 } from './actions';
 import {
   GET_AUTH,
   GET_AUTH_SUCCESS,
-  GET_MANIFEST_SUCCESS,
   GET_PACKAGE,
   GET_PACKAGE_SUCCESS,
   intercomAppId as app_id, // eslint-disable-line camelcase
@@ -41,7 +33,6 @@ import {
 import {
   makeSelectAuth,
   makeSelectPackageSummary,
-  makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,
 } from './selectors';
@@ -93,7 +84,6 @@ function* doGetAuth(action) {
 }
 
 // incoming action is the response from GET_MANIFEST_SUCCESS
-// TODO: maybe use the more general GET_BLOB for this
 // and use takeLatest(function) to discriminate
 function* doGetManifest() {
   try {
@@ -130,23 +120,6 @@ function* doGetPackage(action) {
       err.detail = `doGetPackage: ${err.message}`;
     }
     yield put(getPackageError(err));
-  }
-}
-
-function* doGetReadMe(action) {
-  const readmeUrl = action.response.readme_url;
-  const storePath = ['package', 'readme'];
-  if (readmeUrl) {
-    try {
-      const readmeText = yield call(requestText, readmeUrl);
-      yield put(getBlobSuccess(readmeText, storePath));
-    } catch (error) {
-      error.headline = 'Readme hiccup';
-      error.detail = `doGetReadMe: ${error.message}`;
-      yield put(getBlobError(error, storePath));
-    }
-  } else {
-    yield put(getBlobSuccess('', storePath));
   }
 }
 
@@ -211,27 +184,6 @@ function* doRefresh(action) {
   }
 }
 
-function* doSearch(action) {
-  const { payload } = action;
-  // execute the search if we've landed on the search page
-  if (payload.pathname && payload.pathname.startsWith('/search/')) {
-    // check for query parameters; ideally we'd use the router to parse this for
-    // us but we don't have that luxury with the ROUTER_START event
-    // doSearch catches both ROUTER_START and LOCATION_CHANGE since we may
-    // hit /search on a cold start
-    const re = /[^\w%]q=([^&]*)/;
-    const match = re.exec(payload.search || '');
-    if (match) {
-      yield put(setSearchText(decodeURIComponent(match[1])));
-    }
-    const search = yield select(makeSelectSearchText());
-    yield put(getSearch(search));
-  // otherwise clear the search text box
-  } else {
-    yield put(setSearchText(''));
-  }
-}
-
 function* doSignOut() {
   // wipe auth tokens and username from storage
   yield call(removeStorage, keys.TOKENS);
@@ -249,64 +201,24 @@ function* doStoreTokens(action) {
   yield call(setStorage, keys.TOKENS, JSON.stringify(action.response));
 }
 
-function* watchGetAuth() {
+
+export default function* () {
   yield takeLatest(GET_AUTH, doGetAuth);
-}
 
-function* watchGetReadMe() {
-  yield takeLatest((action) => (
-    action
-    && action.type === GET_MANIFEST_SUCCESS
-    && action.response
-    && action.response.readme_url !== undefined
-  ), doGetReadMe);
-}
-
-function* watchGetAuthSuccess() {
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
-}
 
-function* watchGetPackage() {
   yield takeLatest(GET_PACKAGE, doGetPackage);
-}
-
-function* watchGetPackageSuccess() {
   yield takeLatest(GET_PACKAGE_SUCCESS, doGetManifest);
-}
 
-function* watchRouterStart() {
   yield takeLatest(ROUTER_START, doRefresh);
   yield takeLatest(ROUTER_START, doIntercom);
-}
 
-function* watchLocationChange() {
   yield takeLatest(LOCATION_CHANGE, doRefresh);
   yield takeLatest(LOCATION_CHANGE, doIntercom);
-}
 
-function* watchSearch() {
-  yield takeLatest([LOCATION_CHANGE, ROUTER_START], doSearch);
-}
-
-function* watchSignOut() {
   yield takeLatest(SIGN_OUT, doSignOut);
   yield takeLatest(SIGN_OUT, doIntercom);
-}
 
-function* watchStoreTokens() {
   yield takeLatest(STORE_TOKENS, doStoreTokens);
 }
-
-export default [
-  watchGetAuth,
-  watchGetAuthSuccess,
-  watchGetReadMe,
-  watchGetPackage,
-  watchGetPackageSuccess,
-  watchLocationChange,
-  watchRouterStart,
-  watchSearch,
-  watchSignOut,
-  watchStoreTokens,
-];
