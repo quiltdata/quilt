@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED
+from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED, DEFAULT_QUILT_YML
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -527,8 +527,10 @@ def load_yaml(filename, optional=False):
         data = fd.read()
     try:
         res = yaml.load(data)
-        if not any(k in res.keys() for k in ['contents', 'packages']):
-            raise BuildException('"contents" or "packages" node must be specified')
+        if not filename.endswith(DEFAULT_QUILT_YML):
+            if 'contents' not in res.keys():
+                file_name = os.path.basename(filename)
+                raise BuildException('Error in {}: missing "contents" node'.format(file_name))
     except yaml.scanner.ScannerError as error:
         mark = error.problem_mark
         message = ["Bad yaml syntax in {!r}".format(filename),

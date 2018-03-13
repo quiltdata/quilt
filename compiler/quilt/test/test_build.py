@@ -271,7 +271,7 @@ class BuildTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_no_contents_node.yml')
 
-        with assertRaisesRegex(self, build.BuildException, r'"contents" or "packages" node must be'):
+        with assertRaisesRegex(self, build.BuildException, r'Error in build_no_contents_node.yml'):
             build.build_package(None, 'no_contents', PACKAGE, path)
 
     def test_build_checks_yaml_syntax_error(self):    # pylint: disable=C0103

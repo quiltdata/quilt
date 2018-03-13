@@ -925,6 +925,8 @@ def install_via_requirements(requirements_str, force=False):
         path = requirements_str[1:]
         if os.path.isfile(path):
             yaml_data = load_yaml(path)
+            if 'packages' not in yaml_data.keys():
+                raise CommandException('Error in {filename}: missing "packages" node'.format(filename=path))
         else:
             raise CommandException("Requirements file not found: {filename}".format(filename=path))
     else:
