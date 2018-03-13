@@ -1,3 +1,4 @@
+import invoke from 'lodash/fp/invoke';
 import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
@@ -20,7 +21,7 @@ import api, { apiStatus } from 'constants/api';
 
 import AddMember from './AddMember';
 import msg from './messages';
-import { branch, formatActivity, formatDate, withStatefulActions } from './util';
+import { formatActivity, formatDate, withStatefulActions } from './util';
 import ErrorMessage from './ErrorMessage';
 import Cell from './LockableCell';
 import SettingsMenu from './SettingsMenu';
@@ -172,14 +173,14 @@ export default compose(
     <h2>
       <FM {...msg.teamMembers} />
       {
-        branch(status, {
+        invoke(status, {
           [api.WAITING]: () => <Spinner />,
           [api.SUCCESS]: () => ` (${response.length})`,
         })
       }
     </h2>
     {
-      branch(status, {
+      invoke(status, {
         [api.SUCCESS]: () => (
           <MembersTable
             members={response}

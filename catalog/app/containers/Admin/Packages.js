@@ -1,3 +1,4 @@
+import invoke from 'lodash/fp/invoke';
 import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
@@ -19,7 +20,7 @@ import Badge from 'components/VisibilityIcon';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
-import { branch, formatActivity, formatDate } from './util';
+import { formatActivity, formatDate } from './util';
 import ErrorMessage from './ErrorMessage';
 
 
@@ -113,14 +114,14 @@ export default compose(
     <h2>
       <FM {...msg.teamPackages} />
       {
-        branch(status, {
+        invoke(status, {
           [api.WAITING]: () => <Spinner />,
           [api.SUCCESS]: () => ` (${response.length})`,
         })
       }
     </h2>
     {
-      branch(status, {
+      invoke(status, {
         [api.SUCCESS]: () => (
           <PackagesTable
             packages={response}

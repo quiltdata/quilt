@@ -1,3 +1,4 @@
+import invoke from 'lodash/fp/invoke';
 import Dialog from 'material-ui/Dialog';
 import FlatButton from 'material-ui/FlatButton';
 import IconButton from 'material-ui/IconButton';
@@ -12,7 +13,6 @@ import Working from 'components/Working';
 import api, { apiStatus } from 'constants/api';
 
 import msg from './messages';
-import { branch } from './util';
 import ErrorMessage from './ErrorMessage';
 
 const TitleContainer = styled.div`
@@ -76,7 +76,7 @@ export default compose(
     onRequestClose={onClose}
   >
     {
-      branch(status, {
+      invoke(status, {
         [api.WAITING]: () => <Working />,
         [api.ERROR]: () => <ErrorMessage error={response} />,
         [api.SUCCESS]: () => <Component entries={response} />,

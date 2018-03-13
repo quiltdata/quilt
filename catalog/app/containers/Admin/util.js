@@ -7,8 +7,6 @@ import { compose, withHandlers, withProps, withStateHandlers } from 'recompose';
 import MIcon from 'components/MIcon';
 
 
-export const branch = (subj, cases) => subj in cases && cases[subj]();
-
 const toIcon = {
   packages: 'cloud_upload',
   previews: 'remove_red_eye',
