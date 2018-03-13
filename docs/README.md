@@ -30,5 +30,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ```
 
+### Tutorial
+* [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
+
 ## Demo
 <iframe width="560" height="315" src="https://www.youtube.com/embed/bKIV1GUVLPc" frameborder="0" allowfullscreen></iframe>
