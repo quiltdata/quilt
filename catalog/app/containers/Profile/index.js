@@ -8,6 +8,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { FormattedMessage, injectIntl, intlShape } from 'react-intl';
 import StripeCheckout from 'react-stripe-checkout';
+import { compose } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
@@ -30,11 +31,15 @@ import {
 import { printObject } from 'utils/string';
 import { icon256, makePackage } from 'constants/urls';
 import Working from 'components/Working';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
 
 import { getProfile, updatePayment, updatePlan } from './actions';
-import { PLANS } from './constants';
+import { PLANS, REDUX_KEY } from './constants';
+import reducer from './reducer';
 import { makeSelectProfile } from './selectors';
 import messages from './messages';
+import saga from './saga';
 
 const LoadingMargin = styled(Loading)`
   margin-right: 1em;
@@ -241,7 +246,7 @@ const PackagesArea = ({
     <h2><FormattedMessage {...messages.shared} /></h2>
     <PackageList push={push} packages={packages.shared} />
     <h2><FormattedMessage {...messages[config.team ? 'team' : 'public']} /></h2>
-    <Help href="/search/?q=">
+    <Help to="/search/?q=">
       <FormattedMessage {...messages.showPublic} />
     </Help>
   </div>
@@ -329,4 +334,9 @@ const WarningIcon = () => (
   </MIcon>
 );
 
-export default connect(mapStateToProps, mapDispatchToProps)(injectIntl(Profile));
+export default compose(
+  injectReducer(REDUX_KEY, reducer),
+  injectSaga(REDUX_KEY, saga),
+  injectIntl,
+  connect(mapStateToProps, mapDispatchToProps),
+)(Profile);

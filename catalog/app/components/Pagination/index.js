@@ -3,17 +3,20 @@ import pick from 'lodash/pick';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import {
-  compose,
   defaultProps,
   lifecycle,
   pure,
-  setDisplayName,
   setPropTypes,
   withStateHandlers,
   withProps,
 } from 'recompose';
 
-import { saveProps, restoreProps } from 'utils/reactTools';
+import {
+  composeComponent,
+  composeHOC,
+  saveProps,
+  restoreProps,
+} from 'utils/reactTools';
 
 import DefaultControls from './Controls';
 
@@ -27,7 +30,7 @@ export const withPagination = ({
   getItemId = (i) => i,
   perPage = PER_PAGE,
   controls: Controls = DefaultControls,
-} = {}) => compose(
+} = {}) => composeHOC('withPagination',
   saveProps({ keep: [key, 'getItemId', 'perPage'] }),
   defaultProps({
     getItemId,
@@ -69,19 +72,17 @@ export const withPagination = ({
     const pgProps = pick(props, ['page', 'pages', 'nextPage', 'prevPage', 'goToPage']);
     return { [namespace]: Controls ? <Controls {...pgProps} /> : pgProps };
   }),
-  restoreProps({ keep: [namespace, key] }),
-);
+  restoreProps({ keep: [namespace, key] }));
 
 
-export default compose(
+export default composeComponent('Pagination',
   withPagination(),
   setPropTypes({
     children: PT.func.isRequired,
   }),
-  setDisplayName('Pagination'),
-)(({ pagination, items, children }) => (
-  <Fragment>
-    {children({ items })}
-    {pagination}
-  </Fragment>
-));
+  ({ pagination, items, children }) => (
+    <Fragment>
+      {children({ items })}
+      {pagination}
+    </Fragment>
+  ));

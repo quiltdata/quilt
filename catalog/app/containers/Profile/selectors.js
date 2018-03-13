@@ -2,9 +2,9 @@
 import { Map } from 'immutable';
 import { createSelector } from 'reselect';
 
-const emptyMap = Map({});
+import { REDUX_KEY } from './constants';
 
-const selectProfile = (state) => state.getIn(['profile'], emptyMap);
+const selectProfile = (state) => state.get(REDUX_KEY, Map({}));
 
 const makeSelectProfile = () => createSelector(
   selectProfile,

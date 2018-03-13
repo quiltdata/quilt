@@ -53,7 +53,7 @@ describe('<Pagination />', () => {
   const render = (items, children = SimpleList) =>
     shallow(<Pagination items={items}>{children}</Pagination>)
       // dive into HoCs
-      .dive().dive().dive().dive().dive().dive().dive().dive().dive();
+      .dive().dive().dive().dive().dive().dive().dive().dive().dive().dive().dive().dive().dive();
 
   // TODO
   // const clickNext = (wrapper) =>

@@ -31,11 +31,6 @@ export function* doGetSearch(action) {
   }
 }
 
-export function* watchGetSearch() {
+export default function* () {
   yield takeLatest(GET_SEARCH, doGetSearch);
 }
-
-export default [
-  watchGetSearch,
-];
-
