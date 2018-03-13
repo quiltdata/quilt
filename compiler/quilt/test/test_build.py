@@ -1,8 +1,6 @@
 """
 Test the build process
 """
-#TODO: we should really test the CLI interface itself, rather than
-#the functions that cli calls
 import os
 
 import pytest
@@ -105,6 +103,19 @@ class BuildTest(QuiltTestCase):
         assert ptypes.is_numeric_dtype(nulls['integers_nulled']), \
             'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
+
+    def test_build_bad_transform(self):
+        path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
+
+    def test_build_bad_file(self):
+        # Ensure we generate an error on bad build files
+        path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
 
     def test_build_empty(self):
         """

@@ -129,6 +129,10 @@ def _gen_glob_data(dir, pattern, child_table):
         print("Warning: {!r} matched no files.".format(pattern))
         return
 
+def _consume(node, keys):
+    for key in keys:
+        node.pop(key)
+
 def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
@@ -143,14 +147,28 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
       Child transform or kwargs override ancestor k:v pairs.
     """
     if _is_internal_node(node):
+        # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
+        # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
+        # the node, or it gets treated like a subnode (or like a node with invalid content)
+        node = node.copy()
+
         # NOTE: YAML parsing does not guarantee key order
         # fetch local transform and kwargs values; we do it using ifs
         # to prevent `key: None` from polluting the update
         local_args = _get_local_args(node, [RESERVED['transform'], RESERVED['kwargs']])
         group_args = ancestor_args.copy()
         group_args.update(local_args)
+        _consume(node, local_args)
+
         # if it's not a reserved word it's a group that we can descend
         groups = {k: v for k, v in iteritems(node) if _is_valid_group(v)}
+        _consume(node, groups)
+
+        if node:
+            # Unused keys -- either keyword typos or node names with invalid values.
+            #   For now, until build.yml schemas, pointing out one should do.
+            key, value = node.popitem()
+            raise BuildException("Invalid syntax: expected node data for {!r}, got {!r}".format(key, value))
         for child_name, child_table in groups.items():
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
@@ -173,7 +191,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if not dry_run:
                 package.save_group(name)
             return
-       
+
         include_package = node.get(RESERVED['package'])
         rel_path = node.get(RESERVED['file'])
         if rel_path and include_package:
@@ -187,7 +205,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             if subpath:
                 try:
                     node = existing_pkg["/".join(subpath)]
-                except KeyError:                    
+                except KeyError:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
                                                     owner=user,
@@ -246,7 +264,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                             assert isinstance(cachedobjs, list)
 
                 # TODO: check for changes in checks else use cache
-                # below is a heavy-handed fix but it's OK for check builds to be slow  
+                # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
                     package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
@@ -277,7 +295,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                             json.dump(cache_entry, entry)
         else: # rel_path and package are both None
             raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
-        
+
 
 def _remove_keywords(d):
     """

@@ -25,7 +25,7 @@ RESERVED = {
     'environments': 'environments',
     'file': 'file',
     'kwargs': 'kwargs',
-    'package' : 'package',
+    'package': 'package',
     'transform': 'transform'
 }
 
