@@ -3,8 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 
 const lookup = {
+  bookmark: 'fa-bookmark',
+  chatBubble: 'fa-chat-bubble',
   github: 'fa-mark-github',
   medium: 'fa-medium',
+  slack: 'fa-slack',
   twitter: 'fa-twitter',
 };
 
@@ -17,7 +20,14 @@ function FAIcon({ className, type }) {
 
 FAIcon.propTypes = {
   className: PropTypes.string,
-  type: PropTypes.oneOf(['twitter', 'github', 'medium']).isRequired,
+  type: PropTypes.oneOf([
+    'bookmark',
+    'chatBubble',
+    'github',
+    'medium',
+    'slack',
+    'twitter',
+  ]).isRequired,
 };
 
 export default FAIcon;

@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
-import RaisedButton from 'material-ui/RaisedButton';
-import ImageRow from 'components/ImageRow';
+import { makeSignInURL } from 'utils/auth';
 import background from 'img/back/black-hex.jpg';
 import config from 'constants/config';
-import { docs } from 'constants/urls';
+import ImageRow from 'components/ImageRow';
+import RaisedButton from 'material-ui/RaisedButton';
 
 import strings from './messages';
 
@@ -22,7 +22,7 @@ const Feature = ({ header, tagline }) => (
         { tagline }
       </h2>
       <div className="left">
-        <RaisedButton href={docs} label="Get started" />
+        <RaisedButton href={makeSignInURL()} label="Sign up" />
       </div>
       {
         config.team ? null : (
