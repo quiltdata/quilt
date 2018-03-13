@@ -175,7 +175,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
               user={this.props.user}
             />
           ),
-          admin: () => <Admin plan={plan.response} />,
+          admin: () => <Admin plan={plan.response} location={this.props.location} />,
         })}
 
         <Plan
@@ -218,6 +218,7 @@ Profile.propTypes = {
       section: PropTypes.string,
     }).isRequired,
   }).isRequired,
+  location: PropTypes.object.isRequired,
 };
 
 export default compose(
