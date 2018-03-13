@@ -3,13 +3,13 @@ import React from 'react';
 import { Row } from 'react-bootstrap';
 import FlatButton from 'material-ui/FlatButton';
 import styled from 'styled-components';
-import { caseStudy, slackInvite } from 'constants/urls';
+import { slackInvite } from 'constants/urls';
 
 import FAIcon from 'components/FAIcon';
 
 const Styler = styled(Row)`
   background-color: rgb(240, 240, 240);
-  border-bottom: 1px solid rgb(232, 232, 232);
+  border-bottom: 1px solid rgb(222, 222, 222);
   padding: 16px;
 `;
 
@@ -29,10 +29,6 @@ const go = (dest) => () => { window.location = dest; };
 function CallToAction() {
   return (
     <Styler>
-      <FlatButton
-        label={<span><FAIcon type="bookmark">check</FAIcon> Read case study</span>}
-        onClick={go(caseStudy)}
-      />
       <FlatButton
         label={<span><FAIcon type="slack">check</FAIcon> Join Slack</span>}
         onClick={go(slackInvite)}
