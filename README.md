@@ -15,6 +15,9 @@ Visit [docs.quiltdata.com](https://docs.quiltdata.com/). Or [browse the docs on 
 # Quilt is a data registry
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and Docker registries do for code: provide a centralized, collaborative store of record.
 
+## Getting started tutorial
+* [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
+
 ## Benefits
 
 * **Reproducibility** - Imagine source code without versions. Ouch. Why live with un-versioned data? Versioned data makes analysis reproducible by creating unambiguous references to potentially complex data dependencies.
