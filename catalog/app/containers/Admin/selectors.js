@@ -1,8 +1,10 @@
 import { Map } from 'immutable';
 import { createSelector } from 'reselect';
 
+import { REDUX_KEY } from './constants';
+
 // Direct selector to the admin state domain
-export const selectAdminDomain = (state) => state.get('admin', Map({}));
+export const selectAdminDomain = (state) => state.get(REDUX_KEY, Map({}));
 
 const invoke = (method, ...args) => (obj) =>
   obj && method in obj ? obj[method](...args) : obj;

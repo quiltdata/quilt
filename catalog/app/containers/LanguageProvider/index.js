@@ -7,39 +7,33 @@
  */
 
 import PropTypes from 'prop-types';
-import React from 'react';
 import { connect } from 'react-redux';
+import { mapProps, setPropTypes } from 'recompose';
 import { createSelector } from 'reselect';
 import { IntlProvider } from 'react-intl';
 
+import { composeComponent } from 'utils/reactTools';
+import { injectReducer } from 'utils/ReducerInjector';
+
+import { REDUX_KEY } from './constants';
+import reducer from './reducer';
 import { makeSelectLocale } from './selectors';
 
-export class LanguageProvider extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
-  render() {
-    return (
-      <IntlProvider locale={this.props.locale} key={this.props.locale} messages={this.props.messages[this.props.locale]}>
-        {React.Children.only(this.props.children)}
-      </IntlProvider>
-    );
-  }
-}
-
-LanguageProvider.propTypes = {
-  locale: PropTypes.string,
-  messages: PropTypes.object,
-  children: PropTypes.element.isRequired,
-};
-
-
-const mapStateToProps = createSelector(
-  makeSelectLocale(),
-  (locale) => ({ locale })
-);
-
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(LanguageProvider);
+export default composeComponent('LanguageProvider',
+  injectReducer(REDUX_KEY, reducer),
+  connect(createSelector(
+    makeSelectLocale(),
+    (locale) => ({ locale })
+  )),
+  setPropTypes({
+    locale: PropTypes.string,
+    messages: PropTypes.object,
+    children: PropTypes.element.isRequired,
+  }),
+  mapProps(({ locale, messages, ...props }) => ({
+    locale,
+    key: locale,
+    messages: messages[locale],
+    ...props,
+  })),
+  IntlProvider);

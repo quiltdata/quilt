@@ -2,9 +2,9 @@
 import { Map } from 'immutable';
 import { createSelector } from 'reselect';
 
-const emptyMap = Map({});
+import { REDUX_KEY } from './constants';
 
-const selectSearch = (state) => state.getIn(['search'], emptyMap);
+const selectSearch = (state) => state.get(REDUX_KEY, Map({}));
 
 const makeSelectSearch = () => createSelector(
   selectSearch,
