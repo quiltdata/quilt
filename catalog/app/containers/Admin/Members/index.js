@@ -1,5 +1,4 @@
 import invoke from 'lodash/fp/invoke';
-import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -29,7 +28,8 @@ import { composeComponent } from 'utils/reactTools';
 import ErrorMessage from '../ErrorMessage';
 import Cell from '../LockableCell';
 import SettingsMenu from '../SettingsMenu';
-import { formatActivity, formatDate, withStatefulActions } from '../util';
+import { formatActivity, ActivityLink } from '../Activity';
+import { formatDate, withStatefulActions } from '../util';
 import * as actions from './actions';
 import { REDUX_KEY } from './constants';
 import msg from './messages';
@@ -142,9 +142,9 @@ const MembersTable = composeComponent('Admin.Members.Table',
                   }
                 </Cell>
                 <Cell locked={pending[name]}>
-                  <FlatButton containerElement={<Link to={`?audit=${name}`} />}>
+                  <ActivityLink to={`?audit=${name}`}>
                     {formatActivity(memberActivities, activity)}
-                  </FlatButton>
+                  </ActivityLink>
                 </Cell>
                 <Cell locked={pending[name]}>{formatDate(lastSeen)}</Cell>
               </TableRow>

@@ -1,5 +1,4 @@
 import invoke from 'lodash/fp/invoke';
-import FlatButton from 'material-ui/FlatButton';
 import {
   Table,
   TableBody,
@@ -23,8 +22,9 @@ import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
 
-import { formatActivity, formatDate } from '../util';
+import { formatActivity, ActivityLink } from '../Activity';
 import ErrorMessage from '../ErrorMessage';
+import { formatDate } from '../util';
 import * as actions from './actions';
 import { REDUX_KEY } from './constants';
 import msg from './messages';
@@ -82,9 +82,9 @@ const PackagesTable = composeComponent('Admin.Packages.Table',
                   }
                 </TableRowColumn>
                 <TableRowColumn>
-                  <FlatButton containerElement={<Link to={`?audit=${handle}`} />}>
+                  <ActivityLink to={`?audit=${handle}`}>
                     {formatActivity(packageActivities, activity)}
-                  </FlatButton>
+                  </ActivityLink>
                 </TableRowColumn>
                 <TableRowColumn>{formatDate(lastModified)}</TableRowColumn>
               </TableRow>
