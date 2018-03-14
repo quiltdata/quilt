@@ -126,6 +126,7 @@ export class Package extends React.PureComponent {
               <PackageHandle
                 isPublic={response.is_public}
                 isTeam={response.is_team}
+                linkUser
                 name={name}
                 owner={owner}
               />

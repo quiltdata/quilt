@@ -11,7 +11,7 @@ import palette from 'img/art/palette.png';
 import pkg from 'img/art/package.png';
 
 const Styler = styled.div`
-  margin-top: 2em;
+  margin-top: 3em;
 
   .intro-row:not(:nth-child(2)) {
     margin-top: 5em;

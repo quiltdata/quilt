@@ -3,11 +3,11 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
-import RaisedButton from 'material-ui/RaisedButton';
-import ImageRow from 'components/ImageRow';
 import background from 'img/back/black-hex.jpg';
 import config from 'constants/config';
 import { docs } from 'constants/urls';
+import ImageRow from 'components/ImageRow';
+import RaisedButton from 'material-ui/RaisedButton';
 
 import strings from './messages';
 

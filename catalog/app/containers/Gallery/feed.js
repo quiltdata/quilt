@@ -1,7 +1,7 @@
 const feed = [
   {
-    name: 'prod',
-    owner: 'aicsjackson',
+    name: 'release_myosin',
+    owner: 'aics',
     description: 'This package contains many of the cells seen, imaged, measured, and cataloged by the Allen Institute for Cell Science.',
   },
   {
