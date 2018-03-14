@@ -4,14 +4,20 @@ import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { push } from 'react-router-redux';
+import { compose } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import config from 'constants/config';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
 import { makeHandle } from 'utils/string';
 
 import { getLatest } from './actions';
+import { REDUX_KEY } from './constants';
 import feed from './feed';
+import reducer from './reducer';
+import saga from './saga';
 import { makeSelectLatest } from './selectors';
 
 const Clip = styled.div`
@@ -107,4 +113,8 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(Gallery);
+export default compose(
+  injectReducer(REDUX_KEY, reducer),
+  injectSaga(REDUX_KEY, saga),
+  connect(mapStateToProps, mapDispatchToProps),
+)(Gallery);

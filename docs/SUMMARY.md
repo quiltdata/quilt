@@ -3,7 +3,7 @@
 ## Quilt
 * [Introduction](README.md)
 * [Key concepts](terminology.md)
-* [CLI Installation](installation.md)
+* [Installation](installation.md)
 
 ## Get started \(Python\)
 * [Tutorials](use-cases.md)

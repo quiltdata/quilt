@@ -11,10 +11,6 @@ import { timestamp } from 'utils/time';
 import { tokenPath } from 'constants/urls';
 
 import {
-  getSearch,
-} from 'containers/SearchResults/actions';
-
-import {
   getAuthError,
   getAuthSuccess,
   getManifestError,
@@ -22,7 +18,6 @@ import {
   getPackageError,
   getPackageSuccess,
   refreshAuth,
-  setSearchText,
   storeTokens,
 } from './actions';
 import {
@@ -38,7 +33,6 @@ import {
 import {
   makeSelectAuth,
   makeSelectPackageSummary,
-  makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,
 } from './selectors';
@@ -190,27 +184,6 @@ function* doRefresh(action) {
   }
 }
 
-function* doSearch(action) {
-  const { payload } = action;
-  // execute the search if we've landed on the search page
-  if (payload.pathname && payload.pathname.startsWith('/search/')) {
-    // check for query parameters; ideally we'd use the router to parse this for
-    // us but we don't have that luxury with the ROUTER_START event
-    // doSearch catches both ROUTER_START and LOCATION_CHANGE since we may
-    // hit /search on a cold start
-    const re = /[^\w%]q=([^&]*)/;
-    const match = re.exec(payload.search || '');
-    if (match) {
-      yield put(setSearchText(decodeURIComponent(match[1])));
-    }
-    const search = yield select(makeSelectSearchText());
-    yield put(getSearch(search));
-  // otherwise clear the search text box
-  } else {
-    yield put(setSearchText(''));
-  }
-}
-
 function* doSignOut() {
   // wipe auth tokens and username from storage
   yield call(removeStorage, keys.TOKENS);
@@ -228,54 +201,24 @@ function* doStoreTokens(action) {
   yield call(setStorage, keys.TOKENS, JSON.stringify(action.response));
 }
 
-function* watchGetAuth() {
-  yield takeLatest(GET_AUTH, doGetAuth);
-}
 
-function* watchGetAuthSuccess() {
+export default function* () {
+  yield takeLatest(GET_AUTH, doGetAuth);
+
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
-}
 
-function* watchGetPackage() {
   yield takeLatest(GET_PACKAGE, doGetPackage);
-}
-
-function* watchGetPackageSuccess() {
   yield takeLatest(GET_PACKAGE_SUCCESS, doGetManifest);
-}
 
-function* watchRouterStart() {
   yield takeLatest(ROUTER_START, doRefresh);
   yield takeLatest(ROUTER_START, doIntercom);
-}
 
-function* watchLocationChange() {
   yield takeLatest(LOCATION_CHANGE, doRefresh);
   yield takeLatest(LOCATION_CHANGE, doIntercom);
-}
 
-function* watchSearch() {
-  yield takeLatest([LOCATION_CHANGE, ROUTER_START], doSearch);
-}
-
-function* watchSignOut() {
   yield takeLatest(SIGN_OUT, doSignOut);
   yield takeLatest(SIGN_OUT, doIntercom);
-}
 
-function* watchStoreTokens() {
   yield takeLatest(STORE_TOKENS, doStoreTokens);
 }
-
-export default [
-  watchGetAuth,
-  watchGetAuthSuccess,
-  watchGetPackage,
-  watchGetPackageSuccess,
-  watchLocationChange,
-  watchRouterStart,
-  watchSearch,
-  watchSignOut,
-  watchStoreTokens,
-];

@@ -1,6 +1,7 @@
 # Quilt tutorials and articles
 
 ## Introductions
+* [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
 * [Data packages for fast, reproducible Python analysis](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
 * [Quilt - a data package manager](https://qxf2.com/blog/quilt-data-package-manager/)
 

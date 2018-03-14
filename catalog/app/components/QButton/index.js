@@ -3,6 +3,7 @@ import RaisedButton from 'material-ui/RaisedButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 
+// TODO: deprecate?
 function QButton(props) {
   // swap primary and secondary for desirable color scheme
   return (

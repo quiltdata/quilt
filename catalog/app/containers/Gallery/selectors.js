@@ -2,8 +2,10 @@
 import { Map } from 'immutable';
 import { createSelector } from 'reselect';
 
+import { REDUX_KEY } from './constants';
 
-const selectLatest = (state) => state.getIn(['gallery', 'response'], Map({}));
+
+const selectLatest = (state) => state.getIn([REDUX_KEY, 'response'], Map({}));
 
 const makeSelectLatest = () => createSelector(
   selectLatest,

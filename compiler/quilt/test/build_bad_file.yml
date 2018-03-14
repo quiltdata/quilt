@@ -1,7 +1,7 @@
 ---
 contents:
   dataframes:
-    csv: 
+    csv:
       fake_key: fake_value
     tsv:
       file: data/10KRows13Cols.tsv

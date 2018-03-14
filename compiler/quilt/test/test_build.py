@@ -1,8 +1,6 @@
 """
 Test the build process
 """
-#TODO: we should really test the CLI interface itself, rather than
-#the functions that cli calls
 import os
 
 import pytest
@@ -105,6 +103,19 @@ class BuildTest(QuiltTestCase):
         assert ptypes.is_numeric_dtype(nulls['integers_nulled']), \
             'Expected column of ints with nulls to deserialize as numeric'
         # TODO add more integrity checks, incl. negative test cases
+
+    def test_build_bad_transform(self):
+        path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
+
+    def test_build_bad_file(self):
+        # Ensure we generate an error on bad build files
+        path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
+
+        with pytest.raises(build.BuildException):
+            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
 
     def test_build_empty(self):
         """
@@ -277,7 +288,7 @@ class BuildTest(QuiltTestCase):
 
     def test_build_glob_naming_conflict(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build_name_conflict.yml'
+        buildfile = mydir / 'build_globbing_name_conflict.yml'
 
         with pytest.raises(command.CommandException, match="Naming conflict:"):
             command.build('test/globdata', str(buildfile))
@@ -286,7 +297,7 @@ class BuildTest(QuiltTestCase):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing
         mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'globbing/build.yml'
+        buildfile = mydir / 'build_globbing.yml'
 
         command.build('test/globdata', str(buildfile))
 
@@ -297,12 +308,12 @@ class BuildTest(QuiltTestCase):
         globdata.csv.foo
         globdata.csv.nulls
         globdata.csv.nuts
-        globdata.csv.n10KRows13Cols
+        globdata.csv.n100Rows13Cols
         globdata.csv.subnode.csv
         globdata.csv.subnode.foo
         globdata.csv.subnode.goo
         # excel, kwargs sent
-        assert len(globdata.excel.n10KRows13Cols()) == 9995
+        assert len(globdata.excel.n100Rows13Cols()) == 95
         # naming collision -- acceptable during a single glob specification, should result in a rename
         globdata.collision.csv
         globdata.collision.csv_2

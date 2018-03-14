@@ -39,6 +39,7 @@ services:
       - AUTH_PROVIDER=github
       - OAUTH_CLIENT_ID_GITHUB
       - OAUTH_CLIENT_SECRET_GITHUB
+      - DEPLOYMENT_ID=dev
     depends_on:
       db:
         condition: service_healthy

@@ -1,6 +1,8 @@
 /* Profile constants */
 import config from 'constants/config';
 
+export const REDUX_KEY = 'app/Profile';
+
 export const GET_PROFILE = 'app/Profile/GET_PROFILE';
 export const GET_PROFILE_ERROR = 'app/Profile/GET_PROFILE_ERROR';
 export const GET_PROFILE_SUCCESS = 'app/Profile/GET_PROFILE_SUCCESS';
