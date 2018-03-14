@@ -34,6 +34,12 @@ ENV QUILT_SERVER_CONFIG=prod_config.py
 # Needed to run `flask db ...`
 ENV FLASK_APP=quilt_server
 
+# Enable colors.
+ENV TERM=xterm-256color
+
+# Display the deployment ID in the bash prompt, with pretty colors.
+RUN echo 'PS1="\\[\\033[01;31m\\]\${DEPLOYMENT_ID-[No DEPLOYMENT_ID]}\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "' >> ~/.bashrc
+
 EXPOSE 9000
 
 CMD ["uwsgi", "--ini", "/etc/uwsgi.ini"]
