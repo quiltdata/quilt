@@ -1,7 +1,9 @@
+import PT from 'prop-types';
 import React from 'react';
-import { lifecycle } from 'recompose';
+import { lifecycle, setPropTypes } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import { connect } from 'react-redux';
+import { push } from 'react-router-redux';
 import { FormattedMessage as FM } from 'react-intl';
 import Avatar from 'material-ui/Avatar';
 
@@ -27,20 +29,27 @@ const getShortName = (name) => name.slice(0, 2).toUpperCase();
 export default composeComponent('User',
   injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
+  setPropTypes({
+    match: PT.shape({
+      params: PT.shape({
+        username: PT.string.isRequired,
+      }).isRequired,
+    }).isRequired,
+  }),
   connect(
     createStructuredSelector({
       packages: makeSelectPackages(),
       user: makeSelectUserName(),
     }),
-    { getPackages }
+    { getPackages, push }
   ),
   lifecycle({
     componentWillMount() {
-      this.props.getPackages(this.props.params.username);
+      this.props.getPackages(this.props.match.params.username);
     },
     componentWillReceiveProps(nextProps) {
-      const { params: { username }, user } = this.props;
-      const { params: { username: newUsername }, user: newUser } = nextProps;
+      const { match: { params: { username } }, user } = this.props;
+      const { match: { params: { username: newUsername } }, user: newUser } = nextProps;
       // refetch packages if
       // 1. username has changed (obvious)
       // 2. current signed-in user has changed (due to visibility / permissions)
@@ -51,8 +60,8 @@ export default composeComponent('User',
   }),
   ({
     packages: { status, response },
-    params: { username },
-    router: { push },
+    match: { params: { username } },
+    push, // eslint-disable-line no-shadow
   }) =>
     status === apiStatus.ERROR ? <Error {...response} /> : (
       <div>

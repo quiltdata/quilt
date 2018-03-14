@@ -46,12 +46,12 @@ const Message = styled.p`
 
 export class Package extends React.PureComponent {
   componentWillMount() {
-    const { dispatch, params: { name, owner } } = this.props;
+    const { dispatch, match: { params: { name, owner } } } = this.props;
     dispatch(getPackage(owner, name));
   }
   componentWillReceiveProps(nextProps) {
-    const { dispatch, params: { name, owner }, user } = this.props;
-    const { params: { name: oldName, owner: oldOwner }, user: oldUser } = nextProps;
+    const { dispatch, match: { params: { name, owner } }, user } = this.props;
+    const { match: { params: { name: oldName, owner: oldOwner } }, user: oldUser } = nextProps;
     // if package has changed or user has changed
     // HACK we are using user as a poor proxy for signedIn state (also available)
     // but that does not cover all cases as a page could 404 for one user id
@@ -92,7 +92,7 @@ export class Package extends React.PureComponent {
     }
   }
   render() {
-    const { pkg, params } = this.props;
+    const { pkg, match: { params } } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
       case undefined:
@@ -156,7 +156,12 @@ export class Package extends React.PureComponent {
 Package.propTypes = {
   dispatch: PropTypes.func.isRequired,
   pkg: PropTypes.object,
-  params: PropTypes.object.isRequired,
+  match: PropTypes.shape({
+    params: PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      owner: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
   user: PropTypes.string,
 };
 

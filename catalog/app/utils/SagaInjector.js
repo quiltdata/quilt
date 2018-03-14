@@ -14,6 +14,8 @@ import {
   getContext,
   withContext,
 } from 'recompose';
+import { applyMiddleware } from 'redux';
+import createSagaMiddleware from 'redux-saga';
 
 import {
   composeComponent,
@@ -119,3 +121,12 @@ export const injectSaga = (key, saga, {
       },
     }),
     restoreProps({ key: ownPropsKey }));
+
+export const withSaga = (createStore) => (...args) => {
+  const sagaMiddleware = createSagaMiddleware();
+  const store = applyMiddleware(sagaMiddleware)(createStore)(...args);
+  return {
+    ...store,
+    runSaga: sagaMiddleware.run,
+  };
+};

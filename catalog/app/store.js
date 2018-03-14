@@ -1,20 +1,15 @@
 /* Create the store with asynchronously loaded reducers */
 import { createStore, applyMiddleware, compose } from 'redux';
-import { Iterable } from 'immutable';
+import { fromJS, Iterable } from 'immutable';
 import { routerMiddleware } from 'react-router-redux';
-import createSagaMiddleware from 'redux-saga';
+import { combineReducers } from 'redux-immutable';
 
-import { createReducerRegistry } from 'utils/ReducerInjector';
+import { withInjectableReducers } from 'utils/ReducerInjector';
+import { withSaga } from 'utils/SagaInjector';
 
-import createReducer from './reducers';
-
-const sagaMiddleware = createSagaMiddleware();
-// eslint-disable-next-line no-unused-vars
 export default function configureStore(initialState = {}, history) {
-  // sagaMiddleware: Makes redux-sagas work
   // routerMiddleware: Syncs the location/URL path to the state
   const middlewares = [
-    sagaMiddleware,
     routerMiddleware(history),
   ];
   // log redux state in development
@@ -27,37 +22,27 @@ export default function configureStore(initialState = {}, history) {
     middlewares.push(createLogger({ stateTransformer }));
   }
 
-  const enhancers = [
-    applyMiddleware(...middlewares),
-  ];
-
   // If Redux DevTools Extension is installed use it, otherwise use Redux compose
   /* eslint-disable no-underscore-dangle */
   const composeEnhancers =
     process.env.NODE_ENV !== 'production' &&
     typeof window === 'object' &&
-    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ ?
-      window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ : compose;
+    window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__
+      ? window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__({
+        // TODO Try to remove when `react-router-redux` is out of beta, LOCATION_CHANGE should not be fired more than once after hot reloading
+        // Prevent recomputing reducers for `replaceReducer`
+        shouldHotReload: false,
+      })
+      : compose;
   /* eslint-enable */
 
-  const store = createStore(
-    createReducer(),
-    composeEnhancers(...enhancers)
+  return createStore(
+    (state) => state, // noop reducer, the actual ones will be injected
+    fromJS(initialState),
+    composeEnhancers(
+      withSaga,
+      applyMiddleware(...middlewares),
+      withInjectableReducers(combineReducers),
+    )
   );
-
-  const reducerRegistry = createReducerRegistry((injected) => {
-    store.replaceReducer(createReducer(injected));
-  });
-
-  // Extensions
-  store.runSaga = sagaMiddleware.run;
-  store.injectReducer = reducerRegistry.set;
-  // Make reducers hot reloadable, see http://mxs.is/googmo
-  /* istanbul ignore next */
-  if (module.hot) {
-    module.hot.accept('./reducers', () => {
-      store.replaceReducer(createReducer(reducerRegistry.get()));
-    });
-  }
-  return store;
 }

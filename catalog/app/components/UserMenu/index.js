@@ -6,7 +6,7 @@ import MenuItem from 'material-ui/MenuItem';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { setPropTypes, setStatic } from 'recompose';
 import styled from 'styled-components';
 

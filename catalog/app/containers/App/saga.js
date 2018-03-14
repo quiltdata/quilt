@@ -8,6 +8,7 @@ import config from 'constants/config';
 import { requestJSON } from 'utils/request';
 import { keys, removeStorage, setStorage } from 'utils/storage';
 import { timestamp } from 'utils/time';
+import { makeSelectLocation } from 'utils/router';
 import { tokenPath } from 'constants/urls';
 
 import {
@@ -19,6 +20,7 @@ import {
   getPackageSuccess,
   refreshAuth,
   storeTokens,
+  routerStart,
 } from './actions';
 import {
   GET_AUTH,
@@ -201,6 +203,10 @@ function* doStoreTokens(action) {
   yield call(setStorage, keys.TOKENS, JSON.stringify(action.response));
 }
 
+function* doRouterStart() {
+  const location = yield select(makeSelectLocation());
+  yield put(routerStart(location));
+}
 
 export default function* () {
   yield takeLatest(GET_AUTH, doGetAuth);
@@ -221,4 +227,6 @@ export default function* () {
   yield takeLatest(SIGN_OUT, doIntercom);
 
   yield takeLatest(STORE_TOKENS, doStoreTokens);
+
+  yield call(doRouterStart);
 }

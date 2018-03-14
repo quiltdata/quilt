@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import React, { Fragment } from 'react';
 import { Col, Row } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import { push } from 'react-router-redux';
 import { setPropTypes, withHandlers } from 'recompose';
 import { createStructuredSelector } from 'reselect';
@@ -83,14 +83,17 @@ export default composeComponent('AuthBar',
       <NavRow>
         <Right>
           <FlatButton href={docs} label="docs" style={navStyle} />
-          {
-            config.team ? null : (
-              <Fragment>
-                <FlatButton href="/#pricing" label="pricing" key="pricing" style={navStyle} />
-                <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
-              </Fragment>
-            )
-          }
+          {config.team ? null : (
+            <Fragment>
+              <FlatButton
+                containerElement={<Link to="/#pricing" />}
+                label="pricing"
+                key="pricing"
+                style={{ ...navStyle, verticalAlign: 'middle' }}
+              />
+              <FlatButton href={jobs} key="jobs" label="jobs" style={navStyle} />
+            </Fragment>
+          )}
           <FlatButton href={blog} label="blog" style={navStyle} />
           <FlatButton href={company} label="about" style={navStyle} />
         </Right>
