@@ -1,39 +1,33 @@
 # Background
-## Package handles
-* Packages are referenced by a handle of the form `OWNER/NAME`
-* Teams packages include a prefix, `TEAM:OWNER/NAME`
-
-## READMEs 
-A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/). READMEs are rendered to HTML on the [package landing page](https://quiltdata.com/package/danWebster/sgRNAs).
-
-## Short hashes
-Commands that take hashes support "short hashes", up to uniqueness.
-```sh
-quilt install akarve/examples -x 4594b5
-# matches hash 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e
-```
- In practice, 6-8 characters is sufficient to achieve uniqueness.
-
-## Requirements file (quilt.yml)
-```sh
-$ quilt install [@FILENAME]
-# quilt.yml is the default if @filename is absent
-```
-
-Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages: 
-```yaml
-packages:
-  - USER/PACKAGE[/SUBPACKAGE][:h[ash]|:t[ag]|:v[ersion]][:HASH|TAG|VERSION]
-```
-
-### Example
-```
-packages:
-  - vgauthier/DynamicPopEstimate   # get latest
-  - danWebster/sgRNAs:a972d92      # get a specific version via hash
-  - akarve/sales:tag:latest        # get a specific version via tag
-  - asah/snli:v:1.0                # get a specific version via version
-```
+* **package handles**
+  * Packages are referenced by a handle of the form `OWNER/NAME`
+  * Teams packages include a prefix, `TEAM:OWNER/NAME`
+* **READMEs** 
+  * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/). READMEs are rendered to HTML on the [package landing page](https://quiltdata.com/package/danWebster/sgRNAs).
+* **Short hashes**
+  * Commands that take hashes support "short hashes", up to uniqueness. In practice, 6-8 characters is sufficient to achieve uniqueness.
+  ```sh
+  quilt install akarve/examples -x 4594b5
+  # matches hash 4594b58d64dd9c98b79b628370618031c66e80cbbd1db48662be0b7cac36a74e
+  ```
+* **Requirements file (quilt.yml)**
+  ```sh
+  $ quilt install [@FILENAME]
+  # quilt.yml is the default if @filename is absent
+  ```
+  * Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages: 
+  ```yaml
+    packages:
+      - USER/PACKAGE[/SUBPACKAGE][:h[ash]|:t[ag]|:v[ersion]][:HASH|TAG|VERSION]
+  ```
+  * Example
+  ```
+  packages:
+    - vgauthier/DynamicPopEstimate   # get latest
+    - danWebster/sgRNAs:a972d92      # get a specific version via hash
+    - akarve/sales:tag:latest        # get a specific version via tag
+    - asah/snli:v:1.0                # get a specific version via version
+  ```
 
 # API
 
@@ -45,7 +39,7 @@ See [teams docs](./teams.md) for additional commands and syntax.
 | --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
 | `quilt push USER/PACKAGE [--public` &#124; `--team]` | `quilt.push("USER/PACKAGE", is_public=False, is_team=False)` | Stores the package in the registry |
-| `quilt install USER/PACKAGE[/SUBPATH/...]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
+| `quilt install USER/PACKAGE[/SUBPATH/...] [-x HASH | -t TAG | -v VERSION]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
 | `quilt install @FILE=quilt.yml` | Not supported | Installs all specified packages using the requirements syntax (above) |
 | `quilt delete USER/PACKAGE` | `quilt.delete("USER/PACKAGE")` | Removes the package from the registry. Does not delete local data. |
 
@@ -93,7 +87,6 @@ For a package in a team registry:
 ```python
 from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
-
 
 ## Using packages
 Packages contain three types of nodes:
