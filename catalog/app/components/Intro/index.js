@@ -4,13 +4,16 @@ import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import styled from 'styled-components';
 
+import collab from 'img/art/collaborate.png';
 import speedometer from 'img/art/accelerate.png';
 import Gallery from 'containers/Gallery';
 import palette from 'img/art/palette.png';
 import pkg from 'img/art/package.png';
 
 const Styler = styled.div`
-  .intro-row:not(:first-child) {
+  margin-top: 3em;
+
+  .intro-row:not(:nth-child(2)) {
     margin-top: 5em;
   }
 
@@ -51,11 +54,12 @@ const Terminal = styled.div`
 function Intro() {
   return (
     <Styler>
+      <Gallery />
       <IntroRow
         detail={
           <div>
             <p>
-              Install data with one command.
+              Move data with one command.
               Discover packages from the community.
               Share your packages (or keep them private).
             </p>
@@ -65,36 +69,55 @@ function Intro() {
             </p>
           </div>
         }
-        src={palette}
-        title="Create a library of data"
+        src={pkg}
+        title="Get started"
         typing={
           <div>
             <span> $ pip install quilt</span>
             <span> $ quilt install uciml/iris</span>
+            <span> $ python</span>
+            <span> &gt;&gt;&gt; from quilt.data.uciml import iris</span>
+            <span> &#35; you&#39;ve got data</span>
           </div>
         }
       />
-      <br />
-      <Gallery />
       <IntroRow
         detail={
           <div>
             <p>
-              Quilt stores a complete revision history for every package.
-              Versioned data yields predictable, reproducible results.
+              Quilt stores immutable versions for every piece of data.
+              Reproduce analyses from any point in time.
               Lose something? Roll back and start over.
             </p>
             <h1>Organize scattered files</h1>
             <p>
               Combine numerous files and folders into simple, reusable packages.
-              Quilt de-duplicates repeated files, minimizing network and storage
+              Quilt deduplicates repeated files, minimizing network and storage
               bottlenecks.
             </p>
           </div>
         }
-        src={pkg}
+        src={palette}
         textRight
-        title="Version your data"
+        title="Reproduce analysis"
+      />
+      <IntroRow
+        detail={
+          <div>
+            <p>
+              Quilt integrates data sources so that everyone is on the same page.
+              Quilt Team Edition offers a high-security, dedicated data registry
+              where colleagues can discover and share data.
+            </p>
+            <h1>Audit every access</h1>
+            <p>
+              Quilt admins can audit every read
+              and every change to the data.
+            </p>
+          </div>
+        }
+        src={collab}
+        title="Collaborate in teams"
       />
       <IntroRow
         detail={
@@ -111,6 +134,7 @@ function Intro() {
         }
         src={speedometer}
         srcFade
+        textRight
         title="Analyze faster"
         typing={
           <div>
@@ -119,7 +143,6 @@ function Intro() {
           </div>
         }
       />
-
     </Styler>
   );
 }

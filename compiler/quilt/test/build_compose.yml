@@ -1,0 +1,4 @@
+---
+contents:
+  from_simple_foo: 
+    package: test/simple/foo

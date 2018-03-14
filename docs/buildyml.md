@@ -63,6 +63,7 @@ contents:
 * `kwargs` - these options are passed through to the parser (usually [`pandas.read_csv`](https://pandas.pydata.org/pandas-docs/stable/generated/pandas.read_csv.html) so that users can skip lines, type columns, specify delimiters, and much more)
 * `checks` - experimental data unit tests
 * `environments` - experimental environments for `checks`
+* `package` - experimental source specifier includes an existing package or sub-package in the build tree (see [Package Composition](compose.md))
 * `*?[!]` - any character in this group will initiate glob-style pattern matching
 
 `transform` and `kwargs` can be provided at the group level, in which case they apply to all descendants until and unless overridden.

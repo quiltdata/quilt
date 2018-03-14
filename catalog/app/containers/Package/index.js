@@ -18,8 +18,8 @@ import Help from 'components/Help';
 import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
-import { makeSelectPackage, makeSelectReadMe, makeSelectUserName } from 'containers/App/selectors';
-import { makeHandle } from 'utils/string';
+import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
+import { makeHandle, numberToCommaString } from 'utils/string';
 import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
@@ -40,14 +40,18 @@ const Tree = styled.pre`
   line-height: 1em;
 `;
 
+const Message = styled.p`
+  opacity: 0.5;
+`;
+
 export class Package extends React.PureComponent {
   componentWillMount() {
-    const { dispatch, params: { name, owner } } = this.props;
+    const { dispatch, match: { params: { name, owner } } } = this.props;
     dispatch(getPackage(owner, name));
   }
   componentWillReceiveProps(nextProps) {
-    const { dispatch, params: { name, owner }, user } = this.props;
-    const { params: { name: oldName, owner: oldOwner }, user: oldUser } = nextProps;
+    const { dispatch, match: { params: { name, owner } }, user } = this.props;
+    const { match: { params: { name: oldName, owner: oldOwner } }, user: oldUser } = nextProps;
     // if package has changed or user has changed
     // HACK we are using user as a poor proxy for signedIn state (also available)
     // but that does not cover all cases as a page could 404 for one user id
@@ -68,8 +72,27 @@ export class Package extends React.PureComponent {
       }
     }
   }
+  renderReadme(manifest) {
+    const { status, error = {}, response = {} } = manifest;
+    switch (status) {
+      case undefined:
+      case apiStatus.WAITING:
+        return <Working />;
+      case apiStatus.ERROR:
+        return <Error {...error} />;
+      default:
+        break;
+    }
+
+    if (response.readme_preview) {
+      return <Markdown data={response.readme_preview} />;
+    // eslint-disable-next-line no-else-return
+    } else {
+      return <Message><FormattedMessage {...strings.noReadme} /></Message>;
+    }
+  }
   render() {
-    const { pkg, params, readme = {} } = this.props;
+    const { pkg, match: { params } } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
       case undefined:
@@ -83,9 +106,10 @@ export class Package extends React.PureComponent {
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
     const date = new Date(ts * 1000).toLocaleString();
-    const { manifest } = pkg;
+    const { manifest = { response: {} } } = pkg;
     const previewBuffer = [];
-    if (manifest && manifest.response && manifest.response.preview) {
+
+    if (manifest.response.preview) {
       this.printManifest(previewBuffer, manifest.response.preview);
     }
 
@@ -102,16 +126,13 @@ export class Package extends React.PureComponent {
               <PackageHandle
                 isPublic={response.is_public}
                 isTeam={response.is_team}
+                linkUser
                 name={name}
                 owner={owner}
               />
             </h1>
           </Header>
-          <Markdown
-            data={readme.response || ''}
-            status={readme.status}
-            useStatus
-          />
+          { this.renderReadme(manifest || {}) }
           <h1><FormattedMessage {...strings.contents} /></h1>
           <Tree>{previewBuffer.join('')}</Tree>
         </Col>
@@ -122,6 +143,7 @@ export class Package extends React.PureComponent {
               <UpdateInfo
                 author={author}
                 date={date}
+                size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
             </Col>
@@ -135,14 +157,17 @@ export class Package extends React.PureComponent {
 Package.propTypes = {
   dispatch: PropTypes.func.isRequired,
   pkg: PropTypes.object,
-  params: PropTypes.object.isRequired,
-  readme: PropTypes.object,
+  match: PropTypes.shape({
+    params: PropTypes.shape({
+      name: PropTypes.string.isRequired,
+      owner: PropTypes.string.isRequired,
+    }).isRequired,
+  }).isRequired,
   user: PropTypes.string,
 };
 
 const mapStateToProps = createStructuredSelector({
   pkg: makeSelectPackage(),
-  readme: makeSelectReadMe(),
   user: makeSelectUserName(),
 });
 
@@ -199,7 +224,23 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
-const UpdateInfo = ({ author, date, version }) => (
+function readableBytes(bytes) {
+  const mb = bytes / 1000000;
+  if (mb < 1) {
+    const fracStr = (mb - Math.floor(mb)).toFixed(6);
+    // show fractional MB to 6 sig-digits
+    return `${fracStr} MB`;
+  }
+  // only show whole MB
+  return `${numberToCommaString(Math.floor(mb))} MB`;
+}
+
+const UpdateInfo = ({
+  author,
+  date,
+  size,
+  version,
+}) => (
   <div>
     <h1><FormattedMessage {...strings.latest} /></h1>
     <dl>
@@ -215,6 +256,10 @@ const UpdateInfo = ({ author, date, version }) => (
           {version}
         </Ellipsis>
       </dd>
+      <dt><FormattedMessage {...strings.stats} /></dt>
+      <dd title="deduplicated, uncompresssed">
+        {readableBytes(size)}
+      </dd>
     </dl>
   </div>
 );
@@ -222,6 +267,7 @@ const UpdateInfo = ({ author, date, version }) => (
 UpdateInfo.propTypes = {
   author: PropTypes.string,
   date: PropTypes.string,
+  size: PropTypes.number,
   version: PropTypes.string,
 };
 

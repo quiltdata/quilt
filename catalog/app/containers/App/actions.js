@@ -4,9 +4,6 @@ import {
   GET_AUTH,
   GET_AUTH_ERROR,
   GET_AUTH_SUCCESS,
-  GET_BLOB,
-  GET_BLOB_ERROR,
-  GET_BLOB_SUCCESS,
   GET_MANIFEST,
   GET_MANIFEST_ERROR,
   GET_MANIFEST_SUCCESS,
@@ -41,29 +38,6 @@ export function getAuthSuccess(response) {
   return {
     type: GET_AUTH_SUCCESS,
     response,
-  };
-}
-
-export function getBlob(path) {
-  return {
-    type: GET_BLOB,
-    path,
-  };
-}
-
-export function getBlobError(error, path) {
-  return {
-    type: GET_BLOB_ERROR,
-    error,
-    path,
-  };
-}
-
-export function getBlobSuccess(response, path) {
-  return {
-    type: GET_BLOB_SUCCESS,
-    response,
-    path,
   };
 }
 

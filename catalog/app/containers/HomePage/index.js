@@ -2,6 +2,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
+import CTA from 'components/CallToAction';
 import config from 'constants/config';
 import Demo, { id } from 'components/Demo';
 import Feature from 'components/Feature';
@@ -42,6 +43,7 @@ export default class HomePage extends React.PureComponent { // eslint-disable-li
           tagline={tagline}
           signUp={signUp}
         />
+        <CTA />
         <Pad top left right bottom>
           <Intro />
           <Styler>

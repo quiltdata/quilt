@@ -13,13 +13,19 @@
 Visit [docs.quiltdata.com](https://docs.quiltdata.com/). Or [browse the docs on GitHub](/docs/SUMMARY.md).
 
 # Quilt is a data registry
+Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and Docker registries do for code: provide a centralized, collaborative store of record.
 
-With Quilt you can build, push, and install data packages. Data packages are versioned, reusable data structures that can be  loaded into Python. Quilt is designed to support reproducible, auditable, and compliant workflows.
+## Getting started tutorial
+* [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
 
-Core features include:
-* Versioning and storage of large data
-* Transformation of a variety of file formats into data frames (via pandas and pyarrow)
-* De-duplication of repeated data for reduced disk and network footprint
+## Benefits
+
+* **Reproducibility** - Imagine source code without versions. Ouch. Why live with un-versioned data? Versioned data makes analysis reproducible by creating unambiguous references to potentially complex data dependencies.
+* **Collaboration and transparency** - Data likes to be shared. Quilt offers a centralized data warehouse for finding and sharing data.
+* **Auditing** - the registry tracks all reads and writes so that admins know when data are accessed or changed
+* **Less data prep** - the registry abstracts away network, storage, and file format so that users can focus on what they wish to do with the data.
+* **Deduplication** - Data fragments are hashed with `SHA256`. Duplicate data fragments are written to disk once globally per user. As a result, large, repeated data fragments consume less disk and network bandwidth.
+* **Faster analysis** - Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 
 ## Commands
 

@@ -19,6 +19,7 @@ team: {
 ### Update docker images as backend components evolve
 * `docker-compose build [catalog|flask|auth|etc.]`
 * `docker-compose pull django`
+* `docker build -t quiltdata/django .` (in django repo)
 
 ## Common operations
 * `npm run lint` to lint

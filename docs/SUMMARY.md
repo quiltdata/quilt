@@ -3,7 +3,7 @@
 ## Quilt
 * [Introduction](README.md)
 * [Key concepts](terminology.md)
-* [CLI Installation](installation.md)
+* [Installation](installation.md)
 
 ## Get started \(Python\)
 * [Tutorials](use-cases.md)
@@ -13,14 +13,14 @@
 * [Build.yml specification](buildyml.md)
 
 ## API Reference
-* [Command line](api.md)
-* [Python](api.md)
+* [Python & CLI](api.md)
 * [R](api-r.md)
 
 ## Advanced Usage
 * [Shared drives](shared-store.md)
 * [Teams](teams.md)
 * [Checks](checks.md)
+* [Package composition](compose.md)
 
 ## Support
 * [Troubleshooting](troubleshooting.md)

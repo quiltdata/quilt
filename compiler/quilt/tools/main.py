@@ -35,30 +35,6 @@ def get_full_version():
     # ..otherwise, just the version
     return "quilt " + VERSION
 
-def _print_table(table, padding=2):
-    col_width = max(len(word) for row in table for word in row) + 2
-    cols = list(zip(*table))
-    cols_width = [max(len(word) + padding for word in col) for col in cols]
-    for row in table:
-        i = 0
-        line = ""
-        for word in row:
-            line += "".join(word.ljust(cols_width[i]))
-            i += 1
-        print(line)
-
-def _cli_list_users(team=None):
-    res = command.list_users(team)
-    l = [['Name', 'Email', 'Active', 'Superuser']]
-    for user in res.get('results'):
-        name = user.get('username')
-        email = user.get('email')
-        active = user.get('is_active')
-        su = user.get('is_superuser')
-        l.append([name, email, str(active), str(su)])
-
-    _print_table(l)
-
 class UsageAction(argparse.Action):
     """Argparse action to print usage (short help)"""
     def __call__(self, parser, namespace, values, option_string=None):
@@ -68,21 +44,15 @@ class UsageAction(argparse.Action):
 
 class CustomHelpParser(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
-        full_help_only = kwargs.pop('full_help_only', False)
         helpcommand = kwargs.pop('helpcommand', False)
 
         kwargs['add_help'] = False
+        kwargs.setdefault('formatter_class', argparse.RawDescriptionHelpFormatter)
         super(CustomHelpParser, self).__init__(*args, **kwargs)
-        if full_help_only:
-            self.add_argument('--help', '-h', action='help', help="Show help")
-        elif helpcommand:
-            self.add_argument('--help', action='help', help="Show this message")
-            self.add_argument('-h', action=UsageAction, help="Show short help (usage) for the 'help' command",
-                              nargs=0, default=argparse.SUPPRESS)
+        if helpcommand:
+            self.add_argument('--help', '-h', action='help', help="Show this message")
         else:
-            self.add_argument('--help', action='help', help="Show full help for given command")
-            self.add_argument('-h', action=UsageAction, help="Show short help (usage) for given command",
-                              nargs=0, default=argparse.SUPPRESS)
+            self.add_argument('--help', '-h', action='help', help="Show help for given command")
 
 
 def argument_parser():
@@ -91,7 +61,9 @@ def argument_parser():
         return (hashstr if 6 <= len(hashstr) <= 64 else
                 group.error('hashes must be 6-64 chars long'))
 
-    parser = CustomHelpParser(description="Quilt Command Line", add_help=False, full_help_only=True,)
+    description = ("Quilt Command Line\n"
+                   "Visit our online docs at https://docs.quiltdata.com/")
+    parser = CustomHelpParser(description=description, add_help=False)
     parser.add_argument('--version', action='version', version=get_full_version(),
                         help="Show version number and exit")
 
@@ -103,8 +75,8 @@ def argument_parser():
 
 
     ## Note for `add_parser()` parameters:
-    #   `description` can be long-form help.
-    #   `help` is short help, listed in the base `quilt help` view.
+    #   `description` can be a full, detailed description of usage and characteristics  (displayed as-is/raw)
+    #   `help` is short help, shown in command lists like 'quilt help' or 'quilt help access' (auto-formatted)
 
     # quilt access
     shorthelp = "List, add, or remove who has access to a given package"
@@ -136,7 +108,7 @@ def argument_parser():
     shorthelp = "Audit a user or a package."
     audit_p = subparsers.add_parser("audit", description=shorthelp, help=shorthelp)
     audit_p.add_argument("user_or_package", type=str, help=shorthelp)
-    audit_p.set_defaults(func=command.audit)
+    audit_p.set_defaults(func=command._cli_audit)
 
     # quilt build
     shorthelp = "Compile a Quilt data package from directory or YAML file"
@@ -295,7 +267,7 @@ def argument_parser():
     shorthelp = "List users in your team."
     user_list_p = users_subparsers.add_parser("list", help=shorthelp)
     user_list_p.add_argument("team", type=str)
-    user_list_p.set_defaults(func=_cli_list_users)
+    user_list_p.set_defaults(func=command._cli_list_users)
 
     # user create
     shorthelp = "Create a user. Must provide username and email. Username must be unique."

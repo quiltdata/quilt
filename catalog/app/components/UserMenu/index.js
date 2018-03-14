@@ -6,11 +6,14 @@ import MenuItem from 'material-ui/MenuItem';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
+import { Link } from 'react-router-dom';
+import { setPropTypes, setStatic } from 'recompose';
 import styled from 'styled-components';
 
 import MIcon from 'components/MIcon';
 import SignIn from 'components/SignIn';
 import { authButtonStyle } from 'constants/style';
+import { composeComponent } from 'utils/reactTools';
 
 import strings from './messages';
 
@@ -19,54 +22,51 @@ const Container = styled.div`
 `;
 
 // TODO move this to a separate local component
-// eslint-disable-next-line object-curly-newline
-const UserMenu = ({ error, signedIn, name, waiting }) => {
-  const inner = signedIn ? <AuthMenu name={name} />
-    : <SignIn error={error} waiting={waiting} />;
-  return (
+export default composeComponent('UserMenu',
+  setPropTypes({
+    error: PropTypes.object,
+    signedIn: PropTypes.bool.isRequired,
+    name: PropTypes.string,
+    waiting: PropTypes.bool.isRequired,
+  }),
+  // eslint-disable-next-line object-curly-newline
+  ({ error, signedIn, name, waiting }) => (
     <Container>
-      { inner }
+      {signedIn
+        ? <AuthMenu name={name} />
+        : <SignIn error={error} waiting={waiting} />
+      }
     </Container>
-  );
-};
+  ));
 
-UserMenu.propTypes = {
-  error: PropTypes.object,
-  signedIn: PropTypes.bool.isRequired,
-  name: PropTypes.string,
-  waiting: PropTypes.bool.isRequired,
-};
-
-
-const AuthMenu = ({ name }) => (
-  <IconMenu
-    iconButtonElement={
-      <FlatButton
-        label={
-          <span>
-            { name } <MIcon color={authButtonStyle.color} drop="6px">expand_more</MIcon>
-          </span>
-        }
-        style={authButtonStyle}
-      />
-    }
-    targetOrigin={{ horizontal: 'right', vertical: 'top' }}
-    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-  >
-    <MenuItem href="/profile">
-      <FormattedMessage {...strings.profile} />
-    </MenuItem>
-    <Divider />
-    <MenuItem href="/signout">
-      <FormattedMessage {...strings.logOut} />
-    </MenuItem>
-  </IconMenu>
+const renderItem = (to, msg) => (
+  <MenuItem containerElement={<Link to={to} />}>
+    <FormattedMessage {...msg} />
+  </MenuItem>
 );
 
-AuthMenu.muiName = 'IconMenu';
-
-AuthMenu.propTypes = {
-  name: PropTypes.string,
-};
-
-export default UserMenu;
+const AuthMenu = composeComponent('UserMenu.AuthMenu',
+  setStatic('muiName', 'IconMenu'),
+  setPropTypes({
+    name: PropTypes.string,
+  }),
+  ({ name }) => (
+    <IconMenu
+      iconButtonElement={
+        <FlatButton
+          label={
+            <span>
+              { name } <MIcon color={authButtonStyle.color} drop="6px">expand_more</MIcon>
+            </span>
+          }
+          style={authButtonStyle}
+        />
+      }
+      targetOrigin={{ horizontal: 'right', vertical: 'top' }}
+      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+    >
+      {renderItem('/profile', strings.profile)}
+      <Divider />
+      {renderItem('/signout', strings.logOut)}
+    </IconMenu>
+  ));

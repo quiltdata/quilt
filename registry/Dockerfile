@@ -21,18 +21,24 @@ COPY uwsgi.ini /etc/uwsgi.ini
 # Install the Flask app
 # Do this as the last step to maximize caching.
 COPY quilt_server /usr/src/quilt-server/quilt_server
-COPY migrations /usr/src/quilt-server/migrations
-COPY scripts /usr/src/quilt-server/scripts
 COPY setup.py MANIFEST.in /usr/src/quilt-server/
-WORKDIR /usr/src/quilt-server/
 RUN pip3 install /usr/src/quilt-server/
 
 USER quilt
+WORKDIR /home/quilt
+COPY scripts ./scripts
+COPY migrations ./migrations
 
 ENV QUILT_SERVER_CONFIG=prod_config.py
 
 # Needed to run `flask db ...`
 ENV FLASK_APP=quilt_server
+
+# Enable colors.
+ENV TERM=xterm-256color
+
+# Display the deployment ID in the bash prompt, with pretty colors.
+RUN echo 'PS1="\\[\\033[01;31m\\]\${DEPLOYMENT_ID-[No DEPLOYMENT_ID]}\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "' >> ~/.bashrc
 
 EXPOSE 9000
 

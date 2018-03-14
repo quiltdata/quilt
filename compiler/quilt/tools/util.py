@@ -7,6 +7,7 @@ import os
 import re
 
 from appdirs import user_config_dir, user_data_dir
+from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
 from .compat import pathlib
@@ -16,7 +17,43 @@ APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 CONFIG_DIR = user_config_dir(APP_NAME, APP_AUTHOR)
+PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
+EXTENDED_PACKAGE_RE = re.compile(
+    r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
+)
 
+#return type for parse_package_extended
+PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
+def parse_package_extended(identifier):
+    """
+    Parses the extended package syntax and returns a tuple of (package, hash, version, tag).
+    """
+    match = EXTENDED_PACKAGE_RE.match(identifier)
+    if match is None:
+        raise ValueError
+
+    full_name, pkg_hash, version, tag = match.groups()
+    team, user, name, subpath = parse_package(full_name, allow_subpath=True)
+
+    # namedtuple return value
+    return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
+
+def parse_package(name, allow_subpath=False):
+    values = name.split(':', 1)
+    team = values[0] if len(values) > 1 else None
+
+    values = values[-1].split('/')
+    # Can't do "owner, pkg, *subpath = ..." in Python2 :(
+    (owner, pkg), subpath = values[:2], values[2:]
+    if not owner or not pkg:
+        # Make sure they're not empty.
+        raise ValueError
+    if subpath and not allow_subpath:
+        raise ValueError
+
+    if allow_subpath:
+        return team, owner, pkg, subpath
+    return team, owner, pkg
 
 class FileWithReadProgress(Iterator):
     """
@@ -119,8 +156,7 @@ def is_identifier(string, permit_keyword=False):
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
-    # Compiled and cached by re lib
-    matched = re.match(r'^[a-zA-Z_]\w*$', string)
+    matched = PYTHON_IDENTIFIER_RE.match(string)
     if permit_keyword:
         return bool(matched)
     return bool(matched and not keyword.iskeyword(string))
@@ -162,8 +198,9 @@ def to_identifier(string, permit_keyword=False):
     :rtype: string
     """
     # Not really useful to expose as a constant, and python will compile and cache
-    # .strip('_') not necessary, but is consistent with older behavior
-    result = re.sub(r'[^0-9a-zA-Z]+', '_', string).strip('_')
+    result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
+    # Not technically necessary, but retains compatibility with older code, and doesn't hurt
+    result = result.strip('_')
 
     if result and result[0].isdigit():
         result = "n" + result
@@ -200,7 +237,7 @@ def to_nodename(string, invalid=None, raise_exc=False):
     >>> to_nodename('9:blah', ['n9_blah', 'n9_blah_2']) -> 'n9_blah_3'
 
     :param string: string to convert to a nodename
-    :param invalid: Container of names to avoid.  Efficiency: Use a `set()`
+    :param invalid: Container of names to avoid.  Efficiency: Use set or dict
     :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
     :type raise_exc: bool

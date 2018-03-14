@@ -12,7 +12,7 @@ major performance implications. See `expire_on_commit=False` in `__init__.py`.
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from functools import wraps
+from functools import reduce, wraps
 import gzip
 import json
 import time
@@ -36,10 +36,10 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
+from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, Invitation, Log, Package,
+from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 
@@ -544,31 +544,51 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+def download_object_preview_impl(owner, obj_hash):
+    resp = s3_client.get_object(
+        Bucket=PACKAGE_BUCKET_NAME,
+        Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+        Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+    )
+
+    body = resp['Body']
+    with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+        data = fd.read(MAX_PREVIEW_SIZE)
+
+    return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
 
 def download_object_preview(owner, obj_hash):
     try:
-        resp = s3_client.get_object(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
-            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
-        )
-
-        body = resp['Body']
-        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-            data = fd.read(MAX_PREVIEW_SIZE)
-
-        return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
+        return download_object_preview_impl(owner, obj_hash)
     except ClientError as ex:
+        _mp_track(
+            type="download_exception",
+            obj_owner=owner,
+            obj_hash=obj_hash,
+            error=str(ex),
+        )
         if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
             # The client somehow failed to upload the README.
-            return None
+            raise ApiException(
+                requests.codes.forbidden,
+                "Failed to download the README; make sure it has been uploaded correctly."
+            )
         else:
             # Something unexpected happened.
             raise
-    except OSError:
+    except OSError as ex:
         # Failed to ungzip: either the contents is not actually gzipped,
         # or the response was truncated because it was too big.
-        return None
+        _mp_track(
+            type="download_exception",
+            obj_owner=owner,
+            obj_hash=obj_hash,
+            error=str(ex),
+        )
+        raise ApiException(
+            requests.codes.forbidden,
+            "Failed to ungzip the README; make sure it has been uploaded correctly."
+        )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @api(schema=PACKAGE_SCHEMA)
@@ -716,14 +736,24 @@ def package_put(owner, package_name, package_hash):
         return Response(_generate(), content_type='application/json')
 
     if instance is None:
+        readme_hash = None
+        readme_preview = None
+
         readme = contents.children.get(README)
         if isinstance(readme, FileNode):
             assert len(readme.hashes) == 1
             readme_hash = readme.hashes[0]
-            readme_preview = download_object_preview(owner, readme_hash)
-        else:
-            readme_hash = None
-            readme_preview = None
+
+            # Download the README if necessary. We want to do this early, before we call
+            # with_for_update() on S3Blob, since it's potentially expensive.
+            have_readme = (
+                db.session.query(sa.func.count(S3Blob.id))
+                .filter_by(owner=owner, hash=readme_hash)
+                .filter(S3Blob.preview.isnot(None))
+            ).one()[0] == 1
+
+            if not have_readme:
+                readme_preview = download_object_preview(owner, readme_hash)
 
         instance = Instance(
             package=package,
@@ -754,8 +784,13 @@ def package_put(owner, package_name, package_hash):
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
-                if blob_hash == readme_hash:
+            if blob_hash == readme_hash:
+                if readme_preview is not None:
+                    # If we've just downloaded the README, save it in the blob.
+                    # Otherwise, it was already set.
                     blob.preview = readme_preview
+                    blob.preview_tsv = sa.func.to_tsvector(FTS_LANGUAGE, readme_preview)
+                instance.readme_blob = blob
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -883,7 +918,28 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
 @api(require_login=False)
 @as_json
 def package_preview(owner, package_name, package_hash):
-    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    result = (
+        db.session.query(
+            Instance,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(hash=package_hash)
+        .join(Instance.package)
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id, Instance.id)
+        .one_or_none()
+    )
+
+    if result is None:
+        raise ApiException(
+            requests.codes.not_found,
+            "Package hash does not exist"
+        )
+
+    (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
     readme = instance.contents.children.get(README)
@@ -903,6 +959,16 @@ def package_preview(owner, package_name, package_hash):
         readme_preview = None
 
     contents_preview = _generate_preview(instance.contents)
+
+    total_size = int((
+        db.session.query(sa.func.coalesce(sa.func.sum(S3Blob.size), 0))
+        # We could do a join on S3Blob.instances - but that results in two joins instead of one.
+        # So do a completely manual join to make it efficient.
+        .join(InstanceBlobAssoc, sa.and_(
+            InstanceBlobAssoc.c.blob_id == S3Blob.id,
+            InstanceBlobAssoc.c.instance_id == instance.id
+        ))
+    ).one()[0])
 
     # Insert an event.
     event = Event(
@@ -930,6 +996,9 @@ def package_preview(owner, package_name, package_hash):
         created_at=instance.created_at.timestamp(),
         updated_by=instance.updated_by,
         updated_at=instance.updated_at.timestamp(),
+        is_public=is_public,
+        is_team=is_team,
+        total_size_uncompressed=total_size,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -1527,35 +1596,94 @@ def recent_packages():
 @as_json
 def search():
     query = request.args.get('q', '')
+
     keywords = query.split()
 
-    if len(keywords) > 5:
+    if len(keywords) > 10:
         # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 5)")
+        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 10)")
 
-    filter_list = [
+    # Get the list of visible packages and their permissions.
+
+    instances = (
+        db.session.query(
+            Instance.id,
+            Package.owner,
+            Package.name,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team'),
+            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')  # Just save the query as a variable
+        )
+        .join(Instance.package)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .join(Instance.tags)
+        .filter(Tag.tag == LATEST_TAG)
+        .group_by(Package.id, Instance.id)  # Redundant, but we need Instance.id and Package.*
+        .subquery('i')
+    )
+
+    # Get the README contents and full-text search index.
+
+    README_SNIPPET_LEN = 1024
+    readmes = (
+        db.session.query(
+            Instance.id,
+            S3Blob.preview_tsv,
+            sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
+        )
+        .join(Instance.readme_blob)
+        .subquery('r')
+    )
+
+    # Filter and sort the results.
+
+    def _tsvector_concat(*args):
+        return reduce(sa.sql.operators.custom_op('||'), args)
+
+    # Use the "rank / (rank + 1)" normalization; makes it look sort of like percentage.
+    RANK_NORMALIZATION = 32
+
+    # Basic substring matching for package owner and name.
+    basic_filter_list = [
         sa.func.strpos(
-            sa.func.lower(sa.func.concat(Package.owner, '/', Package.name)),
+            sa.func.lower(sa.func.concat(instances.c.owner, '/', instances.c.name)),
             sa.func.lower(keyword)
         ) > 0
         for keyword in keywords
     ]
 
-    packages = (
+    results = (
         db.session.query(
-            Package.owner,
-            Package.name,
-            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
-            sa.func.bool_or(Access.user == TEAM).label('is_team')
+            instances.c.owner,
+            instances.c.name,
+            instances.c.is_public,
+            instances.c.is_team,
+            readmes.c.readme,
+            sa.func.ts_rank_cd(
+                _tsvector_concat(
+                    # Give higher weight to owner and name than to README.
+                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner), 'A'),
+                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name), 'A'),
+                    sa.func.coalesce(readmes.c.preview_tsv, '')
+                ),
+                instances.c.query,
+                RANK_NORMALIZATION
+            ).label('rank')
         )
-        .filter(sa.and_(*filter_list))
-        .join(Package.access)
-        .filter(_access_filter(g.auth))
-        .group_by(Package.id)
-        .order_by(
-            sa.func.lower(Package.owner),
-            sa.func.lower(Package.name)
-        )
+        .outerjoin(readmes, instances.c.id == readmes.c.id)
+        .filter(sa.or_(
+            # Need to use the original preview_tsv (not concatenated with anything) to take advantage of the index.
+            readmes.c.preview_tsv.op('@@')(instances.c.query),
+            # Match the owner and name; full table scan, but it's just Package.
+            _tsvector_concat(
+                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner),
+                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name)
+            ).op('@@')(instances.c.query),
+            # Substring matching.
+            sa.and_(*basic_filter_list)
+        ) if query else True)  # Disable the filter if there was no query string.
+        .order_by(sa.desc('rank'), instances.c.owner, instances.c.name)
     )
 
     return dict(
@@ -1565,7 +1693,9 @@ def search():
                 name=name,
                 is_public=is_public,
                 is_team=is_team,
-            ) for owner, name, is_public, is_team in packages
+                readme_preview=readme,
+                rank=rank,
+            ) for owner, name, is_public, is_team, readme, rank in results
         ]
     )
 
