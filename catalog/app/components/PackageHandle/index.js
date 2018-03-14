@@ -1,6 +1,7 @@
 /* PackageHandle - Generate package handles in the right style */
 import PropTypes from 'prop-types';
 import React from 'react';
+import { Link } from 'react-router';
 import styled from 'styled-components';
 
 import config from 'constants/config';
@@ -8,6 +9,9 @@ import VisibilityIcon from 'components/VisibilityIcon';
 
 const Lighter = styled.span`
   opacity: 0.7;
+  a, a:active, a:hover, a:visited {
+    text-decoration: none;
+  }
 `;
 
 const Preview = styled.span`
@@ -24,38 +28,43 @@ const Text = styled.div`
 
 // eslint-disable-next-line object-curly-newline
 function PackageHandle({
-  drop,
-  isPublic,
+  drop = false,
+  isPublic = true,
   isTeam,
+  linkUser = false,
   name,
   owner,
   readmePreview,
-  showPrefix,
+  showPrefix = true,
 }) {
   const team = config.team ? `${config.team.id}:` : '';
   const prefix = showPrefix ? `${team}${owner}/` : null;
-  // eslint-disable-next-line no-nested-ternary
-  const label = isPublic ? 'public' : isTeam ? 'team' : 'private';
+
+  let label = 'private';
+  if (isPublic === true) {
+    label = 'public';
+  } else if (isTeam === true) {
+    label = 'team';
+  }
+
 
   return (
     <Text>
-      <VisibilityIcon drop={drop} label={label} />&nbsp;
-      <Lighter>{prefix}</Lighter>{name}
+      <VisibilityIcon drop={drop} label={label} />
+      <Lighter>
+        {linkUser ? <Link to={`/user/${owner}/`}>{prefix}</Link> : prefix}
+      </Lighter>
+      {name}
       <Preview>{readmePreview}</Preview>
     </Text>
   );
 }
 
-PackageHandle.defaultProps = {
-  drop: false,
-  isPublic: true,
-  showPrefix: true,
-};
-
 PackageHandle.propTypes = {
   drop: PropTypes.bool,
   isPublic: PropTypes.bool,
   isTeam: PropTypes.bool,
+  linkUser: PropTypes.bool,
   name: PropTypes.string.isRequired,
   owner: PropTypes.string.isRequired,
   readmePreview: PropTypes.string,
