@@ -1,7 +1,7 @@
 /* PackageHandle - Generate package handles in the right style */
 import PropTypes from 'prop-types';
 import React from 'react';
-import { Link } from 'react-router';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 import config from 'constants/config';
@@ -26,7 +26,6 @@ const Text = styled.div`
   white-space: nowrap;
 `;
 
-// eslint-disable-next-line object-curly-newline
 function PackageHandle({
   drop = false,
   isPublic = true,
@@ -47,12 +46,15 @@ function PackageHandle({
     label = 'team';
   }
 
-
   return (
     <Text>
       <VisibilityIcon drop={drop} label={label} />
       <Lighter>
-        {linkUser ? <Link to={`/user/${owner}/`}>{prefix}</Link> : prefix}
+        {
+          linkUser ?
+            <Link to={`/package/${owner}/`}>{prefix}</Link>
+            : prefix
+        }
       </Lighter>
       {name}
       <Preview>{readmePreview}</Preview>

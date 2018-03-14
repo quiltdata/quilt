@@ -21,7 +21,7 @@ export default function VisibilityIcon({ drop = false, label }) {
     );
   }
   // take up no space if there isn't a valid decorator
-  return null;
+  return <span></span>;
 }
 
 VisibilityIcon.propTypes = {
