@@ -1,6 +1,6 @@
 import PT from 'prop-types';
 import React from 'react';
-import { lifecycle, setPropTypes, compose } from 'recompose';
+import { lifecycle, setPropTypes } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import { connect } from 'react-redux';
 import { push } from 'react-router-redux';
@@ -41,7 +41,7 @@ export default composeComponent('User',
       packages: makeSelectPackages(),
       user: makeSelectUserName(),
     }),
-    { getPackages }
+    { getPackages, push }
   ),
   lifecycle({
     componentWillMount() {
@@ -61,7 +61,7 @@ export default composeComponent('User',
   ({
     packages: { status, response },
     match: { params: { username } },
-    dispatch,
+    push, // eslint-disable-line no-shadow
   }) =>
     status === apiStatus.ERROR ? <Error {...response} /> : (
       <div>
@@ -70,7 +70,7 @@ export default composeComponent('User',
         {status !== apiStatus.SUCCESS ? <Working /> : (
           <PackageList
             packages={response.packages}
-            push={compose(dispatch, push)}
+            push={push}
             owner={username}
             showOwner={false}
           />
