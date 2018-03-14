@@ -7,7 +7,7 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Link } from 'react-router';
-import { mapProps, setPropTypes, setStatic } from 'recompose';
+import { setPropTypes, setStatic } from 'recompose';
 import styled from 'styled-components';
 
 import MIcon from 'components/MIcon';

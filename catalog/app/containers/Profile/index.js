@@ -13,7 +13,7 @@ import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 import { Toolbar, ToolbarGroup, ToolbarTitle } from 'material-ui/Toolbar';
 
-import Admin from 'containers/Admin';
+import Admin from 'containers/Admin/Loadable';
 import apiStatus from 'constants/api';
 import config from 'constants/config';
 import Error from 'components/Error';
