@@ -12,7 +12,7 @@ major performance implications. See `expire_on_commit=False` in `__init__.py`.
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from functools import reduce, wraps
+from functools import wraps
 import gzip
 import json
 import time
@@ -42,6 +42,7 @@ from .core import (decode_node, find_object_hashes, hash_contents,
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
@@ -735,6 +736,8 @@ def package_put(owner, package_name, package_hash):
 
         return Response(_generate(), content_type='application/json')
 
+    keywords_tsv = keywords_tsvector(owner, package_name, package_hash, contents)
+
     if instance is None:
         readme_hash = None
         readme_preview = None
@@ -760,7 +763,8 @@ def package_put(owner, package_name, package_hash):
             contents=contents,
             hash=package_hash,
             created_by=g.auth.user,
-            updated_by=g.auth.user
+            updated_by=g.auth.user,
+            keywords_tsv=keywords_tsv
         )
 
         # Add all the hashes that don't exist yet.
@@ -797,6 +801,7 @@ def package_put(owner, package_name, package_hash):
         # Nothing else could've changed without invalidating the hash.
         instance.contents = contents
         instance.updated_by = g.auth.user
+        instance.keywords_tsv = keywords_tsv
 
     db.session.add(instance)
 
@@ -1608,6 +1613,7 @@ def search():
     instances = (
         db.session.query(
             Instance.id,
+            Instance.keywords_tsv,
             Package.owner,
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
@@ -1638,9 +1644,6 @@ def search():
 
     # Filter and sort the results.
 
-    def _tsvector_concat(*args):
-        return reduce(sa.sql.operators.custom_op('||'), args)
-
     # Use the "rank / (rank + 1)" normalization; makes it look sort of like percentage.
     RANK_NORMALIZATION = 32
 
@@ -1661,10 +1664,8 @@ def search():
             instances.c.is_team,
             readmes.c.readme,
             sa.func.ts_rank_cd(
-                _tsvector_concat(
-                    # Give higher weight to owner and name than to README.
-                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner), 'A'),
-                    sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name), 'A'),
+                tsvector_concat(
+                    instances.c.keywords_tsv,
                     sa.func.coalesce(readmes.c.preview_tsv, '')
                 ),
                 instances.c.query,
@@ -1673,13 +1674,9 @@ def search():
         )
         .outerjoin(readmes, instances.c.id == readmes.c.id)
         .filter(sa.or_(
-            # Need to use the original preview_tsv (not concatenated with anything) to take advantage of the index.
+            # Need to use the original keywords_tsv and preview_tsv (not concatenated) to take advantage of the index.
+            instances.c.keywords_tsv.op('@@')(instances.c.query),
             readmes.c.preview_tsv.op('@@')(instances.c.query),
-            # Match the owner and name; full table scan, but it's just Package.
-            _tsvector_concat(
-                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.owner),
-                sa.func.to_tsvector(FTS_LANGUAGE, instances.c.name)
-            ).op('@@')(instances.c.query),
             # Substring matching.
             sa.and_(*basic_filter_list)
         ) if query else True)  # Disable the filter if there was no query string.
