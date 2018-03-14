@@ -266,7 +266,7 @@ class BuildTest(QuiltTestCase):
 
     def test_build_no_contents_node(self):
         """
-        Attempt to build a yml file without contents node nor packages
+        Attempt to build a yml file without contents node
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_no_contents_node.yml')
