@@ -1529,11 +1529,12 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
         if node._datafile:
             orig_path = node._node.metadata['q_path']
             yield (node._datafile, orig_path)
+            return
 
         if not isinstance(node, nodes.GroupNode):
             return
 
-        for node_path, found_node in node._iteritems(recursive=True):
+        for node_path, found_node in node._items(recursive=True):
             storage_filepath = found_node._datafile
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
