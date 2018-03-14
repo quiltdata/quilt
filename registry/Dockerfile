@@ -38,7 +38,7 @@ ENV FLASK_APP=quilt_server
 ENV TERM=xterm-256color
 
 # Display the deployment ID in the bash prompt, with pretty colors.
-RUN echo 'PS1="\\[\\033[01;31m\\]\${DEPLOYMENT_ID-???}\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "' >> ~/.bashrc
+RUN echo 'PS1="\\[\\033[01;31m\\]\${DEPLOYMENT_ID-[No DEPLOYMENT_ID]}\\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ "' >> ~/.bashrc
 
 EXPOSE 9000
 
