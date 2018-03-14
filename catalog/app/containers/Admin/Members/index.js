@@ -17,7 +17,7 @@ import { createSelector } from 'reselect';
 
 import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
-import Badge from 'components/VisibilityIcon';
+import Tag from 'components/Tag';
 import { makeSelectUserName } from 'containers/App/selectors';
 import { push } from 'containers/Notifications/actions';
 import api, { apiStatus } from 'constants/api';
@@ -88,7 +88,6 @@ const MembersTable = composeComponent('Admin.Members.Table',
     members,
     bindActions,
     pending,
-    intl: { formatMessage },
     pagination,
   }) => (
     <Fragment>
@@ -137,7 +136,7 @@ const MembersTable = composeComponent('Admin.Members.Table',
                   </Link>
                   {' '}
                   {status === 'disabled'
-                    ? <Badge label={formatMessage(msg.disabled)} />
+                    ? <Tag><FM {...msg.disabled} /></Tag>
                     : null
                   }
                 </Cell>

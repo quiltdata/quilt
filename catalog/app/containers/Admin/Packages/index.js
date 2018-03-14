@@ -9,14 +9,14 @@ import {
 } from 'material-ui/Table';
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
-import { FormattedMessage as FM, injectIntl } from 'react-intl';
+import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { lifecycle, setPropTypes } from 'recompose';
 
 import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
-import Badge from 'components/VisibilityIcon';
+import Tag from 'components/Tag';
 import api, { apiStatus } from 'constants/api';
 import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
@@ -39,7 +39,6 @@ const packageActivities = [
 ];
 
 const PackagesTable = composeComponent('Admin.Packages.Table',
-  injectIntl,
   setPropTypes({
     packages: PT.arrayOf( // eslint-disable-line function-paren-newline
       PT.shape({
@@ -48,19 +47,12 @@ const PackagesTable = composeComponent('Admin.Packages.Table',
         deletes: PT.number.isRequired,
       }).isRequired,
     ).isRequired, // eslint-disable-line function-paren-newline
-    intl: PT.shape({
-      formatMessage: PT.func.isRequired,
-    }).isRequired,
   }),
   withPagination({
     key: 'packages',
     getItemId: (p) => p.handle,
   }),
-  ({
-    packages,
-    intl: { formatMessage },
-    pagination,
-  }) => (
+  ({ packages, pagination }) => (
     <Fragment>
       <Table selectable={false}>
         <TableHeader adjustForCheckbox={false} displaySelectAll={false}>
@@ -77,7 +69,7 @@ const PackagesTable = composeComponent('Admin.Packages.Table',
               <TableRow key={handle}>
                 <TableRowColumn>
                   {deletes
-                    ? <Fragment>{handle} <Badge label={formatMessage(msg.deleted)} /></Fragment>
+                    ? <Fragment><span>{handle}</span> <Tag><FM {...msg.deleted} /></Tag></Fragment>
                     : <Link to={`/package/${handle}`}>{handle}</Link>
                   }
                 </TableRowColumn>
