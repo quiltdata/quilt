@@ -54,13 +54,14 @@ export default composeComponent('App',
       <Pad top left right bottom>
         <Switch>
           <Route path="/" exact component={ProtectedHome} />
-          <Route path="/package/:owner/:name" component={ProtectedPackage} />
-          <Route path="/user/:username" component={ProtectedUser} />
-          <Route path="/oauth_callback" component={OAuth2} />
-          <Route path="/grna-search" render={() => <Redirect url={grnaUrl} />} />
-          <Route path="/profile" component={ProtectedProfile} />
-          <Route path="/search" component={ProtectedSearch} />
-          <Route path="/signout" component={SignOut} />
+          <Route path="/package/:owner/:name" exact component={ProtectedPackage} />
+          <Route path="/package/:username" exact component={ProtectedUser} />
+          <Route path="/user/:username" exact component={ProtectedUser} />
+          <Route path="/oauth_callback" exact component={OAuth2} />
+          <Route path="/grna-search" exact render={() => <Redirect url={grnaUrl} />} />
+          <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
+          <Route path="/search" exact component={ProtectedSearch} />
+          <Route path="/signout" exact component={SignOut} />
           <Route path="" component={ProtectedNotFound} />
         </Switch>
       </Pad>
