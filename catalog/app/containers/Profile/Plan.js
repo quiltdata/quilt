@@ -17,7 +17,7 @@ import { composeComponent } from 'utils/reactTools';
 import messages from './messages';
 
 const WarningIcon = composeComponent('Profile.Plan.WarningIcon', () => (
-  <MIcon drop="4px" title="See browser console for details">
+  <MIcon title="See browser console for details">
     warning
   </MIcon>
 ));
@@ -76,7 +76,7 @@ export default composeComponent('Profile.Plan',
                   tooltip="Update payment card"
                   touch
                 >
-                  <MIcon drop="0px">credit_card</MIcon>;
+                  <MIcon>credit_card</MIcon>;
                 </IconButton>
               </StripeCheckout>
             ) : null
