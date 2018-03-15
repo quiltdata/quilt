@@ -821,6 +821,7 @@ class AccessTestCase(QuiltTestCase):
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testFullTextSearch(self):
+        # Packages with READMEs.
         packages = {
             "clinton_email": (
                 "On Monday, August 31, the State Department released nearly 7,000 pages of Clinton’s "
@@ -843,6 +844,13 @@ class AccessTestCase(QuiltTestCase):
             self._mock_object(self.user, blob_hash, readme.encode())
             self.put_package(self.user, name, contents, is_public=True, tag_latest=True)
 
+        # Package with no README, but more nodes.
+        contents2 = RootNode(dict(
+            wine=GroupNode(dict()),
+            baz=GroupNode(dict())
+        ))
+        self.put_package(self.user, "foo", contents2, is_public=True, tag_latest=True)
+
         def _test_query(query, headers, expected_results):
             params = dict(q=query)
             resp = self.app.get(
@@ -861,7 +869,7 @@ class AccessTestCase(QuiltTestCase):
         _test_query("releasing", {}, ["test_user/clinton_email"])
 
         # Stemming on package name
-        _test_query("no wining", {}, ["test_user/wine", "test_user/nothing"])
+        _test_query("no wining", {}, ["test_user/wine", "test_user/foo", "test_user/nothing"])
 
         # Multiple words
         _test_query("state department's biggest release", {}, ["test_user/clinton_email"])
@@ -869,6 +877,6 @@ class AccessTestCase(QuiltTestCase):
         # Substring matching still works on package names
         _test_query("dogs cats", {}, ["test_user/dogscats"])
 
-        # Package name takes precedence over README
+        # Order precedence: package name, metadata, README
         _test_query("clinton", {}, ["test_user/clinton_email", "test_user/nothing"])
-        _test_query("wine", {}, ["test_user/wine", "test_user/nothing"])
+        _test_query("wine", {}, ["test_user/wine", "test_user/foo", "test_user/nothing"])
