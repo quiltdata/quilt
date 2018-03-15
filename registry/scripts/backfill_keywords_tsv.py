@@ -22,7 +22,7 @@ def main(argv):
     )
 
     for instance, owner, name in rows:
-        instance.keywords_tsv = keywords_tsvector(owner, name, instance.hash, instance.contents)
+        instance.keywords_tsv = keywords_tsvector(owner, name, instance.contents)
 
     db.session.commit()
     print("Done!")

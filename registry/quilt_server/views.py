@@ -736,7 +736,7 @@ def package_put(owner, package_name, package_hash):
 
         return Response(_generate(), content_type='application/json')
 
-    keywords_tsv = keywords_tsvector(owner, package_name, package_hash, contents)
+    keywords_tsv = keywords_tsvector(owner, package_name, contents)
 
     if instance is None:
         readme_hash = None

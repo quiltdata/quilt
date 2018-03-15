@@ -15,15 +15,13 @@ def tsvector_concat(*args):
     return reduce(sa.sql.operators.custom_op('||'), args)
 
 def find_node_keywords(obj):
-    if isinstance(obj, (TableNode, FileNode)):
-        yield from obj.hashes
-    elif isinstance(obj, GroupNode):
+    if isinstance(obj, GroupNode):
         for name, child in obj.children.items():
             yield name
             yield from find_node_keywords(child)
 
-def keywords_tsvector(owner, name, hash, contents):
+def keywords_tsvector(owner, name, contents):
     return tsvector_concat(
-        sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, ' '.join([owner, name, hash])), 'A'),
+        sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, ' '.join([owner, name])), 'A'),
         sa.func.setweight(sa.func.to_tsvector(FTS_LANGUAGE, ' '.join(find_node_keywords(contents))), 'B')
     )
