@@ -265,6 +265,12 @@ packages:
             fd.write("packages:\n- usr4/pkgd")
         command.install('@tmp_quilt.yml')
 
+    def test_install_dependencies_from_invalid_file(self):
+        with open('invalid_quilt.yml', 'w') as fd:
+            fd.write("invalid_node:\n- usr5/pkgd")
+        with assertRaisesRegex(self, command.CommandException, 'Error in invalid_quilt.yml'):
+            command.install('@invalid_quilt.yml')
+
     def test_bad_install_dependencies(self):
         """
         Install multiple packages via requirements file
