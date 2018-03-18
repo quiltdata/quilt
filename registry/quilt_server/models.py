@@ -68,6 +68,8 @@ class Instance(db.Model):
 
     readme_blob_id = db.Column(db.BigInteger, db.ForeignKey('s3_blob.id'), index=True)
 
+    keywords_tsv = deferred(db.Column(postgresql.TSVECTOR))
+
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')
     tags = db.relationship('Tag', back_populates='instance')
@@ -76,6 +78,7 @@ class Instance(db.Model):
     readme_blob = db.relationship('S3Blob', uselist=False)
 
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
+db.Index('idx_keywords_tsv', Instance.keywords_tsv, postgresql_using='gin')
 
 
 class S3Blob(db.Model):
