@@ -116,7 +116,7 @@ Out[8]: ['README']
 In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
 ```
-### Editing a package
+### Editing Package Contents
 * `NODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
 
 #### Example
