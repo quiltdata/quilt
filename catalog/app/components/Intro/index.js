@@ -4,6 +4,7 @@ import React from 'react';
 import { Col, Row } from 'react-bootstrap';
 import styled from 'styled-components';
 
+import audit from 'img/screenshots/audit.png';
 import collab from 'img/art/collaborate.png';
 import speedometer from 'img/art/accelerate.png';
 import Gallery from 'containers/Gallery';
@@ -111,8 +112,8 @@ function Intro() {
             </p>
             <h1>Audit every access</h1>
             <p>
-              Quilt admins can audit every read
-              and every change to the data.
+              Quilt admins can
+              <a href={audit}> audit every read and every write</a> to the registry.
             </p>
           </div>
         }
