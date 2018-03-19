@@ -269,76 +269,6 @@ class ImportTest(QuiltTestCase):
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
 
-    def test_team_save(self):
-        mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build.yml')
-        command.build('test:bar/package1', build_path)
-
-        from quilt.team.test.bar import package1
-
-        # Build an identical package
-        command.build('test:bar/package2', package1)
-
-        from quilt.team.test.bar import package2
-        teststore = PackageStore(self._store_dir)
-        contents1 = open(os.path.join(teststore.package_path('test', 'bar', 'package1'),
-                                      Package.CONTENTS_DIR,
-                                      package1._package.get_hash())).read()
-        contents2 = open(os.path.join(teststore.package_path('test', 'bar', 'package2'),
-                                      Package.CONTENTS_DIR,
-                                      package2._package.get_hash())).read()
-        assert contents1 == contents2
-
-        # Rename an attribute
-        package1.dataframes2 = package1.dataframes
-        del package1.dataframes
-
-        # Modify an existing dataframe
-        csv = package1.dataframes2.csv._data()
-        csv.at[0, 'Int0'] = 42
-
-        # Add a new dataframe
-        df = pd.DataFrame(dict(a=[1, 2, 3]))
-        package1._set(['new', 'df'], df)
-        assert package1.new.df._data() is df
-
-        # Add a new file
-        file_path = os.path.join(mydir, 'data/foo.csv')
-        package1._set(['new', 'file'], 'data/foo.csv', mydir)
-        assert package1.new.file._data() == file_path
-
-        # Add a new group
-        package1._add_group('newgroup')
-        assert isinstance(package1.newgroup, GroupNode)
-        package1.newgroup._add_group('foo')
-        assert isinstance(package1.newgroup.foo, GroupNode)
-
-        # Overwrite a leaf node
-        new_path = os.path.join(mydir, 'data/nuts.csv')
-        package1._set(['newgroup', 'foo'], 'data/nuts.csv', mydir)
-        assert package1.newgroup.foo._data() == new_path
-
-        # Overwrite the whole group
-        package1._set(['newgroup'], 'data/nuts.csv', mydir)
-        assert package1.newgroup._data() == new_path
-
-        # Built a new package and verify the new contents
-        command.build('test:bar/package3', package1)
-
-        from quilt.team.test.bar import package3
-
-        assert hasattr(package3, 'dataframes2')
-        assert not hasattr(package3, 'dataframes')
-
-        new_csv = package3.dataframes2.csv._data()
-        assert new_csv.xs(0)['Int0'] == 42
-
-        new_df = package3.new.df._data()
-        assert new_df.xs(2)['a'] == 3
-
-        new_file = package3.new.file._data()
-        assert isinstance(new_file, string_types)
-
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
@@ -403,7 +333,7 @@ class ImportTest(QuiltTestCase):
 
         assert getattr(package6, newfilename1)() == newfilename2
 
-    def test_team_imports(self):
+    def test_team_non_team_imports(self):
         mydir = os.path.dirname(__file__)
         build_path1 = os.path.join(mydir, './build_simple.yml')
         command.build('myteam:foo/team_imports', build_path1)
