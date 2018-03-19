@@ -116,3 +116,16 @@ Out[8]: ['README']
 In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
 ```
+### Editing a package
+* `NODE._set(path, value)` sets a child node. `path` is an array of strings, one for each level of the tree. `value` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
+
+#### Example
+```
+import pandas as pd
+import quilt
+quilt.build('USER/PKG') # create new, empty packckage
+from quilt.data.USER import PKG as pkg
+pkg._set(['data'], pd.DataFrame(data=[1, 2, 3]))
+quilt.build('USER/PKG', pkg)
+```
+This adds a child node named `data` to the new empty package, with the new DataFrame as its value. Then, it persists this change by building the package with the new contents.
