@@ -117,7 +117,7 @@ In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
 ```
 ### Editing a package
-* `NODE._set(path, value)` sets a child node. `path` is an array of strings, one for each level of the tree. `value` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
+* `NODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
 
 #### Example
 ```
@@ -126,6 +126,10 @@ import quilt
 quilt.build('USER/PKG') # create new, empty packckage
 from quilt.data.USER import PKG as pkg
 pkg._set(['data'], pd.DataFrame(data=[1, 2, 3]))
+pkg._set(['foo'], "example.txt")
 quilt.build('USER/PKG', pkg)
 ```
-This adds a child node named `data` to the new empty package, with the new DataFrame as its value. Then, it persists this change by building the package with the new contents.
+This adds a child node named `data` to the new empty package, with the new DataFrame as its value. Then it adds the contents of `example.txt` to a node called `foo`. Finally, it commits this change to disk by building the package with the modified object.
+
+
+See [the examples repo](https://github.com/quiltdata/examples) for additional usage examples.
