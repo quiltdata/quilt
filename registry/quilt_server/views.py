@@ -38,7 +38,7 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
-                   FileNode, GroupNode, RootNode, LATEST_TAG, README)
+                   FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
@@ -919,6 +919,17 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     else:
         return None
 
+def _iterate_data_nodes(node):
+    # TODO: Merge into core.py
+    if isinstance(node, (TableNode, FileNode)):
+        yield node
+    elif isinstance(node, GroupNode):
+        for child in node.children.values():
+            yield from _iterate_data_nodes(child)
+
+# We don't know if file paths are Windows or UNIX... So just treat both / and \ as separators.
+FILE_EXT_RE = re.compile(r'\.([^/\\.]*)$')
+
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -975,6 +986,15 @@ def package_preview(owner, package_name, package_hash):
         ))
     ).one()[0])
 
+    file_types = defaultdict(int)
+    for node in _iterate_data_nodes(instance.contents):
+        path = node.metadata.get('q_path')
+        if not isinstance(path, str):
+            path = ''
+        match = FILE_EXT_RE.search(path)
+        ext = match.group(1) if match else ''  # Can't return None cause it's a JSON object key.
+        file_types[ext] += 1
+
     # Insert an event.
     event = Event(
         type=Event.Type.PREVIEW,
@@ -1004,6 +1024,7 @@ def package_preview(owner, package_name, package_hash):
         is_public=is_public,
         is_team=is_team,
         total_size_uncompressed=total_size,
+        file_types=file_types,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
