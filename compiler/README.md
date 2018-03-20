@@ -1,6 +1,5 @@
-# Compiler
-The Quilt compiler parses and serializes data (`build`). It also communicates with the registry during `push` and `install` events.
-
+# Quilt compiler
+The compiler parses and serializes data (`build`). It also communicates with the registry during `push` and `install` events.
 
 ## Developer
 ```
