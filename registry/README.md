@@ -1,4 +1,5 @@
-# Overview
+# Quilt registry
+The registry stores package data, meta-data, and controls permissions.
 
 This is the reference implementation of the Quilt server and package registry.
 

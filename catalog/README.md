@@ -1,4 +1,7 @@
-# Developer 
+# Quilt catalog
+The catalog is a web frontend for browsing meta-data held by the Quilt registry.
+
+# Developer
 ## Running the catalog locally
 ```sh
 $ cd registry
