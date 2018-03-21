@@ -227,7 +227,7 @@ Install.propTypes = {
 
 
 function readableBytes(bytes) {
-  if (Number.isInteger(bytes) && bytes > 0) {
+  if (Number.isInteger(bytes) && bytes > -1) {
     // https://en.wikipedia.org/wiki/Kilobyte
     const sizes = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
     const log = bytes === 0 ? 0 : Math.log10(bytes);
