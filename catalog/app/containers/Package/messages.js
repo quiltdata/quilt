@@ -18,6 +18,10 @@ export default defineMessages({
     id: 'app.components.Package.date',
     defaultMessage: 'date',
   },
+  fileStats: {
+    id: 'app.components.Package.fileStats',
+    defaultMessage: 'contents',
+  },
   getData: {
     id: 'app.components.Package.getData',
     defaultMessage: 'Download',
