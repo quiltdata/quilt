@@ -7,10 +7,10 @@
 
 from enum import Enum
 import hashlib
-import os
 import struct
 
 from six import iteritems, itervalues, string_types
+from sortedcontainers import SortedDict
 
 
 LATEST_TAG = 'latest'
@@ -47,7 +47,7 @@ class GroupNode(Node):
 
     def __init__(self, children):
         assert isinstance(children, dict)
-        self.children = children
+        self.children = SortedDict(children)
 
     def preorder(self):
         """
@@ -143,7 +143,7 @@ def hash_contents(contents):
         elif isinstance(obj, GroupNode):
             children = obj.children
             _hash_int(len(children))
-            for key, child in sorted(iteritems(children)):
+            for key, child in iteritems(children):
                 _hash_str(key)
                 _hash_object(child)
         else:

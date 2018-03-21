@@ -47,6 +47,7 @@ setup(
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'six>=1.10.0',
+        'sortedcontainers>=1.5.9',
         'tables>=3.3.0',                    # hdf5
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
