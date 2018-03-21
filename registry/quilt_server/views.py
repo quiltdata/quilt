@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
 import json
+import pathlib
 import time
 from urllib.parse import urlencode
 
@@ -927,9 +928,6 @@ def _iterate_data_nodes(node):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
 
-# We don't know if file paths are Windows or UNIX... So just treat both / and \ as separators.
-FILE_EXT_RE = re.compile(r'\.([^/\\.]*)$')
-
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -991,8 +989,9 @@ def package_preview(owner, package_name, package_hash):
         path = node.metadata.get('q_path')
         if not isinstance(path, str):
             path = ''
-        match = FILE_EXT_RE.search(path)
-        ext = match.group(1) if match else ''  # Can't return None cause it's a JSON object key.
+        # We don't know if it's a UNIX or a Windows path, so let's treat both \ and / as separators.
+        # PureWindowsPath will do that for us, since / is legal on Windows.
+        ext = pathlib.PureWindowsPath(path).suffix.lower()
         file_types[ext] += 1
 
     # Insert an event.

@@ -127,7 +127,7 @@ class PushInstallTestCase(QuiltTestCase):
             q_path='C:\\Windows\\System32\\clock.exe'
         )),
         file6=FileNode(hashes=[HASH1], metadata=dict(
-            q_path='C:\\foo.bar\\blah.jpg'
+            q_path='C:\\foo.bar\\BLAH.JPG'
         )),
         README=FileNode(hashes=[HASH2], metadata=dict(
             q_path='README'
@@ -795,8 +795,8 @@ class PushInstallTestCase(QuiltTestCase):
         assert data['total_size_uncompressed'] == 42
         assert data['file_types'] == {
             '': 4,
-            'jpg': 2,
-            'exe': 1
+            '.jpg': 2,
+            '.exe': 1
         }
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
