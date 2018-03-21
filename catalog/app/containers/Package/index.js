@@ -143,6 +143,7 @@ export class Package extends React.PureComponent {
               <UpdateInfo
                 author={author}
                 date={date}
+                fileTypes={manifest.response.file_types}
                 size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
@@ -224,20 +225,51 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
+
+const sizes = [
+  { lim: 3, str: 'B' },
+  { lim: 6, str: 'kB' },
+  { lim: 9, str: 'MB' },
+  { lim: 12, str: 'GB' },
+  { lim: 15, str: 'TB' },
+  { lim: 18, str: 'PB' },
+  { lim: 21, str: 'EB' },
+];
+
 function readableBytes(bytes) {
-  const mb = bytes / 1000000;
-  if (mb < 1) {
-    const fracStr = (mb - Math.floor(mb)).toFixed(6);
-    // show fractional MB to 6 sig-digits
-    return `${fracStr} MB`;
+  for (let i = 0; i < sizes.length; i += 1) {
+    const s = sizes[i];
+    if (bytes < 10 ** s.lim) {
+      const units = (bytes / (10 ** (s.lim - 3))).toFixed(1);
+      return `${units} ${s.str}`;
+    }
   }
-  // only show whole MB
-  return `${numberToCommaString(Math.floor(mb))} MB`;
+  const last = sizes.slice(-1)[0];
+  const units = (bytes / (10 ** (last.lim - 3))).toFixed(1);
+  return `${numberToCommaString(units)} ${last.str}`;
+}
+
+
+const Line = styled.span`
+  display: block;
+  span {
+    display: inline-block;
+    width: 3em;
+  }
+`;
+function readableExtensions(fileCounts = {}) {
+  const keys = Object.keys(fileCounts);
+  keys.sort();
+  return keys.map((k) => {
+    const count = numberToCommaString(fileCounts[k]);
+    return <Line><span>{k}</span>{count}</Line>;
+  });
 }
 
 const UpdateInfo = ({
   author,
   date,
+  fileTypes,
   size,
   version,
 }) => (
@@ -260,6 +292,10 @@ const UpdateInfo = ({
       <dd title="deduplicated, uncompresssed">
         {readableBytes(size)}
       </dd>
+      <dt><FormattedMessage {...strings.fileStats} /></dt>
+      <dd>
+        {readableExtensions(fileTypes)}
+      </dd>
     </dl>
   </div>
 );
@@ -267,6 +303,7 @@ const UpdateInfo = ({
 UpdateInfo.propTypes = {
   author: PropTypes.string,
   date: PropTypes.string,
+  fileTypes: PropTypes.object,
   size: PropTypes.number,
   version: PropTypes.string,
 };
