@@ -14,13 +14,12 @@ import { getPackage } from 'containers/App/actions';
 import config from 'constants/config';
 import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
-import Help from 'components/Help';
 import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
 import { makeHandle, numberToCommaString } from 'utils/string';
-import { blogManage, installQuilt } from 'constants/urls';
+import { installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
 import strings from './messages';
@@ -206,7 +205,6 @@ const Install = ({ name, owner }) => (
       <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
     </Code>
     <p><FormattedMessage {...strings.sell} /></p>
-    <Help href={blogManage} />
     <h2><FormattedMessage {...strings.access} /></h2>
     <Tabs>
       <Tab label="Python">
