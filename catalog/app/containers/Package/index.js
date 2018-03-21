@@ -254,7 +254,7 @@ const Line = styled.span`
   display: block;
   span {
     display: inline-block;
-    width: 3em;
+    width: 5em;
   }
 `;
 function readableExtensions(fileCounts = {}) {
@@ -262,7 +262,7 @@ function readableExtensions(fileCounts = {}) {
   keys.sort();
   return keys.map((k) => {
     const count = numberToCommaString(fileCounts[k]);
-    return <Line><span>{k}</span>{count}</Line>;
+    return <Line><span>.{k}</span>{count}</Line>;
   });
 }
 
