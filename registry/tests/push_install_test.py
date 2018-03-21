@@ -112,6 +112,28 @@ class PushInstallTestCase(QuiltTestCase):
         })
     ))
 
+    CONTENTS_WITH_Q_EXT = RootNode(dict(
+        file1=FileNode(hashes=[HASH1], metadata=dict()),
+        file2=FileNode(hashes=[HASH1], metadata=dict(
+            q_path=None
+        )),
+        file3=FileNode(hashes=[HASH1], metadata=dict(
+            q_path=''
+        )),
+        file4=FileNode(hashes=[HASH1], metadata=dict(
+            q_path='a/b.c/d.jpg'
+        )),
+        file5=FileNode(hashes=[HASH1], metadata=dict(
+            q_path='C:\\Windows\\System32\\clock.exe'
+        )),
+        file6=FileNode(hashes=[HASH1], metadata=dict(
+            q_path='C:\\foo.bar\\blah.jpg'
+        )),
+        README=FileNode(hashes=[HASH2], metadata=dict(
+            q_path='README'
+        ))
+    ))
+
     CONTENTS_HASH = 'a20597100b045f5420de46b7188590e8688bcfe2ac01e9cbefe26f8919b3f44d'
     CONTENTS_2_HASH = 'ede3e3b8d0d3df8503aa9b27d592b5e27281f929cb440a556a2d0c3c52a912e7'
 
@@ -733,6 +755,49 @@ class PushInstallTestCase(QuiltTestCase):
                 ]]
             ]],
         ]
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testPreviewStats(self):
+        contents_hash = hash_contents(self.CONTENTS_WITH_Q_EXT)
+
+        readme_contents = 'Hello, World!'
+        self._mock_object('test_user', self.HASH2, readme_contents.encode())
+
+        # Push.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % contents_hash,
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=self.CONTENTS_WITH_Q_EXT,
+                sizes={
+                    self.HASH1: 5,
+                    self.HASH2: 37
+                }
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Get preview.
+        resp = self.app.get(
+            '/api/package_preview/test_user/foo/%s' % contents_hash,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        assert data['total_size_uncompressed'] == 42
+        assert data['file_types'] == {
+            '': 4,
+            'jpg': 2,
+            'exe': 1
+        }
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testReadmeDownload(self):
