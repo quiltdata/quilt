@@ -225,7 +225,6 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
-
 const sizes = [
   { lim: 3, str: 'B' },
   { lim: 6, str: 'kB' },
@@ -249,7 +248,6 @@ function readableBytes(bytes) {
   return `${numberToCommaString(units)} ${last.str}`;
 }
 
-
 const Line = styled.span`
   display: block;
   span {
@@ -262,7 +260,7 @@ function readableExtensions(fileCounts = {}) {
   keys.sort();
   return keys.map((k) => {
     const count = numberToCommaString(fileCounts[k]);
-    return <Line><span>.{k}</span>{count}</Line>;
+    return <Line><span>.{k || 'None'}</span>{count}</Line>;
   });
 }
 
