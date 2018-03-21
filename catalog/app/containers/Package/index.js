@@ -225,6 +225,7 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
+// https://en.wikipedia.org/wiki/Kilobyte
 const sizes = [
   { lim: 3, str: 'B' },
   { lim: 6, str: 'kB' },
@@ -233,6 +234,8 @@ const sizes = [
   { lim: 15, str: 'TB' },
   { lim: 18, str: 'PB' },
   { lim: 21, str: 'EB' },
+  { lim: 24, str: 'ZB' },
+  { lim: 27, str: 'YB' },
 ];
 
 function readableBytes(bytes) {
@@ -260,7 +263,7 @@ function readableExtensions(fileCounts = {}) {
   keys.sort();
   return keys.map((k) => {
     const count = numberToCommaString(fileCounts[k]);
-    return <Line><span>.{k || 'None'}</span>{count}</Line>;
+    return <Line><span>{k || 'None'}</span>{count}</Line>;
   });
 }
 
