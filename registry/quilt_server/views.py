@@ -911,7 +911,7 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
         max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
         children_preview = [
             (name, _generate_preview(child, max_depth - 1))
-            for name, child in sorted(node.children.items())[:max_children]
+            for name, child in node.children.items()[:max_children]
         ]
         if len(node.children) > max_children:
             children_preview.append(('...', None))

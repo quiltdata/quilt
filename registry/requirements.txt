@@ -31,6 +31,7 @@ requests-oauthlib==0.8.0
 responses==0.7.0
 s3transfer==0.1.10
 six==1.10.0
+sortedcontainers==1.5.9
 SQLAlchemy==1.1.13
 SQLAlchemy-Utils==0.32.14
 stripe==1.62.0
