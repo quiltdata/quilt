@@ -142,27 +142,14 @@ class ImportTest(QuiltTestCase):
         # Good imports
         from quilt.data.foo.grppkg import dataframes
         assert isinstance(dataframes, GroupNode)
-        assert isinstance(dataframes.csvs.csv, DataNode)
-        assert isinstance(dataframes._data(), pd.DataFrame)
+
+        # Make sure child dataframes were concatenated in the correct order (alphabetically by node name).
+        df = dataframes._data()
+        assert df['x'].tolist() == [1, 2, 3, 4]
+        assert df['y'].tolist() == [1, 4, 9, 16]
 
         # Incompatible Schema
         from quilt.data.foo.grppkg import incompatible
-        with self.assertRaises(PackageException):
-            incompatible._data()
-
-    def test_team_import_group_as_data(self):
-        mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_group_data.yml')
-        command.build('test:bar/grppkg', build_path)
-
-        # Good imports
-        from quilt.team.test.bar.grppkg import dataframes
-        assert isinstance(dataframes, GroupNode)
-        assert isinstance(dataframes.csvs.csv, DataNode)
-        assert isinstance(dataframes._data(), pd.DataFrame)
-
-        # Incompatible Schema
-        from quilt.team.test.bar.grppkg import incompatible
         with self.assertRaises(PackageException):
             incompatible._data()
 
