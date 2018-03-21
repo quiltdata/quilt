@@ -225,30 +225,20 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
-// https://en.wikipedia.org/wiki/Kilobyte
-const sizes = [
-  { lim: 3, str: 'B' },
-  { lim: 6, str: 'kB' },
-  { lim: 9, str: 'MB' },
-  { lim: 12, str: 'GB' },
-  { lim: 15, str: 'TB' },
-  { lim: 18, str: 'PB' },
-  { lim: 21, str: 'EB' },
-  { lim: 24, str: 'ZB' },
-  { lim: 27, str: 'YB' },
-];
 
 function readableBytes(bytes) {
-  for (let i = 0; i < sizes.length; i += 1) {
-    const s = sizes[i];
-    if (bytes < 10 ** s.lim) {
-      const units = (bytes / (10 ** (s.lim - 3))).toFixed(1);
-      return `${units} ${s.str}`;
+  if (Number.isInteger(bytes) && bytes > 0) {
+    // https://en.wikipedia.org/wiki/Kilobyte
+    const sizes = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+    const log = bytes === 0 ? 0 : Math.log10(bytes);
+    let index = Math.floor(log / 3);
+    if (index >= sizes.length) {
+      index = sizes.length - 1;
     }
+    const display = (bytes / (10 ** (index * 3))).toFixed(1);
+    return `${numberToCommaString(display)} ${sizes[index]}B`;
   }
-  const last = sizes.slice(-1)[0];
-  const units = (bytes / (10 ** (last.lim - 3))).toFixed(1);
-  return `${numberToCommaString(units)} ${last.str}`;
+  return '?';
 }
 
 const Line = styled.span`
