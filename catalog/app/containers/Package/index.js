@@ -251,9 +251,9 @@ function readableExtensions(fileCounts = {}) {
   const keys = Object.keys(fileCounts);
   keys.sort();
   return keys.map((k) => {
-    k = k || 'None';
+    const key = k || 'None';
     const count = numberToCommaString(fileCounts[k]);
-    return <Line key={k}><span>{k}</span>{count}</Line>;
+    return <Line key={key}><span>{key}</span>{count}</Line>;
   });
 }
 
