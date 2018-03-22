@@ -34,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
 
-from . import app, db
+from . import app, db, User
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
@@ -136,6 +136,18 @@ def _create_session(next=''):
 def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
     return Response("ok", content_type='text/plain')
+
+@app.route('/beans')
+def beans():
+    return Response("ok", content_type='text/plain')
+
+from flask_security import auth_token_required
+@app.route('/beans/secret')
+@auth_token_required
+@as_json
+def beans_secret():
+    return {'ssh': 'no telling'}
+
 
 ROBOTS_TXT = '''
 User-agent: *

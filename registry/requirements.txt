@@ -10,6 +10,7 @@ Flask==0.12.2
 Flask-Cors==3.0.3
 Flask-JSON==0.3.2
 Flask-Migrate==2.1.0
+flask-security==3.0.0
 Flask-SQLAlchemy==2.2
 httpagentparser==1.8.0
 idna==2.5
