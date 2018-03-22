@@ -246,12 +246,14 @@ const Line = styled.span`
     width: 5em;
   }
 `;
+
 function readableExtensions(fileCounts = {}) {
   const keys = Object.keys(fileCounts);
   keys.sort();
   return keys.map((k) => {
+    k = k || 'None';
     const count = numberToCommaString(fileCounts[k]);
-    return <Line><span>{k || 'None'}</span>{count}</Line>;
+    return <Line key={k}><span>{k}</span>{count}</Line>;
   });
 }
 
