@@ -49,22 +49,6 @@ class GroupNode(Node):
         assert isinstance(children, dict)
         self.children = children
 
-    def preorder(self):
-        """
-        Performs a pre-order walk of the package tree starting at this node.
-        It returns a list of the nodes in the order visited.
-        """
-        stack = [self]
-        output = []
-
-        while stack:
-            node = stack.pop()
-            for child in itervalues(node.children):
-                output.append(child)
-                if isinstance(child, GroupNode):
-                    stack.append(child)
-        return output
-
 class RootNode(GroupNode):
     json_type = 'ROOT'
 

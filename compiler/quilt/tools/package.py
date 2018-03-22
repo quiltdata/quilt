@@ -6,11 +6,12 @@ from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
 
 import pandas as pd
+from six import itervalues
 
 from .compat import pathlib
 from .const import TargetType
 from .core import (decode_node, encode_node, hash_contents,
-                   FileNode, RootNode, GroupNode, TableNode,
+                   FileNode, GroupNode, TableNode,
                    PackageFormat)
 from .hashing import digest_file
 from .util import is_nodename
@@ -337,8 +338,14 @@ class Package(object):
             self._check_hashes(node.hashes)
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            hash_list = [hsh for child in node.preorder() if isinstance(child, TableNode)
-                         for hsh in child.hashes]
+            hash_list = []
+            stack = [node]
+            while stack:
+                child = stack.pop()
+                if isinstance(child, GroupNode):
+                    stack.extend(reversed(list(child.children.values())))
+                elif isinstance(child, TableNode):
+                    hash_list.extend(child.hashes)
             self._check_hashes(hash_list)
             return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):
