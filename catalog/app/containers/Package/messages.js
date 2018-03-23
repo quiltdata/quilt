@@ -20,7 +20,7 @@ export default defineMessages({
   },
   fileStats: {
     id: 'app.components.Package.fileStats',
-    defaultMessage: 'contents',
+    defaultMessage: 'file extensions',
   },
   getData: {
     id: 'app.components.Package.getData',
