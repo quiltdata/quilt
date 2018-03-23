@@ -14,13 +14,12 @@ import { getPackage } from 'containers/App/actions';
 import config from 'constants/config';
 import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
-import Help from 'components/Help';
 import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
 import { makeHandle, numberToCommaString } from 'utils/string';
-import { blogManage, installQuilt } from 'constants/urls';
+import { installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
 import strings from './messages';
@@ -143,6 +142,7 @@ export class Package extends React.PureComponent {
               <UpdateInfo
                 author={author}
                 date={date}
+                fileTypes={manifest.response.file_types}
                 size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
@@ -205,7 +205,6 @@ const Install = ({ name, owner }) => (
       <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
     </Code>
     <p><FormattedMessage {...strings.sell} /></p>
-    <Help href={blogManage} />
     <h2><FormattedMessage {...strings.access} /></h2>
     <Tabs>
       <Tab label="Python">
@@ -224,20 +223,41 @@ Install.propTypes = {
   owner: PropTypes.string.isRequired,
 };
 
+
 function readableBytes(bytes) {
-  const mb = bytes / 1000000;
-  if (mb < 1) {
-    const fracStr = (mb - Math.floor(mb)).toFixed(6);
-    // show fractional MB to 6 sig-digits
-    return `${fracStr} MB`;
+  if (Number.isInteger(bytes) && bytes > -1) {
+    // https://en.wikipedia.org/wiki/Kilobyte
+    const sizes = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
+    const log = bytes === 0 ? 0 : Math.log10(bytes);
+    const index = Math.min(Math.floor(log / 3), sizes.length - 1);
+    const display = (bytes / (10 ** (index * 3))).toFixed(1);
+    return `${numberToCommaString(display)} ${sizes[index]}B`;
   }
-  // only show whole MB
-  return `${numberToCommaString(Math.floor(mb))} MB`;
+  return '?';
+}
+
+const Line = styled.span`
+  display: block;
+  span {
+    display: inline-block;
+    width: 5em;
+  }
+`;
+
+function readableExtensions(fileCounts = {}) {
+  const keys = Object.keys(fileCounts);
+  keys.sort();
+  return keys.map((k) => {
+    const key = k || 'None';
+    const count = numberToCommaString(fileCounts[k]);
+    return <Line key={key}><span>{key}</span>{count}</Line>;
+  });
 }
 
 const UpdateInfo = ({
   author,
   date,
+  fileTypes,
   size,
   version,
 }) => (
@@ -260,6 +280,10 @@ const UpdateInfo = ({
       <dd title="deduplicated, uncompresssed">
         {readableBytes(size)}
       </dd>
+      <dt><FormattedMessage {...strings.fileStats} /></dt>
+      <dd>
+        {readableExtensions(fileTypes)}
+      </dd>
     </dl>
   </div>
 );
@@ -267,6 +291,7 @@ const UpdateInfo = ({
 UpdateInfo.propTypes = {
   author: PropTypes.string,
   date: PropTypes.string,
+  fileTypes: PropTypes.object,
   size: PropTypes.number,
   version: PropTypes.string,
 };
