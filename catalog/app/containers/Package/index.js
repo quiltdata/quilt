@@ -229,10 +229,7 @@ function readableBytes(bytes) {
     // https://en.wikipedia.org/wiki/Kilobyte
     const sizes = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
     const log = bytes === 0 ? 0 : Math.log10(bytes);
-    let index = Math.floor(log / 3);
-    if (index >= sizes.length) {
-      index = sizes.length - 1;
-    }
+    const index = Math.min(Math.floor(log / 3), sizes.length - 1);
     const display = (bytes / (10 ** (index * 3))).toFixed(1);
     return `${numberToCommaString(display)} ${sizes[index]}B`;
   }
