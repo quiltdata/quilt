@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
 import json
+import pathlib
 import time
 from urllib.parse import urlencode
 
@@ -38,7 +39,7 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
-                   FileNode, GroupNode, RootNode, LATEST_TAG, README)
+                   FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
@@ -919,6 +920,14 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     else:
         return None
 
+def _iterate_data_nodes(node):
+    # TODO: Merge into core.py
+    if isinstance(node, (TableNode, FileNode)):
+        yield node
+    elif isinstance(node, GroupNode):
+        for child in node.children.values():
+            yield from _iterate_data_nodes(child)
+
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -975,6 +984,16 @@ def package_preview(owner, package_name, package_hash):
         ))
     ).one()[0])
 
+    file_types = defaultdict(int)
+    for node in _iterate_data_nodes(instance.contents):
+        path = node.metadata.get('q_path')
+        if not isinstance(path, str):
+            path = ''
+        # We don't know if it's a UNIX or a Windows path, so let's treat both \ and / as separators.
+        # PureWindowsPath will do that for us, since / is legal on Windows.
+        ext = pathlib.PureWindowsPath(path).suffix.lower()
+        file_types[ext] += 1
+
     # Insert an event.
     event = Event(
         type=Event.Type.PREVIEW,
@@ -1004,6 +1023,7 @@ def package_preview(owner, package_name, package_hash):
         is_public=is_public,
         is_team=is_team,
         total_size_uncompressed=total_size,
+        file_types=file_types,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
