@@ -26,11 +26,14 @@ app.config.from_envvar('QUILT_SERVER_CONFIG')
 class QuiltSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, app, info, options):
         """
-        Teach SQLAlchemy to encode and decode our node objects.
+        Set custom SQLAlchemy engine options:
+        - Teach it to encode and decode our node objects
+        - Enable pre-ping (i.e., test the DB connection before trying to use it)
         """
         options.update(dict(
             json_serializer=lambda data: json.dumps(data, default=encode_node),
-            json_deserializer=lambda data: json.loads(data, object_hook=decode_node)
+            json_deserializer=lambda data: json.loads(data, object_hook=decode_node),
+            pool_pre_ping=True,
         ))
         super(QuiltSQLAlchemy, self).apply_driver_hacks(app, info, options)
 
