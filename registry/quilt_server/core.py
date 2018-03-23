@@ -7,7 +7,6 @@
 
 from enum import Enum
 import hashlib
-import os
 import struct
 
 from six import iteritems, itervalues, string_types
@@ -52,18 +51,14 @@ class GroupNode(Node):
     def preorder(self):
         """
         Performs a pre-order walk of the package tree starting at this node.
-        It returns a list of the nodes in the order visited.
+        It returns a generator of the nodes in the order visited.
         """
         stack = [self]
-        output = []
-
         while stack:
             node = stack.pop()
-            for child in itervalues(node.children):
-                output.append(child)
-                if isinstance(child, GroupNode):
-                    stack.append(child)
-        return output
+            yield node
+            if isinstance(node, GroupNode):
+                stack.extend(child for key, child in sorted(iteritems(node.children), reverse=True))
 
 class RootNode(GroupNode):
     json_type = 'ROOT'
