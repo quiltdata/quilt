@@ -6,7 +6,7 @@ import os
 import pandas as pd
 from six import iteritems, string_types
 
-from .tools import core
+from .tools import core, const
 from .tools.util import is_nodename
 
 
@@ -61,11 +61,19 @@ class GroupNode(DataNode):
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
-        group_info = '\n'.join(name + '/' for name in sorted(self._group_keys()))
-        if group_info:
-            group_info += '\n'
-        data_info = '\n'.join(sorted(self._data_keys()))
-        return '%s\n%s%s' % (pinfo, group_info, data_info)
+        items = [name + '/' for name in sorted(self._group_keys())]
+        if items:
+            items.append('\n')
+        items += sorted(self._data_keys())
+        # strip last new line if needed
+        if items[-1] == '\n':
+            items.pop()
+        # copare with + 1 helps to prevent hide under '...' only one item
+        if len(items) > const.PRETTY_MAX_LEN + 1:
+            preview = const.PRETTY_MAX_LEN // 2
+            items = items[:preview] + ['\n...\n'] + items[-preview:]
+        data_info = '\n'.join(items)
+        return '%s\n%s' % (pinfo, data_info)
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)

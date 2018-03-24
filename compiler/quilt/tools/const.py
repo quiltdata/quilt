@@ -19,6 +19,9 @@ DEFAULT_BUILDFILE = 'build.yml'
 DEFAULT_QUILT_YML = 'quilt.yml'
 DEFAULT_TEAM = 'Quilt'
 
+# pretty __repr__ consts
+PRETTY_MAX_LEN = 10
+
 # reserved words in build.yml
 RESERVED = {
     'checks': 'checks',
