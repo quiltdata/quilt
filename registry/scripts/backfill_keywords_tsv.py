@@ -6,11 +6,10 @@ Backfills s3_blob.preview by downloading the contents from S3.
 
 import sys
 
-import sqlalchemy as sa
 from sqlalchemy.orm import undefer
 
 from quilt_server import db
-from quilt_server.models import Instance, Package, S3Blob
+from quilt_server.models import Instance, Package
 from quilt_server.search import keywords_tsvector
 
 def main(argv):
