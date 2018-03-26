@@ -11,3 +11,7 @@
 # Contribute
 - Conversation on [gitter](https://gitter.im/quilt-data/Lobby) or [slack](https://slack.quiltdata.com/).
 - Selected issues are tagged in [GitHub Issues](https://github.com/quiltdata/quilt/issues)
+
+# Documentation
+## Quirks
+Use the unicode character ￨ instead of the ASCII character | inside code snippets. This is to avoid inconsistencies in markdown rendering between GitBook and GitHub.
