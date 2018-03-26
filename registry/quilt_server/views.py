@@ -34,7 +34,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
 
-from . import app, db, User
+from . import app, db, security, User
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
@@ -141,12 +141,28 @@ def healthcheck():
 def beans():
     return Response("ok", content_type='text/plain')
 
+@app.route('/beans/blogin')
+def beans_blogin():
+    import flask_login
+    user = str(flask_login.current_user)
+    return Response(user, content_type='text/plain')
+
+@app.route('/beans/refresh')
+def beans_refresh():
+    return Response("ok", content_type='text/plain')
+
 from flask_security import auth_token_required
 @app.route('/beans/secret')
 @auth_token_required
 @as_json
 def beans_secret():
     return {'ssh': 'no telling'}
+
+@app.route('/beans/supersecret')
+@as_json
+def beans_supersecret():
+    user = security.login_manager.request_callback(request)
+    return {'ssh': str(user), 'pass': str(user.password) }
 
 
 ROBOTS_TXT = '''

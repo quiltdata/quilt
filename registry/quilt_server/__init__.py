@@ -26,12 +26,14 @@ app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
 
 app.config['SECURITY_LOGIN_URL'] = '/beans/login'
+app.config['SECURITY_LOGOUT_URL'] = '/beans/logout'
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['SECURITY_PASSWORD_HASH'] = 'pbkdf2_sha512'
 app.config['SECURITY_TRACKABLE'] = True
 app.config['SECURITY_PASSWORD_SALT'] = 'something_super_secret_change_in_production'
 app.config['SECURITY_POST_LOGIN_VIEW'] = '/beans/secret'
 app.config['SECRET_KEY'] = 'ooh secrets'
+app.config['SECURITY_TOKEN_MAX_AGE'] = 10
 
 class QuiltSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, app, info, options):
