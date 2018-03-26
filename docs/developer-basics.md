@@ -14,4 +14,4 @@
 
 # Documentation
 ## Quirks
-Use the unicode character ￨ instead of the ASCII character | inside code snippets. This is to avoid inconsistencies in markdown rendering between GitBook and GitHub.
+Use the Unicode character ￨ instead of the ASCII character | inside code snippets. This is to avoid inconsistencies in markdown rendering between GitBook and GitHub.
