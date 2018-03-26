@@ -41,12 +41,33 @@ class Node(object):
     def __json__(self):
         return dict(self.__dict__, type=self.json_type)
 
+    def get_children(self):
+        raise NotImplementedError
+
+    def find_all_nodes(self, sort=False):
+        """
+        Iterator that returns all nodes in the tree starting with the current node.
+
+        :param sort: within each group, sort child nodes by name
+        """
+        stack = [self]
+        while stack:
+            obj = stack.pop()
+            yield obj
+            if sort:
+                stack.extend(child for name, child in sorted(iteritems(obj.get_children()), reverse=True))
+            else:
+                stack.extend(itervalues(obj.get_children()))
+
 class GroupNode(Node):
     json_type = 'GROUP'
 
     def __init__(self, children):
         assert isinstance(children, dict)
         self.children = children
+
+    def get_children(self):
+        return self.children
 
 class RootNode(GroupNode):
     json_type = 'ROOT'
@@ -71,6 +92,9 @@ class TableNode(Node):
         val['format'] = self.format.value
         return val
 
+    def get_children(self):
+        return {}
+
 class FileNode(Node):
     json_type = 'FILE'
 
@@ -83,6 +107,9 @@ class FileNode(Node):
 
         self.hashes = hashes
         self.metadata = metadata
+
+    def children(self):
+        return {}
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
@@ -136,24 +163,6 @@ def hash_contents(contents):
 
     return result.hexdigest()
 
-def find_objects(root, sort=False):
-    """
-    Iterator that returns all file and table nodes.
-
-    :param root: starting node
-    :param sort: within each group, sort child nodes by name
-    """
-    stack = [root]
-    while stack:
-        obj = stack.pop()
-        if isinstance(obj, (TableNode, FileNode)):
-            yield obj
-        elif isinstance(obj, GroupNode):
-            if sort:
-                stack.extend(child for name, child in sorted(iteritems(obj.children), reverse=True))
-            else:
-                stack.extend(itervalues(obj.children))
-
 def find_object_hashes(root, sort=False):
     """
     Iterator that returns hashes of all of the file and table nodes.
@@ -161,6 +170,7 @@ def find_object_hashes(root, sort=False):
     :param root: starting node
     :param sort: within each group, sort child nodes by name
     """
-    for obj in find_objects(root, sort=sort):
-        for objhash in obj.hashes:
-            yield objhash
+    for obj in root.find_all_nodes(sort=sort):
+        if isinstance(obj, (TableNode, FileNode)):
+            for objhash in obj.hashes:
+                yield objhash
