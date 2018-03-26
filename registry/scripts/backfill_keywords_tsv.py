@@ -22,7 +22,7 @@ def main(argv):
     )
 
     for idx, (instance, owner, name) in enumerate(rows):
-        print("%s/%s/%s" % (owner, name, instance.hash))
+        print("%s/%s:%s" % (owner, name, instance.hash))
         instance.keywords_tsv = keywords_tsvector(owner, name, instance.contents)
         if (idx + 1) % 100 == 0:
             db.session.commit()
