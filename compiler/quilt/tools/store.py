@@ -7,7 +7,7 @@ import re
 from shutil import rmtree
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
-from .core import FileNode, RootNode, TableNode
+from .core import FileNode, RootNode, TableNode, find_object_hashes
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
@@ -200,10 +200,7 @@ class PackageStore(object):
             contents_path = os.path.join(path, Package.CONTENTS_DIR)
             for instance in os.listdir(contents_path):
                 pkg = Package(self, user, package, path, pkghash=instance)
-                for node in pkg.get_contents().preorder():
-                    if isinstance(node, (FileNode, TableNode)):
-                        for objhash in node.hashes:
-                            remove_objs.add(objhash)
+                remove_objs.update(find_object_hashes(pkg.get_contents()))
             # Remove package manifests
             rmtree(path)
 
@@ -301,15 +298,8 @@ class PackageStore(object):
         remove_objs = set(objs)
 
         for pkg in self.iterpackages():
-            for node in pkg.get_contents().preorder():
-                # TODO: the or below isn't scalable. Add a common baseclass for
-                # File and Table nodes like DataNode in nodes.py.
-                if isinstance(node, (FileNode, TableNode)):
-                    for objhash in node.hashes:
-                        remove_objs.discard(objhash)
+            remove_objs.difference_update(find_object_hashes(pkg.get_contents()))
 
-        removed = []
         for obj in remove_objs:
             os.remove(self.object_path(obj))
-            removed.append(obj)
-        return removed
+        return remove_objs

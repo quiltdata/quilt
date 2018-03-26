@@ -7,7 +7,6 @@
 
 from enum import Enum
 import hashlib
-import os
 import struct
 
 from six import iteritems, itervalues, string_types
@@ -48,22 +47,6 @@ class GroupNode(Node):
     def __init__(self, children):
         assert isinstance(children, dict)
         self.children = children
-
-    def preorder(self):
-        """
-        Performs a pre-order walk of the package tree starting at this node.
-        It returns a list of the nodes in the order visited.
-        """
-        stack = [self]
-        output = []
-
-        while stack:
-            node = stack.pop()
-            for child in itervalues(node.children):
-                output.append(child)
-                if isinstance(child, GroupNode):
-                    stack.append(child)
-        return output
 
 class RootNode(GroupNode):
     json_type = 'ROOT'
@@ -153,14 +136,31 @@ def hash_contents(contents):
 
     return result.hexdigest()
 
-def find_object_hashes(obj):
+def find_objects(root, sort=False):
     """
-    Iterator that returns hashes of all of the tables.
+    Iterator that returns all file and table nodes.
+
+    :param root: starting node
+    :param sort: within each group, sort child nodes by name
     """
-    if isinstance(obj, (TableNode, FileNode)):
+    stack = [root]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, (TableNode, FileNode)):
+            yield obj
+        elif isinstance(obj, GroupNode):
+            if sort:
+                stack.extend(child for name, child in sorted(iteritems(obj.children), reverse=True))
+            else:
+                stack.extend(itervalues(obj.children))
+
+def find_object_hashes(root, sort=False):
+    """
+    Iterator that returns hashes of all of the file and table nodes.
+
+    :param root: starting node
+    :param sort: within each group, sort child nodes by name
+    """
+    for obj in find_objects(root, sort=sort):
         for objhash in obj.hashes:
             yield objhash
-    elif isinstance(obj, GroupNode):
-        for child in itervalues(obj.children):
-            for objhash in find_object_hashes(child):
-                yield objhash
