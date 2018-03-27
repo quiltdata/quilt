@@ -1,11 +1,11 @@
-[![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby)
+[![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby) ![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)
 
 
-| OS | `master` | Python support |
-|----|--------------------|----------------|
-| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/simply-styled/256/OS-Linux-icon.png"> | [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches) | 2.7, 3.5, 3.6 |
-| <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png"> | [![CircleCI branch](https://img.shields.io/circleci/project/github/quiltdata/quilt/master.svg)](https://circleci.com/gh/quiltdata/quilt/tree/master) | 2.7, 3.5, 3.6 |
-| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/windows-8-metro/128/Folders-OS-Windows-8-Metro-icon.png"> | [![Windows](https://ci.appveyor.com/api/projects/status/tnihllrbmm08x0lt/branch/master?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler/branch/master) | 3.5, 3.6 |
+| OS | `master` status |
+|----|--------------------|
+| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/simply-styled/256/OS-Linux-icon.png"> | [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches) |
+| <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png"> |
+| <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/windows-8-metro/128/Folders-OS-Windows-8-Metro-icon.png"> | [![Windows](https://ci.appveyor.com/api/projects/status/tnihllrbmm08x0lt/branch/master?svg=true)](https://ci.appveyor.com/project/quiltdata/quilt-compiler/branch/master) |
 
 
 # Docs
