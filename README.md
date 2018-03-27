@@ -1,4 +1,4 @@
-[![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt) [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby) ![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)
+[![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby) ![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)
 
 
 | OS | `master` status |
