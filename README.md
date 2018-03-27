@@ -12,7 +12,7 @@
 
 Visit [docs.quiltdata.com](https://docs.quiltdata.com/). Or [browse the docs on GitHub](/docs/SUMMARY.md).
 
-# Quilt is a data registry
+# Manage data like code
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and Docker registries do for code: provide a centralized, collaborative store of record.
 
 ## Getting started tutorial
