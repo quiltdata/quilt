@@ -1,5 +1,5 @@
 
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/quilt.svg)
+[![PyPI](https://img.shields.io/pypi/v/quilt.svg)](https://pypi.python.org/pypi/quilt) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/quilt.svg)
 
 (Python 2.7 not supported on Windows)
 
