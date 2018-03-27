@@ -1,3 +1,8 @@
+
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/quilt.svg)
+
+(Python 2.7 not supported on Windows)
+
 # Quilt compiler
 The compiler parses and serializes data (`build`). It also communicates with the registry during `push` and `install` events.
 
