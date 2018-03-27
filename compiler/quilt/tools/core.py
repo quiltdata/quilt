@@ -44,7 +44,7 @@ class Node(object):
     def get_children(self):
         raise NotImplementedError
 
-    def find_all_nodes(self, sort=False):
+    def preorder(self, sort=False):
         """
         Iterator that returns all nodes in the tree starting with the current node.
 
@@ -108,7 +108,7 @@ class FileNode(Node):
         self.hashes = hashes
         self.metadata = metadata
 
-    def children(self):
+    def get_children(self):
         return {}
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
@@ -170,7 +170,7 @@ def find_object_hashes(root, sort=False):
     :param root: starting node
     :param sort: within each group, sort child nodes by name
     """
-    for obj in root.find_all_nodes(sort=sort):
+    for obj in root.preorder(sort=sort):
         if isinstance(obj, (TableNode, FileNode)):
             for objhash in obj.hashes:
                 yield objhash
