@@ -6,6 +6,10 @@ const pkg = require(path.resolve(process.cwd(), 'package.json'));
 
 // Dev middleware
 const addDevMiddlewares = (app, webpackConfig) => {
+  const serveConfig = require('./config');
+  app.get('/config.js',
+    serveConfig(path.resolve(process.cwd(), 'config.js.tmpl'), process.env));
+
   const webpack = require('webpack');
   const webpackDevMiddleware = require('webpack-dev-middleware');
   const webpackHotMiddleware = require('webpack-hot-middleware');
