@@ -119,7 +119,7 @@ Out[9]: ['raw', 'tables']
 ```
 
 ### Editing Package Contents
-* `PACKAGENODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
+* `PACKAGENODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged (common columnar formats will be transformed into CSVs. All other file formats, e.g. images, will be copied as-is).
 * `GROUPNODE._add_group(NAME)` adds an empty `GroupNode` with the given name to the children of `GROUPNODE`.
 
 #### Example
