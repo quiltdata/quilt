@@ -26,6 +26,7 @@ const shouldHaveInTeam = {
   name: 'string'
 };
 
+// TODO: use lodash/conformsTo
 // test the config object
 check(mustHave, window.__CONFIG);
 if (window.__CONFIG.team) {
