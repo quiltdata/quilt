@@ -4,6 +4,7 @@ import { fromJS, Iterable } from 'immutable';
 import { routerMiddleware } from 'react-router-redux';
 import { combineReducers } from 'redux-immutable';
 
+import { captureError } from 'utils/errorReporting';
 import { withInjectableReducers } from 'utils/ReducerInjector';
 import { withSaga } from 'utils/SagaInjector';
 
@@ -40,7 +41,7 @@ export default function configureStore(initialState = {}, history) {
     (state) => state, // noop reducer, the actual ones will be injected
     fromJS(initialState),
     composeEnhancers(
-      withSaga,
+      withSaga({ onError: captureError }),
       applyMiddleware(...middlewares),
       withInjectableReducers(combineReducers),
     )
