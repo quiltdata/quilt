@@ -16,5 +16,10 @@ You can edit site-packages/quilt.egg-link and site-packages/easy-install.pth to 
 ### Testing
 All new modules, files, and functions should have a corresponding test.
 `pytest` will run any test_* files in any subdirectory
-Code coverage: python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v
+
+#### Code coverage
+```
+python -m pytest --cov=quilt/tools/ --cov-report html:cov_html quilt/test -v
+```
+
 View coverage results by opening cov_html/index.html
