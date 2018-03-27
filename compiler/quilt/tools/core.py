@@ -42,7 +42,7 @@ class Node(object):
         return dict(self.__dict__, type=self.json_type)
 
     def get_children(self):
-        raise NotImplementedError
+        return {}
 
     def preorder(self, sort=False):
         """
@@ -92,9 +92,6 @@ class TableNode(Node):
         val['format'] = self.format.value
         return val
 
-    def get_children(self):
-        return {}
-
 class FileNode(Node):
     json_type = 'FILE'
 
@@ -107,9 +104,6 @@ class FileNode(Node):
 
         self.hashes = hashes
         self.metadata = metadata
-
-    def get_children(self):
-        return {}
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
