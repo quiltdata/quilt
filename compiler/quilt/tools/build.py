@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED, DEFAULT_QUILT_YML
+from .const import DEFAULT_BUILDFILE, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, PARSERS, RESERVED, TargetType
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -133,7 +133,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
+def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -217,24 +217,31 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
 
-            # get either the locally defined transform or inherit from an ancestor
+            # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
+            target = node.get(RESERVED['target']) or ancestor_args.get(RESERVED['target'])
 
             ID = 'id' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
-                if (transform not in PARSERS) and (transform != ID):
-                    raise BuildException("Unknown transform '%s' for %s @ %s" %
-                                         (transform, rel_path, target))
             else: # guess transform if user doesn't provide one
                 _, ext = splitext_no_dot(rel_path)
                 transform = ext
                 if transform not in PARSERS:
                     transform = ID
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
+
+            # Guess target based on transform if not provided
+            if transform in PARSERS:
+                target = target or TargetType.PANDAS.value
+            elif transform == ID:
+                target = target or TargetType.FILE.value
+            else:
+                raise BuildException("Unknown transform '%s' for %s @ %s" %
+                                     (transform, rel_path, target))
+
             # TODO: parse/check environments:
             # environments = node.get(RESERVED['environments'])
-
             checks = node.get(RESERVED['checks'])
             if transform == ID:
                 #TODO move this to a separate function
@@ -244,7 +251,7 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                         _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path)
+                    package.save_file(path, name, rel_path, target)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
