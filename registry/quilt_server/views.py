@@ -138,72 +138,7 @@ def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
     return Response("ok", content_type='text/plain')
 
-app.secret_key = 'super-secret-key'
-import flask_login
-login_manager = flask_login.LoginManager()
-login_manager.init_app(app)
 
-users = {'calvin@quiltdata.io' : { 'password' : 'beans' } }
-
-class User(flask_login.UserMixin):
-    pass
-
-
-@login_manager.user_loader
-def user_loader(email):
-    if email not in users:
-        return
-
-    user = User()
-    user.id = email
-    return user
-
-
-@login_manager.request_loader
-def request_loader(request):
-    email = request.form.get('email')
-    if email not in users:
-        return
-
-    user = User()
-    user.id = email
-
-    # DO NOT ever store passwords in plaintext and always compare password
-    # hashes using constant-time comparison!
-    user.is_authenticated = request.form['password'] == users[email]['password']
-
-    return user
-
-@app.route('/beans/login', methods=['GET', 'POST'])
-def beans_login():
-    if request.method == 'GET':
-        return '''
-               <form action='login' method='POST'>
-                <input type='text' name='email' id='email' placeholder='email'/>
-                <input type='password' name='password' id='password' placeholder='password'/>
-                <input type='submit' name='submit'/>
-               </form>
-               '''
-
-    email = request.form['email']
-    if request.form['password'] == users[email]['password']:
-        user = User()
-        user.id = email
-        flask_login.login_user(user)
-        return redirect(flask.url_for('beans_protected'))
-
-    return 'Bad login'
-
-
-@app.route('/beans/protected')
-@flask_login.login_required
-def beans_protected():
-    return 'Logged in as: ' + flask_login.current_user.id
-
-@app.route('/beans')
-@as_json
-def beans():
-    return str(flask_login.current_user)
 
 ROBOTS_TXT = '''
 User-agent: *
@@ -2295,3 +2230,76 @@ def reset_password():
             )
 
     return resp.json()
+
+app.secret_key = b'thirty two bytes for gloriousssh'
+
+from Crypto.Cipher import AES
+from Crypto import Random
+import base64
+import jwt
+import uuid
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+users = {'calvin': generate_uuid()}
+
+def verify(payload):
+    name = payload['username']
+    uuid = payload['uuid']
+    if not users[name] == uuid:
+        raise Exception('UUID mismatch -- token rejected')
+    return True
+
+def revoke_tokens(username):
+    users[username] = generate_uuid()
+
+@app.route('/beans/get_token')
+@as_json
+def beans_get_token():
+    """
+    iv = Random.new().read(AES.block_size)
+    cipher = AES.new(app.secret_key, AES.MODE_CFB, iv)
+    msg = iv + cipher.encrypt('super secret u guise')
+    msg = base64.b64encode(msg)
+    """
+    payload = {'username': 'calvin', 'uuid': users['calvin']}
+    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
+    return {'token': msg.decode('utf-8')}
+
+@app.route('/beans/expired')
+@as_json
+def beans_expired():
+    payload = {'username': 'calvin', 'exp': datetime.utcnow()}
+    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
+    return {'token': msg.decode('utf-8')}
+
+@app.route('/beans/secret', methods=['POST'])
+@as_json
+def beans_secret():
+    # data = json.loads(request.data)
+    print(request.data)
+    data = request.get_json(silent=True, force=True)
+    print(data)
+    return {}
+    print(jwt.decode(data.get('token'), app.secret_key, algorithm='HS256'))
+    return {'resp': data }
+
+@app.route('/beans/revoke', methods=['POST'])
+@as_json
+def beans_revoke():
+    data = request.get_json(silent=True, force=True)
+    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
+    verify(payload)
+    revoke_tokens('calvin')
+    return {}
+
+
+@app.route('/beans/token_printer', methods=['POST'])
+@as_json
+def beans_inspect():
+    data = request.get_json(force=True)
+    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
+    verify(payload)
+    print(payload)
+    return {}
