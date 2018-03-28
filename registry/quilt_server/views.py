@@ -20,6 +20,7 @@ from urllib.parse import urlencode
 
 import boto3
 from botocore.exceptions import ClientError
+import flask
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
@@ -34,7 +35,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
 
-from . import app, db, security, User
+from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
@@ -137,33 +138,72 @@ def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
     return Response("ok", content_type='text/plain')
 
+app.secret_key = 'super-secret-key'
+import flask_login
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
+
+users = {'calvin@quiltdata.io' : { 'password' : 'beans' } }
+
+class User(flask_login.UserMixin):
+    pass
+
+
+@login_manager.user_loader
+def user_loader(email):
+    if email not in users:
+        return
+
+    user = User()
+    user.id = email
+    return user
+
+
+@login_manager.request_loader
+def request_loader(request):
+    email = request.form.get('email')
+    if email not in users:
+        return
+
+    user = User()
+    user.id = email
+
+    # DO NOT ever store passwords in plaintext and always compare password
+    # hashes using constant-time comparison!
+    user.is_authenticated = request.form['password'] == users[email]['password']
+
+    return user
+
+@app.route('/beans/login', methods=['GET', 'POST'])
+def beans_login():
+    if request.method == 'GET':
+        return '''
+               <form action='login' method='POST'>
+                <input type='text' name='email' id='email' placeholder='email'/>
+                <input type='password' name='password' id='password' placeholder='password'/>
+                <input type='submit' name='submit'/>
+               </form>
+               '''
+
+    email = request.form['email']
+    if request.form['password'] == users[email]['password']:
+        user = User()
+        user.id = email
+        flask_login.login_user(user)
+        return redirect(flask.url_for('beans_protected'))
+
+    return 'Bad login'
+
+
+@app.route('/beans/protected')
+@flask_login.login_required
+def beans_protected():
+    return 'Logged in as: ' + flask_login.current_user.id
+
 @app.route('/beans')
+@as_json
 def beans():
-    return Response("ok", content_type='text/plain')
-
-@app.route('/beans/blogin')
-def beans_blogin():
-    import flask_login
-    user = str(flask_login.current_user)
-    return Response(user, content_type='text/plain')
-
-@app.route('/beans/refresh')
-def beans_refresh():
-    return Response("ok", content_type='text/plain')
-
-from flask_security import auth_token_required
-@app.route('/beans/secret')
-@auth_token_required
-@as_json
-def beans_secret():
-    return {'ssh': 'no telling'}
-
-@app.route('/beans/supersecret')
-@as_json
-def beans_supersecret():
-    user = security.login_manager.request_callback(request)
-    return {'ssh': str(user), 'pass': str(user.password) }
-
+    return str(flask_login.current_user)
 
 ROBOTS_TXT = '''
 User-agent: *
