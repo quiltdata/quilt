@@ -10,7 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
@@ -1129,20 +1129,60 @@ def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
     logs = (
-        db.session.query(Log, Instance)
+        db.session.query(Log, Instance, Tag, Version)
         .filter_by(package=package)
         .join(Log.instance)
+        .outerjoin(Version)
+        .outerjoin(Tag)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
         .order_by(Log.created, Log.id)
     )
 
-    return dict(
-        logs=[dict(
+    """
+    import pdb
+    pdb.set_trace()
+    """
+
+    instances = [dict(
             hash=instance.hash,
             created=log.created.timestamp(),
-            author=log.author
-        ) for log, instance in logs]
-    )
+            author=log.author,
+            tag=(tag.tag if tag else None),
+            version=(version.version if version else None)
+        ) for log, instance, tag, version in logs]
+
+    results = OrderedDict()
+    for instance in instances:
+        k = (instance['hash'], instance['created'], instance['author'])
+        r = results.get(k, None)
+        if not r:
+            results[k] = {'tags': set(), 'versions': set()}
+
+        if instance['tag']:
+            results[k]['tags'].add(instance['tag'])
+
+        if instance['version']:
+            results[k]['versions'].add(instance['version'])
+
+    ret = []
+    for key, value in results.items():
+        hash = key[0]
+        created = key[1]
+        author = key[2]
+        tags = list(iter(value['tags']))
+        versions = list(iter(value['versions']))
+        ret.append({
+            'hash':hash,
+            'created':created,
+            'author':author,
+            'tags':tags,
+            'versions':versions
+            })
+
+
+    return {'logs':ret}
+
+    
 
 VERSION_SCHEMA = {
     'type': 'object',
