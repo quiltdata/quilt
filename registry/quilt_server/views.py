@@ -1128,48 +1128,38 @@ def list_user_packages(owner):
 def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
+    tags = (
+        db.session.query(Tag.instance_id.label('instance_id'),
+            sa.func.array_agg(Tag.tag).label('tag_list'))
+        .group_by(Tag.instance_id)
+        .subquery('tags', with_labels=True)
+    )
+    versions = (
+        db.session.query(Version.instance_id.label('instance_id'),
+            sa.func.array_agg(Version.version).label('version_list'))
+        .group_by(Version.instance_id)
+        .subquery('versions', with_labels=True)
+    )
     logs = (
-        db.session.query(Log, Instance, Tag, Version)
+        db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
         .filter_by(package=package)
         .join(Log.instance)
-        .outerjoin(Instance.versions)
-        .outerjoin(Instance.tags)
+        .outerjoin(tags, Log.instance_id == tags.c.instance_id)
+        .outerjoin(versions, Log.instance_id == versions.c.instance_id)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
-        .order_by(Log.created, Log.id)
+        .order_by(Log.id)
     )
 
-
-    results = OrderedDict()
-
-    for log, instance, tag, version in logs:
-        k = (instance.hash, log.created.timestamp(), log.author)
-        r = results.get(k, None)
-        if not r:
-            results[k] = {'tags': set(), 'versions': set()}
-        if tag:
-            results[k]['tags'].add(tag.tag)
-        if version:
-            results[k]['versions'].add(version.version)
-
-    ret = []
-    for key, value in results.items():
-        hash = key[0]
-        created = key[1]
-        author = key[2]
-        tags = list(value['tags'])
-        versions = list(value['versions'])
-        ret.append({
-            'hash':hash,
-            'created':created,
-            'author':author,
-            'tags':tags,
-            'versions':versions
-            })
+    results = [dict(
+        hash=instance.hash,
+        created=log.created.timestamp(),
+        author=log.author,
+        tags=tag_list,
+        versions=version_list
+    ) for log, instance, tag_list, version_list in logs]
 
 
-    return { 'logs' : ret }
-
-    
+    return { 'logs' : results }
 
 VERSION_SCHEMA = {
     'type': 'object',
