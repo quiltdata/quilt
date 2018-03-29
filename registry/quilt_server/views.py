@@ -1132,8 +1132,8 @@ def logs_list(owner, package_name):
         db.session.query(Log, Instance, Tag, Version)
         .filter_by(package=package)
         .join(Log.instance)
-        .outerjoin(Version)
-        .outerjoin(Tag)
+        .outerjoin(Instance.versions)
+        .outerjoin(Instance.tags)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
         .order_by(Log.created, Log.id)
     )
