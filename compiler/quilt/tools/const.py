@@ -26,7 +26,6 @@ RESERVED = {
     'file': 'file',
     'kwargs': 'kwargs',
     'package': 'package',
-    'target': 'target',
     'transform': 'transform'
 }
 
@@ -39,32 +38,46 @@ RSA_BITS = 2048
 _kwargs = {} # default kwargs pylint:disable=C0103
 # Supported build targets and file types
 # file_extension should be lowercase
-PANDAS_PARSERS = {
+DEFAULT_PARSERS = {
     'csv': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'csv',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': _kwargs
     },
     'ssv': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'ssv',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': dict(_kwargs, sep=';')
     },
     'tsv': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'tsv',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': dict(_kwargs, sep='\t')
     },
     'xls': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'xls',
         'attr': 'read_excel',
         # TODO set sheetname='None' to get all sheets?
         # Currently defaults to sheetname=0, which imports first sheet only
         'kwargs': _kwargs
     },
     'xlsx': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'xlsx',
         'attr': 'read_excel',
         # see comments under 'xls'
         'kwargs': _kwargs
+    },
+    'parquet': {
+        'target': TargetType.PANDAS.value,
+        'transform': 'id'
     }
 }
 

@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, PANDAS_PARSERS, RESERVED, TargetType
+from .const import DEFAULT_BUILDFILE, DEFAULT_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -219,26 +219,29 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
 
             # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
-            target = node.get(RESERVED['target']) or ancestor_args.get(RESERVED['target'])
-
+            
             ID = 'id' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
-            else: # guess transform if user doesn't provide one
+                if transform in DEFAULT_PARSERS:
+                    target = DEFAULT_PARSERS[transform]['target']
+                elif transform == ID:
+                    target = TargetType.FILE.value
+                else:
+                    raise BuildException("Unknown transform '%s' for %s" %
+                                         (transform, rel_path))
+            else:
+                # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
-                transform = ext
-                if transform not in PANDAS_PARSERS:
+                
+                if ext in DEFAULT_PARSERS:
+                    transform = transform or DEFAULT_PARSERS[ext]['transform']
+                    target = DEFAULT_PARSERS[ext]['target']
+                else:
                     transform = ID
+                    target = TargetType.FILE.value
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
 
-            # Guess target based on transform if not provided
-            if transform in PANDAS_PARSERS:
-                target = target or TargetType.PANDAS.value
-            elif transform == ID:
-                target = target or TargetType.FILE.value
-            else:
-                raise BuildException("Unknown transform '%s' for %s @ %s" %
-                                     (transform, rel_path, target))
 
             # TODO: parse/check environments:
             # environments = node.get(RESERVED['environments'])
@@ -317,7 +320,7 @@ def _remove_keywords(d):
 def _file_to_spark_data_frame(ext, path, handler_args):
     from pyspark import sql as sparksql
     ext = ext.lower() # ensure that case doesn't matter
-    logic = PANDAS_PARSERS.get(ext)
+    logic = DEFAULT_PARSERS.get(ext)
     kwargs = dict(logic['kwargs'])
     kwargs.update(handler_args)
 
@@ -341,7 +344,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
     return dataframe
 
 def _file_to_data_frame(ext, path, handler_args):
-    logic = PANDAS_PARSERS.get(ext)
+    logic = DEFAULT_PARSERS.get(ext)
 
     # allow user to specify handler kwargs and override default kwargs
     kwargs = logic['kwargs'].copy()
