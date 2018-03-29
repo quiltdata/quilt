@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED, DEFAULT_QUILT_YML
+from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PANDAS_PARSERS, RESERVED, DEFAULT_QUILT_YML
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -223,13 +223,13 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
             ID = 'id' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
-                if (transform not in PARSERS) and (transform != ID):
+                if (transform not in PANDAS_PARSERS) and (transform != ID):
                     raise BuildException("Unknown transform '%s' for %s @ %s" %
                                          (transform, rel_path, target))
             else: # guess transform if user doesn't provide one
                 _, ext = splitext_no_dot(rel_path)
                 transform = ext
-                if transform not in PARSERS:
+                if transform not in PANDAS_PARSERS:
                     transform = ID
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
             # TODO: parse/check environments:
@@ -272,9 +272,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
                     if _have_pyspark():
-                        dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+                        dataframe = _file_to_spark_data_frame(transform, path, handler_args)
                     else:
-                        dataframe = _file_to_data_frame(transform, path, target, handler_args)
+                        dataframe = _file_to_data_frame(transform, path, handler_args)
 
                     if checks:
                         # TODO: test that design works for internal nodes... e.g. iterating
@@ -307,11 +307,10 @@ def _remove_keywords(d):
     """
     return { k:v for k, v in iteritems(d) if k not in RESERVED }
 
-def _file_to_spark_data_frame(ext, path, target, handler_args):
+def _file_to_spark_data_frame(ext, path, handler_args):
     from pyspark import sql as sparksql
-    _ = target  # TODO: why is this unused?
     ext = ext.lower() # ensure that case doesn't matter
-    logic = PARSERS.get(ext)
+    logic = PANDAS_PARSERS.get(ext)
     kwargs = dict(logic['kwargs'])
     kwargs.update(handler_args)
 
@@ -331,20 +330,17 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
-        dataframe = _file_to_data_frame(ext, path, target, handler_args)
+        dataframe = _file_to_data_frame(ext, path, handler_args)
     return dataframe
 
-def _file_to_data_frame(ext, path, target, handler_args):
-    _ = target  # TODO: why is this unused?
-    logic = PARSERS.get(ext)
-    the_module = importlib.import_module(logic['module'])
-    if not isinstance(the_module, ModuleType):
-        raise BuildException("Missing required module: %s." % logic['module'])
+def _file_to_data_frame(ext, path, handler_args):
+    logic = PANDAS_PARSERS.get(ext)
+
     # allow user to specify handler kwargs and override default kwargs
     kwargs = logic['kwargs'].copy()
     kwargs.update(handler_args)
     failover = logic.get('failover', None)
-    handler = getattr(the_module, logic['attr'], None)
+    handler = getattr(pd, logic['attr'], None)
     if handler is None:
         raise BuildException("Invalid handler: %r" % logic['attr'])
 
