@@ -1129,16 +1129,16 @@ def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
     tags = (
-        db.session.query(Tag.instance_id.label('instance_id'),
+        db.session.query(Tag.instance_id,
             sa.func.array_agg(Tag.tag).label('tag_list'))
         .group_by(Tag.instance_id)
-        .subquery('tags', with_labels=True)
+        .subquery('tags')
     )
     versions = (
-        db.session.query(Version.instance_id.label('instance_id'),
+        db.session.query(Version.instance_id,
             sa.func.array_agg(Version.version).label('version_list'))
         .group_by(Version.instance_id)
-        .subquery('versions', with_labels=True)
+        .subquery('versions')
     )
     logs = (
         db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
@@ -1147,7 +1147,7 @@ def logs_list(owner, package_name):
         .outerjoin(tags, Log.instance_id == tags.c.instance_id)
         .outerjoin(versions, Log.instance_id == versions.c.instance_id)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
-        .order_by(Log.id)
+        .order_by(Log.created, Log.id)
     )
 
     results = [dict(
