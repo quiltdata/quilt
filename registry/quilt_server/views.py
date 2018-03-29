@@ -10,7 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
