@@ -1,7 +1,7 @@
 [![Gitter](https://img.shields.io/gitter/room/nwjs/nw.js.svg)](https://gitter.im/quilt-data/Lobby) ![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)
 
 
-| OS | compiler status on `master` |
+| OS | CI testing on `master` |
 |----|--------------------|
 | <img height="20" src="http://icons.iconarchive.com/icons/dakirby309/simply-styled/256/OS-Linux-icon.png"> | [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches) |
 | <img height="20" src="http://icons.iconarchive.com/icons/icons8/windows-8/128/Systems-Mac-Os-icon.png"> | [![CircleCI branch](https://img.shields.io/circleci/project/github/quiltdata/quilt/master.svg)](https://circleci.com/gh/quiltdata/quilt/tree/master) |
