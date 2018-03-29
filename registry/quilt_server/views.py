@@ -1138,39 +1138,26 @@ def logs_list(owner, package_name):
         .order_by(Log.created, Log.id)
     )
 
-    """
-    import pdb
-    pdb.set_trace()
-    """
-
-    instances = [dict(
-            hash=instance.hash,
-            created=log.created.timestamp(),
-            author=log.author,
-            tag=(tag.tag if tag else None),
-            version=(version.version if version else None)
-        ) for log, instance, tag, version in logs]
 
     results = OrderedDict()
-    for instance in instances:
-        k = (instance['hash'], instance['created'], instance['author'])
+
+    for log, instance, tag, version in logs:
+        k = (instance.hash, log.created.timestamp(), log.author)
         r = results.get(k, None)
         if not r:
             results[k] = {'tags': set(), 'versions': set()}
-
-        if instance['tag']:
-            results[k]['tags'].add(instance['tag'])
-
-        if instance['version']:
-            results[k]['versions'].add(instance['version'])
+        if tag.tag:
+            results[k]['tags'].add(tag.tag)
+        if version.version:
+            results[k]['versions'].add(version.version)
 
     ret = []
     for key, value in results.items():
         hash = key[0]
         created = key[1]
         author = key[2]
-        tags = list(iter(value['tags']))
-        versions = list(iter(value['versions']))
+        tags = list(value['tags'])
+        versions = list(value['versions'])
         ret.append({
             'hash':hash,
             'created':created,
@@ -1180,7 +1167,7 @@ def logs_list(owner, package_name):
             })
 
 
-    return {'logs':ret}
+    return { 'logs' : ret }
 
     
 
