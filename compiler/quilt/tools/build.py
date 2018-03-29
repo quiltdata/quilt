@@ -219,7 +219,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
 
             # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
-            
+
             ID = 'id' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
