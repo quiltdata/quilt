@@ -39,34 +39,29 @@ RSA_BITS = 2048
 _kwargs = {} # default kwargs pylint:disable=C0103
 # Supported build targets and file types
 # file_extension should be lowercase
-PARSERS = {
+PANDAS_PARSERS = {
     'csv': {
-        'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': _kwargs
     },
     'ssv': {
-        'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': dict(_kwargs, sep=';')
     },
     'tsv': {
-        'module': 'pandas',
         'attr': 'read_csv',
         'failover' : {'engine' : 'python'},
         'kwargs': dict(_kwargs, sep='\t')
     },
     'xls': {
-        'module': 'pandas',
         'attr': 'read_excel',
         # TODO set sheetname='None' to get all sheets?
         # Currently defaults to sheetname=0, which imports first sheet only
         'kwargs': _kwargs
     },
     'xlsx': {
-        'module': 'pandas',
         'attr': 'read_excel',
         # see comments under 'xls'
         'kwargs': _kwargs

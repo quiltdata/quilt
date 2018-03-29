@@ -123,6 +123,7 @@ export class Package extends React.PureComponent {
           <Header>
             <h1>
               <PackageHandle
+                drop
                 isPublic={response.is_public}
                 isTeam={response.is_team}
                 linkUser

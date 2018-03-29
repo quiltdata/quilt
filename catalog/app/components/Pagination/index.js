@@ -20,7 +20,7 @@ import {
 
 import DefaultControls from './Controls';
 
-const PER_PAGE = 10;
+const PER_PAGE = 1000;
 
 // TODO: static vs dynamic pagination
 // TODO: support usage as controlled component
