@@ -1146,9 +1146,9 @@ def logs_list(owner, package_name):
         r = results.get(k, None)
         if not r:
             results[k] = {'tags': set(), 'versions': set()}
-        if tag.tag:
+        if tag:
             results[k]['tags'].add(tag.tag)
-        if version.version:
+        if version:
             results[k]['versions'].add(version.version)
 
     ret = []
