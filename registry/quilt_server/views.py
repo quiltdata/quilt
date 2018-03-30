@@ -958,10 +958,10 @@ def package_preview(owner, package_name, package_hash):
 
     log_count = (
         db.session.query(
-            sa.func.count(Log.instance_id)
+            sa.func.count(Log.package)
         )
-        .filter(Log.instance_id==instance.id)
-    ).first()[0]
+        .filter(Log.package_id == instance.package_id)
+    ).one()
 
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
