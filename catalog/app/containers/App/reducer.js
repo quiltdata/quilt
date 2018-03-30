@@ -42,7 +42,7 @@ function appReducer(state = initialState, action) {
     case GET_LOG:
       return state.setIn(['package', 'log', 'status'], status.WAITING)
         .deleteIn(['package', 'log', 'error'])
-        .deleteIn(['package', 'log', 'response'])
+        .deleteIn(['package', 'log', 'response']);
     case GET_LOG_ERROR:
       return state.setIn(['package', 'log', 'status'], status.ERROR)
         .setIn(['package', 'log', 'error'], fromJS(action.error));

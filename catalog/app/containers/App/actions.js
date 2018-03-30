@@ -44,22 +44,24 @@ export function getAuthSuccess(response) {
   };
 }
 
-export function getLog() {
+export function getLog(owner, name) {
   return {
     type: GET_LOG,
+    owner,
+    name,
   };
 }
 
 export function getLogError(error) {
   return {
-    type: GET_LOG,
+    type: GET_LOG_ERROR,
     error,
   };
 }
 
 export function getLogSuccess(response) {
   return {
-    type: GET_LOG_RESPONSE,
+    type: GET_LOG_SUCCESS,
     response,
   };
 }

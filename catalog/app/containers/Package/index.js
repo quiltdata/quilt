@@ -17,7 +17,7 @@ import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import apiStatus from 'constants/api';
-import { getPackage } from 'containers/App/actions';
+import { getLog, getPackage } from 'containers/App/actions';
 import config from 'constants/config';
 import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
@@ -29,6 +29,7 @@ import { makeHandle } from 'utils/string';
 import { installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
+import Log from './Log';
 import strings from './messages';
 
 const Header = styled.div`
@@ -48,9 +49,10 @@ const Message = styled.p`
 `;
 
 export class Package extends React.PureComponent {
-  componentWillMount() {
+  componentDidMount() {
     const { dispatch, match: { params: { name, owner } } } = this.props;
     dispatch(getPackage(owner, name));
+    dispatch(getLog(owner, name));
   }
   componentWillReceiveProps(nextProps) {
     const { dispatch, match: { params: { name, owner } }, user } = this.props;
@@ -109,9 +111,13 @@ export class Package extends React.PureComponent {
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
     const time = ts*1000;
-    const { manifest = { response: {} } } = pkg;
-    const previewBuffer = [];
+    const { manifest = {}, log = {} } = pkg;
+    manifest.response = manifest.response || {};
+    log.response = log.response || {};
 
+    const log_length = manifest.response.log_count;
+    
+    const previewBuffer = [];
     if (manifest.response.preview) {
       this.printManifest(previewBuffer, manifest.response.preview);
     }
@@ -140,7 +146,19 @@ export class Package extends React.PureComponent {
             <Tab label='Readme'>
                 { this.renderReadme(manifest || {}) }
             </Tab>
-            <Tab label={<FormattedPlural value={1} one='version' other ='versions' />} >
+            <Tab
+              label={
+                <span>
+                  {log_length}&nbsp;
+                  <FormattedPlural
+                    value={log_length}
+                    one='version'
+                    other ='versions'
+                  />
+                </span>
+              }
+            >
+              <Log entries={log.response.logs} /> 
             </Tab>
           </Tabs>
         </Col>
