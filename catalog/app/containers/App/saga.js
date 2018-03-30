@@ -39,6 +39,8 @@ import {
   makeSelectUserName,
 } from './selectors';
 
+//TODO /api/log/<owner>/<package_name>/
+
 function* doIntercom(action) {
   try {
     let intercomAction;
@@ -85,6 +87,20 @@ function* doGetAuth(action) {
   }
 }
 
+function* doGetLog() {
+  try {
+    const { name, owner } = yield select(makeSelectPackageSummary());
+    const { api: server } = config;
+    const endpoint = `${server}/api/package_preview/${owner}/${name}/${hash}`;
+    const headers = yield call(makeHeaders);
+    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
+    yield put(getManifestSuccess(response));
+  } catch (error) {
+    error.headline = 'Manifest hiccup';
+    error.detail = `doGetManifest: ${error.message}`;
+    yield put(getManifestError(error));
+  }
+}
 // incoming action is the response from GET_MANIFEST_SUCCESS
 // and use takeLatest(function) to discriminate
 function* doGetManifest() {

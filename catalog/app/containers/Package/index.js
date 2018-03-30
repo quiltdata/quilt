@@ -1,9 +1,16 @@
 /* Package - about a package */
+import FlatButton from 'material-ui/FlatButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Row, Col } from 'react-bootstrap';
-import { FormattedMessage } from 'react-intl';
+import {
+  FormattedDate,
+  FormattedMessage,
+  FormattedNumber,
+  FormattedPlural,
+  FormattedRelative
+} from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
@@ -18,7 +25,7 @@ import Markdown from 'components/Markdown';
 import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
-import { makeHandle, numberToCommaString } from 'utils/string';
+import { makeHandle } from 'utils/string';
 import { installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
@@ -27,9 +34,6 @@ import strings from './messages';
 const Header = styled.div`
   .icon {
     opacity: 0.5;
-  }
-  h1 {
-    margin-bottom: 0;
   }
 `;
 
@@ -104,7 +108,7 @@ export class Package extends React.PureComponent {
     }
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
-    const date = new Date(ts * 1000).toLocaleString();
+    const time = ts*1000;
     const { manifest = { response: {} } } = pkg;
     const previewBuffer = [];
 
@@ -132,9 +136,13 @@ export class Package extends React.PureComponent {
               />
             </h1>
           </Header>
-          { this.renderReadme(manifest || {}) }
-          <h1><FormattedMessage {...strings.contents} /></h1>
-          <Tree>{previewBuffer.join('')}</Tree>
+          <Tabs>
+            <Tab label='Readme'>
+                { this.renderReadme(manifest || {}) }
+            </Tab>
+            <Tab label={<FormattedPlural value={1} one='version' other ='versions' />} >
+            </Tab>
+          </Tabs>
         </Col>
         <Col xs={12} md={5}>
           <Row>
@@ -142,11 +150,13 @@ export class Package extends React.PureComponent {
               <Install name={name} owner={owner} />
               <UpdateInfo
                 author={author}
-                date={date}
+                time={time}
                 fileTypes={manifest.response.file_types}
                 size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
+              <h2><FormattedMessage {...strings.contents} /></h2>
+              <Tree>{previewBuffer.join('')}</Tree>
             </Col>
           </Row>
         </Col>
@@ -191,10 +201,9 @@ const Unselectable = styled.span`
 
 const Install = ({ name, owner }) => (
   <div>
-    <h1>
-      <MIcon>file_download</MIcon>&nbsp;
+    <h2>
       <FormattedMessage {...strings.getData} />
-    </h1>
+    </h2>
     <p>
       <FormattedMessage {...strings.install} />&nbsp;
       <a href={installQuilt}>
@@ -206,7 +215,7 @@ const Install = ({ name, owner }) => (
       <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
     </Code>
     <p><FormattedMessage {...strings.sell} /></p>
-    <h2><FormattedMessage {...strings.access} /></h2>
+    <h3><FormattedMessage {...strings.access} /></h3>
     <Tabs>
       <Tab label="Python">
         {
@@ -232,7 +241,11 @@ function readableBytes(bytes) {
     const log = bytes === 0 ? 0 : Math.log10(bytes);
     const index = Math.min(Math.floor(log / 3), sizes.length - 1);
     const display = (bytes / (10 ** (index * 3))).toFixed(1);
-    return `${numberToCommaString(display)} ${sizes[index]}B`;
+    return (
+      <span>
+        <FormattedNumber value={display} />&nbsp;{sizes[index]}B
+      </span>
+    )
   }
   return '?';
 }
@@ -250,44 +263,56 @@ function readableExtensions(fileCounts = {}) {
   keys.sort();
   return keys.map((k) => {
     const key = k || 'None';
-    const count = numberToCommaString(fileCounts[k]);
+    const count = <FormattedNumber value={fileCounts[k]} />;
     return <Line key={key}><span>{key}</span>{count}</Line>;
   });
 }
 
 const UpdateInfo = ({
   author,
-  date,
   fileTypes,
   size,
+  time,
   version,
-}) => (
-  <div>
-    <h1><FormattedMessage {...strings.latest} /></h1>
-    <dl>
-      <dt><FormattedMessage {...strings.date} /></dt>
-      <dd>{date}</dd>
+}) => {
+  const date = (
+    <FormattedDate
+      value={new Date(time)}
+      month="long"
+      day="numeric"
+      year="numeric"
+      hour="numeric"
+      minute="numeric"
+    />
+  );
+  const since = <FormattedRelative value={time} />;
+  return (
+    <div>
+      <h2><FormattedMessage {...strings.latest} /></h2>
+      <dl>
+        <dt>{since}</dt>
+        <dd>{date}</dd>
+        <dt><FormattedMessage {...strings.author} /></dt>
+        <dd>{config.team ? `${config.team.id}:` : ''}{author}</dd>
 
-      <dt><FormattedMessage {...strings.author} /></dt>
-      <dd>{config.team ? `${config.team.id}:` : ''}{author}</dd>
-
-      <dt><FormattedMessage {...strings.version} /></dt>
-      <dd>
-        <Ellipsis title={version}>
-          {version}
-        </Ellipsis>
-      </dd>
-      <dt><FormattedMessage {...strings.stats} /></dt>
-      <dd title="deduplicated, uncompresssed">
-        {readableBytes(size)}
-      </dd>
-      <dt><FormattedMessage {...strings.fileStats} /></dt>
-      <dd>
-        {readableExtensions(fileTypes)}
-      </dd>
-    </dl>
-  </div>
-);
+        <dt><FormattedMessage {...strings.version} /></dt>
+        <dd>
+          <Ellipsis title={version}>
+            {version}
+          </Ellipsis>
+        </dd>
+        <dt><FormattedMessage {...strings.stats} /></dt>
+        <dd title="deduplicated, uncompresssed">
+          {readableBytes(size)}
+        </dd>
+        <dt><FormattedMessage {...strings.fileStats} /></dt>
+        <dd>
+          {readableExtensions(fileTypes)}
+        </dd>
+      </dl>
+    </div>
+  );
+};
 
 UpdateInfo.propTypes = {
   author: PropTypes.string,

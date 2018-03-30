@@ -4,6 +4,9 @@ import {
   GET_AUTH,
   GET_AUTH_ERROR,
   GET_AUTH_SUCCESS,
+  GET_LOG,
+  GET_LOG_ERROR,
+  GET_LOG_SUCCESS,
   GET_MANIFEST,
   GET_MANIFEST_ERROR,
   GET_MANIFEST_SUCCESS,
@@ -37,6 +40,26 @@ export function getAuthError(error) {
 export function getAuthSuccess(response) {
   return {
     type: GET_AUTH_SUCCESS,
+    response,
+  };
+}
+
+export function getLog() {
+  return {
+    type: GET_LOG,
+  };
+}
+
+export function getLogError(error) {
+  return {
+    type: GET_LOG,
+    error,
+  };
+}
+
+export function getLogSuccess(response) {
+  return {
+    type: GET_LOG_RESPONSE,
     response,
   };
 }

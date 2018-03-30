@@ -1,5 +1,6 @@
 /* Profile actions */
 import {
+  GET_LOG,
   GET_PROFILE,
   GET_PROFILE_ERROR,
   GET_PROFILE_SUCCESS,
@@ -10,6 +11,26 @@ import {
   UPDATE_PLAN_ERROR,
   UPDATE_PLAN_SUCCESS,
 } from './constants';
+
+export function getLog() {
+  return {
+    type: GET_LOG,
+  };
+}
+
+export function getLogError(error) {
+  return {
+    type: GET_LOG,
+    error,
+  };
+}
+
+export function getLogSuccess(response) {
+  return {
+    type: GET_LOG_RESPONSE,
+    response,
+  };
+}
 
 export function getProfile() {
   return {
