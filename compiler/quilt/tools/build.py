@@ -235,7 +235,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 _, ext = splitext_no_dot(rel_path)
                 
                 if ext in DEFAULT_PARSERS:
-                    transform = transform or DEFAULT_PARSERS[ext]['transform']
+                    transform =  DEFAULT_PARSERS[ext]['transform']
                     target = DEFAULT_PARSERS[ext]['target']
                 else:
                     transform = ID
