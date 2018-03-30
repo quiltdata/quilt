@@ -23,7 +23,8 @@ from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
+from .util import FileWithReadProgress, is_nodename, to_identifier, parse_package
+from .util import to_nodename as _to_nodename       # wrapped for exc catch/reraised as BuildException
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -79,7 +80,7 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def _to_identifier(name):
+def pythonize(name):
     """Convert `name` to a Python Identifier, but raise BuildException on failure."""
     try:
         safename = to_identifier(name)
@@ -87,10 +88,10 @@ def _to_identifier(name):
         raise BuildException("Invalid name: " + str(error))
     return safename
 
-def _to_nodename(name, invalid=None):
+def to_nodename(name, invalid=None):
     """Convert `name` to a Quilt Node Name, but raise BuildException on failure."""
     try:
-        safename = to_nodename(name, invalid=invalid)
+        safename = _to_nodename(name, invalid=invalid)
     except ValueError as error:
         raise BuildException("Invalid name: " + str(error))
     return safename
@@ -125,7 +126,7 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table = {} if child_table is None else child_table.copy()
         filepath = filepath.relative_to(dir)
         node_table[RESERVED['file']] = str(filepath)
-        node_name = _to_nodename(filepath.stem, invalid=used_names)
+        node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
         print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 
@@ -333,7 +334,7 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = _to_identifier(col)
+            pcol = pythonize(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -493,14 +494,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = _to_nodename(nodename)
+            safename = to_nodename(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = _to_nodename(name)  # Name with ext
+                    new_safename = to_nodename(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
