@@ -765,7 +765,6 @@ class AccessTestCase(QuiltTestCase):
         _test_query("test_user/private", {}, [])
         _test_query("test_user/", {}, ["test_user/public1", "test_user/public2"])
         _test_query("test_user public1", {}, ["test_user/public1"])
-        _test_query("test user 2", {}, ["test_user/public2"])
         _test_query("", {}, ["test_user/public1", "test_user/public2"])
         _test_query("foo", {}, [])
 
@@ -873,9 +872,12 @@ class AccessTestCase(QuiltTestCase):
         # Multiple words
         _test_query("state department's biggest release", {}, ["test_user/clinton_email"])
 
-        # Substring matching still works on package names
-        _test_query("dogs cats", {}, ["test_user/dogscats"])
+        # Keywords in package name
+        _test_query("users dog cat", {}, ["test_user/dogscats"])
 
         # Order precedence: package name, metadata, README
         _test_query("clinton", {}, ["test_user/clinton_email", "test_user/nothing"])
         _test_query("wine", {}, ["test_user/wine", "test_user/foo", "test_user/nothing"])
+
+        # Different keywords match different sources: package name and README.
+        _test_query("nothing wine", {}, ["test_user/nothing"])
