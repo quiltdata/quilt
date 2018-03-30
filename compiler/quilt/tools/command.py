@@ -90,6 +90,11 @@ class HTTPResponseException(CommandException):
 
 _registry_url = None
 
+def _print_table(table, padding=2):
+    cols_width = [max(len(word) for word in col) for col in zip(*table)]
+    for row in table:
+        print((" " * padding).join(word.ljust(width) for word, width in zip(row, cols_width)))
+
 def parse_package_extended(identifier):
     try:
         return parse_package_extended_util(identifier)
@@ -654,13 +659,14 @@ def log(package):
         )
     )
 
-    format_str = "%-64s %-19s %s"
-
-    print(format_str % ("Hash", "Pushed", "Author"))
+    table = []
+    table.append(("Hash", "Pushed", "Author", "Tags", "Versions"))
     for entry in reversed(response.json()['logs']):
         ugly = datetime.fromtimestamp(entry['created'])
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
-        print(format_str % (entry['hash'], nice, entry['author']))
+        table.append((entry['hash'], nice, entry['author'],
+            str(entry['tags']), str(entry['versions'])))
+    _print_table(table)
 
 def push(package, is_public=False, is_team=False, reupload=False):
     """
@@ -1382,11 +1388,6 @@ def list_users(team=None):
     url = get_registry_url(team)
     resp = session.get('%s/api/users/list' % url)
     return resp.json()
-
-def _print_table(table, padding=2):
-    cols_width = [max(len(word) for word in col) for col in zip(*table)]
-    for row in table:
-        print((" " * padding).join(word.ljust(width) for word, width in zip(row, cols_width)))
 
 def _cli_list_users(team=None):
     res = list_users(team)
