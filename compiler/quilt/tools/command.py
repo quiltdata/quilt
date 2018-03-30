@@ -665,7 +665,7 @@ def log(package):
         ugly = datetime.fromtimestamp(entry['created'])
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
         table.append((entry['hash'], nice, entry['author'],
-            str(entry['tags']), str(entry['versions'])))
+            str(entry.get('tags', [])), str(entry.get('versions', []))))
     _print_table(table)
 
 def push(package, is_public=False, is_team=False, reupload=False):
