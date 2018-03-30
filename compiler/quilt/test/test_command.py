@@ -65,7 +65,6 @@ CRUD related:
 # Disable no-self-use, protected-access, too-many-public-methods
 # pylint: disable=R0201, W0212, R0904
 
-from contextlib import contextmanager
 import hashlib
 import json
 import os
