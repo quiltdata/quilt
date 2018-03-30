@@ -2277,13 +2277,11 @@ def beans_expired():
 @app.route('/beans/secret', methods=['POST'])
 @as_json
 def beans_secret():
-    # data = json.loads(request.data)
-    print(request.data)
-    data = request.get_json(silent=True, force=True)
-    print(data)
-    return {}
-    print(jwt.decode(data.get('token'), app.secret_key, algorithm='HS256'))
-    return {'resp': data }
+    data = request.get_json(force=True)
+    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
+    verify(payload)
+    print(payload)
+    return {'data': data}
 
 @app.route('/beans/revoke', methods=['POST'])
 @as_json
@@ -2292,14 +2290,4 @@ def beans_revoke():
     payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
     verify(payload)
     revoke_tokens('calvin')
-    return {}
-
-
-@app.route('/beans/token_printer', methods=['POST'])
-@as_json
-def beans_inspect():
-    data = request.get_json(force=True)
-    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
-    verify(payload)
-    print(payload)
     return {}

@@ -6,62 +6,42 @@ import time
 
 flask_url = 'http://localhost:5000/'
 
-def make():
+def test_forged_token():
     r = requests.get('%sbeans/get_token' % flask_url).json().get('token')
-    # print(jwt.decode(r, verify=False))
-    # print(type(r))
-    bad_token = jwt.encode({'bad': 'actor'}, 'bad_secret', 
+    # make a new token with the same data, but different signature
+    bad_token = jwt.encode(jwt.decode(r, verify=False), 'bad_secret', 
             algorithm='HS256')
-    # print(type(bad_token.decode('utf-8')))
-    # print(jwt.decode(bad_token, 'bad_secret'))
-    s = requests.post('%sbeans/token_printer' % flask_url, 
-            data=json.dumps({'token': r}))
-    return
-    time.sleep(2)
     s = requests.post('%sbeans/secret' % flask_url, 
-            data=json.dumps({'token': r}))
-    try:
-        s = s.json()
-        print('Bad token accepted?')
-        sys.exit(1)
-    except json.decoder.JSONDecodeError as e:
-        print('Bad token rejected')
-        pass
-
-    return
-    b = requests.post('%sbeans/secret' % flask_url, 
-            data=json.dumps({'token': bad_token.decode('utf-8')})).json()
-    print(type(b))
-    print(b)
+            data=json.dumps({'token': bad_token.decode('utf-8')}))
+    if s.ok:
+        raise Exception('FAIL - Forged token accepted')
+    else:
+        print('PASS - Forged token rejected')
 
 def test_expired():
+    # endpoint that returns a token that expires at datetime.utcnow()
     r = requests.get('%sbeans/expired' % flask_url).json().get('token')
-    time.sleep(2)
-    s = requests.post('%sbeans/token_printer' % flask_url, 
+    time.sleep(2) # let the token expire
+    s = requests.post('%sbeans/secret' % flask_url, 
             data=json.dumps({'token': r}))
-    try:
-        s = s.json()
-        raise Exception('Bad token accepted!')
-    except json.decoder.JSONDecodeError as e:
-        print('Bad token rejected')
-        pass
-
-
-make()
-def put_data(data):
-    r = requests.post('%sbeans/secret' % flask_url, data=data)
-    return
+    if s.ok:
+        raise Exception('FAIL - Expired token accepted!')
+    else:
+        print('PASS - Expired token rejected')
 
 def test_revoke():
     r = requests.get('%sbeans/get_token' % flask_url).json().get('token')
-    s = requests.post('%sbeans/token_printer' % flask_url, 
+    s = requests.post('%sbeans/secret' % flask_url, 
             data=json.dumps({'token': r}))
     revoke = requests.post('%sbeans/revoke' % flask_url,
                 data=json.dumps({'token': r}))
-    try:
-        s = requests.post('%sbeans/token_printer' % flask_url, 
-                data=json.dumps({'token': r})).json()
-        print('Token should be invalid!')
-    except:
-        pass
+    s = requests.post('%sbeans/secret' % flask_url, 
+            data=json.dumps({'token': r}))
+    if s.ok:
+        raise Exception('FAIL - Revoked token accepted!')
+    else:
+        print('PASS - Revoked token correctly rejected')
+
+test_forged_token()
+test_expired()
 test_revoke()
