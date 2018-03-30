@@ -958,7 +958,7 @@ def package_preview(owner, package_name, package_hash):
 
     log_count = (
         db.session.query(
-            sa.func.count(Log.package)
+            sa.func.count(Log.package_id)
         )
         .filter(Log.package_id == instance.package_id)
     ).one()
