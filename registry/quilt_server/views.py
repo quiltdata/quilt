@@ -956,6 +956,13 @@ def package_preview(owner, package_name, package_hash):
     (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
+    log_count = (
+        db.session.query(
+            sa.func.count(Log.instance_id)
+        )
+        .filter(Log.instance_id==instance.id)
+    ).first()[0]
+
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
@@ -1024,6 +1031,7 @@ def package_preview(owner, package_name, package_hash):
         is_team=is_team,
         total_size_uncompressed=total_size,
         file_types=file_types,
+        log_count=log_count,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
