@@ -76,13 +76,14 @@ By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas Da
     iris:
       file: iris.data
       transform: csv
-      header: null
-      dtype:
-        sepal_length: float
-        sepal_width: float
-        petal_length: float
-        petal_width: float
-        class: str
+      kwargs:
+        header:
+        dtype:
+          sepal_length: float
+          sepal_width: float
+          petal_length: float
+          petal_width: float
+          class: str
 ```
 
 `dtype` takes a dict where keys are column names and values are valid Pandas column types:

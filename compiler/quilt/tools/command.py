@@ -74,7 +74,7 @@ S3_READ_TIMEOUT = 30
 S3_TIMEOUT_RETRIES = 3
 CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
-LOG_TIMEOUT = 3  # 3 seconds
+LOG_TIMEOUT = 3 # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
@@ -196,10 +196,11 @@ def config():
     _registry_url = None
 
 def _update_auth(team, refresh_token, timeout=None):
-    response = requests.post("%s/api/token" % get_registry_url(team), data=dict(
-        refresh_token=refresh_token,
-        timeout=timeout
-    ))
+    response = requests.post("%s/api/token" % get_registry_url(team),
+        timeout=timeout,
+        data=dict(
+            refresh_token=refresh_token,
+        ))
 
     if response.status_code != requests.codes.ok:
         raise CommandException("Authentication error: %s" % response.status_code)
@@ -932,6 +933,8 @@ def install_via_requirements(requirements_str, force=False):
         path = requirements_str[1:]
         if os.path.isfile(path):
             yaml_data = load_yaml(path)
+            if 'packages' not in yaml_data.keys():
+                raise CommandException('Error in {filename}: missing "packages" node'.format(filename=path))
         else:
             raise CommandException("Requirements file not found: {filename}".format(filename=path))
     else:
