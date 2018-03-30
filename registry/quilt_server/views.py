@@ -1128,21 +1128,38 @@ def list_user_packages(owner):
 def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
+    tags = (
+        db.session.query(Tag.instance_id,
+            sa.func.array_agg(Tag.tag).label('tag_list'))
+        .group_by(Tag.instance_id)
+        .subquery('tags')
+    )
+    versions = (
+        db.session.query(Version.instance_id,
+            sa.func.array_agg(Version.version).label('version_list'))
+        .group_by(Version.instance_id)
+        .subquery('versions')
+    )
     logs = (
-        db.session.query(Log, Instance)
+        db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
         .filter_by(package=package)
         .join(Log.instance)
+        .outerjoin(tags, Log.instance_id == tags.c.instance_id)
+        .outerjoin(versions, Log.instance_id == versions.c.instance_id)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
         .order_by(Log.created, Log.id)
     )
 
-    return dict(
-        logs=[dict(
-            hash=instance.hash,
-            created=log.created.timestamp(),
-            author=log.author
-        ) for log, instance in logs]
-    )
+    results = [dict(
+        hash=instance.hash,
+        created=log.created.timestamp(),
+        author=log.author,
+        tags=tag_list,
+        versions=version_list
+    ) for log, instance, tag_list, version_list in logs]
+
+
+    return { 'logs' : results }
 
 VERSION_SCHEMA = {
     'type': 'object',
