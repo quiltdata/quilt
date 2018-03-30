@@ -1,5 +1,4 @@
 /* Package - about a package */
-import FlatButton from 'material-ui/FlatButton';
 import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
 import React from 'react';
@@ -9,7 +8,7 @@ import {
   FormattedMessage,
   FormattedNumber,
   FormattedPlural,
-  FormattedRelative
+  FormattedRelative,
 } from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
@@ -22,7 +21,6 @@ import config from 'constants/config';
 import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
 import Markdown from 'components/Markdown';
-import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
 import { makeHandle } from 'utils/string';
@@ -110,13 +108,13 @@ export class Package extends React.PureComponent {
     }
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
-    const time = ts*1000;
+    const time = ts * 1000;
     const { manifest = {}, log = {} } = pkg;
     manifest.response = manifest.response || {};
     log.response = log.response || {};
 
-    const log_length = manifest.response.log_count;
-    
+    const logLength = manifest.response.log_count;
+
     const previewBuffer = [];
     if (manifest.response.preview) {
       this.printManifest(previewBuffer, manifest.response.preview);
@@ -143,22 +141,22 @@ export class Package extends React.PureComponent {
             </h1>
           </Header>
           <Tabs>
-            <Tab label='Readme'>
-                { this.renderReadme(manifest || {}) }
+            <Tab label="Readme">
+              { this.renderReadme(manifest || {}) }
             </Tab>
             <Tab
               label={
                 <span>
-                  {log_length}&nbsp;
+                  {logLength}&nbsp;
                   <FormattedPlural
-                    value={log_length}
-                    one='version'
-                    other ='versions'
+                    value={logLength}
+                    one="version"
+                    other="versions"
                   />
                 </span>
               }
             >
-              <Log entries={log.response.logs} /> 
+              <Log entries={log.response.logs} />
             </Tab>
           </Tabs>
         </Col>
@@ -263,7 +261,7 @@ function readableBytes(bytes) {
       <span>
         <FormattedNumber value={display} />&nbsp;{sizes[index]}B
       </span>
-    )
+    );
   }
   return '?';
 }
@@ -334,7 +332,7 @@ const UpdateInfo = ({
 
 UpdateInfo.propTypes = {
   author: PropTypes.string,
-  date: PropTypes.string,
+  time: PropTypes.number,
   fileTypes: PropTypes.object,
   size: PropTypes.number,
   version: PropTypes.string,

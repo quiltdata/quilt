@@ -21,9 +21,6 @@ import {
   UPDATE_PLAN,
 } from './constants';
 
-
-//TODO /api/log/<owner>/<package_name>/
-
 export function* doGetPackages() {
   try {
     const { api: server } = config;

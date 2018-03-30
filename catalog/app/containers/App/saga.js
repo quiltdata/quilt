@@ -42,8 +42,6 @@ import {
   makeSelectUserName,
 } from './selectors';
 
-//TODO /api/log/<owner>/<package_name>/
-
 function* doIntercom(action) {
   try {
     let intercomAction;

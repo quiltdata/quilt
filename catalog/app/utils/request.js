@@ -5,17 +5,16 @@ import 'whatwg-fetch';
 function checkStatus(response) {
   if (response.ok) {
     return response;
-  } else {
-    const error = new Error(response.statusText);
-    error.response = response;
-    throw error;
   }
+  const error = new Error(response.statusText);
+  error.response = response;
+  throw error;
 }
 
 export function requestJSON(url, options) {
   return request(url, options)
     .then(checkStatus)
-    .then((response) => response.json())
+    .then((response) => response.json());
 }
 
 export function requestText(url) {

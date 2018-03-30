@@ -3,10 +3,6 @@ import config from 'constants/config';
 
 export const REDUX_KEY = 'app/Profile';
 
-export const GET_LOG = 'app/Profile/GET_LOG';
-export const GET_LOG_ERROR = 'app/Profile/GET_LOG_ERROR';
-export const GET_LOG_SUCCESS = 'app/Profile/GET_LOG_SUCCESS';
-
 export const GET_PROFILE = 'app/Profile/GET_PROFILE';
 export const GET_PROFILE_ERROR = 'app/Profile/GET_PROFILE_ERROR';
 export const GET_PROFILE_SUCCESS = 'app/Profile/GET_PROFILE_SUCCESS';

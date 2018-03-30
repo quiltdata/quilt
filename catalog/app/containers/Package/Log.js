@@ -23,39 +23,41 @@ const Row = styled.span`
   white-space: nowrap;
 `;
 
-const Log = ({ entries = [] }) => {
-  entries = entries.concat(entries);
-  return entries.map(({ author, created, hash, tags, versions }) => {
-    tags = tags || [];
-    versions = versions || [];
-    return (
-      <Entry>
-        <Row>
-          <Name>date</Name>&nbsp;
-          <FormattedDate
-            value={new Date(created*1000)}
-            month="long"
-            day="numeric"
-            year="numeric"
-            hour="numeric"
-            minute="numeric"
-          />
-        </Row>
-        <Row>
-          <Name>hash</Name> {hash}
-        </Row>
-        <Row>
-          <Name>author</Name> {author}
-        </Row>
-        <Row>
-          <Name>tags</Name> {tags.join(", ")}<br />
-        </Row>
-        <Row>
-          <Name>versions</Name> {versions.join(", ")}<br />
-        </Row>
-      </Entry>
-    );
-  });
-};
+const Log = ({ entries = [] }) => (
+  entries.map(
+    ({ author, created, hash, tags = [], versions = [] }) => {
+      // yes, we still have to do this because if tags = null it won't get [] :(
+      const safeTags = tags || [];
+      const safeVersions = versions || [];
+      return (
+        <Entry>
+          <Row>
+            <Name>date</Name>&nbsp;
+            <FormattedDate
+              value={new Date(created * 1000)}
+              month="long"
+              day="numeric"
+              year="numeric"
+              hour="numeric"
+              minute="numeric"
+            />
+          </Row>
+          <Row>
+            <Name>hash</Name> {hash}
+          </Row>
+          <Row>
+            <Name>author</Name> {author}
+          </Row>
+          <Row>
+            <Name>tags</Name> {safeTags.join(', ')}<br />
+          </Row>
+          <Row>
+            <Name>versions</Name> {safeVersions.join(', ')}<br />
+          </Row>
+        </Entry>
+      );
+    }
+  )
+);
 
 export default Log;
