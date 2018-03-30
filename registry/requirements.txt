@@ -8,10 +8,8 @@ cookies==2.2.1
 docutils==0.14
 Flask==0.12.2
 Flask-Cors==3.0.3
-flask-login
 Flask-JSON==0.3.2
 Flask-Migrate==2.1.0
-flask-security==3.0.0
 Flask-SQLAlchemy==2.2
 httpagentparser==1.8.0
 idna==2.5
@@ -25,6 +23,7 @@ mixpanel==4.3.2
 oauthlib==2.0.2
 packaging==16.8
 psycopg2==2.7.3.2
+pyjwt==1.6.1
 pyparsing==2.2.0
 python-dateutil==2.6.1
 python-editor==1.0.3

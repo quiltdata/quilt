@@ -2233,9 +2233,6 @@ def reset_password():
 
 app.secret_key = b'thirty two bytes for gloriousssh'
 
-from Crypto.Cipher import AES
-from Crypto import Random
-import base64
 import jwt
 import uuid
 
@@ -2257,12 +2254,6 @@ def revoke_tokens(username):
 @app.route('/beans/get_token')
 @as_json
 def beans_get_token():
-    """
-    iv = Random.new().read(AES.block_size)
-    cipher = AES.new(app.secret_key, AES.MODE_CFB, iv)
-    msg = iv + cipher.encrypt('super secret u guise')
-    msg = base64.b64encode(msg)
-    """
     payload = {'username': 'calvin', 'uuid': users['calvin']}
     msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return {'token': msg.decode('utf-8')}
