@@ -150,8 +150,8 @@ export class Package extends React.PureComponent {
                   {logLength}&nbsp;
                   <FormattedPlural
                     value={logLength}
-                    one="version"
-                    other="versions"
+                    one="revision"
+                    other="revisions"
                   />
                 </span>
               }

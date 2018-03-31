@@ -36,7 +36,7 @@ export default defineMessages({
   },
   latest: {
     id: 'app.components.Package.latest',
-    defaultMessage: 'Latest version',
+    defaultMessage: 'Latest revision',
   },
   learn: {
     id: 'app.components.Package.learn',
