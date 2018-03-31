@@ -9,7 +9,6 @@ import pandas.api.types as ptypes
 from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
-from io import StringIO
 
 from ..nodes import GroupNode, PackageNode
 from ..tools.package import ParquetLib, Package
@@ -487,7 +486,6 @@ class BuildTest(QuiltTestCase):
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
 
-    # @patch('sys.stdout', new_callable=StringIO)
     def test_group_node_repr_short(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
 
@@ -510,8 +508,7 @@ class BuildTest(QuiltTestCase):
 
         pretty = '<GroupNode>\nsubnode_000/\nsubnode_001/\nsubnode_002/'
         assert type(fewnodes.main_group_node) is GroupNode
-        assert str(fewnodes.main_group_node) == pretty
-        # assert mock_stdout.getvalue() == pretty
+        assert repr(fewnodes.main_group_node) == pretty
 
     def test_group_node_repr_exceed_by_one(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -535,7 +532,7 @@ class BuildTest(QuiltTestCase):
 
         pretty = '<GroupNode>\nsubnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n'
         pretty += 'subnode_005/\nsubnode_006/\nsubnode_007/\nsubnode_008/\nsubnode_009/\nsubnode_010/'
-        assert str(maxplusone.main_group_node) == pretty
+        assert repr(maxplusone.main_group_node) == pretty
 
     def test_group_node_repr_max_len(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -561,4 +558,4 @@ class BuildTest(QuiltTestCase):
         pretty = '<GroupNode>\n'
         pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n\n...\n\n'
         pretty += 'subnode_015/\nsubnode_016/\nsubnode_017/\nsubnode_018/\nsubnode_019/'
-        assert str(manynodes.main_group_node) == pretty
+        assert repr(manynodes.main_group_node) == pretty
