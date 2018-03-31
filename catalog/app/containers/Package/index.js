@@ -301,7 +301,7 @@ const UpdateInfo = ({
       minute="numeric"
     />
   );
-  const since = <FormattedRelative value={time} />;
+  const since = <FormattedRelative value={new Date(time)} />;
   return (
     <div>
       <h2><FormattedMessage {...strings.latest} /></h2>
