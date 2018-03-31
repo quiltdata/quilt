@@ -24,7 +24,7 @@ const Row = styled.span`
 `;
 
 const Log = ({ entries = [] }) => (
-  entries.map(
+  entries.reverse().map(
     ({ author, created, hash, tags = [], versions = [] }) => {
       // yes, we still have to do this because if tags = null it won't get [] :(
       const safeTags = tags || [];
