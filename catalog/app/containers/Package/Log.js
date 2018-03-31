@@ -30,7 +30,7 @@ const Log = ({ entries = [] }) => (
       const safeTags = tags || [];
       const safeVersions = versions || [];
       return (
-        <Entry>
+        <Entry key={created}>
           <Row>
             <Name>date</Name>&nbsp;
             <FormattedDate

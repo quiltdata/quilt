@@ -113,7 +113,7 @@ export class Package extends React.PureComponent {
     manifest.response = manifest.response || {};
     log.response = log.response || {};
 
-    const logLength = manifest.response.log_count;
+    const logLength = manifest.response.log_count || 1;
 
     const previewBuffer = [];
     if (manifest.response.preview) {
