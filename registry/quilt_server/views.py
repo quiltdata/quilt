@@ -801,6 +801,7 @@ def package_put(owner, package_name, package_hash):
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
         instance.contents = contents
+        instance.updated_at = sa.func.now()
         instance.updated_by = g.auth.user
         instance.keywords_tsv = keywords_tsv
 
