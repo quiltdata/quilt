@@ -470,6 +470,30 @@ class BuildTest(QuiltTestCase):
         assert type(compose_root) is PackageNode
         assert simple.foo().equals(compose_root.foo())
 
+    def test_group_node_iter(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        build_compose_contents = {
+            'contents': {
+                'main_group_node': {
+                    'subnode_1': {
+                        'data_node': {
+                            'file': 'data/foo.csv'
+                        }
+                    },
+                    'subnode_2': {
+                        'data_node': {
+                            'file': 'data/foo.csv'
+                        }
+                    },
+                }
+            }
+       }
+
+        build.build_package_from_contents(None, 'test', 'group_node', str(mydir), build_compose_contents)
+        from quilt.data.test import group_node
+        for node in group_node:
+            assert isinstance(node, GroupNode)
+
     def test_package_and_file_raises_exception(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
         bad_build_contents = {

@@ -67,6 +67,10 @@ class GroupNode(DataNode):
         data_info = '\n'.join(sorted(self._data_keys()))
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
+    def __iter__(self):
+        for child in self._group_keys():
+            yield getattr(self, child)
+
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
                 if not name.startswith('_'))
