@@ -4,11 +4,8 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { Row, Col } from 'react-bootstrap';
 import {
-  FormattedDate,
   FormattedMessage,
-  FormattedNumber,
   FormattedPlural,
-  FormattedRelative,
 } from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
@@ -17,17 +14,16 @@ import styled from 'styled-components';
 
 import apiStatus from 'constants/api';
 import { getLog, getPackage } from 'containers/App/actions';
-import config from 'constants/config';
-import Ellipsis from 'components/Ellipsis';
 import Error from 'components/Error';
+import { Pad } from 'components/LayoutHelpers';
 import Markdown from 'components/Markdown';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
-import { makeHandle } from 'utils/string';
-import { installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
+import Install from './Install';
 import Log from './Log';
+import UpdateInfo from './UpdateInfo';
 import strings from './messages';
 
 const Header = styled.div`
@@ -142,7 +138,9 @@ export class Package extends React.PureComponent {
           </Header>
           <Tabs>
             <Tab label="Readme">
-              { this.renderReadme(manifest || {}) }
+              <Pad top right left bottom pad="1em">
+                { this.renderReadme(manifest || {}) }
+              </Pad>
             </Tab>
             <Tab
               label={
@@ -203,139 +201,5 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   };
 }
-
-const Code = styled.code`
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 1em;
-`;
-
-const Unselectable = styled.span`
-  user-select: none;
-`;
-
-const Install = ({ name, owner }) => (
-  <div>
-    <h2>
-      <FormattedMessage {...strings.getData} />
-    </h2>
-    <p>
-      <FormattedMessage {...strings.install} />&nbsp;
-      <a href={installQuilt}>
-        <FormattedMessage {...strings.installLink} />
-      </a>&nbsp;
-      <FormattedMessage {...strings.installThen} />
-    </p>
-    <Code>
-      <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
-    </Code>
-    <p><FormattedMessage {...strings.sell} /></p>
-    <h3><FormattedMessage {...strings.access} /></h3>
-    <Tabs>
-      <Tab label="Python">
-        {
-          config.team ?
-            <Code>from quilt.team.{config.team.id}.{owner} import {name}</Code>
-            : <Code>from quilt.data.{owner} import {name}</Code>
-        }
-      </Tab>
-    </Tabs>
-  </div>
-);
-
-Install.propTypes = {
-  name: PropTypes.string.isRequired,
-  owner: PropTypes.string.isRequired,
-};
-
-
-function readableBytes(bytes) {
-  if (Number.isInteger(bytes) && bytes > -1) {
-    // https://en.wikipedia.org/wiki/Kilobyte
-    const sizes = ['', 'k', 'M', 'G', 'T', 'P', 'E', 'Z', 'Y'];
-    const log = bytes === 0 ? 0 : Math.log10(bytes);
-    const index = Math.min(Math.floor(log / 3), sizes.length - 1);
-    const display = (bytes / (10 ** (index * 3))).toFixed(1);
-    return (
-      <span>
-        <FormattedNumber value={display} />&nbsp;{sizes[index]}B
-      </span>
-    );
-  }
-  return '?';
-}
-
-const Line = styled.span`
-  display: block;
-  span {
-    display: inline-block;
-    width: 5em;
-  }
-`;
-
-function readableExtensions(fileCounts = {}) {
-  const keys = Object.keys(fileCounts);
-  keys.sort();
-  return keys.map((k) => {
-    const key = k || 'None';
-    const count = <FormattedNumber value={fileCounts[k]} />;
-    return <Line key={key}><span>{key}</span>{count}</Line>;
-  });
-}
-
-const UpdateInfo = ({
-  author,
-  fileTypes,
-  size,
-  time,
-  version,
-}) => {
-  const date = (
-    <FormattedDate
-      value={new Date(time)}
-      month="long"
-      day="numeric"
-      year="numeric"
-      hour="numeric"
-      minute="numeric"
-    />
-  );
-  const since = <FormattedRelative value={new Date(time)} />;
-  return (
-    <div>
-      <h2><FormattedMessage {...strings.latest} /></h2>
-      <dl>
-        <dt>{since}</dt>
-        <dd>{date}</dd>
-        <dt><FormattedMessage {...strings.author} /></dt>
-        <dd>{config.team ? `${config.team.id}:` : ''}{author}</dd>
-
-        <dt><FormattedMessage {...strings.version} /></dt>
-        <dd>
-          <Ellipsis title={version}>
-            {version}
-          </Ellipsis>
-        </dd>
-        <dt><FormattedMessage {...strings.stats} /></dt>
-        <dd title="deduplicated, uncompresssed">
-          {readableBytes(size)}
-        </dd>
-        <dt><FormattedMessage {...strings.fileStats} /></dt>
-        <dd>
-          {readableExtensions(fileTypes)}
-        </dd>
-      </dl>
-    </div>
-  );
-};
-
-UpdateInfo.propTypes = {
-  author: PropTypes.string,
-  time: PropTypes.number,
-  fileTypes: PropTypes.object,
-  size: PropTypes.number,
-  version: PropTypes.string,
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Package);

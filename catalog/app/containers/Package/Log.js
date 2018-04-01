@@ -4,8 +4,9 @@ import { FormattedDate } from 'react-intl';
 import styled from 'styled-components';
 
 const Entry = styled.div`
-  margin-top: 2em;
-  margin-bottom: 2em;
+  border-bottom: 1px solid #ddd;
+  margin: 1em 0 1em 0;
+  padding: 1em 2em;
 `;
 
 const Name = styled.span`
