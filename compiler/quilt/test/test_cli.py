@@ -609,7 +609,6 @@ class TestCLI(BasicQuiltTestCase):
         cmd = ['config']
         result = self.execute_with_checks(cmd, funcname='config')
 
-        # Specific tests
         assert not result['kwargs']
 
     def test_cli_command_login(self):
@@ -632,23 +631,13 @@ class TestCLI(BasicQuiltTestCase):
         cmd = ['login']
         result = self.execute_with_checks(cmd, funcname='login')
 
-        # Specific tests
-        assert not result['args']
         assert result['kwargs']['team'] is None
 
         # login with team name
         cmd = ['login', 'example_team']
-        result = self.execute(cmd)
+        result = self.execute_with_checks(cmd, funcname='login')
 
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
-
-        # Specific tests
-        assert result['func'] == 'login'
-        assert not result['args']
-        assert result['kwargs']['team'] == 'example_team'
+        assert result['kwargs'] == {'team': 'example_team'}
 
     def test_cli_command_logout(self):
         """Ensures the 'login' command calls a specific API"""
@@ -667,8 +656,6 @@ class TestCLI(BasicQuiltTestCase):
         ## This section tests for acceptable types and values.
         cmd = ['logout']
         result = self.execute_with_checks(cmd, funcname='logout')
-
-        # Specific tests
         assert not result['args']
 
     def test_cli_command_push(self):
@@ -697,10 +684,7 @@ class TestCLI(BasicQuiltTestCase):
         cmd = 'push fakeuser/fakepackage'.split()
         result = self.execute_with_checks(cmd, funcname='push')
 
-        # Specific tests
-        assert not result['args']
-        kwargs = result['kwargs']
-        assert kwargs == {
+        assert result['kwargs'] == {
             'reupload': False,
             'is_public': False,
             'package': 'fakeuser/fakepackage',
@@ -712,10 +696,7 @@ class TestCLI(BasicQuiltTestCase):
         cmd = 'push --reupload --public fakeuser/fakepackage'.split()
         result = self.execute_with_checks(cmd, funcname='push')
 
-        # Specific tests
-        assert not result['args']
-        kwargs = result['kwargs']
-        assert kwargs == {
+        assert result['kwargs'] == {
             'reupload': True,
             'is_public': True,
             'package': 'fakeuser/fakepackage',
@@ -724,18 +705,9 @@ class TestCLI(BasicQuiltTestCase):
 
         # team (without reupload)
         cmd = 'push --reupload --team blah:fakeuser/fakepackage'.split()
-        result = self.execute(cmd)
+        result = self.execute_with_checks(cmd, funcname='push')
 
-        # General tests
-        assert result['return code'] == 0
-        assert result['matched'] is True  # func name recognized by MockObject class?
-        assert not result['bind failure']
-
-        # Specific tests
-        assert not result['args']
-        assert result['func'] == 'push'
-        kwargs = result['kwargs']
-        assert kwargs == {
+        assert result['kwargs'] == {
             'reupload': True,
             'is_public': False,
             'package': 'blah:fakeuser/fakepackage',
@@ -744,7 +716,6 @@ class TestCLI(BasicQuiltTestCase):
 
     def test_cli_option_dev_flag(self):
         # also test ctrl-c
-
         if os.name == 'nt':
             # Due to how Windows handles ctrl-c events with process groups and consoles,
             # it's not really feasible to test this on Windows because it will want to kill
