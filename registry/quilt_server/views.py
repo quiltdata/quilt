@@ -801,6 +801,7 @@ def package_put(owner, package_name, package_hash):
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
         instance.contents = contents
+        instance.updated_at = sa.func.now()
         instance.updated_by = g.auth.user
         instance.keywords_tsv = keywords_tsv
 
@@ -956,6 +957,13 @@ def package_preview(owner, package_name, package_hash):
     (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
+    log_count = (
+        db.session.query(
+            sa.func.count(Log.package_id)
+        )
+        .filter(Log.package_id == instance.package_id)
+    ).one()
+
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
@@ -1024,6 +1032,7 @@ def package_preview(owner, package_name, package_hash):
         is_team=is_team,
         total_size_uncompressed=total_size,
         file_types=file_types,
+        log_count=log_count,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])

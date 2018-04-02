@@ -59,8 +59,7 @@ class Instance(db.Model):
 
     created_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     created_by = db.Column(USERNAME_TYPE, nullable=False)
-    updated_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(),
-                           onupdate=db.func.now(), nullable=False)
+    updated_at = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     updated_by = db.Column(USERNAME_TYPE, nullable=False)
 
     # Contents can be a potentially large JSON blob, so load it lazily.

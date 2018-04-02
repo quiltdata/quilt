@@ -658,13 +658,13 @@ def log(package):
         )
     )
 
-    format_str = "%-64s %-19s %s"
-
-    print(format_str % ("Hash", "Pushed", "Author"))
+    table = [("Hash", "Pushed", "Author", "Tags", "Versions")]
     for entry in reversed(response.json()['logs']):
         ugly = datetime.fromtimestamp(entry['created'])
         nice = ugly.strftime("%Y-%m-%d %H:%M:%S")
-        print(format_str % (entry['hash'], nice, entry['author']))
+        table.append((entry['hash'], nice, entry['author'],
+            str(entry.get('tags', [])), str(entry.get('versions', []))))
+    _print_table(table)
 
 def push(package, is_public=False, is_team=False, reupload=False):
     """
