@@ -24,10 +24,13 @@ export const GET_AUTH = 'app/App/GET_AUTH';
 export const GET_AUTH_ERROR = 'app/App/GET_AUTH_ERROR';
 export const GET_AUTH_SUCCESS = 'app/App/GET_AUTH_SUCCESS';
 
+export const GET_LOG = 'app/Profile/GET_LOG';
+export const GET_LOG_ERROR = 'app/Profile/GET_LOG_ERROR';
+export const GET_LOG_SUCCESS = 'app/Profile/GET_LOG_SUCCESS';
+
 export const GET_PACKAGE = 'app/App/GET_PACKAGE';
 export const GET_PACKAGE_ERROR = 'app/App/GET_PACKAGE_ERROR';
 export const GET_PACKAGE_SUCCESS = 'app/App/GET_PACKAGE_SUCCESS';
-
 export const GET_MANIFEST = 'app/App/GET_MANIFEST';
 export const GET_MANIFEST_ERROR = 'app/App/GET_MANIFEST_ERROR';
 export const GET_MANIFEST_SUCCESS = 'app/App/GET_MANIFEST_SUCCESS';

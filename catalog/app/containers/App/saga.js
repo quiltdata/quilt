@@ -14,6 +14,8 @@ import { tokenPath } from 'constants/urls';
 import {
   getAuthError,
   getAuthSuccess,
+  getLogError,
+  getLogSuccess,
   getManifestError,
   getManifestSuccess,
   getPackageError,
@@ -25,6 +27,7 @@ import {
 import {
   GET_AUTH,
   GET_AUTH_SUCCESS,
+  GET_LOG,
   GET_PACKAGE,
   GET_PACKAGE_SUCCESS,
   intercomAppId as app_id, // eslint-disable-line camelcase
@@ -85,6 +88,20 @@ function* doGetAuth(action) {
   }
 }
 
+function* doGetLog(action) {
+  try {
+    const { name, owner } = action;
+    const { api: server } = config;
+    const endpoint = `${server}/api/log/${owner}/${name}/`;
+    const headers = yield call(makeHeaders);
+    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
+    yield put(getLogSuccess(response));
+  } catch (error) {
+    error.headline = 'Log hiccup';
+    error.detail = `doGetLog: ${error.message}`;
+    yield put(getLogError(error));
+  }
+}
 // incoming action is the response from GET_MANIFEST_SUCCESS
 // and use takeLatest(function) to discriminate
 function* doGetManifest() {
@@ -213,6 +230,8 @@ export default function* () {
 
   yield takeLatest(GET_AUTH_SUCCESS, doStoreResponse);
   yield takeLatest(GET_AUTH_SUCCESS, doIntercom);
+
+  yield takeLatest(GET_LOG, doGetLog);
 
   yield takeLatest(GET_PACKAGE, doGetPackage);
   yield takeLatest(GET_PACKAGE_SUCCESS, doGetManifest);
