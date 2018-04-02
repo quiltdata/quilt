@@ -1,8 +1,8 @@
 """
 Helper functions.
 """
-import keyword
 import gzip
+import keyword
 import os
 import re
 
@@ -39,7 +39,7 @@ def parse_package_extended(identifier):
 def parse_package(name, allow_subpath=False):
     values = name.split(':', 1)
     team = values[0] if len(values) > 1 else None
-    
+
     values = values[-1].split('/')
     # Can't do "owner, pkg, *subpath = ..." in Python2 :(
     (owner, pkg), subpath = values[:2], values[2:]
@@ -47,8 +47,8 @@ def parse_package(name, allow_subpath=False):
         # Make sure they're not empty.
         raise ValueError
     if subpath and not allow_subpath:
-        raise ValueError        
-   
+        raise ValueError
+
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
@@ -146,15 +146,18 @@ def sub_files(path, invisible=False):
     return files
 
 
-def is_identifier(string):
+def is_identifier(string, permit_keyword=False):
     """Check if string could be a valid python identifier
 
     :param string: string to be tested
+    :param permit_keyword [False]: If True, allow string to be a Python keyword
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
-    val = PYTHON_IDENTIFIER_RE.match(string) and not keyword.iskeyword(string)
-    return True if val else False
+    matched = PYTHON_IDENTIFIER_RE.match(string)
+    if permit_keyword:
+        return bool(matched)
+    return bool(matched and not keyword.iskeyword(string))
 
 
 def is_nodename(string):
@@ -166,19 +169,20 @@ def is_nodename(string):
     :returns: True if string could be used as a node name, False otherwise
     :rtype: bool
     """
+    # TODO: Permit keywords once node['item'] notation is implemented
     ## Currently a node name has the following characteristics:
     # * Must be a python identifier
-    # * May be a python keyword
+    # * Must not be a python keyword  (limitation of current implementation)
     # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return bool(PYTHON_IDENTIFIER_RE.match(string))
+    return is_identifier(string, permit_keyword=False)
 
 
-def to_identifier(string):
+def to_identifier(string, permit_keyword=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
-    This isn't an isomorphic change, the original filename can't be recovered
+    This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately.
 
     Examples:
@@ -187,24 +191,31 @@ def to_identifier(string):
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
+    :param permit_keyword: Permit python keywords like "import" and "for"
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """
     # Not really useful to expose as a CONSTANT, and python will compile and cache
-    string = re.sub(r'[^0-9a-zA-Z_]', '_', string)
+    result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
+    # Not technically necessary, but retains compatibility with older code, and doesn't hurt
+    result = result.strip('_')
 
-    if string[0].isdigit():
-        string = "n" + string
-    if keyword.iskeyword(string):
-        string = string + '_'
+    if result and result[0].isdigit():
+        result = "n" + result
+    if not permit_keyword:
+        if keyword.iskeyword(result):
+            result += '_'   # there are no keywords ending in "_"
 
-    return string
+    if not is_identifier(result, permit_keyword=permit_keyword):
+        raise ValueError("Unable to generate Python identifier from name: {!r}".format(string))
+
+    return result
 
 
 def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
-    This isn't an isomorphic change, the original filename can't be recovered
+    This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately (`FileNode`
     metadata)
 
@@ -224,24 +235,24 @@ def to_nodename(string, invalid=None, raise_exc=False):
     >>> to_nodename('9:blah', ['n9_blah', 'n9_blah_2']) -> 'n9_blah_3'
 
     :param string: string to convert to a nodename
-    :param invalid: iterable of names to avoid
+    :param invalid: Container of names to avoid.  Efficiency: Use set or dict
     :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
     :type raise_exc: bool
     :returns: valid node name
     :rtype: string
     """
-    string = to_identifier(to_identifier(string).lstrip('_'))
+    # TODO: change to permit_keyword=True by default once switched to node['item'] notation
+    string = to_identifier(string, permit_keyword=False)
 
-    if string[0].isdigit():  # for valid cases like '_903'.lstrip('_') == invalid '903'
+    if string and string[0].isdigit():  # for valid cases like '_903' == invalid '903'
         string = 'n' + string
 
+    # Done if no deduplication
     if invalid is None:
         return string
 
-    if not isinstance(invalid, set):
-        invalid = set(invalid)
-
+    # Deduplicate
     if string in invalid and raise_exc:
         raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
 
