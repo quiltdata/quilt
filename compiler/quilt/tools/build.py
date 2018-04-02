@@ -23,7 +23,8 @@ from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, parse_package
+from .util import FileWithReadProgress, is_nodename, to_identifier, parse_package
+from .util import to_nodename as _to_nodename       # wrapped for exc catch/reraised as BuildException
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -80,13 +81,19 @@ def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
 def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
+    """Convert `name` to a Python Identifier, but raise BuildException on failure."""
+    try:
+        safename = to_identifier(name)
+    except ValueError as error:
+        raise BuildException("Invalid name: " + str(error))
+    return safename
 
-    if safename and safename[0].isdigit():
-        safename = "n%s" % safename
-
-    if not is_nodename(safename):
-        raise BuildException("Unable to determine a Python-legal name for %r" % name)
+def to_nodename(name, invalid=None):
+    """Convert `name` to a Quilt Node Name, but raise BuildException on failure."""
+    try:
+        safename = _to_nodename(name, invalid=invalid)
+    except ValueError as error:
+        raise BuildException("Invalid name: " + str(error))
     return safename
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
@@ -121,7 +128,7 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table[RESERVED['file']] = str(filepath)
         node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
-        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
+        print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 
         yield node_name, node_table
 
