@@ -118,7 +118,7 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
-    
+
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
@@ -1512,7 +1512,7 @@ def load(pkginfo):
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
-def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, force=False):
+def export(package, output_path='.', force=False):
     """Export package file data.
 
     Exports children of specified node to files (if they have file data).
@@ -1677,8 +1677,11 @@ def export(package, output_path='.', filter=lambda x: True, mapper=lambda x: x, 
             node = getattr(node, name)
 
     exports = iter_filename_map(node)                                   # Create src / dest map iterator
-    exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
-    exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
+
+    # If we add filters or mappers, this is where to do it -- for example:
+    # exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
+    # exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
+
     resolved_output = resolve_dirpath(output_path)                      # resolve/create output path
 
     # Checks src/dest existence/nonexistence, converts to Path objects
