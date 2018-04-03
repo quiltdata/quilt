@@ -95,7 +95,6 @@ import signal
 import sys
 
 from subprocess import check_output, CalledProcessError, Popen, PIPE
-from time import sleep
 
 import pytest
 from six import string_types, PY2
