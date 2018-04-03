@@ -98,7 +98,6 @@ injectGlobal`
     }
 
     p, label, li, dd {
-      font-family: 'Georgia', 'Times New Roman', 'Times', serif;
       font-size: ${bodySize};
       line-height: 1.5em;
     }
@@ -117,7 +116,7 @@ injectGlobal`
     }
 
     p, label, li, .serif, dd {
-      font-family: 'Roboto Slab', serif;
+      font-weight: lighter;
     }
 
   }

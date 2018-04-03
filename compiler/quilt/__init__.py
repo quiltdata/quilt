@@ -98,6 +98,7 @@ from .tools.command import (
     list_packages,
     list_users,
     list_users_detailed,
+    load,
     log,
     login,
     login_with_token,

@@ -8,6 +8,9 @@ import {
   GET_AUTH,
   GET_AUTH_ERROR,
   GET_AUTH_SUCCESS,
+  GET_LOG,
+  GET_LOG_ERROR,
+  GET_LOG_SUCCESS,
   GET_MANIFEST,
   GET_MANIFEST_ERROR,
   GET_MANIFEST_SUCCESS,
@@ -36,6 +39,16 @@ function appReducer(state = initialState, action) {
     case GET_AUTH_SUCCESS:
       return state.setIn(['user', 'auth', 'status'], status.SUCCESS)
         .setIn(['user', 'auth', 'response'], fromJS(action.response));
+    case GET_LOG:
+      return state.setIn(['package', 'log', 'status'], status.WAITING)
+        .deleteIn(['package', 'log', 'error'])
+        .deleteIn(['package', 'log', 'response']);
+    case GET_LOG_ERROR:
+      return state.setIn(['package', 'log', 'status'], status.ERROR)
+        .setIn(['package', 'log', 'error'], fromJS(action.error));
+    case GET_LOG_SUCCESS:
+      return state.setIn(['package', 'log', 'status'], status.SUCCESS)
+        .setIn(['package', 'log', 'response'], fromJS(action.response));
     case GET_MANIFEST:
       return state.setIn(['package', 'manifest', 'status'], status.WAITING)
         .deleteIn(['package', 'manifest', 'error'])
