@@ -1527,8 +1527,6 @@ def export(package, output_path='.', force=False):
 
     :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
-    :param filter: function -- takes a node path string, returns True to export
-    :param mapper: function -- takes an export path, returns an export path
     :param force: if True, overwrite existing files
     """
     # TODO: (future) Support other tags/versions
