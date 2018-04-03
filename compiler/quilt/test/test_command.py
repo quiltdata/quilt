@@ -1189,7 +1189,7 @@ class CommandTest(QuiltTestCase):
     def test_export_absolute(self):
         Path = pathlib.Path
         mydir = Path(__file__).parent
-        tempdir = Path() / "test_export_absolute"
+        tempdir = Path("test_export_absolute")
         pkg_name = "testing/export_absolute"
         data = os.urandom(200)
 
@@ -1201,12 +1201,22 @@ class CommandTest(QuiltTestCase):
         node = command.load(pkg_name)
         abs_file = tempdir.absolute() / "abs_file"
         abs_file.write_bytes(data)
-        node._set(['abs_file'], str(abs_file))
+
+        # Setting absolute path for a node is not allowed.
+        with pytest.raises(ValueError, match='Invalid path:'):
+            node._set(['abs_file'], str(abs_file))
+
+        # Set relative path and build dir instead
+        node._set(['abs_file'], 'abs_file', str(tempdir))
+        # Circumvent absolute path checks by writing value directly
+        node.abs_file._node.metadata['q_path'] = str(abs_file)
+
+        # build
         command.build(pkg_name, node)
-        abs_file.unlink()
 
         # export
         export_dir = tempdir / 'export'
+        # result should be the full absolute path of abs_file, but relative, and exported to export_dir
         expected_file = export_dir.joinpath(*abs_file.parts[1:])
 
         command.export(pkg_name, export_dir)
