@@ -8,7 +8,6 @@ from six import iteritems, string_types
 
 from .tools import core
 from .tools.util import is_nodename
-from .tools.compat import pathlib
 
 
 class Node(object):
@@ -45,11 +44,6 @@ class DataNode(Node):
     def __call__(self):
         return self._data()
 
-    @property
-    def _datafile(self):
-        if isinstance(self._node, core.FileNode):
-            return self._data()
-
     def _data(self):
         """
         Returns the contents of the node: a dataframe or a file path.
@@ -73,18 +67,7 @@ class GroupNode(DataNode):
         data_info = '\n'.join(sorted(self._data_keys()))
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
-    def _items(self, recursive=False):
-        """Iterate over paths and nodes in this node
-
-        Yields child `(path, node)` pairs.  Paths are slash-separated
-        strings.  If `recursive` is True, also yields all child nodes
-        and their children, recursively.
-
-        :param recursive: recursively include child nodes, as well
-        :returns: iterator of (<path string>, <node>) pairs
-        """
-        if recursive:
-            return self.__iteritems(self, pathlib.PurePath(), recursive)
+    def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
                 if not name.startswith('_'))
 
@@ -100,45 +83,15 @@ class GroupNode(DataNode):
         """
         return [name for name, child in self._items() if isinstance(child, GroupNode)]
 
-    def _keys(self, recursive=False, iterator=False):
-        """Iterate over paths in this node
-
-        Returns iterable of keys directly accessible on this object via
-        getattr or dot.notation.
-
-        If `recursive` is True, also yields key paths for child nodes and
-        their children, recursively, as slash-separated strings.
-
-        :param recursive: recursively include child nodes, as well
-        :param iterator: return an iterator if True, list otherwise
-        :returns: iterable (list or iterator) of path strings
+    def _keys(self):
         """
-        if recursive or iterator:
-            items = self.__iteritems(self, pathlib.PurePath(), recursive)
-            result = (str(path) for path, node in items)
-            if iterator:
-                return result
-            return list(result)
+        keys directly accessible on this object via getattr or .
+        """
         return [name for name in self.__dict__ if not name.startswith('_')]
 
     def _add_group(self, groupname):
         child = GroupNode(self._package, core.GroupNode({}))
         setattr(self, groupname, child)
-
-    @classmethod
-    def __iteritems(cls, node, base_path, recursive=False):
-        # double underscore since we can't mark methods private with a single underscore
-        # worker for _items and _keys recursion
-        assert isinstance(base_path, pathlib.PurePath)
-        assert isinstance(node, GroupNode)
-
-        for name, child_node in node._items():
-            child_path = base_path / name
-            yield child_path, child_node
-            if recursive and isinstance(child_node, GroupNode):
-                for subpath, subnode in cls.__iteritems(child_node, child_path, recursive):
-                    yield subpath, subnode
-
 
 class PackageNode(GroupNode):
     """

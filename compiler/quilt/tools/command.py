@@ -1534,24 +1534,42 @@ def export(package, output_path='.', force=False):
     # TODO: (future) support dataframes (not too painful, probably)
 
     ## Helpers
+    # this, or something similar, could provide keys(), values() and items() methods for a node.
+    def _iteritems(node, base_path=None, recursive=False):
+        if base_path is None:
+            base_path = pathlib.PurePath()
+        assert isinstance(node, nodes.GroupNode)
+
+        for name, child_node in node._items():
+            child_path = base_path / name
+            yield child_path, child_node
+            if recursive and isinstance(child_node, nodes.GroupNode):
+                for subpath, subnode in _iteritems(child_node, child_path, recursive):
+                    yield subpath, subnode
+
+    # This, or something similar, should probably be available on a node itself as part of the public api
+    def datafile(node):
+        if isinstance(node._node, FileNode):
+            return node._data()
+
     def iter_filename_map(node):
         """Yields (<storage file path>, <original path>) pairs for given `node`.
 
-        If `node._datafile` exists and is truthy, yield pair for `node`.
+        If `datafile(node)` exists and is truthy, yield pair for `node`.
         If `node` is a group node, yield pairs for children of `node`.
 
         :returns: Iterator of (<original path>, <storage file path>) pairs
         """
-        if node._datafile:
+        if datafile(node):
             orig_path = node._node.metadata['q_path']
-            yield (node._datafile, orig_path)
+            yield (datafile(node), orig_path)
             return
 
         if not isinstance(node, nodes.GroupNode):
             return
 
-        for node_path, found_node in node._items(recursive=True):
-            storage_filepath = found_node._datafile
+        for node_path, found_node in _iteritems(node, recursive=True):
+            storage_filepath = found_datafile(node)
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata.get('q_path')
