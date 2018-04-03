@@ -1569,7 +1569,7 @@ def export(package, output_path='.', force=False):
             return
 
         for node_path, found_node in _iteritems(node, recursive=True):
-            storage_filepath = found_datafile(node)
+            storage_filepath = datafile(found_node)
             if storage_filepath is not None:
                 assert storage_filepath    # sanity check -- no blank filenames
                 orig_filepath = found_node._node.metadata.get('q_path')
