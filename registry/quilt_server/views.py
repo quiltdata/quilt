@@ -2285,17 +2285,88 @@ import uuid
 def generate_uuid():
     return str(uuid.uuid4())
 
-users = {'calvin': generate_uuid()}
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=['pbkdf2_sha512'])
+
+def hash_password(password):
+    # TODO : use uuid as salt (since it only changes on password change)
+    # TODO : change rounds based on perf test
+    return pwd_context.hash(password)
+
+start_uuid = generate_uuid()
+users = {'calvin': {'uuid': start_uuid, 'password': hash_password('beans')}}
+
+def verify_hash(username, password):
+    try:
+        h = users[username]['password']
+    except KeyError:
+        raise Exception('User not found')
+    if not pwd_context.verify(password, h):
+        raise Exception('Password verification failed')
+    return True
+
 
 def verify(payload):
     name = payload['username']
     uuid = payload['uuid']
+    if name not in users:
+        raise Exception('Username invalid -- how did you get this token?')
     if not users[name] == uuid:
         raise Exception('UUID mismatch -- token rejected')
     return True
 
 def revoke_tokens(username):
     users[username] = generate_uuid()
+
+def verify_jwt():
+    def dec(f):
+        @wraps(f)
+        def innerdec(*args, **kwargs):
+            try:
+                data = request.get_json(force=True)
+            except Exception as e:
+                return {'error': 'Token could not be loaded.'}, 401
+
+            try:
+                token = jwt.decode(data['token'], app.secret_key, algorithm='HS256')
+            except Exception as e:
+                print(e)
+                return {'error': 'Decoding token failed.'}, 401
+            try:
+                verify(token)
+            except Exception as e:
+                return {'error': 'Verifying token failed. ' + e}
+
+            return f(*args, **kwargs)
+        return innerdec
+    return dec
+
+
+@app.route('/beans/login')
+@as_json
+def beans_login():
+    try:
+        data = request.get_json(force=True)
+        username = data['username']
+        password = data['password']
+        try:
+            verify_hash(username, password)
+        except Exception as e:
+            return {}, 401
+        if username not in users:
+            users[username] = generate_uuid()
+
+        payload = {'username': username, 'uuid': users[username]}
+        msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
+        return {'token': msg.decode('utf-8')}
+    except:
+        return {}, 401
+
+@app.route('/beans/create_user', methods=['POST'])
+@as_json
+@verify_jwt()
+def beans_create_user():
+    return {}
 
 @app.route('/beans/get_token')
 @as_json

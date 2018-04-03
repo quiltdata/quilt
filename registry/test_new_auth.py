@@ -42,6 +42,20 @@ def test_revoke():
     else:
         print('PASS - Revoked token correctly rejected')
 
+"""
 test_forged_token()
 test_expired()
 test_revoke()
+"""
+def test_create_user():
+    t = requests.get('%sbeans/login' % flask_url, 
+            json={'username': 'calvin', 'password': 'beans'})
+    token = t.json()['token']
+    # print(token)
+    bad_token = (jwt.encode({'username': 'calvin'}, 'bad secret')
+            .decode('utf-8'))
+    s = requests.post('%sbeans/create_user' % flask_url, json={'token': token})
+    print(s.text)
+
+
+test_create_user()
