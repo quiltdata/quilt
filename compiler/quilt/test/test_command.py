@@ -281,8 +281,7 @@ class CommandTest(QuiltTestCase):
 
         mock_input.return_value = old_refresh_token
 
-        with pytest.raises(command.CommandException,
-                match=TEAM_ID_ERROR):
+        with pytest.raises(command.CommandException, match=TEAM_ID_ERROR):
             command.login('fo!o')
 
         mock_open.assert_not_called()
@@ -312,8 +311,7 @@ class CommandTest(QuiltTestCase):
         mock_login_with_token.assert_not_called()
 
     def test_login_with_token_invalid_team(self):
-        with pytest.raises(command.CommandException,
-                match=TEAM_ID_ERROR):
+        with pytest.raises(command.CommandException, match=TEAM_ID_ERROR):
             command.login_with_token('123', 'fo!o')
 
     @patch('quilt.tools.command._save_auth')
