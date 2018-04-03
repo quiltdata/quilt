@@ -1351,31 +1351,6 @@ class CommandTest(QuiltTestCase):
         assert single_filepath.exists()
         assert digest(single_bytes) == digest(single_filepath.read_bytes())
 
-        ## Test filters
-        test_dir = temp_dir / 'test_filters'    # ok on windows too per pathlib
-        included_file = test_dir / single_name
-
-        command.export(pkg_name, str(test_dir),
-                       filter=lambda x: True if x == single_name else False)
-
-        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
-
-        assert len(exported_paths) == 1
-        assert included_file.exists()
-        assert digest(single_bytes) == digest(included_file.read_bytes())
-
-        ## Test mapper
-        test_dir = temp_dir / 'test_mapper'
-        test_filepath = test_dir / single_name    # ok on windows too per pathlib
-        mapped_filepath = test_filepath.with_suffix('.zip')
-
-        command.export(pkg_name + '/' + single_name, str(test_dir),
-                       mapper=lambda x: Path(x).with_suffix('.zip'))
-
-        assert not test_filepath.exists()
-        assert mapped_filepath.exists()
-        assert digest(single_bytes) == digest(mapped_filepath.read_bytes())
-
     def test_parse_package_names(self):
         # good parse strings
         expected = (None, 'user', 'package')
