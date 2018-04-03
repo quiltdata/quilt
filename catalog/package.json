@@ -212,7 +212,8 @@
   "jest": {
     "collectCoverageFrom": [
       "app/**/*.{js,jsx}",
-      "!app/**/*.test.{js,jsx}",
+      "!app/testing/**/*.{js,jsx}",
+      "!app/**/tests/*.{js,jsx}",
       "!app/*/RbGenerated*/*.{js,jsx}",
       "!app/app.js",
       "!app/*/*/Loadable.js"
@@ -239,7 +240,8 @@
       "jest-localstorage-mock",
       "<rootDir>/internals/testing/enzyme-setup.js"
     ],
-    "testRegex": "tests/.*\\.test\\.js$",
+    "testRegex": "tests/.*\\.(test|spec)\\.js$",
+    "testURL": "https://quilt-test",
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ]
