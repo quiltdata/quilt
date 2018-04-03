@@ -170,6 +170,7 @@ def is_nodename(string):
     :rtype: bool
     """
     # TODO: Permit keywords once node['item'] notation is implemented
+    # TODO: Update the following description once node['item'] notation is implemented
     ## Currently a node name has the following characteristics:
     # * Must be a python identifier
     # * Must not be a python keyword  (limitation of current implementation)
@@ -217,11 +218,8 @@ def to_identifier(string, permit_keyword=False, strip_underscores=False):
 def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
-    This should match whatever the current definition of a node name is.
-    Currently, that's:
-        * A Python identifier
-        * No initial '_'
-        * Not a Python keyword
+    This should match whatever the current definition of a node name is, as
+    defined in is_nodename().
 
     This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately (`FileNode`
