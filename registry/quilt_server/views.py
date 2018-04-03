@@ -1648,12 +1648,6 @@ def recent_packages():
 def search():
     query = request.args.get('q', '')
 
-    keywords = query.split()
-
-    if len(keywords) > 10:
-        # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 10)")
-
     # Get the list of visible packages and their permissions.
 
     instances = (
@@ -1693,15 +1687,6 @@ def search():
     # Use the "rank / (rank + 1)" normalization; makes it look sort of like percentage.
     RANK_NORMALIZATION = 32
 
-    # Basic substring matching for package owner and name.
-    basic_filter_list = [
-        sa.func.strpos(
-            sa.func.lower(sa.func.concat(instances.c.owner, '/', instances.c.name)),
-            sa.func.lower(keyword)
-        ) > 0
-        for keyword in keywords
-    ]
-
     results = (
         db.session.query(
             instances.c.owner,
@@ -1722,9 +1707,7 @@ def search():
         .filter(sa.or_(
             # Need to use the original keywords_tsv and preview_tsv (not concatenated) to take advantage of the index.
             instances.c.keywords_tsv.op('@@')(instances.c.query),
-            readmes.c.preview_tsv.op('@@')(instances.c.query),
-            # Substring matching.
-            sa.and_(*basic_filter_list)
+            readmes.c.preview_tsv.op('@@')(instances.c.query)
         ) if query else True)  # Disable the filter if there was no query string.
         .order_by(sa.desc('rank'), instances.c.owner, instances.c.name)
     )
