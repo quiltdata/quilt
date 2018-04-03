@@ -38,8 +38,8 @@ See [teams docs](./teams.md) for additional commands and syntax.
 | Command line | Python | Description |
 | --- | --- | --- |
 | `quilt build USER/PACKAGE PATH` | `quilt.build("USER/PACKAGE", "PATH")` | `PATH` may be a `build.yml` file or a directory. If a directory is given, Quilt will internally generate a build file (useful, e.g. for directories of images). `build.yml` is for users who want fine-grained control over parsing. |
-| `quilt push USER/PACKAGE [--public \| --team]` | `quilt.push("USER/PACKAGE", is_public=False, is_team=False)` | Stores the package in the registry |
-| `quilt install USER/PACKAGE[/SUBPATH/...] [-x HASH \| -t TAG \| -v VERSION]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
+| `quilt push USER/PACKAGE [--public ￨ --team]` | `quilt.push("USER/PACKAGE", is_public=False, is_team=False)` | Stores the package in the registry |
+| `quilt install USER/PACKAGE[/SUBPATH/...] [-x HASH ￨ -t TAG ￨ -v VERSION]` | `quilt.install("USER/PACKAGE[/SUBPATH/...]", hash="HASH", tag="TAG", version="VERSION")` | Installs a package or sub-package |
 | `quilt install @FILE=quilt.yml` | Not supported | Installs all specified packages using the requirements syntax (above) |
 | `quilt delete USER/PACKAGE` | `quilt.delete("USER/PACKAGE")` | Removes the package from the registry. Does not delete local data. |
 
@@ -105,6 +105,7 @@ Packages contain three types of nodes:
 * `NODE._keys()` returns a list of all children
 * `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
 * `NODE._group_keys()` returns a list of all group children (groups are like folders)
+* `NODE._items()` returns a generator of the node's children as (name, node) pairs.
 
 #### Example
 ```
@@ -116,8 +117,10 @@ Out[8]: ['README']
 In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
 ```
+
 ### Editing Package Contents
-* `NODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged.
+* `PACKAGENODE._set(PATH, VALUE)` sets a child node. `PATH` is an array of strings, one for each level of the tree. `VALUE` is the new value. If it's a Pandas dataframe, it will be serialized. A string will be interpreted as a path to a file that contains the data to be packaged. Common columnar formats will be serialized into data frames. All other file formats, e.g. images, will be copied as-is.
+* `GROUPNODE._add_group(NAME)` adds an empty `GroupNode` with the given name to the children of `GROUPNODE`.
 
 #### Example
 ```

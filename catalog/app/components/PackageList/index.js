@@ -30,10 +30,12 @@ const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-
     </span>
   );
   return (
+    // lineHeight necessary to prevent clipping of descenders in child components
     <ListItem
       key={handle}
       onClick={() => push(`/package/${handle}`)}
       primaryText={display}
+      style={{ lineHeight: '1.2em' }}
       title={readmePreview}
     />
   );

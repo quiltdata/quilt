@@ -1,3 +1,5 @@
+![python 3.5,_3.6](https://img.shields.io/badge/python-3.5,_3.6-blue.svg)
+
 # Quilt registry
 The registry stores package data, meta-data, and controls permissions.
 

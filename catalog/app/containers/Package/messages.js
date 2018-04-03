@@ -14,9 +14,9 @@ export default defineMessages({
     id: 'app.components.Package.contents',
     defaultMessage: 'Contents',
   },
-  date: {
-    id: 'app.components.Package.date',
-    defaultMessage: 'date',
+  fileStats: {
+    id: 'app.components.Package.fileStats',
+    defaultMessage: 'file extensions',
   },
   getData: {
     id: 'app.components.Package.getData',
@@ -36,7 +36,7 @@ export default defineMessages({
   },
   latest: {
     id: 'app.components.Package.latest',
-    defaultMessage: 'Latest update',
+    defaultMessage: 'Latest revision',
   },
   learn: {
     id: 'app.components.Package.learn',

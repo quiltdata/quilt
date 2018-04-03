@@ -3,34 +3,32 @@ import { Tabs, Tab } from 'material-ui/Tabs';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { Row, Col } from 'react-bootstrap';
-import { FormattedMessage } from 'react-intl';
+import {
+  FormattedMessage,
+  FormattedPlural,
+} from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import apiStatus from 'constants/api';
-import { getPackage } from 'containers/App/actions';
-import config from 'constants/config';
-import Ellipsis from 'components/Ellipsis';
+import { getLog, getPackage } from 'containers/App/actions';
 import Error from 'components/Error';
-import Help from 'components/Help';
+import { Pad } from 'components/LayoutHelpers';
 import Markdown from 'components/Markdown';
-import MIcon from 'components/MIcon';
 import PackageHandle from 'components/PackageHandle';
 import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
-import { makeHandle, numberToCommaString } from 'utils/string';
-import { blogManage, installQuilt } from 'constants/urls';
 import Working from 'components/Working';
 
+import Install from './Install';
+import Log from './Log';
+import UpdateInfo from './UpdateInfo';
 import strings from './messages';
 
 const Header = styled.div`
   .icon {
     opacity: 0.5;
-  }
-  h1 {
-    margin-bottom: 0;
   }
 `;
 
@@ -45,9 +43,10 @@ const Message = styled.p`
 `;
 
 export class Package extends React.PureComponent {
-  componentWillMount() {
+  componentDidMount() {
     const { dispatch, match: { params: { name, owner } } } = this.props;
     dispatch(getPackage(owner, name));
+    dispatch(getLog(owner, name));
   }
   componentWillReceiveProps(nextProps) {
     const { dispatch, match: { params: { name, owner } }, user } = this.props;
@@ -105,10 +104,14 @@ export class Package extends React.PureComponent {
     }
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
-    const date = new Date(ts * 1000).toLocaleString();
-    const { manifest = { response: {} } } = pkg;
-    const previewBuffer = [];
+    const time = ts * 1000;
+    const { manifest = {}, log = {} } = pkg;
+    manifest.response = manifest.response || {};
+    log.response = log.response || {};
 
+    const logLength = manifest.response.log_count || 1;
+
+    const previewBuffer = [];
     if (manifest.response.preview) {
       this.printManifest(previewBuffer, manifest.response.preview);
     }
@@ -124,6 +127,7 @@ export class Package extends React.PureComponent {
           <Header>
             <h1>
               <PackageHandle
+                drop
                 isPublic={response.is_public}
                 isTeam={response.is_team}
                 linkUser
@@ -132,9 +136,27 @@ export class Package extends React.PureComponent {
               />
             </h1>
           </Header>
-          { this.renderReadme(manifest || {}) }
-          <h1><FormattedMessage {...strings.contents} /></h1>
-          <Tree>{previewBuffer.join('')}</Tree>
+          <Tabs>
+            <Tab label="Readme">
+              <Pad top right left bottom pad="1em">
+                { this.renderReadme(manifest || {}) }
+              </Pad>
+            </Tab>
+            <Tab
+              label={
+                <span>
+                  {logLength}&nbsp;
+                  <FormattedPlural
+                    value={logLength}
+                    one="revision"
+                    other="revisions"
+                  />
+                </span>
+              }
+            >
+              <Log entries={log.response.logs} />
+            </Tab>
+          </Tabs>
         </Col>
         <Col xs={12} md={5}>
           <Row>
@@ -142,10 +164,13 @@ export class Package extends React.PureComponent {
               <Install name={name} owner={owner} />
               <UpdateInfo
                 author={author}
-                date={date}
+                time={time}
+                fileTypes={manifest.response.file_types}
                 size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
+              <h2><FormattedMessage {...strings.contents} /></h2>
+              <Tree>{previewBuffer.join('')}</Tree>
             </Col>
           </Row>
         </Col>
@@ -176,99 +201,5 @@ function mapDispatchToProps(dispatch) {
     dispatch,
   };
 }
-
-const Code = styled.code`
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 1em;
-`;
-
-const Unselectable = styled.span`
-  user-select: none;
-`;
-
-const Install = ({ name, owner }) => (
-  <div>
-    <h1>
-      <MIcon>file_download</MIcon>&nbsp;
-      <FormattedMessage {...strings.getData} />
-    </h1>
-    <p>
-      <FormattedMessage {...strings.install} />&nbsp;
-      <a href={installQuilt}>
-        <FormattedMessage {...strings.installLink} />
-      </a>&nbsp;
-      <FormattedMessage {...strings.installThen} />
-    </p>
-    <Code>
-      <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
-    </Code>
-    <p><FormattedMessage {...strings.sell} /></p>
-    <Help href={blogManage} />
-    <h2><FormattedMessage {...strings.access} /></h2>
-    <Tabs>
-      <Tab label="Python">
-        {
-          config.team ?
-            <Code>from quilt.team.{config.team.id}.{owner} import {name}</Code>
-            : <Code>from quilt.data.{owner} import {name}</Code>
-        }
-      </Tab>
-    </Tabs>
-  </div>
-);
-
-Install.propTypes = {
-  name: PropTypes.string.isRequired,
-  owner: PropTypes.string.isRequired,
-};
-
-function readableBytes(bytes) {
-  const mb = bytes / 1000000;
-  if (mb < 1) {
-    const fracStr = (mb - Math.floor(mb)).toFixed(6);
-    // show fractional MB to 6 sig-digits
-    return `${fracStr} MB`;
-  }
-  // only show whole MB
-  return `${numberToCommaString(Math.floor(mb))} MB`;
-}
-
-const UpdateInfo = ({
-  author,
-  date,
-  size,
-  version,
-}) => (
-  <div>
-    <h1><FormattedMessage {...strings.latest} /></h1>
-    <dl>
-      <dt><FormattedMessage {...strings.date} /></dt>
-      <dd>{date}</dd>
-
-      <dt><FormattedMessage {...strings.author} /></dt>
-      <dd>{config.team ? `${config.team.id}:` : ''}{author}</dd>
-
-      <dt><FormattedMessage {...strings.version} /></dt>
-      <dd>
-        <Ellipsis title={version}>
-          {version}
-        </Ellipsis>
-      </dd>
-      <dt><FormattedMessage {...strings.stats} /></dt>
-      <dd title="deduplicated, uncompresssed">
-        {readableBytes(size)}
-      </dd>
-    </dl>
-  </div>
-);
-
-UpdateInfo.propTypes = {
-  author: PropTypes.string,
-  date: PropTypes.string,
-  size: PropTypes.number,
-  version: PropTypes.string,
-};
 
 export default connect(mapStateToProps, mapDispatchToProps)(Package);

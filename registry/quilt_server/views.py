@@ -15,6 +15,7 @@ from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
 import json
+import pathlib
 import time
 from urllib.parse import urlencode
 
@@ -39,7 +40,7 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
-                   FileNode, GroupNode, RootNode, LATEST_TAG, README)
+                   FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
 from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
@@ -803,6 +804,7 @@ def package_put(owner, package_name, package_hash):
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
         instance.contents = contents
+        instance.updated_at = sa.func.now()
         instance.updated_by = g.auth.user
         instance.keywords_tsv = keywords_tsv
 
@@ -922,6 +924,14 @@ def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     else:
         return None
 
+def _iterate_data_nodes(node):
+    # TODO: Merge into core.py
+    if isinstance(node, (TableNode, FileNode)):
+        yield node
+    elif isinstance(node, GroupNode):
+        for child in node.children.values():
+            yield from _iterate_data_nodes(child)
+
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -950,6 +960,13 @@ def package_preview(owner, package_name, package_hash):
     (instance, is_public, is_team) = result
     assert isinstance(instance.contents, RootNode)
 
+    log_count = (
+        db.session.query(
+            sa.func.count(Log.package_id)
+        )
+        .filter(Log.package_id == instance.package_id)
+    ).one()
+
     readme = instance.contents.children.get(README)
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
@@ -977,6 +994,16 @@ def package_preview(owner, package_name, package_hash):
             InstanceBlobAssoc.c.instance_id == instance.id
         ))
     ).one()[0])
+
+    file_types = defaultdict(int)
+    for node in _iterate_data_nodes(instance.contents):
+        path = node.metadata.get('q_path')
+        if not isinstance(path, str):
+            path = ''
+        # We don't know if it's a UNIX or a Windows path, so let's treat both \ and / as separators.
+        # PureWindowsPath will do that for us, since / is legal on Windows.
+        ext = pathlib.PureWindowsPath(path).suffix.lower()
+        file_types[ext] += 1
 
     # Insert an event.
     event = Event(
@@ -1007,6 +1034,8 @@ def package_preview(owner, package_name, package_hash):
         is_public=is_public,
         is_team=is_team,
         total_size_uncompressed=total_size,
+        file_types=file_types,
+        log_count=log_count,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
@@ -1111,21 +1140,38 @@ def list_user_packages(owner):
 def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
+    tags = (
+        db.session.query(Tag.instance_id,
+            sa.func.array_agg(Tag.tag).label('tag_list'))
+        .group_by(Tag.instance_id)
+        .subquery('tags')
+    )
+    versions = (
+        db.session.query(Version.instance_id,
+            sa.func.array_agg(Version.version).label('version_list'))
+        .group_by(Version.instance_id)
+        .subquery('versions')
+    )
     logs = (
-        db.session.query(Log, Instance)
+        db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
         .filter_by(package=package)
         .join(Log.instance)
+        .outerjoin(tags, Log.instance_id == tags.c.instance_id)
+        .outerjoin(versions, Log.instance_id == versions.c.instance_id)
         # Sort chronologically, but rely on IDs in case of duplicate created times.
         .order_by(Log.created, Log.id)
     )
 
-    return dict(
-        logs=[dict(
-            hash=instance.hash,
-            created=log.created.timestamp(),
-            author=log.author
-        ) for log, instance in logs]
-    )
+    results = [dict(
+        hash=instance.hash,
+        created=log.created.timestamp(),
+        author=log.author,
+        tags=tag_list,
+        versions=version_list
+    ) for log, instance, tag_list, version_list in logs]
+
+
+    return { 'logs' : results }
 
 VERSION_SCHEMA = {
     'type': 'object',
