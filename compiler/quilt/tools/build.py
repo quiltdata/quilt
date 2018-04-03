@@ -83,7 +83,7 @@ def _is_valid_group(group):
 def _pythonize_name(name):
     """Convert `name` to a Python Identifier, but raise BuildException on failure."""
     try:
-        safename = to_identifier(name)
+        safename = to_identifier(name, strip_underscores=True)
     except ValueError as error:
         raise BuildException("Invalid name: " + str(error))
     return safename

@@ -179,7 +179,7 @@ def is_nodename(string):
     return is_identifier(string, permit_keyword=False)
 
 
-def to_identifier(string, permit_keyword=False):
+def to_identifier(string, permit_keyword=False, strip_underscores=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original name can't be recovered
@@ -192,13 +192,15 @@ def to_identifier(string, permit_keyword=False):
 
     :param string: string to convert
     :param permit_keyword: Permit python keywords like "import" and "for"
+    :param strip_underscores: strip underscores from result when possible
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """
     # Not really useful to expose as a CONSTANT, and python will compile and cache
     result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
-    # Not technically necessary, but retains compatibility with older code, and doesn't hurt
-    result = result.strip('_')
+
+    if strip_underscores:  # compatibility with older behavior and tests
+        result = result.strip('_')
 
     if result and result[0].isdigit():
         result = "n" + result
@@ -215,6 +217,12 @@ def to_identifier(string, permit_keyword=False):
 def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
 
+    This should match whatever the current definition of a node name is.
+    Currently, that's:
+        * A Python identifier
+        * No initial '_'
+        * Not a Python keyword
+
     This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately (`FileNode`
     metadata)
@@ -222,9 +230,9 @@ def to_nodename(string, invalid=None, raise_exc=False):
     If `invalid` is given, it should be an iterable of names that the returned
     string cannot match -- for example, other node names.
 
-    If `raise_exc` is False (default), an exception is raised when the
-    converted string is present in `invalid`.  Otherwise, the converted string
-    will have a number appended to its name.
+    If `raise_exc` is True, an exception is raised when the converted string
+    is present in `invalid`.  Otherwise, the converted string will have a
+    number appended to its name.
 
     Example:
     # replace special chars -> remove prefix underscores -> rename keywords
@@ -243,12 +251,9 @@ def to_nodename(string, invalid=None, raise_exc=False):
     :rtype: string
     """
     # TODO: change to permit_keyword=True by default once switched to node['item'] notation
-    string = to_identifier(string, permit_keyword=False)
+    string = to_identifier(string, permit_keyword=False, strip_underscores=True)
 
-    if string and string[0].isdigit():  # for valid cases like '_903' == invalid '903'
-        string = 'n' + string
-
-    # Done if no deduplication
+    # Done if no deduplication needed
     if invalid is None:
         return string
 
