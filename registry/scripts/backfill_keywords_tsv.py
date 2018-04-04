@@ -6,6 +6,7 @@ Backfills s3_blob.preview by downloading the contents from S3.
 
 import sys
 
+import sqlalchemy as sa
 from sqlalchemy.orm import undefer
 
 from quilt_server import db
@@ -17,7 +18,12 @@ def main(argv):
         db.session.query(Instance, Package.owner, Package.name)
         .join(Instance.package)
         .options(undefer('contents'))
-        .filter(Instance.keywords_tsv.is_(None))
+        .filter(sa.or_(
+            Instance.keywords_tsv.is_(None),
+            sa.not_(Instance.keywords_tsv.op('@@')(
+                sa.func.plainto_tsquery(Package.owner + '/' + Package.name)
+            ))
+        ))
     )
 
     for idx, (instance, owner, name) in enumerate(rows):
