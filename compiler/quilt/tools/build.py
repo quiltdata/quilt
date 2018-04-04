@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DEFAULT_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
+from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -221,10 +221,13 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
 
             ID = 'id' # pylint:disable=C0103
+            PARQUET = 'parquet' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
-                if transform in DEFAULT_PARSERS:
-                    target = DEFAULT_PARSERS[transform]['target']
+                if transform in PANDAS_PARSERS:
+                    target = TargetType.PANDAS.value
+                elif transform == PARQUET:
+                    target = TargetType.PANDAS.value
                 elif transform == ID:
                     target = TargetType.FILE.value
                 else:
@@ -234,9 +237,12 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
                 
-                if ext in DEFAULT_PARSERS:
-                    transform =  DEFAULT_PARSERS[ext]['transform']
-                    target = DEFAULT_PARSERS[ext]['target']
+                if ext in PANDAS_PARSERS:
+                    transform =  ext
+                    target = TargetType.PANDAS.value
+                elif ext == PARQUET:
+                    transform = ext
+                    target = TargetType.PANDAS.value
                 else:
                     transform = ID
                     target = TargetType.FILE.value
@@ -252,6 +258,17 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                     with open(path, 'r') as fd:
                         data = fd.read()
                         _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
+                if not dry_run:
+                    print("Registering %s..." % path)
+                    package.save_file(path, name, rel_path, target)
+            elif transform == PARQUET:
+                assert PackageFormat(fmt) is PackageFormat.PARQUET
+                if checks:
+                    from pyarrow.parquet import ParquetDataset
+                    dataset = ParquetDataset(path)
+                    table = dataset.read(nthreads=4)
+                    dataframe = table.to_pandas()
+                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
                     package.save_file(path, name, rel_path, target)
@@ -320,7 +337,7 @@ def _remove_keywords(d):
 def _file_to_spark_data_frame(ext, path, handler_args):
     from pyspark import sql as sparksql
     ext = ext.lower() # ensure that case doesn't matter
-    logic = DEFAULT_PARSERS.get(ext)
+    logic = PANDAS_PARSERS.get(ext)
     kwargs = dict(logic['kwargs'])
     kwargs.update(handler_args)
 
@@ -344,7 +361,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
     return dataframe
 
 def _file_to_data_frame(ext, path, handler_args):
-    logic = DEFAULT_PARSERS.get(ext)
+    logic = PANDAS_PARSERS.get(ext)
 
     # allow user to specify handler kwargs and override default kwargs
     kwargs = logic['kwargs'].copy()
