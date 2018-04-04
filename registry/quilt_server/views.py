@@ -759,15 +759,6 @@ def package_put(owner, package_name, package_hash):
             if not have_readme:
                 readme_preview = download_object_preview(owner, readme_hash)
 
-        instance = Instance(
-            package=package,
-            contents=contents,
-            hash=package_hash,
-            created_by=g.auth.user,
-            updated_by=g.auth.user,
-            keywords_tsv=keywords_tsv
-        )
-
         # Add all the hashes that don't exist yet.
 
         blobs = (
@@ -782,6 +773,17 @@ def package_put(owner, package_name, package_hash):
             .all()
         ) if all_hashes else []
 
+        # Create the instance after querying the blobs - otherwise, SQLAlchemy
+        # will issue an INSERT followed by UPDATE instead of a single INSERT.
+        instance = Instance(
+            package=package,
+            contents=contents,
+            hash=package_hash,
+            created_by=g.auth.user,
+            updated_by=g.auth.user,
+            keywords_tsv=keywords_tsv,
+        )
+
         blob_by_hash = { blob.hash: blob for blob in blobs }
 
         for blob_hash in all_hashes:
@@ -794,8 +796,13 @@ def package_put(owner, package_name, package_hash):
                     # If we've just downloaded the README, save it in the blob.
                     # Otherwise, it was already set.
                     blob.preview = readme_preview
-                    blob.preview_tsv = sa.func.to_tsvector(FTS_LANGUAGE, readme_preview)
+                    blob_preview_expr = readme_preview
+                else:
+                    # README already exists in the DB; use a subquery to avoid fetching it
+                    # only to insert it into the instance.
+                    blob_preview_expr = sa.select([S3Blob.preview]).where(S3Blob.id == blob.id)
                 instance.readme_blob = blob
+                instance.blobs_tsv = sa.func.to_tsvector(FTS_LANGUAGE, blob_preview_expr)
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -1653,7 +1660,11 @@ def search():
     instances = (
         db.session.query(
             Instance.id,
-            Instance.keywords_tsv,
+            # We have an index on (keywords_tsv || blobs_tsv)
+            tsvector_concat(
+                Instance.keywords_tsv,
+                Instance.blobs_tsv
+            ).label('tsv'),
             Package.owner,
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
@@ -1675,7 +1686,6 @@ def search():
     readmes = (
         db.session.query(
             Instance.id,
-            S3Blob.preview_tsv,
             sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
         )
         .join(Instance.readme_blob)
@@ -1695,20 +1705,16 @@ def search():
             instances.c.is_team,
             readmes.c.readme,
             sa.func.ts_rank_cd(
-                tsvector_concat(
-                    instances.c.keywords_tsv,
-                    sa.func.coalesce(readmes.c.preview_tsv, '')
-                ),
+                instances.c.tsv,
                 instances.c.query,
                 RANK_NORMALIZATION
             ).label('rank')
         )
         .outerjoin(readmes, instances.c.id == readmes.c.id)
-        .filter(sa.or_(
-            # Need to use the original keywords_tsv and preview_tsv (not concatenated) to take advantage of the index.
-            instances.c.keywords_tsv.op('@@')(instances.c.query),
-            readmes.c.preview_tsv.op('@@')(instances.c.query)
-        ) if query else True)  # Disable the filter if there was no query string.
+        .filter(
+            instances.c.tsv.op('@@')(instances.c.query)
+            if query else True   # Disable the filter if there was no query string.
+        )
         .order_by(sa.desc('rank'), instances.c.owner, instances.c.name)
     )
 
