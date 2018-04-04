@@ -10,6 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import undefer
 
 from quilt_server import db
+from quilt_server.const import FTS_LANGUAGE
 from quilt_server.models import Instance, Package
 from quilt_server.search import keywords_tsvector
 
@@ -21,7 +22,7 @@ def main(argv):
         .filter(sa.or_(
             Instance.keywords_tsv.is_(None),
             sa.not_(Instance.keywords_tsv.op('@@')(
-                sa.func.plainto_tsquery(Package.owner + '/' + Package.name)
+                sa.func.plainto_tsquery(FTS_LANGUAGE, Package.owner + '/' + Package.name)
             ))
         ))
     )
