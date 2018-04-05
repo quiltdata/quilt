@@ -6,7 +6,8 @@ import os
 import pandas as pd
 from six import iteritems, string_types
 
-from .tools import core, const
+from .tools import core
+from .tools.const import PRETTY_MAX_LEN
 from .tools.util import is_nodename
 
 
@@ -68,9 +69,9 @@ class GroupNode(DataNode):
         # strip last new line if needed
         if items[-1] == '\n':
             items.pop()
-        # copare with + 1 helps to prevent hide under '...' only one item
-        if len(items) > const.PRETTY_MAX_LEN + 1:
-            preview = const.PRETTY_MAX_LEN // 2
+        # compare with + 1 helps to prevent hide under '...' only one item
+        if len(items) > PRETTY_MAX_LEN + 1:
+            preview = PRETTY_MAX_LEN // 2
             items = items[:preview] + ['\n...\n'] + items[-preview:]
         data_info = '\n'.join(items)
         return '%s\n%s' % (pinfo, data_info)
