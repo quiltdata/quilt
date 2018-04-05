@@ -5,7 +5,7 @@ Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.c
 * Installation: `pip install quilt --user`, the User icon (upper right) > About > Restart server
 * Prefer Python 3 kernels
 
-# `quilt login` doesn't present textbox for user login code
+# Jupyter: `quilt login` doesn't present textbox for user login code
 * Try a Python 3 kernel
 
 # `ImportError` on import of data package
