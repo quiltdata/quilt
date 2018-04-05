@@ -64,7 +64,7 @@ PANDAS_PARSERS = {
         'attr': 'read_excel',
         # see comments under 'xls'
         'kwargs': _kwargs
-    },
+    }
 }
 
 # Exit codes

@@ -238,7 +238,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 _, ext = splitext_no_dot(rel_path)
                 
                 if ext in PANDAS_PARSERS:
-                    transform =  ext
+                    transform = ext
                     target = TargetType.PANDAS.value
                 elif ext == PARQUET:
                     transform = ext
