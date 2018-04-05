@@ -11,7 +11,7 @@ Tutorials
 * [Identifying Buildings in Satellite Images with Machine Learning and Quilt](https://medium.com/@xander80/identifying-buildings-in-satellite-images-with-machine-learning-and-quilt-5a5579670885)
 
 ## Data engineering
-* [Declarative data prodessing with pandas and pyarrow](https://blog.quiltdata.com/declarative-etl-with-pandas-and-pyarrow-a779de13ef9d)
+* [Declarative data processing with pandas and pyarrow](https://blog.quiltdata.com/declarative-etl-with-pandas-and-pyarrow-a779de13ef9d)
 * [Organize and edit your test data with Quilt](https://qxf2.com/blog/understanding-quilt-with-a-example/)
 
 ## Genomics
