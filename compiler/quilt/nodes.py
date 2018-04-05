@@ -68,8 +68,8 @@ class GroupNode(DataNode):
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
     def __iter__(self):
-        for child in self._group_keys():
-            yield getattr(self, child)
+        for _, child in self._items():
+            yield child
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)
