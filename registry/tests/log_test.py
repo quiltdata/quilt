@@ -36,7 +36,29 @@ class LogTestCase(QuiltTestCase):
 
         # Upload three package instances.
         for contents in self.contents_list:
-            self.put_package(self.user, self.pkg, contents)
+            self.put_package(self.user, self.pkg, contents, tag_latest=True)
+
+        def make_version(i, version):
+            resp = self.app.put(
+                '/api/version/{usr}/{pkg}/{version}'.format(
+                    usr=self.user,
+                    pkg=self.pkg,
+                    version=version
+                ),
+                data=json.dumps(dict(
+                    hash=hash_contents(self.contents_list[i])
+                )),
+                content_type='application/json',
+                headers={
+                    'Authorization': self.user
+                }
+            )
+            assert resp.status_code == requests.codes.ok
+
+        make_version(0, '1.0.0')
+        make_version(1, '2.0.0')
+        make_version(2, '3.0.0')
+
 
     def testLog(self):
         resp = self.app.get(
@@ -55,9 +77,13 @@ class LogTestCase(QuiltTestCase):
 
         assert len(logs) == 3
 
-        for log, contents in zip(logs, self.contents_list):
+        tag_list = [None, None, ['latest']]
+        version_list = [['1.0.0'], ['2.0.0'], ['3.0.0']]
+        for log, contents, tags, versions in zip(logs, self.contents_list, tag_list, version_list):
             assert log['author'] == self.user
             assert log['hash'] == hash_contents(contents)
+            assert log['tags'] == tags
+            assert log['versions'] == versions
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testAccess(self):

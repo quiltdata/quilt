@@ -6,11 +6,12 @@ from shutil import copyfile, copyfileobj, move, rmtree
 import tempfile
 
 import pandas as pd
+from six import itervalues
 
 from .compat import pathlib
 from .const import TargetType
-from .core import (decode_node, encode_node, hash_contents,
-                   FileNode, RootNode, GroupNode, TableNode,
+from .core import (decode_node, encode_node, find_object_hashes, hash_contents,
+                   FileNode, GroupNode, TableNode,
                    PackageFormat)
 from .hashing import digest_file
 from .util import is_nodename
@@ -275,13 +276,13 @@ class Package(object):
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
-    def save_file(self, srcfile, name, path):
+    def save_file(self, srcfile, name, path, target='file'):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, [filehash], '', path, 'file', None)
+        self._add_to_contents(fullname, [filehash], '', path, target)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             # Copy the file to a temporary location first, then move, to make sure we don't end up with
@@ -337,8 +338,7 @@ class Package(object):
             self._check_hashes(node.hashes)
             return self._dataframe(node.hashes, node.format)
         elif isinstance(node, GroupNode):
-            hash_list = [hsh for child in node.preorder() if isinstance(child, TableNode)
-                         for hsh in child.hashes]
+            hash_list = list(find_object_hashes(node, sort=True))
             self._check_hashes(hash_list)
             return self._dataframe(hash_list, PackageFormat.PARQUET)
         elif isinstance(node, FileNode):
@@ -392,7 +392,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
+    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt=PackageFormat.default):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """

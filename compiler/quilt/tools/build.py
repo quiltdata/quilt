@@ -18,7 +18,7 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PARSERS, RESERVED, DEFAULT_QUILT_YML
+from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -133,7 +133,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_contents=None,
+def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -217,24 +217,40 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
 
-            # get either the locally defined transform or inherit from an ancestor
+            # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
 
             ID = 'id' # pylint:disable=C0103
+            PARQUET = 'parquet' # pylint:disable=C0103
             if transform:
                 transform = transform.lower()
-                if (transform not in PARSERS) and (transform != ID):
-                    raise BuildException("Unknown transform '%s' for %s @ %s" %
-                                         (transform, rel_path, target))
-            else: # guess transform if user doesn't provide one
+                if transform in PANDAS_PARSERS:
+                    target = TargetType.PANDAS.value
+                elif transform == PARQUET:
+                    target = TargetType.PANDAS.value
+                elif transform == ID:
+                    target = TargetType.FILE.value
+                else:
+                    raise BuildException("Unknown transform '%s' for %s" %
+                                         (transform, rel_path))
+            else:
+                # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
-                transform = ext
-                if transform not in PARSERS:
+                
+                if ext in PANDAS_PARSERS:
+                    transform = ext
+                    target = TargetType.PANDAS.value
+                elif ext == PARQUET:
+                    transform = ext
+                    target = TargetType.PANDAS.value
+                else:
                     transform = ID
+                    target = TargetType.FILE.value
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
+
+
             # TODO: parse/check environments:
             # environments = node.get(RESERVED['environments'])
-
             checks = node.get(RESERVED['checks'])
             if transform == ID:
                 #TODO move this to a separate function
@@ -244,7 +260,18 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                         _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path)
+                    package.save_file(path, name, rel_path, target)
+            elif transform == PARQUET:
+                assert PackageFormat(fmt) is PackageFormat.PARQUET
+                if checks:
+                    from pyarrow.parquet import ParquetDataset
+                    dataset = ParquetDataset(path)
+                    table = dataset.read(nthreads=4)
+                    dataframe = table.to_pandas()
+                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                if not dry_run:
+                    print("Registering %s..." % path)
+                    package.save_file(path, name, rel_path, target)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -272,9 +299,9 @@ def _build_node(build_dir, package, name, node, fmt, target='pandas', checks_con
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
                     if _have_pyspark():
-                        dataframe = _file_to_spark_data_frame(transform, path, target, handler_args)
+                        dataframe = _file_to_spark_data_frame(transform, path, handler_args)
                     else:
-                        dataframe = _file_to_data_frame(transform, path, target, handler_args)
+                        dataframe = _file_to_data_frame(transform, path, handler_args)
 
                     if checks:
                         # TODO: test that design works for internal nodes... e.g. iterating
@@ -307,11 +334,10 @@ def _remove_keywords(d):
     """
     return { k:v for k, v in iteritems(d) if k not in RESERVED }
 
-def _file_to_spark_data_frame(ext, path, target, handler_args):
+def _file_to_spark_data_frame(ext, path, handler_args):
     from pyspark import sql as sparksql
-    _ = target  # TODO: why is this unused?
     ext = ext.lower() # ensure that case doesn't matter
-    logic = PARSERS.get(ext)
+    logic = PANDAS_PARSERS.get(ext)
     kwargs = dict(logic['kwargs'])
     kwargs.update(handler_args)
 
@@ -331,20 +357,17 @@ def _file_to_spark_data_frame(ext, path, target, handler_args):
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
-        dataframe = _file_to_data_frame(ext, path, target, handler_args)
+        dataframe = _file_to_data_frame(ext, path, handler_args)
     return dataframe
 
-def _file_to_data_frame(ext, path, target, handler_args):
-    _ = target  # TODO: why is this unused?
-    logic = PARSERS.get(ext)
-    the_module = importlib.import_module(logic['module'])
-    if not isinstance(the_module, ModuleType):
-        raise BuildException("Missing required module: %s." % logic['module'])
+def _file_to_data_frame(ext, path, handler_args):
+    logic = PANDAS_PARSERS.get(ext)
+
     # allow user to specify handler kwargs and override default kwargs
     kwargs = logic['kwargs'].copy()
     kwargs.update(handler_args)
     failover = logic.get('failover', None)
-    handler = getattr(the_module, logic['attr'], None)
+    handler = getattr(pd, logic['attr'], None)
     if handler is None:
         raise BuildException("Invalid handler: %r" % logic['attr'])
 

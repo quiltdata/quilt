@@ -486,6 +486,7 @@ class BuildTest(QuiltTestCase):
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
 
+<<<<<<< HEAD
     def test_group_node_repr_short(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
 
@@ -559,3 +560,23 @@ class BuildTest(QuiltTestCase):
         pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n\n...\n\n'
         pretty += 'subnode_015/\nsubnode_016/\nsubnode_017/\nsubnode_018/\nsubnode_019/'
         assert repr(manynodes.main_group_node) == pretty
+=======
+    def test_parquet_source_file(self):
+        df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
+        import pyarrow as pa
+        table = pa.Table.from_pandas(df)
+        pa.parquet.write_table(table, 'simpledf.parquet')
+
+        build_contents = {
+            'contents': {
+                'df': {
+                    'file': 'simpledf.parquet'
+                    }
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'fromparquet', '.', build_contents)
+        pkg = command.load('test/fromparquet')
+        assert df.equals(pkg.df()) # pylint:disable=E1101
+
+    #TODO: Add test for checks on a parquet-sourced dataframe
+>>>>>>> 31404a1373794b22be657e964c5a162bd58a70d1
