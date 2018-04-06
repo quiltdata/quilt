@@ -66,28 +66,34 @@ injectGlobal`
 
     h1 {
       color: ${headerColor};
+      font-size: 2em;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     h2 {
-      font-size: 1.7em;
+      color: ${headerColor};
+      font-size: 1.5em;
     }
 
     h3 {
-      font-size: 1.6em;
+      color: ${headerColor};
+      font-size: 1.4em;
     }
 
     h4 {
-      font-size: 1.4em;
-    }
-
-    h5 {
+      color: ${headerColor};
       font-size: 1.3em;
     }
 
+    h5 {
+      color: ${headerColor};
+      font-size: 1.2em;
+    }
+
     h6 {
-      font-size: 1.4em;
+      color: ${headerColor};
+      font-size: 1.1em;
     }
 
     pre {
@@ -115,7 +121,7 @@ injectGlobal`
       font-family: 'Roboto Mono', monospace;
     }
 
-    p, label, li, .serif, dd {
+    p, label, li, dd {
       font-weight: lighter;
     }
 
