@@ -50,33 +50,14 @@ Markdown.propTypes = {
 /* Ensure that markdown styles are smaller than page h1, h2, etc. since
  * they should appear as subordinate to the page's h1, h2 */
 const Style = styled.div`
+  display: block;
   overflow: auto;
-  h1 {
-    font-size: 1.7em;
-  }
-
-  h2 {
-    font-size: 1.5em;
-  }
-
-  h3 {
-    font-size: 1.4em;
-  }
-
-  h4 {
-    font-size: 1.3em;
-  }
-
-  h5 {
-    font-size: 1.2em;
-  }
-
-  h6 {
-    font-size: 1.1em;
-  }
-
   h1 code {
     background-color: inherit;
+  }
+  /* prevent horizontal overflow */
+  img {
+    max-width: 100%;
   }
 `;
 
