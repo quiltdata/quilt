@@ -122,8 +122,8 @@ export const injectSaga = (key, saga, {
     }),
     restoreProps({ key: ownPropsKey }));
 
-export const withSaga = (createStore) => (...args) => {
-  const sagaMiddleware = createSagaMiddleware();
+export const withSaga = (...sagaMWArgs) => (createStore) => (...args) => {
+  const sagaMiddleware = createSagaMiddleware(...sagaMWArgs);
   const store = applyMiddleware(sagaMiddleware)(createStore)(...args);
   return {
     ...store,

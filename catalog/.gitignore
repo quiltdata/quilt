@@ -12,3 +12,6 @@ npm-debug.log
 # Quilt deployment
 .firebaserc
 firebase.json
+
+# Local env overrides
+.env
