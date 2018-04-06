@@ -107,6 +107,28 @@ injectGlobal`
       font-size: ${bodySize};
       line-height: 1.5em;
     }
+
+    table {
+      max-width: 100%;
+      width: 100%;
+
+      th {
+        line-height: 1.5em;
+        padding: 8px;
+      }
+
+      tr {
+
+        td {
+          line-height: 1.5em;
+          padding: 8px;
+        }
+      }
+    }
+
+    table, th, td {
+      border: 1px solid #ddd;
+    }
   }
 
   /* per app.js fontObservers, fontLoaded is fired once Roboto is ready */
