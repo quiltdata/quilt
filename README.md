@@ -45,7 +45,7 @@ Quilt consists of three source-level components:
     
 2. A [data registry](registry)
     - Controls permissions
-    - Stores pacakge fragments in blob storage
+    - Stores package fragments in blob storage
     - Stores package meta-data
     - De-duplicates repeated data fragments
     - Implemented in Python with Flask and PostgreSQL
