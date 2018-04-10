@@ -1,18 +1,12 @@
 # Questions?
 Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.com). We can also invite you to our Slack channel.
 
-# Packages missing after upgrade to Quilt 2.8
-Quilt 2.8 changes where data packages are stored on your local machine. As a result, Quilt will no longer look for packages in quilt_packages directories. You will need to reinstall any previously installed packages. Locally built packages can be rebuilt. Or, to migrate existing packages to the new store without rebuilding, first revert to an ealier version of Quilt, then push your packages to the Quilt registry.
-```bash
-pip install quilt==2.7.1
-quilt push <your_username>/<your_package>
-``` 
+# Google Cloud Datalab
+* Installation: `pip install quilt --user`, the User icon (upper right) > About > Restart server
+* Prefer Python 3 kernels
 
-Once your packages are stored at the registry, you can upgrade to quilt 2.8.0 (or later) and re-install them.
-```bash
-pip install --upgrade quilt
-quilt install <your_username>/<your_package>
-```
+# Jupyter: `quilt login` doesn't present textbox for user login code
+* Try a Python 3 kernel
 
 # `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install`.
@@ -24,7 +18,6 @@ Ensure that that the package has been installed via `quilt install`.
     from pyarrow.lib import cpu_count, set_cpu_count
 ImportError: DLL load failed: The specified module could not be found.
 ```
-
 Make sure you have installed [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145).
 
 # Jupyter, virtual environments, `quilt` not found
@@ -37,6 +30,19 @@ Alternatively, `pip install quilt` from Jupyter's Terminal.
 
 # pandas `index_col`
 This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
+
+# Packages missing after upgrade to Quilt 2.8
+Quilt 2.8 changes where data packages are stored on your local machine. As a result, Quilt will no longer look for packages in quilt_packages directories. You will need to reinstall any previously installed packages. Locally built packages can be rebuilt. Or, to migrate existing packages to the new store without rebuilding, first revert to an ealier version of Quilt, then push your packages to the Quilt registry.
+```bash
+pip install quilt==2.7.1
+quilt push <your_username>/<your_package>
+``` 
+
+Once your packages are stored at the registry, you can upgrade to quilt 2.8.0 (or later) and re-install them.
+```bash
+pip install --upgrade quilt
+quilt install <your_username>/<your_package>
+```
 
 # Exception when installing `quilt` on OS X El Capitan
 

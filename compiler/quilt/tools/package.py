@@ -276,13 +276,13 @@ class Package(object):
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
-    def save_file(self, srcfile, name, path):
+    def save_file(self, srcfile, name, path, target='file'):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
         fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, [filehash], '', path, 'file', None)
+        self._add_to_contents(fullname, [filehash], '', path, target)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             # Copy the file to a temporary location first, then move, to make sure we don't end up with
@@ -392,7 +392,7 @@ class Package(object):
         """
         return self.UploadFile(self, hash)
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt):
+    def _add_to_contents(self, fullname, hashes, ext, path, target, fmt=PackageFormat.default):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """

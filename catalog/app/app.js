@@ -43,9 +43,8 @@ Raven.context(() => {
   // listen for Roboto fonts
   const robo = new FontFaceObserver('Roboto', {});
   const roboMono = new FontFaceObserver('Roboto Mono', {});
-  const roboSlab = new FontFaceObserver('Roboto Slab', {});
   // reload doc when we have all custom fonts
-  Promise.all([robo.load(), roboSlab.load(), roboMono.load()]).then(() => {
+  Promise.all([robo.load(), roboMono.load()]).then(() => {
     document.body.classList.add('fontLoaded');
   });
 
