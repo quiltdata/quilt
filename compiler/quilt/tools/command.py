@@ -838,7 +838,16 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     At most one of `hash`, `version`, or `tag` can be given. If none are
     given, `tag` defaults to "latest".
+
+    `package` may be a node tree - in which case, its fragments get downloaded.
+    No other parameters are allowed.
     """
+    if isinstance(package, nodes.Node):
+        if not (hash is version is tag is None and force is meta_only is False):
+            raise ValueError("Parameters not allowed when installing a node")
+        _materialize(package)
+        return
+
     if hash is version is tag is None:
         tag = LATEST_TAG
 
@@ -943,6 +952,47 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
             print("All fragments are already downloaded!")
 
     pkgobj.save_contents()
+
+def _materialize(node):
+    store = PackageStore()
+
+    hashes = set()
+
+    stack = [node]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, nodes.GroupNode):
+            stack.extend(child for name, child in obj._items())
+        else:
+            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+
+    missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
+
+    if missing_hashes:
+        teams = {None, _find_logged_in_team()}
+
+        obj_urls = dict()
+        obj_sizes = dict()
+
+        for team in teams:
+            session = _get_session(team)
+            response = session.post(
+                "{url}/api/get_objects".format(url=get_registry_url(team)),
+                json=list(missing_hashes)
+            )
+            data = response.json()
+            obj_urls.update(data['urls'])
+            obj_sizes.update(data['sizes'])
+
+        if len(obj_urls) != len(missing_hashes):
+            not_found = sorted(missing_hashes - set(obj_urls))
+            raise CommandException("Unable to download the following hashes: %s" % ', '.join(not_found))
+
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("All fragments are already downloaded!")
 
 def access_list(package):
     """
