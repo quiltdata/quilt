@@ -440,28 +440,6 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.not_found
 
-    def testGetBlob(self):
-        resp = self.app.get(
-            '/api/blob/test_user/%s' % self.HASH1,
-            headers={
-                'Authorization': 'test_user'
-            }
-        )
-        assert resp.status_code == requests.codes.ok
-        data = json.loads(resp.data.decode('utf8'))
-
-        for method in ['head', 'get', 'put']:
-            url = urllib.parse.urlparse(data[method])
-            assert url.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH1)
-
-        resp = self.app.get(
-            '/api/blob/test_user/%s' % self.HASH1,
-            headers={
-                'Authorization': 'bad_user'
-            }
-        )
-        assert resp.status_code == requests.codes.forbidden
-
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     @mock_customer(plan=PaymentPlan.INDIVIDUAL)
     def testCreatePublic(self, customer):
@@ -578,6 +556,9 @@ class PushInstallTestCase(QuiltTestCase):
                 assert url.path == '/%s/objs/test_user/%s' % (
                     app.config['PACKAGE_BUCKET_NAME'], obj_hash
                 )
+                if method == 'put':
+                    query = urllib.parse.parse_qs(url.query)
+                    assert query['x-amz-content-sha256'] == [obj_hash]
 
         # Verify that it doesn't actually exist.
         resp = self.app.get(
