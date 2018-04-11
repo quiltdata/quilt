@@ -10,7 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 import gzip
@@ -98,6 +98,15 @@ s3_client = boto3.client(
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
+
+# Monkey-patch the S3 client to allow sending the SHA256 checksum on uploads.
+s3_client.meta.service_model._service_description['shapes']['ContentSHA256'] = OrderedDict([('type', 'string')])
+s3_client.meta.service_model._service_description['shapes']['PutObjectRequest']['members']['ContentSHA256'] = OrderedDict([
+    ('shape', 'ContentSHA256'),
+    ('documentation', ''),
+    ('location', 'header'),
+    ('locationName', 'x-amz-content-sha256')
+])
 
 auth_session = requests.Session()
 
@@ -458,12 +467,13 @@ def _mp_track(**kwargs):
 
     mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
-def _generate_presigned_url(method, owner, blob_hash):
+def _generate_presigned_url(method, owner, blob_hash, extra_params={}):
     return s3_client.generate_presigned_url(
         method,
         Params=dict(
             Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
+            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash),
+            **extra_params
         ),
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
@@ -532,19 +542,6 @@ def _private_packages_allowed():
     customer = _get_or_create_customer()
     plan = _get_customer_plan(customer)
     return plan != PaymentPlan.FREE
-
-@app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
-@api()
-@as_json
-def blob_get(owner, blob_hash):
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the owner can upload objects.")
-    return dict(
-        head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-        get=_generate_presigned_url(S3_GET_OBJECT, owner, blob_hash),
-        put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
-    )
 
 def download_object_preview_impl(owner, obj_hash):
     resp = s3_client.get_object(
@@ -730,7 +727,9 @@ def package_put(owner, package_name, package_hash):
                 comma = ('' if idx == 0 else ',')
                 value = dict(
                     head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-                    put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
+                    put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash, dict(
+                        ContentSHA256=blob_hash  # Validate the sha256 checksum on uploads.
+                    ))
                 )
                 yield '%s%s:%s' % (comma, json.dumps(blob_hash), json.dumps(value))
             yield '}}'
