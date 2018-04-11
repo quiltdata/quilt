@@ -318,7 +318,7 @@ def _open_url(url):
         print("Failed to launch the browser: %s" % ex)
 
 def _match_hash(package, hash):
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, _ = parse_package(package, allow_subpath=True)
     session = _get_session(team)
 
     hash = hash.lower()
