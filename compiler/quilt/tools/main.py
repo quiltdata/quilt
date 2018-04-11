@@ -196,6 +196,12 @@ def argument_parser():
     ls_p = subparsers.add_parser("ls", description=shorthelp, help=shorthelp)
     ls_p.set_defaults(func=command.ls)
 
+    # quilt materialize
+    shorthelp = "Materialize a package"
+    materialize_p = subparsers.add_parser("materialize", description=shorthelp, help=shorthelp)
+    materialize_p.add_argument("package", type=str, help=HANDLE)
+    materialize_p.set_defaults(func=command.materialize)
+
     # quilt push
     shorthelp = "Push a data package to the server"
     push_p = subparsers.add_parser("push", description=shorthelp, help=shorthelp)
