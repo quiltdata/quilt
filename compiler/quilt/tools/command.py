@@ -828,7 +828,7 @@ def install_via_requirements(requirements_str, force=False):
         info = parse_package_extended(pkginfo)
         install(info.full_name, info.hash, info.version, info.tag, force=force)
 
-def install(package, hash=None, version=None, tag=None, force=False):
+def install(package, hash=None, version=None, tag=None, force=False, meta_only=False):
     """
     Download a Quilt data package from the server and install locally.
 
@@ -900,7 +900,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             hash=pkghash
         ),
         params=dict(
-            subpath='/'.join(subpath)
+            subpath='/'.join(subpath),
+            meta_only='true' if meta_only else ''
         )
     )
     assert response.ok # other responses handled by _handle_response
@@ -913,8 +914,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     dataset = response.json(object_hook=decode_node)
     contents = dataset['contents']
-    obj_urls = dataset['urls']
-    obj_sizes = dataset['sizes']
 
     # Verify contents hash
     if pkghash != hash_contents(contents):
@@ -922,18 +921,22 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     pkgobj = store.install_package(team, owner, pkg, contents)
 
-    # Skip the objects we already have
-    for obj_hash in list(obj_urls):
-        if os.path.exists(store.object_path(obj_hash)):
-            del obj_urls[obj_hash]
-            del obj_sizes[obj_hash]
+    if not meta_only:
+        obj_urls = dataset['urls']
+        obj_sizes = dataset['sizes']
 
-    if obj_urls:
-        success = download_fragments(store, obj_urls, obj_sizes)
-        if not success:
-            raise CommandException("Failed to download fragments")
-    else:
-        print("All fragments are already downloaded!")
+        # Skip the objects we already have
+        for obj_hash in list(obj_urls):
+            if os.path.exists(store.object_path(obj_hash)):
+                del obj_urls[obj_hash]
+                del obj_sizes[obj_hash]
+
+        if obj_urls:
+            success = download_fragments(store, obj_urls, obj_sizes)
+            if not success:
+                raise CommandException("Failed to download fragments")
+        else:
+            print("All fragments are already downloaded!")
 
     pkgobj.save_contents()
 
