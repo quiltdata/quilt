@@ -853,6 +853,7 @@ def package_put(owner, package_name, package_hash):
 @as_json
 def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
+    meta_only = bool(request.args.get('meta_only', ''))
 
     instance = _get_instance(g.auth, owner, package_name, package_hash)
 
@@ -865,7 +866,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set(find_object_hashes(subnode))
+    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
 
     blobs = (
         S3Blob.query
