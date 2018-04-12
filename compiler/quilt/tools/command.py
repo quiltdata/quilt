@@ -1023,17 +1023,34 @@ def install(package, hash=None, version=None, tag=None, force=False):
             return
 
     dataset = response.json(object_hook=decode_node)
-    response_urls = dataset['urls']
-    response_contents = dataset['contents']
+    contents = dataset['contents']
+    obj_urls = dataset['urls']
     obj_sizes = dataset['sizes']
 
     # Verify contents hash
-    if pkghash != hash_contents(response_contents):
+    if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, response_contents)
+    pkgobj = store.install_package(team, owner, pkg, contents)
 
-    obj_queue = sorted(iteritems(response_urls), reverse=True)
+    # Skip the objects we already have
+    for obj_hash in list(obj_urls):
+        if os.path.exists(store.object_path(obj_hash)):
+            del obj_urls[obj_hash]
+            del obj_sizes[obj_hash]
+
+    _download_fragments(store, obj_urls, obj_sizes)
+
+    pkgobj.save_contents()
+
+def _download_fragments(store, obj_urls, obj_sizes):
+    assert len(obj_urls) == len(obj_sizes)
+
+    if not obj_urls:
+        print("All fragments are already downloaded!")
+        return
+
+    obj_queue = sorted(iteritems(obj_urls), reverse=True)
     total = len(obj_queue)
     # Some objects might be missing a size; ignore those for now.
     total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
@@ -1052,13 +1069,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
                             break
                         obj_hash, url = obj_queue.pop()
                         original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
-
-                    local_filename = store.object_path(obj_hash)
-                    if os.path.exists(local_filename):
-                        with lock:
-                            progress.update(original_size)
-                            downloaded.append(obj_hash)
-                        continue
 
                     success = False
 
@@ -1154,6 +1164,7 @@ def install(package, hash=None, version=None, tag=None, force=False):
                                        (obj_hash, file_hash))
                             continue
 
+                    local_filename = store.object_path(obj_hash)
                     move(temp_path, local_filename)
 
                     # Success.
@@ -1172,8 +1183,6 @@ def install(package, hash=None, version=None, tag=None, force=False):
 
     if len(downloaded) != total:
         raise CommandException("Failed to download fragments")
-
-    pkgobj.save_contents()
 
 def _setup_env(env, files):
     """ process data distribution. """
