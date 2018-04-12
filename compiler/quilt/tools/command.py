@@ -928,9 +928,12 @@ def install(package, hash=None, version=None, tag=None, force=False):
             del obj_urls[obj_hash]
             del obj_sizes[obj_hash]
 
-    success = download_fragments(store, obj_urls, obj_sizes)
-    if not success:
-        raise CommandException("Failed to download fragments")
+    if obj_urls:
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("All fragments are already downloaded!")
 
     pkgobj.save_contents()
 

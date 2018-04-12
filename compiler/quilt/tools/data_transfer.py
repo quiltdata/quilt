@@ -59,10 +59,6 @@ def create_s3_session():
 def download_fragments(store, obj_urls, obj_sizes):
     assert len(obj_urls) == len(obj_sizes)
 
-    if not obj_urls:
-        print("All fragments are already downloaded!")
-        return True
-
     obj_queue = sorted(iteritems(obj_urls), reverse=True)
     total = len(obj_queue)
     # Some objects might be missing a size; ignore those for now.
