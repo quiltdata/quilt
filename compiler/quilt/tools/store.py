@@ -301,5 +301,7 @@ class PackageStore(object):
             remove_objs.difference_update(find_object_hashes(pkg.get_contents()))
 
         for obj in remove_objs:
-            os.remove(self.object_path(obj))
+            path = self.object_path(obj)
+            if os.path.exists(path):
+                os.remove(path)
         return remove_objs
