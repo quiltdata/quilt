@@ -146,17 +146,14 @@ def sub_files(path, invisible=False):
     return files
 
 
-def is_identifier(string, permit_keyword=False):
+def is_identifier(string):
     """Check if string could be a valid python identifier
 
     :param string: string to be tested
-    :param permit_keyword [False]: If True, allow string to be a Python keyword
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
     matched = PYTHON_IDENTIFIER_RE.match(string)
-    if permit_keyword:
-        return bool(matched)
     return bool(matched and not keyword.iskeyword(string))
 
 
@@ -177,10 +174,10 @@ def is_nodename(string):
     # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return is_identifier(string, permit_keyword=False)
+    return is_identifier(string)
 
 
-def to_identifier(string, permit_keyword=False, strip_underscores=False):
+def to_identifier(string, strip_underscores=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original name can't be recovered
@@ -192,7 +189,6 @@ def to_identifier(string, permit_keyword=False, strip_underscores=False):
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
-    :param permit_keyword: Permit python keywords like "import" and "for"
     :param strip_underscores: strip underscores from result when possible
     :returns: `string`, converted to python identifier if needed
     :rtype: string
@@ -205,11 +201,8 @@ def to_identifier(string, permit_keyword=False, strip_underscores=False):
 
     if result and result[0].isdigit():
         result = "n" + result
-    if not permit_keyword:
-        if keyword.iskeyword(result):
-            result += '_'   # there are no keywords ending in "_"
 
-    if not is_identifier(result, permit_keyword=permit_keyword):
+    if not is_identifier(result):
         raise ValueError("Unable to generate Python identifier from name: {!r}".format(string))
 
     return result
@@ -242,14 +235,14 @@ def to_nodename(string, invalid=None, raise_exc=False):
 
     :param string: string to convert to a nodename
     :param invalid: Container of names to avoid.  Efficiency: Use set or dict
-    :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
-    :type raise_exc: bool
     :returns: valid node name
-    :rtype: string
     """
-    # TODO: change to permit_keyword=True by default once switched to node['item'] notation
-    string = to_identifier(string, permit_keyword=False, strip_underscores=True)
+    string = to_identifier(string, strip_underscores=True)
+
+    #TODO: Remove this stanza once keywords are permissible in nodenames
+    if keyword.iskeyword(string):
+        string += '_'   # there are no keywords ending in "_"
 
     # Done if no deduplication needed
     if invalid is None:
