@@ -1,12 +1,9 @@
 from enum import Enum
-import gzip
 import json
 import os
-from shutil import copyfile, copyfileobj, move, rmtree
-import tempfile
+from shutil import copyfile, move, rmtree
 
 import pandas as pd
-from six import itervalues
 
 from .compat import pathlib
 from .const import TargetType
@@ -15,10 +12,6 @@ from .core import (decode_node, encode_node, find_object_hashes, hash_contents,
                    PackageFormat)
 from .hashing import digest_file
 from .util import is_nodename
-
-
-ZLIB_LEVEL = 2
-CHUNK_SIZE = 4096
 
 
 class ParquetLib(Enum):
@@ -364,33 +357,6 @@ class Package(object):
         Returns the store containing this package.
         """
         return self._store
-
-    class UploadFile(object):
-        """
-        Helper class to manage temporary package files uploaded by push.
-        """
-        def __init__(self, package, objhash):
-            self._package = package
-            self._hash = objhash
-            self._temp_file = None
-
-        def __enter__(self):
-            self._temp_file = tempfile.TemporaryFile()
-            with open(self._package.get_store().object_path(self._hash), 'rb') as input_file:
-                with gzip.GzipFile(fileobj=self._temp_file, mode='wb',
-                                   compresslevel=ZLIB_LEVEL) as gzip_file:
-                    copyfileobj(input_file, gzip_file, CHUNK_SIZE)
-            self._temp_file.seek(0)
-            return self._temp_file
-
-        def __exit__(self, type, value, traceback):
-            self._temp_file.close()
-
-    def tempfile(self, hash):
-        """
-        Create and return a temporary file for uploading to a registry.
-        """
-        return self.UploadFile(self, hash)
 
     def _add_to_contents(self, fullname, hashes, ext, path, target, fmt=PackageFormat.default):
         """
