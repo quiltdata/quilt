@@ -10,7 +10,6 @@ import time
 from unittest.mock import patch
 import urllib
 
-import pytest
 import requests
 
 from quilt_server.const import PaymentPlan, PUBLIC, TEAM
@@ -881,3 +880,45 @@ class AccessTestCase(QuiltTestCase):
 
         # Different keywords match different sources: package name and README.
         _test_query("nothing wine", {}, ["test_user/nothing"])
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testGetObjects(self):
+        hash1 = '1' * 64
+        hash2 = '2' * 64
+        bad_hash = 'f' * 64
+
+        # hash1 is private; hash2 is both private and public, owned by different users.
+        self.put_package('usr1', 'pkg1', RootNode(children=dict(foo=FileNode([hash1], dict()))))
+        self.put_package('usr1', 'pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))))
+        self.put_package('usr2', 'public_pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))), is_public=True)
+
+        def _get_hashes(user, hashes):
+            headers = {
+                'Authorization': user
+            } if user else {}
+            resp = self.app.post(
+                '/api/get_objects',
+                data=json.dumps(hashes),
+                content_type='application/json',
+                headers=headers
+            )
+            assert resp.status_code == requests.codes.ok
+
+            data = json.loads(resp.data.decode('utf8'))
+            urls = data['urls']
+            sizes = data['sizes']
+            assert set(urls) == set(sizes)
+            assert not set(urls) - set(hashes)
+            return set(urls)
+
+        # Anonymous user can only see hash2.
+        assert _get_hashes(None, [hash1, hash2]) == {hash2}
+
+        # usr1 can see both.
+        assert _get_hashes('usr1', [hash1, hash2]) == {hash1, hash2}
+
+        # usr2 can only see hash2; doesn't matter which user it comes from.
+        assert _get_hashes('usr2', [hash1, hash2]) == {hash2}
+
+        # Bogus hashes have no effect.
+        assert _get_hashes('usr2', [hash2, bad_hash]) == {hash2}
