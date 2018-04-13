@@ -10,6 +10,11 @@ const feed = [
     description: 'sgRNA designs that target the human genome, together with metadata about the sgRNA sequence and genomic location',
   },
   {
+    name: 'nz_space_challenge',
+    owner: 'weiji14',
+    description: 'Crevasse training data for NZ Space Challenge',
+  },
+  {
     name: 'DynamicPopEstimate',
     owner: 'vgauthier',
     description: 'Dataset repository of the paper Estimation of Dynamic Urban Populations with Mobile Network Metadata',

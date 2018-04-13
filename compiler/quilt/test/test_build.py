@@ -484,3 +484,22 @@ class BuildTest(QuiltTestCase):
             }
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+
+    def test_parquet_source_file(self):
+        df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
+        import pyarrow as pa
+        table = pa.Table.from_pandas(df)
+        pa.parquet.write_table(table, 'simpledf.parquet')
+
+        build_contents = {
+            'contents': {
+                'df': {
+                    'file': 'simpledf.parquet'
+                    }
+                }
+            }
+        build.build_package_from_contents(None, 'test', 'fromparquet', '.', build_contents)
+        pkg = command.load('test/fromparquet')
+        assert df.equals(pkg.df()) # pylint:disable=E1101
+
+    #TODO: Add test for checks on a parquet-sourced dataframe

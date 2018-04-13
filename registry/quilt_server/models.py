@@ -67,7 +67,11 @@ class Instance(db.Model):
 
     readme_blob_id = db.Column(db.BigInteger, db.ForeignKey('s3_blob.id'), index=True)
 
-    keywords_tsv = deferred(db.Column(postgresql.TSVECTOR))
+    # TSVector of the owner, name, and useful parts of the JSON contents.
+    keywords_tsv = deferred(db.Column(postgresql.TSVECTOR, nullable=False, server_default=''))
+
+    # TSVector of the README blob; needs to be in the Instance table in order for the index to work.
+    blobs_tsv = deferred(db.Column(postgresql.TSVECTOR, nullable=False, server_default=''))
 
     package = db.relationship('Package', back_populates='instances')
     versions = db.relationship('Version', back_populates='instance')
@@ -77,7 +81,8 @@ class Instance(db.Model):
     readme_blob = db.relationship('S3Blob', uselist=False)
 
 db.Index('idx_hash', Instance.package_id, Instance.hash, unique=True)
-db.Index('idx_keywords_tsv', Instance.keywords_tsv, postgresql_using='gin')
+db.Index('idx_keywords_tsv', Instance.keywords_tsv, postgresql_using='gin')  # UNUSED
+db.Index('idx_keywords_blobs_tsv', Instance.keywords_tsv.op('||')(Instance.blobs_tsv), postgresql_using='gin')
 
 
 class S3Blob(db.Model):
@@ -91,6 +96,7 @@ class S3Blob(db.Model):
 
     # Only used for READMEs right now - but could be used for anything, including blobs
     # for which we're not storing a preview (therefore it's a separate column).
+    # UNUSED: Delete in the next update.
     preview_tsv = deferred(db.Column(postgresql.TSVECTOR))
 
     instances = db.relationship('Instance', secondary=InstanceBlobAssoc)
