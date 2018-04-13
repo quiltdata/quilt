@@ -154,7 +154,7 @@ def is_identifier(string):
     :rtype: bool
     """
     matched = PYTHON_IDENTIFIER_RE.match(string)
-    return bool(matched and not keyword.iskeyword(string))
+    return bool(matched) and not keyword.iskeyword(string)
 
 
 def is_nodename(string):
