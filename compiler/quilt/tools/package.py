@@ -9,7 +9,7 @@ import pandas as pd
 from six import itervalues
 
 from .compat import pathlib
-from .const import TargetType
+from .const import TargetType, QuiltException
 from .core import (decode_node, encode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, TableNode,
                    PackageFormat)
@@ -26,7 +26,7 @@ class ParquetLib(Enum):
     ARROW = 'pyarrow'
 
 
-class PackageException(Exception):
+class PackageException(QuiltException):
     """
     Exception class for Package handling
     """

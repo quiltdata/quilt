@@ -18,7 +18,8 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PANDAS_PARSERS, RESERVED, DEFAULT_QUILT_YML
+from .const import (DEFAULT_BUILDFILE, PACKAGE_DIR_NAME, PANDAS_PARSERS, RESERVED, DEFAULT_QUILT_YML,
+                    QuiltException)
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
@@ -28,7 +29,7 @@ from .util import FileWithReadProgress, is_nodename, to_identifier, parse_packag
 from . import check_functions as qc            # pylint:disable=W0611
 
 
-class BuildException(Exception):
+class BuildException(QuiltException):
     """
     Build-time exception class
     """
@@ -81,19 +82,7 @@ def _is_valid_group(group):
 
 def _pythonize_name(name):
     """Convert `name` to a Python Identifier, but raise BuildException on failure."""
-    try:
-        safename = to_identifier(name, strip_underscores=True)
-    except ValueError as error:
-        raise BuildException("Invalid name: " + str(error))
-    return safename
-
-def to_nodename_reraise(name, invalid=None):
-    """Convert `name` to a Quilt Node Name, but raise BuildException on failure."""
-    try:
-        safename = to_nodename(name, invalid=invalid)
-    except ValueError as error:
-        raise BuildException("Invalid name: " + str(error))
-    return safename
+    return to_identifier(name, strip_underscores=True)
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
@@ -125,7 +114,7 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table = {} if child_table is None else child_table.copy()
         filepath = filepath.relative_to(dir)
         node_table[RESERVED['file']] = str(filepath)
-        node_name = to_nodename_reraise(filepath.stem, invalid=used_names)
+        node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
         print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 

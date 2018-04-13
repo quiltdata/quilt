@@ -10,6 +10,8 @@ from appdirs import user_config_dir, user_data_dir
 from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
+from .const import QuiltException
+
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -203,7 +205,7 @@ def to_identifier(string, strip_underscores=False):
         result = "n" + result
 
     if not is_identifier(result):
-        raise ValueError("Unable to generate Python identifier from name: {!r}".format(string))
+        raise QuiltException("Unable to generate Python identifier from name: {!r}".format(string))
 
     return result
 
@@ -250,7 +252,7 @@ def to_nodename(string, invalid=None, raise_exc=False):
 
     # Deduplicate
     if string in invalid and raise_exc:
-        raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
+        raise QuiltException("Conflicting node name after string conversion: {!r}".format(string))
 
     result = string
     counter = 1

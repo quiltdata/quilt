@@ -70,3 +70,21 @@ PANDAS_PARSERS = {
 # Exit codes
 EXIT_KB_INTERRUPT = 4
 TEAM_ID_ERROR = "Invalid team name: "
+
+
+# Exceptions
+class QuiltException(Exception):
+    """Base Exception for Quilt
+
+    Any time an exception is raised by Quilt code and isn't caught by
+    the module raising it, it should use a `QuiltException` or subclass.
+
+    `QuiltException` is the base for all quilt exceptions, such as
+    `CommandException`, `BuildException`, etc.
+
+    All `QuiltException` instances should have a user friendly message,
+    even if not expected to be seen by a user.
+    """
+    def __init__(self, message, *args):
+        super(QuiltException, self).__init__(message, *args)
+        self.message = message

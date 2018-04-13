@@ -6,7 +6,7 @@ import re
 
 from shutil import rmtree
 
-from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME
+from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException
 from .core import FileNode, RootNode, TableNode, find_object_hashes
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
@@ -18,7 +18,7 @@ def default_store_location():
     package_dir = os.path.join(BASE_DIR, PACKAGE_DIR_NAME)
     return os.getenv('QUILT_PRIMARY_PACKAGE_DIR', package_dir)
 
-class StoreException(Exception):
+class StoreException(QuiltException):
     """
     Exception class for store I/O
     """
