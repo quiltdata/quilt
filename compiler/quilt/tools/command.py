@@ -940,6 +940,53 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     pkgobj.save_contents()
 
+def materialize(package):
+    if isinstance(package, string_types):
+        node, pkgobj, info = _load(package)
+    elif isinstance(package, nodes.Node):
+        node = package
+    else:
+        raise ValueError("Expected a Node or a package name, but got %r" % package)
+
+    store = PackageStore()
+
+    hashes = set()
+
+    stack = [node]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, nodes.GroupNode):
+            stack.extend(child for name, child in obj._items())
+        else:
+            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+
+    missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
+
+    if missing_hashes:
+        teams = {None, _find_logged_in_team()}
+
+        obj_urls = dict()
+        obj_sizes = dict()
+
+        for team in teams:
+            session = _get_session(team)
+            response = session.post(
+                "{url}/api/get_objects".format(url=get_registry_url(team)),
+                json=list(missing_hashes)
+            )
+            data = response.json()
+            obj_urls.update(data['urls'])
+            obj_sizes.update(data['sizes'])
+
+        if len(obj_urls) != len(missing_hashes):
+            not_found = sorted(missing_hashes - set(obj_urls))
+            raise CommandException("Unable to download the following hashes: %s" % ', '.join(not_found))
+
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("All fragments are already downloaded!")
 
 def _setup_env(env, files):
     """ process data distribution. """

@@ -104,6 +104,7 @@ from .tools.command import (
     login_with_token,
     logout,
     ls,
+    materialize,
     delete,
     push,
     rm,
