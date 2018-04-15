@@ -14,6 +14,7 @@ import os.path
 import sys
 
 from six import iteritems
+from difflib import get_close_matches
 
 from .nodes import DataNode, GroupNode, PackageNode
 from .tools import core
@@ -113,9 +114,13 @@ class ModuleFinder(object):
             else:
                 return None
 
+        dirs = []
         # Return fake loaders for partial paths.
         for store_dir in PackageStore.find_store_dirs():
             store = PackageStore(store_dir)
+
+            # append all dirs for matching
+            dirs += [d for d in os.listdir(store_dir) if os.path.isdir(os.path.join(store_dir, d))]
 
             if len(parts) == 0:
                 assert self._teams
@@ -126,5 +131,12 @@ class ModuleFinder(object):
             if os.path.isdir(path):
                 return FakeLoader(path)
 
+        # make a guess in case of typo
+        # e.g. user typed 'pakcage' instead of 'package'
+        guess = get_close_matches(parts[0], dirs, n=1)
+        if guess:
+            raise ImportError('"%s" not found. Did you mean %s?' % (parts[0], guess))
+        raise ImportError(guess, dirs)
+
         # Nothing is found.
-        return None
+        raise ImportError('Not found. Do you need to `quilt install %s`?' % submodule)
