@@ -18,18 +18,18 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
+from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
+                    QuiltException, TargetType)
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_identifier, parse_package
-from .util import to_nodename as _to_nodename       # wrapped for exc catch/reraised as BuildException
+from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
 
 
-class BuildException(Exception):
+class BuildException(QuiltException):
     """
     Build-time exception class
     """
@@ -80,21 +80,9 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def pythonize(name):
+def _pythonize_name(name):
     """Convert `name` to a Python Identifier, but raise BuildException on failure."""
-    try:
-        safename = to_identifier(name)
-    except ValueError as error:
-        raise BuildException("Invalid name: " + str(error))
-    return safename
-
-def to_nodename(name, invalid=None):
-    """Convert `name` to a Quilt Node Name, but raise BuildException on failure."""
-    try:
-        safename = _to_nodename(name, invalid=invalid)
-    except ValueError as error:
-        raise BuildException("Invalid name: " + str(error))
-    return safename
+    return to_identifier(name, strip_underscores=True)
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
@@ -360,7 +348,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = pythonize(col)
+            pcol = _pythonize_name(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -517,14 +505,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = to_nodename(nodename)
+            safename = _pythonize_name(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = to_nodename(name)  # Name with ext
+                    new_safename = _pythonize_name(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)

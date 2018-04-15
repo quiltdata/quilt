@@ -11,6 +11,7 @@ from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
 from .compat import pathlib
+from .const import QuiltException
 
 
 APP_NAME = "QuiltCli"
@@ -148,18 +149,15 @@ def sub_files(path, invisible=False):
     return files
 
 
-def is_identifier(string, permit_keyword=False):
+def is_identifier(string):
     """Check if string could be a valid python identifier
 
     :param string: string to be tested
-    :param permit_keyword [False]: If True, allow string to be a Python keyword
     :returns: True if string can be a python identifier, False otherwise
     :rtype: bool
     """
     matched = PYTHON_IDENTIFIER_RE.match(string)
-    if permit_keyword:
-        return bool(matched)
-    return bool(matched and not keyword.iskeyword(string))
+    return bool(matched) and not keyword.iskeyword(string)
 
 
 def is_nodename(string):
@@ -172,16 +170,17 @@ def is_nodename(string):
     :rtype: bool
     """
     # TODO: Permit keywords once node['item'] notation is implemented
+    # TODO: Update the following description once node['item'] notation is implemented
     ## Currently a node name has the following characteristics:
     # * Must be a python identifier
-    # * Must not be a python keyword  (current technical limitation)
+    # * Must not be a python keyword  (limitation of current implementation)
     # * Must not start with an underscore
     if string.startswith('_'):
         return False
-    return is_identifier(string, permit_keyword=False)
+    return is_identifier(string)
 
 
-def to_identifier(string, permit_keyword=False):
+def to_identifier(string, strip_underscores=False):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original name can't be recovered
@@ -193,29 +192,30 @@ def to_identifier(string, permit_keyword=False):
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
-    :param permit_keyword: Permit python keywords like "import" and "for"
+    :param strip_underscores: strip underscores from result when possible
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """
-    # Not really useful to expose as a constant, and python will compile and cache
+    # Not really useful to expose as a CONSTANT, and python will compile and cache
     result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
-    # Not technically necessary, but retains compatibility with older code, and doesn't hurt
-    result = result.strip('_')
+
+    if strip_underscores:  # compatibility with older behavior and tests
+        result = result.strip('_')
 
     if result and result[0].isdigit():
         result = "n" + result
-    if not permit_keyword:
-        if keyword.iskeyword(result):
-            result += '_'   # there are no keywords ending in "_"
 
-    if not is_identifier(result, permit_keyword=permit_keyword):
-        raise ValueError("Unable to generate Python identifier from name: {!r}".format(string))
+    if not is_identifier(result):
+        raise QuiltException("Unable to generate Python identifier from name: {!r}".format(string))
 
     return result
 
 
 def to_nodename(string, invalid=None, raise_exc=False):
     """Makes a Quilt Node name (perhaps an ugly one) out of any string.
+
+    This should match whatever the current definition of a node name is, as
+    defined in is_nodename().
 
     This isn't an isomorphic change, the original name can't be recovered
     from the change in all cases, so it must be stored separately (`FileNode`
@@ -224,9 +224,9 @@ def to_nodename(string, invalid=None, raise_exc=False):
     If `invalid` is given, it should be an iterable of names that the returned
     string cannot match -- for example, other node names.
 
-    If `raise_exc` is False (default), an exception is raised when the
-    converted string is present in `invalid`.  Otherwise, the converted string
-    will have a number appended to its name.
+    If `raise_exc` is True, an exception is raised when the converted string
+    is present in `invalid`.  Otherwise, the converted string will have a
+    number appended to its name.
 
     Example:
     # replace special chars -> remove prefix underscores -> rename keywords
@@ -238,25 +238,22 @@ def to_nodename(string, invalid=None, raise_exc=False):
 
     :param string: string to convert to a nodename
     :param invalid: Container of names to avoid.  Efficiency: Use set or dict
-    :type invalid: iterable
     :param raise_exc: Raise an exception on name conflicts if truthy.
-    :type raise_exc: bool
     :returns: valid node name
-    :rtype: string
     """
-    # TODO: change to permit_keyword=True by default once switched to node['item'] notation
-    string = to_identifier(string, permit_keyword=False)
+    string = to_identifier(string, strip_underscores=True)
 
-    if string and string[0].isdigit():  # for valid cases like '_903' == invalid '903'
-        string = 'n' + string
+    #TODO: Remove this stanza once keywords are permissible in nodenames
+    if keyword.iskeyword(string):
+        string += '_'   # there are no keywords ending in "_"
 
-    # Done if no deduplication
+    # Done if no deduplication needed
     if invalid is None:
         return string
 
     # Deduplicate
     if string in invalid and raise_exc:
-        raise ValueError("Conflicting node name after string conversion: {!r}".format(string))
+        raise QuiltException("Conflicting node name after string conversion: {!r}".format(string))
 
     result = string
     counter = 1

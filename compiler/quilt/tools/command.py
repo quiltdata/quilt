@@ -32,7 +32,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DTIMEF
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
@@ -53,7 +53,7 @@ LOG_TIMEOUT = 3 # 3 seconds
 VERSION = pkg_resources.require('quilt')[0].version
 
 
-class CommandException(Exception):
+class CommandException(QuiltException):
     """
     Exception class for all command-related failures.
     """
@@ -67,6 +67,7 @@ class HTTPResponseException(CommandException):
 _registry_url = None
 
 def parse_package_extended(identifier):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException
     try:
         return parse_package_extended_util(identifier)
     except ValueError:
@@ -74,6 +75,7 @@ def parse_package_extended(identifier):
         raise CommandException("Specify package as %s." % pkg_format)
 
 def parse_package(name, allow_subpath=False):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException and call check_name()
     try:
         if allow_subpath:
             team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
