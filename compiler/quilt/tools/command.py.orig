@@ -13,7 +13,11 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree, copy
+<<<<<<< HEAD
+from shutil import copyfileobj, move, rmtree, copy
+=======
+from shutil import rmtree
+>>>>>>> 6e6b2ded0dc4747d53ce753d4f810966cc6980b1
 import socket
 import stat
 import subprocess

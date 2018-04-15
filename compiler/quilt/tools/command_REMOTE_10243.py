@@ -5,7 +5,6 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import Counter
 from datetime import datetime
 from functools import partial
 import hashlib
@@ -13,7 +12,7 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree, copy
+from shutil import rmtree
 import socket
 import stat
 import subprocess
@@ -31,8 +30,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DTIMEF
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException
 from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
@@ -53,7 +51,7 @@ LOG_TIMEOUT = 3 # 3 seconds
 VERSION = pkg_resources.require('quilt')[0].version
 
 
-class CommandException(Exception):
+class CommandException(QuiltException):
     """
     Exception class for all command-related failures.
     """
@@ -67,6 +65,7 @@ class HTTPResponseException(CommandException):
 _registry_url = None
 
 def parse_package_extended(identifier):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException
     try:
         return parse_package_extended_util(identifier)
     except ValueError:
@@ -74,6 +73,7 @@ def parse_package_extended(identifier):
         raise CommandException("Specify package as %s." % pkg_format)
 
 def parse_package(name, allow_subpath=False):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException and call check_name()
     try:
         if allow_subpath:
             team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
@@ -129,8 +129,6 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        if not is_nodename(team):
-            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
@@ -487,7 +485,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
+    # TODO: rename 'path' param to 'target'?
     team, _, _ = parse_package(package)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
@@ -1277,224 +1275,3 @@ def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
-
-def export(package, output_path='.', force=False):
-    """Export package file data.
-
-    Exports children of specified node to files (if they have file data).
-    Does not export dataframes or other non-file data.
-
-    The `filter` function takes export paths (without the output path prepended)
-    should return `True` or `False` to indicate the node's inclusion in the export.
-
-    The `mapper` function takes export paths (without the output path prepended),
-    and should alter and return that path with any changes that are desired for the
-    export (if any).
-
-    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
-    :param output_path: distination folder
-    :param force: if True, overwrite existing files
-    """
-    # TODO: (future) Support other tags/versions
-    # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
-    # TODO: (future) support dataframes (not too painful, probably)
-
-    ## Helpers
-    # this, or something similar, could provide keys(), values() and items() methods for a node.
-    def _iteritems(node, base_path=None, recursive=False):
-        if base_path is None:
-            base_path = pathlib.PurePath()
-        assert isinstance(node, nodes.GroupNode)
-
-        for name, child_node in node._items():
-            child_path = base_path / name
-            yield child_path, child_node
-            if recursive and isinstance(child_node, nodes.GroupNode):
-                for subpath, subnode in _iteritems(child_node, child_path, recursive):
-                    yield subpath, subnode
-
-    # This, or something similar, should probably be available on a node itself as part of the public api
-    def datafile(node):
-        if isinstance(node._node, FileNode):
-            return node._data()
-
-    def iter_filename_map(node):
-        """Yields (<storage file path>, <original path>) pairs for given `node`.
-
-        If `datafile(node)` exists and is truthy, yield pair for `node`.
-        If `node` is a group node, yield pairs for children of `node`.
-
-        :returns: Iterator of (<original path>, <storage file path>) pairs
-        """
-        if datafile(node):
-            orig_path = node._node.metadata['q_path']
-            yield (datafile(node), orig_path)
-            return
-
-        if not isinstance(node, nodes.GroupNode):
-            return
-
-        for node_path, found_node in _iteritems(node, recursive=True):
-            storage_filepath = datafile(found_node)
-            if storage_filepath is not None:
-                assert storage_filepath    # sanity check -- no blank filenames
-                orig_filepath = found_node._node.metadata.get('q_path')
-                if not orig_filepath:
-                    # This really shouldn't happen -- print a warning.
-                    orig_filepath = node_path
-                    msg = "WARNING: original file path not stored in metadata.  Based on node path, used: {}"
-                    print(msg.format(orig_filepath))
-                yield (storage_filepath, orig_filepath)
-
-    def resolve_dirpath(dirpath):
-        """Checks the dirpath and ensures it exists and is writable
-        :returns: absolute, resolved dirpath
-        """
-        # ensure output path is writable.  I'd just check stat, but this is fully portable.
-        # TODO: Performance re: write amplifacation per PR#266
-        try:
-            dirpath.mkdir(exist_ok=True)  # could be '.'
-            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
-                pass
-        except OSError as error:
-            raise CommandException("Invalid export path: not writable: " + str(error))
-        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
-
-    def finalize(outpath, exports):
-        """Finalize exports
-
-        This performs the following tasks:
-            * Change path strings to `Path` objects
-            * Ensure source exists
-            * Ensure destination doesn't exist
-            * Remove absolute anchor in dest, if any
-            * Prefix destination with target dir
-            * Locate and record any zero-byte files in source (see comments)
-
-        :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
-        """
-        # We return list instead of yielding, so that all prep logic is done before write is attempted.
-        final_export_map = []
-        zero_byte_files = set()
-
-        for src, dest in exports:
-            # general cleanup
-            src = pathlib.Path(src)
-            dest = pathlib.PureWindowsPath(dest)
-            dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
-
-            # existence checks
-            # this src check replaces previous existence assertion, doubling as zero-byte file check
-            # Adam was running into an issue where shutil wasn't copying zero-byte files correctly (see below)
-            if src.stat().st_size == 0:
-                zero_byte_files.add(src)
-            if dest.parent != outpath and dest.parent.exists() and not force:
-                raise CommandException("Invalid export path: subdir already exists: {!r}"
-                                       .format(str(dest.parent)))
-            if dest.exists() and not force:
-                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
-
-            final_export_map.append((src, dest))
-        return final_export_map, zero_byte_files
-
-    def check_for_conflicts(export_list):
-        """Checks for conflicting exports in the final export map of (src, dest) pairs
-
-        Export conflicts can be introduced in various ways -- for example:
-            * export-time mapping -- user maps two files to the same name
-            * coded builds -- user creates two FileNodes with the same path
-            * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
-            * build-time duplication -- user enters the same file path twice under different nodes
-
-        This checks for these conflicts and raises an error if they have occurred.
-
-        :raises: CommandException
-        """
-        # Check for file conflicts -- data coming from more than one source to the same dest.
-        files = set(dest for src, dest in export_list)
-        conflict_counter = Counter(files)
-        file_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
-        verified_file_conflicts = []
-
-        if file_conflicts:
-            # kinda slow, but only happens if a conflict has definitely occurred.
-            for conflict in file_conflicts:
-                matches = [item for item in export_list if item[1] == conflict]
-                # if all are from the same source, it's not really a conflict.
-                src = matches[0][0]
-                if all(src == item[0] for item in matches[1:]):
-                    continue
-                verified_file_conflicts.append(conflict)
-
-        if verified_file_conflicts:
-            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_file_conflicts)
-            conflict_error = CommandException(
-                ("Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
-                 + conflict_strings)
-                )
-            conflict_error.file_conflicts = verified_file_conflicts
-            raise conflict_error
-
-        # Check for dir conflicts
-        dirs = set()
-        for file in files:
-            dirs.update(file.parents)
-        file_dir_conflicts = files & dirs
-
-        if file_dir_conflicts:
-            conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
-            conflict_error = CommandException(
-                "Invalid Export: Filename(s) conflict with folder name(s):\n\t" + conflict_strings
-                )
-            conflict_error.dir_file_conflicts = file_dir_conflicts
-            raise conflict_error
-
-    ## Export Logic
-    output_path = pathlib.Path(output_path)
-    node, _, info = _load(package)
-
-    if info.subpath:
-        # TODO: Change this over to `node['item/subitem']` notation once implemented
-        for name in info.subpath:
-            node = getattr(node, name)
-
-    exports = iter_filename_map(node)                                   # Create src / dest map iterator
-
-    # If we add filters or mappers, this is where to do it -- for example:
-    # exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
-    # exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
-
-    resolved_output = resolve_dirpath(output_path)                      # resolve/create output path
-
-    # Checks src/dest existence/nonexistence, converts to Path objects
-    exports, zero_byte_files = finalize(resolved_output, exports)
-
-    # Prevent various conflicts
-    check_for_conflicts(exports)
-
-    # Skip it if there's nothing to do
-    if not exports:
-        # Technically successful, but with nothing to do.
-        # package may have no file nodes, or user may have filtered out all applicable targets.
-        # -- should we consider it an error and raise?
-        print("No files to export.")
-        return
-
-    # All prep done, let's export..
-    try:
-        sys.stdout.write('Exporting.')
-        sys.stdout.flush()
-        for src, dest in exports:
-            if not dest.parent.exists():
-                dest.parent.mkdir(parents=True, exist_ok=True)
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            if src in zero_byte_files:
-                dest.touch()  # weird issue: zero-byte files not getting copied?!
-            else:
-                copy(str(src), str(dest))
-        print('..done.')
-    except OSError as error:
-        commandex = CommandException("Unexpected error during export: " + str(error))
-        commandex.original_error = error
-        raise commandex

@@ -223,6 +223,18 @@ class PushInstallTestCase(QuiltTestCase):
         assert url2.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH2)
         assert url3.path == '/%s/objs/test_user/%s' % (app.config['PACKAGE_BUCKET_NAME'], self.HASH3)
 
+        # Install just the metadata.
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s?meta_only=true' % self.CONTENTS_HASH,
+        )
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
+        assert contents == self.CONTENTS
+        assert not data['sizes']
+        assert not data['urls']
+
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPushNewMetadata(self):
         # Push the original contents.

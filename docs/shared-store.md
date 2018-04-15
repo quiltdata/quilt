@@ -4,7 +4,7 @@ Groups that share packages across users can save storage and network traffic by 
 
 ## Create and populate shared package directory
 
-1. Create a `quilt_packages` on the shared file system.
+1. Create a `quilt_packages` directory on the shared file system.
 
 1. Set the `QUILT_PRIMARY_PACKAGE_DIR` to the path for `quilt_packages` in step 1. 
     ```bash

@@ -175,6 +175,7 @@ def argument_parser():
 
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
+    install_p.add_argument("-m", "--meta-only", action="store_true", help="Only download the metadata")
     # not a threading mutex, obv.
     install_mutex_group = install_p.add_mutually_exclusive_group()
     install_mutex_group.add_argument("-x", "--hash", help="Package hash", type=str)

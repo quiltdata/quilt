@@ -42,7 +42,7 @@ from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
-from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -546,6 +546,31 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+@app.route('/api/get_objects', methods=['POST'])
+@api(require_login=False, schema=GET_OBJECTS_SCHEMA)
+@as_json
+def get_objects():
+    obj_hashes = request.get_json()
+
+    results = (
+        S3Blob.query
+        .filter(S3Blob.hash.in_(obj_hashes))
+        .join(S3Blob.instances)
+        .join(Instance.package)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+    ).all()
+
+    return dict(
+        urls={
+            blob.hash: _generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
+            for blob in results
+        },
+        sizes={
+            blob.hash: blob.size for blob in results
+        }
+    )
+
 def download_object_preview_impl(owner, obj_hash):
     resp = s3_client.get_object(
         Bucket=PACKAGE_BUCKET_NAME,
@@ -759,15 +784,6 @@ def package_put(owner, package_name, package_hash):
             if not have_readme:
                 readme_preview = download_object_preview(owner, readme_hash)
 
-        instance = Instance(
-            package=package,
-            contents=contents,
-            hash=package_hash,
-            created_by=g.auth.user,
-            updated_by=g.auth.user,
-            keywords_tsv=keywords_tsv
-        )
-
         # Add all the hashes that don't exist yet.
 
         blobs = (
@@ -782,6 +798,17 @@ def package_put(owner, package_name, package_hash):
             .all()
         ) if all_hashes else []
 
+        # Create the instance after querying the blobs - otherwise, SQLAlchemy
+        # will issue an INSERT followed by UPDATE instead of a single INSERT.
+        instance = Instance(
+            package=package,
+            contents=contents,
+            hash=package_hash,
+            created_by=g.auth.user,
+            updated_by=g.auth.user,
+            keywords_tsv=keywords_tsv,
+        )
+
         blob_by_hash = { blob.hash: blob for blob in blobs }
 
         for blob_hash in all_hashes:
@@ -794,8 +821,13 @@ def package_put(owner, package_name, package_hash):
                     # If we've just downloaded the README, save it in the blob.
                     # Otherwise, it was already set.
                     blob.preview = readme_preview
-                    blob.preview_tsv = sa.func.to_tsvector(FTS_LANGUAGE, readme_preview)
+                    blob_preview_expr = readme_preview
+                else:
+                    # README already exists in the DB; use a subquery to avoid fetching it
+                    # only to insert it into the instance.
+                    blob_preview_expr = sa.select([S3Blob.preview]).where(S3Blob.id == blob.id)
                 instance.readme_blob = blob
+                instance.blobs_tsv = sa.func.to_tsvector(FTS_LANGUAGE, blob_preview_expr)
             instance.blobs.append(blob)
     else:
         # Just update the contents dictionary.
@@ -846,6 +878,7 @@ def package_put(owner, package_name, package_hash):
 @as_json
 def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
+    meta_only = bool(request.args.get('meta_only', ''))
 
     instance = _get_instance(g.auth, owner, package_name, package_hash)
 
@@ -858,7 +891,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set(find_object_hashes(subnode))
+    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
 
     blobs = (
         S3Blob.query
@@ -1648,18 +1681,16 @@ def recent_packages():
 def search():
     query = request.args.get('q', '')
 
-    keywords = query.split()
-
-    if len(keywords) > 10:
-        # Let's not overload the DB with crazy queries.
-        raise ApiException(requests.codes.bad_request, "Too many search terms (max is 10)")
-
     # Get the list of visible packages and their permissions.
 
     instances = (
         db.session.query(
             Instance.id,
-            Instance.keywords_tsv,
+            # We have an index on (keywords_tsv || blobs_tsv)
+            tsvector_concat(
+                Instance.keywords_tsv,
+                Instance.blobs_tsv
+            ).label('tsv'),
             Package.owner,
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
@@ -1681,7 +1712,6 @@ def search():
     readmes = (
         db.session.query(
             Instance.id,
-            S3Blob.preview_tsv,
             sa.func.substr(S3Blob.preview, 1, README_SNIPPET_LEN).label('readme'),
         )
         .join(Instance.readme_blob)
@@ -1693,15 +1723,6 @@ def search():
     # Use the "rank / (rank + 1)" normalization; makes it look sort of like percentage.
     RANK_NORMALIZATION = 32
 
-    # Basic substring matching for package owner and name.
-    basic_filter_list = [
-        sa.func.strpos(
-            sa.func.lower(sa.func.concat(instances.c.owner, '/', instances.c.name)),
-            sa.func.lower(keyword)
-        ) > 0
-        for keyword in keywords
-    ]
-
     results = (
         db.session.query(
             instances.c.owner,
@@ -1710,22 +1731,16 @@ def search():
             instances.c.is_team,
             readmes.c.readme,
             sa.func.ts_rank_cd(
-                tsvector_concat(
-                    instances.c.keywords_tsv,
-                    sa.func.coalesce(readmes.c.preview_tsv, '')
-                ),
+                instances.c.tsv,
                 instances.c.query,
                 RANK_NORMALIZATION
             ).label('rank')
         )
         .outerjoin(readmes, instances.c.id == readmes.c.id)
-        .filter(sa.or_(
-            # Need to use the original keywords_tsv and preview_tsv (not concatenated) to take advantage of the index.
-            instances.c.keywords_tsv.op('@@')(instances.c.query),
-            readmes.c.preview_tsv.op('@@')(instances.c.query),
-            # Substring matching.
-            sa.and_(*basic_filter_list)
-        ) if query else True)  # Disable the filter if there was no query string.
+        .filter(
+            instances.c.tsv.op('@@')(instances.c.query)
+            if query else True   # Disable the filter if there was no query string.
+        )
         .order_by(sa.desc('rank'), instances.c.owner, instances.c.name)
     )
 

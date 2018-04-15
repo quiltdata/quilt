@@ -161,6 +161,7 @@ KNOWN_PARAMS = [
     [0, 'inspect', 0],
     [0, 'install'],
     [0, 'install', '-f'],
+    [0, 'install', '-m'],
     [0, 'install', '-t'],
     [0, 'install', '-v'],
     [0, 'install', '-x'],

@@ -18,18 +18,23 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
+from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
+                    QuiltException, TargetType)
 from .core import GroupNode, PackageFormat
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
+<<<<<<< HEAD
 from .util import FileWithReadProgress, is_nodename, to_identifier, parse_package
 from .util import to_nodename as _to_nodename       # wrapped for exc catch/reraised as BuildException
+=======
+from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
+>>>>>>> buildpy_catch_reraise_valueerror
 
 from . import check_functions as qc            # pylint:disable=W0611
 
 
-class BuildException(Exception):
+class BuildException(QuiltException):
     """
     Build-time exception class
     """
@@ -80,6 +85,7 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
+<<<<<<< HEAD
 def pythonize(name):
     """Convert `name` to a Python Identifier, but raise BuildException on failure."""
     try:
@@ -95,6 +101,11 @@ def to_nodename(name, invalid=None):
     except ValueError as error:
         raise BuildException("Invalid name: " + str(error))
     return safename
+=======
+def _pythonize_name(name):
+    """Convert `name` to a Python Identifier, but raise BuildException on failure."""
+    return to_identifier(name, strip_underscores=True)
+>>>>>>> buildpy_catch_reraise_valueerror
 
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
