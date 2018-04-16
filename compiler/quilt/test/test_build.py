@@ -177,12 +177,6 @@ class BuildTest(QuiltTestCase):
         assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
         assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
 
-    def test_build_hdf5(self):
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build_hdf5.yml')
-        with assertRaisesRegex(self, build.BuildException, "no longer supported"):
-            build.build_package(None, 'test_hdf5', PACKAGE, path)
-
     def test_generate_buildfile(self):
         """
         Test auto-generating a buildfile for compilation
