@@ -79,8 +79,8 @@ services:
     image: quiltdata/catalog
     environment:
       - REGISTRY_URL=http://localhost:5000
-      - USER_API=http://localhost:5002/accounts/api-root
-      - SIGN_OUT_URL=http://localhost:5002/accounts/logout?next=%2F
+      - USER_API=http://localhost:5000/api-root
+      - SIGN_OUT_URL=http://localhost:5000/logout
       - STRIPE_KEY=NOSTRIPE
     ports:
       - "3000:80"

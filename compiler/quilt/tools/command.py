@@ -23,6 +23,7 @@ from threading import Thread, Lock
 import time
 import yaml
 
+import jwt
 from packaging.version import Version
 import pandas as pd
 import pkg_resources
@@ -1507,3 +1508,22 @@ def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
+
+def login_user_pass(username, password, team=None):
+    _check_team_id(team)
+    registry_url = get_registry_url(team)
+    url = "%s/beans/login" % registry_url
+    r = requests.post(url, json={'username': username, 'password': password})
+    try:
+        token = r.json()['token']
+        print(token)
+    except:
+        print('Login failed')
+        return
+    exp = jwt.decode(token, verify=False).get('exp', None)
+    payload = {'team': team, 'refresh_token': token, 'access_token': token, 'expires_at': exp}
+    # save to auth.json
+    contents = _load_auth()
+    contents[registry_url] = payload
+    _save_auth(contents)
+    return

@@ -165,6 +165,8 @@ def _validate_username(username):
 
 @app.route('/login')
 def login():
+    # TODO : handle redirects
+    return render_template('login.html')
     next = request.args.get('next')
 
     if not _valid_catalog_redirect(next):
@@ -174,6 +176,7 @@ def login():
     url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
 
     return redirect(url)
+
 
 @app.route('/oauth_callback')
 def oauth_callback():
@@ -206,11 +209,19 @@ def oauth_callback():
 
     session = _create_session()
     try:
-        resp = session.fetch_token(
-            token_url=OAUTH_ACCESS_TOKEN_URL,
-            code=code,
-            client_secret=OAUTH_CLIENT_SECRET
-        )
+        # if JWT, don't do anything
+        try:
+            verify_token_string(code)
+            exp = jwt.decode(code, verify=False).get('exp')
+            resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
+            print(resp)
+        except:
+            resp = session.fetch_token(
+                token_url=OAUTH_ACCESS_TOKEN_URL,
+                code=code,
+                client_secret=OAUTH_CLIENT_SECRET
+            )
+
         if next:
             return redirect('%s#%s' % (next, urlencode(resp)))
         else:
@@ -219,12 +230,237 @@ def oauth_callback():
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
 
+### API routes ###
+
+# Allow CORS requests to API routes.
+# The "*" origin is more secure than specific origins because it blocks cookies.
+# Cache the settings for a day to avoid pre-flight requests.
+CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
+# BEGIN NEW AUTH CODE
+app.secret_key = b'thirty two bytes for gloriousssh'
+
+import jwt
+import uuid
+
+def generate_uuid():
+    return str(uuid.uuid4())
+
+from passlib.context import CryptContext
+pwd_context = CryptContext(schemes=['pbkdf2_sha512'])
+# TODO : change rounds based on perf test
+
+def hash_password(password):
+    return pwd_context.hash(password)
+
+def create_user(username):
+    if username in users:
+        raise Exception('User already exists')
+    users[username] = {'uuid': generate_uuid(), 'password': ''}
+
+def set_password(username, password):
+    users[username]['password'] = hash_password(password)
+
+users = {}
+create_user('calvin')
+set_password('calvin', 'beans')
+
+def verify_hash(username, password):
+    try:
+        h = users[username]['password']
+    except KeyError:
+        raise Exception('User not found')
+    try:
+        if not pwd_context.verify(password, h):
+            raise Exception('Password verification failed')
+    except ValueError:
+        raise Exception('Password verification failed')
+    return True
+
+class TokenException(Exception):
+    pass
+
+def verify(payload):
+    name = payload['username']
+    uuid = payload['uuid']
+    if name not in users:
+        raise TokenException('Username invalid -- how did you get this token?')
+    if not users[name]['uuid'] == uuid:
+        raise TokenException('UUID mismatch -- token rejected')
+    return True
+
+def verify_token_string(s):
+    try:
+        token = jwt.decode(s, app.secret_key, algorithm='HS256')
+        verify(token)
+        return True
+    except:
+        return False
+
+def revoke_tokens(username):
+    users[username] = generate_uuid()
+
+def verify_jwt():
+    def dec(f):
+        @wraps(f)
+        def innerdec(*args, **kwargs):
+            try:
+                data = request.get_json(force=True)
+            except Exception as e:
+                return {'error': 'Token could not be loaded.'}, 401
+            try:
+                request.token = jwt.decode(data['token'], app.secret_key, algorithm='HS256')
+            except jwt.exceptions.ExpiredSignatureError:
+                return {'error': 'Token has expired'}, 401
+            except Exception as e:
+                print(e)
+                return {'error': 'Decoding token failed.'}, 401
+            try:
+                verify(request.token)
+            except TokenException as e:
+                return {'error': 'Verifying token failed. ' + str(e)}, 401
+
+            return f(*args, **kwargs)
+        return innerdec
+    return dec
+
+def get_exp(mins=30):
+    return datetime.utcnow() + timedelta(minutes=mins)
+
+def issue_token(username, exp=None):
+    user = users[username]
+    uuid = user['uuid']
+    exp = exp or get_exp()
+    payload = {'username': username, 'uuid': uuid, 'exp': exp}
+    if user.get('roles'):
+        payload['roles'] = user.get('roles')
+    token = jwt.encode(payload, app.secret_key, algorithm='HS256')
+    return token.decode('utf-8')
+
+def try_login(username, password):
+    try:
+        verify_hash(username, password)
+    except Exception as e:
+        return False
+    return True
+
+@app.route('/login', methods=['POST'])
+def login_post():
+    username = request.form['username']
+    password = request.form['password']
+    if try_login(username, password):
+        params = {'state': json.dumps(
+            {'next': CATALOG_REDIRECT_URL + '?' + urlencode({'next': '/profile'})}),
+                  'next': '/profile',
+                  'code': issue_token(username)}
+        return redirect('oauth_callback?%s' % urlencode(params))
+    else:
+        return render_template('login.html')
+
+@app.route('/beans/login', methods=['POST'])
+@as_json
+def beans_login():
+    try:
+        data = request.get_json(force=True)
+        username = data['username']
+        password = data['password']
+        if not try_login(username, password):
+            return {'error': 'Password validation failed'}, 401
+        if username not in users:
+            return {'error': 'User does not exist'}, 401
+
+        return {'token': issue_token(username)}
+    except:
+        return {'error': 'Login failed'}, 401
+
+@app.route('/beans/create_user', methods=['POST'])
+@as_json
+@verify_jwt()
+def beans_create_user():
+    return {}
+
+@app.route('/beans/echo_token')
+@as_json
+@verify_jwt()
+def beans_echo_token():
+    return {'token': request.token}
+
+@app.route('/beans/get_token')
+@as_json
+@verify_jwt()
+def beans_get_token():
+    username = request.token['username']
+    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
+    return {'token': msg.decode('utf-8')}
+
+@app.route('/beans/expired')
+@as_json
+def beans_expired():
+    payload = {'username': 'calvin', 'exp': datetime.utcnow()}
+    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
+    return {'token': msg.decode('utf-8')}
+
+@app.route('/beans/secret', methods=['POST'])
+@as_json
+def beans_secret():
+    data = request.get_json(force=True)
+    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
+    verify(payload)
+    print(payload)
+    return {'data': data}
+
+@app.route('/beans/revoke', methods=['POST'])
+@as_json
+def beans_revoke():
+    data = request.get_json(silent=True, force=True)
+    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
+    verify(payload)
+    revoke_tokens('calvin')
+    return {}
+
+def get_roles(username):
+    return users[username].get('roles', [])
+
+def set_roles(username, roles):
+    users[username]['roles'] = roles
+
+@app.route('/beans/add_role', methods=['POST'])
+@as_json
+@verify_jwt()
+def beans_add_role():
+    data = request.get_json(silent=True, force=True)
+    role = data.get('role')
+    username = data.get('username')
+    roles = get_roles(username)
+    if role not in roles:
+        roles.append(role)
+    set_roles(username, roles)
+    return {}
+
+@app.route('/beans/list_roles')
+@as_json
+@verify_jwt()
+def beans_list_roles():
+    data = request.get_json(silent=True, force=True)
+    username = data.get('username')
+    roles = get_roles(username)
+    return {'roles': roles}
+
+
+# TODO: modify api to try to take new tokens
+# TODO: refresh
+
+# END NEW AUTH CODE
+
+
 @app.route('/api/token', methods=['POST'])
 @as_json
 def token():
     refresh_token = request.values.get('refresh_token')
     if refresh_token is None:
         abort(requests.codes.bad_request)
+
+    # TODO: try as JWT
 
     if not OAUTH_HAVE_REFRESH_TOKEN:
         return dict(
@@ -250,15 +486,6 @@ def token():
         access_token=resp['access_token'],
         expires_at=resp['expires_at']
     )
-
-
-### API routes ###
-
-# Allow CORS requests to API routes.
-# The "*" origin is more secure than specific origins because it blocks cookies.
-# Cache the settings for a day to avoid pre-flight requests.
-CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
-
 
 class Auth:
     """
@@ -350,28 +577,44 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 headers = {
                     AUTHORIZATION_HEADER: auth
                 }
+                # try to validate new auth
+                new_token_validated = False
                 try:
-                    resp = auth_session.get(OAUTH_USER_API, headers=headers)
-                    resp.raise_for_status()
+                    token = auth.split()[1]
+                    decoded = jwt.decode(token, app.secret_key)
+                    verify(decoded)
+                    g.auth = Auth(user=decoded['username'],
+                                  email='borp@gmail.com', 
+                                  is_logged_in=True,
+                                  is_admin=False)
+                    new_token_validated = True
+                except:
+                    # not a new token
+                    pass
 
-                    data = resp.json()
-                    # TODO(dima): Generalize this.
-                    user = data.get('current_user', data.get('login'))
-                    assert user
-                    email = data['email']
-                    is_admin = data.get('is_staff', False)
+                if not new_token_validated:
+                    try:
+                        resp = auth_session.get(OAUTH_USER_API, headers=headers)
+                        resp.raise_for_status()
 
-                    g.auth = Auth(user=user, email=email, is_logged_in=True, is_admin=is_admin)
-                except requests.HTTPError as ex:
-                    if resp.status_code == requests.codes.unauthorized:
-                        raise ApiException(
-                            requests.codes.unauthorized,
-                            "Invalid credentials"
-                        )
-                    else:
+                        data = resp.json()
+                        # TODO(dima): Generalize this.
+                        user = data.get('current_user', data.get('login'))
+                        assert user
+                        email = data['email']
+                        is_admin = data.get('is_staff', False)
+
+                        g.auth = Auth(user=user, email=email, is_logged_in=True, is_admin=is_admin)
+                    except requests.HTTPError as ex:
+                        if resp.status_code == requests.codes.unauthorized:
+                            raise ApiException(
+                                requests.codes.unauthorized,
+                                "Invalid credentials"
+                            )
+                        else:
+                            raise ApiException(requests.codes.server_error, "Server error")
+                    except (ConnectionError, requests.RequestException) as ex:
                         raise ApiException(requests.codes.server_error, "Server error")
-                except (ConnectionError, requests.RequestException) as ex:
-                    raise ApiException(requests.codes.server_error, "Server error")
 
             if require_admin and not g.auth.is_admin:
                 raise ApiException(
@@ -382,6 +625,20 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             return f(*args, **kwargs)
         return wrapper
     return innerdec
+
+@app.route('/api-root')
+@api()
+@as_json
+def apiroot():
+    return {'is_staff': g.auth.is_admin, 'is_active': True,
+            'email': g.auth.email, 'current_user': g.auth.user}
+
+@app.route('/logout')
+@as_json
+def logout():
+    # TODO : delete token
+    return {}
+
 
 def _access_filter(auth):
     query = []
@@ -2266,125 +2523,3 @@ def reset_password():
 
     return resp.json()
 
-app.secret_key = b'thirty two bytes for gloriousssh'
-
-import jwt
-import uuid
-
-def generate_uuid():
-    return str(uuid.uuid4())
-
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=['pbkdf2_sha512'])
-
-def hash_password(password):
-    # TODO : use uuid as salt (since it only changes on password change)
-    # TODO : change rounds based on perf test
-    return pwd_context.hash(password)
-
-start_uuid = generate_uuid()
-users = {'calvin': {'uuid': start_uuid, 'password': hash_password('beans')}}
-
-def verify_hash(username, password):
-    try:
-        h = users[username]['password']
-    except KeyError:
-        raise Exception('User not found')
-    if not pwd_context.verify(password, h):
-        raise Exception('Password verification failed')
-    return True
-
-
-def verify(payload):
-    name = payload['username']
-    uuid = payload['uuid']
-    if name not in users:
-        raise Exception('Username invalid -- how did you get this token?')
-    if not users[name] == uuid:
-        raise Exception('UUID mismatch -- token rejected')
-    return True
-
-def revoke_tokens(username):
-    users[username] = generate_uuid()
-
-def verify_jwt():
-    def dec(f):
-        @wraps(f)
-        def innerdec(*args, **kwargs):
-            try:
-                data = request.get_json(force=True)
-            except Exception as e:
-                return {'error': 'Token could not be loaded.'}, 401
-
-            try:
-                token = jwt.decode(data['token'], app.secret_key, algorithm='HS256')
-            except Exception as e:
-                print(e)
-                return {'error': 'Decoding token failed.'}, 401
-            try:
-                verify(token)
-            except Exception as e:
-                return {'error': 'Verifying token failed. ' + e}
-
-            return f(*args, **kwargs)
-        return innerdec
-    return dec
-
-
-@app.route('/beans/login')
-@as_json
-def beans_login():
-    try:
-        data = request.get_json(force=True)
-        username = data['username']
-        password = data['password']
-        try:
-            verify_hash(username, password)
-        except Exception as e:
-            return {}, 401
-        if username not in users:
-            users[username] = generate_uuid()
-
-        payload = {'username': username, 'uuid': users[username]}
-        msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
-        return {'token': msg.decode('utf-8')}
-    except:
-        return {}, 401
-
-@app.route('/beans/create_user', methods=['POST'])
-@as_json
-@verify_jwt()
-def beans_create_user():
-    return {}
-
-@app.route('/beans/get_token')
-@as_json
-def beans_get_token():
-    payload = {'username': 'calvin', 'uuid': users['calvin']}
-    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
-    return {'token': msg.decode('utf-8')}
-
-@app.route('/beans/expired')
-@as_json
-def beans_expired():
-    payload = {'username': 'calvin', 'exp': datetime.utcnow()}
-    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
-    return {'token': msg.decode('utf-8')}
-
-@app.route('/beans/secret', methods=['POST'])
-@as_json
-def beans_secret():
-    data = request.get_json(force=True)
-    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
-    verify(payload)
-    print(payload)
-    return {'data': data}
-
-@app.route('/beans/revoke', methods=['POST'])
-@as_json
-def beans_revoke():
-    data = request.get_json(silent=True, force=True)
-    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
-    verify(payload)
-    revoke_tokens('calvin')
-    return {}

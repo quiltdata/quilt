@@ -4,7 +4,12 @@ import requests
 import sys
 import time
 
+import quilt
+
 flask_url = 'http://localhost:5000/'
+
+def decode_token(token):
+    return jwt.decode(token, verify=False)
 
 def test_forged_token():
     r = requests.get('%sbeans/get_token' % flask_url).json().get('token')
@@ -48,14 +53,30 @@ test_expired()
 test_revoke()
 """
 def test_create_user():
-    t = requests.get('%sbeans/login' % flask_url, 
+    t = requests.post('%sbeans/login' % flask_url, 
             json={'username': 'calvin', 'password': 'beans'})
+    # print(t.text)
     token = t.json()['token']
-    # print(token)
-    bad_token = (jwt.encode({'username': 'calvin'}, 'bad secret')
-            .decode('utf-8'))
+    print(decode_token(token))
     s = requests.post('%sbeans/create_user' % flask_url, json={'token': token})
     print(s.text)
 
+def test_admin():
+    t = requests.post('%sbeans/login' % flask_url, 
+            json={'username': 'calvin', 'password': 'beans'})
+    # print(t.text)
+    token = t.json()['token']
+    print(decode_token(token))
+    r = requests.post('%sbeans/add_role' % flask_url,
+            json={'token': token, 'username': 'calvin', 'role': 'admin'})
+    s = requests.get('%sbeans/list_roles' % flask_url, 
+            json={'token': token, 'username': 'calvin'})
+    print(s.text)
 
-test_create_user()
+
+test_admin()
+# test_create_user()
+"""
+quilt.tools.command.login_user_pass('calvin', 'beans')
+quilt.push('calvin/ex')
+"""
