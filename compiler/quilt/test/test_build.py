@@ -488,8 +488,9 @@ class BuildTest(QuiltTestCase):
     def test_parquet_source_file(self):
         df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
         import pyarrow as pa
+        from pyarrow import parquet
         table = pa.Table.from_pandas(df)
-        pa.parquet.write_table(table, 'simpledf.parquet')
+        parquet.write_table(table, 'simpledf.parquet')
 
         build_contents = {
             'contents': {
