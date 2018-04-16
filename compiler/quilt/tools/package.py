@@ -252,7 +252,7 @@ class Package(object):
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
-    def save_file(self, srcfile, name, path, target='file'):
+    def save_file(self, srcfile, name, path, target):
         """
         Save a (raw) file to the store.
         """
@@ -273,7 +273,7 @@ class Package(object):
         """
         fullname = name.lstrip('/').replace('/', '.')
         if fullname:
-            self._add_to_contents(fullname, None, '', None, 'group')
+            self._add_to_contents(fullname, None, '', None, TargetType.GROUP)
 
     def get_contents(self):
         """
@@ -358,27 +358,23 @@ class Package(object):
         metadata = dict(
             q_ext=ext,
             q_path=path,
-            q_target=target
+            q_target=target.value
         )
 
-        try:
-            target_type = TargetType(target)
-            if target_type is TargetType.GROUP:
-                node = GroupNode(dict())
-            elif target_type is TargetType.PANDAS:
-                node = TableNode(
-                    hashes=hashes,
-                    format=PackageFormat.default.value,
-                    metadata=metadata
-                )
-            elif target_type is TargetType.FILE:
-                node = FileNode(
-                    hashes=hashes,
-                    metadata=metadata
-                )
-            else:
-                assert False, "Unhandled TargetType {tt}".format(tt=target_type)
-        except ValueError:
-            raise PackageException("Unrecognized target {tgt}".format(tgt=target))
+        if target is TargetType.GROUP:
+            node = GroupNode(dict())
+        elif target is TargetType.PANDAS:
+            node = TableNode(
+                hashes=hashes,
+                format=PackageFormat.default.value,
+                metadata=metadata
+            )
+        elif target is TargetType.FILE:
+            node = FileNode(
+                hashes=hashes,
+                metadata=metadata
+            )
+        else:
+            assert False, "Unhandled TargetType {tt}".format(tt=target)
 
         ptr.children[leaf] = node

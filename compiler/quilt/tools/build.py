@@ -96,12 +96,12 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
     unknown_checks = set(checks_list) - set(checks_contents)
     if unknown_checks:
         raise BuildException("Unknown check(s) '%s' for %s @ %s" %
-                             (", ".join(list(unknown_checks)), rel_path, target))
+                             (", ".join(list(unknown_checks)), rel_path, target.value))
     for check in checks_list:
         res = exec_yaml_python(checks_contents[check], dataframe, nodename, rel_path, target)
         if not res and res is not None:
             raise BuildException("Data check failed: %s on %s @ %s" % (
-                check, rel_path, target))
+                check, rel_path, target.value))
 
 def _gen_glob_data(dir, pattern, child_table):
     """Generates node data by globbing a directory for a pattern"""
@@ -225,11 +225,11 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
             if transform:
                 transform = transform.lower()
                 if transform in PANDAS_PARSERS:
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif transform == PARQUET:
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif transform == ID:
-                    target = TargetType.FILE.value
+                    target = TargetType.FILE
                 else:
                     raise BuildException("Unknown transform '%s' for %s" %
                                          (transform, rel_path))
@@ -239,13 +239,13 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
                 
                 if ext in PANDAS_PARSERS:
                     transform = ext
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif ext == PARQUET:
                     transform = ext
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 else:
                     transform = ID
-                    target = TargetType.FILE.value
+                    target = TargetType.FILE
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
 
 
@@ -573,7 +573,7 @@ def load_yaml(filename, optional=False):
         raise BuildException("Unable to open YAML file: %s" % filename)
     return res
 
-def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
+def exec_yaml_python(chkcode, dataframe, nodename, path, target):
     # TODO False vs Exception...
     try:
         # setup for eval
@@ -595,5 +595,5 @@ def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
     except qc.CheckFunctionsReturn as ex:
         res = ex.result
     except Exception as ex:
-        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
+        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target.value))
     return res
