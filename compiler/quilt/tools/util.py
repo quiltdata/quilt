@@ -179,7 +179,7 @@ def is_nodename(string):
     return is_identifier(string)
 
 
-def to_identifier(string, strip_underscores=False):
+def to_identifier(string):
     """Makes a python identifier (perhaps an ugly one) out of any string.
 
     This isn't an isomorphic change, the original name can't be recovered
@@ -198,8 +198,9 @@ def to_identifier(string, strip_underscores=False):
     # Not really useful to expose as a CONSTANT, and python will compile and cache
     result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
 
-    if strip_underscores:  # compatibility with older behavior and tests
-        result = result.strip('_')
+    # compatibility with older behavior and tests, doesn't hurt anyways -- "_" is a
+    # pretty useless name to translate to.  With this, it'll raise an exception.
+    result = result.strip('_')
 
     if result and result[0].isdigit():
         result = "n" + result
@@ -240,7 +241,7 @@ def to_nodename(string, invalid=None, raise_exc=False):
     :param raise_exc: Raise an exception on name conflicts if truthy.
     :returns: valid node name
     """
-    string = to_identifier(string, strip_underscores=True)
+    string = to_identifier(string)
 
     #TODO: Remove this stanza once keywords are permissible in nodenames
     if keyword.iskeyword(string):

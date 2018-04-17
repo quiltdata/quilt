@@ -80,10 +80,6 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def _pythonize_name(name):
-    """Convert `name` to a Python Identifier, but raise BuildException on failure."""
-    return to_identifier(name, strip_underscores=True)
-
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
@@ -231,7 +227,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
             else:
                 # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
-                
+
                 if ext in PANDAS_PARSERS:
                     transform = ext
                     target = TargetType.PANDAS.value
@@ -348,7 +344,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = _pythonize_name(col)
+            pcol = to_identifier(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -505,14 +501,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = _pythonize_name(nodename)
+            safename = to_identifier(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = _pythonize_name(name)  # Name with ext
+                    new_safename = to_identifier(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
