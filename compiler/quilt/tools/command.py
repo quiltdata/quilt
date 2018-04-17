@@ -1298,60 +1298,91 @@ def export(package, output_path='.', force=False):
     # TODO: (future) Support other tags/versions
     # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
     # TODO: (future) support dataframes (not too painful, probably)
+    # TODO: (future) This would be *drastically* simplified by a 1:1 source-file to node-name correlation
+    # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
+    #       (nodes.Node and subclasses are being phased out, per Kevin)
 
     ## Helpers
-    # this, or something similar, could provide keys(), values() and items() methods for a node.
-    def _iteritems(node, base_path=None, recursive=False):
+    # Perhaps better as Node.iteritems()
+    def iteritems(node, base_path=None, recursive=False):
         if base_path is None:
-            base_path = pathlib.PurePath()
+            base_path = pathlib.PureWindowsPath()
         assert isinstance(node, nodes.GroupNode)
 
         for name, child_node in node._items():
             child_path = base_path / name
             yield child_path, child_node
             if recursive and isinstance(child_node, nodes.GroupNode):
-                for subpath, subnode in _iteritems(child_node, child_path, recursive):
+                for subpath, subnode in iteritems(child_node, child_path, recursive):
                     yield subpath, subnode
 
-    # This, or something similar, should probably be available on a node itself as part of the public api
-    def datafile(node):
-        if isinstance(node._node, FileNode):
-            return node._data()
+    # Perhaps better as Node.export_path
+    def get_export_path(node, node_path):
+        # If q_path is not present, generate fake path based on node parentage.
+        q_path = node._node.metadata.get('q_path')
+        if not q_path:
+            assert isinstance(node_path, pathlib.PureWindowsPath)
+            assert not node_path.anchor
+            print("Warning:  Missing export path in metadata.  Using node path: {}"
+                  .format('/'.join(node_path.parts)))
+            return node_path
 
-    def iter_filename_map(node):
-        """Yields (<storage file path>, <original path>) pairs for given `node`.
+        # q_path is present.
+        dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles both windows and linux separators
 
-        If `datafile(node)` exists and is truthy, yield pair for `node`.
+        # if q_path isn't absolute
+        if not dest.anchor:
+            return pathlib.Path(*dest.parts)  # return a native path
+
+        # q_path is absolute.
+        dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
+        print("Warning:  Converted export path to relative path: {}".format(str(dest)))
+        return dest
+
+    def iter_filename_map(node, base_path):
+        """Yields (<node>, <export path>) pairs for given `node`.
+
         If `node` is a group node, yield pairs for children of `node`.
+        Otherwise, yield the path to export to for that node.
 
-        :returns: Iterator of (<original path>, <storage file path>) pairs
+        :returns: Iterator of (<node>, <export path>) pairs
         """
-        if datafile(node):
-            orig_path = node._node.metadata['q_path']
-            yield (datafile(node), orig_path)
-            return
-
         if not isinstance(node, nodes.GroupNode):
+            yield (node, get_export_path(node, base_path))
             return
 
-        for node_path, found_node in _iteritems(node, recursive=True):
-            storage_filepath = datafile(found_node)
-            if storage_filepath is not None:
-                assert storage_filepath    # sanity check -- no blank filenames
-                orig_filepath = found_node._node.metadata.get('q_path')
-                if not orig_filepath:
-                    # This really shouldn't happen -- print a warning.
-                    orig_filepath = node_path
-                    msg = "WARNING: original file path not stored in metadata.  Based on node path, used: {}"
-                    print(msg.format(orig_filepath))
-                yield (storage_filepath, orig_filepath)
+        for node_path, found_node in iteritems(node, base_path=base_path, recursive=True):
+            for child in iter_filename_map(found_node, node_path):
+                yield child
+
+    # perhaps better as Node.export()
+    def export_node(node, dest):
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(node._node, FileNode):
+            copy(node(), str(dest))
+        elif isinstance(node._node, TableNode):
+            target = node._node.metadata['q_target']
+            ext = node._node.metadata['q_ext']
+            df = node()
+            if ext in ['xls', 'xlsx', 'csv', 'tsv', 'ssv']:
+                dest = dest.with_suffix('.' + ext)
+            if ext == 'xls':
+                df.to_excel(str(dest))
+            elif ext == 'xlsx':
+                df.to_excel(str(dest))
+            elif ext == 'csv':
+                df.to_csv(str(dest))
+            elif ext == 'tsv':
+                df.to_csv(str(dest), sep='\t')
+            elif ext == 'ssv':
+                df.to_csv(str(dest), sep=';')
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
         :returns: absolute, resolved dirpath
         """
         # ensure output path is writable.  I'd just check stat, but this is fully portable.
-        # TODO: Performance re: write amplifacation per PR#266
         try:
             dirpath.mkdir(exist_ok=True)  # could be '.'
             with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
@@ -1364,38 +1395,27 @@ def export(package, output_path='.', force=False):
         """Finalize exports
 
         This performs the following tasks:
-            * Change path strings to `Path` objects
-            * Ensure source exists
             * Ensure destination doesn't exist
             * Remove absolute anchor in dest, if any
             * Prefix destination with target dir
-            * Locate and record any zero-byte files in source (see comments)
 
         :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
         """
         # We return list instead of yielding, so that all prep logic is done before write is attempted.
         final_export_map = []
-        zero_byte_files = set()
 
-        for src, dest in exports:
-            # general cleanup
-            src = pathlib.Path(src)
+        for node, dest in exports:
             dest = pathlib.PureWindowsPath(dest)
             dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
 
-            # existence checks
-            # this src check replaces previous existence assertion, doubling as zero-byte file check
-            # Adam was running into an issue where shutil wasn't copying zero-byte files correctly (see below)
-            if src.stat().st_size == 0:
-                zero_byte_files.add(src)
             if dest.parent != outpath and dest.parent.exists() and not force:
                 raise CommandException("Invalid export path: subdir already exists: {!r}"
                                        .format(str(dest.parent)))
             if dest.exists() and not force:
                 raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
 
-            final_export_map.append((src, dest))
-        return final_export_map, zero_byte_files
+            final_export_map.append((node, dest))
+        return final_export_map
 
     def check_for_conflicts(export_list):
         """Checks for conflicting exports in the final export map of (src, dest) pairs
@@ -1411,35 +1431,35 @@ def export(package, output_path='.', force=False):
         :raises: CommandException
         """
         # Check for file conflicts -- data coming from more than one source to the same dest.
-        files = set(dest for src, dest in export_list)
-        conflict_counter = Counter(files)
-        file_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
+        exports = set(dest for node, dest in export_list)
+        conflict_counter = Counter(exports)
+        export_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
         verified_file_conflicts = []
 
-        if file_conflicts:
+        if export_conflicts:
             # kinda slow, but only happens if a conflict has definitely occurred.
-            for conflict in file_conflicts:
-                matches = [item for item in export_list if item[1] == conflict]
+            for conflict in export_conflicts:
+                matches = [node for node, dest in export_list if dest == conflict]
                 # if all are from the same source, it's not really a conflict.
-                src = matches[0][0]
-                if all(src == item[0] for item in matches[1:]):
+                src = matches[0]
+                if all(src == node for node in matches[1:]):
                     continue
                 verified_file_conflicts.append(conflict)
 
         if verified_file_conflicts:
             conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_file_conflicts)
             conflict_error = CommandException(
-                ("Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
-                 + conflict_strings)
+                "Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
+                + conflict_strings
                 )
             conflict_error.file_conflicts = verified_file_conflicts
             raise conflict_error
 
-        # Check for dir conflicts
+        # Check for filenames that conflict with folder names
         dirs = set()
-        for file in files:
+        for file in exports:
             dirs.update(file.parents)
-        file_dir_conflicts = files & dirs
+        file_dir_conflicts = exports & dirs
 
         if file_dir_conflicts:
             conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
@@ -1454,23 +1474,17 @@ def export(package, output_path='.', force=False):
     node, _, info = _load(package)
 
     if info.subpath:
+        subpath = pathlib.PureWindowsPath(*info.subpath)
         # TODO: Change this over to `node['item/subitem']` notation once implemented
         for name in info.subpath:
             node = getattr(node, name)
+    else:
+        subpath = pathlib.PureWindowsPath()
 
-    exports = iter_filename_map(node)                                   # Create src / dest map iterator
-
-    # If we add filters or mappers, this is where to do it -- for example:
-    # exports = ((src, dest) for src, dest in exports if filter(dest))    # Filter exports
-    # exports = ((src, mapper(dest)) for src, dest in exports)            # Apply mapping to exports
-
-    resolved_output = resolve_dirpath(output_path)                      # resolve/create output path
-
-    # Checks src/dest existence/nonexistence, converts to Path objects
-    exports, zero_byte_files = finalize(resolved_output, exports)
-
-    # Prevent various conflicts
-    check_for_conflicts(exports)
+    resolved_output = resolve_dirpath(output_path)  # resolve/create output path
+    exports = iter_filename_map(node, subpath)      # Create src / dest map iterator
+    exports = finalize(resolved_output, exports)    # Fix absolutes, check dest nonexistent, prefix dest dir
+    check_for_conflicts(exports)                    # Prevent various potential dir/naming conflicts
 
     # Skip it if there's nothing to do
     if not exports:
@@ -1484,15 +1498,10 @@ def export(package, output_path='.', force=False):
     try:
         sys.stdout.write('Exporting.')
         sys.stdout.flush()
-        for src, dest in exports:
-            if not dest.parent.exists():
-                dest.parent.mkdir(parents=True, exist_ok=True)
+        for node, dest in exports:
             sys.stdout.write('.')
             sys.stdout.flush()
-            if src in zero_byte_files:
-                dest.touch()  # weird issue: zero-byte files not getting copied?!
-            else:
-                copy(str(src), str(dest))
+            export_node(node, dest)
         print('..done.')
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
