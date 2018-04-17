@@ -76,7 +76,7 @@ class Package(object):
 
         Usage:
             p['item']
-            p['path/item]
+            p['path/item']
 
         :param item: Node name or path, as in "node" or "node/subnode".
         """
@@ -184,40 +184,33 @@ class Package(object):
             if not os.path.exists(path):
                 raise PackageException("Missing object fragments; re-install the package")
 
-    def save_package_tree(self, name, pkgnode):
+    def save_package_tree(self, node_path, pkgnode):
         """
         Adds a package or sub-package tree from an existing package to this package's
         contents.
         """
         contents = self.get_contents()
-        # Add to contents takes a dot-separated path. Other methods below
-        # switch the path separate from slash to dot before calling add to
-        # contents. Simply splitting on slash here for simplicity and efficiency.
-        if name:
-            ipath = name.split('/')
-            leaf = ipath.pop()
+        if node_path:
             ptr = contents
-            for node in ipath:
+            for node in node_path[:-1]:
                 ptr = ptr.children.setdefault(node, GroupNode(dict()))
-            ptr.children[leaf] = pkgnode
+            ptr.children[node_path[-1]] = pkgnode
         else:
             if contents.children:
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
             contents.children = pkgnode.children.copy()
 
-    def save_cached_df(self, hashes, name, path, ext, target):
+    def save_cached_df(self, hashes, node_path, source_path, ext, target):
         """
         Save a DataFrame to the store.
         """
-        buildfile = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(buildfile, hashes, ext, path, target)
+        self._add_to_contents(node_path, hashes, ext, source_path, target)
 
-    def save_df(self, dataframe, name, path, ext, target):
+    def save_df(self, dataframe, node_path, source_path, ext, target):
         """
         Save a DataFrame to the store.
         """
-        buildfile = name.lstrip('/').replace('/', '.')
-        storepath = self._store.temporary_object_path(buildfile)
+        storepath = self._store.temporary_object_path('.'.join(node_path))
 
         # switch parquet lib
         parqlib = self.get_parquet_lib()
@@ -243,22 +236,21 @@ class Package(object):
                 objhash = digest_file(path)
                 move(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(buildfile, hashes, ext, path, target)
+            self._add_to_contents(node_path, hashes, ext, source_path, target)
             rmtree(storepath)
             return hashes
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(buildfile, [filehash], ext, path, target)
+            self._add_to_contents(node_path, [filehash], ext, source_path, target)
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
-    def save_file(self, srcfile, name, path, target):
+    def save_file(self, srcfile, node_path, source_path, target):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
-        fullname = name.lstrip('/').replace('/', '.')
-        self._add_to_contents(fullname, [filehash], '', path, target)
+        self._add_to_contents(node_path, [filehash], '', source_path, target)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             # Copy the file to a temporary location first, then move, to make sure we don't end up with
@@ -267,13 +259,12 @@ class Package(object):
             copyfile(srcfile, tmppath)
             move(tmppath, objpath)
 
-    def save_group(self, name):
+    def save_group(self, node_path):
         """
         Save a group to the store.
         """
-        fullname = name.lstrip('/').replace('/', '.')
-        if fullname:
-            self._add_to_contents(fullname, None, '', None, TargetType.GROUP)
+        if node_path:
+            self._add_to_contents(node_path, None, '', None, TargetType.GROUP)
 
     def get_contents(self):
         """
@@ -343,21 +334,21 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, fullname, hashes, ext, path, target):
+    def _add_to_contents(self, node_path, hashes, ext, source_path, target):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
+        assert isinstance(node_path, list)
+
         contents = self.get_contents()
-        ipath = fullname.split('.')
-        leaf = ipath.pop()
 
         ptr = contents
-        for node in ipath:
+        for node in node_path[:-1]:
             ptr = ptr.children.setdefault(node, GroupNode(dict()))
 
         metadata = dict(
             q_ext=ext,
-            q_path=path,
+            q_path=source_path,
             q_target=target.value
         )
 
@@ -377,4 +368,4 @@ class Package(object):
         else:
             assert False, "Unhandled TargetType {tt}".format(tt=target)
 
-        ptr.children[leaf] = node
+        ptr.children[node_path[-1]] = node

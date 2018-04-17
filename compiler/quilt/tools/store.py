@@ -2,7 +2,6 @@
 Build: parse and add user-supplied files to store
 """
 import os
-import re
 
 from shutil import rmtree
 
