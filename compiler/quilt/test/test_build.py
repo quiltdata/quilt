@@ -177,12 +177,6 @@ class BuildTest(QuiltTestCase):
         assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
         assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
 
-    def test_build_hdf5(self):
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build_hdf5.yml')
-        with assertRaisesRegex(self, build.BuildException, "no longer supported"):
-            build.build_package(None, 'test_hdf5', PACKAGE, path)
-
     def test_generate_buildfile(self):
         """
         Test auto-generating a buildfile for compilation
@@ -488,8 +482,9 @@ class BuildTest(QuiltTestCase):
     def test_parquet_source_file(self):
         df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
         import pyarrow as pa
+        from pyarrow import parquet
         table = pa.Table.from_pandas(df)
-        pa.parquet.write_table(table, 'simpledf.parquet')
+        parquet.write_table(table, 'simpledf.parquet')
 
         build_contents = {
             'contents': {

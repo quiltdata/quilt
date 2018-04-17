@@ -83,8 +83,15 @@ class QuiltException(Exception):
     `CommandException`, `BuildException`, etc.
 
     All `QuiltException` instances should have a user friendly message,
-    even if not expected to be seen by a user.
+    even if not expected to be seen by a user.  This is available as the
+    'message' attribute, or as `str(error)`.
+
+    :param message: Error message to display
     """
-    def __init__(self, message, *args):
-        super(QuiltException, self).__init__(message, *args)
+    def __init__(self, message):
+        # We use NewError("Prefix: " + str(error)) a lot.
+        # To be consistent across Python 2.7 and 3.x:
+        # 1) This `super` call must exist, or 2.7 will have no text for str(error)
+        # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
+        super(QuiltException, self).__init__(message)
         self.message = message

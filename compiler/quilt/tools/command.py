@@ -32,8 +32,8 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, exec_yaml_python, load_yaml)
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
+from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -131,8 +131,6 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        if not is_nodename(team):
-            raise CommandException("Invalid team name: %r" % team)
         return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
@@ -568,10 +566,10 @@ def build_from_node(package, node):
             if isinstance(core_node, TableNode):
                 dataframe = node._data()
                 package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    'pandas', PackageFormat.default)
+                                    TargetType.PANDAS)
             elif isinstance(core_node, FileNode):
                 src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'))
+                package_obj.save_file(src_path, path, metadata.get('q_path'), TargetType.FILE)
             else:
                 assert False, "Unexpected core node type: %r" % core_node
         else:
