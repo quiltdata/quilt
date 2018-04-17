@@ -554,10 +554,10 @@ def build_from_node(package, node):
     store = node._package.get_store()
     package_obj = store.create_package(team, owner, pkg)
 
-    def _process_node(node, path=''):
+    def _process_node(node, path=[]):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, (path + '/' + key if path else key))
+                _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
