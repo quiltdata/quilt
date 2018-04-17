@@ -13,7 +13,7 @@ import requests
 
 import quilt
 from . import command
-from .const import DEFAULT_QUILT_YML
+from .const import DEFAULT_QUILT_YML, QuiltException
 
 # Mock `command` when running as a subprocess during testing
 if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
@@ -351,8 +351,8 @@ def main(args=None):
     try:
         func(**kwargs)
         return 0
-    except command.CommandException as ex:
-        print(ex, file=sys.stderr)
+    except QuiltException as ex:
+        print(ex.message, file=sys.stderr)
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)

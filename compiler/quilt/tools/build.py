@@ -18,17 +18,18 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
+from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
+                    QuiltException, TargetType)
 from .core import GroupNode
 from .hashing import digest_file, digest_string
 from .package import Package, ParquetLib
 from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, parse_package
+from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
 
 
-class BuildException(Exception):
+class BuildException(QuiltException):
     """
     Build-time exception class
     """
@@ -79,16 +80,6 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
-
-    if safename and safename[0].isdigit():
-        safename = "n%s" % safename
-
-    if not is_nodename(safename):
-        raise BuildException("Unable to determine a Python-legal name for %r" % name)
-    return safename
-
 def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
@@ -121,7 +112,7 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table[RESERVED['file']] = str(filepath)
         node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
-        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
+        print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 
         yield node_name, node_table
 
@@ -236,7 +227,7 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
             else:
                 # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
-                
+
                 if ext in PANDAS_PARSERS:
                     transform = ext
                     target = TargetType.PANDAS
@@ -352,7 +343,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = _pythonize_name(col)
+            pcol = to_identifier(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -498,14 +489,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = _pythonize_name(nodename)
+            safename = to_identifier(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = _pythonize_name(name)  # Name with ext
+                    new_safename = to_identifier(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
