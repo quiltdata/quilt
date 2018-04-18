@@ -1320,14 +1320,14 @@ def export(package, output_path='.', force=False):
                 df.to_excel(str(dest))
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
-            # ..so, hopefully 60 decimal places is ok for float precision in CSV exports.
+            # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
             elif ext == 'csv':
-                df.to_csv(str(dest), index=False, float_format='%60g')
+                df.to_csv(str(dest), index=False, float_format='%78g')
             elif ext == 'tsv':
-                df.to_csv(str(dest), index=False, float_format='%60g', sep='\t')
+                df.to_csv(str(dest), index=False, float_format='%78g', sep='\t')
             elif ext == 'ssv':
-                df.to_csv(str(dest), index=False, float_format='%60g', sep=';')
+                df.to_csv(str(dest), index=False, float_format='%78g', sep=';')
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
