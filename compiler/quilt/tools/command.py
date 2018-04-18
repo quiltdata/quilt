@@ -1314,20 +1314,18 @@ def export(package, output_path='.', force=False):
             target = node._node.metadata['q_target']
             ext = node._node.metadata['q_ext']
             df = node()
-            if ext == 'xls':
-                df.to_excel(str(dest))
-            elif ext == 'xlsx':
-                df.to_excel(str(dest))
+            if ext in ['xlsx', 'xls']:
+                try:
+                    df.to_excel(str(dest))
+                except ImportError as error:
+                    raise CommandException(error.args[0])
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
             # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
-            elif ext == 'csv':
-                df.to_csv(str(dest), index=False, float_format='%78g')
-            elif ext == 'tsv':
-                df.to_csv(str(dest), index=False, float_format='%78g', sep='\t')
-            elif ext == 'ssv':
-                df.to_csv(str(dest), index=False, float_format='%78g', sep=';')
+            elif ext in ('csv', 'tsv', 'ssv'):
+                sep = {'csv': ',', 'tsv': '\t', 'ssv': ';'}[ext]
+                df.to_csv(str(dest), index=False, float_format='%78g', sep=sep)
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
