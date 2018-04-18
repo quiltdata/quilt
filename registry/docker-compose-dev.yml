@@ -2,8 +2,11 @@ version: '2.1'
 services:
   db:
     image: postgres
+    volumes:
+      # https://github.com/mrts/docker-postgresql-multiple-databases
+      - ./dpmd/:/docker-entrypoint-initdb.d
     environment:
-      - POSTGRES_DB=packages
+      - POSTGRES_MULTIPLE_DATABASES=packages,auth
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -53,7 +56,7 @@ services:
     environment:
       - USE_CONSOLE_EMAIL=True
       - LOGFILE=/tmp/debug.log
-      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - DATABASE_URL=postgres://postgres:testing@db/auth
       - FRONTEND_URL=http://localhost:3000
       - ALLOW_HTTP=1
       - DISABLE_SIGNUP=True
@@ -64,7 +67,7 @@ services:
   djangomigration:
     image: quiltdata/django
     environment:
-      - DATABASE_URL=postgres://postgres:testing@db/packages
+      - DATABASE_URL=postgres://postgres:testing@db/auth
       - OAUTH_REDIRECT_URI=http://localhost:5000/oauth_callback
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
