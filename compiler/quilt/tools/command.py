@@ -30,7 +30,7 @@ from six import itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException, exec_yaml_python, load_yaml)
+                    generate_contents, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
 from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
@@ -41,7 +41,6 @@ from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
-from . import check_functions as qc
 from .. import nodes
 
 
@@ -556,10 +555,10 @@ def build_from_node(package, node):
     store = node._package.get_store()
     package_obj = store.create_package(team, owner, pkg)
 
-    def _process_node(node, path=''):
+    def _process_node(node, path=[]):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, (path + '/' + key if path else key))
+                _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
@@ -943,56 +942,6 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
             print("All fragments are already downloaded!")
 
     pkgobj.save_contents()
-
-
-def _setup_env(env, files):
-    """ process data distribution. """
-    # TODO: build.yml is not saved in the package system, so re-load it here
-    with open('build.yml') as fd:
-        buildfile = next(yaml.load_all(fd), None)
-        environments = buildfile.get('environments', {})
-    if env != 'default' and (env not in environments):
-        raise CommandException(
-            "environment %s not found in environments: section of build.yml" % env)
-    if len(environments) == 0:
-        return files
-    if env == 'default' and 'default' not in environments:
-        return files
-
-    # TODO: this should be done during quilt push, not during install/import
-    # (requires server support)
-    # TODO: add a way to dry-run dataset checking
-    print('processing environment %s: checking data...' % (env))
-    environment = environments[env]
-    dataset = environment.get('dataset')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if isinstance(val, pd.DataFrame):
-            before_len = len(val)
-            res = exec_yaml_python(dataset, val, key, '('+key+')')
-            if not res and res is not None:
-                raise BuildException("error creating dataset for environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
-
-    # TODO: should be done on the server during quilt install
-    # (requires server support)
-    print('processing environment %s: slicing data...' % (env))
-    instance_data = environment.get('instance_data')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if type(val) == pd.core.frame.DataFrame:
-            before_len = len(val)
-            # TODO: pass instance identifier, e.g. instance number N of M
-            val['.qchash'] = val.apply(lambda x: abs(hash(tuple(x))), axis = 1)
-            res = exec_yaml_python(instance_data, val, key, '('+key+')')
-            if res == False:
-                raise BuildException("error assigning data to instance in environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
-    return files
 
 def access_list(package):
     """

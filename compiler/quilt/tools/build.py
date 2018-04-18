@@ -80,7 +80,7 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
+def _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
     checks_list = re.split(r'[,\s]+', checks.strip())
@@ -89,7 +89,7 @@ def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, 
         raise BuildException("Unknown check(s) '%s' for %s @ %s" %
                              (", ".join(list(unknown_checks)), rel_path, target.value))
     for check in checks_list:
-        res = exec_yaml_python(checks_contents[check], dataframe, nodename, rel_path, target)
+        res = exec_yaml_python(checks_contents[check], dataframe, node_path, rel_path, target)
         if not res and res is not None:
             raise BuildException("Data check failed: %s on %s @ %s" % (
                 check, rel_path, target.value))
@@ -124,7 +124,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, name, node, checks_contents=None,
+def _build_node(build_dir, package, node_path, node, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -164,23 +164,21 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
                 for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
-                    full_gchild_name = name + '/' + gchild_name if name else gchild_name
-                    _build_node(build_dir, package, full_gchild_name, gchild_table,
+                    _build_node(build_dir, package, node_path + [gchild_name], gchild_table,
                         checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
-                full_child_name = name + '/' + child_name if name else child_name
-                _build_node(build_dir, package, full_child_name, child_table,
+                _build_node(build_dir, package, node_path + [child_name], child_table,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if name in package:
-            raise BuildException("Naming conflict: {!r} added to package more than once".format(name))
+        if '/'.join(node_path) in package:
+            raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                package.save_group(name)
+                package.save_group(node_path)
             return
 
         include_package = node.get(RESERVED['package'])
@@ -204,7 +202,7 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
                                                     subpath=subpath))
             else:
                 node = GroupNode(existing_pkg.get_contents().children)
-            package.save_package_tree(name, node)
+            package.save_package_tree(node_path, node)
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
 
@@ -248,20 +246,20 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
                 if checks:
                     with open(path, 'r') as fd:
                         data = fd.read()
-                        _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
+                        _run_checks(data, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path, target)
+                    package.save_file(path, node_path, rel_path, target)
             elif transform == PARQUET:
                 if checks:
                     from pyarrow.parquet import ParquetDataset
                     dataset = ParquetDataset(path)
                     table = dataset.read(nthreads=4)
                     dataframe = table.to_pandas()
-                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                    _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path, target)
+                    package.save_file(path, node_path, rel_path, target)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -284,7 +282,7 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
                 # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, name, rel_path, transform, target)
+                    package.save_cached_df(cachedobjs, node_path, rel_path, transform, target)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -296,12 +294,12 @@ def _build_node(build_dir, package, name, node, checks_contents=None,
                     if checks:
                         # TODO: test that design works for internal nodes... e.g. iterating
                         # over the children and getting/checking the data, err msgs, etc.
-                        _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                        _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
 
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target)
+                        obj_hashes = package.save_df(dataframe, node_path, rel_path, transform, target)
 
                         # Add to cache
                         cache_entry = dict(
@@ -445,7 +443,7 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
 
     store = PackageStore()
     newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, '', contents,
+    _build_node(build_dir, newpackage, [], contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
@@ -564,11 +562,11 @@ def load_yaml(filename, optional=False):
         raise BuildException("Unable to open YAML file: %s" % filename)
     return res
 
-def exec_yaml_python(chkcode, dataframe, nodename, path, target):
+def exec_yaml_python(chkcode, dataframe, node_path, path, target):
     # TODO False vs Exception...
     try:
         # setup for eval
-        qc.nodename = nodename
+        qc.nodename = '/'.join(node_path)
         qc.filename = path
         qc.data = dataframe
         eval_globals = {
