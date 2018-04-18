@@ -74,9 +74,13 @@ def test_admin():
     print(s.text)
 
 
-test_admin()
+# test_admin()
 # test_create_user()
 """
 quilt.tools.command.login_user_pass('calvin', 'beans')
 quilt.push('calvin/ex')
 """
+
+import sqlalchemy as sa
+
+e = sa.create_engine('postgresql://postgres@localhost/packages')

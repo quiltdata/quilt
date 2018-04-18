@@ -450,6 +450,44 @@ def beans_list_roles():
 # TODO: modify api to try to take new tokens
 # TODO: refresh
 
+# TODO: signed URLs for account activation + password resets
+import itsdangerous
+linkgenerator = itsdangerous.URLSafeTimedSerializer(
+        'borpgoestheweasel',
+        salt='quilt'
+        )
+
+ACTIVATE_SALT = 'activate'
+PASSWORD_RESET_SALT = 'reset'
+MAX_LINK_AGE = 60 * 60 # 1 hour
+
+def generate_activation_link(user_id):
+    payload = {'id': user_id}
+    return linkgenerator.dumps(payload, salt=ACTIVATE_SALT)
+
+def generate_reset_link(user_id):
+    payload = {'id': user_id}
+    return linkgenerator.dumps(payload, salt=PASSWORD_RESET_SALT)
+
+def verify_activation_link(link):
+    try:
+        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=ACTIVATE_SALT)
+    except:
+        return False
+
+def verify_reset_link(link):
+    try:
+        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=PASSWORD_RESET_SALT)
+    except:
+        return False
+
+@app.route('/beans/test')
+@as_json
+def beans_test():
+    import pdb
+    pdb.set_trace()
+    return {}
+
 # END NEW AUTH CODE
 
 

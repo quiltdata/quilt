@@ -186,3 +186,8 @@ class Event(db.Model):
     extra = db.Column(postgresql.JSONB)
 
 db.Index('idx_package', Event.package_owner, Event.package_name)
+
+class User(db.Model):
+    id = db.Column(postgresql.UUID, primary_key=True)
+    name = db.Column(db.String(64))
+    is_admin = db.column(db.Boolean)
