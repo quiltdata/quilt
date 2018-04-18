@@ -1230,15 +1230,7 @@ def load(pkginfo):
 def export(package, output_path='.', force=False):
     """Export package file data.
 
-    Exports children of specified node to files (if they have file data).
-    Does not export dataframes or other non-file data.
-
-    The `filter` function takes export paths (without the output path prepended)
-    should return `True` or `False` to indicate the node's inclusion in the export.
-
-    The `mapper` function takes export paths (without the output path prepended),
-    and should alter and return that path with any changes that are desired for the
-    export (if any).
+    Exports children of specified node to files.
 
     :param package: package or subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
