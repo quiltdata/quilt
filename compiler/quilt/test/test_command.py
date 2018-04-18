@@ -1361,6 +1361,53 @@ class CommandTest(QuiltTestCase):
         assert single_filepath.exists()
         assert digest(single_bytes) == digest(single_filepath.read_bytes())
 
+    def test_export_roundtrip(self):
+        Path = pathlib.Path
+        temp_dir = Path() / 'test_export_roundtrip'
+        export_1_path = temp_dir / 'export_1'
+        export_2_path = temp_dir / 'export_2'
+        export_1_name = 'export_test/export_1'
+        export_2_name = 'export_test/export_2'
+
+        temp_dir.mkdir()
+
+        expected_exports = sorted([
+            Path('data/README.md'),
+            Path('data/100Rows13Cols.csv'),
+            Path('data/100Rows13Cols.tsv'),
+            Path('data/100Rows13Cols.xlsx'),
+            ])
+        # Build, load, and export from build file
+        command.build(export_1_name, str(Path(__file__).parent / 'build_export.yml'))
+        export_1_node = command.load(export_1_name)
+        command.export(export_1_name, export_1_path)
+        e1_paths = sorted(path.relative_to(export_1_path) for path in export_1_path.glob('**/*'))
+        assert e1_paths.pop(0) == Path('data')
+
+        # Build, load, and export from export dir
+        command.build(export_2_name, str(export_1_path))
+        export_2_node = command.load(export_2_name)
+        command.export(export_2_name, export_2_path)
+        e2_paths = sorted(path.relative_to(export_2_path) for path in export_2_path.glob('**/*'))
+        assert e2_paths.pop(0) == Path('data')
+
+        ## Compare dir contents to expectation:
+        # byte-for-byte comparison for binary-consistent files
+        print("comparing..")
+        for path in expected_exports:
+            print(path)
+            if path.suffix == '.xlsx':
+                continue   # xlsx files include timestamp, byte-for-byte comparison is meaningless
+            assert (export_1_path / path).read_bytes() == (export_2_path / path).read_bytes()
+
+        # dataframe comparison for xlsx files
+        d1, d2 = export_1_node.data.excel(), export_2_node.data.n100Rows13Cols_xlsx()
+
+        assert all(d1.columns == d2.columns)
+        for column_name in d1.columns:
+            for n in range(len(d1[column_name])):
+                assert d1[column_name][n] == d2[column_name][n]
+
     def test_parse_package_names(self):
         # good parse strings
         expected = (None, 'user', 'package')
