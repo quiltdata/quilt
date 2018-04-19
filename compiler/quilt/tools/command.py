@@ -1244,3 +1244,7 @@ def login_user_pass(username, password, team=None):
     contents[registry_url] = payload
     _save_auth(contents)
     return
+
+def _cli_login_user_pass(username, password, team=None):
+    login_user_pass(username, password, team)
+    # TODO: hide password when typed in
