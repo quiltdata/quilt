@@ -141,8 +141,6 @@ def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
     return Response("ok", content_type='text/plain')
 
-
-
 ROBOTS_TXT = '''
 User-agent: *
 Disallow: /
@@ -178,7 +176,6 @@ def login():
     url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
 
     return redirect(url)
-
 
 @app.route('/oauth_callback')
 def oauth_callback():
@@ -2585,4 +2582,3 @@ def reset_password():
             )
 
     return resp.json()
-
