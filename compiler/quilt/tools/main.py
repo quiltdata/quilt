@@ -13,7 +13,7 @@ import requests
 
 import quilt
 from . import command
-from .const import DEFAULT_QUILT_YML
+from .const import DEFAULT_QUILT_YML, QuiltException
 
 # Mock `command` when running as a subprocess during testing
 if os.environ.get('QUILT_TEST_CLI_SUBPROC') == "True":
@@ -167,6 +167,7 @@ def argument_parser():
 
     install_p.set_defaults(func=command.install)
     install_p.add_argument("-f", "--force", action="store_true", help="Overwrite without prompting")
+    install_p.add_argument("-m", "--meta-only", action="store_true", help="Only download the metadata")
     # not a threading mutex, obv.
     install_mutex_group = install_p.add_mutually_exclusive_group()
     install_mutex_group.add_argument("-x", "--hash", help="Package hash", type=str)
@@ -350,8 +351,8 @@ def main(args=None):
     try:
         func(**kwargs)
         return 0
-    except command.CommandException as ex:
-        print(ex, file=sys.stderr)
+    except QuiltException as ex:
+        print(ex.message, file=sys.stderr)
         return 1
     except requests.exceptions.ConnectionError as ex:
         print("Failed to connect: %s" % ex, file=sys.stderr)

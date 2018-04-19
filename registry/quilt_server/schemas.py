@@ -151,3 +151,11 @@ USERNAME_EMAIL_SCHEMA = {
     'required': ['username', 'email'],
     'additionalProperties': False
 }
+
+GET_OBJECTS_SCHEMA = {
+    'type': 'array',
+    'items': {
+        'type': 'string',
+        'pattern': SHA256_PATTERN
+    }
+}

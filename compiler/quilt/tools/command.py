@@ -7,19 +7,17 @@ from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
 from datetime import datetime
 from functools import partial
-import gzip
 import hashlib
 import json
 import os
 import platform
 import re
-from shutil import copyfileobj, move, rmtree
+from shutil import rmtree
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
-from threading import Thread, Lock
 import time
 import yaml
 
@@ -28,57 +26,32 @@ from packaging.version import Version
 import pandas as pd
 import pkg_resources
 import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from six import iteritems, itervalues, string_types
+from six import itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
-from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .const import DEFAULT_BUILDFILE, DTIMEF
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
+                    generate_contents, BuildException, load_yaml)
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
+from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
-from .hashing import digest_file
+from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, FileWithReadProgress, gzip_compress,
-                   is_nodename, PackageInfo, parse_package as parse_package_util,
+from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_package_util,
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
-from . import check_functions as qc
 from .. import nodes
-
-# pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
-# So... We disable it. That's what boto does.
-# https://github.com/boto/botocore/issues/760
-# https://github.com/boto/botocore/pull/803
-try:
-    from urllib3.contrib import pyopenssl
-    pyopenssl.extract_from_urllib3()
-except ImportError:
-    pass
 
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
-
-CHUNK_SIZE = 4096
-
-PARALLEL_UPLOADS = 20
-PARALLEL_DOWNLOADS = 20
-
-S3_CONNECT_TIMEOUT = 30
-S3_READ_TIMEOUT = 30
-S3_TIMEOUT_RETRIES = 3
-CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3 # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
 
-class CommandException(Exception):
+class CommandException(QuiltException):
     """
     Exception class for all command-related failures.
     """
@@ -92,6 +65,7 @@ class HTTPResponseException(CommandException):
 _registry_url = None
 
 def parse_package_extended(identifier):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException
     try:
         return parse_package_extended_util(identifier)
     except ValueError:
@@ -99,6 +73,7 @@ def parse_package_extended(identifier):
         raise CommandException("Specify package as %s." % pkg_format)
 
 def parse_package(name, allow_subpath=False):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException and call check_name()
     try:
         if allow_subpath:
             team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
@@ -117,7 +92,7 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
-    
+
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
@@ -294,17 +269,6 @@ def _clear_session(team):
     if session is not None:
         session.close()
 
-def _create_s3_session():
-    """
-    Creates a session with automatic retries on 5xx errors.
-    """
-    sess = requests.Session()
-    retries = Retry(total=3,
-                    backoff_factor=.5,
-                    status_forcelist=[500, 502, 503, 504])
-    sess.mount('https://', HTTPAdapter(max_retries=retries))
-    return sess
-
 def _open_url(url):
     try:
         if sys.platform == 'win32':
@@ -319,7 +283,7 @@ def _open_url(url):
         print("Failed to launch the browser: %s" % ex)
 
 def _match_hash(package, hash):
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, _ = parse_package(package, allow_subpath=True)
     session = _get_session(team)
 
     hash = hash.lower()
@@ -590,20 +554,20 @@ def build_from_node(package, node):
     store = node._package.get_store()
     package_obj = store.create_package(team, owner, pkg)
 
-    def _process_node(node, path=''):
+    def _process_node(node, path=[]):
         if isinstance(node, nodes.GroupNode):
             for key, child in node._items():
-                _process_node(child, (path + '/' + key if path else key))
+                _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
             core_node = node._node
             metadata = core_node.metadata or {}
             if isinstance(core_node, TableNode):
                 dataframe = node._data()
                 package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    'pandas', PackageFormat.default)
+                                    TargetType.PANDAS)
             elif isinstance(core_node, FileNode):
                 src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'))
+                package_obj.save_file(src_path, path, metadata.get('q_path'), TargetType.FILE)
             else:
                 assert False, "Unexpected core node type: %r" % core_node
         else:
@@ -704,92 +668,18 @@ def push(package, is_public=False, is_team=False, reupload=False):
 
     print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
-    upload_urls = resp.json()['upload_urls']
+    obj_urls = resp.json()['upload_urls']
 
-    obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
-    total = len(obj_queue)
+    assert set(obj_urls) == set(find_object_hashes(pkgobj.get_contents()))
+
+    store = pkgobj.get_store()
 
     obj_sizes = {
-        obj_hash: os.path.getsize(pkgobj.get_store().object_path(obj_hash)) for obj_hash in obj_queue
-    }
-    total_bytes = sum(itervalues(obj_sizes))
-
-    uploaded = []
-    lock = Lock()
-
-    headers = {
-        'Content-Encoding': 'gzip'
+        obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
     }
 
-    print("Uploading %d fragments (%d bytes before compression)..." % (total, total_bytes))
-
-    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
-        def _worker_thread():
-            with _create_s3_session() as s3_session:
-                while True:
-                    with lock:
-                        if not obj_queue:
-                            break
-                        obj_hash = obj_queue.pop()
-
-                    try:
-                        obj_urls = upload_urls[obj_hash]
-
-                        original_size = os.path.getsize(pkgobj.get_store().object_path(obj_hash))
-
-                        if reupload or not s3_session.head(obj_urls['head']).ok:
-                            # Create a temporary gzip'ed file.
-                            with pkgobj.tempfile(obj_hash) as temp_file:
-                                temp_file.seek(0, 2)
-                                compressed_size = temp_file.tell()
-                                temp_file.seek(0)
-
-                                # Workaround for non-local variables in Python 2.7
-                                class Context:
-                                    compressed_read = 0
-                                    original_last_update = 0
-
-                                def _progress_cb(count):
-                                    Context.compressed_read += count
-                                    original_read = Context.compressed_read * original_size // compressed_size
-                                    with lock:
-                                        progress.update(original_read - Context.original_last_update)
-                                    Context.original_last_update = original_read
-
-                                with FileWithReadProgress(temp_file, _progress_cb) as fd:
-                                    url = obj_urls['put']
-                                    response = s3_session.put(url, data=fd, headers=headers)
-                                    response.raise_for_status()
-                        else:
-                            with lock:
-                                tqdm.write("Fragment %s already uploaded; skipping." % obj_hash)
-                                progress.update(original_size)
-
-                        with lock:
-                            uploaded.append(obj_hash)
-                    except requests.exceptions.RequestException as ex:
-                        message = "Upload failed for %s:\n" % obj_hash
-                        if ex.response is not None:
-                            message += "URL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                ex.request.url, ex.response.status_code, ex.response.text
-                            )
-                        else:
-                            message += "%s\n" % ex
-
-                        with lock:
-                            tqdm.write(message)
-
-        threads = [
-            Thread(target=_worker_thread, name="upload-worker-%d" % i)
-            for i in range(PARALLEL_UPLOADS)
-        ]
-        for thread in threads:
-            thread.daemon = True
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-    if len(uploaded) != total:
+    success = upload_fragments(store, obj_urls, obj_sizes, reupload=reupload)
+    if not success:
         raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
@@ -940,7 +830,7 @@ def install_via_requirements(requirements_str, force=False):
         info = parse_package_extended(pkginfo)
         install(info.full_name, info.hash, info.version, info.tag, force=force)
 
-def install(package, hash=None, version=None, tag=None, force=False):
+def install(package, hash=None, version=None, tag=None, force=False, meta_only=False):
     """
     Download a Quilt data package from the server and install locally.
 
@@ -1012,7 +902,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             hash=pkghash
         ),
         params=dict(
-            subpath='/'.join(subpath)
+            subpath='/'.join(subpath),
+            meta_only='true' if meta_only else ''
         )
     )
     assert response.ok # other responses handled by _handle_response
@@ -1024,206 +915,32 @@ def install(package, hash=None, version=None, tag=None, force=False):
             return
 
     dataset = response.json(object_hook=decode_node)
-    response_urls = dataset['urls']
-    response_contents = dataset['contents']
-    obj_sizes = dataset['sizes']
+    contents = dataset['contents']
 
     # Verify contents hash
-    if pkghash != hash_contents(response_contents):
+    if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, response_contents)
+    pkgobj = store.install_package(team, owner, pkg, contents)
 
-    obj_queue = sorted(iteritems(response_urls), reverse=True)
-    total = len(obj_queue)
-    # Some objects might be missing a size; ignore those for now.
-    total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
+    if not meta_only:
+        obj_urls = dataset['urls']
+        obj_sizes = dataset['sizes']
 
-    downloaded = []
-    lock = Lock()
+        # Skip the objects we already have
+        for obj_hash in list(obj_urls):
+            if os.path.exists(store.object_path(obj_hash)):
+                del obj_urls[obj_hash]
+                del obj_sizes[obj_hash]
 
-    print("Downloading %d fragments (%d bytes before compression)..." % (total, total_bytes))
-
-    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
-        def _worker_thread():
-            with _create_s3_session() as s3_session:
-                while True:
-                    with lock:
-                        if not obj_queue:
-                            break
-                        obj_hash, url = obj_queue.pop()
-                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
-
-                    local_filename = store.object_path(obj_hash)
-                    if os.path.exists(local_filename):
-                        with lock:
-                            progress.update(original_size)
-                            downloaded.append(obj_hash)
-                        continue
-
-                    success = False
-
-                    temp_path_gz = store.temporary_object_path(obj_hash + '.gz')
-                    with open(temp_path_gz, 'ab') as output_file:
-                        for attempt in range(S3_TIMEOUT_RETRIES):
-                            try:
-                                starting_length = output_file.tell()
-                                response = s3_session.get(
-                                    url,
-                                    headers={
-                                        'Range': 'bytes=%d-' % starting_length
-                                    },
-                                    stream=True,
-                                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
-                                )
-
-                                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                                if response.status_code == requests.codes.RANGE_NOT_SATISFIABLE:
-                                    with lock:
-                                        progress.update(original_size)
-                                else:
-                                    if not response.ok:
-                                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                            obj_hash, response.request.url, response.status_code, response.text
-                                        )
-                                        with lock:
-                                            tqdm.write(message)
-                                        break
-
-                                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
-                                    # them automatically - but that turned out to be a bad idea because it makes
-                                    # resuming downloads impossible.
-                                    # HACK: For now, just delete the header. Eventually, update the data in S3.
-                                    response.raw.headers.pop('Content-Encoding', None)
-
-                                    # Make sure we're getting the expected range.
-                                    content_range = response.headers.get('Content-Range', '')
-                                    match = CONTENT_RANGE_RE.match(content_range)
-                                    if not match or not int(match.group(1)) == starting_length:
-                                        with lock:
-                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
-                                        break
-
-                                    compressed_size = int(match.group(3))
-
-                                    # We may have started with a partially-downloaded file, so update the progress bar.
-                                    compressed_read = starting_length
-                                    original_read = compressed_read * original_size // compressed_size
-                                    with lock:
-                                        progress.update(original_read)
-                                    original_last_update = original_read
-
-                                    # Do the actual download.
-                                    for chunk in response.iter_content(CHUNK_SIZE):
-                                        output_file.write(chunk)
-                                        compressed_read += len(chunk)
-                                        original_read = compressed_read * original_size // compressed_size
-                                        with lock:
-                                            progress.update(original_read - original_last_update)
-                                        original_last_update = original_read
-
-                                success = True
-                                break  # Done!
-                            except requests.exceptions.ConnectionError as ex:
-                                if attempt < S3_TIMEOUT_RETRIES - 1:
-                                    with lock:
-                                        tqdm.write("Download for %s timed out; retrying..." % obj_hash)
-                                else:
-                                    with lock:
-                                        tqdm.write("Download failed for %s: %s" % (obj_hash, ex))
-                                    break
-
-                    if not success:
-                        # We've already printed an error, so not much to do - just move on to the next object.
-                        continue
-
-                    # Ungzip the downloaded fragment.
-                    temp_path = store.temporary_object_path(obj_hash)
-                    try:
-                        with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
-                            copyfileobj(f_in, f_out)
-                    finally:
-                        # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
-                        os.remove(temp_path_gz)
-
-                    # Check the hash of the result.
-                    file_hash = digest_file(temp_path)
-                    if file_hash != obj_hash:
-                        os.remove(temp_path)
-                        with lock:
-                            tqdm.write("Fragment hashes do not match: expected %s, got %s." %
-                                       (obj_hash, file_hash))
-                            continue
-
-                    move(temp_path, local_filename)
-
-                    # Success.
-                    with lock:
-                        downloaded.append(obj_hash)
-
-        threads = [
-            Thread(target=_worker_thread, name="download-worker-%d" % i)
-            for i in range(PARALLEL_DOWNLOADS)
-        ]
-        for thread in threads:
-            thread.daemon = True
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-    if len(downloaded) != total:
-        raise CommandException("Failed to download fragments")
+        if obj_urls:
+            success = download_fragments(store, obj_urls, obj_sizes)
+            if not success:
+                raise CommandException("Failed to download fragments")
+        else:
+            print("All fragments are already downloaded!")
 
     pkgobj.save_contents()
-
-def _setup_env(env, files):
-    """ process data distribution. """
-    # TODO: build.yml is not saved in the package system, so re-load it here
-    with open('build.yml') as fd:
-        buildfile = next(yaml.load_all(fd), None)
-        environments = buildfile.get('environments', {})
-    if env != 'default' and (env not in environments):
-        raise CommandException(
-            "environment %s not found in environments: section of build.yml" % env)
-    if len(environments) == 0:
-        return files
-    if env == 'default' and 'default' not in environments:
-        return files
-
-    # TODO: this should be done during quilt push, not during install/import
-    # (requires server support)
-    # TODO: add a way to dry-run dataset checking
-    print('processing environment %s: checking data...' % (env))
-    environment = environments[env]
-    dataset = environment.get('dataset')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if isinstance(val, pd.DataFrame):
-            before_len = len(val)
-            res = exec_yaml_python(dataset, val, key, '('+key+')')
-            if not res and res is not None:
-                raise BuildException("error creating dataset for environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
-
-    # TODO: should be done on the server during quilt install
-    # (requires server support)
-    print('processing environment %s: slicing data...' % (env))
-    instance_data = environment.get('instance_data')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if type(val) == pd.core.frame.DataFrame:
-            before_len = len(val)
-            # TODO: pass instance identifier, e.g. instance number N of M
-            val['.qchash'] = val.apply(lambda x: abs(hash(tuple(x))), axis = 1)
-            res = exec_yaml_python(instance_data, val, key, '('+key+')')
-            if res == False:
-                raise BuildException("error assigning data to instance in environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
-    return files
 
 def access_list(package):
     """

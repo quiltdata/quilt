@@ -43,7 +43,7 @@ from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
-from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -843,6 +843,31 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+@app.route('/api/get_objects', methods=['POST'])
+@api(require_login=False, schema=GET_OBJECTS_SCHEMA)
+@as_json
+def get_objects():
+    obj_hashes = request.get_json()
+
+    results = (
+        S3Blob.query
+        .filter(S3Blob.hash.in_(obj_hashes))
+        .join(S3Blob.instances)
+        .join(Instance.package)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+    ).all()
+
+    return dict(
+        urls={
+            blob.hash: _generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
+            for blob in results
+        },
+        sizes={
+            blob.hash: blob.size for blob in results
+        }
+    )
+
 def download_object_preview_impl(owner, obj_hash):
     resp = s3_client.get_object(
         Bucket=PACKAGE_BUCKET_NAME,
@@ -1150,6 +1175,7 @@ def package_put(owner, package_name, package_hash):
 @as_json
 def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
+    meta_only = bool(request.args.get('meta_only', ''))
 
     instance = _get_instance(g.auth, owner, package_name, package_hash)
 
@@ -1162,7 +1188,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set(find_object_hashes(subnode))
+    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
 
     blobs = (
         S3Blob.query
