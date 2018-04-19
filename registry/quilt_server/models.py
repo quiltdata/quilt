@@ -202,3 +202,7 @@ class User(db.Model):
 class Code(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     code = db.Column(postgresql.UUID)
+
+class Token(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, primary_key=True)
