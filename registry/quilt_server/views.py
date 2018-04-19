@@ -484,8 +484,7 @@ def verify_reset_link(link):
 @app.route('/beans/test')
 @as_json
 def beans_test():
-    import pdb
-    pdb.set_trace()
+    print(len(str(hash_password('derp'))))
     return {}
 
 # END NEW AUTH CODE
