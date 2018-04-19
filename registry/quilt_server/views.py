@@ -18,6 +18,7 @@ import json
 import pathlib
 import time
 from urllib.parse import urlencode
+import uuid
 
 import boto3
 from botocore.exceptions import ClientError
@@ -27,6 +28,7 @@ from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
+import jwt
 from oauthlib.oauth2 import OAuth2Error
 import re
 import requests
@@ -238,10 +240,8 @@ def oauth_callback():
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 # BEGIN NEW AUTH CODE
+# TODO: better way to set secret key
 app.secret_key = b'thirty two bytes for gloriousssh'
-
-import jwt
-import uuid
 
 def generate_uuid():
     return str(uuid.uuid4())
