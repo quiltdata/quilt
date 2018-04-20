@@ -27,6 +27,12 @@ class Node(object):
     def json_type(cls):
         raise NotImplementedError
 
+    def __init__(self, metadata):
+        if metadata is None:
+            metadata = {}
+        assert isinstance(metadata, dict)
+        self.metadata = metadata or {}
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
             return self.__dict__ == other.__dict__
@@ -39,7 +45,13 @@ class Node(object):
         return hash(self.__dict__)
 
     def __json__(self):
-        return dict(self.__dict__, type=self.json_type)
+        val = dict(self.__dict__, type=self.json_type)
+        if not self.metadata:
+            # Old clients don't support metadata in groups. If the metadata is empty,
+            # let's not include it at all to avoid breaking things unnecessarily.
+            # (Groups with actual metadata will still break old clients, though.)
+            del val['metadata']
+        return val
 
     def get_children(self):
         return {}
@@ -62,7 +74,8 @@ class Node(object):
 class GroupNode(Node):
     json_type = 'GROUP'
 
-    def __init__(self, children):
+    def __init__(self, children, metadata=None):
+        super(GroupNode, self).__init__(metadata)
         assert isinstance(children, dict)
         self.children = children
 
@@ -76,16 +89,13 @@ class TableNode(Node):
     json_type = 'TABLE'
 
     def __init__(self, hashes, format, metadata=None):
-        if metadata is None:
-            metadata = {}
+        super(TableNode, self).__init__(metadata)
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
-        assert isinstance(metadata, dict)
 
         self.hashes = hashes
         self.format = PackageFormat(format)
-        self.metadata = metadata
 
     def __json__(self):
         val = super(TableNode, self).__json__()
@@ -96,14 +106,11 @@ class FileNode(Node):
     json_type = 'FILE'
 
     def __init__(self, hashes, metadata=None):
-        if metadata is None:
-            metadata = {}
+        super(FileNode, self).__init__(metadata)
 
         assert isinstance(hashes, list)
-        assert isinstance(metadata, dict)
 
         self.hashes = hashes
-        self.metadata = metadata
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
