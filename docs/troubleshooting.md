@@ -1,17 +1,23 @@
-# Questions?
+## Questions?
 Chat with us via the orange icon intercom on [quiltdata.com](https://quiltdata.com). We can also invite you to our Slack channel.
 
-# Google Cloud Datalab
+## Installing (compiler) directly from GitHub
+```sh
+pip install git+https://github.com/quiltdata/quilt.git#subdirectory=compiler
+```
+See [this SO post](https://stackoverflow.com/questions/13566200/how-can-i-install-from-a-git-subdirectory-with-pip) for further install options.
+
+## Google Cloud Datalab
 * Installation: `pip install quilt --user`, the User icon (upper right) > About > Restart server
 * Prefer Python 3 kernels
 
-# Jupyter: `quilt login` doesn't present textbox for user login code
+## Jupyter: `quilt login` doesn't present textbox for user login code
 * Try a Python 3 kernel
 
-# `ImportError` on import of data package
+## `ImportError` on import of data package
 Ensure that that the package has been installed via `quilt install`.
 
-# (Windows) `ImportError` when accessing package contents
+## (Windows) `ImportError` when accessing package contents
 `pyarrow` module, used by `quilt`, may fail to import because of missing DLLs:
 ```
   File "C:\Program Files\Python36\lib\site-packages\pyarrow\__init__.py", line 32, in <module>
@@ -20,18 +26,18 @@ ImportError: DLL load failed: The specified module could not be found.
 ```
 Make sure you have installed [Visual C++ Redistributable for Visual Studio 2015](https://www.microsoft.com/en-us/download/details.aspx?id=48145).
 
-# Jupyter, virtual environments, `quilt` not found
+## Jupyter, virtual environments, `quilt` not found
 When working with virtual environments like `conda create`, `jupyter` can be installed in the `root` environment. If you then install and run `quilt` in another environment, `foo`, Jupyter will not be able to find quilt.
 
-## Solutions
+### Solutions
 Install `quilt` in the `root` environment, or install Jupyter in `foo` (run `which jupyter` in Jupyter's Terminal to ensure that you're using the environment local Jupyter).
 
 Alternatively, `pip install quilt` from Jupyter's Terminal.
 
-# pandas `index_col`
+## pandas `index_col`
 This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
 
-# Packages missing after upgrade to Quilt 2.8
+## Packages missing after upgrade to Quilt 2.8
 Quilt 2.8 changes where data packages are stored on your local machine. As a result, Quilt will no longer look for packages in quilt_packages directories. You will need to reinstall any previously installed packages. Locally built packages can be rebuilt. Or, to migrate existing packages to the new store without rebuilding, first revert to an ealier version of Quilt, then push your packages to the Quilt registry.
 ```bash
 pip install quilt==2.7.1
@@ -44,7 +50,7 @@ pip install --upgrade quilt
 quilt install <your_username>/<your_package>
 ```
 
-# Exception when installing `quilt` on OS X El Capitan
+## Exception when installing `quilt` on OS X El Capitan
 
 `pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when removing the old version of the package:
 ```
@@ -58,13 +64,13 @@ This problem is not specific to `quilt`, and is caused by outdated packages in O
 - Upgrade `pyOpenSSL` using `brew` or `easy_install`
 - Upgrade to a more recent version of OS X
 
-# `ArrowNotImplementedError` when saving a large dataframe
+## `ArrowNotImplementedError` when saving a large dataframe
 
 Unfortunately, this is caused by a [bug in pyarrow](https://github.com/apache/arrow/issues/1300).
 
 There does not appear to be a way to save a dataframe with a string column whose size is over 2GB. It is possible, however, to split it up into multiple dataframes - which will then get merged into one when accessed.
 
-## Workaround
+### Workaround
 
 Suppose the problematic dataframe is called `big_data`, it comes from `big_data.csv`, and the root of your package is in `my_dir`.
 
