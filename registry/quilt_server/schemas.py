@@ -33,6 +33,9 @@ PACKAGE_SCHEMA = {
                 'type': {
                     'enum': [RootNode.json_type]
                 },
+                'metadata': {
+                    'type': 'object'
+                },
                 'children': {
                     'type': 'object',
                     'additionalProperties': {
@@ -85,6 +88,9 @@ PACKAGE_SCHEMA = {
                                 'properties': {
                                     'type': {
                                         'enum': [GroupNode.json_type]
+                                    },
+                                    'metadata': {
+                                        'type': 'object'
                                     },
                                     'children': {
                                         '$ref': '#/properties/contents/properties/children'
