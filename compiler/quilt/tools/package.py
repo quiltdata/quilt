@@ -344,7 +344,7 @@ class Package(object):
 
         ptr = contents
         for node in node_path[:-1]:
-            ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr = ptr.children[node]
 
         metadata = dict(
             q_ext=ext,

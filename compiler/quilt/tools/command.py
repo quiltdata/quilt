@@ -555,6 +555,7 @@ def build_from_node(package, node):
 
     def _process_node(node, path=[]):
         if isinstance(node, nodes.GroupNode):
+            package_obj.save_group(path)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):

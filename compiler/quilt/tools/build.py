@@ -138,6 +138,9 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
       Child transform or kwargs override ancestor k:v pairs.
     """
     if _is_internal_node(node):
+        if not dry_run:
+            package.save_group(node_path)
+
         # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
         # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
         # the node, or it gets treated like a subnode (or like a node with invalid content)
