@@ -17,7 +17,7 @@ from six import iteritems, itervalues
 from tqdm import tqdm
 
 from .hashing import digest_file
-from .util import FileWithReadProgress
+from .util import FileWithReadProgress, get_free_space
 
 
 PARALLEL_UPLOADS = 20
@@ -63,6 +63,13 @@ def download_fragments(store, obj_urls, obj_sizes):
     total = len(obj_queue)
     # Some objects might be missing a size; ignore those for now.
     total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
+
+    # Check if we have enough disk space. There's no way to check reliably because we also need
+    # space for the temporary gzip'ed files, but that's better than nothing.
+    free_space = 5 # get_free_space(store.object_path('.'))
+    if total_bytes > free_space:
+        print("Not enough disk space! Required: %d, available: %d" % (total_bytes, free_space))
+        return False
 
     downloaded = []
     lock = Lock()
