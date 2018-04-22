@@ -1,6 +1,7 @@
 """
 Build: parse and add user-supplied files to store
 """
+import json
 import os
 from shutil import copyfile, move, rmtree
 import uuid
@@ -8,7 +9,7 @@ import uuid
 from enum import Enum
 import pandas as pd
 
-from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException
+from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA
 from .core import FileNode, RootNode, TableNode, find_object_hashes
 from .hashing import digest_file
 from .package import Package, PackageException
@@ -433,3 +434,28 @@ class PackageStore(object):
             move(tmppath, objpath)
 
         return filehash
+
+    def load_metadata(self, metahash):
+        self._check_hashes([metahash])
+        path = self.object_path(metahash)
+        with open(path) as fd:
+            return json.load(fd)
+
+    def save_metadata(self, metadata):
+        """
+        Save metadata to the store.
+        """
+        if metadata in (None, {}):
+            return None
+
+        assert SYSTEM_METADATA not in metadata
+
+        path = self.temporary_object_path(str(uuid.uuid4()))
+
+        with open(path, 'w') as fd:
+            # IMPORTANT: JSON format affects the hash of the package.
+            json.dump(metadata, fd, sort_keys=True, indent=2)
+
+        metahash = digest_file(path)
+        move(path, self.object_path(metahash))
+        return metahash

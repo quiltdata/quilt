@@ -1209,7 +1209,7 @@ class CommandTest(QuiltTestCase):
         # Set relative path and build dir instead
         node._set(['abs_file'], 'abs_file', str(tempdir))
         # Circumvent absolute path checks by writing value directly
-        node.abs_file._node.metadata['q_path'] = str(abs_file)
+        node.abs_file._meta['_system']['filepath'] = str(abs_file)
 
         # build
         command.build(pkg_name, node)

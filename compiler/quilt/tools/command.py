@@ -33,7 +33,7 @@ from tqdm import tqdm
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
 from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
@@ -556,22 +556,23 @@ def build_from_node(package, node):
     package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=[]):
+        meta = dict(node._meta)
+        system_meta = meta.pop(SYSTEM_METADATA, {})
         if isinstance(node, nodes.GroupNode):
-            package_obj.save_group(path)
+            package_obj.save_group(path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
-            core_node = node._node
-            metadata = core_node.metadata or {}
-            if isinstance(core_node, TableNode):
-                dataframe = node._data()
-                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    TargetType.PANDAS)
-            elif isinstance(core_node, FileNode):
-                src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'), TargetType.FILE)
+            # TODO: Reuse existing fragments if we have them.
+            data = node._data()
+            filepath = system_meta.get('filepath')
+            transform = system_meta.get('transform')
+            if isinstance(data, pd.DataFrame):
+                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, string_types):
+                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
             else:
-                assert False, "Unexpected core node type: %r" % core_node
+                assert False, "Unexpected data type: %r" % data
         else:
             assert False, "Unexpected node type: %r" % node
 
@@ -934,22 +935,21 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     pkgobj = store.install_package(team, owner, pkg, contents)
 
-    if not meta_only:
-        obj_urls = dataset['urls']
-        obj_sizes = dataset['sizes']
+    obj_urls = dataset['urls']
+    obj_sizes = dataset['sizes']
 
-        # Skip the objects we already have
-        for obj_hash in list(obj_urls):
-            if os.path.exists(store.object_path(obj_hash)):
-                del obj_urls[obj_hash]
-                del obj_sizes[obj_hash]
+    # Skip the objects we already have
+    for obj_hash in list(obj_urls):
+        if os.path.exists(store.object_path(obj_hash)):
+            del obj_urls[obj_hash]
+            del obj_sizes[obj_hash]
 
-        if obj_urls:
-            success = download_fragments(store, obj_urls, obj_sizes)
-            if not success:
-                raise CommandException("Failed to download fragments")
-        else:
-            print("Fragments already downloaded")
+    if obj_urls:
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
     pkgobj.save_contents()
 
@@ -1312,10 +1312,10 @@ def export(package, output_path='.', force=False):
 
     # Perhaps better as Node.export_path
     def get_export_path(node, node_path):
-        # If q_path is not present, generate fake path based on node parentage.
-        q_path = node._node.metadata.get('q_path')
-        if q_path:
-            dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles all win/lin/osx separators
+        # If filepath is not present, generate fake path based on node parentage.
+        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        if filepath:
+            dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
         else:
             assert isinstance(node_path, pathlib.PureWindowsPath)
             assert not node_path.anchor
@@ -1333,11 +1333,11 @@ def export(package, output_path='.', force=False):
                 # foo.xls -> foo_xls.csv
                 # ..etc.
                 dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
-        # if q_path isn't absolute
+        # if filepath isn't absolute
         if not dest.anchor:
             return pathlib.Path(*dest.parts)  # return a native path
 
-        # q_path is absolute, convert to relative.
+        # filepath is absolute, convert to relative.
         dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
         print("Warning:  Converted export path to relative path: {}".format(str(dest)))
         return dest

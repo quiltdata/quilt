@@ -892,7 +892,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
+    all_hashes = set(find_object_hashes(subnode, meta_only=meta_only))
 
     blobs = (
         S3Blob.query
