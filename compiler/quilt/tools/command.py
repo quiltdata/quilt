@@ -1236,9 +1236,7 @@ def export(package, output_path='.', force=False):
     :param output_path: distination folder
     :param force: if True, overwrite existing files
     """
-    # TODO: (future) Support other tags/versions
-    # TODO: (future) export symlinks / hardlinks (Is this unwise for messing with datastore? windows compat?)
-    # TODO: (future) support dataframes (not too painful, probably)
+    # TODO: (future) Support other tags/versions (via load(), probably)
     # TODO: (future) This would be *drastically* simplified by a 1:1 source-file to node-name correlation
     # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
     #       (nodes.Node and subclasses are being phased out, per Kevin)
