@@ -191,7 +191,6 @@ def to_identifier(string):
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
-    :param strip_underscores: strip underscores from result when possible
     :returns: `string`, converted to python identifier if needed
     :rtype: string
     """

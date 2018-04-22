@@ -107,9 +107,16 @@ class PackageNode(GroupNode):
 
         This creates a node from a filename or pandas DataFrame.
 
-        If `value` is a filename, it must be relative to `build_dir`,
-            and it will be stored for export.
-            `build_dir` is the current directory by default.
+        If `value` is a filename, it must be relative to `build_dir`.
+            `value` is stored as the export path.
+
+        `build_dir` defaults to the current directory, but may be any
+            arbitrary directory path, including an absolute path.
+
+        Example:
+            # Set `pkg.graph_image` to the data in '/home/user/bin/graph.png'.
+            # If exported, it would export to '<export_dir>/bin/graph.png'
+            `pkg._set(['graph_image'], 'bin/fizz.bin', '/home/user')`
 
         :param path:  Path list -- I.e. ['examples', 'new_node']
         :param value:  Pandas dataframe, or a filename relative to build_dir
@@ -127,6 +134,7 @@ class PackageNode(GroupNode):
             if os.path.isabs(value):
                 raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
             # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
+            # Security: q_path does not and should not retain the build_dir's location!
             metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
             core_node = core.FileNode(hashes=[], metadata=metadata)
             if build_dir:

@@ -135,6 +135,14 @@ def argument_parser():
     delete_p.add_argument("package", type=str, help="Owner/Package Name")
     delete_p.set_defaults(func=command.delete)
 
+    # quilt export
+    shorthelp = "Export file data from package or subpackage to filesystem"
+    export_p = subparsers.add_parser("export", description=shorthelp, help=shorthelp)
+    export_p.add_argument("package", type=str, help=HANDLE)
+    export_p.add_argument("output_path", type=str, default='.', nargs='?',
+                          help="Destination folder (auto-created), default '.'")
+    export_p.set_defaults(func=command.export)
+
     # quilt generate
     shorthelp = "Generate a build-file for Quilt build from a directory of build files"
     generate_p = subparsers.add_parser("generate", description=shorthelp, help=shorthelp)

@@ -5,6 +5,7 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
+from collections import Counter
 from datetime import datetime
 from functools import partial
 import hashlib
@@ -12,7 +13,7 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree
+from shutil import rmtree, copy
 import socket
 import stat
 import subprocess
@@ -30,6 +31,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, load_yaml)
+from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
 from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
@@ -484,7 +486,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?
+    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
     team, _, _ = parse_package(package)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
@@ -1225,3 +1227,223 @@ def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
+
+def export(package, output_path='.', force=False):
+    """Export package file data.
+
+    Exports children of specified node to files.
+
+    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
+    :param output_path: distination folder
+    :param force: if True, overwrite existing files
+    """
+    # TODO: (future) Support other tags/versions (via load(), probably)
+    # TODO: (future) This would be *drastically* simplified by a 1:1 source-file to node-name correlation
+    # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
+    #       (nodes.Node and subclasses are being phased out, per Kevin)
+
+    ## Helpers
+    # Perhaps better as Node.iteritems()
+    def iteritems(node, base_path=None, recursive=False):
+        if base_path is None:
+            base_path = pathlib.PureWindowsPath()
+        assert isinstance(node, nodes.GroupNode)
+
+        for name, child_node in node._items():
+            child_path = base_path / name
+            yield child_path, child_node
+            if recursive and isinstance(child_node, nodes.GroupNode):
+                for subpath, subnode in iteritems(child_node, child_path, recursive):
+                    yield subpath, subnode
+
+    # Perhaps better as Node.export_path
+    def get_export_path(node, node_path):
+        # If q_path is not present, generate fake path based on node parentage.
+        q_path = node._node.metadata.get('q_path')
+        if not q_path:
+            assert isinstance(node_path, pathlib.PureWindowsPath)
+            assert not node_path.anchor
+            print("Warning:  Missing export path in metadata.  Using node path: {}"
+                  .format('/'.join(node_path.parts)))
+            return node_path
+
+        # q_path is present.
+        dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles both windows and linux separators
+
+        # if q_path isn't absolute
+        if not dest.anchor:
+            return pathlib.Path(*dest.parts)  # return a native path
+
+        # q_path is absolute.
+        dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
+        print("Warning:  Converted export path to relative path: {}".format(str(dest)))
+        return dest
+
+    def iter_filename_map(node, base_path):
+        """Yields (<node>, <export path>) pairs for given `node`.
+
+        If `node` is a group node, yield pairs for children of `node`.
+        Otherwise, yield the path to export to for that node.
+
+        :returns: Iterator of (<node>, <export path>) pairs
+        """
+        if not isinstance(node, nodes.GroupNode):
+            yield (node, get_export_path(node, base_path))
+            return
+
+        for node_path, found_node in iteritems(node, base_path=base_path, recursive=True):
+            for child in iter_filename_map(found_node, node_path):
+                yield child
+
+    # perhaps better as Node.export()
+    def export_node(node, dest):
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(node._node, FileNode):
+            copy(node(), str(dest))
+        elif isinstance(node._node, TableNode):
+            target = node._node.metadata['q_target']
+            ext = node._node.metadata['q_ext']
+            df = node()
+            if ext in ['xlsx', 'xls']:
+                try:
+                    df.to_excel(str(dest))
+                except ImportError as error:
+                    raise CommandException(error.args[0])
+            # 100 decimal places of pi will allow you to draw a circle the size of the known
+            # universe, and only vary by approximately the width of a proton.
+            # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
+            # If not, and someone complains, we can up it or add a parameter.
+            elif ext in ('csv', 'tsv', 'ssv'):
+                sep = {'csv': ',', 'tsv': '\t', 'ssv': ';'}[ext]
+                df.to_csv(str(dest), index=False, float_format='%78g', sep=sep)
+
+    def resolve_dirpath(dirpath):
+        """Checks the dirpath and ensures it exists and is writable
+        :returns: absolute, resolved dirpath
+        """
+        # ensure output path is writable.  I'd just check stat, but this is fully portable.
+        try:
+            dirpath.mkdir(exist_ok=True)  # could be '.'
+            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
+                pass
+        except OSError as error:
+            raise CommandException("Invalid export path: not writable: " + str(error))
+        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
+
+    def finalize(outpath, exports):
+        """Finalize exports
+
+        This performs the following tasks:
+            * Ensure destination doesn't exist
+            * Remove absolute anchor in dest, if any
+            * Prefix destination with target dir
+
+        :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
+        """
+        # We return list instead of yielding, so that all prep logic is done before write is attempted.
+        final_export_map = []
+
+        for node, dest in exports:
+            dest = pathlib.PureWindowsPath(dest)
+            dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
+
+            if dest.parent != outpath and dest.parent.exists() and not force:
+                raise CommandException("Invalid export path: subdir already exists: {!r}"
+                                       .format(str(dest.parent)))
+            if dest.exists() and not force:
+                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+            final_export_map.append((node, dest))
+        return final_export_map
+
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs
+
+        Export conflicts can be introduced in various ways -- for example:
+            * export-time mapping -- user maps two files to the same name
+            * coded builds -- user creates two FileNodes with the same path
+            * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
+            * build-time duplication -- user enters the same file path twice under different nodes
+
+        This checks for these conflicts and raises an error if they have occurred.
+
+        :raises: CommandException
+        """
+        # Check for file conflicts -- data coming from more than one source to the same dest.
+        exports = set(dest for node, dest in export_list)
+        conflict_counter = Counter(exports)
+        export_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
+        verified_file_conflicts = []
+
+        if export_conflicts:
+            # kinda slow, but only happens if a conflict has definitely occurred.
+            for conflict in export_conflicts:
+                matches = [node for node, dest in export_list if dest == conflict]
+                # if all are from the same source, it's not really a conflict.
+                src = matches[0]
+                if all(src == node for node in matches[1:]):
+                    continue
+                verified_file_conflicts.append(conflict)
+
+        if verified_file_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_file_conflicts)
+            conflict_error = CommandException(
+                "Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
+                + conflict_strings
+                )
+            conflict_error.file_conflicts = verified_file_conflicts
+            raise conflict_error
+
+        # Check for filenames that conflict with folder names
+        dirs = set()
+        for file in exports:
+            dirs.update(file.parents)
+        file_dir_conflicts = exports & dirs
+
+        if file_dir_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
+            conflict_error = CommandException(
+                "Invalid Export: Filename(s) conflict with folder name(s):\n\t" + conflict_strings
+                )
+            conflict_error.dir_file_conflicts = file_dir_conflicts
+            raise conflict_error
+
+    ## Export Logic
+    output_path = pathlib.Path(output_path)
+    node, _, info = _load(package)
+
+    if info.subpath:
+        subpath = pathlib.PureWindowsPath(*info.subpath)
+        # TODO: Change this over to `node['item/subitem']` notation once implemented
+        for name in info.subpath:
+            node = getattr(node, name)
+    else:
+        subpath = pathlib.PureWindowsPath()
+
+    resolved_output = resolve_dirpath(output_path)  # resolve/create output path
+    exports = iter_filename_map(node, subpath)      # Create src / dest map iterator
+    exports = finalize(resolved_output, exports)    # Fix absolutes, check dest nonexistent, prefix dest dir
+    check_for_conflicts(exports)                    # Prevent various potential dir/naming conflicts
+
+    # Skip it if there's nothing to do
+    if not exports:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
+    # All prep done, let's export..
+    try:
+        sys.stdout.write('Exporting.')
+        sys.stdout.flush()
+        for node, dest in exports:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            export_node(node, dest)
+        print('..done.')
+    except OSError as error:
+        commandex = CommandException("Unexpected error during export: " + str(error))
+        commandex.original_error = error
+        raise commandex

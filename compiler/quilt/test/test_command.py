@@ -81,7 +81,9 @@ from six import assertRaisesRegex
 
 from .utils import QuiltTestCase, patch
 from ..tools import command, store
+from ..tools.compat import pathlib
 from ..tools.const import TEAM_ID_ERROR
+
 
 class CommandTest(QuiltTestCase):
     def _mock_error(self, endpoint, status, team=None, message="",
@@ -1131,6 +1133,280 @@ class CommandTest(QuiltTestCase):
 
         from quilt.data.foo import bar
         assert isinstance(bar.foo(), pd.DataFrame)
+
+    def test_export_nonexistent(self):
+        # Ensure export raises correct error when user doesn't exist
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("export_nonexistent_user/package")
+
+        # Ensure export raises correct error when user does exist
+        command.build_package_from_contents(None, 'existent_user', 'testpackage', '', {'contents': {}})
+
+        from quilt.data.existent_user import testpackage
+
+        with pytest.raises(command.CommandException, match="Package .* not found"):
+            command.export("existent_user/nonexistent_package")
+
+    def test_export_dir_file_conflict(self):
+        # This tests how export handles a conflict between a filename and a dirname,
+        #   for example, "foo/bar" and the file "foo".  This may not seem very probable,
+        #   but it's a condition that can definitely be created by re-rooting absolute
+        #   paths into the export dir -- for example, '/foo/bar' and 'foo' would create
+        #   this kind of conflict.
+        Path = pathlib.Path
+        mydir = Path(__file__).parent
+        tempdir = Path() / 'test_export_dir_file_conflict'
+        pkg_name = "testing/dirfileconflict"
+        data = os.urandom(200)
+
+        # prep
+        tempdir.mkdir()
+        command.build(pkg_name, str(mydir / 'build_empty.yml'))
+
+        # make FileNode with filename 'foo'
+        node = command.load(pkg_name)
+        conflict = (tempdir / 'foo')
+        conflict.write_bytes(data)
+        node._set(['foofile'], str(conflict))
+        command.build(pkg_name, node)
+        conflict.unlink()
+
+        # make FileNode with filepath 'foo/baz'
+        node = command.load(pkg_name)
+        conflict.mkdir()
+        conflict_file = (conflict / 'baz')
+        conflict_file.write_bytes(data)
+        node._set(['foodir', 'baz'], str(conflict_file))
+        command.build(pkg_name, node)
+        conflict_file.unlink()
+        conflict.rmdir()
+
+        # export conflicted files
+        with pytest.raises(command.CommandException,
+                           match="Invalid Export: Filename\(s\) conflict with folder name\(s\):"):
+            command.export(pkg_name, str(tempdir))
+
+    def test_export_absolute(self):
+        Path = pathlib.Path
+        mydir = Path(__file__).parent
+        tempdir = Path("test_export_absolute")
+        pkg_name = "testing/export_absolute"
+        data = os.urandom(200)
+
+        # prep
+        tempdir.mkdir()
+        command.build(pkg_name, str(mydir / 'build_empty.yml'))
+
+        # make FileNode with absolute path
+        node = command.load(pkg_name)
+        abs_file = tempdir.absolute() / "abs_file"
+        abs_file.write_bytes(data)
+
+        # Setting absolute path for a node is not allowed.
+        with pytest.raises(ValueError, match='Invalid path:'):
+            node._set(['abs_file'], str(abs_file))
+
+        # Set relative path and build dir instead
+        node._set(['abs_file'], 'abs_file', str(tempdir))
+        # Circumvent absolute path checks by writing value directly
+        node.abs_file._node.metadata['q_path'] = str(abs_file)
+
+        # build
+        command.build(pkg_name, node)
+
+        # export
+        export_dir = tempdir / 'export'
+        # result should be the full absolute path of abs_file, but relative, and exported to export_dir
+        expected_file = export_dir.joinpath(*abs_file.parts[1:])
+
+        command.export(pkg_name, export_dir)
+
+        assert expected_file.exists()
+        assert expected_file.read_bytes() == data
+
+    def test_export(self):
+        # pathlib will translate paths to windows or posix paths when needed
+        Path = pathlib.Path
+        pkg_name = 'testing/foo'
+        subpkg_name = 'subdir'
+        single_name = 'single_file'
+        single_bytes = os.urandom(200)
+
+        subdir_test_data = [
+            (subpkg_name + '/subdir_example', os.urandom(300)),
+            (subpkg_name + '/9bad-identifier.html', os.urandom(100)),
+            ]
+
+        test_data = [
+            (single_name, single_bytes),
+            ('readme.md', os.urandom(200)),
+            # these are invalid python identifiers, but should be handled without issue
+            ('3-bad-identifier/bad_parent_identifier.html', os.urandom(100)),
+            ('3-bad-identifier/9{}bad-identifier.html', os.urandom(100)),
+            ] + subdir_test_data
+
+        digest = lambda data: hashlib.sha256(data).hexdigest()
+
+        temp_dir = Path() / "temp_test_command_export"
+        install_dir = temp_dir / 'install'
+
+        # Create and and install build
+        for path, data in test_data:
+            path = install_dir / path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        command.build(pkg_name, str(install_dir))
+
+        ## Test export
+        test_dir = temp_dir / 'test_export'
+
+        command.export(pkg_name, str(test_dir))
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
+
+        ## Test export with force=True
+        # We just exported and checked that the files exist,
+        # so it's a good spot to check the force option.
+        command.export(pkg_name, str(test_dir), force=True)
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(test_data)
+
+        for path, data in test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
+
+        ## Test raise when exporting to overwrite existing files
+        files = set(f for f in test_dir.glob('*') if f.is_file())
+        # sorted and reversed means files before their containing dirs
+        for path in sorted(test_dir.glob('**/*'), reverse=True):
+            # keep files from root of test_dir
+            if path in files:
+                continue
+            # remove everything else
+            path.rmdir() if path.is_dir() else path.unlink()
+        # now there are only files in the export root to conflict with.
+        with pytest.raises(command.CommandException, match='file already exists'):
+            command.export(pkg_name, str(test_dir))
+
+        ## Test raise when exporting to existing dir structure
+        command.export(pkg_name, str(test_dir), force=True)
+        for path in test_dir.glob('**/*'):
+            # leave dirs, remove files
+            if path.is_dir():
+                continue
+            path.unlink()
+        with pytest.raises(command.CommandException, match='subdir already exists'):
+            command.export(pkg_name, str(test_dir))
+
+        ## Test exporting to an unwriteable location
+        # disabled on windows, for now
+        # TODO: Windows version of permission failure test
+        if os.name != 'nt':
+            test_dir = temp_dir / 'test_write_permissions_fail'
+            test_dir.mkdir()
+            try:
+                orig_mode = test_dir.stat().st_mode
+                test_dir.chmod(0o111)
+
+                with pytest.raises(command.CommandException, match='not writable'):
+                    command.export(pkg_name, str(test_dir))
+
+            finally:
+                if 'orig_mode' in locals():  # may not exist if mode-set failed
+                    # noinspection PyUnboundLocalVariable
+                    test_dir.chmod(orig_mode)
+
+
+        ## Test subpackage exports
+        test_dir = temp_dir / 'test_subpkg_export'
+        command.export(pkg_name + '/' + subpkg_name, str(test_dir))
+
+        exported_paths = [path for path in test_dir.glob('**/*') if path.is_file()]
+
+        assert len(exported_paths) == len(subdir_test_data)
+
+        for path, data in subdir_test_data:
+            export_path = test_dir / path
+            install_path = install_dir / path
+
+            # filename matches
+            assert export_path in exported_paths
+            # data matches
+            assert digest(export_path.read_bytes()) == digest(install_path.read_bytes())
+
+        ## Test single-file exports
+        test_dir = temp_dir / 'test_single_file_export'
+        pkg_name_single = pkg_name + '/' + single_name
+        single_filepath = test_dir / single_name
+
+        command.export(pkg_name_single, str(test_dir))
+        assert single_filepath.exists()
+        assert digest(single_bytes) == digest(single_filepath.read_bytes())
+
+    def test_export_roundtrip(self):
+        Path = pathlib.Path
+        temp_dir = Path() / 'test_export_roundtrip'
+        export_1_path = temp_dir / 'export_1'
+        export_2_path = temp_dir / 'export_2'
+        export_1_name = 'export_test/export_1'
+        export_2_name = 'export_test/export_2'
+
+        temp_dir.mkdir()
+
+        expected_exports = sorted([
+            Path('data/README.md'),
+            Path('data/100Rows13Cols.csv'),
+            Path('data/100Rows13Cols.tsv'),
+            Path('data/100Rows13Cols.xlsx'),
+            ])
+        # Build, load, and export from build file
+        command.build(export_1_name, str(Path(__file__).parent / 'build_export.yml'))
+        export_1_node = command.load(export_1_name)
+        command.export(export_1_name, export_1_path)
+        e1_paths = sorted(path.relative_to(export_1_path) for path in export_1_path.glob('**/*'))
+        assert e1_paths.pop(0) == Path('data')
+
+        # Build, load, and export from export dir
+        command.build(export_2_name, str(export_1_path))
+        export_2_node = command.load(export_2_name)
+        command.export(export_2_name, export_2_path)
+        e2_paths = sorted(path.relative_to(export_2_path) for path in export_2_path.glob('**/*'))
+        assert e2_paths.pop(0) == Path('data')
+
+        ## Compare dir contents to expectation:
+        # byte-for-byte comparison for binary-consistent files
+        print("comparing..")
+        for path in expected_exports:
+            print(path)
+            if path.suffix == '.xlsx':
+                continue   # xlsx files include timestamp, byte-for-byte comparison is meaningless
+            assert (export_1_path / path).read_bytes() == (export_2_path / path).read_bytes()
+
+        # dataframe comparison for xlsx files
+        d1, d2 = export_1_node.data.excel(), export_2_node.data.n100Rows13Cols_xlsx()
+
+        assert all(d1.columns == d2.columns)
+        for column_name in d1.columns:
+            for n in range(len(d1[column_name])):
+                assert d1[column_name][n] == d2[column_name][n]
 
     def test_parse_package_names(self):
         # good parse strings

@@ -78,6 +78,12 @@ See [teams docs](./teams.md) for additional commands and syntax.
 | --- | --- | --- |
 | `quilt search "SEARCH STRING"` |  `quilt.search("SEARCH STRING")` | Search registry for packages by user or package name |
 
+## Export a package or subpackage
+| Command line | Python | Description |
+| --- | --- | --- |
+| `quilt export USER/PACKAGE` |  `quilt.export("USER/PACKAGE")` | Export data to current dir |
+| `quilt export USER/PACKAGE DEST` |  `quilt.export("USER/PACKAGE", "DEST")` | Export data to specified destination |
+
 ## Import and use data
 For a package in the public cloud:
 ```python
