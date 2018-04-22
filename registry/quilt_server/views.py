@@ -1027,7 +1027,7 @@ def package_preview(owner, package_name, package_hash):
 
     file_types = defaultdict(int)
     for node in _iterate_data_nodes(instance.contents):
-        path = node.metadata.get('q_path')
+        path = node.metadata.get('filepath', node.metadata.get('q_path'))
         if not isinstance(path, str):
             path = ''
         # We don't know if it's a UNIX or a Windows path, so let's treat both \ and / as separators.
