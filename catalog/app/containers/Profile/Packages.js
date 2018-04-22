@@ -6,6 +6,7 @@ import { setPropTypes } from 'recompose';
 
 import Help from 'components/Help';
 import PackageList from 'components/PackageList';
+import PackageTable from 'components/PackageTable';
 import config from 'constants/config';
 import { makePackage } from 'constants/urls';
 import { composeComponent } from 'utils/reactTools';
@@ -28,8 +29,7 @@ export default composeComponent('Profile.Packages',
     <Fragment>
       <h1><Avatar>{shortName}</Avatar> {user}</h1>
       <h2><FormattedMessage {...messages.own} /></h2>
-      <PackageList
-        push={push}
+      <PackageTable
         emptyMessage={<FormattedMessage {...messages.noOwned} />}
         emptyHref={makePackage}
         packages={packages.own}
