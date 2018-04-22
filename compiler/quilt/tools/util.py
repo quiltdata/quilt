@@ -10,7 +10,6 @@ from appdirs import user_config_dir, user_data_dir
 from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
-from .compat import pathlib
 from .const import QuiltException
 
 
