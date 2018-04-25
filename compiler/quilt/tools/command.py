@@ -551,8 +551,7 @@ def build_from_node(package, node):
     """
     team, owner, pkg = parse_package(package)
     _check_team_id(team)
-    # deliberate access of protected member
-    store = node._package.get_store()
+    store = PackageStore()
     package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=[]):
