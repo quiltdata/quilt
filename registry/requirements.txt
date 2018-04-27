@@ -22,6 +22,7 @@ MarkupSafe==1.0
 mixpanel==4.3.2
 oauthlib==2.0.2
 packaging==16.8
+passlib==1.7.1
 psycopg2==2.7.3.2
 pyjwt==1.6.1
 pyparsing==2.2.0
