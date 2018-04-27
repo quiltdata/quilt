@@ -1270,17 +1270,12 @@ def export(package, output_path='.', force=False):
             dest = node_path
 
         # When exporting TableNodes, excel files are to be converted to csv.
+        # check also occurs in export_node(), but done here prevents filename conflicts
         if isinstance(node._node, TableNode):
             q_ext = node._node.metadata.get('q_ext')
             if q_ext in ['xls', 'xlsx', '', None]:
                 print("Warning: Using csv instead of {} for node at {!r}"
                       .format(q_ext, '/'.join(node_path.parts)))
-                node_path = node_path.with_suffix('.csv')
-
-        # When exporting, we only support csv/ssv/tsv -- excel files are to be converted to csv.
-        # check also occurs in export_node(), but done here prevents filename conflicts
-        if isinstance(node._node, TableNode):
-            if node._node.metadata.get('q_ext') in ['xls', 'xlsx', '', None]:
                 dest = dest.with_name(dest.name + '.csv')
 
         # if q_path isn't absolute
