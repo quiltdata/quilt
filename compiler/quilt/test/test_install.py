@@ -30,7 +30,7 @@ from ..tools.package import Package
 from ..tools.store import PackageStore
 from ..tools.util import gzip_compress
 
-from .utils import QuiltTestCase
+from .utils import QuiltTestCase, patch
 
 class InstallTest(QuiltTestCase):
     """
@@ -443,6 +443,19 @@ packages:
 
         command.install('foo/bar/group/table')
 
+    @patch('quilt.tools.data_transfer.get_free_space')
+    def test_out_of_space(self, get_disk_space):
+        get_disk_space.return_value = 5
+
+        _, table_hash = self.make_table_data()
+        _, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(table=table_hash, file=file_hash)
+
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash])
+
+        with self.assertRaises(command.CommandException):
+            command.install('foo/bar')
 
     def _mock_log(self, package, pkg_hash, team=None):
         log_url = '%s/api/log/%s/' % (command.get_registry_url(team), package)
@@ -473,7 +486,7 @@ packages:
             dict(message=message) if message else
             dict(
                 contents=contents,
-                sizes={h: None for h in hashes},
+                sizes={h: 100 for h in hashes},
                 urls={h: 'https://example.com/%s' % h for h in hashes}
             )
         , default=encode_node), match_querystring=True, status=status)
