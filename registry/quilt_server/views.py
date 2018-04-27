@@ -40,11 +40,12 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
+from .auth import _create_user, _delete_user, generate_uuid, get_user, issue_token, try_login
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
-                     S3Blob, Tag, Version)
+from .models import (Access, Code, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
+                     S3Blob, Tag, Token, User, Version)
 from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 from .search import keywords_tsvector, tsvector_concat
 
@@ -129,6 +130,7 @@ for python_name in ['CPython', 'Jython', 'PyPy']:
 
 ### Web routes ###
 
+# TODO: deprecate
 def _create_session(next=''):
     return OAuth2Session(
         client_id=OAUTH_CLIENT_ID,
@@ -237,66 +239,8 @@ def oauth_callback():
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 # BEGIN NEW AUTH CODE
-# TODO: better way to set secret key
-app.secret_key = b'thirty two bytes for gloriousssh'
 
-def generate_uuid():
-    return str(uuid.uuid4())
-
-from passlib.context import CryptContext
-pwd_context = CryptContext(schemes=['pbkdf2_sha512'])
-# TODO : change rounds based on perf test
-
-def hash_password(password):
-    return pwd_context.hash(password)
-
-def create_user(username):
-    if username in users:
-        raise Exception('User already exists')
-    users[username] = {'uuid': generate_uuid(), 'password': ''}
-
-def set_password(username, password):
-    users[username]['password'] = hash_password(password)
-
-users = {}
-create_user('calvin')
-set_password('calvin', 'beans')
-
-def verify_hash(username, password):
-    try:
-        h = users[username]['password']
-    except KeyError:
-        raise Exception('User not found')
-    try:
-        if not pwd_context.verify(password, h):
-            raise Exception('Password verification failed')
-    except ValueError:
-        raise Exception('Password verification failed')
-    return True
-
-class TokenException(Exception):
-    pass
-
-def verify(payload):
-    name = payload['username']
-    uuid = payload['uuid']
-    if name not in users:
-        raise TokenException('Username invalid -- how did you get this token?')
-    if not users[name]['uuid'] == uuid:
-        raise TokenException('UUID mismatch -- token rejected')
-    return True
-
-def verify_token_string(s):
-    try:
-        token = jwt.decode(s, app.secret_key, algorithm='HS256')
-        verify(token)
-        return True
-    except:
-        return False
-
-def revoke_tokens(username):
-    users[username] = generate_uuid()
-
+# deprecated
 def verify_jwt():
     def dec(f):
         @wraps(f)
@@ -321,31 +265,25 @@ def verify_jwt():
         return innerdec
     return dec
 
-def get_exp(mins=30):
-    return datetime.utcnow() + timedelta(minutes=mins)
-
-def issue_token(username, exp=None):
-    user = users[username]
-    uuid = user['uuid']
-    exp = exp or get_exp()
-    payload = {'username': username, 'uuid': uuid, 'exp': exp}
-    if user.get('roles'):
-        payload['roles'] = user.get('roles')
-    token = jwt.encode(payload, app.secret_key, algorithm='HS256')
-    return token.decode('utf-8')
-
-def try_login(username, password):
-    try:
-        verify_hash(username, password)
-    except Exception as e:
-        return False
-    return True
 
 @app.route('/login', methods=['POST'])
 def login_post():
+    try:
+        json = request.get_json(force=True)
+        username = json.get('username')
+        password = json.get('password')
+        if try_login(username, password):
+            token = issue_token(username)
+        else:
+            return jsonify({'error': 'Login attempt failed'})
+        return jsonify({'token': token})
+    except:
+        pass
+    
     username = request.form['username']
     password = request.form['password']
     if try_login(username, password):
+        # update last login
         params = {'state': json.dumps(
             {'next': CATALOG_REDIRECT_URL + '?' + urlencode({'next': '/profile'})}),
                   'next': '/profile',
@@ -370,119 +308,8 @@ def beans_login():
     except:
         return {'error': 'Login failed'}, 401
 
-@app.route('/beans/create_user', methods=['POST'])
-@as_json
-@verify_jwt()
-def beans_create_user():
-    return {}
 
-@app.route('/beans/echo_token')
-@as_json
-@verify_jwt()
-def beans_echo_token():
-    return {'token': request.token}
-
-@app.route('/beans/get_token')
-@as_json
-@verify_jwt()
-def beans_get_token():
-    username = request.token['username']
-    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
-    return {'token': msg.decode('utf-8')}
-
-@app.route('/beans/expired')
-@as_json
-def beans_expired():
-    payload = {'username': 'calvin', 'exp': datetime.utcnow()}
-    msg = jwt.encode(payload, app.secret_key, algorithm='HS256')
-    return {'token': msg.decode('utf-8')}
-
-@app.route('/beans/secret', methods=['POST'])
-@as_json
-def beans_secret():
-    data = request.get_json(force=True)
-    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
-    verify(payload)
-    print(payload)
-    return {'data': data}
-
-@app.route('/beans/revoke', methods=['POST'])
-@as_json
-def beans_revoke():
-    data = request.get_json(silent=True, force=True)
-    payload = jwt.decode(data.get('token'), app.secret_key, algorithm='HS256')
-    verify(payload)
-    revoke_tokens('calvin')
-    return {}
-
-def get_roles(username):
-    return users[username].get('roles', [])
-
-def set_roles(username, roles):
-    users[username]['roles'] = roles
-
-@app.route('/beans/add_role', methods=['POST'])
-@as_json
-@verify_jwt()
-def beans_add_role():
-    data = request.get_json(silent=True, force=True)
-    role = data.get('role')
-    username = data.get('username')
-    roles = get_roles(username)
-    if role not in roles:
-        roles.append(role)
-    set_roles(username, roles)
-    return {}
-
-@app.route('/beans/list_roles')
-@as_json
-@verify_jwt()
-def beans_list_roles():
-    data = request.get_json(silent=True, force=True)
-    username = data.get('username')
-    roles = get_roles(username)
-    return {'roles': roles}
-
-
-# TODO: modify api to try to take new tokens
 # TODO: refresh
-
-# TODO: signed URLs for account activation + password resets
-import itsdangerous
-linkgenerator = itsdangerous.URLSafeTimedSerializer(
-        'borpgoestheweasel',
-        salt='quilt'
-        )
-
-ACTIVATE_SALT = 'activate'
-PASSWORD_RESET_SALT = 'reset'
-MAX_LINK_AGE = 60 * 60 # 1 hour
-
-def generate_activation_link(user_id):
-    payload = {'id': user_id}
-    return linkgenerator.dumps(payload, salt=ACTIVATE_SALT)
-
-def generate_reset_link(user_id):
-    payload = {'id': user_id}
-    return linkgenerator.dumps(payload, salt=PASSWORD_RESET_SALT)
-
-def verify_activation_link(link):
-    try:
-        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=ACTIVATE_SALT)
-    except:
-        return False
-
-def verify_reset_link(link):
-    try:
-        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=PASSWORD_RESET_SALT)
-    except:
-        return False
-
-@app.route('/beans/test')
-@as_json
-def beans_test():
-    print(len(str(hash_password('derp'))))
-    return {}
 
 # END NEW AUTH CODE
 
@@ -495,6 +322,7 @@ def token():
         abort(requests.codes.bad_request)
 
     # TODO: try as JWT
+    # check if one-time code, then if token
 
     if not OAUTH_HAVE_REFRESH_TOKEN:
         return dict(
@@ -587,14 +415,14 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            if not enabled:
+                raise ApiException(requests.codes.bad_request,
+                        "This endpoint is not enabled.")
+
             g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
-
-            if not enabled:
-                raise ApiException(requests.codes.bad_request,
-                        "This endpoint is not enabled.")
 
             if validator is not None:
                 try:

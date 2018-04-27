@@ -189,20 +189,22 @@ db.Index('idx_package', Event.package_owner, Event.package_name)
 
 class User(db.Model):
     id = db.Column(postgresql.UUID, primary_key=True)
-    name = db.Column(db.String(64))
+    name = db.Column(db.String(64), unique=True)
     email = db.Column(db.String(64)) # should this be longer?
     password = db.Column(db.String(200))
-    is_admin = db.Column(db.Boolean)
+    is_admin = db.Column(db.Boolean, default=False)
     last_login = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now())
     first_name = db.Column(db.String(64))
     last_name = db.Column(db.String(64))
-    is_active = db.Column(db.Boolean)
+    is_active = db.Column(db.Boolean, default=True)
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
+    # TODO: add separate superuser status? do we need that?
+    old_id = db.Column(db.BigInteger, default=None) # for django ID -- probably not necessary but good to keep around
 
 class Code(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    code = db.Column(postgresql.UUID)
+    code = db.Column(postgresql.UUID, primary_key=True, nullable=False) 
 
 class Token(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    token = db.Column(postgresql.UUID, primary_key=True)
+    token = db.Column(postgresql.UUID, nullable=False)

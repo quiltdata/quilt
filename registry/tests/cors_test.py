@@ -41,10 +41,10 @@ class TagTestCase(QuiltTestCase):
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testNonApi(self):
         resp = self.app.get(
-            '/login',
+            '/healthcheck',
             headers={
                 'Origin': self.ORIGIN
             }
         )
-        assert resp.status_code == requests.codes.found
+        assert resp.status_code == requests.codes.ok
         assert 'Access-Control-Allow-Origin' not in resp.headers

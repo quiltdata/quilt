@@ -84,3 +84,6 @@ quilt.push('calvin/ex')
 import sqlalchemy as sa
 
 e = sa.create_engine('postgresql://postgres@localhost/packages')
+
+r = requests.post('%slogin' % flask_url, json={'username': 'calvin', 'password': 'beans'})
+print(jwt.decode(r.json().get('token'), verify=False))
