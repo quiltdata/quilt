@@ -199,7 +199,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     # TODO: add separate superuser status? do we need that?
-    old_id = db.Column(db.BigInteger, default=None) # for django ID -- probably not necessary but good to keep around
+    old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
 
 class Code(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)

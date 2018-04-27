@@ -269,9 +269,9 @@ def verify_jwt():
 @app.route('/login', methods=['POST'])
 def login_post():
     try:
-        json = request.get_json(force=True)
-        username = json.get('username')
-        password = json.get('password')
+        data = request.get_json(force=True)
+        username = data.get('username')
+        password = data.get('password')
         if try_login(username, password):
             token = issue_token(username)
         else:
