@@ -1375,7 +1375,7 @@ class CommandTest(QuiltTestCase):
             Path('data/README.md'),
             Path('data/100Rows13Cols.csv'),
             Path('data/100Rows13Cols.tsv'),
-            Path('data/100Rows13Cols.xlsx'),
+            Path('data/100Rows13Cols.xlsx.csv'),  # originally xlsx
             ])
         # Build, load, and export from build file
         command.build(export_1_name, str(Path(__file__).parent / 'build_export.yml'))
@@ -1383,6 +1383,7 @@ class CommandTest(QuiltTestCase):
         command.export(export_1_name, export_1_path)
         e1_paths = sorted(path.relative_to(export_1_path) for path in export_1_path.glob('**/*'))
         assert e1_paths.pop(0) == Path('data')
+        assert e1_paths == expected_exports
 
         # Build, load, and export from export dir
         command.build(export_2_name, str(export_1_path))
@@ -1390,23 +1391,31 @@ class CommandTest(QuiltTestCase):
         command.export(export_2_name, export_2_path)
         e2_paths = sorted(path.relative_to(export_2_path) for path in export_2_path.glob('**/*'))
         assert e2_paths.pop(0) == Path('data')
+        assert e2_paths == expected_exports
 
         ## Compare dir contents to expectation:
         # byte-for-byte comparison for binary-consistent files
-        print("comparing..")
-        for path in expected_exports:
-            print(path)
-            if path.suffix == '.xlsx':
-                continue   # xlsx files include timestamp, byte-for-byte comparison is meaningless
-            assert (export_1_path / path).read_bytes() == (export_2_path / path).read_bytes()
+        path = pathlib.Path('data/README.md')
+        assert (export_1_path / path).read_bytes() == (export_2_path / path).read_bytes()
 
-        # dataframe comparison for xlsx files
-        d1, d2 = export_1_node.data.excel(), export_2_node.data.n100Rows13Cols_xlsx()
+        # dataframe comparison for columnar data with floats
+        # pandas may import or export these imperfectly, so we just want (at least floats) to be close.
+        export_pairs = (
+            (export_1_node.data.excel, export_2_node.data.n100Rows13Cols_xlsx),
+            (export_1_node.data.csv, export_2_node.data.n100Rows13Cols_csv),
+            (export_1_node.data.tsv, export_2_node.data.n100Rows13Cols_tsv),
+            )
 
-        assert all(d1.columns == d2.columns)
-        for column_name in d1.columns:
-            for n in range(len(d1[column_name])):
-                assert d1[column_name][n] == d2[column_name][n]
+        for node1, node2 in export_pairs:
+            d1, d2 = node1(), node2()
+            assert all(d1.columns == d2.columns)
+            for column_name in d1.columns:
+                if column_name.startswith('Double'):
+                    for n in range(len(d1[column_name])):
+                        assert is_close(d1[column_name][n], d2[column_name][n])
+                else:
+                    for n in range(len(d1[column_name])):
+                        assert d1[column_name][n] == d2[column_name][n]
 
     def test_parse_package_names(self):
         # good parse strings
@@ -1559,3 +1568,10 @@ class CommandTest(QuiltTestCase):
 
         with pytest.raises(command.CommandException):
             command.parse_package_extended('foo:bar:baz')
+
+
+def is_close(a, b):
+    # Compare two floats, and let us know if they're within relative tolerance
+    tolerance = 1e-15
+    return abs(a - b) <= tolerance * max(abs(a), abs(b))
+
