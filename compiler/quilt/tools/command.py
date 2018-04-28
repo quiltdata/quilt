@@ -1418,6 +1418,7 @@ def export(package, output_path='.', force=False):
                 )
             conflict_error.dir_file_conflicts = file_dir_conflicts
             raise conflict_error
+        # TODO: return abbreviated list of exports based on found non-conflicting duplicates
 
     ## Export Logic
     output_path = pathlib.Path(output_path)
@@ -1454,7 +1455,8 @@ def export(package, output_path='.', force=False):
 
         # tqdm is threaded, and its display may not specify the exact file currently being exported.
         for node, dest in exports_bar:
-            exports_bar.bar_format = fmt + ": {}".format(dest.relative_to(resolved_output))
+            # Avoided fmt + ": {}".format(...) due to very odd interaction with tqdm.
+            exports_bar.bar_format = fmt + ": " + str(dest.relative_to(resolved_output))
             exports_bar.update(0)
             export_node(node, dest)
     except OSError as error:
