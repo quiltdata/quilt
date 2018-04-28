@@ -1455,8 +1455,9 @@ def export(package, output_path='.', force=False):
 
         # tqdm is threaded, and its display may not specify the exact file currently being exported.
         for node, dest in exports_bar:
-            # Avoided fmt + ": {}".format(...) due to very odd interaction with tqdm.
-            exports_bar.bar_format = fmt + ": " + str(dest.relative_to(resolved_output))
+            # Escape { and } in filenames for .format called by tqdm
+            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+            exports_bar.bar_format = fmt + ": " + fname
             exports_bar.update(0)
             export_node(node, dest)
     except OSError as error:
