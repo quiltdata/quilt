@@ -68,7 +68,7 @@ def download_fragments(store, obj_urls, obj_sizes):
     # space for the temporary gzip'ed files, but that's better than nothing.
     free_space = get_free_space(store.object_path('.'))
     if total_bytes > free_space:
-        print("Not enough disk space! Required: %d, available: %d" % (total_bytes, free_space))
+        print("Error: Insufficient space for install. Required: %d, available: %d" % (total_bytes, free_space))
         return False
 
     downloaded = []
