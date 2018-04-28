@@ -2,7 +2,6 @@ import initial from 'lodash/initial';
 import last from 'lodash/last';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-
 import { createElement } from 'react';
 import {
   compose,
@@ -10,6 +9,7 @@ import {
   setDisplayName,
   wrapDisplayName,
 } from 'recompose';
+import styled from 'styled-components';
 
 
 const createFactory = (Component) => (props) => createElement(Component, props);
@@ -47,3 +47,7 @@ export const restoreProps = ({ key = '_originalProps', keep = [] } = {}) =>
   composeHOC('restoreProps',
     mapProps(({ [key]: original = {}, ...props }) =>
       ({ ...original, ...pick(props, keep) })));
+
+export const withStyle = (...args) =>
+  composeHOC('withStyle',
+    (C) => styled(C)(...args));
