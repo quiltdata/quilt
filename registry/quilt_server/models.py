@@ -202,9 +202,12 @@ class User(db.Model):
     old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
 
 class Code(db.Model):
+    # each user can have only one code, so only user_id is primary key
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    code = db.Column(postgresql.UUID, primary_key=True, nullable=False) 
+    code = db.Column(postgresql.UUID, nullable=False)
 
 class Token(db.Model):
+    # each user can have an arbitrary number of tokens, so 
+    #   both user_id and token are primary keys
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    token = db.Column(postgresql.UUID, nullable=False)
+    token = db.Column(postgresql.UUID, primary_key=True)

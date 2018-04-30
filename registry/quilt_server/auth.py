@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 import uuid
 
@@ -95,6 +96,13 @@ def issue_code(username):
         code = Code(user_id=user_id, code=generate_uuid())
     db.session.add(code)
     db.session.commit()
+    return {'id': user_id, 'code': code.code}
+
+def encode_code(code):
+    return base64.b64encode(bytes(json.dumps({'id': code['id'], 'code': code['code']}), 'utf-8'))
+
+def decode_code(code_str):
+    return json.loads(base64.b64decode(code_str))
 
 def check_token(user_id, token_id):
     token = (
@@ -105,38 +113,62 @@ def check_token(user_id, token_id):
         .filter(Token.token==token_id)
         .one_or_none()
     )
-    return not token is None
+    return token is not None
 
-def verify(payload):
-    name = payload['username']
+def _verify(payload):
+    user_id = payload['id']
     uuid = payload['uuid']
-    user = get_user(name)
+    user = get_user_by_id(user_id)
     if user is None:
-        raise Exception('Username invalid -- how did you get this token?')
+        raise Exception('User ID invalid')
 
-    if not check_token(user.id, uuid):
+    if not check_token(user_id, uuid):
         raise Exception('Token invalid')
-    return True
+    return payload
 
 def verify_token_string(s):
     try:
         token = jwt.decode(s, app.secret_key, algorithm='HS256')
-        verify(token)
-        return True
+        _verify(token)
+        return token
     except:
         return False
 
-# TODO: fix
-def revoke_tokens(username):
-    users[username] = generate_uuid()
+def revoke_token(user_id, token):
+    t = (
+        db.session.query(
+            Token
+        )
+        .filter(Token.user_id==user_id)
+        .filter(Token.token==token)
+        .one_or_none()
+    )
+    if t is None:
+        return False
+    db.session.delete(t)
+    db.session.commit()
+    return True
+
+def revoke_tokens(user_id):
+    tokens = (
+        db.session.query(
+            Token
+        ).filter(Token.user_id==user_id)
+        .all()
+    )
+    for token in tokens:
+        db.session.delete(token)
+    db.session.commit()
 
 def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
 
 def issue_token(username, exp=None):
     user_id = get_user(username).id
-    uuid = generate_uuid()
+    return issue_token_by_id(user_id, exp)
 
+def issue_token_by_id(user_id, exp=None):
+    uuid = generate_uuid()
     token = Token(user_id=user_id, token=uuid)
     db.session.add(token)
     db.session.commit()
@@ -146,6 +178,26 @@ def issue_token(username, exp=None):
     payload = {'id': user_id, 'uuid': uuid, 'exp': exp}
     token = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return token.decode('utf-8')
+
+def consume_code_string(code_str):
+    code = decode_code(code_str)
+    return consume_code(code['id'], code['code'])
+
+def consume_code(user_id, code):
+    code = (
+        db.session.query(
+            Code
+        )
+        .filter(Code.user_id==user_id)
+        .filter(Code.code==code)
+        .one_or_none()
+    )
+    if code is None:
+        return False
+
+    db.session.delete(code)
+    db.session.commit()
+    return user_id
 
 def verify_hash(password, pw_hash):
     try:
@@ -179,9 +231,7 @@ def create_admin():
     # TODO: make sure this doesn't run in prod
     _create_user('calvin', password='beans', force=True)
 
-# app.before_first_request(create_admin)
-# TODO: figure out why this sometimes doesn't work
-
+app.before_first_request(create_admin)
 
 # TODO: put lots of this stuff in another file
 # TODO: lots of user management stuff
@@ -192,7 +242,7 @@ def create_admin():
     # document how it currently works
     # make sure it's extensible to stuff like github auth
     # think about design for tables for third-party auth
-# TODO: change tokens to user id
+# TODO: check CSRF token on login?
 
 @app.route('/beans/test')
 @as_json

@@ -40,7 +40,8 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import _create_user, _delete_user, generate_uuid, get_user, issue_token, try_login
+from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
+        issue_token, issue_token_by_id, try_login, verify_token_string)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
@@ -212,10 +213,16 @@ def oauth_callback():
     try:
         # if JWT, don't do anything
         try:
-            verify_token_string(code)
-            exp = jwt.decode(code, verify=False).get('exp')
+            """
+            try_code = consume_code_string(code)
+            if try_code:
+                exp = get_exp()
+                token = issue_token_by_id(try_code.user_id, exp)
+            else:
+            """
+            token = verify_token_string(code)
+            exp = token.get('exp')
             resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
-            print(resp)
         except:
             resp = session.fetch_token(
                 token_url=OAUTH_ACCESS_TOKEN_URL,
@@ -240,38 +247,14 @@ CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
 # BEGIN NEW AUTH CODE
 
-# deprecated
-def verify_jwt():
-    def dec(f):
-        @wraps(f)
-        def innerdec(*args, **kwargs):
-            try:
-                data = request.get_json(force=True)
-            except Exception as e:
-                return {'error': 'Token could not be loaded.'}, 401
-            try:
-                request.token = jwt.decode(data['token'], app.secret_key, algorithm='HS256')
-            except jwt.exceptions.ExpiredSignatureError:
-                return {'error': 'Token has expired'}, 401
-            except Exception as e:
-                print(e)
-                return {'error': 'Decoding token failed.'}, 401
-            try:
-                verify(request.token)
-            except TokenException as e:
-                return {'error': 'Verifying token failed. ' + str(e)}, 401
-
-            return f(*args, **kwargs)
-        return innerdec
-    return dec
-
-
 @app.route('/login', methods=['POST'])
 def login_post():
     try:
         data = request.get_json(force=True)
         username = data.get('username')
         password = data.get('password')
+        next = request.args['next']
+        print(next)
         if try_login(username, password):
             token = issue_token(username)
         else:
@@ -290,7 +273,7 @@ def login_post():
                   'code': issue_token(username)}
         return redirect('oauth_callback?%s' % urlencode(params))
     else:
-        return render_template('login.html')
+        return render_template('login.html', fail=True)
 
 @app.route('/beans/login', methods=['POST'])
 @as_json
@@ -313,6 +296,9 @@ def beans_login():
 
 # END NEW AUTH CODE
 
+@app.route('/beans/form')
+def beans_form():
+    return render_template('login.html')
 
 @app.route('/api/token', methods=['POST'])
 @as_json
@@ -323,6 +309,16 @@ def token():
 
     # TODO: try as JWT
     # check if one-time code, then if token
+
+    t = verify_token_string(refresh_token)
+    if t:
+        new_token = issue_token_by_id(t['id'])
+        exp = verify_token_string(new_token)['exp']
+        return dict(
+            refresh_token=new_token,
+            access_token=new_token,
+            expires_at=exp
+        )
 
     if not OAUTH_HAVE_REFRESH_TOKEN:
         return dict(
@@ -500,6 +496,9 @@ def apiroot():
 def logout():
     # TODO : delete token
     return {}
+
+# TODO: delete this
+# endpoint that verifies token (@api) and issues code
 
 
 def _access_filter(auth):

@@ -1,8 +1,8 @@
-"""New auth
+"""new auth
 
-Revision ID: c840a3ccd72a
+Revision ID: 7f6e471d5fb1
 Revises: 29985c21159d
-Create Date: 2018-04-27 15:07:01.030224
+Create Date: 2018-04-27 16:48:25.872749
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = 'c840a3ccd72a'
+revision = '7f6e471d5fb1'
 down_revision = '29985c21159d'
 branch_labels = None
 depends_on = None
@@ -37,13 +37,13 @@ def upgrade():
     sa.Column('user_id', postgresql.UUID(), nullable=False),
     sa.Column('code', postgresql.UUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'code')
+    sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('token',
     sa.Column('user_id', postgresql.UUID(), nullable=False),
     sa.Column('token', postgresql.UUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('user_id')
+    sa.PrimaryKeyConstraint('user_id', 'token')
     )
     # ### end Alembic commands ###
 
