@@ -13,6 +13,7 @@ import yaml
 from ..nodes import GroupNode, PackageNode
 from ..tools.package import ParquetLib, Package
 from ..tools.compat import pathlib
+from ..tools.const import PRETTY_MAX_LEN
 from ..tools import build, command, store
 from .utils import QuiltTestCase, patch
 
@@ -478,6 +479,80 @@ class BuildTest(QuiltTestCase):
             }
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+
+    def test_group_node_repr_short(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+
+        # leaf with data for each node
+        data_node = {
+            'data_node': {
+                'file': 'data/foo.csv'
+            }
+        }
+
+        subnodes = {('subnode_' + str(x).zfill(3)): data_node for x in range(3)}
+        build_compose_contents = {
+            'contents': {
+                'main_group_node': subnodes
+            }
+        }
+
+        build.build_package_from_contents(None, 'test', 'fewnodes', str(mydir), build_compose_contents)
+        from quilt.data.test import fewnodes
+
+        pretty = '<GroupNode>\nsubnode_000/\nsubnode_001/\nsubnode_002/'
+        assert type(fewnodes.main_group_node) is GroupNode
+        assert repr(fewnodes.main_group_node) == pretty
+
+    def test_group_node_repr_exceed_by_one(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+
+        # leaf with data for each node
+        data_node = {
+            'data_node': {
+                'file': 'data/foo.csv'
+            }
+        }
+
+        subnodes = {('subnode_' + str(x).zfill(3)): data_node for x in range(PRETTY_MAX_LEN+1)}
+        build_compose_contents = {
+            'contents': {
+                'main_group_node': subnodes
+            }
+        }
+
+        build.build_package_from_contents(None, 'test', 'maxplusone', str(mydir), build_compose_contents)
+        from quilt.data.test import maxplusone
+
+        pretty = '<GroupNode>\nsubnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n'
+        pretty += 'subnode_005/\nsubnode_006/\nsubnode_007/\nsubnode_008/\nsubnode_009/\nsubnode_010/'
+        assert repr(maxplusone.main_group_node) == pretty
+
+    def test_group_node_repr_max_len(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+
+        # leaf with data for each node
+        data_node = {
+            'data_node': {
+                'file': 'data/foo.csv'
+            }
+        }
+
+        # create many subnodes which exceed PRETTY_MAX_LEN by 10
+        too_many_subnodes = {('subnode_' + str(x).zfill(3)): data_node for x in range(PRETTY_MAX_LEN+10)}
+        build_compose_contents = {
+            'contents': {
+                'main_group_node': too_many_subnodes
+            }
+        }
+
+        build.build_package_from_contents(None, 'test', 'manynodes', str(mydir), build_compose_contents)
+        from quilt.data.test import manynodes
+
+        pretty = '<GroupNode>\n'
+        pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n\n...\n\n'
+        pretty += 'subnode_015/\nsubnode_016/\nsubnode_017/\nsubnode_018/\nsubnode_019/'
+        assert repr(manynodes.main_group_node) == pretty
 
     def test_parquet_source_file(self):
         df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
