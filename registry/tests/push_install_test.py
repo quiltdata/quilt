@@ -127,10 +127,10 @@ class PushInstallTestCase(QuiltTestCase):
             q_path='C:\\Windows\\System32\\clock.exe'
         )),
         file6=FileNode(hashes=[HASH1], metadata=dict(
-            q_path='C:\\foo.bar\\BLAH.JPG'
+            filepath='C:\\foo.bar\\BLAH.JPG'
         )),
         README=FileNode(hashes=[HASH2], metadata=dict(
-            q_path='README'
+            filepath='README'
         ))
     ))
 

@@ -139,7 +139,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
     """
     if _is_internal_node(node):
         if not dry_run:
-            package.save_group(node_path)
+            package.save_group(node_path, None)
 
         # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
         # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
@@ -181,7 +181,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                package.save_group(node_path)
+                package.save_group(node_path, None)
             return
 
         include_package = node.get(RESERVED['package'])
@@ -252,7 +252,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                         _run_checks(data, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, None)
             elif transform == PARQUET:
                 if checks:
                     from pyarrow.parquet import ParquetDataset
@@ -262,7 +262,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, None)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -285,7 +285,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                 # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, node_path, rel_path, transform, target)
+                    package.save_cached_df(cachedobjs, node_path, target, rel_path, transform, None)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -302,7 +302,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, node_path, rel_path, transform, target)
+                        obj_hashes = package.save_df(dataframe, node_path, target, rel_path, transform, None)
 
                         # Add to cache
                         cache_entry = dict(

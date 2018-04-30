@@ -58,7 +58,7 @@ class InstallTest(QuiltTestCase):
             group=GroupNode(dict([
                 (key, TableNode([val], PackageFormat.default.value)
                  if 'table' in key
-                 else FileNode([val], metadata={'q_path': key}))
+                 else FileNode([val], metadata={'filepath': key}))
                 for key, val in args.items()]
             ))
         ))
@@ -391,8 +391,8 @@ packages:
             file_hash_list.append(file_hash)
 
         contents = RootNode(dict(
-            file0=FileNode([file_hash_list[0]], metadata={'q_path': 'file0'}),
-            file1=FileNode([file_hash_list[1]], metadata={'q_path': 'file1'}),
+            file0=FileNode([file_hash_list[0]], metadata={'filepath': 'file0'}),
+            file1=FileNode([file_hash_list[1]], metadata={'filepath': 'file1'}),
         ))
         contents_hash = hash_contents(contents)
 

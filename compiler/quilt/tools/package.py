@@ -200,13 +200,13 @@ class Package(object):
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
             contents.children = pkgnode.children.copy()
 
-    def save_cached_df(self, hashes, node_path, source_path, ext, target):
+    def save_cached_df(self, hashes, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
-        self._add_to_contents(node_path, hashes, ext, source_path, target)
+        self._add_to_contents(node_path, hashes, target, source_path, transform, custom_meta)
 
-    def save_df(self, dataframe, node_path, source_path, ext, target):
+    def save_df(self, dataframe, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
@@ -236,21 +236,21 @@ class Package(object):
                 objhash = digest_file(path)
                 move(path, self._store.object_path(objhash))
                 hashes.append(objhash)
-            self._add_to_contents(node_path, hashes, ext, source_path, target)
+            self._add_to_contents(node_path, hashes, target, source_path, transform, custom_meta)
             rmtree(storepath)
             return hashes
         else:
             filehash = digest_file(storepath)
-            self._add_to_contents(node_path, [filehash], ext, source_path, target)
+            self._add_to_contents(node_path, [filehash], target, source_path, transform, custom_meta)
             move(storepath, self._store.object_path(filehash))
             return [filehash]
 
-    def save_file(self, srcfile, node_path, source_path, target):
+    def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
         """
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
-        self._add_to_contents(node_path, [filehash], '', source_path, target)
+        self._add_to_contents(node_path, [filehash], target, source_path, transform, custom_meta)
         objpath = self._store.object_path(filehash)
         if not os.path.exists(objpath):
             # Copy the file to a temporary location first, then move, to make sure we don't end up with
@@ -259,12 +259,11 @@ class Package(object):
             copyfile(srcfile, tmppath)
             move(tmppath, objpath)
 
-    def save_group(self, node_path):
+    def save_group(self, node_path, custom_meta):
         """
         Save a group to the store.
         """
-        if node_path:
-            self._add_to_contents(node_path, None, '', None, TargetType.GROUP)
+        self._add_to_contents(node_path, None, TargetType.GROUP, None, None, custom_meta)
 
     def get_contents(self):
         """
@@ -334,7 +333,7 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, node_path, hashes, ext, source_path, target):
+    def _add_to_contents(self, node_path, hashes, target, source_path, transform, custom_meta):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
@@ -342,18 +341,27 @@ class Package(object):
 
         contents = self.get_contents()
 
+        metadata = {
+            'custom': custom_meta or {}
+        }
+        if target is not TargetType.GROUP:
+            metadata.update({
+                'filepath': source_path,
+                'transform': transform
+            })
+
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata = metadata
+            return
+
         ptr = contents
         for node in node_path[:-1]:
             ptr = ptr.children[node]
 
-        metadata = dict(
-            q_ext=ext,
-            q_path=source_path,
-            q_target=target.value
-        )
-
         if target is TargetType.GROUP:
-            node = GroupNode(dict())
+            node = GroupNode(dict(), metadata)
         elif target is TargetType.PANDAS:
             node = TableNode(
                 hashes=hashes,

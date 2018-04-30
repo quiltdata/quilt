@@ -6,7 +6,6 @@ import os
 import pandas as pd
 from six import iteritems, string_types
 
-from .tools import core
 from .tools.const import PRETTY_MAX_LEN
 from .tools.util import is_nodename
 
@@ -15,9 +14,11 @@ class Node(object):
     """
     Abstract class that represents a group or a leaf node in a package.
     """
-    def __init__(self):
+    def __init__(self, meta):
         # Can't instantiate it directly
         assert self.__class__ != Node.__class__
+        assert meta is not None
+        self._meta = meta
 
     def _class_repr(self):
         """Only exists to make it easier for subclasses to customize `__repr__`."""
@@ -32,18 +33,27 @@ class Node(object):
         else:
             raise AttributeError("{val} is not a valid package node".format(val=value))
 
-class DataNode(Node):
-    """
-    Represents a dataframe or a file. Allows accessing the contents using `()`.
-    """
-    def __init__(self, package, node, data=None):
-        super(DataNode, self).__init__()
-        self._package = package
-        self._node = node
-        self.__cached_data = data
-
     def __call__(self):
         return self._data()
+
+    def _data(self):
+        raise NotImplementedError
+
+class DataNode(Node):
+    pass
+
+class SerializedDataNode(DataNode):
+    """
+    Represents a dataframe or a file with data in the package store.
+    """
+    def __init__(self, package, node, meta):
+        super(SerializedDataNode, self).__init__(meta)
+        assert package is not None
+        assert node is not None
+
+        self._package = package
+        self._node = node
+        self.__cached_data = None
 
     def _data(self):
         """
@@ -53,12 +63,32 @@ class DataNode(Node):
             self.__cached_data = self._package.get_obj(self._node)
         return self.__cached_data
 
-class GroupNode(DataNode):
+class InMemoryDataNode(DataNode):
+    """
+    Represents a newly-created dataframe or a file that's not backed by the package store.
+    """
+    def __init__(self, data, meta):
+        super(InMemoryDataNode, self).__init__(meta)
+        assert data is not None
+        self.__data = data
+
+    def _data(self):
+        """
+        Returns the contents of the node: a dataframe or a file path.
+        """
+        return self.__data
+
+class GroupNode(Node):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
     Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
     supported for Parquet packages).
     """
+    def __init__(self, package, node, meta):
+        super(GroupNode, self).__init__(meta)
+
+        self._package = package
+        self._node = node
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
@@ -99,8 +129,18 @@ class GroupNode(DataNode):
         return [name for name in self.__dict__ if not name.startswith('_')]
 
     def _add_group(self, groupname):
-        child = GroupNode(self._package, core.GroupNode({}))
+        child = GroupNode(None, None, {'custom': {}})
         setattr(self, groupname, child)
+
+    def _data(self):
+        """
+        Merges the contents of the child dataframes.
+        """
+        if self._package is None or self._node is None:
+            raise NotImplementedError
+
+        # XXX: This is wrong! The group could've been modified after the package was loaded.
+        return self._package.get_obj(self._node)
 
 class PackageNode(GroupNode):
     """
@@ -135,17 +175,14 @@ class PackageNode(GroupNode):
 
         if isinstance(value, pd.DataFrame):
             # all we really know at this point is that it's a pandas dataframe.
-            metadata = {'q_target': 'pandas'}
-            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value, metadata=metadata)
+            metadata = {}
         elif isinstance(value, string_types + (bytes,)):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value
             if os.path.isabs(value):
                 raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
-            # q_ext blank, as it's for formats loaded as DataFrames, and the path is stored anyways.
-            # Security: q_path does not and should not retain the build_dir's location!
-            metadata = {'q_path': value, 'q_target': 'file', 'q_ext': ''}
-            core_node = core.FileNode(hashes=[], metadata=metadata)
+            # Security: filepath does not and should not retain the build_dir's location!
+            metadata = {'filepath': value, 'transform': 'id'}
             if build_dir:
                 value = os.path.join(build_dir, value)
         else:
@@ -161,11 +198,11 @@ class PackageNode(GroupNode):
         for key in path[:-1]:
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):
-                child = GroupNode(self._package, core.GroupNode({}))
+                child = GroupNode(None, None, {})
                 setattr(node, key, child)
 
             node = child
 
         key = path[-1]
-        data_node = DataNode(self._package, core_node, value)
+        data_node = InMemoryDataNode(value, metadata)
         setattr(node, key, data_node)
