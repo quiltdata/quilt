@@ -305,14 +305,16 @@ def fs_link(path, linkpath, linktype='soft'):
         if linktype == 'soft':
             if WIN_SOFTLINK is None:
                 WIN_SOFTLINK = ctypes.windll.kernel32.CreateSymbolicLinkW
-            create_link = WIN_SOFTLINK
+                WIN_SOFTLINK.restype = ctypes.c_bool
+            create_link = lambda l, p: WIN_SOFTLINK(str(l), str(p), p.is_dir())
         elif linktype == 'hard':
             if WIN_HARDLINK is None:
-                WIN_HARDLINK = ctypes.windll.kernel32.CreateHardLinkA
+                WIN_HARDLINK = ctypes.windll.kernel32.CreateHardLinkW
+                WIN_HARDLINK.restype = ctypes.c_bool
             create_link = WIN_HARDLINK
 
         # Call and check results
-        if not create_link(str(path), str(linkpath), path.is_dir()):
+        if not create_link(linkpath, path):
             error = ctypes.WinError()
             raise QuiltException("Linking failed: " + str(error), original_error=error)
     # Linux, OSX
