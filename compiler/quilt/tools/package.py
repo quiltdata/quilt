@@ -303,8 +303,6 @@ class Package(object):
         """
         if isinstance(node, TableNode):
             self._check_hashes(node.hashes)
-            if node.format is PackageFormat.HDF5:
-                raise PackageException("HDF5 format is no longer supported")
             return self._dataframe(node.hashes)
         elif isinstance(node, GroupNode):
             hash_list = list(find_object_hashes(node, sort=True))

@@ -17,7 +17,6 @@ from six.moves import urllib
 from ..tools import command
 from ..tools.const import HASH_TYPE
 from ..tools.core import (
-    decode_node,
     encode_node,
     hash_contents,
     FileNode,
@@ -157,12 +156,15 @@ class InstallTest(QuiltTestCase):
 
         with open(os.path.join(teststore.package_path(team, user, package), Package.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
-            file_contents = json.load(fd, object_hook=decode_node)
-            assert file_contents == contents
+            # Nodes don't implement `__eq__`, so compare the serialized JSON instead of parsing it.
+            # Not ideal, but it's a unit test...
+            file_contents = fd.read()
+            serialized_contents = json.dumps(contents, default=encode_node, indent=2, sort_keys=True)
+            assert file_contents == serialized_contents
 
         with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
+            file_contents = fd.read()
+            assert file_contents == table_data
 
     def getmtime(self, user, package, contents_hash, team=None):
         teststore = PackageStore(self._store_dir)
