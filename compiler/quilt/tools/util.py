@@ -1,16 +1,19 @@
 """
 Helper functions.
 """
+import ctypes
 import gzip
 import keyword
 import os
 import re
+import sys
 
 from appdirs import user_config_dir, user_data_dir
 from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
 from .const import QuiltException
+from .compat import pathlib
 
 
 APP_NAME = "QuiltCli"
@@ -21,6 +24,11 @@ PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 EXTENDED_PACKAGE_RE = re.compile(
     r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
 )
+
+# Windows soft/hardlink c functions
+WIN_SOFTLINK = None
+WIN_HARDLINK = None
+
 
 #return type for parse_package_extended
 PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
@@ -263,3 +271,56 @@ def to_nodename(string, invalid=None, raise_exc=False):
         result = "{}_{}".format(string, counter)
 
     return result
+
+
+def fs_link(path, linkpath, linktype='soft'):
+    """Create a hard or soft link of `path` at `linkpath`
+
+    Works on Linux/OSX/Windows (Vista+).
+
+    :param src: File or directory to be linked
+    :param dest: Path of link to create
+    :param linktype: 'soft' or 'hard'
+    """
+    global WIN_SOFTLINK
+    global WIN_HARDLINK
+
+    assert linktype in ('soft', 'hard')
+
+    path, linkpath = pathlib.Path(path), pathlib.Path(linkpath)
+
+    # Checks
+    if not path.exists():    # particularly important on Windows to prevent false success
+        raise QuiltException("Path to link to does not exist: {}".format(path))
+    if linkpath.exists():
+        raise QuiltException("Link path already exists: {}".format(linkpath))
+
+    # Windows
+    if os.name == 'nt':
+        # Windows-specific checks
+        if not sys.getwindowsversion()[0] >= 6:
+            raise QuiltException("Unsupported operation: This version of Windows does not support linking.")
+
+        # Acquire the windows CreateXLinkW() function
+        if linktype == 'soft':
+            if WIN_SOFTLINK is None:
+                WIN_SOFTLINK = ctypes.windll.kernel32.CreateSymbolicLinkW
+            create_link = WIN_SOFTLINK
+        elif linktype == 'hard':
+            if WIN_HARDLINK is None:
+                WIN_HARDLINK = ctypes.windll.kernel32.CreateHardLinkA
+            create_link = WIN_HARDLINK
+
+        # Call and check results
+        if not create_link(str(path), str(linkpath), path.is_dir()):
+            error = ctypes.WinError()
+            raise QuiltException("Linking failed: " + str(error), original_error=error)
+    # Linux, OSX
+    else:
+        try:
+            if linktype == 'soft':
+                linkpath.symlink_to(path)
+            elif linktype == 'hard':
+                os.link(str(path), str(linkpath))
+        except OSError as error:
+            raise QuiltException("Linking failed: " + str(error), original_error=error)
