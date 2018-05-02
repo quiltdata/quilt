@@ -1033,7 +1033,7 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for package, tag, pkghash in packages:
+        for package, tag, pkghash in sorted(packages):
             print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
