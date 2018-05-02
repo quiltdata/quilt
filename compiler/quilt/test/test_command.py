@@ -1374,8 +1374,8 @@ class CommandTest(QuiltTestCase):
         expected_exports = sorted([
             Path('data/README.md'),
             Path('data/100Rows13Cols.csv'),
-            Path('data/100Rows13Cols.tsv'),
-            Path('data/100Rows13Cols.xlsx.csv'),  # originally xlsx
+            Path('data/100Rows13Cols_tsv.csv'),   # originally tsv
+            Path('data/100Rows13Cols_xlsx.csv'),  # originally xlsx
             ])
         # Build, load, and export from build file
         command.build(export_1_name, str(Path(__file__).parent / 'build_export.yml'))
@@ -1401,8 +1401,8 @@ class CommandTest(QuiltTestCase):
         # dataframe comparison for columnar data with floats
         # pandas may import or export these imperfectly, so we just want (at least floats) to be close.
         export_pairs = (
+            (export_1_node.data.csv, export_2_node.data.n100Rows13Cols),
             (export_1_node.data.excel, export_2_node.data.n100Rows13Cols_xlsx),
-            (export_1_node.data.csv, export_2_node.data.n100Rows13Cols_csv),
             (export_1_node.data.tsv, export_2_node.data.n100Rows13Cols_tsv),
             )
 

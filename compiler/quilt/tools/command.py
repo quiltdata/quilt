@@ -1272,12 +1272,13 @@ def export(package, output_path='.', force=False):
         # When exporting TableNodes, excel files are to be converted to csv.
         # check also occurs in export_node(), but done here prevents filename conflicts
         if isinstance(node._node, TableNode):
-            q_ext = node._node.metadata.get('q_ext')
-            if q_ext in ['xls', 'xlsx', '', None]:
-                print("Warning: Using csv instead of {} for node at {!r}"
-                      .format(q_ext, '/'.join(node_path.parts)))
-                dest = dest.with_name(dest.name + '.csv')
-
+            if dest.suffix != '.csv':
+                # avoid name collisions from files with same name but different source,
+                # as we shift all to being csv for export.
+                # foo.tsv -> foo_tsv.csv
+                # foo.xls -> foo_xls.csv
+                # ..etc.
+                dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
         # if q_path isn't absolute
         if not dest.anchor:
             return pathlib.Path(*dest.parts)  # return a native path
@@ -1313,18 +1314,11 @@ def export(package, output_path='.', force=False):
         elif isinstance(node._node, TableNode):
             ext = node._node.metadata['q_ext']
             df = node()
-            if ext in ['xlsx', 'xls', '', None]:
-                assert dest.suffix == '.csv'
-                ext = 'csv'
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
             # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
-            if ext in ('csv', 'tsv', 'ssv'):
-                sep = {'csv': ',', 'tsv': '\t', 'ssv': ';'}[ext]
-                df.to_csv(str(dest), index=False, float_format='%r', sep=sep)
-            else:
-                raise CommandException("Unknown export format: {}".format(ext))
+            df.to_csv(str(dest), index=False, float_format='%r')
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
