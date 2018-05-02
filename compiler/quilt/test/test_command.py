@@ -69,6 +69,7 @@ import hashlib
 import json
 import os
 import shutil
+import sys
 import time
 
 import requests
@@ -79,7 +80,7 @@ from io import StringIO
 import pandas as pd
 from six import assertRaisesRegex
 
-from .utils import QuiltTestCase, patch
+from .utils import QuiltTestCase, patch, quilt_dev_mode
 from ..tools import command, store
 from ..tools.compat import pathlib
 from ..tools.const import TEAM_ID_ERROR
@@ -1416,6 +1417,54 @@ class CommandTest(QuiltTestCase):
                 else:
                     for n in range(len(d1[column_name])):
                         assert d1[column_name][n] == d2[column_name][n]
+
+    @quilt_dev_mode
+    def test_export_symlinks(self):
+        Path = pathlib.Path
+        temp_dir = (Path() / 'test_export_symlinks').absolute()
+        links_path = temp_dir / 'with_links'
+        nolinks_path = temp_dir / 'without_links'
+        datadir = Path(__file__).parent
+        islink, notlink = True, False
+
+        temp_dir.mkdir()
+
+        if sys.platform == 'nt':
+            import ctypes
+            if not ctypes.windll.shell32.IsUserAnAdmin():
+                pytest.xfail('User must be admin to symlink')
+        # Build, load, and export from build file
+        command.build('test_export_symlinks/data', str(datadir / 'build_export_symlinks.yml'))
+
+        expected_linkstate = [islink, islink, notlink, islink, notlink]
+        expected_exports = [
+            Path('data/README.md'),
+            Path('data/100Rows13Cols.xlsx'),
+            Path('data/100Rows13Cols_xlsx.csv'),
+            Path('data/subdir/foo.txt'),
+            Path('data/subdir/csv_txt.csv'),
+            ]
+
+        command.export('test_export_symlinks/data', str(nolinks_path))
+        found_paths = [path.relative_to(nolinks_path) for path in nolinks_path.glob('**/*')
+                       if not path.is_dir()]
+        assert len(found_paths) == len(expected_exports)
+
+        for path in expected_exports:
+            assert (nolinks_path / path).exists()
+            assert not (nolinks_path / path).is_symlink()
+
+        command.export('test_export_symlinks/data', str(links_path), symlinks=True)
+        found_paths = [path.relative_to(links_path) for path in links_path.glob('**/*')
+                       if not path.is_dir()]
+        assert len(found_paths) == len(expected_exports)
+
+        for position, path in enumerate(expected_exports):
+            print((position, path, expected_linkstate[position]))
+            assert path in expected_exports
+            path = links_path / path
+            assert path.exists()
+            assert path.is_symlink() == expected_linkstate[position]
 
     def test_parse_package_names(self):
         # good parse strings

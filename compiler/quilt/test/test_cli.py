@@ -153,6 +153,8 @@ KNOWN_PARAMS = [
     [0, 'export'],
     [0, 'export', 0],
     [0, 'export', 1],
+    [0, 'export', '-f'],
+    [0, 'export', '-s'],
     [0, 'generate'],
     [0, 'generate', 0],
     [0, 'help'],
@@ -723,7 +725,9 @@ class TestCLI(BasicQuiltTestCase):
         TESTED_PARAMS.extend([
             [0, 'export'],
             [0, 'export', 0],
-            [0, 'export', 1]
+            [0, 'export', 1],
+            [0, 'export', '-f'],
+            [0, 'export', '-s'],
             ])
 
         ## This section tests for circumstances expected to be rejected by argparse.
@@ -742,15 +746,41 @@ class TestCLI(BasicQuiltTestCase):
         assert result['kwargs'] == {
             'package': 'fakeuser/fakepackage',
             'output_path': '.',
+            'force': False,
+            'symlinks': False,
         }
 
-        # run next command
+        # run command with dest
         cmd = 'export fakeuser/fakepackage fakedir'.split()
         result = self.execute_with_checks(cmd, funcname='export')
 
         assert result['kwargs'] == {
             'package': 'fakeuser/fakepackage',
             'output_path': 'fakedir',
+            'force': False,
+            'symlinks': False,
+        }
+
+        # run command with force
+        cmd = 'export fakeuser/fakepackage fakedir --force'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        assert result['kwargs'] == {
+            'package': 'fakeuser/fakepackage',
+            'output_path': 'fakedir',
+            'force': True,
+            'symlinks': False,
+        }
+
+        # run command with symlinks
+        cmd = 'export fakeuser/fakepackage fakedir --symlinks'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        assert result['kwargs'] == {
+            'package': 'fakeuser/fakepackage',
+            'output_path': 'fakedir',
+            'force': False,
+            'symlinks': True,
         }
 
     def test_cli_option_dev_flag(self):

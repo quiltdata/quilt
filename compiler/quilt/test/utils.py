@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import unittest
 
+import quilt
 from ..tools.const import PACKAGE_DIR_NAME
 
 try:
@@ -17,6 +18,24 @@ except ImportError:
     from mock import patch
 
 import responses
+
+
+def quilt_dev_mode(func):
+    """Sets quilt._DEV_MODE and restores original state on context exit
+
+    Decorator.
+
+    Use to enable dev mode during a function call -- for example, to
+    disable input() prompts during a specific test.
+    """
+    def decorated(*args, **kwargs):
+        dev_mode = quilt._DEV_MODE
+        try:
+            quilt._DEV_MODE = True
+            return func(*args, **kwargs)
+        finally:
+            quilt._DEV_MODE = dev_mode
+    return decorated
 
 
 class BasicQuiltTestCase(unittest.TestCase):
