@@ -28,6 +28,7 @@ import pkg_resources
 import requests
 from six import itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
+from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, load_yaml)
@@ -1259,21 +1260,30 @@ def export(package, output_path='.', force=False):
     def get_export_path(node, node_path):
         # If q_path is not present, generate fake path based on node parentage.
         q_path = node._node.metadata.get('q_path')
-        if not q_path:
+        if q_path:
+            dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles all win/lin/osx separators
+        else:
             assert isinstance(node_path, pathlib.PureWindowsPath)
             assert not node_path.anchor
             print("Warning:  Missing export path in metadata.  Using node path: {}"
                   .format('/'.join(node_path.parts)))
-            return node_path
+            dest = node_path
 
-        # q_path is present.
-        dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles both windows and linux separators
-
+        # When exporting TableNodes, excel files are to be converted to csv.
+        # check also occurs in export_node(), but done here prevents filename conflicts
+        if isinstance(node._node, TableNode):
+            if dest.suffix != '.csv':
+                # avoid name collisions from files with same name but different source,
+                # as we shift all to being csv for export.
+                # foo.tsv -> foo_tsv.csv
+                # foo.xls -> foo_xls.csv
+                # ..etc.
+                dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
         # if q_path isn't absolute
         if not dest.anchor:
             return pathlib.Path(*dest.parts)  # return a native path
 
-        # q_path is absolute.
+        # q_path is absolute, convert to relative.
         dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
         print("Warning:  Converted export path to relative path: {}".format(str(dest)))
         return dest
@@ -1286,13 +1296,14 @@ def export(package, output_path='.', force=False):
 
         :returns: Iterator of (<node>, <export path>) pairs
         """
+        # Handle singular node export
         if not isinstance(node, nodes.GroupNode):
             yield (node, get_export_path(node, base_path))
             return
 
         for node_path, found_node in iteritems(node, base_path=base_path, recursive=True):
-            for child in iter_filename_map(found_node, node_path):
-                yield child
+            if not isinstance(found_node, nodes.GroupNode):
+                yield (found_node, get_export_path(found_node, node_path))
 
     # perhaps better as Node.export()
     def export_node(node, dest):
@@ -1301,21 +1312,13 @@ def export(package, output_path='.', force=False):
         if isinstance(node._node, FileNode):
             copy(node(), str(dest))
         elif isinstance(node._node, TableNode):
-            target = node._node.metadata['q_target']
             ext = node._node.metadata['q_ext']
             df = node()
-            if ext in ['xlsx', 'xls']:
-                try:
-                    df.to_excel(str(dest))
-                except ImportError as error:
-                    raise CommandException(error.args[0])
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
             # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
-            elif ext in ('csv', 'tsv', 'ssv'):
-                sep = {'csv': ',', 'tsv': '\t', 'ssv': ';'}[ext]
-                df.to_csv(str(dest), index=False, float_format='%78g', sep=sep)
+            df.to_csv(str(dest), index=False, float_format='%r')
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
@@ -1369,35 +1372,37 @@ def export(package, output_path='.', force=False):
 
         :raises: CommandException
         """
-        # Check for file conflicts -- data coming from more than one source to the same dest.
-        exports = set(dest for node, dest in export_list)
-        conflict_counter = Counter(exports)
-        export_conflicts = [dest for dest, count in conflict_counter.items() if count > 1]
-        verified_file_conflicts = []
+        results = {}
+        conflicts = set()
 
-        if export_conflicts:
-            # kinda slow, but only happens if a conflict has definitely occurred.
-            for conflict in export_conflicts:
-                matches = [node for node, dest in export_list if dest == conflict]
-                # if all are from the same source, it's not really a conflict.
-                src = matches[0]
-                if all(src == node for node in matches[1:]):
-                    continue
-                verified_file_conflicts.append(conflict)
+        # Export conflicts..
+        for src, dest in export_list:
+            if dest in conflicts:
+                continue    # already a known conflict
+            if dest not in results:
+                results[dest] = src
+                continue    # not a conflict..
+            if isinstance(src._node, FileNode) and src() == results[dest]():
+                continue    # not a conflict (same src filename, same dest)..
+            # ..add other conditions that prevent this from being a conflict here..
 
-        if verified_file_conflicts:
-            conflict_strings = (os.linesep + '\t').join(str(c) for c in verified_file_conflicts)
+            # dest is a conflict.
+            conflicts.add(dest)
+
+        if conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in conflicts)
             conflict_error = CommandException(
                 "Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
                 + conflict_strings
                 )
-            conflict_error.file_conflicts = verified_file_conflicts
+            conflict_error.file_conflicts = conflicts
             raise conflict_error
 
         # Check for filenames that conflict with folder names
+        exports = set(results)
         dirs = set()
-        for file in exports:
-            dirs.update(file.parents)
+        for dest in results:
+            dirs.update(dest.parents)
         file_dir_conflicts = exports & dirs
 
         if file_dir_conflicts:
@@ -1407,6 +1412,7 @@ def export(package, output_path='.', force=False):
                 )
             conflict_error.dir_file_conflicts = file_dir_conflicts
             raise conflict_error
+        # TODO: return abbreviated list of exports based on found non-conflicting duplicates
 
     ## Export Logic
     output_path = pathlib.Path(output_path)
@@ -1435,13 +1441,19 @@ def export(package, output_path='.', force=False):
 
     # All prep done, let's export..
     try:
-        sys.stdout.write('Exporting.')
-        sys.stdout.flush()
-        for node, dest in exports:
-            sys.stdout.write('.')
-            sys.stdout.flush()
+        fmt = "Exporting file {n_fmt} of {total_fmt} [{elapsed}]"
+        sys.stdout.flush()   # flush prior text before making progress bar
+
+        # bar_format is not respected unless both ncols and total are set.
+        exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
+
+        # tqdm is threaded, and its display may not specify the exact file currently being exported.
+        for node, dest in exports_bar:
+            # Escape { and } in filenames for .format called by tqdm
+            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+            exports_bar.bar_format = fmt + ": " + fname
+            exports_bar.update(0)
             export_node(node, dest)
-        print('..done.')
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
         commandex.original_error = error
