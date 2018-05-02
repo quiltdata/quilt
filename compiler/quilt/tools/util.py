@@ -6,6 +6,7 @@ import gzip
 import keyword
 import os
 import re
+import shutil
 import sys
 
 from appdirs import user_config_dir, user_data_dir
@@ -272,6 +273,18 @@ def to_nodename(string, invalid=None, raise_exc=False):
 
     return result
 
+def get_free_space(directory):
+    if hasattr(shutil, 'disk_usage'):
+        # Python3
+        return shutil.disk_usage(directory).free
+    elif hasattr(os, 'statvfs'):
+        # Python2, posix
+        res = os.statvfs(directory)
+        return res.f_bavail * res.f_bsize
+    else:
+        # Python2, win32
+        # Not implemented - but we don't support this combination, anyway.
+        raise NotImplementedError
 
 def fs_link(path, linkpath, linktype='soft'):
     """Create a hard or soft link of `path` at `linkpath`
