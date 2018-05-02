@@ -35,7 +35,7 @@ class PackageStore(object):
     TMP_OBJ_DIR = 'tmp'
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
-    VERSION = '1.3'
+    VERSION = '1.4'
 
     def __init__(self, location=None):
         if location is None:
@@ -54,8 +54,24 @@ class PackageStore(object):
             os.mkdir(os.path.join(pkgdir, DEFAULT_TEAM))
             for old_dir in old_dirs:
                 os.rename(os.path.join(pkgdir, old_dir), os.path.join(pkgdir, DEFAULT_TEAM, old_dir))
-            self._write_format_version()
-        elif version not in (None, self.VERSION):
+            version = '1.3'
+            self._write_format_version(version)
+            # Fall-through to the next migration.
+
+        if version == '1.3':
+            print("Migrating objects to new format... ", end='')
+            for i in range(256):
+                prefix_path = os.path.join(self.object_dir(), '%02x' % i)
+                if not os.path.isdir(prefix_path):
+                    os.mkdir(prefix_path)
+            for obj in os.listdir(self.object_dir()):
+                if len(obj) == 64:
+                    os.rename(os.path.join(self.object_dir(), obj), self.object_path(obj))
+            print("done.")
+            version = '1.4'
+            self._write_format_version(version)
+
+        if version not in (None, self.VERSION):
             msg = (
                 "The package repository at {0} is not compatible"
                 " with this version of quilt. Revert to an"
@@ -74,8 +90,12 @@ class PackageStore(object):
             path = os.path.join(self._path, dir_name)
             if not os.path.isdir(path):
                 os.mkdir(path)
+        for i in range(256):
+            prefix_path = os.path.join(self.object_dir(), '%02x' % i)
+            if not os.path.isdir(prefix_path):
+                os.mkdir(prefix_path)
         if not os.path.exists(self._version_path()):
-            self._write_format_version()
+            self._write_format_version(self.VERSION)
 
     @classmethod
     def find_store_dirs(cls):
@@ -126,9 +146,9 @@ class PackageStore(object):
         else:
             return None
 
-    def _write_format_version(self):
+    def _write_format_version(self, version):
         with open(self._version_path(), 'w') as versionfile:
-            versionfile.write(self.VERSION)
+            versionfile.write(version)
 
     # TODO: find a package instance other than 'latest', e.g. by
     # looking-up by hash, tag or version in the local store.
@@ -268,11 +288,17 @@ class PackageStore(object):
         """
         return os.path.join(self.user_path(team, user), package)
 
+    def object_dir(self):
+        """
+        Returns the path to the object directory.
+        """
+        return os.path.join(self._path, self.OBJ_DIR)
+
     def object_path(self, objhash):
         """
         Returns the path to an object file based on its hash.
         """
-        return os.path.join(self._path, self.OBJ_DIR, objhash)
+        return os.path.join(self.object_dir(), objhash[:2], objhash[2:])
 
     def temporary_object_path(self, name):
         """
@@ -286,14 +312,11 @@ class PackageStore(object):
         """
         return os.path.join(self._path, self.CACHE_DIR, name)
 
-    def prune(self, objs=None):
+    def prune(self, objs):
         """
         Clean up objects not referenced by any packages. Try to prune all
         objects by default.
         """
-        if objs is None:
-            objdir = os.path.join(self._path, self.OBJ_DIR)
-            objs = os.listdir(objdir)
         remove_objs = set(objs)
 
         for pkg in self.iterpackages():

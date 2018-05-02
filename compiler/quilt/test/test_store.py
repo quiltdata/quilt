@@ -17,7 +17,7 @@ class StoreTest(QuiltTestCase):
         with self.assertRaises(StoreException):
             PackageStore(self._store_dir)
 
-    def test_teams_migration(self):
+    def test_migrations(self):
         mydir = os.path.dirname(__file__)
         shutil.copytree(os.path.join(mydir, 'store_old_format'), self._store_dir)
 
@@ -25,9 +25,14 @@ class StoreTest(QuiltTestCase):
         with open(os.path.join(self._store_dir, '.format')) as fd:
             assert fd.read() == '1.2'
 
+        # Verify that packages work.
         pkg = PackageStore.find_package(None, 'test', 'simple')
         assert pkg is not None
 
+        # Verify that objects work.
+        node = pkg['foo']
+        pkg.get_obj(node)
+
         # We now have a new version.
         with open(os.path.join(self._store_dir, '.format')) as fd:
-            assert fd.read() == '1.3'
+            assert fd.read() == '1.4'
