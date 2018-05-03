@@ -1047,6 +1047,8 @@ def inspect(package):
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
+    store = pkgobj.get_store()
+
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
             if idx == len(children) - 1:
@@ -1066,7 +1068,7 @@ def inspect(package):
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
-            df = pkgobj.get_obj(node)
+            df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
