@@ -411,6 +411,14 @@ class PackageStore(object):
 
         return hashes
 
+    def get_file(self, hash_list):
+        """
+        Returns the path of the file - but verifies that the hash is actually present.
+        """
+        assert len(hash_list) == 1
+        self._check_hashes(hash_list)
+        return self.object_path(hash_list[0])
+
     def save_file(self, srcfile):
         """
         Save a (raw) file to the store.

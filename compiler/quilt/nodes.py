@@ -55,8 +55,7 @@ class DataNode(Node):
             if isinstance(self._node, core.TableNode):
                 self.__cached_data = store.load_dataframe(self._node.hashes)
             elif isinstance(self._node, core.FileNode):
-                assert len(self._node.hashes) == 1
-                self.__cached_data = store.object_path(self._node.hashes[0])
+                self.__cached_data = store.get_file(self._node.hashes)
             else:
                 # XXX: This is wrong.
                 hash_list = list(core.find_object_hashes(self._node, sort=True))
