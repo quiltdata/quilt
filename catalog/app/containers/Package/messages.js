@@ -74,4 +74,52 @@ export default defineMessages({
     id: 'app.components.Package.Traffic.views',
     defaultMessage: 'Views',
   },
+  commentsLoading: {
+    id: 'app.components.Package.Comments.loading',
+    defaultMessage: 'Loading comments...',
+  },
+  commentsErrorLoading: {
+    id: 'app.components.Package.Comments.errorLoading',
+    defaultMessage: 'Could not load comments',
+  },
+  commentsRetry: {
+    id: 'app.components.Package.Comments.retry',
+    defaultMessage: 'Retry',
+  },
+  commentsSignIn: {
+    id: 'app.components.Package.Comments.signIn',
+    defaultMessage: 'Sign in to write a comment',
+  },
+  commentOwner: {
+    id: 'app.components.Package.Comment.owner',
+    defaultMessage: 'owner',
+  },
+  commentFormHint: {
+    id: 'app.components.Package.CommentForm.hint',
+    defaultMessage: 'Write your comment here',
+  },
+  commentFormHeading: {
+    id: 'app.components.Package.CommentForm.heading',
+    defaultMessage: 'Write a comment',
+  },
+  commentFormEmpty: {
+    id: 'app.components.Package.CommentForm.empty',
+    defaultMessage: 'empty',
+  },
+  commentFormMarkdown: {
+    id: 'app.components.Package.CommentForm.markdown',
+    defaultMessage: 'Basic markdown is supported',
+  },
+  commentFormButtonPreview: {
+    id: 'app.components.Package.CommentForm.buttonPreview',
+    defaultMessage: 'Preview',
+  },
+  commentFormButtonEdit: {
+    id: 'app.components.Package.CommentForm.buttonEdit',
+    defaultMessage: 'Edit',
+  },
+  commentFormSubmit: {
+    id: 'app.components.Package.CommentForm.submit',
+    defaultMessage: 'Comment',
+  },
 });
