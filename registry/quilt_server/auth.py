@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import uuid
 
 from flask_json import as_json, jsonify
+import itsdangerous
 import json
 import jwt
 from passlib.context import CryptContext
@@ -10,8 +11,14 @@ from passlib.context import CryptContext
 from . import app, db
 from .models import Code, Token, User
 
-# TODO : change rounds based on perf test
-pwd_context = CryptContext(schemes=['pbkdf2_sha512'])
+# TODO: better way to set secret key
+app.secret_key = b'thirty two bytes for glory&honor'
+
+
+pwd_context = CryptContext(schemes=['pbkdf2_sha512'],
+        pbkdf2_sha512__default_rounds=500000)
+# Each round should take about half a second, 
+# 500000 rounds experimentally determined
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -41,11 +48,18 @@ def set_unusable_password(username):
     db.session.commit()
     return True
 
+
 def hash_password(password):
     return pwd_context.hash(password)
 
-def _create_user(username, password='', email=None, first_name=None, last_name=None, force=False):
+def _create_user(username, password='', email=None, 
+        first_name=None, last_name=None, force=False, requires_activation=True):
     existing_user = get_user(username)
+    if requires_activation:
+        is_active = False
+        # TODO: send email, etc.
+    else:
+        is_active = True
     if existing_user:
         if not force:
             raise Exception('User already exists')
@@ -56,6 +70,7 @@ def _create_user(username, password='', email=None, first_name=None, last_name=N
             user.email = email
             user.first_name = first_name
             user.last_name = last_name
+            user.is_active = is_active
     else:
         user = User(
                 id=generate_uuid(),
@@ -63,8 +78,32 @@ def _create_user(username, password='', email=None, first_name=None, last_name=N
                 password=hash_password(password),
                 email=email,
                 first_name=first_name,
-                last_name=last_name)
+                last_name=last_name,
+                is_active=is_active)
 
+    db.session.add(user)
+    db.session.commit()
+
+def _activate_user(user_id):
+    user = get_user_by_id(user_id)
+    if user is None:
+        raise Exception("User not found")
+    user.is_active = True
+    db.session.add(user)
+    db.session.commit()
+
+def update_last_login(user_id, timestamp=datetime.utcnow()):
+    user = (
+        db.session.query(
+            User
+        )
+        .filter(User.id==user_id)
+        .one_or_none()
+    )
+    if not user:
+        raise Exception("User not found")
+
+    user.last_login = timestamp
     db.session.add(user)
     db.session.commit()
 
@@ -211,11 +250,15 @@ def try_login(username, password):
     result = (
         db.session.query(
             User.name,
-            User.password
+            User.password,
+            User.is_active
         ).filter(User.name==username)
         .one_or_none()
     )
     if not result:
+        return False
+
+    if not result.is_active:
         return False
 
     try:
@@ -224,36 +267,34 @@ def try_login(username, password):
         return False
     return True
 
-# TODO: better way to set secret key
-app.secret_key = b'thirty two bytes for glory&honor'
+# TODO: change this to envvar-based solution
+admin_username = 'calvin'
+admin_password = 'beans'
 
 def create_admin():
     # TODO: make sure this doesn't run in prod
-    _create_user('calvin', password='beans', force=True)
+    _create_user(admin_username, password=admin_password, force=True)
+    user = get_user(admin_username)
+    _activate_user(user.id)
 
 app.before_first_request(create_admin)
 
-# TODO: put lots of this stuff in another file
 # TODO: lots of user management stuff
-# TODO: purge references to 'users' dictionary
-# TODO: test for code exchange (maybe add polymorphism to endpoint in the vein of /login)
-# TODO: see if team approves of endpoint polymorphism
 # TODO: build + test account creation
     # document how it currently works
     # make sure it's extensible to stuff like github auth
     # think about design for tables for third-party auth
 # TODO: check CSRF token on login?
+# TODO: move ApiException and friends to a new file and use them in this one
 
 @app.route('/beans/test')
 @as_json
 def beans_test():
-    auth_test()
     return {}
 
-# TODO: signed URLs for account activation + password resets
-import itsdangerous
+
 linkgenerator = itsdangerous.URLSafeTimedSerializer(
-        'borpgoestheweasel',
+        app.secret_key,
         salt='quilt'
         )
 
@@ -269,14 +310,25 @@ def generate_reset_link(user_id):
     payload = {'id': user_id}
     return linkgenerator.dumps(payload, salt=PASSWORD_RESET_SALT)
 
-def verify_activation_link(link):
+def verify_activation_link(link, max_age=None):
+    max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=ACTIVATE_SALT)
+        return linkgenerator.loads(link, max_age=max_age, salt=ACTIVATE_SALT)
     except:
         return False
 
-def verify_reset_link(link):
+def verify_reset_link(link, max_age=None):
+    max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        return linkgenerator.loads(link, max_age=MAX_LINK_AGE, salt=PASSWORD_RESET_SALT)
+        return linkgenerator.loads(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
     except:
         return False
+
+def reset_password(username):
+    user = get_user(username)
+    if not user:
+        return False
+    set_unusable_password(username)
+    # TODO: send email
+    link = generate_reset_link(user.id)
+    return True

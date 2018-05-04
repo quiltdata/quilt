@@ -18,7 +18,6 @@ import json
 import pathlib
 import time
 from urllib.parse import urlencode
-import uuid
 
 import boto3
 from botocore.exceptions import ClientError
@@ -28,7 +27,6 @@ from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
-import jwt
 from oauthlib.oauth2 import OAuth2Error
 import re
 import requests
@@ -41,7 +39,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
-        issue_token, issue_token_by_id, try_login, verify_token_string)
+        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
@@ -169,7 +167,7 @@ def _validate_username(username):
 @app.route('/login')
 def login():
     # TODO : handle redirects
-    return render_template('login.html')
+    return render_template('login.html', QUILT_CDN=QUILT_CDN, next='/profile')
     next = request.args.get('next')
 
     if not _valid_catalog_redirect(next):
@@ -213,14 +211,12 @@ def oauth_callback():
     try:
         # if JWT, don't do anything
         try:
-            """
             try_code = consume_code_string(code)
             if try_code:
                 exp = get_exp()
                 token = issue_token_by_id(try_code.user_id, exp)
             else:
-            """
-            token = verify_token_string(code)
+                token = verify_token_string(code)
             exp = token.get('exp')
             resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
         except:
@@ -253,8 +249,6 @@ def login_post():
         data = request.get_json(force=True)
         username = data.get('username')
         password = data.get('password')
-        next = request.args['next']
-        print(next)
         if try_login(username, password):
             token = issue_token(username)
         else:
@@ -265,31 +259,15 @@ def login_post():
     
     username = request.form['username']
     password = request.form['password']
+    next = request.form['next']
     if try_login(username, password):
-        # update last login
-        params = {'state': json.dumps(
-            {'next': CATALOG_REDIRECT_URL + '?' + urlencode({'next': '/profile'})}),
-                  'next': '/profile',
+        # TODO: update last login
+        params = {'state': json.dumps({'next': CATALOG_URL + '/profile'}),
+            'next': '/profile',
                   'code': issue_token(username)}
         return redirect('oauth_callback?%s' % urlencode(params))
     else:
         return render_template('login.html', fail=True)
-
-@app.route('/beans/login', methods=['POST'])
-@as_json
-def beans_login():
-    try:
-        data = request.get_json(force=True)
-        username = data['username']
-        password = data['password']
-        if not try_login(username, password):
-            return {'error': 'Password validation failed'}, 401
-        if username not in users:
-            return {'error': 'User does not exist'}, 401
-
-        return {'token': issue_token(username)}
-    except:
-        return {'error': 'Login failed'}, 401
 
 
 # TODO: refresh
@@ -349,11 +327,12 @@ class Auth:
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email, is_logged_in, is_admin):
+    def __init__(self, user, email, is_logged_in, is_admin, is_active=True):
         self.user = user
         self.email = email
         self.is_logged_in = is_logged_in
         self.is_admin = is_admin
+        self.is_active = is_active
 
 
 class ApiException(Exception):
@@ -415,7 +394,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 raise ApiException(requests.codes.bad_request,
                         "This endpoint is not enabled.")
 
-            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False)
+            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=False)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -436,43 +415,19 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     AUTHORIZATION_HEADER: auth
                 }
                 # try to validate new auth
-                new_token_validated = False
                 try:
                     token = auth.split()[1]
-                    decoded = jwt.decode(token, app.secret_key)
-                    verify(decoded)
-                    g.auth = Auth(user=decoded['username'],
-                                  email='borp@gmail.com', 
+                    t = verify_token_string(token)
+                    user_id = t['id']
+                    user = get_user_by_id(user_id)
+                    g.auth = Auth(user=user.name,
+                                  email=user.email,
                                   is_logged_in=True,
-                                  is_admin=False)
-                    new_token_validated = True
+                                  is_admin=user.is_admin,
+                                  is_active=user.is_active)
                 except:
                     # not a new token
-                    pass
-
-                if not new_token_validated:
-                    try:
-                        resp = auth_session.get(OAUTH_USER_API, headers=headers)
-                        resp.raise_for_status()
-
-                        data = resp.json()
-                        # TODO(dima): Generalize this.
-                        user = data.get('current_user', data.get('login'))
-                        assert user
-                        email = data['email']
-                        is_admin = data.get('is_staff', False)
-
-                        g.auth = Auth(user=user, email=email, is_logged_in=True, is_admin=is_admin)
-                    except requests.HTTPError as ex:
-                        if resp.status_code == requests.codes.unauthorized:
-                            raise ApiException(
-                                requests.codes.unauthorized,
-                                "Invalid credentials"
-                            )
-                        else:
-                            raise ApiException(requests.codes.server_error, "Server error")
-                    except (ConnectionError, requests.RequestException) as ex:
-                        raise ApiException(requests.codes.server_error, "Server error")
+                    raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
             if require_admin and not g.auth.is_admin:
                 raise ApiException(
@@ -488,7 +443,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
 @api()
 @as_json
 def apiroot():
-    return {'is_staff': g.auth.is_admin, 'is_active': True,
+    return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
             'email': g.auth.email, 'current_user': g.auth.user}
 
 @app.route('/logout')
@@ -2281,6 +2236,19 @@ def enable_user():
 @api(enabled=False, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def delete_user():
+    data = request.get_json()
+    username = data['username']
+    try:
+        _delete_user(username)
+    except Exception as e:
+        raise ApiException(
+            requests.codes.not_found,
+            "User not found"
+            )
+
+
+
+
     auth_headers = {
         AUTHORIZATION_HEADER: g.auth_header,
         "Content-Type": "application/json",
@@ -2381,31 +2349,10 @@ def package_summary():
 @app.route('/api/users/reset_password', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
-def reset_password():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    password_reset_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
+def api_reset_password():
     data = request.get_json()
     username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    if reset_password(username):
+        return {}
+    else:
+        raise ApiException(requests.codes.not_found, "User not found.")

@@ -15,6 +15,7 @@
           </a>
         </div>
         <form action='/login' role=form method=post>
+          <input type='hidden' name='next' value='{{ next }}' />
           <div class='row-fluid'>
             <label for='id_username'>Username or email</label>
             <input
@@ -40,6 +41,9 @@
               required
               type='password'>
           </div>
+          {% if fail %}
+          LOGIN FAILED
+          {% endif %}
           <div class='row-fluid'>
             <div class='form-actions-no-box'>
             <input
