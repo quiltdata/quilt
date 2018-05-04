@@ -9,6 +9,7 @@ import {
 } from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
+import { withHandlers } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
@@ -24,12 +25,22 @@ import {
   selectPackageTraffic,
 } from 'containers/App/selectors';
 import Working from 'components/Working';
+import { injectReducer } from 'utils/ReducerInjector';
+import { injectSaga } from 'utils/SagaInjector';
+import { composeComponent } from 'utils/reactTools';
 
+import Comments from './Comments';
 import Install from './Install';
 import Log from './Log';
 import Traffic from './Traffic';
 import UpdateInfo from './UpdateInfo';
+
+import { addComment, getComments } from './actions';
+import { REDUX_KEY } from './constants';
 import strings from './messages';
+import reducer from './reducer';
+import saga from './saga';
+import * as selectors from './selectors';
 
 const Header = styled.div`
   .icon {
@@ -53,6 +64,7 @@ export class Package extends React.PureComponent {
     dispatch(getPackage(owner, name));
     dispatch(getLog(owner, name));
     dispatch(getTraffic(owner, name));
+    dispatch(getComments(owner, name));
   }
   componentWillReceiveProps(nextProps) {
     const { dispatch, match: { params: { name, owner } }, user } = this.props;
@@ -63,6 +75,7 @@ export class Package extends React.PureComponent {
     // but be available for another
     if (name !== oldName || owner !== oldOwner || user !== oldUser) {
       dispatch(getPackage(owner, name));
+      dispatch(getComments(owner, name));
     }
   }
   printManifest(buffer, nodes, indent = '') {
@@ -97,7 +110,15 @@ export class Package extends React.PureComponent {
     }
   }
   render() {
-    const { pkg, traffic, match: { params } } = this.props;
+    const {
+      pkg,
+      traffic,
+      user,
+      comments,
+      boundAddComment,
+      boundGetComments,
+      match: { params },
+    } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
       case undefined:
@@ -162,6 +183,15 @@ export class Package extends React.PureComponent {
             >
               <Log entries={log.response.logs} />
             </Tab>
+            <Tab label="Comments">
+              <Comments
+                comments={comments}
+                addComment={boundAddComment}
+                getComments={boundGetComments}
+                user={user}
+                owner={owner}
+              />
+            </Tab>
           </Tabs>
         </Col>
         <Col xs={12} md={5}>
@@ -197,18 +227,26 @@ Package.propTypes = {
   }).isRequired,
   user: PropTypes.string,
   traffic: PropTypes.object,
+  comments: PropTypes.object.isRequired,
+  boundAddComment: PropTypes.func.isRequired,
+  boundGetComments: PropTypes.func.isRequired,
 };
 
-const mapStateToProps = createStructuredSelector({
-  pkg: makeSelectPackage(),
-  user: makeSelectUserName(),
-  traffic: selectPackageTraffic,
-});
-
-function mapDispatchToProps(dispatch) {
-  return {
-    dispatch,
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Package);
+export default composeComponent('Package',
+  injectReducer(REDUX_KEY, reducer),
+  injectSaga(REDUX_KEY, saga),
+  connect(createStructuredSelector({
+    pkg: makeSelectPackage(),
+    user: makeSelectUserName(),
+    traffic: selectPackageTraffic,
+    comments: selectors.comments,
+  })),
+  withHandlers({
+    boundAddComment: ({ dispatch, match: { params: { name, owner } } }) => (contents) =>
+      new Promise((resolve, reject) => {
+        dispatch(addComment({ owner, name, contents }, { resolve, reject }));
+      }),
+    boundGetComments: ({ dispatch, match: { params: { name, owner } } }) => () =>
+      dispatch(getComments(owner, name)),
+  }),
+  Package);
