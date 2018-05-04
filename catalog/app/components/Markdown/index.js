@@ -1,10 +1,11 @@
 /* Markdown */
+import hljs from 'highlight.js';
+import flow from 'lodash/flow';
 import PropTypes from 'prop-types';
 import React from 'react';
-import styled from 'styled-components';
-
 import Remarkable from 'remarkable';
-import hljs from 'highlight.js';
+import { replaceEntities, escapeHtml } from 'remarkable/lib/common/utils';
+import styled from 'styled-components';
 
 
 const highlight = (str, lang) => {
@@ -26,6 +27,19 @@ const highlight = (str, lang) => {
   return ''; // use external default escaping
 };
 
+const escape = flow(replaceEntities, escapeHtml);
+
+const disableImg = (md) => {
+  // eslint-disable-next-line no-param-reassign
+  md.renderer.rules.image = (tokens, idx) => {
+    const t = tokens[idx];
+    const src = escape(t.src);
+    const title = t.title ? ` "${escape(t.title)}"` : '';
+    const alt = t.alt ? escape(t.alt) : '';
+    return `<span>![${alt}](${src}${title})</span>`;
+  };
+};
+
 // TODO review for script injection attacks; html set to false as prelim
 const md = new Remarkable('full', {
   highlight,
@@ -34,17 +48,27 @@ const md = new Remarkable('full', {
   typographer: true,
 });
 
-function Markdown({ data }) {
+const mdWithoutImg = new Remarkable('full', {
+  highlight,
+  html: false,
+  linkify: true,
+  typographer: true,
+});
+mdWithoutImg.use(disableImg);
+
+function Markdown({ data, className = '', images = true }) {
   // would prefer to render in a saga but md.render() fails when called in
   // a generator
-  const html = { __html: md.render(data) };
+  const html = { __html: (images ? md : mdWithoutImg).render(data) };
   return (
-    <Style className="markdown" dangerouslySetInnerHTML={html} />
+    <Style className={`markdown ${className}`} dangerouslySetInnerHTML={html} />
   );
 }
 
 Markdown.propTypes = {
   data: PropTypes.string,
+  className: PropTypes.string,
+  images: PropTypes.bool,
 };
 
 /* Ensure that markdown styles are smaller than page h1, h2, etc. since
