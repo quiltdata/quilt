@@ -10,6 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
+import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -962,6 +963,55 @@ def _iterate_data_nodes(node):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
 
+
+def get_install_timeseries(owner, package_name, max_weeks_old=52):
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', sa.func.now() - Event.created) / 7)
+    result = (
+        db.session.query(
+            sa.func.count(Event.id),
+            weeks_ago.label('weeks_ago')
+        )
+        .filter(Event.package_owner==owner)
+        .filter(Event.package_name==package_name)
+        .filter(Event.type==Event.Type.INSTALL)
+        .filter(weeks_ago<=max_weeks_old)
+        .group_by(weeks_ago)
+        .all()
+    )
+    if len(result) == 0:
+        now = calendar.timegm(datetime.utcnow().utctimetuple())
+        return {
+            'startDate': now,
+            'endDate': now,
+            'frequency': 'week',
+            'timeSeries': []
+        }
+
+    result = [(int(r[0]), int(r[1])) for r in result]
+    # result contains (count, weeks_ago) pairs
+    max_weeks_ago_in_result = max([r[1] for r in result])
+    last = datetime.utcnow()
+    first = last - timedelta(weeks=max_weeks_ago_in_result)
+    counts = {}
+    for r in result:
+        counts[r[1]] = r[0]
+    for i in range(max_weeks_ago_in_result + 1):
+        if i not in counts:
+            counts[i] = 0
+
+    # reverse since 0 weeks ago should be last in list
+    pairs = sorted(counts.items(), reverse=True) 
+    print(pairs)
+    counts = [pair[1] for pair in pairs]
+
+    return {
+        'startDate': calendar.timegm(first.utctimetuple()),
+        'endDate': calendar.timegm(last.utctimetuple()),
+        'frequency': 'week',
+        'timeSeries': counts
+    }
+
+
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
 @as_json
@@ -1066,6 +1116,7 @@ def package_preview(owner, package_name, package_hash):
         total_size_uncompressed=total_size,
         file_types=file_types,
         log_count=log_count,
+        install_timeseries=get_install_timeseries(owner, package_name),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
