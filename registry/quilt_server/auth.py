@@ -117,6 +117,26 @@ def _delete_user(username):
         raise Exception("User to delete not found")
     return user
 
+def _enable_user(username):
+    user = get_user(username)
+    if user:
+        user.is_active = True
+        db.session.add(user)
+        db.session.commit()
+        return True
+    else:
+        raise Exception("User to enable not found")
+
+def _disable_user(username):
+    user = get_user(username)
+    if user:
+        user.is_active = False
+        db.session.add(user)
+        db.session.commit()
+        return True
+    else:
+        raise Exception("User to disable not found")
+
 def _list_users():
     users = db.session.query(User).all()
     return users

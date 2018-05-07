@@ -39,7 +39,8 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
-        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password)
+        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password,
+        _enable_user, _disable_user)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
@@ -394,7 +395,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 raise ApiException(requests.codes.bad_request,
                         "This endpoint is not enabled.")
 
-            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=False)
+            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=True)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
@@ -429,6 +430,11 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     # not a new token
                     raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
+            if not g.auth.is_active:
+                raise ApiException(
+                    requests.codes.forbidden,
+                    "Account is inactive. Must have an active account."
+                    )
             if require_admin and not g.auth.is_admin:
                 raise ApiException(
                     requests.codes.forbidden,
@@ -2200,36 +2206,10 @@ def disable_user():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def enable_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
     data = request.get_json()
     username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
-        data=json.dumps({
-            'is_active' : True
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to enable not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    _enable_user(username)
+    return {}
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
@@ -2245,36 +2225,6 @@ def delete_user():
             requests.codes.not_found,
             "User not found"
             )
-
-
-
-
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to delete not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            resp.status_code,
-            "Unknown error"
-            )
-
-    return resp.json()
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)
