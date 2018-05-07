@@ -971,44 +971,28 @@ def get_install_timeseries(owner, package_name, max_weeks_old=52):
             sa.func.count(Event.id),
             weeks_ago.label('weeks_ago')
         )
-        .filter(Event.package_owner==owner)
-        .filter(Event.package_name==package_name)
-        .filter(Event.type==Event.Type.INSTALL)
-        .filter(weeks_ago<=max_weeks_old)
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == Event.Type.INSTALL)
+        .filter(weeks_ago <= max_weeks_old)
         .group_by(weeks_ago)
         .all()
     )
-    if len(result) == 0:
-        now = calendar.timegm(datetime.utcnow().utctimetuple())
-        return {
-            'startDate': now,
-            'endDate': now,
-            'frequency': 'week',
-            'timeSeries': []
-        }
 
-    result = [(int(r[0]), int(r[1])) for r in result]
+    result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
     # result contains (count, weeks_ago) pairs
-    max_weeks_ago_in_result = max([r[1] for r in result])
+    max_weeks_ago_in_result = max([weeks_ago for count, weeks_ago in result], default=0)
     last = datetime.utcnow()
     first = last - timedelta(weeks=max_weeks_ago_in_result)
-    counts = {}
-    for r in result:
-        counts[r[1]] = r[0]
-    for i in range(max_weeks_ago_in_result + 1):
-        if i not in counts:
-            counts[i] = 0
-
-    # reverse since 0 weeks ago should be last in list
-    pairs = sorted(counts.items(), reverse=True) 
-    print(pairs)
-    counts = [pair[1] for pair in pairs]
+    counts = [0] * (max_weeks_ago_in_result + 1) # list of zeroes
+    for count, weeks_ago in result:
+        counts[weeks_ago] = count
 
     return {
         'startDate': calendar.timegm(first.utctimetuple()),
         'endDate': calendar.timegm(last.utctimetuple()),
         'frequency': 'week',
-        'timeSeries': counts
+        'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
     }
 
 
