@@ -56,6 +56,7 @@ setup(
             'funcsigs; python_version<"3.4"',   # stdlib backport
             'mock; python_version<"3.3"',
             'pytest',
+            'pytest-cov',
             'responses>=0.7.0',
         ]
     },
