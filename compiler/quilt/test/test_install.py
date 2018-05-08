@@ -161,8 +161,8 @@ class InstallTest(QuiltTestCase):
             assert file_contents == contents
 
         with open(teststore.object_path(objhash=table_hash), 'rb') as fd:
-            contents = fd.read()
-            assert contents == table_data
+            file_contents = fd.read()
+            assert file_contents == table_data
 
     def getmtime(self, user, package, contents_hash, team=None):
         teststore = PackageStore(self._store_dir)
