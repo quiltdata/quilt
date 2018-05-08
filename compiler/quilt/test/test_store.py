@@ -31,7 +31,7 @@ class StoreTest(QuiltTestCase):
 
         # Verify that objects work.
         node = pkg['foo']
-        pkg.get_obj(node)
+        pkg.get_store().load_dataframe(node.hashes)
 
         # We now have a new version.
         with open(os.path.join(self._store_dir, '.format')) as fd:
