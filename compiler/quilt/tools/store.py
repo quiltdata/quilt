@@ -2,11 +2,15 @@
 Build: parse and add user-supplied files to store
 """
 import os
+from shutil import copyfile, move, rmtree
+import uuid
 
-from shutil import rmtree
+from enum import Enum
+import pandas as pd
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException
 from .core import FileNode, RootNode, TableNode, find_object_hashes
+from .hashing import digest_file
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
@@ -16,6 +20,10 @@ CHUNK_SIZE = 4096
 def default_store_location():
     package_dir = os.path.join(BASE_DIR, PACKAGE_DIR_NAME)
     return os.getenv('QUILT_PRIMARY_PACKAGE_DIR', package_dir)
+
+class ParquetLib(Enum):
+    SPARK = 'pyspark'
+    ARROW = 'pyarrow'
 
 class StoreException(QuiltException):
     """
@@ -36,6 +44,27 @@ class PackageStore(object):
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
     VERSION = '1.3'
+
+    __parquet_lib = None
+
+    @classmethod
+    def get_parquet_lib(cls):
+        """
+        Find/choose a library to read and write Parquet files
+        based on installed options.
+        """
+        if cls.__parquet_lib is None:
+            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY', ParquetLib.ARROW.value)
+            cls.__parquet_lib = ParquetLib(parq_env)
+        return cls.__parquet_lib
+
+    @classmethod
+    def reset_parquet_lib(cls):
+        cls.__parquet_lib = None
+
+    @classmethod
+    def set_parquet_lib(cls, parqlib):
+        cls.__parquet_lib = ParquetLib(parqlib)
 
     def __init__(self, location=None):
         if location is None:
@@ -304,3 +333,103 @@ class PackageStore(object):
             if os.path.exists(path):
                 os.remove(path)
         return remove_objs
+
+    def _read_parquet_arrow(self, hash_list):
+        from pyarrow.parquet import ParquetDataset
+
+        objfiles = [self.object_path(h) for h in hash_list]
+        dataset = ParquetDataset(objfiles)
+        table = dataset.read(nthreads=4)
+        dataframe = table.to_pandas()
+        return dataframe
+
+    def _read_parquet_spark(self, hash_list):
+        from pyspark import sql as sparksql
+
+        spark = sparksql.SparkSession.builder.getOrCreate()
+        objfiles = [self.object_path(h) for h in hash_list]
+        dataframe = spark.read.parquet(*objfiles)
+        return dataframe
+
+    def _check_hashes(self, hash_list):
+        for objhash in hash_list:
+            path = self.object_path(objhash)
+            if not os.path.exists(path):
+                raise StoreException("Missing object fragments; re-install the package")
+
+    def load_dataframe(self, hash_list):
+        """
+        Creates a DataFrame from a set of objects (identified by hashes).
+        """
+        self._check_hashes(hash_list)
+        parqlib = self.get_parquet_lib()
+        if parqlib is ParquetLib.SPARK:
+            return self._read_parquet_spark(hash_list)
+        elif parqlib is ParquetLib.ARROW:
+            try:
+                return self._read_parquet_arrow(hash_list)
+            except ValueError as err:
+                raise StoreException(str(err))
+        else:
+            assert False, "Unimplemented Parquet Library %s" % parqlib
+
+    def save_dataframe(self, dataframe):
+        """
+        Save a DataFrame to the store.
+        """
+        storepath = self.temporary_object_path(str(uuid.uuid4()))
+
+        # switch parquet lib
+        parqlib = self.get_parquet_lib()
+        if isinstance(dataframe, pd.DataFrame):
+            #parqlib is ParquetLib.ARROW: # other parquet libs are deprecated, remove?
+            import pyarrow as pa
+            from pyarrow import parquet
+            table = pa.Table.from_pandas(dataframe)
+            parquet.write_table(table, storepath)
+        elif parqlib is ParquetLib.SPARK:
+            from pyspark import sql as sparksql
+            assert isinstance(dataframe, sparksql.DataFrame)
+            dataframe.write.parquet(storepath)
+        else:
+            assert False, "Unimplemented ParquetLib %s" % parqlib
+
+        # Move serialized DataFrame to object store
+        if os.path.isdir(storepath): # Pyspark
+            hashes = []
+            files = [ofile for ofile in os.listdir(storepath) if ofile.endswith(".parquet")]
+            for obj in files:
+                path = os.path.join(storepath, obj)
+                objhash = digest_file(path)
+                move(path, self.object_path(objhash))
+                hashes.append(objhash)
+            rmtree(storepath)
+        else:
+            filehash = digest_file(storepath)
+            move(storepath, self.object_path(filehash))
+            hashes = [filehash]
+
+        return hashes
+
+    def get_file(self, hash_list):
+        """
+        Returns the path of the file - but verifies that the hash is actually present.
+        """
+        assert len(hash_list) == 1
+        self._check_hashes(hash_list)
+        return self.object_path(hash_list[0])
+
+    def save_file(self, srcfile):
+        """
+        Save a (raw) file to the store.
+        """
+        filehash = digest_file(srcfile)
+        objpath = self.object_path(filehash)
+        if not os.path.exists(objpath):
+            # Copy the file to a temporary location first, then move, to make sure we don't end up with
+            # truncated contents if the build gets interrupted.
+            tmppath = self.temporary_object_path(filehash)
+            copyfile(srcfile, tmppath)
+            move(tmppath, objpath)
+
+        return filehash

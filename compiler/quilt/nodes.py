@@ -50,7 +50,16 @@ class DataNode(Node):
         Returns the contents of the node: a dataframe or a file path.
         """
         if self.__cached_data is None:
-            self.__cached_data = self._package.get_obj(self._node)
+            # TODO(dima): Temporary code.
+            store = self._package.get_store()
+            if isinstance(self._node, core.TableNode):
+                self.__cached_data = store.load_dataframe(self._node.hashes)
+            elif isinstance(self._node, core.FileNode):
+                self.__cached_data = store.get_file(self._node.hashes)
+            else:
+                # XXX: This is wrong.
+                hash_list = list(core.find_object_hashes(self._node, sort=True))
+                self.__cached_data = store.load_dataframe(hash_list)
         return self.__cached_data
 
 class GroupNode(DataNode):

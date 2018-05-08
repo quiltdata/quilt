@@ -11,8 +11,8 @@ from six import string_types
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import Package, PackageException
-from quilt.tools.store import PackageStore
+from quilt.tools.package import Package
+from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -150,7 +150,7 @@ class ImportTest(QuiltTestCase):
 
         # Incompatible Schema
         from quilt.data.foo.grppkg import incompatible
-        with self.assertRaises(PackageException):
+        with self.assertRaises(StoreException):
             incompatible._data()
 
     def test_multiple_package_dirs(self):
