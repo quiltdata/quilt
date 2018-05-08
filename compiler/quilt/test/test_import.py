@@ -140,18 +140,26 @@ class ImportTest(QuiltTestCase):
         command.build('foo/grppkg', build_path)
 
         # Good imports
-        from quilt.data.foo.grppkg import dataframes
-        assert isinstance(dataframes, GroupNode)
+        from quilt.data.foo import grppkg
+        assert isinstance(grppkg.dataframes, GroupNode)
 
         # Make sure child dataframes were concatenated in the correct order (alphabetically by node name).
-        df = dataframes._data()
+        df = grppkg.dataframes._data()
         assert df['x'].tolist() == [1, 2, 3, 4]
         assert df['y'].tolist() == [1, 4, 9, 16]
 
         # Incompatible Schema
-        from quilt.data.foo.grppkg import incompatible
         with self.assertRaises(StoreException):
-            incompatible._data()
+            grppkg.incompatible._data()
+
+        # Empty group
+        grppkg.dataframes._add_group("empty")
+        assert grppkg.dataframes.empty._data() is None
+
+        # In-memory dataframe
+        grppkg._set(['dataframes', 'foo'], pd.DataFrame([1, 2, 3]))
+        with self.assertRaises(NotImplementedError):
+            grppkg.dataframes._data()
 
     def test_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)

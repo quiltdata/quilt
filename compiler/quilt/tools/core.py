@@ -59,20 +59,15 @@ class Node(object):
     def get_children(self):
         return {}
 
-    def preorder(self, sort=False):
+    def preorder(self):
         """
         Iterator that returns all nodes in the tree starting with the current node.
-
-        :param sort: within each group, sort child nodes by name
         """
         stack = [self]
         while stack:
             obj = stack.pop()
             yield obj
-            if sort:
-                stack.extend(child for name, child in sorted(iteritems(obj.get_children()), reverse=True))
-            else:
-                stack.extend(itervalues(obj.get_children()))
+            stack.extend(itervalues(obj.get_children()))
 
 class GroupNode(Node):
     __slots__ = ('children',)
@@ -187,14 +182,13 @@ def hash_contents(contents):
 
     return result.hexdigest()
 
-def find_object_hashes(root, sort=False):
+def find_object_hashes(root):
     """
     Iterator that returns hashes of all of the file and table nodes.
 
     :param root: starting node
-    :param sort: within each group, sort child nodes by name
     """
-    for obj in root.preorder(sort=sort):
+    for obj in root.preorder():
         if isinstance(obj, (TableNode, FileNode)):
             for objhash in obj.hashes:
                 yield objhash

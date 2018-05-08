@@ -44,9 +44,9 @@ def _from_core_node(package, core_node):
         node = DataNode(package, core_node)
     else:
         if isinstance(core_node, core.RootNode):
-            node = PackageNode(package, core_node)
+            node = PackageNode(package)
         elif isinstance(core_node, core.GroupNode):
-            node = GroupNode(package, core_node)
+            node = GroupNode()
         else:
             assert "Unexpected node: %r" % core_node
 
