@@ -57,7 +57,6 @@ setup(
             'mock; python_version<"3.3"',
             'pytest',
             'responses>=0.7.0',
-            'openpyxl',
         ]
     },
     include_package_data=True,

@@ -21,7 +21,10 @@ class PackageFormat(Enum):
     PARQUET = 'PARQUET'
     default = PARQUET
 
+
 class Node(object):
+    __slots__ = ('metadata',)
+
     @property
     @classmethod
     def json_type(cls):
@@ -35,22 +38,22 @@ class Node(object):
 
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
+            return self.__json__() == other.__json__()
         return NotImplemented
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        return hash(self.__dict__)
+        return hash(self.__json__())
 
     def __json__(self):
-        val = dict(self.__dict__, type=self.json_type)
-        if not self.metadata:
+        val = {'type': self.json_type}
+        if self.metadata:
             # Old clients don't support metadata in groups. If the metadata is empty,
             # let's not include it at all to avoid breaking things unnecessarily.
             # (Groups with actual metadata will still break old clients, though.)
-            del val['metadata']
+            val['metadata'] = self.metadata
         return val
 
     def get_children(self):
@@ -72,6 +75,8 @@ class Node(object):
                 stack.extend(itervalues(obj.get_children()))
 
 class GroupNode(Node):
+    __slots__ = ('children',)
+
     json_type = 'GROUP'
 
     def __init__(self, children, metadata=None):
@@ -82,27 +87,40 @@ class GroupNode(Node):
     def get_children(self):
         return self.children
 
+    def __json__(self):
+        val = super(GroupNode, self).__json__()
+        val['children'] = self.children
+        return val
+
 class RootNode(GroupNode):
+    __slots__ = ()
+
     json_type = 'ROOT'
 
 class TableNode(Node):
+    __slots__ = ('hashes',)
+
     json_type = 'TABLE'
 
     def __init__(self, hashes, format, metadata=None):
         super(TableNode, self).__init__(metadata)
 
+        assert PackageFormat(format) == PackageFormat.PARQUET
+
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
 
         self.hashes = hashes
-        self.format = PackageFormat(format)
 
     def __json__(self):
         val = super(TableNode, self).__json__()
-        val['format'] = self.format.value
+        val['hashes'] = self.hashes
+        val['format'] = PackageFormat.PARQUET.value
         return val
 
 class FileNode(Node):
+    __slots__ = ('hashes',)
+
     json_type = 'FILE'
 
     def __init__(self, hashes, metadata=None):
@@ -111,6 +129,11 @@ class FileNode(Node):
         assert isinstance(hashes, list)
 
         self.hashes = hashes
+
+    def __json__(self):
+        val = super(FileNode, self).__json__()
+        val['hashes'] = self.hashes
+        return val
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 

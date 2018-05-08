@@ -3,11 +3,9 @@ parse build file, serialize package
 """
 from collections import defaultdict, Iterable
 import glob
-import importlib
 import json
 import os
 import re
-from types import ModuleType
 
 import numpy as np
 import pandas as pd
@@ -22,8 +20,7 @@ from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAG
                     QuiltException, TargetType)
 from .core import GroupNode
 from .hashing import digest_file, digest_string
-from .package import Package, ParquetLib
-from .store import PackageStore, StoreException
+from .store import PackageStore, ParquetLib, StoreException
 from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
@@ -42,7 +39,7 @@ def _have_pyspark():
     """
     if _have_pyspark.flag is None:
         try:
-            if Package.get_parquet_lib() is ParquetLib.SPARK:
+            if PackageStore.get_parquet_lib() is ParquetLib.SPARK:
                 import pyspark  # pylint:disable=W0612
                 _have_pyspark.flag = True
             else:
