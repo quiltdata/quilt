@@ -1,6 +1,7 @@
 """
 Build: parse and add user-supplied files to store
 """
+from __future__ import print_function
 import os
 
 from shutil import rmtree
@@ -298,7 +299,7 @@ class PackageStore(object):
         """
         Returns the path to an object file based on its hash.
         """
-        return os.path.join(self.object_dir(), objhash[:2], objhash[2:])
+        return os.path.join(self.object_dir(), objhash[:2], objhash)
 
     def temporary_object_path(self, name):
         """
