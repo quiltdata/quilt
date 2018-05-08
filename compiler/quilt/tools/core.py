@@ -21,6 +21,7 @@ class PackageFormat(Enum):
     PARQUET = 'PARQUET'
     default = PARQUET
 
+
 class Node(object):
     __slots__ = ('metadata',)
 
@@ -34,6 +35,17 @@ class Node(object):
             metadata = {}
         assert isinstance(metadata, dict)
         self.metadata = metadata or {}
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            return self.__json__() == other.__json__()
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self.__json__())
 
     def __json__(self):
         val = {'type': self.json_type}
