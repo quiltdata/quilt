@@ -1429,10 +1429,10 @@ class CommandTest(QuiltTestCase):
 
         temp_dir.mkdir()
 
-        if sys.platform == 'nt':
-            import ctypes
-            if not ctypes.windll.shell32.IsUserAnAdmin():
-                pytest.xfail('User must be admin to symlink')
+        # if sys.platform == 'nt':
+        #     import ctypes
+        #     if not ctypes.windll.shell32.IsUserAnAdmin():
+        #         pytest.xfail('User must be admin to symlink')
         # Build, load, and export from build file
         command.build('test_export_symlinks/data', str(datadir / 'build_export_symlinks.yml'))
 
