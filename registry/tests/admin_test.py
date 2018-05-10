@@ -23,7 +23,7 @@ class AdminTestCase(QuiltTestCase):
         super(AdminTestCase, self).setUp()
 
         self.admin = "admin"
-        self.user = "user"
+        self.user = "test_user"
         self.pkg = "pkg"
         self.contents_list = [
             RootNode(dict(
@@ -58,7 +58,7 @@ class AdminTestCase(QuiltTestCase):
                 usr=self.user
             ),
             headers={
-                'Authorization': 'random_user'
+                'Authorization': 'bad_user'
             }
         )
         assert resp.status_code == requests.codes.forbidden
@@ -258,14 +258,9 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.forbidden
 
     def testDisableUser(self):
-        disable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
-        self.requests_mock.add(responses.PATCH, disable_user_api, status=200, body=json.dumps({
-            'status': 200
-            }))
-
         resp = self.app.post(
             '/api/users/disable',
-            data=json.dumps({"username":"usertwo"}),
+            data=json.dumps({"username":"test_user"}),
             content_type='application/json',
             headers={
                 'Authorization':self.admin
@@ -275,11 +270,9 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testDisableUserNonAdmin(self):
-        disable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
-
         resp = self.app.post(
             '/api/users/disable',
-            data=json.dumps({"username":"usertwo"}),
+            data=json.dumps({"username":"test_user"}),
             content_type='application/json',
             headers={
                 'Authorization':self.user
@@ -288,15 +281,22 @@ class AdminTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.forbidden
 
-    def testEnableUser(self):
-        enable_user_api = '%s/accounts/users/usertwo/' % QUILT_AUTH_URL
-        self.requests_mock.add(responses.PATCH, enable_user_api, status=200, body=json.dumps({
-            'status': 200
-            }))
+    def testDisableSelfShouldFail(self):
+        resp = self.app.post(
+            '/api/users/disable',
+            data=json.dumps({"username":self.admin}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.admin
+            }
+            )
 
+        assert resp.status_code == requests.codes.forbidden
+
+    def testEnableUser(self):
         resp = self.app.post(
             '/api/users/enable',
-            data=json.dumps({"username":"usertwo"}),
+            data=json.dumps({"username":"test_user"}),
             content_type='application/json',
             headers={
                 'Authorization':self.admin
@@ -308,7 +308,7 @@ class AdminTestCase(QuiltTestCase):
     def testEnableUserNonAdmin(self):
         resp = self.app.post(
             '/api/users/enable',
-            data=json.dumps({"username":"usertwo"}),
+            data=json.dumps({"username":"share_with"}),
             content_type='application/json',
             headers={
                 'Authorization':self.user

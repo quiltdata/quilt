@@ -311,7 +311,7 @@ class PushInstallTestCase(QuiltTestCase):
             ), default=encode_node),
             content_type='application/json',
             headers={
-                'Authorization': 'blah'
+                'Authorization': 'bad_user'
             }
         )
         assert resp.status_code == requests.codes.forbidden

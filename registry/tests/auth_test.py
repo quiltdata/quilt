@@ -15,7 +15,7 @@ class AuthTestCase(QuiltTestCase):
     """
     unit tests for Flask-based auth
     """
-    TEST_USER = 'quilt'
+    TEST_USER = 'test_user'
     TEST_PASSWORD = 'beans'
     OTHER_USER = 'edwin'
 
@@ -23,9 +23,10 @@ class AuthTestCase(QuiltTestCase):
         super(AuthTestCase, self).setUp()
         _create_user(self.TEST_USER, password=self.TEST_PASSWORD, force=True, requires_activation=False)
         self.TEST_USER_ID = get_user(self.TEST_USER).id
+        # self.token_verify_mock.stop() # disable auth mock
 
     def getToken(self):
-        response = self.app.post('/login?next=abcd', 
+        response = self.app.post('/login', 
                 data=json.dumps({'username': self.TEST_USER, 'password': self.TEST_PASSWORD}))
         try:
             token = json.loads(response.get_data()).get('token')
@@ -39,10 +40,6 @@ class AuthTestCase(QuiltTestCase):
     def testCodeRoundtrips(self):
         code = {'id': generate_uuid(), 'code': generate_uuid()}
         assert code == decode_code(encode_code(code))
-
-
-    def refreshToken(self, token):
-        response = self.app.post()
 
     def testIssueToken(self):
         issue_token(self.TEST_USER)
@@ -83,8 +80,16 @@ class AuthTestCase(QuiltTestCase):
         t = self.decodeToken(token)
         exp = t.get('exp')
         time.sleep(2)
-        new_token_request = self.app.post('/api/token?refresh_token=%s' % token)
-        new_token = json.loads(new_token_request.get_data()).get('refresh_token')
+        auth_headers = {
+            'Authorization': self.TEST_USER,
+            'content-type': 'application/json'
+        }
+        new_token_request = self.app.post(
+                '/api/refresh',
+                headers=auth_headers
+            )
+
+        new_token = json.loads(new_token_request.get_data()).get('token')
         new_exp = self.decodeToken(new_token).get('exp')
         assert new_exp > exp
         pass
@@ -109,6 +114,17 @@ class AuthTestCase(QuiltTestCase):
         reset_link = generate_reset_link(self.TEST_USER_ID)
         assert not verify_reset_link(activate_link)
         assert not verify_activation_link(reset_link)
+
+    def testMockUser(self):
+        auth_headers = {
+            'Authorization': 'admin',
+            'content_type': 'application/json'
+        }
+        resp = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert resp.status_code == 200
 
     # password reset emails
     # account creation flow

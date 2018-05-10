@@ -20,6 +20,7 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
+from quilt_server.auth import _create_user, get_user
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
@@ -44,8 +45,6 @@ class QuiltTestCase(TestCase):
     def setUp(self):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
-        self._mock_user()
-        self._mock_email()
 
         mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
         self.mp_patcher = mock.patch('quilt_server.views.mp', mock_mp)
@@ -60,6 +59,11 @@ class QuiltTestCase(TestCase):
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
+        # instead of checking token, just use username
+        self.token_verify_mock = mock.patch('quilt_server.views.verify_token_string', get_user)
+        self.token_verify_mock.start()
+
+
         self.app = quilt_server.app.test_client()
         quilt_server.app.config['TESTING'] = True
         quilt_server.app.config['SQLALCHEMY_ECHO'] = False
@@ -67,6 +71,16 @@ class QuiltTestCase(TestCase):
 
         sqlalchemy_utils.create_database(self.db_url)
         quilt_server.db.create_all()
+
+        _create_user('test_user', email='test_user@example.com',
+                requires_activation=False, force=True)
+        _create_user('admin', email='admin@quiltdata.io',
+                requires_activation=False, is_admin=True, force=True)
+        _create_user('bad_user', email='bad_user@example.com',
+                requires_activation=False, force=True)
+        _create_user('share_with', email='share_with@example.com',
+                requires_activation=False, force=True)
+
 
     def tearDown(self):
         quilt_server.db.session.remove()

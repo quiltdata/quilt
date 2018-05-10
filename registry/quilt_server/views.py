@@ -39,11 +39,12 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
-        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password,
-        _enable_user, _disable_user)
+        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password, exp_from_token,
+        _enable_user, _disable_user, revoke_token, decode_token)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
+from .mail import send_email
 from .models import (Access, Code, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Token, User, Version)
 from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
@@ -208,24 +209,16 @@ def oauth_callback():
     if code is None:
         abort(requests.codes.bad_request)
 
-    session = _create_session()
     try:
         # if JWT, don't do anything
-        try:
-            try_code = consume_code_string(code)
-            if try_code:
-                exp = get_exp()
-                token = issue_token_by_id(try_code.user_id, exp)
-            else:
-                token = verify_token_string(code)
-            exp = token.get('exp')
-            resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
-        except:
-            resp = session.fetch_token(
-                token_url=OAUTH_ACCESS_TOKEN_URL,
-                code=code,
-                client_secret=OAUTH_CLIENT_SECRET
-            )
+        try_code = consume_code_string(code) # try as one-time code
+        if try_code:
+            exp = get_exp()
+            token = issue_token_by_id(try_code.user_id, exp)
+        else:
+            user = verify_token_string(code)
+            exp = exp_from_token(code)
+        resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
 
         if next:
             return redirect('%s#%s' % (next, urlencode(resp)))
@@ -275,10 +268,6 @@ def login_post():
 
 # END NEW AUTH CODE
 
-@app.route('/beans/form')
-def beans_form():
-    return render_template('login.html')
-
 @app.route('/api/token', methods=['POST'])
 @as_json
 def token():
@@ -289,40 +278,18 @@ def token():
     # TODO: try as JWT
     # check if one-time code, then if token
 
-    t = verify_token_string(refresh_token)
-    if t:
-        new_token = issue_token_by_id(t['id'])
-        exp = verify_token_string(new_token)['exp']
-        return dict(
-            refresh_token=new_token,
-            access_token=new_token,
-            expires_at=exp
-        )
+    user = verify_token_string(refresh_token)
+    if not user:
+        return {'error': 'Token invalid'}, 401
 
-    if not OAUTH_HAVE_REFRESH_TOKEN:
-        return dict(
-            refresh_token='',
-            access_token=refresh_token,
-            expires_at=float('inf')
-        )
-
-    session = _create_session()
-
-    try:
-        resp = session.refresh_token(
-            token_url=OAUTH_ACCESS_TOKEN_URL,
-            client_id=OAUTH_CLIENT_ID,  # Why??? The session object already has it!
-            client_secret=OAUTH_CLIENT_SECRET,
-            refresh_token=refresh_token
-        )
-    except OAuth2Error as ex:
-        return dict(error=ex.error)
-
+    new_token = issue_token_by_id(user.id)
+    exp = exp_from_token(new_token)
     return dict(
-        refresh_token=resp['refresh_token'],
-        access_token=resp['access_token'],
-        expires_at=resp['expires_at']
+        refresh_token=new_token,
+        access_token=new_token,
+        expires_at=exp
     )
+
 
 class Auth:
     """
@@ -412,22 +379,18 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 if require_login or not ALLOW_ANONYMOUS_ACCESS:
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
-                headers = {
-                    AUTHORIZATION_HEADER: auth
-                }
                 # try to validate new auth
                 try:
-                    token = auth.split()[1]
-                    t = verify_token_string(token)
-                    user_id = t['id']
-                    user = get_user_by_id(user_id)
+                    token = auth
+                    user = verify_token_string(token)
+                    # g.user = user
                     g.auth = Auth(user=user.name,
                                   email=user.email,
                                   is_logged_in=True,
                                   is_admin=user.is_admin,
                                   is_active=user.is_active)
+                    # g.token = decode_token(token)
                 except:
-                    # not a new token
                     raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
             if not g.auth.is_active:
@@ -452,7 +415,17 @@ def apiroot():
     return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
             'email': g.auth.email, 'current_user': g.auth.user}
 
+@app.route('/api/refresh', methods=['POST'])
+@api()
+@as_json
+def refresh():
+    # TODO: revoke old token
+    # revoke_token(g.user.id, g.token.token)
+    # TODO: issue new token
+    return {'token': issue_token(g.auth.user)}
+
 @app.route('/logout')
+@api()
 @as_json
 def logout():
     # TODO : delete token
@@ -1583,28 +1556,19 @@ def access_put(owner, package_name, user):
         db.session.add(invitation)
         db.session.commit()
 
-        # Call to Auth to send invitation email
-        resp = auth_session.post(
-            INVITE_SEND_URL,
-            headers=auth_headers,
-            data=dict(
-                email=email,
-                owner=g.auth.user,
-                package=package.name,
-                client_id=OAUTH_CLIENT_ID,
-                client_secret=OAUTH_CLIENT_SECRET,
-                callback_url=OAUTH_REDIRECT_URL
-            )
-        )
+        # TODO: prettify this email, add sign up link
+        body = (
+            "{owner} shared data with you on Quilt.\n"
+            "{owner}/{pkg}\n"
+            "Sign up to access the data.\n"
+        ).format(owner=owner, pkg=package_name)
+        subject = "{owner} shared data with you on Quilt".format(owner=owner)
 
-        if resp.status_code == requests.codes.unauthorized:
-            raise ApiException(
-                requests.codes.unauthorized,
-                "Invalid credentials"
-                )
-        elif resp.status_code != requests.codes.ok:
+        try:
+            send_email(recipient=email, body=body, sender='support@quiltdata.io', subject=subject)
+            return {}
+        except:
             raise ApiException(requests.codes.server_error, "Server error")
-        return dict()
 
     else:
         _validate_username(user)
@@ -2165,42 +2129,13 @@ def create_user():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def disable_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
     data = request.get_json()
     username = data['username']
-    _validate_username(username)
-
     if g.auth.user == username:
-        raise ApiException(
-            requests.codes.forbidden,
-            "Can't disable your own account."
-            )
+        raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
-    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
-        data=json.dumps({
-            'is_active' : False
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to disable not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    _disable_user(username)
+    return {}
 
 @app.route('/api/users/enable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)

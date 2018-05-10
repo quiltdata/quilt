@@ -52,7 +52,7 @@ def set_unusable_password(username):
 def hash_password(password):
     return pwd_context.hash(password)
 
-def _create_user(username, password='', email=None, 
+def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
     existing_user = get_user(username)
     if requires_activation:
@@ -71,6 +71,7 @@ def _create_user(username, password='', email=None,
             user.first_name = first_name
             user.last_name = last_name
             user.is_active = is_active
+            user.is_admin = is_admin
     else:
         user = User(
                 id=generate_uuid(),
@@ -79,7 +80,8 @@ def _create_user(username, password='', email=None,
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
-                is_active=is_active)
+                is_active=is_active,
+                is_admin=is_admin)
 
     db.session.add(user)
     db.session.commit()
@@ -163,6 +165,10 @@ def encode_code(code):
 def decode_code(code_str):
     return json.loads(base64.b64decode(code_str))
 
+def decode_token(token_str):
+    token = jwt.decode(s, app.secret_key, algorithm='HS256')
+    return token
+
 def check_token(user_id, token_id):
     token = (
         db.session.query(
@@ -183,15 +189,19 @@ def _verify(payload):
 
     if not check_token(user_id, uuid):
         raise Exception('Token invalid')
-    return payload
+    return user
 
 def verify_token_string(s):
     try:
-        token = jwt.decode(s, app.secret_key, algorithm='HS256')
-        _verify(token)
-        return token
+        token = decode_token(s)
+        user = _verify(token)
+        return user
     except:
         return False
+
+def exp_from_token(s):
+    token = decode_token(s)
+    return token['exp']
 
 def revoke_token(user_id, token):
     t = (

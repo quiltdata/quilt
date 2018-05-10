@@ -212,7 +212,7 @@ class DeleteTestCase(QuiltTestCase):
                 pkg=self.pkg
             ),
             headers={
-                'Authorization': 'foo'
+                'Authorization': 'bad_user'
             }
         )
         assert resp.status_code == requests.codes.forbidden
