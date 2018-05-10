@@ -558,6 +558,8 @@ def build_from_node(package, node):
     def _process_node(node, path=[]):
         meta = dict(node._meta)
         system_meta = meta.pop(SYSTEM_METADATA, {})
+        if not isinstance(system_meta, dict):
+            raise CommandException("Unexpected value in %r: %r" % (SYSTEM_METADATA, system_meta))
         if isinstance(node, nodes.GroupNode):
             package_obj.save_group(path, meta)
             for key, child in node._items():
@@ -576,7 +578,11 @@ def build_from_node(package, node):
         else:
             assert False, "Unexpected node type: %r" % node
 
-    _process_node(node)
+    try:
+        _process_node(node)
+    except StoreException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
+
     package_obj.save_contents()
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):

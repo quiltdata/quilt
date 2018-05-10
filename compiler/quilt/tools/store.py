@@ -448,13 +448,17 @@ class PackageStore(object):
         if metadata in (None, {}):
             return None
 
-        assert SYSTEM_METADATA not in metadata
+        if SYSTEM_METADATA in metadata:
+            raise StoreException("Not allowed to store %r in metadata" % SYSTEM_METADATA)
 
         path = self.temporary_object_path(str(uuid.uuid4()))
 
         with open(path, 'w') as fd:
-            # IMPORTANT: JSON format affects the hash of the package.
-            json.dump(metadata, fd, sort_keys=True, indent=2)
+            try:
+                # IMPORTANT: JSON format affects the hash of the package.
+                json.dump(metadata, fd, sort_keys=True, indent=2)
+            except (TypeError, ValueError):
+                raise StoreException("Metadata is not serializable")
 
         metahash = digest_file(path)
         move(path, self.object_path(metahash))

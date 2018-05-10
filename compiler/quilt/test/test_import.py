@@ -271,6 +271,15 @@ class ImportTest(QuiltTestCase):
         assert package3._meta['foo'] == 'bar'
         assert package3.newgroup._meta['x'] == 'y'
 
+        # Try setting invalid metadata
+        package1.new.df._meta['_system'] = 1
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package4', package1)
+
+        package3._meta['foo'] = {'bar': lambda x: x}
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package5', package3)
+
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
