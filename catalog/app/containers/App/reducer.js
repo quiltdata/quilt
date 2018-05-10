@@ -17,6 +17,8 @@ import {
   GET_PACKAGE,
   GET_PACKAGE_ERROR,
   GET_PACKAGE_SUCCESS,
+  GET_TRAFFIC,
+  GET_TRAFFIC_RESPONSE,
   NO_OP,
   REFRESH_AUTH,
   ROUTER_START,
@@ -80,6 +82,13 @@ function appReducer(state = initialState, action) {
         .deleteIn(['user', 'auth', 'response']);
     case STORE_TOKENS:
       return state.setIn(['user', 'auth', 'tokens'], fromJS(action.response));
+    case GET_TRAFFIC:
+      return state.setIn(['package', 'traffic', 'status'], status.WAITING);
+    case GET_TRAFFIC_RESPONSE:
+      return state
+        .setIn(['package', 'traffic', 'status'],
+          action.error ? status.ERROR : status.SUCCESS)
+        .setIn(['package', 'traffic', 'response'], fromJS(action.payload));
     case NO_OP:
     default:
       return state;
