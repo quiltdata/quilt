@@ -31,7 +31,7 @@ class Node(object):
         raise NotImplementedError
 
     def __init__(self, metadata_hash):
-        assert metadata_hash is None or isinstance(metadata_hash, str)
+        assert metadata_hash is None or isinstance(metadata_hash, string_types)
         self.metadata_hash = metadata_hash
 
     def __eq__(self, other):
