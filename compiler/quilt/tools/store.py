@@ -456,7 +456,9 @@ class PackageStore(object):
         with open(path, 'w') as fd:
             try:
                 # IMPORTANT: JSON format affects the hash of the package.
-                json.dump(metadata, fd, sort_keys=True, indent=2)
+                # In particular, it cannot contain line breaks because of Windows (LF vs CRLF).
+                # To be safe, we use the most compact encoding.
+                json.dump(metadata, fd, sort_keys=True, separators=(',', ':'))
             except (TypeError, ValueError):
                 raise StoreException("Metadata is not serializable")
 
