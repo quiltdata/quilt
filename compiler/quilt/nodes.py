@@ -128,8 +128,10 @@ class GroupNode(Node):
             if isinstance(node, GroupNode):
                 stack.extend(child for _, child in sorted(node._items(), reverse=True))
             else:
-                if not isinstance(node._node, core.TableNode) or not node._node.hashes:
-                    raise NotImplementedError("Can only merge on-disk dataframes")
+                if not isinstance(node._node, core.TableNode):
+                    raise ValueError("Group contains non-dataframe nodes")
+                if not node._node.hashes:
+                    raise NotImplementedError("Can only merge built dataframes. Build this package and try again.")
                 node_store = node._package.get_store()
                 if store is None:
                     store = node_store

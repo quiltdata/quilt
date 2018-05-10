@@ -59,16 +59,6 @@ class Node(object):
     def get_children(self):
         return {}
 
-    def preorder(self):
-        """
-        Iterator that returns all nodes in the tree starting with the current node.
-        """
-        stack = [self]
-        while stack:
-            obj = stack.pop()
-            yield obj
-            stack.extend(itervalues(obj.get_children()))
-
 class GroupNode(Node):
     __slots__ = ('children',)
 
@@ -188,7 +178,10 @@ def find_object_hashes(root):
 
     :param root: starting node
     """
-    for obj in root.preorder():
+    stack = [root]
+    while stack:
+        obj = stack.pop()
         if isinstance(obj, (TableNode, FileNode)):
             for objhash in obj.hashes:
                 yield objhash
+        stack.extend(itervalues(obj.get_children()))
