@@ -964,7 +964,7 @@ def _iterate_data_nodes(node):
             yield from _iterate_data_nodes(child)
 
 
-def get_install_timeseries(owner, package_name, max_weeks_old=52):
+def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
     now = datetime.utcnow()
     last_monday = (now - timedelta(days=now.weekday())).date()
     next_monday = last_monday + timedelta(weeks=1)
@@ -977,10 +977,20 @@ def get_install_timeseries(owner, package_name, max_weeks_old=52):
         )
         .filter(Event.package_owner == owner)
         .filter(Event.package_name == package_name)
-        .filter(Event.type == Event.Type.INSTALL)
+        .filter(Event.type == event_type)
         .filter(weeks_ago < max_weeks_old)
         .group_by(weeks_ago)
         .all()
+    )
+
+    total = (
+        db.session.query(
+            Event
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == event_type)
+        .count()
     )
 
     result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
@@ -995,9 +1005,36 @@ def get_install_timeseries(owner, package_name, max_weeks_old=52):
         'startDate': calendar.timegm(first.timetuple()),
         'endDate': calendar.timegm(last.timetuple()),
         'frequency': 'week',
-        'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
+        'timeSeries': reversed(counts), # 0 weeks ago needs to be at end of timeseries
+        'total': total
     }
 
+@app.route('/api/package_timeseries/<owner>/<package_name>/<event_type>',
+        methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_timeseries(owner, package_name, event_type):
+    try:
+        event_enum = Event.Type[event_type.upper()]
+    except:
+        raise ApiException(requests.codes.bad_request, "Event type incorrectly specified.")
+
+    result = (
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id)
+        .one_or_none()
+    )
+    if not result:
+        raise ApiException(requests.codes.not_found, "Package does not exist.")
+
+    return get_event_timeseries(owner, package_name, event_enum)
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -1090,16 +1127,6 @@ def package_preview(owner, package_name, package_hash):
         package_name=package_name,
     )
 
-    total_installs = (
-        db.session.query(
-            Event
-        )
-        .filter(Event.type == Event.Type.INSTALL)
-        .filter(Event.package_name == package_name)
-        .filter(Event.package_owner == owner)
-        .count()
-    )
-
     return dict(
         preview=contents_preview,
         readme_url=readme_url,
@@ -1113,8 +1140,6 @@ def package_preview(owner, package_name, package_hash):
         total_size_uncompressed=total_size,
         file_types=file_types,
         log_count=log_count,
-        install_timeseries=get_install_timeseries(owner, package_name),
-        total_installs=total_installs,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
