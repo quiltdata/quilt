@@ -1090,6 +1090,16 @@ def package_preview(owner, package_name, package_hash):
         package_name=package_name,
     )
 
+    total_installs = (
+        db.session.query(
+            Event
+        )
+        .filter(Event.type == Event.Type.INSTALL)
+        .filter(Event.package_name == package_name)
+        .filter(Event.package_owner == owner)
+        .count()
+    )
+
     return dict(
         preview=contents_preview,
         readme_url=readme_url,
@@ -1104,6 +1114,7 @@ def package_preview(owner, package_name, package_hash):
         file_types=file_types,
         log_count=log_count,
         install_timeseries=get_install_timeseries(owner, package_name),
+        total_installs=total_installs,
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])

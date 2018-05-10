@@ -744,6 +744,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
         assert ts['timeSeries'] == [0] * 52
+        assert data['total_installs'] == 0
         preview = data['preview']
 
         assert preview == [
@@ -788,6 +789,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
         assert ts['timeSeries'] == [0] * 51 + [1]
+        assert data['total_installs'] == 1
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPreviewStats(self):
@@ -835,6 +837,8 @@ class PushInstallTestCase(QuiltTestCase):
         assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
         assert ts['timeSeries'] == [0] * 52
+
+        assert data['total_installs'] == 0
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testReadmeDownload(self):
