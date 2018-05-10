@@ -96,7 +96,7 @@ class TableNode(Node):
         assert isinstance(format, string_types), '%r' % format
 
         self.hashes = hashes
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     def __json__(self):
         val = super(TableNode, self).__json__()
@@ -117,7 +117,7 @@ class FileNode(Node):
         assert isinstance(hashes, list)
 
         self.hashes = hashes
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     def __json__(self):
         val = super(FileNode, self).__json__()
