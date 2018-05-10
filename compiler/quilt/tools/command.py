@@ -949,7 +949,7 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
             if not success:
                 raise CommandException("Failed to download fragments")
         else:
-            print("All fragments are already downloaded!")
+            print("Fragments already downloaded")
 
     pkgobj.save_contents()
 
@@ -969,6 +969,8 @@ def _materialize(node):
     missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
 
     if missing_hashes:
+        print("Fetching download URLs from the registry...")
+
         teams = {None, _find_logged_in_team()}
 
         obj_urls = dict()
@@ -992,7 +994,7 @@ def _materialize(node):
         if not success:
             raise CommandException("Failed to download fragments")
     else:
-        print("All fragments are already downloaded!")
+        print("Fragments already downloaded")
 
 def access_list(package):
     """
