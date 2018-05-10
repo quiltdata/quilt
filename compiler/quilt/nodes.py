@@ -26,11 +26,12 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
-    def __setattr__(self, name, value):
-        if name.startswith('_') or isinstance(value, Node):
-            super(Node, self).__setattr__(name, value)
-        else:
-            raise AttributeError("{val} is not a valid package node".format(val=value))
+    def __call__(self):
+        return self._data()
+
+    def _data(self):
+        raise NotImplementedError
+
 
 class DataNode(Node):
     """
@@ -41,9 +42,6 @@ class DataNode(Node):
         self._package = package
         self._node = node
         self.__cached_data = data
-
-    def __call__(self):
-        return self._data()
 
     def _data(self):
         """
@@ -57,17 +55,24 @@ class DataNode(Node):
             elif isinstance(self._node, core.FileNode):
                 self.__cached_data = store.get_file(self._node.hashes)
             else:
-                # XXX: This is wrong.
-                hash_list = list(core.find_object_hashes(self._node, sort=True))
-                self.__cached_data = store.load_dataframe(hash_list)
+                assert False
         return self.__cached_data
 
-class GroupNode(DataNode):
+
+class GroupNode(Node):
     """
     Represents a group in a package. Allows accessing child objects using the dot notation.
     Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
     supported for Parquet packages).
     """
+    def __init__(self):
+        super(GroupNode, self).__init__()
+
+    def __setattr__(self, name, value):
+        if name.startswith('_') or isinstance(value, Node):
+            super(Node, self).__setattr__(name, value)
+        else:
+            raise AttributeError("{val} is not a valid package node".format(val=value))
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
@@ -108,13 +113,45 @@ class GroupNode(DataNode):
         return [name for name in self.__dict__ if not name.startswith('_')]
 
     def _add_group(self, groupname):
-        child = GroupNode(self._package, core.GroupNode({}))
+        child = GroupNode()
         setattr(self, groupname, child)
+
+    def _data(self):
+        """
+        Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
+        """
+        store = None
+        hash_list = []
+        stack = [self]
+        while stack:
+            node = stack.pop()
+            if isinstance(node, GroupNode):
+                stack.extend(child for _, child in sorted(node._items(), reverse=True))
+            else:
+                if not isinstance(node._node, core.TableNode):
+                    raise ValueError("Group contains non-dataframe nodes")
+                if not node._node.hashes:
+                    raise NotImplementedError("Can only merge built dataframes. Build this package and try again.")
+                node_store = node._package.get_store()
+                if store is None:
+                    store = node_store
+                elif node_store is not store:
+                    raise NotImplementedError("Can only merge dataframes from the same store")
+                hash_list += node._node.hashes
+
+        if not hash_list:
+            return None
+
+        return store.load_dataframe(hash_list)
+
 
 class PackageNode(GroupNode):
     """
     Represents a package.
     """
+    def __init__(self, package):
+        super(PackageNode, self).__init__()
+        self._package = package
 
     def _class_repr(self):
         finfo = self._package.get_path()
@@ -170,7 +207,7 @@ class PackageNode(GroupNode):
         for key in path[:-1]:
             child = getattr(node, key, None)
             if not isinstance(child, GroupNode):
-                child = GroupNode(self._package, core.GroupNode({}))
+                child = GroupNode()
                 setattr(node, key, child)
 
             node = child
