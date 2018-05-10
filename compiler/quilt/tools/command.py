@@ -969,7 +969,7 @@ def _materialize(node):
     missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
 
     if missing_hashes:
-        print("Fetching download URLs from the registry...")
+        print("Requesting %d signed URLs..." % len(missing_hashes))
 
         teams = {None, _find_logged_in_team()}
 
