@@ -1470,14 +1470,14 @@ def export(package, output_path='.', force=False, symlinks=False):
 
         # bar_format is not respected unless both ncols and total are set.
         exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
-
         # tqdm is threaded, and its display may not specify the exact file currently being exported.
-        for node, dest in exports_bar:
-            # Escape { and } in filenames for .format called by tqdm
-            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
-            exports_bar.bar_format = fmt + ": " + fname
-            exports_bar.update(0)
-            export_node(node, dest, use_symlinks=symlinks)
+        with exports_bar:
+            for node, dest in exports_bar:
+                # Escape { and } in filenames for .format called by tqdm
+                fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+                exports_bar.bar_format = fmt + ": " + fname
+                exports_bar.update(0)
+                export_node(node, dest, use_symlinks=symlinks)
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
         commandex.original_error = error
