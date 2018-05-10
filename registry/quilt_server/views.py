@@ -965,7 +965,11 @@ def _iterate_data_nodes(node):
 
 
 def get_install_timeseries(owner, package_name, max_weeks_old=52):
-    weeks_ago = sa.func.trunc(sa.func.date_part('day', sa.func.now() - Event.created) / 7)
+    now = datetime.utcnow()
+    last_monday = (now - timedelta(days=now.weekday())).date()
+    next_monday = last_monday + timedelta(weeks=1)
+
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', next_monday - Event.created) / 7)
     result = (
         db.session.query(
             sa.func.count(Event.id),
@@ -974,23 +978,22 @@ def get_install_timeseries(owner, package_name, max_weeks_old=52):
         .filter(Event.package_owner == owner)
         .filter(Event.package_name == package_name)
         .filter(Event.type == Event.Type.INSTALL)
-        .filter(weeks_ago <= max_weeks_old)
+        .filter(weeks_ago < max_weeks_old)
         .group_by(weeks_ago)
         .all()
     )
 
     result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
     # result contains (count, weeks_ago) pairs
-    max_weeks_ago_in_result = max([weeks_ago for count, weeks_ago in result], default=0)
-    last = datetime.utcnow()
-    first = last - timedelta(weeks=max_weeks_ago_in_result)
-    counts = [0] * (max_weeks_ago_in_result + 1) # list of zeroes
+    last = next_monday
+    first = next_monday - timedelta(weeks=max_weeks_old)
+    counts = [0] * (max_weeks_old) # list of zeroes
     for count, weeks_ago in result:
         counts[weeks_ago] = count
 
     return {
-        'startDate': calendar.timegm(first.utctimetuple()),
-        'endDate': calendar.timegm(last.utctimetuple()),
+        'startDate': calendar.timegm(first.timetuple()),
+        'endDate': calendar.timegm(last.timetuple()),
         'frequency': 'week',
         'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
     }

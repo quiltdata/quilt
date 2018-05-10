@@ -741,9 +741,9 @@ class PushInstallTestCase(QuiltTestCase):
         assert data['readme_url']
         assert data['readme_preview'] == readme_contents
         ts = data['install_timeseries']
-        assert ts['startDate'] == ts['endDate']
+        assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
-        assert ts['timeSeries'] == [0]
+        assert ts['timeSeries'] == [0] * 52
         preview = data['preview']
 
         assert preview == [
@@ -785,9 +785,9 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         ts = data['install_timeseries']
-        assert ts['startDate'] == ts['endDate']
+        assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
-        assert ts['timeSeries'] == [1]
+        assert ts['timeSeries'] == [0] * 51 + [1]
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPreviewStats(self):
@@ -832,9 +832,9 @@ class PushInstallTestCase(QuiltTestCase):
             '.exe': 1
         }
         ts = data['install_timeseries']
-        assert ts['startDate'] == ts['endDate']
+        assert ts['startDate'] < ts['endDate']
         assert ts['frequency'] == 'week'
-        assert ts['timeSeries'] == [0]
+        assert ts['timeSeries'] == [0] * 52
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testReadmeDownload(self):
