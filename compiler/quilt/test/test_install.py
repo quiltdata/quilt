@@ -27,7 +27,7 @@ from ..tools.core import (
     RootNode,
 )
 from ..tools.package import Package
-from ..tools.store import PackageStore
+from ..tools.store import PackageStore, StoreException
 from ..tools.util import gzip_compress
 
 from .utils import QuiltTestCase, patch
@@ -457,6 +457,30 @@ packages:
         with self.assertRaises(command.CommandException):
             command.install('foo/bar')
 
+    def test_meta_only_and_materialize(self):
+        file_data, file_hash = self.make_file_data()
+        contents, contents_hash = self.make_contents(file=file_hash)
+
+        self._mock_tag('foo/bar', 'latest', contents_hash)
+        self._mock_package('foo/bar', contents_hash, '', contents, [], meta_only=True)
+
+        # Install just the metadata. Don't mock S3.
+        command.install('foo/bar', meta_only=True)
+
+        pkg = command.load('foo/bar')
+
+        # Fragments not actually there.
+        with self.assertRaises(StoreException):
+            pkg.group.file()
+
+        self._mock_get_objects([file_hash])
+        self._mock_s3(file_hash, file_data)
+
+        # Materialize the package.
+        command.install(pkg)
+
+        assert pkg.group.file().endswith(file_hash)
+
     def _mock_log(self, package, pkg_hash, team=None):
         log_url = '%s/api/log/%s/' % (command.get_registry_url(team), package)
         self.requests_mock.add(responses.GET, log_url, json.dumps({'logs': [
@@ -478,9 +502,12 @@ packages:
         ), status=status)
 
     def _mock_package(self, package, pkg_hash, subpath, contents, hashes,
-                      status=200, message=None, team=None):
+                      status=200, message=None, team=None, meta_only=False):
         pkg_url = '%s/api/package/%s/%s?%s' % (
-            command.get_registry_url(team), package, pkg_hash, urllib.parse.urlencode(dict(subpath=subpath))
+            command.get_registry_url(team), package, pkg_hash, urllib.parse.urlencode(dict(
+                subpath=subpath,
+                meta_only='true' if meta_only else ''
+            ))
         )
         self.requests_mock.add(responses.GET, pkg_url, body=json.dumps(
             dict(message=message) if message else
@@ -498,3 +525,12 @@ packages:
         }
         body = gzip_compress(contents)
         self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
+
+    def _mock_get_objects(self, hashes, team=None):
+        url = '%s/api/get_objects' % command.get_registry_url(team)
+        self.requests_mock.add(responses.POST, url, body=json.dumps(
+            dict(
+                sizes={h: 100 for h in hashes},
+                urls={h: 'https://example.com/%s' % h for h in hashes}
+            )
+        ), match_querystring=True)
