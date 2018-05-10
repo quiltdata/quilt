@@ -115,7 +115,7 @@ class AuthTestCase(QuiltTestCase):
         assert not verify_reset_link(activate_link)
         assert not verify_activation_link(reset_link)
 
-    def testMockUser(self):
+    def testApiRoot(self):
         auth_headers = {
             'Authorization': 'admin',
             'content_type': 'application/json'
@@ -125,6 +125,11 @@ class AuthTestCase(QuiltTestCase):
             headers=auth_headers
         )
         assert resp.status_code == 200
+        data = json.loads(resp.get_data())
+        assert data['is_staff'] == True
+        assert data['current_user'] == 'admin'
+        assert data['email'] == 'admin@quiltdata.io'
+        assert data['is_active'] == True
 
     # password reset emails
     # account creation flow
