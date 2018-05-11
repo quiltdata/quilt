@@ -1,5 +1,5 @@
 import { fromJS } from 'immutable';
-import { composeHandlers } from 'utils/reduxTools';
+import { withInitialState, handleActions } from 'utils/reduxTools';
 
 import api from 'constants/api';
 
@@ -11,7 +11,7 @@ const initial = {
   response: null,
 };
 
-export default composeHandlers(fromJS(initial), {
+export default withInitialState(fromJS(initial), handleActions({
   [actions.GET]: {
     status: (p) => p.name ? api.WAITING : null,
     response: null,
@@ -21,4 +21,4 @@ export default composeHandlers(fromJS(initial), {
     status: (p) => p.status,
     response: (p) => fromJS(p.response),
   },
-});
+}));
