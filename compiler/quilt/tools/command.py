@@ -556,10 +556,13 @@ def build_from_node(package, node):
     package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=[]):
+        if not isinstance(node._meta, dict):
+            raise CommandException("_meta must be a dictionary")
         meta = dict(node._meta)
         system_meta = meta.pop(SYSTEM_METADATA, {})
         if not isinstance(system_meta, dict):
-            raise CommandException("Unexpected value in %r: %r" % (SYSTEM_METADATA, system_meta))
+            raise CommandException("_meta[%r] overwritten. %s is reserved metadata key. "
+                                   "Try a different key" % (SYSTEM_METADATA, SYSTEM_METADATA))
         if isinstance(node, nodes.GroupNode):
             package_obj.save_group(path, meta)
             for key, child in node._items():
