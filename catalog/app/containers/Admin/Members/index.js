@@ -18,7 +18,7 @@ import { createSelector } from 'reselect';
 import { withPagination } from 'components/Pagination';
 import Spinner from 'components/Spinner';
 import Tag from 'components/Tag';
-import { makeSelectUserName } from 'containers/App/selectors';
+import { username } from 'containers/Auth/selectors';
 import { push } from 'containers/Notifications/actions';
 import api, { apiStatus } from 'constants/api';
 import { injectReducer } from 'utils/ReducerInjector';
@@ -165,7 +165,7 @@ export default composeComponent('Admin.Members',
   injectSaga(REDUX_KEY, saga),
   injectIntl,
   connect(
-    createSelector(selector(), makeSelectUserName(), (state, user) => ({ user, ...state })),
+    createSelector(selector(), username, (state, user) => ({ user, ...state })),
     { notify: push, ...actions }
   ),
   setPropTypes({

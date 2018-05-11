@@ -12,7 +12,7 @@ import MIcon from 'components/MIcon';
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 import { palette } from 'constants/style';
-import { makeSignInURL } from 'utils/auth';
+import { makeSignInURL } from 'containers/Auth/util';
 import { composeComponent } from 'utils/reactTools';
 
 import Comment from './Comment';

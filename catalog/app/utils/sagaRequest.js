@@ -1,7 +1,7 @@
 import { call } from 'redux-saga/effects';
 
 import config from 'constants/config';
-import { makeHeaders } from 'utils/auth';
+import { makeHeaders } from 'containers/Auth/saga';
 import { requestJSON } from 'utils/request';
 
 

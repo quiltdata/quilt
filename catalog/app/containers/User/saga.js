@@ -1,8 +1,10 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
-import { requestJSON } from 'utils/request';
-import { makeHeaders } from 'utils/auth';
-import makeError from 'utils/error';
+
 import config from 'constants/config';
+import { makeHeaders } from 'containers/Auth/saga';
+import { requestJSON } from 'utils/request';
+import makeError from 'utils/error';
+
 import {
   getPackagesError,
   getPackagesSuccess,
@@ -15,7 +17,6 @@ import {
 export function* doGetPackages({ username }) {
   try {
     const headers = yield call(makeHeaders);
-    // eslint-disable-next-line function-paren-newline
     const response = yield call(requestJSON,
       `${config.api}/api/package/${username}/`,
       { headers });

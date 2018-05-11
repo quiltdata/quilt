@@ -5,6 +5,7 @@ import 'babel-polyfill';
 // Import all the third party stuff
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { LOCATION_CHANGE } from 'react-router-redux';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import { reducer as form } from 'redux-form/immutable';
@@ -17,6 +18,7 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 import App from 'containers/App';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
+import AuthProvider from 'containers/Auth';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
 import StoreProvider from 'utils/StoreProvider';
@@ -48,14 +50,22 @@ const history = createHistory();
 const store = configureStore(initialState, history);
 const MOUNT_NODE = document.getElementById('app');
 
+// Check auth when location changes.
+// No reason to refresh on oauth_callback route; only time we enter that
+// route is when a log in is in progress.
+const checkAuthOn = ({ type, payload }) =>
+  type === LOCATION_CHANGE && !payload.pathname.startsWith('/oauth_callback');
+
 const render = (messages) => {
   ReactDOM.render(
     <StoreProvider store={store}>
       <InjectReducer mount="form" reducer={form}>
         <LanguageProvider messages={messages}>
-          <RouterProvider history={history}>
-            <App />
-          </RouterProvider>
+          <AuthProvider checkOn={checkAuthOn}>
+            <RouterProvider history={history}>
+              <App />
+            </RouterProvider>
+          </AuthProvider>
         </LanguageProvider>
       </InjectReducer>
     </StoreProvider>,

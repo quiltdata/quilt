@@ -4,8 +4,8 @@ import PT from 'prop-types';
 import React from 'react';
 import styled from 'styled-components';
 
-import { makeSignInURL } from 'utils/auth';
 import { installQuilt } from 'constants/urls';
+import { makeSignInURL } from 'containers/Auth/util';
 
 const Container = styled.div`
 
@@ -21,9 +21,7 @@ const Container = styled.div`
 function TakeAction({ signUp }) {
   return (
     <Container>
-      {signUp &&
-        <RaisedButton href={makeSignInURL()} label="Sign Up" primary />
-      }
+      {signUp && <RaisedButton href={makeSignInURL()} label="Sign Up" primary />}
       <RaisedButton href={installQuilt} label="Install" />
     </Container>
   );
