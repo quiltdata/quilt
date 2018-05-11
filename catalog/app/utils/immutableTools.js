@@ -1,3 +1,5 @@
+import { fromJS as iFromJS } from 'immutable';
+
 export const invoke = (method) => (...args) => (obj) =>
   obj && method in obj ? obj[method](...args) : obj;
 
@@ -11,3 +13,4 @@ export const removeIn = invoke('removeIn');
 export const sortBy = invoke('sortBy');
 export const push = invoke('push');
 export const toJS = invoke('toJS');
+export const fromJS = (...args) => (obj) => iFromJS(obj, ...args);
