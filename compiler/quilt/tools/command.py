@@ -564,7 +564,7 @@ def build_from_node(package, node):
         system_meta = meta.pop(SYSTEM_METADATA, {})
         if not isinstance(system_meta, dict):
             raise CommandException(
-                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key" %
+                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key." %
                 ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
             )
         if isinstance(node, nodes.GroupNode):
