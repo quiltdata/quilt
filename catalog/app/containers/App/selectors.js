@@ -2,47 +2,26 @@
 import { Map } from 'immutable';
 import { createSelector, createStructuredSelector } from 'reselect';
 
+import { getIn, toJS } from 'utils/immutableTools';
 import { REDUX_KEY } from './constants';
 
-const emptyMap = Map({});
-
-const selectAuth = (state) => state.getIn([REDUX_KEY, 'user', 'auth'], emptyMap);
-const selectPackage = (state) => state.getIn([REDUX_KEY, 'package'], emptyMap);
-const selectSearchText = (state) => state.getIn([REDUX_KEY, 'searchText'], '');
-const selectUserName = (state) => state.getIn(
-  [REDUX_KEY, 'user', 'auth', 'response', 'current_user'],
-  ''
-);
-const selectEmail = (state) => state.getIn(
-  [REDUX_KEY, 'user', 'auth', 'response', 'email'],
-  ''
+export const selectPackage = createSelector(
+  getIn([REDUX_KEY, 'package'], Map({})),
+  toJS(),
 );
 
-const makeSelectAuth = () => createSelector(
-  selectAuth,
-  (auth) => auth.toJS(),
-);
-
-const makeSelectPackage = () => createSelector(
-  selectPackage,
-  (pkg) => pkg.toJS(),
-);
-
-const makeSelectPackageSummary = () => createSelector(
-  selectPackage,
-  (pkg) => ({
-    owner: pkg.getIn(['response', 'created_by']),
-    hash: pkg.getIn(['response', 'hash']),
-    name: pkg.get('name'),
-  })
-);
+export const selectPackageSummary = createStructuredSelector({
+  owner: getIn([REDUX_KEY, 'package', 'response', 'created_by']),
+  hash: getIn([REDUX_KEY, 'package', 'response', 'hash']),
+  name: getIn([REDUX_KEY, 'package', 'name']),
+});
 
 const frequencies = {
   week: 1000 * 60 * 60 * 24 * 7,
 };
 
 const selectTrafficType = (type) => createSelector(
-  (s) => s.getIn([REDUX_KEY, 'package', 'traffic', 'response']),
+  getIn([REDUX_KEY, 'package', 'traffic', 'response']),
   (response) => {
     if (response instanceof Error) return response;
     if (!response) return null;
@@ -65,38 +44,12 @@ const selectTrafficType = (type) => createSelector(
   }
 );
 
-const selectPackageTraffic = createStructuredSelector({
+export const selectPackageTraffic = createStructuredSelector({
   installs: selectTrafficType('installs'),
   views: selectTrafficType('views'),
 });
 
-const makeSelectSearchText = () => createSelector(
-  selectSearchText,
+export const selectSearchText = createSelector(
+  getIn([REDUX_KEY, 'searchText'], ''),
   (txt) => txt,
 );
-
-const makeSelectSignedIn = () => createSelector(
-  selectUserName,
-  (name) => Boolean(name),
-);
-
-const makeSelectUserName = () => createSelector(
-  selectUserName,
-  (name) => name,
-);
-
-const makeSelectEmail = () => createSelector(
-  selectEmail,
-  (email) => email,
-);
-
-export {
-  makeSelectAuth,
-  makeSelectEmail,
-  makeSelectPackage,
-  makeSelectPackageSummary,
-  selectPackageTraffic,
-  makeSelectSearchText,
-  makeSelectSignedIn,
-  makeSelectUserName,
-};

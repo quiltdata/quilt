@@ -1,5 +1,4 @@
 /* App */
-import { fromJS } from 'immutable';
 import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 
@@ -7,21 +6,20 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 import Redirect from 'components/Redirect';
+import Callback from 'containers/Auth/Callback';
+import SignOut from 'containers/Auth/SignOut';
+import requireAuth from 'containers/Auth/wrapper';
 import AuthBar from 'containers/AuthBar';
 import HomePage from 'containers/HomePage/Loadable';
 import NotFoundPage from 'containers/NotFoundPage/Loadable';
 import Notifications from 'containers/Notifications';
-import OAuth2 from 'containers/OAuth2/Loadable';
 import Package from 'containers/Package/Loadable';
 import Profile from 'containers/Profile/Loadable';
 import SearchResults from 'containers/SearchResults/Loadable';
-import SignOut from 'containers/SignOut';
 import User from 'containers/User/Loadable';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
 import { composeComponent } from 'utils/reactTools';
-import requireAuth from 'utils/requireAuth';
-import { loadState } from 'utils/storage';
 
 import config from 'constants/config';
 
@@ -43,10 +41,7 @@ const ProtectedSearch = requireAuthIfTeam(SearchResults);
 const ProtectedNotFound = requireAuthIfTeam(NotFoundPage);
 
 export default composeComponent('App',
-  injectReducer(REDUX_KEY, reducer, () => {
-    const { RESPONSE, TOKENS } = loadState();
-    return fromJS({ user: { auth: { response: RESPONSE, tokens: TOKENS } } });
-  }),
+  injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
   () => (
     <CoreLF>
@@ -57,7 +52,7 @@ export default composeComponent('App',
           <Route path="/package/:owner/:name" exact component={ProtectedPackage} />
           <Route path="/package/:username" exact component={ProtectedUser} />
           <Route path="/user/:username" exact component={ProtectedUser} />
-          <Route path="/oauth_callback" exact component={OAuth2} />
+          <Route path="/oauth_callback" exact component={Callback} />
           <Route path="/grna-search" exact render={() => <Redirect url={grnaUrl} />} />
           <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
           <Route path="/search" exact component={ProtectedSearch} />

@@ -14,7 +14,7 @@ import Help from 'components/Help';
 import PackageList from 'components/PackageList';
 import Working from 'components/Working';
 import { setSearchText } from 'containers/App/actions';
-import { makeSelectSearchText } from 'containers/App/selectors';
+import { selectSearchText } from 'containers/App/selectors';
 import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
@@ -33,7 +33,7 @@ export default composeComponent('SearchResults',
   withParsedQuery,
   connect(createStructuredSelector({
     search: makeSelectSearch(),
-    searchText: makeSelectSearchText(),
+    searchText: selectSearchText,
   })),
   setPropTypes({
     dispatch: PropTypes.func.isRequired,

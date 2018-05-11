@@ -5,17 +5,15 @@ import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 
-import { makeSignInURL } from 'utils/auth';
 import MIcon from 'components/MIcon';
 import Spinner from 'components/Spinner';
 import { authButtonStyle } from 'constants/style';
+import { makeSignInURL } from 'containers/Auth/util';
 import redirect from 'utils/redirect';
 
 import strings from './messages';
 
-const onClickSignIn = () => {
-  redirect(makeSignInURL());
-};
+const onClickSignIn = () => redirect(makeSignInURL());
 
 const SignIn = ({ error, useNavStyle, waiting }) => {
   if (waiting) {
