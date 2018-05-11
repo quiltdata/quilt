@@ -17,7 +17,7 @@ from tqdm import tqdm
 
 from .compat import pathlib
 from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
-                    QuiltException, TargetType)
+                    SYSTEM_METADATA, QuiltException, TargetType)
 from .core import GroupNode
 from .hashing import digest_file, digest_string
 from .store import PackageStore, ParquetLib, StoreException
@@ -136,7 +136,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
     """
     if _is_internal_node(node):
         if not dry_run:
-            package.save_group(node_path)
+            package.save_group(node_path, None)
 
         # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
         # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
@@ -178,7 +178,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                package.save_group(node_path)
+                package.save_group(node_path, None)
             return
 
         include_package = node.get(RESERVED['package'])
@@ -205,6 +205,19 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
             package.save_package_tree(node_path, node)
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
+
+            rel_meta_path = node.get(RESERVED['meta'])
+            if rel_meta_path:
+                with open(os.path.join(build_dir, rel_meta_path)) as fd:
+                    try:
+                        metadata = json.load(fd)
+                    except ValueError as ex:
+                        raise BuildException("Failed to parse %r as JSON: %s" % (rel_meta_path, ex))
+                    if SYSTEM_METADATA in metadata:
+                        raise BuildException("Invalid metadata in %r: not allowed to use key %r" %
+                                             (rel_meta_path, SYSTEM_METADATA))
+            else:
+                metadata = None
 
             # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
@@ -249,7 +262,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                         _run_checks(data, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, metadata)
             elif transform == PARQUET:
                 if checks:
                     from pyarrow.parquet import ParquetDataset
@@ -259,7 +272,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, metadata)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -282,7 +295,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                 # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, node_path, rel_path, transform, target)
+                    package.save_cached_df(cachedobjs, node_path, target, rel_path, transform, metadata)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -299,7 +312,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, node_path, rel_path, transform, target)
+                        obj_hashes = package.save_df(dataframe, node_path, target, rel_path, transform, metadata)
 
                         # Add to cache
                         cache_entry = dict(

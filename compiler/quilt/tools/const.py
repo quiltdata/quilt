@@ -24,10 +24,13 @@ RESERVED = {
     'checks': 'checks',
     'environments': 'environments',
     'file': 'file',
+    'meta': 'meta',
     'kwargs': 'kwargs',
     'package': 'package',
     'transform': 'transform'
 }
+
+SYSTEM_METADATA = '_system'
 
 # SHA-2 Family
 HASH_TYPE = 'sha256'

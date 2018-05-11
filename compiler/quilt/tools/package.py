@@ -121,33 +121,36 @@ class Package(object):
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
             contents.children = pkgnode.children.copy()
 
-    def save_cached_df(self, hashes, node_path, source_path, ext, target):
+    def save_cached_df(self, hashes, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
-        self._add_to_contents(node_path, hashes, ext, source_path, target)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
 
-    def save_df(self, dataframe, node_path, source_path, ext, target):
+    def save_df(self, dataframe, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
         hashes = self._store.save_dataframe(dataframe)
-        self._add_to_contents(node_path, hashes, ext, source_path, target)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
         return hashes
 
-    def save_file(self, srcfile, node_path, source_path, target):
+    def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
         """
         Save a (raw) file to the store.
         """
         filehash = self._store.save_file(srcfile)
-        self._add_to_contents(node_path, [filehash], '', source_path, target)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, [filehash], target, source_path, transform, metahash)
 
-    def save_group(self, node_path):
+    def save_group(self, node_path, custom_meta):
         """
         Save a group to the store.
         """
-        if node_path:
-            self._add_to_contents(node_path, None, '', None, TargetType.GROUP)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, None, TargetType.GROUP, None, None, metahash)
 
     def get_contents(self):
         """
@@ -197,20 +200,27 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, node_path, hashes, ext, source_path, target):
+    def _add_to_contents(self, node_path, hashes, target, source_path, transform, user_meta_hash):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
         assert isinstance(node_path, list)
+        assert user_meta_hash is None or isinstance(user_meta_hash, str)
 
         contents = self.get_contents()
+
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata_hash = user_meta_hash
+            return
 
         ptr = contents
         for node in node_path[:-1]:
             ptr = ptr.children[node]
 
         metadata = dict(
-            q_ext=ext,
+            q_ext=transform,
             q_path=source_path,
             q_target=target.value
         )
@@ -221,12 +231,14 @@ class Package(object):
             node = TableNode(
                 hashes=hashes,
                 format=PackageFormat.default.value,
-                metadata=metadata
+                metadata=metadata,
+                metadata_hash=user_meta_hash
             )
         elif target is TargetType.FILE:
             node = FileNode(
                 hashes=hashes,
-                metadata=metadata
+                metadata=metadata,
+                metadata_hash=user_meta_hash
             )
         else:
             assert False, "Unhandled TargetType {tt}".format(tt=target)

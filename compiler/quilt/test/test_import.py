@@ -247,6 +247,10 @@ class ImportTest(QuiltTestCase):
         package1._set(['newgroup'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup._data() == new_path
 
+        # Set some custom metadata
+        package1._meta['foo'] = 'bar'
+        package1.newgroup._meta['x'] = 'y'
+
         # Built a new package and verify the new contents
         command.build('foo/package3', package1)
 
@@ -263,6 +267,18 @@ class ImportTest(QuiltTestCase):
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
+
+        assert package3._meta['foo'] == 'bar'
+        assert package3.newgroup._meta['x'] == 'y'
+
+        # Try setting invalid metadata
+        package1.new.df._meta['_system'] = 1
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package4', package1)
+
+        package3._meta['foo'] = {'bar': lambda x: x}
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package5', package3)
 
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)

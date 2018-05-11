@@ -64,6 +64,25 @@ class InstallTest(QuiltTestCase):
         ))
         return contents, hash_contents(contents)
 
+    def test_metdata_hash(self):
+        pkg1 = RootNode(dict(
+            data=FileNode(['123'])
+        ))
+
+        pkg2 = RootNode(dict(
+            data=FileNode(['123'], metadata={'q_path': 'blah'})
+        ))
+
+        pkg3 = RootNode(dict(
+            data=FileNode(['123'], metadata_hash='blah')
+        ))
+
+        # System metadata DOES NOT affect the package hash.
+        assert hash_contents(pkg1) == hash_contents(pkg2)
+
+        # User metadata DOES affect the package hash.
+        assert hash_contents(pkg1) != hash_contents(pkg3)
+
     def test_install_latest(self):
         """
         Install the latest update of a package.
