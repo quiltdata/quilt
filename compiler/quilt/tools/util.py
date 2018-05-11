@@ -297,6 +297,7 @@ def fs_link(path, linkpath, linktype='soft'):
     """
     global WIN_SOFTLINK
     global WIN_HARDLINK
+    WIN_NO_ERROR = 22
 
     assert linktype in ('soft', 'hard')
 
@@ -310,7 +311,10 @@ def fs_link(path, linkpath, linktype='soft'):
 
     # Windows
     if os.name == 'nt':
-        # Windows-specific checks
+        # clear out any pre-existing, un-checked errors
+        ctypes.WinError()
+            
+        # Check Windows version (reasonably) supports symlinks
         if not sys.getwindowsversion()[0] >= 6:
             raise QuiltException("Unsupported operation: This version of Windows does not support linking.")
 
@@ -327,9 +331,16 @@ def fs_link(path, linkpath, linktype='soft'):
             create_link = WIN_HARDLINK
 
         # Call and check results
-        if not create_link(linkpath, path):
-            error = ctypes.WinError()
+        create_link(linkpath, path)
+        # Check WinError, because the return value for CreateSymbolicLinkW's type is suspect due to a
+        # (possible) bug: https://stackoverflow.com/questions/33010440/createsymboliclink-on-windows-10
+        # We have user results with similar effects (success reported, but not actual)
+        error = ctypes.WinError()
+        if error.winerror:
             raise QuiltException("Linking failed: " + str(error), original_error=error)
+        # Handle the case wehere linking failed and windows gave no error:
+        if not linkpath.exists() and linkpath.is_symlink():
+            raise QuiltException("Linking failed: Expected symlink at: {}".format(linkpath))
     # Linux, OSX
     else:
         try:
