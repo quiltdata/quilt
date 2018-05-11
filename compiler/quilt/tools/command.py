@@ -557,12 +557,16 @@ def build_from_node(package, node):
 
     def _process_node(node, path=[]):
         if not isinstance(node._meta, dict):
-            raise CommandException("_meta must be a dictionary")
+            raise CommandException(
+                "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
+            )
         meta = dict(node._meta)
         system_meta = meta.pop(SYSTEM_METADATA, {})
         if not isinstance(system_meta, dict):
-            raise CommandException("_meta[%r] overwritten. %s is reserved metadata key. "
-                                   "Try a different key" % (SYSTEM_METADATA, SYSTEM_METADATA))
+            raise CommandException(
+                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key" %
+                ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
+            )
         if isinstance(node, nodes.GroupNode):
             package_obj.save_group(path, meta)
             for key, child in node._items():
