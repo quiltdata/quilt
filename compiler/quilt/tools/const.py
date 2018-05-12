@@ -20,7 +20,7 @@ DEFAULT_QUILT_YML = 'quilt.yml'
 DEFAULT_TEAM = 'Quilt'
 
 # pretty __repr__ consts
-PRETTY_MAX_LEN = 10
+PRETTY_MAX_LEN = 100
 
 # reserved words in build.yml
 RESERVED = {

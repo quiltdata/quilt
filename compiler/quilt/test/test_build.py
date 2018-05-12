@@ -572,7 +572,7 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test import manynodes
 
         pretty = '<GroupNode>\n'
-        pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n\n...\n\n'
+        pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n...\n'
         pretty += 'subnode_015/\nsubnode_016/\nsubnode_017/\nsubnode_018/\nsubnode_019/'
         assert repr(manynodes.main_group_node) == pretty
 
