@@ -486,6 +486,22 @@ class BuildTest(QuiltTestCase):
         with self.assertRaises(build.BuildException):
             build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
 
+    def test_group_node_repr_empty(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+
+        # leaf with data for each node
+        build_compose_contents = {
+            'contents': {
+                'empty_group_node': {}
+            }
+        }
+        build.build_package_from_contents(None, 'test', 'pkg', str(mydir), build_compose_contents)
+        from quilt.data.test import pkg
+
+        pretty = '<GroupNode> is empty'
+        assert type(pkg.empty_group_node) is GroupNode
+        assert repr(pkg.empty_group_node) == pretty
+
     def test_group_node_repr_short(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
 
