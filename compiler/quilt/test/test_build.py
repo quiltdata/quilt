@@ -546,12 +546,19 @@ class BuildTest(QuiltTestCase):
         build.build_package_from_contents(None, 'test', 'maxplusone', str(mydir), build_compose_contents)
         from quilt.data.test import maxplusone
 
-        pretty = '<GroupNode>\nsubnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n'
-        pretty += 'subnode_005/\nsubnode_006/\nsubnode_007/\nsubnode_008/\nsubnode_009/\nsubnode_010/'
+        # generate expected pretty output
+        pretty = '<GroupNode>\n'
+        for p in range(PRETTY_MAX_LEN+1):
+            pretty += 'subnode_%s/\n' % str(p).zfill(3)
+        # remove last newline
+        pretty = pretty[:-1]
         assert repr(maxplusone.main_group_node) == pretty
 
     def test_group_node_repr_max_len(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
+
+        # indicates threshold excess
+        exceeded = 10
 
         # leaf with data for each node
         data_node = {
@@ -561,10 +568,10 @@ class BuildTest(QuiltTestCase):
         }
 
         # create many subnodes which exceed PRETTY_MAX_LEN by 10
-        too_many_subnodes = {('subnode_' + str(x).zfill(3)): data_node for x in range(PRETTY_MAX_LEN+10)}
+        too_many_subs = {('subnode_' + str(x).zfill(3)): data_node for x in range(PRETTY_MAX_LEN+exceeded)}
         build_compose_contents = {
             'contents': {
-                'main_group_node': too_many_subnodes
+                'main_group_node': too_many_subs
             }
         }
 
@@ -572,8 +579,13 @@ class BuildTest(QuiltTestCase):
         from quilt.data.test import manynodes
 
         pretty = '<GroupNode>\n'
-        pretty += 'subnode_000/\nsubnode_001/\nsubnode_002/\nsubnode_003/\nsubnode_004/\n...\n'
-        pretty += 'subnode_015/\nsubnode_016/\nsubnode_017/\nsubnode_018/\nsubnode_019/'
+        for p in range(PRETTY_MAX_LEN//2):
+            pretty += 'subnode_%s/\n' % str(p).zfill(3)
+        pretty += '...\n'
+        for p in range(PRETTY_MAX_LEN//2+exceeded, PRETTY_MAX_LEN+exceeded):
+            pretty += 'subnode_%s/\n' % str(p).zfill(3)
+        # remove last newline
+        pretty = pretty[:-1]
         assert repr(manynodes.main_group_node) == pretty
 
     def test_parquet_source_file(self):
