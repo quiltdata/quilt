@@ -6,7 +6,6 @@ import os
 import pandas as pd
 from six import iteritems, string_types
 
-
 from .tools import core
 from .tools.const import SYSTEM_METADATA, PRETTY_MAX_LEN
 from .tools.util import is_nodename
