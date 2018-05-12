@@ -3,7 +3,6 @@
 import 'babel-polyfill';
 
 // Import all the third party stuff
-import Raven from 'raven-js';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import FontFaceObserver from 'fontfaceobserver';
@@ -34,68 +33,60 @@ import { translationMessages } from './i18n';
 // Import CSS reset and Global Styles
 import './global-styles';
 
-Raven
-  .config('https://e0c7810a7a0b4ce898d6e78c1b63f52d@sentry.io/300712')
-  .install();
-
-Raven.context(() => {
-  // TODO: factor-out font loading logic
-  // listen for Roboto fonts
-  const robo = new FontFaceObserver('Roboto', {});
-  const roboMono = new FontFaceObserver('Roboto Mono', {});
-  const roboSlab = new FontFaceObserver('Roboto Slab', {});
-  // reload doc when we have all custom fonts
-  Promise.all([robo.load(), roboSlab.load(), roboMono.load()]).then(() => {
-    document.body.classList.add('fontLoaded');
-  });
-
-
-  // Create redux store with history
-  const initialState = {};
-  const history = createHistory();
-  const store = configureStore(initialState, history);
-  const MOUNT_NODE = document.getElementById('app');
-
-  const render = (messages) => {
-    ReactDOM.render(
-      <StoreProvider store={store}>
-        <InjectReducer mount="form" reducer={form}>
-          <LanguageProvider messages={messages}>
-            <RouterProvider history={history}>
-              <App />
-            </RouterProvider>
-          </LanguageProvider>
-        </InjectReducer>
-      </StoreProvider>,
-      MOUNT_NODE
-    );
-  };
-
-  if (module.hot) {
-    // Hot reloadable React components and translation json files
-    // modules.hot.accept does not accept dynamic dependencies,
-    // have to be constants at compile-time
-    module.hot.accept(['./i18n', 'containers/App'], () => {
-      ReactDOM.unmountComponentAtNode(MOUNT_NODE);
-      render(translationMessages);
-    });
-  }
-
-  // Chunked polyfill for browsers without Intl support
-  if (!window.Intl) {
-    import('intl')
-      .then(() => Promise.all([
-        import('intl/locale-data/jsonp/en.js'),
-      ]))
-      .then(() => render(translationMessages));
-  } else {
-    render(translationMessages);
-  }
-
-  // Delete the old service worker.
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => { registration.unregister(); });
-    });
-  }
+// TODO: factor-out font loading logic
+// listen for Roboto fonts
+const robo = new FontFaceObserver('Roboto', {});
+const roboMono = new FontFaceObserver('Roboto Mono', {});
+// reload doc when we have all custom fonts
+Promise.all([robo.load(), roboMono.load()]).then(() => {
+  document.body.classList.add('fontLoaded');
 });
+
+// Create redux store with history
+const initialState = {};
+const history = createHistory();
+const store = configureStore(initialState, history);
+const MOUNT_NODE = document.getElementById('app');
+
+const render = (messages) => {
+  ReactDOM.render(
+    <StoreProvider store={store}>
+      <InjectReducer mount="form" reducer={form}>
+        <LanguageProvider messages={messages}>
+          <RouterProvider history={history}>
+            <App />
+          </RouterProvider>
+        </LanguageProvider>
+      </InjectReducer>
+    </StoreProvider>,
+    MOUNT_NODE
+  );
+};
+
+if (module.hot) {
+  // Hot reloadable React components and translation json files
+  // modules.hot.accept does not accept dynamic dependencies,
+  // have to be constants at compile-time
+  module.hot.accept(['./i18n', 'containers/App'], () => {
+    ReactDOM.unmountComponentAtNode(MOUNT_NODE);
+    render(translationMessages);
+  });
+}
+
+// Chunked polyfill for browsers without Intl support
+if (!window.Intl) {
+  import('intl')
+    .then(() => Promise.all([
+      import('intl/locale-data/jsonp/en.js'),
+    ]))
+    .then(() => render(translationMessages));
+} else {
+  render(translationMessages);
+}
+
+// Delete the old service worker.
+if (navigator.serviceWorker) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => { registration.unregister(); });
+  });
+}

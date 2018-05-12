@@ -150,6 +150,9 @@ KNOWN_PARAMS = [
     [0, 'config'],
     [0, 'delete'],
     [0, 'delete', 0],
+    [0, 'export'],
+    [0, 'export', 0],
+    [0, 'export', 1],
     [0, 'generate'],
     [0, 'generate', 0],
     [0, 'help'],
@@ -158,6 +161,7 @@ KNOWN_PARAMS = [
     [0, 'inspect', 0],
     [0, 'install'],
     [0, 'install', '-f'],
+    [0, 'install', '-m'],
     [0, 'install', '-t'],
     [0, 'install', '-v'],
     [0, 'install', '-x'],
@@ -712,6 +716,41 @@ class TestCLI(BasicQuiltTestCase):
             'is_public': False,
             'package': 'blah:fakeuser/fakepackage',
             'is_team': True,
+        }
+
+    def test_cli_command_export(self):
+        ## This test covers the following arguments that require testing
+        TESTED_PARAMS.extend([
+            [0, 'export'],
+            [0, 'export', 0],
+            [0, 'export', 1]
+            ])
+
+        ## This section tests for circumstances expected to be rejected by argparse.
+        expect_fail_2_args = [
+            'export'.split(),
+            'export too many args'.split(),
+            ]
+        for args in expect_fail_2_args:
+            assert self.execute(args)['return code'] == 2
+
+        ## This section tests for appropriate types and values.
+        # run the command
+        cmd = 'export fakeuser/fakepackage'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        assert result['kwargs'] == {
+            'package': 'fakeuser/fakepackage',
+            'output_path': '.',
+        }
+
+        # run next command
+        cmd = 'export fakeuser/fakepackage fakedir'.split()
+        result = self.execute_with_checks(cmd, funcname='export')
+
+        assert result['kwargs'] == {
+            'package': 'fakeuser/fakepackage',
+            'output_path': 'fakedir',
         }
 
     def test_cli_option_dev_flag(self):

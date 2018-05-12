@@ -10,6 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
+import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -42,7 +43,7 @@ from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
                      S3Blob, Tag, Version)
-from .schemas import LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -546,6 +547,31 @@ def blob_get(owner, blob_hash):
         put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
     )
 
+@app.route('/api/get_objects', methods=['POST'])
+@api(require_login=False, schema=GET_OBJECTS_SCHEMA)
+@as_json
+def get_objects():
+    obj_hashes = request.get_json()
+
+    results = (
+        S3Blob.query
+        .filter(S3Blob.hash.in_(obj_hashes))
+        .join(S3Blob.instances)
+        .join(Instance.package)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+    ).all()
+
+    return dict(
+        urls={
+            blob.hash: _generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
+            for blob in results
+        },
+        sizes={
+            blob.hash: blob.size for blob in results
+        }
+    )
+
 def download_object_preview_impl(owner, obj_hash):
     resp = s3_client.get_object(
         Bucket=PACKAGE_BUCKET_NAME,
@@ -853,6 +879,7 @@ def package_put(owner, package_name, package_hash):
 @as_json
 def package_get(owner, package_name, package_hash):
     subpath = request.args.get('subpath')
+    meta_only = bool(request.args.get('meta_only', ''))
 
     instance = _get_instance(g.auth, owner, package_name, package_hash)
 
@@ -865,7 +892,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set(find_object_hashes(subnode))
+    all_hashes = set(find_object_hashes(subnode, meta_only=meta_only))
 
     blobs = (
         S3Blob.query
@@ -935,6 +962,39 @@ def _iterate_data_nodes(node):
     elif isinstance(node, GroupNode):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
+
+
+def get_install_timeseries(owner, package_name, max_weeks_old=52):
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', sa.func.now() - Event.created) / 7)
+    result = (
+        db.session.query(
+            sa.func.count(Event.id),
+            weeks_ago.label('weeks_ago')
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == Event.Type.INSTALL)
+        .filter(weeks_ago <= max_weeks_old)
+        .group_by(weeks_ago)
+        .all()
+    )
+
+    result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
+    # result contains (count, weeks_ago) pairs
+    max_weeks_ago_in_result = max([weeks_ago for count, weeks_ago in result], default=0)
+    last = datetime.utcnow()
+    first = last - timedelta(weeks=max_weeks_ago_in_result)
+    counts = [0] * (max_weeks_ago_in_result + 1) # list of zeroes
+    for count, weeks_ago in result:
+        counts[weeks_ago] = count
+
+    return {
+        'startDate': calendar.timegm(first.utctimetuple()),
+        'endDate': calendar.timegm(last.utctimetuple()),
+        'frequency': 'week',
+        'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
+    }
+
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -1040,6 +1100,7 @@ def package_preview(owner, package_name, package_hash):
         total_size_uncompressed=total_size,
         file_types=file_types,
         log_count=log_count,
+        install_timeseries=get_install_timeseries(owner, package_name),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])

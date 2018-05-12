@@ -52,6 +52,10 @@ PACKAGE_SCHEMA = {
                                             'type': 'string',
                                             'pattern': SHA256_PATTERN
                                         }
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 },
                                 'required': ['type', 'hashes'],
@@ -75,6 +79,10 @@ PACKAGE_SCHEMA = {
                                             'type': 'string',
                                             'pattern': SHA256_PATTERN
                                         }
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 },
                                 'required': ['type', 'hashes'],
@@ -88,11 +96,19 @@ PACKAGE_SCHEMA = {
                                     },
                                     'children': {
                                         '$ref': '#/properties/contents/properties/children'
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 }
                             }
                         ]
                     }
+                },
+                'metadata_hash': {
+                    'type': 'string',
+                    'pattern': SHA256_PATTERN
                 }
             },
             'required': ['type', 'children'],
@@ -150,4 +166,12 @@ USERNAME_EMAIL_SCHEMA = {
     },
     'required': ['username', 'email'],
     'additionalProperties': False
+}
+
+GET_OBJECTS_SCHEMA = {
+    'type': 'array',
+    'items': {
+        'type': 'string',
+        'pattern': SHA256_PATTERN
+    }
 }

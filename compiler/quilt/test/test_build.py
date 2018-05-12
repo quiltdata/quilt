@@ -11,7 +11,7 @@ from six import assertRaisesRegex, string_types
 import yaml
 
 from ..nodes import GroupNode, PackageNode
-from ..tools.package import ParquetLib, Package
+from ..tools.store import ParquetLib, PackageStore
 from ..tools.compat import pathlib
 from ..tools.const import PRETTY_MAX_LEN
 from ..tools import build, command, store
@@ -25,7 +25,7 @@ class BuildTest(QuiltTestCase):
         """
         Test compilation to Parquet via the default library
         """
-        Package.reset_parquet_lib()
+        PackageStore.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_large.yml')
         build.build_package(None, 'test_parquet', PACKAGE, path)
@@ -68,17 +68,17 @@ class BuildTest(QuiltTestCase):
         Test setting the parquet library using the env variable.
         """
         try:
-            assert Package.get_parquet_lib() == ParquetLib.ARROW
+            assert PackageStore.get_parquet_lib() == ParquetLib.ARROW
 
             with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.ARROW.value}):
-                Package.reset_parquet_lib()
-                assert Package.get_parquet_lib() == ParquetLib.ARROW
+                PackageStore.reset_parquet_lib()
+                assert PackageStore.get_parquet_lib() == ParquetLib.ARROW
 
             with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.SPARK.value}):
-                Package.reset_parquet_lib()
-                assert Package.get_parquet_lib() == ParquetLib.SPARK
+                PackageStore.reset_parquet_lib()
+                assert PackageStore.get_parquet_lib() == ParquetLib.SPARK
         finally:
-            Package.reset_parquet_lib()
+            PackageStore.reset_parquet_lib()
 
     # shared testing logic between pyarrow and default env
     def _test_dataframes(self, dataframes):
@@ -177,12 +177,6 @@ class BuildTest(QuiltTestCase):
             'Expected `transform: tsv` from ancestor'
         assert not pkg.group_empty._keys(), 'Expected group_empty to be empty'
         assert not pkg.group_x.empty_child._keys(), 'Expected group_x.emptychild to be empty'
-
-    def test_build_hdf5(self):
-        mydir = os.path.dirname(__file__)
-        path = os.path.join(mydir, './build_hdf5.yml')
-        with assertRaisesRegex(self, build.BuildException, "no longer supported"):
-            build.build_package(None, 'test_hdf5', PACKAGE, path)
 
     def test_generate_buildfile(self):
         """
@@ -591,8 +585,9 @@ class BuildTest(QuiltTestCase):
     def test_parquet_source_file(self):
         df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
         import pyarrow as pa
+        from pyarrow import parquet
         table = pa.Table.from_pandas(df)
-        pa.parquet.write_table(table, 'simpledf.parquet')
+        parquet.write_table(table, 'simpledf.parquet')
 
         build_contents = {
             'contents': {

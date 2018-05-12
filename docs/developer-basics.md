@@ -1,12 +1,12 @@
 # Developer
 
 ## System overview
-- [Introduction](../README.md)
+- [Introduction](https://github.com/quiltdata/quilt/blob/master/README.md)
 
 ## READMEs per component
-- [Registry](../registry/README.md)
-- [Catalog](../catalog/README.md)
-- [Compiler](../compiler/README.md)
+- [Registry](https://github.com/quiltdata/quilt/blob/master/registry/README.md)
+- [Catalog](https://github.com/quiltdata/quilt/blob/master/catalog/README.md)
+- [Compiler](https://github.com/quiltdata/quilt/blob/master/compiler/README.md)
 
 # Contribute
 - Conversation on [gitter](https://gitter.im/quilt-data/Lobby) or [slack](https://slack.quiltdata.com/).

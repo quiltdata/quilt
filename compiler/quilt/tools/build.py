@@ -3,11 +3,9 @@ parse build file, serialize package
 """
 from collections import defaultdict, Iterable
 import glob
-import importlib
 import json
 import os
 import re
-from types import ModuleType
 
 import numpy as np
 import pandas as pd
@@ -18,17 +16,17 @@ import yaml
 from tqdm import tqdm
 
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED, TargetType
-from .core import GroupNode, PackageFormat
+from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
+                    SYSTEM_METADATA, QuiltException, TargetType)
+from .core import GroupNode
 from .hashing import digest_file, digest_string
-from .package import Package, ParquetLib
-from .store import PackageStore, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, parse_package
+from .store import PackageStore, ParquetLib, StoreException
+from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
 
 from . import check_functions as qc            # pylint:disable=W0611
 
 
-class BuildException(Exception):
+class BuildException(QuiltException):
     """
     Build-time exception class
     """
@@ -41,7 +39,7 @@ def _have_pyspark():
     """
     if _have_pyspark.flag is None:
         try:
-            if Package.get_parquet_lib() is ParquetLib.SPARK:
+            if PackageStore.get_parquet_lib() is ParquetLib.SPARK:
                 import pyspark  # pylint:disable=W0612
                 _have_pyspark.flag = True
             else:
@@ -79,29 +77,19 @@ def _get_local_args(node, keys):
 def _is_valid_group(group):
     return isinstance(group, dict) or group is None
 
-def _pythonize_name(name):
-    safename = re.sub('[^A-Za-z0-9]+', '_', name).strip('_')
-
-    if safename and safename[0].isdigit():
-        safename = "n%s" % safename
-
-    if not is_nodename(safename):
-        raise BuildException("Unable to determine a Python-legal name for %r" % name)
-    return safename
-
-def _run_checks(dataframe, checks, checks_contents, nodename, rel_path, target, env='default'):
+def _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env='default'):
     _ = env  # TODO: env support for checks
     print("Running data integrity checks...")
     checks_list = re.split(r'[,\s]+', checks.strip())
     unknown_checks = set(checks_list) - set(checks_contents)
     if unknown_checks:
         raise BuildException("Unknown check(s) '%s' for %s @ %s" %
-                             (", ".join(list(unknown_checks)), rel_path, target))
+                             (", ".join(list(unknown_checks)), rel_path, target.value))
     for check in checks_list:
-        res = exec_yaml_python(checks_contents[check], dataframe, nodename, rel_path, target)
+        res = exec_yaml_python(checks_contents[check], dataframe, node_path, rel_path, target)
         if not res and res is not None:
             raise BuildException("Data check failed: %s on %s @ %s" % (
-                check, rel_path, target))
+                check, rel_path, target.value))
 
 def _gen_glob_data(dir, pattern, child_table):
     """Generates node data by globbing a directory for a pattern"""
@@ -121,7 +109,7 @@ def _gen_glob_data(dir, pattern, child_table):
         node_table[RESERVED['file']] = str(filepath)
         node_name = to_nodename(filepath.stem, invalid=used_names)
         used_names.add(node_name)
-        print("Matched with {!r}: {!r}".format(pattern, str(filepath)))
+        print("Matched with {!r}: {!r} from {!r}".format(pattern, node_name, str(filepath)))
 
         yield node_name, node_table
 
@@ -133,7 +121,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
+def _build_node(build_dir, package, node_path, node, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -147,6 +135,9 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
       Child transform or kwargs override ancestor k:v pairs.
     """
     if _is_internal_node(node):
+        if not dry_run:
+            package.save_group(node_path, None)
+
         # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
         # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
         # the node, or it gets treated like a subnode (or like a node with invalid content)
@@ -173,23 +164,21 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
                 for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
-                    full_gchild_name = name + '/' + gchild_name if name else gchild_name
-                    _build_node(build_dir, package, full_gchild_name, gchild_table, fmt,
+                    _build_node(build_dir, package, node_path + [gchild_name], gchild_table,
                         checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
-                full_child_name = name + '/' + child_name if name else child_name
-                _build_node(build_dir, package, full_child_name, child_table, fmt,
+                _build_node(build_dir, package, node_path + [child_name], child_table,
                     checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if name in package:
-            raise BuildException("Naming conflict: {!r} added to package more than once".format(name))
+        if '/'.join(node_path) in package:
+            raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                package.save_group(name)
+                package.save_group(node_path, None)
             return
 
         include_package = node.get(RESERVED['package'])
@@ -213,9 +202,22 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                                                     subpath=subpath))
             else:
                 node = GroupNode(existing_pkg.get_contents().children)
-            package.save_package_tree(name, node)
+            package.save_package_tree(node_path, node)
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
+
+            rel_meta_path = node.get(RESERVED['meta'])
+            if rel_meta_path:
+                with open(os.path.join(build_dir, rel_meta_path)) as fd:
+                    try:
+                        metadata = json.load(fd)
+                    except ValueError as ex:
+                        raise BuildException("Failed to parse %r as JSON: %s" % (rel_meta_path, ex))
+                    if SYSTEM_METADATA in metadata:
+                        raise BuildException("Invalid metadata in %r: not allowed to use key %r" %
+                                             (rel_meta_path, SYSTEM_METADATA))
+            else:
+                metadata = None
 
             # get either the locally defined transform and target or inherit from an ancestor
             transform = node.get(RESERVED['transform']) or ancestor_args.get(RESERVED['transform'])
@@ -225,27 +227,27 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
             if transform:
                 transform = transform.lower()
                 if transform in PANDAS_PARSERS:
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif transform == PARQUET:
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif transform == ID:
-                    target = TargetType.FILE.value
+                    target = TargetType.FILE
                 else:
                     raise BuildException("Unknown transform '%s' for %s" %
                                          (transform, rel_path))
             else:
                 # Guess transform and target based on file extension if not provided
                 _, ext = splitext_no_dot(rel_path)
-                
+
                 if ext in PANDAS_PARSERS:
                     transform = ext
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 elif ext == PARQUET:
                     transform = ext
-                    target = TargetType.PANDAS.value
+                    target = TargetType.PANDAS
                 else:
                     transform = ID
-                    target = TargetType.FILE.value
+                    target = TargetType.FILE
                 print("Inferring 'transform: %s' for %s" % (transform, rel_path))
 
 
@@ -257,21 +259,20 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 if checks:
                     with open(path, 'r') as fd:
                         data = fd.read()
-                        _run_checks(data, checks, checks_contents, name, rel_path, target, env=env)
+                        _run_checks(data, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, metadata)
             elif transform == PARQUET:
-                assert PackageFormat(fmt) is PackageFormat.PARQUET
                 if checks:
                     from pyarrow.parquet import ParquetDataset
                     dataset = ParquetDataset(path)
                     table = dataset.read(nthreads=4)
                     dataframe = table.to_pandas()
-                    _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                    _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, name, rel_path, target)
+                    package.save_file(path, node_path, target, rel_path, transform, metadata)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -294,7 +295,7 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                 # below is a heavy-handed fix but it's OK for check builds to be slow
                 if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, name, rel_path, transform, target, fmt)
+                    package.save_cached_df(cachedobjs, node_path, target, rel_path, transform, metadata)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -306,12 +307,12 @@ def _build_node(build_dir, package, name, node, fmt, checks_contents=None,
                     if checks:
                         # TODO: test that design works for internal nodes... e.g. iterating
                         # over the children and getting/checking the data, err msgs, etc.
-                        _run_checks(dataframe, checks, checks_contents, name, rel_path, target, env=env)
+                        _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
 
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, name, rel_path, transform, target, fmt)
+                        obj_hashes = package.save_df(dataframe, node_path, target, rel_path, transform, metadata)
 
                         # Add to cache
                         cache_entry = dict(
@@ -353,7 +354,7 @@ def _file_to_spark_data_frame(ext, path, handler_args):
         dataframe = reader.load(path)
 
         for col in dataframe.columns:
-            pcol = _pythonize_name(col)
+            pcol = to_identifier(col)
             if col != pcol:
                 dataframe = dataframe.withColumnRenamed(col, pcol)
     else:
@@ -448,17 +449,6 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
         raise BuildException("'contents' must be a dictionary")
-    pkgformat = build_data.get('format', PackageFormat.default.value)
-    if not isinstance(pkgformat, str):
-        raise BuildException("'format' must be a string")
-    try:
-        pkgformat = PackageFormat(pkgformat)
-    except ValueError:
-        raise BuildException("Unsupported format: %r" % pkgformat)
-
-    # HDF5 no longer supported.
-    if pkgformat is PackageFormat.HDF5:
-        raise BuildException("HDF5 format is no longer supported; please use PARQUET instead.")
 
     # inline checks take precedence
     checks_contents = {} if checks_contents is None else checks_contents
@@ -466,7 +456,7 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
 
     store = PackageStore()
     newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, '', contents, pkgformat,
+    _build_node(build_dir, newpackage, [], contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
@@ -510,14 +500,14 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
             else:
                 continue
 
-            safename = _pythonize_name(nodename)
+            safename = to_identifier(nodename)
             safename_duplicates[safename].append((name, nodename, ext))
 
         safename_to_name = {}
         for safename, duplicates in iteritems(safename_duplicates):
             for name, nodename, ext in duplicates:
                 if len(duplicates) > 1 and ext:
-                    new_safename = _pythonize_name(name)  # Name with ext
+                    new_safename = to_identifier(name)  # Name with ext
                 else:
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
@@ -585,11 +575,11 @@ def load_yaml(filename, optional=False):
         raise BuildException("Unable to open YAML file: %s" % filename)
     return res
 
-def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
+def exec_yaml_python(chkcode, dataframe, node_path, path, target):
     # TODO False vs Exception...
     try:
         # setup for eval
-        qc.nodename = nodename
+        qc.nodename = '/'.join(node_path)
         qc.filename = path
         qc.data = dataframe
         eval_globals = {
@@ -607,5 +597,5 @@ def exec_yaml_python(chkcode, dataframe, nodename, path, target='pandas'):
     except qc.CheckFunctionsReturn as ex:
         res = ex.result
     except Exception as ex:
-        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target))
+        raise BuildException("Data check raised exception: %s on %s @ %s" % (ex, path, target.value))
     return res

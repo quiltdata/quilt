@@ -5,21 +5,20 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
+from collections import Counter
 from datetime import datetime
 from functools import partial
-import gzip
 import hashlib
 import json
 import os
 import platform
 import re
-from shutil import copyfileobj, move, rmtree
+from shutil import rmtree, copy
 import socket
 import stat
 import subprocess
 import sys
 import tempfile
-from threading import Thread, Lock
 import time
 import yaml
 
@@ -27,57 +26,34 @@ from packaging.version import Version
 import pandas as pd
 import pkg_resources
 import requests
-from requests.packages.urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
-from six import iteritems, itervalues, string_types
+from six import itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
 from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException, exec_yaml_python, load_yaml)
-from .const import DEFAULT_BUILDFILE, DTIMEF
-from .core import (hash_contents, find_object_hashes, PackageFormat, TableNode, FileNode, GroupNode,
+                    generate_contents, BuildException, load_yaml)
+from .compat import pathlib
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
+from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
-from .hashing import digest_file
+from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, FileWithReadProgress, gzip_compress,
-                   is_nodename, PackageInfo, parse_package as parse_package_util,
+from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_package_util,
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
-from . import check_functions as qc
 from .. import nodes
-
-# pyOpenSSL and S3 don't play well together. pyOpenSSL is completely optional, but gets enabled by requests.
-# So... We disable it. That's what boto does.
-# https://github.com/boto/botocore/issues/760
-# https://github.com/boto/botocore/pull/803
-try:
-    from urllib3.contrib import pyopenssl
-    pyopenssl.extract_from_urllib3()
-except ImportError:
-    pass
 
 
 DEFAULT_REGISTRY_URL = 'https://pkg.quiltdata.com'
 GIT_URL_RE = re.compile(r'(?P<url>http[s]?://[\w./~_-]+\.git)(?:@(?P<branch>[\w_-]+))?')
-
-CHUNK_SIZE = 4096
-
-PARALLEL_UPLOADS = 20
-PARALLEL_DOWNLOADS = 20
-
-S3_CONNECT_TIMEOUT = 30
-S3_READ_TIMEOUT = 30
-S3_TIMEOUT_RETRIES = 3
-CONTENT_RANGE_RE = re.compile(r'^bytes (\d+)-(\d+)/(\d+)$')
 
 LOG_TIMEOUT = 3 # 3 seconds
 
 VERSION = pkg_resources.require('quilt')[0].version
 
 
-class CommandException(Exception):
+class CommandException(QuiltException):
     """
     Exception class for all command-related failures.
     """
@@ -91,6 +67,7 @@ class HTTPResponseException(CommandException):
 _registry_url = None
 
 def parse_package_extended(identifier):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException
     try:
         return parse_package_extended_util(identifier)
     except ValueError:
@@ -98,6 +75,7 @@ def parse_package_extended(identifier):
         raise CommandException("Specify package as %s." % pkg_format)
 
 def parse_package(name, allow_subpath=False):
+    #TODO: Unwrap this and modify 'util' version to raise QuiltException and call check_name()
     try:
         if allow_subpath:
             team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
@@ -116,7 +94,7 @@ def parse_package(name, allow_subpath=False):
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
-    
+
 
 def _load_config():
     config_path = os.path.join(BASE_DIR, 'config.json')
@@ -293,17 +271,6 @@ def _clear_session(team):
     if session is not None:
         session.close()
 
-def _create_s3_session():
-    """
-    Creates a session with automatic retries on 5xx errors.
-    """
-    sess = requests.Session()
-    retries = Retry(total=3,
-                    backoff_factor=.5,
-                    status_forcelist=[500, 502, 503, 504])
-    sess.mount('https://', HTTPAdapter(max_retries=retries))
-    return sess
-
 def _open_url(url):
     try:
         if sys.platform == 'win32':
@@ -318,7 +285,7 @@ def _open_url(url):
         print("Failed to launch the browser: %s" % ex)
 
 def _match_hash(package, hash):
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, _ = parse_package(package, allow_subpath=True)
     session = _get_session(team)
 
     hash = hash.lower()
@@ -520,7 +487,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?
+    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
     team, _, _ = parse_package(package)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
@@ -585,30 +552,44 @@ def build_from_node(package, node):
     """
     team, owner, pkg = parse_package(package)
     _check_team_id(team)
-    # deliberate access of protected member
-    store = node._package.get_store()
+    store = PackageStore()
     package_obj = store.create_package(team, owner, pkg)
 
-    def _process_node(node, path=''):
+    def _process_node(node, path=[]):
+        if not isinstance(node._meta, dict):
+            raise CommandException(
+                "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
+            )
+        meta = dict(node._meta)
+        system_meta = meta.pop(SYSTEM_METADATA, {})
+        if not isinstance(system_meta, dict):
+            raise CommandException(
+                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key." %
+                ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
+            )
         if isinstance(node, nodes.GroupNode):
+            package_obj.save_group(path, meta)
             for key, child in node._items():
-                _process_node(child, (path + '/' + key if path else key))
+                _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
-            core_node = node._node
-            metadata = core_node.metadata or {}
-            if isinstance(core_node, TableNode):
-                dataframe = node._data()
-                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    'pandas', PackageFormat.default)
-            elif isinstance(core_node, FileNode):
-                src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'))
+            # TODO: Reuse existing fragments if we have them.
+            data = node._data()
+            filepath = system_meta.get('filepath')
+            transform = system_meta.get('transform')
+            if isinstance(data, pd.DataFrame):
+                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, string_types):
+                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
             else:
-                assert False, "Unexpected core node type: %r" % core_node
+                assert False, "Unexpected data type: %r" % data
         else:
             assert False, "Unexpected node type: %r" % node
 
-    _process_node(node)
+    try:
+        _process_node(node)
+    except StoreException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
+
     package_obj.save_contents()
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
@@ -703,92 +684,18 @@ def push(package, is_public=False, is_team=False, reupload=False):
 
     print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
-    upload_urls = resp.json()['upload_urls']
+    obj_urls = resp.json()['upload_urls']
 
-    obj_queue = sorted(set(find_object_hashes(pkgobj.get_contents())), reverse=True)
-    total = len(obj_queue)
+    assert set(obj_urls) == set(find_object_hashes(pkgobj.get_contents()))
+
+    store = pkgobj.get_store()
 
     obj_sizes = {
-        obj_hash: os.path.getsize(pkgobj.get_store().object_path(obj_hash)) for obj_hash in obj_queue
-    }
-    total_bytes = sum(itervalues(obj_sizes))
-
-    uploaded = []
-    lock = Lock()
-
-    headers = {
-        'Content-Encoding': 'gzip'
+        obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
     }
 
-    print("Uploading %d fragments (%d bytes before compression)..." % (total, total_bytes))
-
-    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
-        def _worker_thread():
-            with _create_s3_session() as s3_session:
-                while True:
-                    with lock:
-                        if not obj_queue:
-                            break
-                        obj_hash = obj_queue.pop()
-
-                    try:
-                        obj_urls = upload_urls[obj_hash]
-
-                        original_size = os.path.getsize(pkgobj.get_store().object_path(obj_hash))
-
-                        if reupload or not s3_session.head(obj_urls['head']).ok:
-                            # Create a temporary gzip'ed file.
-                            with pkgobj.tempfile(obj_hash) as temp_file:
-                                temp_file.seek(0, 2)
-                                compressed_size = temp_file.tell()
-                                temp_file.seek(0)
-
-                                # Workaround for non-local variables in Python 2.7
-                                class Context:
-                                    compressed_read = 0
-                                    original_last_update = 0
-
-                                def _progress_cb(count):
-                                    Context.compressed_read += count
-                                    original_read = Context.compressed_read * original_size // compressed_size
-                                    with lock:
-                                        progress.update(original_read - Context.original_last_update)
-                                    Context.original_last_update = original_read
-
-                                with FileWithReadProgress(temp_file, _progress_cb) as fd:
-                                    url = obj_urls['put']
-                                    response = s3_session.put(url, data=fd, headers=headers)
-                                    response.raise_for_status()
-                        else:
-                            with lock:
-                                tqdm.write("Fragment %s already uploaded; skipping." % obj_hash)
-                                progress.update(original_size)
-
-                        with lock:
-                            uploaded.append(obj_hash)
-                    except requests.exceptions.RequestException as ex:
-                        message = "Upload failed for %s:\n" % obj_hash
-                        if ex.response is not None:
-                            message += "URL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                ex.request.url, ex.response.status_code, ex.response.text
-                            )
-                        else:
-                            message += "%s\n" % ex
-
-                        with lock:
-                            tqdm.write(message)
-
-        threads = [
-            Thread(target=_worker_thread, name="upload-worker-%d" % i)
-            for i in range(PARALLEL_UPLOADS)
-        ]
-        for thread in threads:
-            thread.daemon = True
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-    if len(uploaded) != total:
+    success = upload_fragments(store, obj_urls, obj_sizes, reupload=reupload)
+    if not success:
         raise CommandException("Failed to upload fragments")
 
     print("Uploading package metadata...")
@@ -939,13 +846,22 @@ def install_via_requirements(requirements_str, force=False):
         info = parse_package_extended(pkginfo)
         install(info.full_name, info.hash, info.version, info.tag, force=force)
 
-def install(package, hash=None, version=None, tag=None, force=False):
+def install(package, hash=None, version=None, tag=None, force=False, meta_only=False):
     """
     Download a Quilt data package from the server and install locally.
 
     At most one of `hash`, `version`, or `tag` can be given. If none are
     given, `tag` defaults to "latest".
+
+    `package` may be a node tree - in which case, its fragments get downloaded.
+    No other parameters are allowed.
     """
+    if isinstance(package, nodes.Node):
+        if not (hash is version is tag is None and force is meta_only is False):
+            raise ValueError("Parameters not allowed when installing a node")
+        _materialize(package)
+        return
+
     if hash is version is tag is None:
         tag = LATEST_TAG
 
@@ -1011,7 +927,8 @@ def install(package, hash=None, version=None, tag=None, force=False):
             hash=pkghash
         ),
         params=dict(
-            subpath='/'.join(subpath)
+            subpath='/'.join(subpath),
+            meta_only='true' if meta_only else ''
         )
     )
     assert response.ok # other responses handled by _handle_response
@@ -1023,206 +940,74 @@ def install(package, hash=None, version=None, tag=None, force=False):
             return
 
     dataset = response.json(object_hook=decode_node)
-    response_urls = dataset['urls']
-    response_contents = dataset['contents']
-    obj_sizes = dataset['sizes']
+    contents = dataset['contents']
 
     # Verify contents hash
-    if pkghash != hash_contents(response_contents):
+    if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, response_contents)
+    pkgobj = store.install_package(team, owner, pkg, contents)
 
-    obj_queue = sorted(iteritems(response_urls), reverse=True)
-    total = len(obj_queue)
-    # Some objects might be missing a size; ignore those for now.
-    total_bytes = sum(size or 0 for size in itervalues(obj_sizes))
+    obj_urls = dataset['urls']
+    obj_sizes = dataset['sizes']
 
-    downloaded = []
-    lock = Lock()
+    # Skip the objects we already have
+    for obj_hash in list(obj_urls):
+        if os.path.exists(store.object_path(obj_hash)):
+            del obj_urls[obj_hash]
+            del obj_sizes[obj_hash]
 
-    print("Downloading %d fragments (%d bytes before compression)..." % (total, total_bytes))
-
-    with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
-        def _worker_thread():
-            with _create_s3_session() as s3_session:
-                while True:
-                    with lock:
-                        if not obj_queue:
-                            break
-                        obj_hash, url = obj_queue.pop()
-                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
-
-                    local_filename = store.object_path(obj_hash)
-                    if os.path.exists(local_filename):
-                        with lock:
-                            progress.update(original_size)
-                            downloaded.append(obj_hash)
-                        continue
-
-                    success = False
-
-                    temp_path_gz = store.temporary_object_path(obj_hash + '.gz')
-                    with open(temp_path_gz, 'ab') as output_file:
-                        for attempt in range(S3_TIMEOUT_RETRIES):
-                            try:
-                                starting_length = output_file.tell()
-                                response = s3_session.get(
-                                    url,
-                                    headers={
-                                        'Range': 'bytes=%d-' % starting_length
-                                    },
-                                    stream=True,
-                                    timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
-                                )
-
-                                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                                if response.status_code == requests.codes.RANGE_NOT_SATISFIABLE:
-                                    with lock:
-                                        progress.update(original_size)
-                                else:
-                                    if not response.ok:
-                                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                            obj_hash, response.request.url, response.status_code, response.text
-                                        )
-                                        with lock:
-                                            tqdm.write(message)
-                                        break
-
-                                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
-                                    # them automatically - but that turned out to be a bad idea because it makes
-                                    # resuming downloads impossible.
-                                    # HACK: For now, just delete the header. Eventually, update the data in S3.
-                                    response.raw.headers.pop('Content-Encoding', None)
-
-                                    # Make sure we're getting the expected range.
-                                    content_range = response.headers.get('Content-Range', '')
-                                    match = CONTENT_RANGE_RE.match(content_range)
-                                    if not match or not int(match.group(1)) == starting_length:
-                                        with lock:
-                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
-                                        break
-
-                                    compressed_size = int(match.group(3))
-
-                                    # We may have started with a partially-downloaded file, so update the progress bar.
-                                    compressed_read = starting_length
-                                    original_read = compressed_read * original_size // compressed_size
-                                    with lock:
-                                        progress.update(original_read)
-                                    original_last_update = original_read
-
-                                    # Do the actual download.
-                                    for chunk in response.iter_content(CHUNK_SIZE):
-                                        output_file.write(chunk)
-                                        compressed_read += len(chunk)
-                                        original_read = compressed_read * original_size // compressed_size
-                                        with lock:
-                                            progress.update(original_read - original_last_update)
-                                        original_last_update = original_read
-
-                                success = True
-                                break  # Done!
-                            except requests.exceptions.ConnectionError as ex:
-                                if attempt < S3_TIMEOUT_RETRIES - 1:
-                                    with lock:
-                                        tqdm.write("Download for %s timed out; retrying..." % obj_hash)
-                                else:
-                                    with lock:
-                                        tqdm.write("Download failed for %s: %s" % (obj_hash, ex))
-                                    break
-
-                    if not success:
-                        # We've already printed an error, so not much to do - just move on to the next object.
-                        continue
-
-                    # Ungzip the downloaded fragment.
-                    temp_path = store.temporary_object_path(obj_hash)
-                    try:
-                        with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
-                            copyfileobj(f_in, f_out)
-                    finally:
-                        # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
-                        os.remove(temp_path_gz)
-
-                    # Check the hash of the result.
-                    file_hash = digest_file(temp_path)
-                    if file_hash != obj_hash:
-                        os.remove(temp_path)
-                        with lock:
-                            tqdm.write("Fragment hashes do not match: expected %s, got %s." %
-                                       (obj_hash, file_hash))
-                            continue
-
-                    move(temp_path, local_filename)
-
-                    # Success.
-                    with lock:
-                        downloaded.append(obj_hash)
-
-        threads = [
-            Thread(target=_worker_thread, name="download-worker-%d" % i)
-            for i in range(PARALLEL_DOWNLOADS)
-        ]
-        for thread in threads:
-            thread.daemon = True
-            thread.start()
-        for thread in threads:
-            thread.join()
-
-    if len(downloaded) != total:
-        raise CommandException("Failed to download fragments")
+    if obj_urls:
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
     pkgobj.save_contents()
 
-def _setup_env(env, files):
-    """ process data distribution. """
-    # TODO: build.yml is not saved in the package system, so re-load it here
-    with open('build.yml') as fd:
-        buildfile = next(yaml.load_all(fd), None)
-        environments = buildfile.get('environments', {})
-    if env != 'default' and (env not in environments):
-        raise CommandException(
-            "environment %s not found in environments: section of build.yml" % env)
-    if len(environments) == 0:
-        return files
-    if env == 'default' and 'default' not in environments:
-        return files
+def _materialize(node):
+    store = PackageStore()
 
-    # TODO: this should be done during quilt push, not during install/import
-    # (requires server support)
-    # TODO: add a way to dry-run dataset checking
-    print('processing environment %s: checking data...' % (env))
-    environment = environments[env]
-    dataset = environment.get('dataset')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if isinstance(val, pd.DataFrame):
-            before_len = len(val)
-            res = exec_yaml_python(dataset, val, key, '('+key+')')
-            if not res and res is not None:
-                raise BuildException("error creating dataset for environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
+    hashes = set()
 
-    # TODO: should be done on the server during quilt install
-    # (requires server support)
-    print('processing environment %s: slicing data...' % (env))
-    instance_data = environment.get('instance_data')
-    for key, val in files.items():
-        # TODO: debug mode, where we can see which files were skipped
-        if type(val) == pd.core.frame.DataFrame:
-            before_len = len(val)
-            # TODO: pass instance identifier, e.g. instance number N of M
-            val['.qchash'] = val.apply(lambda x: abs(hash(tuple(x))), axis = 1)
-            res = exec_yaml_python(instance_data, val, key, '('+key+')')
-            if res == False:
-                raise BuildException("error assigning data to instance in environment: %s on file %s" % (
-                    env, key))
-            print('%s: %s=>%s recs' % (key, before_len, len(qc.data)))
-            files[key] = qc.data
-    return files
+    stack = [node]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, nodes.GroupNode):
+            stack.extend(child for name, child in obj._items())
+        else:
+            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+
+    missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
+
+    if missing_hashes:
+        print("Requesting %d signed URLs..." % len(missing_hashes))
+
+        teams = {None, _find_logged_in_team()}
+
+        obj_urls = dict()
+        obj_sizes = dict()
+
+        for team in teams:
+            session = _get_session(team)
+            response = session.post(
+                "{url}/api/get_objects".format(url=get_registry_url(team)),
+                json=list(missing_hashes)
+            )
+            data = response.json()
+            obj_urls.update(data['urls'])
+            obj_sizes.update(data['sizes'])
+
+        if len(obj_urls) != len(missing_hashes):
+            not_found = sorted(missing_hashes - set(obj_urls))
+            raise CommandException("Unable to download the following hashes: %s" % ', '.join(not_found))
+
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
 def access_list(package):
     """
@@ -1314,7 +1099,7 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for package, tag, pkghash in packages:
+        for package, tag, pkghash in sorted(packages):
             print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
@@ -1326,6 +1111,8 @@ def inspect(package):
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
+
+    store = pkgobj.get_store()
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1346,7 +1133,7 @@ def inspect(package):
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
-            df = pkgobj.get_obj(node)
+            df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
@@ -1507,3 +1294,234 @@ def load(pkginfo):
     """functional interface to "from quilt.data.USER import PKG"""
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
+
+def export(package, output_path='.', force=False):
+    """Export package file data.
+
+    Exports children of specified node to files.
+
+    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
+    :param output_path: distination folder
+    :param force: if True, overwrite existing files
+    """
+    # TODO: (future) Support other tags/versions (via load(), probably)
+    # TODO: (future) This would be *drastically* simplified by a 1:1 source-file to node-name correlation
+    # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
+    #       (nodes.Node and subclasses are being phased out, per Kevin)
+
+    ## Helpers
+    # Perhaps better as Node.iteritems()
+    def iteritems(node, base_path=None, recursive=False):
+        if base_path is None:
+            base_path = pathlib.PureWindowsPath()
+        assert isinstance(node, nodes.GroupNode)
+
+        for name, child_node in node._items():
+            child_path = base_path / name
+            yield child_path, child_node
+            if recursive and isinstance(child_node, nodes.GroupNode):
+                for subpath, subnode in iteritems(child_node, child_path, recursive):
+                    yield subpath, subnode
+
+    # Perhaps better as Node.export_path
+    def get_export_path(node, node_path):
+        # If filepath is not present, generate fake path based on node parentage.
+        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        if filepath:
+            dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
+        else:
+            assert isinstance(node_path, pathlib.PureWindowsPath)
+            assert not node_path.anchor
+            print("Warning:  Missing export path in metadata.  Using node path: {}"
+                  .format('/'.join(node_path.parts)))
+            dest = node_path
+
+        # When exporting TableNodes, excel files are to be converted to csv.
+        # check also occurs in export_node(), but done here prevents filename conflicts
+        if isinstance(node._node, TableNode):
+            if dest.suffix != '.csv':
+                # avoid name collisions from files with same name but different source,
+                # as we shift all to being csv for export.
+                # foo.tsv -> foo_tsv.csv
+                # foo.xls -> foo_xls.csv
+                # ..etc.
+                dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
+        # if filepath isn't absolute
+        if not dest.anchor:
+            return pathlib.Path(*dest.parts)  # return a native path
+
+        # filepath is absolute, convert to relative.
+        dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
+        print("Warning:  Converted export path to relative path: {}".format(str(dest)))
+        return dest
+
+    def iter_filename_map(node, base_path):
+        """Yields (<node>, <export path>) pairs for given `node`.
+
+        If `node` is a group node, yield pairs for children of `node`.
+        Otherwise, yield the path to export to for that node.
+
+        :returns: Iterator of (<node>, <export path>) pairs
+        """
+        # Handle singular node export
+        if not isinstance(node, nodes.GroupNode):
+            yield (node, get_export_path(node, base_path))
+            return
+
+        for node_path, found_node in iteritems(node, base_path=base_path, recursive=True):
+            if not isinstance(found_node, nodes.GroupNode):
+                yield (found_node, get_export_path(found_node, node_path))
+
+    # perhaps better as Node.export()
+    def export_node(node, dest):
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(node._node, FileNode):
+            copy(node(), str(dest))
+        elif isinstance(node._node, TableNode):
+            ext = node._node.metadata['q_ext']
+            df = node()
+            # 100 decimal places of pi will allow you to draw a circle the size of the known
+            # universe, and only vary by approximately the width of a proton.
+            # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
+            # If not, and someone complains, we can up it or add a parameter.
+            df.to_csv(str(dest), index=False, float_format='%r')
+
+    def resolve_dirpath(dirpath):
+        """Checks the dirpath and ensures it exists and is writable
+        :returns: absolute, resolved dirpath
+        """
+        # ensure output path is writable.  I'd just check stat, but this is fully portable.
+        try:
+            dirpath.mkdir(exist_ok=True)  # could be '.'
+            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
+                pass
+        except OSError as error:
+            raise CommandException("Invalid export path: not writable: " + str(error))
+        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
+
+    def finalize(outpath, exports):
+        """Finalize exports
+
+        This performs the following tasks:
+            * Ensure destination doesn't exist
+            * Remove absolute anchor in dest, if any
+            * Prefix destination with target dir
+
+        :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
+        """
+        # We return list instead of yielding, so that all prep logic is done before write is attempted.
+        final_export_map = []
+
+        for node, dest in exports:
+            dest = pathlib.PureWindowsPath(dest)
+            dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
+
+            if dest.parent != outpath and dest.parent.exists() and not force:
+                raise CommandException("Invalid export path: subdir already exists: {!r}"
+                                       .format(str(dest.parent)))
+            if dest.exists() and not force:
+                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+            final_export_map.append((node, dest))
+        return final_export_map
+
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs
+
+        Export conflicts can be introduced in various ways -- for example:
+            * export-time mapping -- user maps two files to the same name
+            * coded builds -- user creates two FileNodes with the same path
+            * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
+            * build-time duplication -- user enters the same file path twice under different nodes
+
+        This checks for these conflicts and raises an error if they have occurred.
+
+        :raises: CommandException
+        """
+        results = {}
+        conflicts = set()
+
+        # Export conflicts..
+        for src, dest in export_list:
+            if dest in conflicts:
+                continue    # already a known conflict
+            if dest not in results:
+                results[dest] = src
+                continue    # not a conflict..
+            if isinstance(src._node, FileNode) and src() == results[dest]():
+                continue    # not a conflict (same src filename, same dest)..
+            # ..add other conditions that prevent this from being a conflict here..
+
+            # dest is a conflict.
+            conflicts.add(dest)
+
+        if conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in conflicts)
+            conflict_error = CommandException(
+                "Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
+                + conflict_strings
+                )
+            conflict_error.file_conflicts = conflicts
+            raise conflict_error
+
+        # Check for filenames that conflict with folder names
+        exports = set(results)
+        dirs = set()
+        for dest in results:
+            dirs.update(dest.parents)
+        file_dir_conflicts = exports & dirs
+
+        if file_dir_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
+            conflict_error = CommandException(
+                "Invalid Export: Filename(s) conflict with folder name(s):\n\t" + conflict_strings
+                )
+            conflict_error.dir_file_conflicts = file_dir_conflicts
+            raise conflict_error
+        # TODO: return abbreviated list of exports based on found non-conflicting duplicates
+
+    ## Export Logic
+    output_path = pathlib.Path(output_path)
+    node, _, info = _load(package)
+
+    if info.subpath:
+        subpath = pathlib.PureWindowsPath(*info.subpath)
+        # TODO: Change this over to `node['item/subitem']` notation once implemented
+        for name in info.subpath:
+            node = getattr(node, name)
+    else:
+        subpath = pathlib.PureWindowsPath()
+
+    resolved_output = resolve_dirpath(output_path)  # resolve/create output path
+    exports = iter_filename_map(node, subpath)      # Create src / dest map iterator
+    exports = finalize(resolved_output, exports)    # Fix absolutes, check dest nonexistent, prefix dest dir
+    check_for_conflicts(exports)                    # Prevent various potential dir/naming conflicts
+
+    # Skip it if there's nothing to do
+    if not exports:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
+    # All prep done, let's export..
+    try:
+        fmt = "Exporting file {n_fmt} of {total_fmt} [{elapsed}]"
+        sys.stdout.flush()   # flush prior text before making progress bar
+
+        # bar_format is not respected unless both ncols and total are set.
+        exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
+
+        # tqdm is threaded, and its display may not specify the exact file currently being exported.
+        for node, dest in exports_bar:
+            # Escape { and } in filenames for .format called by tqdm
+            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+            exports_bar.bar_format = fmt + ": " + fname
+            exports_bar.update(0)
+            export_node(node, dest)
+    except OSError as error:
+        commandex = CommandException("Unexpected error during export: " + str(error))
+        commandex.original_error = error
+        raise commandex

@@ -22,7 +22,7 @@
 * [Checks](checks.md)
 * [Package composition](compose.md)
 
-## Support
+## FAQ
 * [Troubleshooting](troubleshooting.md)
 
 ## Developer

@@ -21,89 +21,109 @@ class PackageFormat(Enum):
     PARQUET = 'PARQUET'
     default = PARQUET
 
+
 class Node(object):
+    __slots__ = ('metadata_hash',)
+
     @property
     @classmethod
     def json_type(cls):
         raise NotImplementedError
 
+    def __init__(self, metadata_hash):
+        assert metadata_hash is None or isinstance(metadata_hash, str)
+        self.metadata_hash = metadata_hash
+
     def __eq__(self, other):
         if isinstance(other, self.__class__):
-            return self.__dict__ == other.__dict__
+            return self.__json__() == other.__json__()
         return NotImplemented
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        return hash(self.__dict__)
+        return hash(self.__json__())
 
     def __json__(self):
-        return dict(self.__dict__, type=self.json_type)
+        val = {'type': self.json_type}
+        if self.metadata_hash is not None:
+            # For backwards compatibility, only store metadata_hash if it's set, to avoid
+            # breaking old clients unnecessarily.
+            val['metadata_hash'] = self.metadata_hash
+        return val
 
     def get_children(self):
         return {}
 
-    def preorder(self, sort=False):
-        """
-        Iterator that returns all nodes in the tree starting with the current node.
-
-        :param sort: within each group, sort child nodes by name
-        """
-        stack = [self]
-        while stack:
-            obj = stack.pop()
-            yield obj
-            if sort:
-                stack.extend(child for name, child in sorted(iteritems(obj.get_children()), reverse=True))
-            else:
-                stack.extend(itervalues(obj.get_children()))
 
 class GroupNode(Node):
+    __slots__ = ('children',)
+
     json_type = 'GROUP'
 
-    def __init__(self, children):
+    def __init__(self, children, metadata_hash=None):
+        super(GroupNode, self).__init__(metadata_hash)
         assert isinstance(children, dict)
         self.children = children
 
     def get_children(self):
         return self.children
 
+    def __json__(self):
+        val = super(GroupNode, self).__json__()
+        val['children'] = self.children
+        return val
+
+
 class RootNode(GroupNode):
+    __slots__ = ()
+
     json_type = 'ROOT'
 
+
 class TableNode(Node):
+    __slots__ = ('hashes', 'metadata')
+
     json_type = 'TABLE'
 
-    def __init__(self, hashes, format, metadata=None):
-        if metadata is None:
-            metadata = {}
+    def __init__(self, hashes, format, metadata=None, metadata_hash=None):
+        super(TableNode, self).__init__(metadata_hash)
+
+        assert PackageFormat(format) == PackageFormat.PARQUET
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
-        assert isinstance(metadata, dict)
 
         self.hashes = hashes
-        self.format = PackageFormat(format)
-        self.metadata = metadata
+        self.metadata = metadata or {}
 
     def __json__(self):
         val = super(TableNode, self).__json__()
-        val['format'] = self.format.value
+        val['hashes'] = self.hashes
+        val['metadata'] = self.metadata
+        val['format'] = PackageFormat.PARQUET.value
         return val
 
+
 class FileNode(Node):
+    __slots__ = ('hashes', 'metadata')
+
     json_type = 'FILE'
 
-    def __init__(self, hashes, metadata=None):
-        if metadata is None:
-            metadata = {}
+    def __init__(self, hashes, metadata=None, metadata_hash=None):
+        super(FileNode, self).__init__(metadata_hash)
 
         assert isinstance(hashes, list)
-        assert isinstance(metadata, dict)
 
         self.hashes = hashes
-        self.metadata = metadata
+        self.metadata = metadata or {}
+
+    def __json__(self):
+        val = super(FileNode, self).__json__()
+        val['hashes'] = self.hashes
+        val['metadata'] = self.metadata
+        return val
 
 NODE_TYPE_TO_CLASS = {cls.json_type: cls for cls in [GroupNode, RootNode, TableNode, FileNode]}
 
@@ -153,18 +173,26 @@ def hash_contents(contents):
         else:
             assert False, "Unexpected object: %r" % obj
 
+        # Backward compatibility: only hash metadata_hash if it's present.
+        if obj.metadata_hash is not None:
+            _hash_str(obj.metadata_hash)
+
     _hash_object(contents)
 
     return result.hexdigest()
 
-def find_object_hashes(root, sort=False):
+def find_object_hashes(root, meta_only=False):
     """
     Iterator that returns hashes of all of the file and table nodes.
 
     :param root: starting node
-    :param sort: within each group, sort child nodes by name
     """
-    for obj in root.preorder(sort=sort):
-        if isinstance(obj, (TableNode, FileNode)):
+    stack = [root]
+    while stack:
+        obj = stack.pop()
+        if not meta_only and isinstance(obj, (TableNode, FileNode)):
             for objhash in obj.hashes:
                 yield objhash
+        stack.extend(itervalues(obj.get_children()))
+        if obj.metadata_hash is not None:
+            yield obj.metadata_hash

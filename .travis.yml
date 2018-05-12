@@ -39,7 +39,7 @@ matrix:
 
 install:
   # install quilt from setup.py
-  - travis_retry pip install --only-binary 'tables' ./compiler['tests']
+  - travis_retry pip install ./compiler['tests']
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
       travis_retry pip install -r registry/requirements.txt
