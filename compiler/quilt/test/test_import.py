@@ -6,7 +6,7 @@ import os
 import time
 
 import pandas as pd
-from six import string_types
+from six import assertRaisesRegex, string_types
 
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
@@ -66,7 +66,7 @@ class ImportTest(QuiltTestCase):
         with self.assertRaises(ImportError):
             import quilt.data.foo.bad_package
 
-        with self.assertRaises(ImportError):
+        with self.assertRaises(ValueError):
             import quilt.data.bad_user.bad_package
 
         with self.assertRaises(ImportError):
@@ -125,7 +125,7 @@ class ImportTest(QuiltTestCase):
         with self.assertRaises(ImportError):
             import quilt.team.test.bar.bad_package
 
-        with self.assertRaises(ImportError):
+        with self.assertRaises(ValueError):
             import quilt.team.test.bad_user.bad_package
 
         with self.assertRaises(ImportError):
@@ -133,6 +133,17 @@ class ImportTest(QuiltTestCase):
 
         with self.assertRaises(ImportError):
             from quilt.team.test.bar.baz import blah
+
+    def test_build_guess(self):
+        """
+        test building from build_empty.yml
+        """
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_empty.yml')
+        command.build('guess/pkg', build_path)
+
+        with assertRaisesRegex(self, ValueError, r'Not found. Do you need to `quilt install gues`?'):
+            import quilt.data.gues
 
     def test_import_group_as_data(self):
         mydir = os.path.dirname(__file__)

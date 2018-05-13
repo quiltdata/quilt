@@ -135,8 +135,7 @@ class ModuleFinder(object):
         # e.g. user typed 'pakcage' instead of 'package'
         guess = get_close_matches(parts[0], dirs, n=1)
         if guess:
-            raise ImportError('"%s" not found. Did you mean %s?' % (parts[0], guess))
-        raise ImportError(guess, dirs)
-
-        # Nothing is found.
-        raise ImportError('Not found. Do you need to `quilt install %s`?' % submodule)
+            raise ValueError('"%s" not found. Did you mean %s?' % (parts[0], guess))
+        else:
+            # Nothing is found.
+            raise ValueError('Not found. Do you need to `quilt install %s`?' % submodule)
