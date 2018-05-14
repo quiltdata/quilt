@@ -6,7 +6,7 @@ API routes.
 NOTE: By default, SQLAlchemy expires all objects when the transaction is committed:
 http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
 
-We disable this behavior because it can cause lots of unexpected queries with
+We disable this behavior because it can cause unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
@@ -964,8 +964,12 @@ def _iterate_data_nodes(node):
             yield from _iterate_data_nodes(child)
 
 
-def get_install_timeseries(owner, package_name, max_weeks_old=52):
-    weeks_ago = sa.func.trunc(sa.func.date_part('day', sa.func.now() - Event.created) / 7)
+def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
+    now = datetime.utcnow()
+    last_monday = (now - timedelta(days=now.weekday())).date()
+    next_monday = last_monday + timedelta(weeks=1)
+
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', next_monday - Event.created) / 7)
     result = (
         db.session.query(
             sa.func.count(Event.id),
@@ -973,28 +977,64 @@ def get_install_timeseries(owner, package_name, max_weeks_old=52):
         )
         .filter(Event.package_owner == owner)
         .filter(Event.package_name == package_name)
-        .filter(Event.type == Event.Type.INSTALL)
-        .filter(weeks_ago <= max_weeks_old)
+        .filter(Event.type == event_type)
+        .filter(weeks_ago < max_weeks_old)
         .group_by(weeks_ago)
         .all()
     )
 
+    total = (
+        db.session.query(
+            Event
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == event_type)
+        sa.func.count()
+    )
+
     result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
     # result contains (count, weeks_ago) pairs
-    max_weeks_ago_in_result = max([weeks_ago for count, weeks_ago in result], default=0)
-    last = datetime.utcnow()
-    first = last - timedelta(weeks=max_weeks_ago_in_result)
-    counts = [0] * (max_weeks_ago_in_result + 1) # list of zeroes
+    last = next_monday
+    first = next_monday - timedelta(weeks=max_weeks_old)
+    counts = [0] * (max_weeks_old) # list of zeroes
     for count, weeks_ago in result:
         counts[weeks_ago] = count
 
     return {
-        'startDate': calendar.timegm(first.utctimetuple()),
-        'endDate': calendar.timegm(last.utctimetuple()),
+        'startDate': calendar.timegm(first.timetuple()),
+        'endDate': calendar.timegm(last.timetuple()),
         'frequency': 'week',
-        'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
+        'timeSeries': reversed(counts), # 0 weeks ago needs to be at end of timeseries
+        'total': total
     }
 
+@app.route('/api/package_timeseries/<owner>/<package_name>/<event_type>',
+        methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_timeseries(owner, package_name, event_type):
+    try:
+        event_enum = Event.Type[event_type.upper()]
+    except:
+        raise ApiException(requests.codes.bad_request, "Event type incorrectly specified.")
+
+    result = (
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id)
+        .one_or_none()
+    )
+    if not result:
+        raise ApiException(requests.codes.not_found, "Package does not exist.")
+
+    return get_event_timeseries(owner, package_name, event_enum)
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -1100,7 +1140,6 @@ def package_preview(owner, package_name, package_hash):
         total_size_uncompressed=total_size,
         file_types=file_types,
         log_count=log_count,
-        install_timeseries=get_install_timeseries(owner, package_name),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])
