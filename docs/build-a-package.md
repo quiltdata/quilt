@@ -72,4 +72,5 @@ foo.bar()
 Package handles take the form `USER_NAME/PACKAGE_NAME`. The package name and the names of any package subtrees must be valid Python identifiers:
 * Start with a letter
 * Contain only alphanumerics and underscore
-This ensures that pacakges can be accessed with Python's dot operator.
+
+The above criteria ensure that packages can be accessed with Python's dot operator.

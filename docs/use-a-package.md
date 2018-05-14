@@ -1,4 +1,4 @@
-# Use a pacakge
+# Use a package
 Packages may contain data of any size or type. A given package _instance_--specified
 by a hash, tag, or version--is _immutable_ for reproducibility.
 
