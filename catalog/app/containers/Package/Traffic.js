@@ -1,4 +1,10 @@
-import { purple500, purpleA100, teal500, tealA100 } from 'material-ui/styles/colors';
+import {
+  grey300 as viewLow,
+  grey800 as viewHigh,
+  blueGrey100 as installLow,
+  blueGrey800 as installHigh,
+} from 'material-ui/styles/colors';
+
 import PT from 'prop-types';
 import React, { Fragment } from 'react';
 import { FormattedDate as FD, FormattedMessage as FM } from 'react-intl';
@@ -121,14 +127,14 @@ export default composeComponent('Package.Traffic',
         <Section
           label={<FM {...msg.trafficInstalls} />}
           data={installs}
-          color={purpleA100}
-          color2={purple500}
+          color={installLow}
+          color2={installHigh}
         />
         <Section
           label={<FM {...msg.trafficViews} />}
           data={views}
-          color={tealA100}
-          color2={teal500}
+          color={viewLow}
+          color2={viewHigh}
         />
       </dl>
     </div>
