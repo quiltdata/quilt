@@ -43,6 +43,7 @@ You can read more about the syntax of `build.yml` [here](https://docs.quiltdata.
 # Build on the fly
 ```python
 # start with an empty package
+quilt.build("akarve/foo")
 # put some data in it
 import pandas as pd
 from quilt.data.akarve import foo
