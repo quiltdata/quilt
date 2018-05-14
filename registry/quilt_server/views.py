@@ -990,10 +990,7 @@ def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
         .filter(Event.package_owner == owner)
         .filter(Event.package_name == package_name)
         .filter(Event.type == event_type)
-<<<<<<< Updated upstream
-        sa.func.count()
-=======
->>>>>>> Stashed changes
+        .count()
     )
 
     result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
