@@ -1429,20 +1429,14 @@ class CommandTest(QuiltTestCase):
 
         temp_dir.mkdir()
 
-        # if sys.platform == 'nt':
-        #     import ctypes
-        #     if not ctypes.windll.shell32.IsUserAnAdmin():
-        #         pytest.xfail('User must be admin to symlink')
-        # Build, load, and export from build file
         command.build('test_export_symlinks/data', str(datadir / 'build_export_symlinks.yml'))
 
-        expected_linkstate = [islink, islink, notlink, islink, notlink]
         expected_exports = [
-            Path('data/README.md'),
-            Path('data/100Rows13Cols.xlsx'),
-            Path('data/100Rows13Cols_xlsx.csv'),
-            Path('data/subdir/foo.txt'),
-            Path('data/subdir/csv_txt.csv'),
+            (Path('data/README.md'), islink),
+            (Path('data/100Rows13Cols.xlsx'), islink),
+            (Path('data/100Rows13Cols_xlsx.csv'), notlink),
+            (Path('data/subdir/foo.txt'), islink),
+            (Path('data/subdir/csv_txt.csv'), notlink),
             ]
 
         command.export('test_export_symlinks/data', str(nolinks_path))
@@ -1450,7 +1444,7 @@ class CommandTest(QuiltTestCase):
                        if not path.is_dir()]
         assert len(found_paths) == len(expected_exports)
 
-        for path in expected_exports:
+        for path, linkstate in expected_exports:
             assert (nolinks_path / path).exists()
             assert not (nolinks_path / path).is_symlink()
 
@@ -1459,12 +1453,11 @@ class CommandTest(QuiltTestCase):
                        if not path.is_dir()]
         assert len(found_paths) == len(expected_exports)
 
-        for position, path in enumerate(expected_exports):
-            print((position, path, expected_linkstate[position]))
-            assert path in expected_exports
+        for path, linkstate in expected_exports:
+            assert path in found_paths
             path = links_path / path
             assert path.exists()
-            assert path.is_symlink() == expected_linkstate[position]
+            assert path.is_symlink() == linkstate
 
     def test_parse_package_names(self):
         # good parse strings
