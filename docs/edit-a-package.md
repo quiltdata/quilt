@@ -21,7 +21,7 @@ hue = df['Hue']
 df['HueNormalized'] = (hue - hue.min())/(hue.max() - hue.min())
 ```
 
-## Creating package members
+## Add package members
 Use the `_set` helper method on the top-level package node to create new groups and data nodes:
 ``` python
 import pandas as pd
@@ -31,22 +31,18 @@ wine._set(["mygroup", "data"], df)
 # insert a file at wine.mygroup.anothergroup.blob()
 wine._set(["mygroup", "anothergroup", "blob"], "localpath/file.txt") #
 ```
-## Deleting package members
+
+## Delete package members
 Use `del` to delete attributes:
 ``` python
 del wine.raw.wine
 ```
 
-## Commit your changes
+## Commit changes
 Now you can rebuild the package to save the changes and then push the result to Quilt. (Note that only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
-
 
 Finally name and push your package:
 ```python
 # build a package based on the current state of wine
 quilt.build("YOUR_USERNAME/YOUR_PACKAGENAME", wine)
-# log in to the registry (requires a free account)
-quilt.login()
-# push it to the registry.  NOTE: this becomes public and crawlable by Google for example.
-quilt.push("YOUR_USERNAME/YOUR_PACKAGENAME", public=True)
 ```
