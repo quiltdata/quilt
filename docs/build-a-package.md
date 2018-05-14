@@ -1,3 +1,8 @@
+# Build a package
+
+Building a package creates a local bundle of serialized data. `$ quilt ls`
+displays your local packages and their location on disk.
+
 There are three ways to build data packages with Quilt:
 
 1. Implicitly with `quilt build USR/PKG DIRECTORY`. Implicit builds are good for taking quick snapshots of unstructured data like images or text files. Quilt serializes columnar formats formats (xls, csv, tsv, etc.) to data frames; all other files will be copied "as is".
@@ -8,7 +13,7 @@ There are three ways to build data packages with Quilt:
 
 Each of the above methods for building packages is supported in [Python](./api.md) and on the [command line](./api.md).
 
-# Implicit builds
+## Implicit builds
 
 To implicitly build a package of unserialized data:
 
@@ -23,7 +28,7 @@ quilt push USR/PKG --public
 ```
 Users on Individual and Business plans can omit the ~~`--public`~~ flag to create private packages.
 
-# Explicit builds
+## Explicit builds
 
 Explicit builds cue from a YAML file, conventionally called `build.yml`.
 
@@ -33,7 +38,7 @@ quilt build USR/PKG BUILD.YML
 
 `build.yml` specifies the structure and contents of a package.
 
-## `quilt generate` creates a `build.yml` file
+### `quilt generate` creates a `build.yml` file
 An easy way to create a `build.yml` file is as follows:
 ```bash
 quilt generate DIR
@@ -42,11 +47,11 @@ This command creates `build.yml` and `README.md` files that you can modify to yo
 
 You can read more about the syntax of `build.yml` [here](https://docs.quiltdata.com/buildyml.html).
 
-### Directory and file naming in `quilt generate`
+#### Directory and file naming in `quilt generate`
 * Directories and files that start with a numeric character or underscore will be prefixed with the letter `n`. If a name collision results, the build will fail with an error.
 * If two files have the same path and root name, but different file extensions (`foo.txt`, `foo.csv`), the extensions will be appended as follows: `foo_txt`, `foo_csv`. If, after appending, there remains a name collision, the build will fail with an error.
 
-# Build on the fly
+## Build on the fly
 ```python
 # start with an empty package
 quilt.build("akarve/foo")
@@ -63,7 +68,7 @@ foo.bar()
 # 2	3
 ```
 
-# Valid package names
+## Notes on valid package names
 Package handles take the form `USER_NAME/PACKAGE_NAME`. The package name and the names of any package subtrees must be valid Python identifiers:
 * Start with a letter
 * Contain only alphanumerics and underscore

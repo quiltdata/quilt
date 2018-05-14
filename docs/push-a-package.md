@@ -1,14 +1,18 @@
-Once a package is built, you can push it to the registry:
-```bash
-quilt login # requires free account
-quilt push USR/PKG --public
-```
-Users on Individual and Business plans can omit the ~~`--public`~~ flag to create private packages.
+# Push a package
+Pushing a package stores a built package in a server-side registry. Push a package
+to back up changes or share your package with others.
 
-As with most Quilt commands, you can execute the above directly in Python:
+```bash
+$ quilt login # requires free account
+$ quilt push USR/PKG --public
+```
+
+Or, in Python:
 ```python
 # log in to the registry (requires a free account)
 quilt.login()
 # push it to the registry
 quilt.push("USR/PKG", public=True)
 ```
+
+Users on Individual and Business plans can omit the ~~`--public`~~ flag to create private packages.

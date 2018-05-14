@@ -1,4 +1,5 @@
 # Edit a package
+
 Start by installing and importing the package you wish to modify:
 ``` python
 import quilt
@@ -38,14 +39,7 @@ Use `del` to delete attributes:
 del wine.raw.wine
 ```
 
-## Commit changes
-Now you can rebuild the package to save the changes and then push the result to Quilt.
-
-Note: only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
-
-```python
-# build a package based on the current state of wine
-quilt.build("YOUR_USERNAME/YOUR_PACKAGENAME", wine)
-```
-At this point, the package has been built locally. If you wish to share your
-changes with others, or back up your changes remotely, you can now [push your package](./push-a-package.md).
+## Persist changes
+At this point, your changes only exist in memory. To persist your
+changes you can [build](./build-a-package.md) and [push](./push-a-package.md)
+your package.

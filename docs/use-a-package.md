@@ -1,9 +1,15 @@
-# Python
+# Use a pacakge
+Packages may contain data of any size or type. A given package _instance_--specified
+by a hash, tag, or version--is _immutable_ for reproducibility.
+
+## Python
 1. Download a data package from  user `uciml`
     ```bash
     $ quilt install uciml/iris
     ```
-Every Quilt command is available both on the [command line](./shell.md) and in [Python](./python.md). So you could install a package as follows:
+All Quilt commands are available _both_ on the [command line](./api.md) and in [Python](./api.md).
+
+You can install a package as follows:
 
 ```python
 import quilt
@@ -30,7 +36,7 @@ quilt.install("uciml/iris")
 
 That's it. Read more about the `uciml/iris` package on its [landing page](https://quiltdata.com/package/uciml/iris), or [browse  packages on Quilt](https://quiltdata.com/search/?q=).
 
-# PySpark
+## PySpark
 
 1. Download a data package from  user `uciml`
     ``` bash
@@ -56,6 +62,6 @@ That's it. Read more about the `uciml/iris` package on its [landing page](https:
 
 That's it. Read more about the `uciml/iris` package on its [landing page](https://quiltdata.com/package/uciml/iris), or [browse  packages on Quilt](https://quiltdata.com/search/?q=).
 
-## Forthcoming
+### Forthcoming
 * Build packages in PySpark
 * Access and build packages in Java and Scala
