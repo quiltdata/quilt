@@ -150,7 +150,7 @@ def _create_filter_func(filter_dict):
         raise ValueError("Invalid 'meta': %r" % filter_meta)
 
     if filter_dict:
-        raise ValueError("Unexpected data in the filter: %r" % filter_dict)
+        raise ValueError("Unexpected data in the filter: %r; only 'name' and 'meta' are supported" % filter_dict)
 
     def helper(value, expected):
         if isinstance(expected, dict):
