@@ -59,7 +59,7 @@ OSError: [Errno 1] Operation not permitted: '/tmp/pip-zFP4QS-uninstall/System/Li
 
 This problem is not specific to `quilt`, and is caused by outdated packages in OS X. See [this stackoverflow question](https://stackoverflow.com/questions/31900008/oserror-errno-1-operation-not-permitted-when-installing-scrapy-in-osx-10-11) for more information.
 
-## Solutions
+### Solutions
 - Use a virtual environment such as [`conda`](https://conda.io/docs/installation.html) or [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/)
 - Upgrade `pyOpenSSL` using `brew` or `easy_install`
 - Upgrade to a more recent version of OS X
@@ -107,5 +107,34 @@ new_data = pkg.big_data()
 # Make sure the dataframe in the package is in fact the same as the original.
 assert new_data.equals(data)
 ```
+
+## Exporting to symlinks on Windows doesn't work
+There are a few issues with symlinks on Windows.  Windows support for symlinks has never been stellar.  The
+following issues typically cause problems when symlinking:
+
+* Permissions
+* OS Bugs
+* OS Quirks
+
+### Solutions
+Any of these may potentially fix the problem.
+
+* Ensure Windows is fully updated (known related bugs exist)
+* Grant the `Create Symbolic Links` privilege
+  * See [this SuperUser article](https://superuser.com/questions/104845/permission-to-make-symbolic-links-in-windows-7/105381#105381)
+    for relevant instructions
+  * If UAC is on
+    * If user __is not__ an administrator, they must have the `Create Symbolic Links` privilege
+    * If user __is__ an administrator, they must escalate privileges, even if they have the `Create Symbolic Links` privilege
+      * This means if you want a user to create symlinks without requiring escalation, they may not be an administrator.
+  * If UAC is off
+    * Any user with the `Create Symbolic Links` privilege may do so
+* Folder-level privileges may interfere with symlinking
+  * Verify there are no folder-specific restrictions on privileges
+* Symlink type may be disabled, as it is by default for remote->remote symlinks
+  * Use `fsutil` (from an elevated command prompt) to evaluate and/or enable acceptable symlink types
+    * `fsutil`: *For advanced users only.*  See the [Microsoft documentation on fsutil](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/cc753059(v=ws.11))
+      * `fsutil behavior query SymlinkEvaluation` will display the current state of symlink evaluation
+      * Use `fsutil behavior set SymlinkEvaluation R2R:1` to enable (for example) remote-to-remote symlinks
 
 ***
