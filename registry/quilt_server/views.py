@@ -41,9 +41,10 @@ from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
-                     S3Blob, Tag, Version)
-from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .models import (Access, Comment, Customer, Event, Instance, InstanceBlobAssoc, Invitation,
+                     Log, Package, S3Blob, Tag, Version)
+from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
+                      USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -340,6 +341,7 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
+            print('auth: %r' % auth)
             g.auth_header = auth
             if auth is None:
                 if require_login or not ALLOW_ANONYMOUS_ACCESS:
@@ -2323,3 +2325,34 @@ def reset_password():
             )
 
     return resp.json()
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
+@api()
+@as_json
+def comments_post(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    contents = request.get_json()['contents']
+
+    comment = Comment(package=package, author=g.auth.user, contents=contents)
+
+    db.session.add(comment)
+    db.session.commit()
+
+    return dict()
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def comments_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    comments = Comment.query.filter_by(package=package).order_by(Comment.created)
+
+    return dict(
+        comments=[dict(
+            author=comment.author,
+            created=comment.created,
+            contents=comment.contents
+        ) for comment in comments]
+    )
