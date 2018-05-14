@@ -39,10 +39,13 @@ del wine.raw.wine
 ```
 
 ## Commit changes
-Now you can rebuild the package to save the changes and then push the result to Quilt. (Note that only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
+Now you can rebuild the package to save the changes and then push the result to Quilt.
 
-Finally name and push your package:
+Note: only the package owner can modify the package. In the present example you can rebuild the wine package into your own package repository.)
+
 ```python
 # build a package based on the current state of wine
 quilt.build("YOUR_USERNAME/YOUR_PACKAGENAME", wine)
 ```
+At this point, the package has been built locally. If you wish to share your
+changes with others, or back up your changes remotely, you can now [push your package](./push-a-package.md).
