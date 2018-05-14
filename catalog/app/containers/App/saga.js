@@ -20,6 +20,7 @@ import {
   getManifestSuccess,
   getPackageError,
   getPackageSuccess,
+  getTrafficResponse,
   refreshAuth,
   storeTokens,
   routerStart,
@@ -30,6 +31,7 @@ import {
   GET_LOG,
   GET_PACKAGE,
   GET_PACKAGE_SUCCESS,
+  GET_TRAFFIC,
   intercomAppId as app_id, // eslint-disable-line camelcase
   ROUTER_START,
   SIGN_OUT,
@@ -142,6 +144,21 @@ function* doGetPackage(action) {
   }
 }
 
+function* getTraffic({ payload: { name, owner } }) {
+  const events = ['install', 'preview'];
+  const endpoint = (event) =>
+    `${config.api}/api/package_timeseries/${owner}/${name}/${event}`;
+
+  try {
+    const headers = yield call(makeHeaders);
+    const [installs, views] = yield events.map((event) =>
+      call(requestJSON, endpoint(event), { headers }));
+    yield put(getTrafficResponse({ installs, views }));
+  } catch (err) {
+    yield put(getTrafficResponse(err));
+  }
+}
+
 function* doRefresh(action) {
   // no reason to refresh on oauth_callback route; only time we enter that
   // route is when a log in is in progress
@@ -246,6 +263,8 @@ export default function* () {
   yield takeLatest(SIGN_OUT, doIntercom);
 
   yield takeLatest(STORE_TOKENS, doStoreTokens);
+
+  yield takeLatest(GET_TRAFFIC, getTraffic);
 
   yield call(doRouterStart);
 }
