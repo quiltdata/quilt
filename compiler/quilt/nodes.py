@@ -143,11 +143,11 @@ class GroupNode(Node):
 def _create_filter_func(filter_dict):
     filter_name = filter_dict.pop('name', None)
     if filter_name is not None and not isinstance(filter_name, string_types):
-        raise ValueError("Invalid 'name'")
+        raise ValueError("Invalid 'name': %r" % filter_name)
 
     filter_meta = filter_dict.pop('meta', None)
     if filter_meta is not None and not isinstance(filter_meta, dict):
-        raise ValueError("Invalid 'meta'")
+        raise ValueError("Invalid 'meta': %r" % filter_meta)
 
     if filter_dict:
         raise ValueError("Unexpected data in the filter: %r" % filter_dict)
