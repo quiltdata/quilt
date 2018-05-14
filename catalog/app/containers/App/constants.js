@@ -35,6 +35,9 @@ export const GET_MANIFEST = 'app/App/GET_MANIFEST';
 export const GET_MANIFEST_ERROR = 'app/App/GET_MANIFEST_ERROR';
 export const GET_MANIFEST_SUCCESS = 'app/App/GET_MANIFEST_SUCCESS';
 
+export const GET_TRAFFIC = 'app/App/GET_TRAFFIC';
+export const GET_TRAFFIC_RESPONSE = 'app/App/GET_TRAFFIC_RESPONSE';
+
 export const NO_OP = 'app/App/NO_OP';
 export const REFRESH_AUTH = 'app/App/REFRESH_AUTH';
 export const ROUTER_START = 'app/App/ROUTER_START';

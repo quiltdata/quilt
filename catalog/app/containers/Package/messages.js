@@ -59,4 +59,24 @@ export default defineMessages({
     id: 'app.components.Package.noReadme',
     defaultMessage: 'No README.md provided',
   },
+  trafficHeading: {
+    id: 'app.components.Package.Traffic.heading',
+    defaultMessage: 'Traffic',
+  },
+  trafficRange: {
+    id: 'app.components.Package.Traffic.range',
+    defaultMessage: '{from} to {to}',
+  },
+  trafficTotal: {
+    id: 'app.components.Package.Traffic.total',
+    defaultMessage: 'total',
+  },
+  trafficInstalls: {
+    id: 'app.components.Package.Traffic.installs',
+    defaultMessage: 'Installs',
+  },
+  trafficViews: {
+    id: 'app.components.Package.Traffic.views',
+    defaultMessage: 'Views',
+  },
 });
