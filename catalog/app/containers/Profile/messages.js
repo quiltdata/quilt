@@ -4,7 +4,7 @@ import { defineMessages } from 'react-intl';
 export default defineMessages({
   noOwned: {
     id: 'app.containers.Profile.noOwned',
-    defaultMessage: 'Learn how to create a package',
+    defaultMessage: 'Get started with Quilt',
   },
   own: {
     id: 'app.containers.Profile.own',
