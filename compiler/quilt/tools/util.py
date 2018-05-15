@@ -1,17 +1,20 @@
 """
 Helper functions.
 """
+import ctypes
 import gzip
 import keyword
 import os
 import re
 import shutil
+import sys
 
 from appdirs import user_config_dir, user_data_dir
 from collections import namedtuple
 from six import BytesIO, string_types, Iterator
 
 from .const import QuiltException
+from .compat import pathlib
 
 
 APP_NAME = "QuiltCli"
@@ -22,6 +25,11 @@ PYTHON_IDENTIFIER_RE = re.compile(r'^[a-zA-Z_]\w*$')
 EXTENDED_PACKAGE_RE = re.compile(
     r'^((?:\w+:)?\w+/[\w/]+)(?::h(?:ash)?:(.+)|:v(?:ersion)?:(.+)|:t(?:ag)?:(.+))?$'
 )
+
+# Windows soft/hardlink c functions
+WIN_SOFTLINK = None
+WIN_HARDLINK = None
+
 
 #return type for parse_package_extended
 PackageInfo = namedtuple("PackageInfo", "full_name, team, user, name, subpath, hash, version, tag")
@@ -277,3 +285,68 @@ def get_free_space(directory):
         # Python2, win32
         # Not implemented - but we don't support this combination, anyway.
         raise NotImplementedError
+
+def fs_link(path, linkpath, linktype='soft'):
+    """Create a hard or soft link of `path` at `linkpath`
+
+    Works on Linux/OSX/Windows (Vista+).
+
+    :param src: File or directory to be linked
+    :param dest: Path of link to create
+    :param linktype: 'soft' or 'hard'
+    """
+    global WIN_SOFTLINK
+    global WIN_HARDLINK
+    WIN_NO_ERROR = 22
+
+    assert linktype in ('soft', 'hard')
+
+    path, linkpath = pathlib.Path(path), pathlib.Path(linkpath)
+
+    # Checks
+    if not path.exists():    # particularly important on Windows to prevent false success
+        raise QuiltException("Path to link to does not exist: {}".format(path))
+    if linkpath.exists():
+        raise QuiltException("Link path already exists: {}".format(linkpath))
+
+    # Windows
+    if os.name == 'nt':
+        # clear out any pre-existing, un-checked errors
+        ctypes.WinError()
+            
+        # Check Windows version (reasonably) supports symlinks
+        if not sys.getwindowsversion()[0] >= 6:
+            raise QuiltException("Unsupported operation: This version of Windows does not support linking.")
+
+        # Acquire the windows CreateXLinkW() function
+        if linktype == 'soft':
+            if WIN_SOFTLINK is None:
+                WIN_SOFTLINK = ctypes.windll.kernel32.CreateSymbolicLinkW
+                WIN_SOFTLINK.restype = ctypes.c_bool
+            create_link = lambda l, p: WIN_SOFTLINK(str(l), str(p), p.is_dir())
+        elif linktype == 'hard':
+            if WIN_HARDLINK is None:
+                WIN_HARDLINK = ctypes.windll.kernel32.CreateHardLinkW
+                WIN_HARDLINK.restype = ctypes.c_bool
+            create_link = WIN_HARDLINK
+
+        # Call and check results
+        create_link(linkpath, path)
+        # Check WinError, because the return value for CreateSymbolicLinkW's type is suspect due to a
+        # (possible) bug: https://stackoverflow.com/questions/33010440/createsymboliclink-on-windows-10
+        # We have user results with similar effects (success reported, but not actual)
+        error = ctypes.WinError()
+        if error.winerror:
+            raise QuiltException("Linking failed: " + str(error), original_error=error)
+        # Handle the case wehere linking failed and windows gave no error:
+        if not linkpath.exists() and linkpath.is_symlink():
+            raise QuiltException("Linking failed: Expected symlink at: {}".format(linkpath))
+    # Linux, OSX
+    else:
+        try:
+            if linktype == 'soft':
+                linkpath.symlink_to(path)
+            elif linktype == 'hard':
+                os.link(str(path), str(linkpath))
+        except OSError as error:
+            raise QuiltException("Linking failed: " + str(error), original_error=error)

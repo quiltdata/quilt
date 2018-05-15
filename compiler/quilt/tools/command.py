@@ -5,7 +5,6 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import Counter
 from datetime import datetime
 from functools import partial
 import hashlib
@@ -38,7 +37,7 @@ from .core import (hash_contents, find_object_hashes, TableNode, FileNode, Group
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_package_util,
+from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
@@ -1295,13 +1294,25 @@ def load(pkginfo):
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
-def export(package, output_path='.', force=False):
+def export(package, output_path='.', force=False, symlinks=False):
     """Export package file data.
 
-    Exports children of specified node to files.
+    Exports specified node (or its children) to files.
 
-    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
+    `symlinks`
+    **Warning** This is an advanced feature, use at your own risk.
+                You must have a thorough understanding of permissions,
+                and it is your responsibility to ensure that the linked
+                files are not modified.  If they do become modified, it
+                may corrupt your package store, and you may lose data,
+                or you may use or distribute incorrect data.
+    If `symlinks` is `True`:
+      * Nodes that point to binary data will be symlinked instead of copied.
+      * All other specified nodes (columnar data) will be exported as normal.
+
+    :param package: package/subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
+    :param symlinks: Use at your own risk.  See full description above.
     :param force: if True, overwrite existing files
     """
     # TODO: (future) Support other tags/versions (via load(), probably)
@@ -1309,6 +1320,16 @@ def export(package, output_path='.', force=False):
     # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
     #       (nodes.Node and subclasses are being phased out, per Kevin)
 
+    if symlinks is True:
+        from quilt import _DEV_MODE
+        if not _DEV_MODE:
+            response = input("Warning: Exporting using symlinks to the package store.\n"
+                "\tThis is an advanced feature.\n"
+                "\tThe package store must not be written to directly, or it may be corrupted.\n"
+                "\tManaging permissions and usage are your responsibility.\n\n"
+                "Are you sure you want to continue? (yes/No) ")
+            if response != 'yes':
+                raise CommandException("No action taken: 'yes' not given")
     ## Helpers
     # Perhaps better as Node.iteritems()
     def iteritems(node, base_path=None, recursive=False):
@@ -1373,11 +1394,14 @@ def export(package, output_path='.', force=False):
                 yield (found_node, get_export_path(found_node, node_path))
 
     # perhaps better as Node.export()
-    def export_node(node, dest):
+    def export_node(node, dest, use_symlinks=False):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(node._node, FileNode):
-            copy(node(), str(dest))
+            if use_symlinks is True:
+                fs_link(node(), dest)
+            else:
+                copy(node(), str(dest))
         elif isinstance(node._node, TableNode):
             ext = node._node.metadata['q_ext']
             df = node()
@@ -1513,14 +1537,14 @@ def export(package, output_path='.', force=False):
 
         # bar_format is not respected unless both ncols and total are set.
         exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
-
         # tqdm is threaded, and its display may not specify the exact file currently being exported.
-        for node, dest in exports_bar:
-            # Escape { and } in filenames for .format called by tqdm
-            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
-            exports_bar.bar_format = fmt + ": " + fname
-            exports_bar.update(0)
-            export_node(node, dest)
+        with exports_bar:
+            for node, dest in exports_bar:
+                # Escape { and } in filenames for .format called by tqdm
+                fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+                exports_bar.bar_format = fmt + ": " + fname
+                exports_bar.update(0)
+                export_node(node, dest, use_symlinks=symlinks)
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
         commandex.original_error = error
