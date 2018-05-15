@@ -56,11 +56,6 @@ class CustomHelpParser(argparse.ArgumentParser):
 
 
 def argument_parser():
-    def check_hash(group, hashstr):
-        # TODO: add this universally once short hashes are supported in other functions.
-        return (hashstr if 6 <= len(hashstr) <= 64 else
-                group.error('hashes must be 6-64 chars long'))
-
     description = ("Quilt Command Line\n"
                    "Visit our online docs at https://docs.quiltdata.com/")
     parser = CustomHelpParser(description=description, add_help=False)
