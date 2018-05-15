@@ -2332,7 +2332,7 @@ def _comment_dict(comment):
     return dict(
         id=str_id,
         author=comment.author,
-        created=comment.created,
+        created=comment.created.timestamp(),
         contents=comment.contents
     )
 

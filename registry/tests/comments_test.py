@@ -63,7 +63,7 @@ class CommentsTestCase(QuiltTestCase):
         resp = self._post_comment(owner, pkg1, owner, comment1)['comment']
         assert resp['author'] == owner
         assert resp['contents'] == comment1
-        assert resp['created']
+        assert float(resp['created'])
         assert len(resp['id']) == 16
         self._post_comment(owner, pkg1, user1, comment2)
         self._post_comment(owner, pkg2, user1, comment3)
