@@ -297,7 +297,6 @@ def fs_link(path, linkpath, linktype='soft'):
     """
     global WIN_SOFTLINK
     global WIN_HARDLINK
-    WIN_NO_ERROR = 22
 
     assert linktype in ('soft', 'hard')
 
@@ -313,7 +312,7 @@ def fs_link(path, linkpath, linktype='soft'):
     if os.name == 'nt':
         # clear out any pre-existing, un-checked errors
         ctypes.WinError()
-            
+
         # Check Windows version (reasonably) supports symlinks
         if not sys.getwindowsversion()[0] >= 6:
             raise QuiltException("Unsupported operation: This version of Windows does not support linking.")
