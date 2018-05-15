@@ -141,6 +141,8 @@ def argument_parser():
     export_p.add_argument("package", type=str, help=HANDLE)
     export_p.add_argument("output_path", type=str, default='.', nargs='?',
                           help="Destination folder (auto-created), default '.'")
+    export_p.add_argument("-f", "--force", action="store_true", help="Export over existing files and folders")
+    export_p.add_argument("-s", "--symlinks", action="store_true", help="Use symlinks where possible")
     export_p.set_defaults(func=command.export)
 
     # quilt generate
@@ -264,6 +266,7 @@ def argument_parser():
     users_subparsers = users_p.add_subparsers(metavar='<subcommand>')
     users_subparsers.required = True
 
+    #TODO: Correctly order user_create, user_delete, user_disable, user_list, user_reset
     # user list
     shorthelp = "List users in your team."
     user_list_p = users_subparsers.add_parser("list", help=shorthelp)

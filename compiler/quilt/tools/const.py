@@ -19,18 +19,18 @@ DEFAULT_BUILDFILE = 'build.yml'
 DEFAULT_QUILT_YML = 'quilt.yml'
 DEFAULT_TEAM = 'Quilt'
 
-# pretty __repr__ consts
-PRETTY_MAX_LEN = 10
-
 # reserved words in build.yml
 RESERVED = {
     'checks': 'checks',
     'environments': 'environments',
     'file': 'file',
+    'meta': 'meta',
     'kwargs': 'kwargs',
     'package': 'package',
     'transform': 'transform'
 }
+
+SYSTEM_METADATA = '_system'
 
 # SHA-2 Family
 HASH_TYPE = 'sha256'
@@ -89,12 +89,19 @@ class QuiltException(Exception):
     even if not expected to be seen by a user.  This is available as the
     'message' attribute, or as `str(error)`.
 
+    **kwargs will be added directly as attributes to the error, so a
+    dict of `{'code': 90, 'original_error': <OSError Object>}` would be
+    added as `self.code` and `self.original_error`.
+
     :param message: Error message to display
+    :param **kwargs: Additional key, value pairs to set as attributes
     """
-    def __init__(self, message):
+    def __init__(self, message, **kwargs):
         # We use NewError("Prefix: " + str(error)) a lot.
         # To be consistent across Python 2.7 and 3.x:
         # 1) This `super` call must exist, or 2.7 will have no text for str(error)
         # 2) This `super` call must have only one argument (the message) or str(error) will be a repr of args
         super(QuiltException, self).__init__(message)
         self.message = message
+        for k, v in kwargs.items():
+            setattr(self, k, v)

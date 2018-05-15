@@ -17,6 +17,7 @@ from six import iteritems
 
 from .nodes import DataNode, GroupNode, PackageNode
 from .tools import core
+from .tools.const import SYSTEM_METADATA
 from .tools.store import PackageStore
 
 
@@ -40,13 +41,23 @@ class FakeLoader(object):
 
 
 def _from_core_node(package, core_node):
-    if isinstance(core_node, core.TableNode) or isinstance(core_node, core.FileNode):
-        node = DataNode(package, core_node)
+    if core_node.metadata_hash is not None:
+        metadata = package.get_store().load_metadata(core_node.metadata_hash)
+        assert SYSTEM_METADATA not in metadata
+    else:
+        metadata = {}
+
+    if isinstance(core_node, (core.TableNode, core.FileNode)):
+        metadata[SYSTEM_METADATA] = {
+            'filepath': core_node.metadata.get('q_path'),
+            'transform': core_node.metadata.get('q_ext'),
+        }
+        node = DataNode(package, core_node, None, metadata)
     else:
         if isinstance(core_node, core.RootNode):
-            node = PackageNode(package, core_node)
+            node = PackageNode(package, metadata)
         elif isinstance(core_node, core.GroupNode):
-            node = GroupNode(package, core_node)
+            node = GroupNode(metadata)
         else:
             assert "Unexpected node: %r" % core_node
 

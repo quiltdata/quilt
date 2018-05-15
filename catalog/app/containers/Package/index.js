@@ -13,16 +13,21 @@ import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import apiStatus from 'constants/api';
-import { getLog, getPackage } from 'containers/App/actions';
+import { getLog, getPackage, getTraffic } from 'containers/App/actions';
 import Error from 'components/Error';
 import { Pad } from 'components/LayoutHelpers';
 import Markdown from 'components/Markdown';
 import PackageHandle from 'components/PackageHandle';
-import { makeSelectPackage, makeSelectUserName } from 'containers/App/selectors';
+import {
+  makeSelectPackage,
+  makeSelectUserName,
+  selectPackageTraffic,
+} from 'containers/App/selectors';
 import Working from 'components/Working';
 
 import Install from './Install';
 import Log from './Log';
+import Traffic from './Traffic';
 import UpdateInfo from './UpdateInfo';
 import strings from './messages';
 
@@ -47,6 +52,7 @@ export class Package extends React.PureComponent {
     const { dispatch, match: { params: { name, owner } } } = this.props;
     dispatch(getPackage(owner, name));
     dispatch(getLog(owner, name));
+    dispatch(getTraffic(owner, name));
   }
   componentWillReceiveProps(nextProps) {
     const { dispatch, match: { params: { name, owner } }, user } = this.props;
@@ -91,7 +97,7 @@ export class Package extends React.PureComponent {
     }
   }
   render() {
-    const { pkg, match: { params } } = this.props;
+    const { pkg, traffic, match: { params } } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
       case undefined:
@@ -162,6 +168,7 @@ export class Package extends React.PureComponent {
           <Row>
             <Col xs={12}>
               <Install name={name} owner={owner} />
+              <Traffic {...traffic} />
               <UpdateInfo
                 author={author}
                 time={time}
@@ -189,11 +196,13 @@ Package.propTypes = {
     }).isRequired,
   }).isRequired,
   user: PropTypes.string,
+  traffic: PropTypes.object,
 };
 
 const mapStateToProps = createStructuredSelector({
   pkg: makeSelectPackage(),
   user: makeSelectUserName(),
+  traffic: selectPackageTraffic,
 });
 
 function mapDispatchToProps(dispatch) {

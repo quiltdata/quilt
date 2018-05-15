@@ -5,7 +5,6 @@ Command line parsing and command dispatch
 
 from __future__ import print_function
 from builtins import input      # pylint:disable=W0622
-from collections import Counter
 from datetime import datetime
 from functools import partial
 import hashlib
@@ -33,12 +32,12 @@ from tqdm import tqdm
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
-from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
 from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_package_util,
+from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
@@ -556,26 +555,40 @@ def build_from_node(package, node):
     package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=[]):
+        if not isinstance(node._meta, dict):
+            raise CommandException(
+                "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
+            )
+        meta = dict(node._meta)
+        system_meta = meta.pop(SYSTEM_METADATA, {})
+        if not isinstance(system_meta, dict):
+            raise CommandException(
+                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key." %
+                ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
+            )
         if isinstance(node, nodes.GroupNode):
-            package_obj.save_group(path)
+            package_obj.save_group(path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
-            core_node = node._node
-            metadata = core_node.metadata or {}
-            if isinstance(core_node, TableNode):
-                dataframe = node._data()
-                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    TargetType.PANDAS)
-            elif isinstance(core_node, FileNode):
-                src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'), TargetType.FILE)
+            # TODO: Reuse existing fragments if we have them.
+            data = node._data()
+            filepath = system_meta.get('filepath')
+            transform = system_meta.get('transform')
+            if isinstance(data, pd.DataFrame):
+                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, string_types):
+                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
             else:
-                assert False, "Unexpected core node type: %r" % core_node
+                assert False, "Unexpected data type: %r" % data
         else:
             assert False, "Unexpected node type: %r" % node
 
-    _process_node(node)
+    try:
+        _process_node(node)
+    except StoreException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
+
     package_obj.save_contents()
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
@@ -838,7 +851,16 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     At most one of `hash`, `version`, or `tag` can be given. If none are
     given, `tag` defaults to "latest".
+
+    `package` may be a node tree - in which case, its fragments get downloaded.
+    No other parameters are allowed.
     """
+    if isinstance(package, nodes.Node):
+        if not (hash is version is tag is None and force is meta_only is False):
+            raise ValueError("Parameters not allowed when installing a node")
+        _materialize(package)
+        return
+
     if hash is version is tag is None:
         tag = LATEST_TAG
 
@@ -925,24 +947,66 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     pkgobj = store.install_package(team, owner, pkg, contents)
 
-    if not meta_only:
-        obj_urls = dataset['urls']
-        obj_sizes = dataset['sizes']
+    obj_urls = dataset['urls']
+    obj_sizes = dataset['sizes']
 
-        # Skip the objects we already have
-        for obj_hash in list(obj_urls):
-            if os.path.exists(store.object_path(obj_hash)):
-                del obj_urls[obj_hash]
-                del obj_sizes[obj_hash]
+    # Skip the objects we already have
+    for obj_hash in list(obj_urls):
+        if os.path.exists(store.object_path(obj_hash)):
+            del obj_urls[obj_hash]
+            del obj_sizes[obj_hash]
 
-        if obj_urls:
-            success = download_fragments(store, obj_urls, obj_sizes)
-            if not success:
-                raise CommandException("Failed to download fragments")
-        else:
-            print("All fragments are already downloaded!")
+    if obj_urls:
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
     pkgobj.save_contents()
+
+def _materialize(node):
+    store = PackageStore()
+
+    hashes = set()
+
+    stack = [node]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, nodes.GroupNode):
+            stack.extend(child for name, child in obj._items())
+        else:
+            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+
+    missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
+
+    if missing_hashes:
+        print("Requesting %d signed URLs..." % len(missing_hashes))
+
+        teams = {None, _find_logged_in_team()}
+
+        obj_urls = dict()
+        obj_sizes = dict()
+
+        for team in teams:
+            session = _get_session(team)
+            response = session.post(
+                "{url}/api/get_objects".format(url=get_registry_url(team)),
+                json=list(missing_hashes)
+            )
+            data = response.json()
+            obj_urls.update(data['urls'])
+            obj_sizes.update(data['sizes'])
+
+        if len(obj_urls) != len(missing_hashes):
+            not_found = sorted(missing_hashes - set(obj_urls))
+            raise CommandException("Unable to download the following hashes: %s" % ', '.join(not_found))
+
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
 def access_list(package):
     """
@@ -1230,13 +1294,25 @@ def load(pkginfo):
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
-def export(package, output_path='.', force=False):
+def export(package, output_path='.', force=False, symlinks=False):
     """Export package file data.
 
-    Exports children of specified node to files.
+    Exports specified node (or its children) to files.
 
-    :param package: package or subpackage name, e.g., user/foo or user/foo/bar
+    `symlinks`
+    **Warning** This is an advanced feature, use at your own risk.
+                You must have a thorough understanding of permissions,
+                and it is your responsibility to ensure that the linked
+                files are not modified.  If they do become modified, it
+                may corrupt your package store, and you may lose data,
+                or you may use or distribute incorrect data.
+    If `symlinks` is `True`:
+      * Nodes that point to binary data will be symlinked instead of copied.
+      * All other specified nodes (columnar data) will be exported as normal.
+
+    :param package: package/subpackage name, e.g., user/foo or user/foo/bar
     :param output_path: distination folder
+    :param symlinks: Use at your own risk.  See full description above.
     :param force: if True, overwrite existing files
     """
     # TODO: (future) Support other tags/versions (via load(), probably)
@@ -1244,6 +1320,16 @@ def export(package, output_path='.', force=False):
     # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
     #       (nodes.Node and subclasses are being phased out, per Kevin)
 
+    if symlinks is True:
+        from quilt import _DEV_MODE
+        if not _DEV_MODE:
+            response = input("Warning: Exporting using symlinks to the package store.\n"
+                "\tThis is an advanced feature.\n"
+                "\tThe package store must not be written to directly, or it may be corrupted.\n"
+                "\tManaging permissions and usage are your responsibility.\n\n"
+                "Are you sure you want to continue? (yes/No) ")
+            if response != 'yes':
+                raise CommandException("No action taken: 'yes' not given")
     ## Helpers
     # Perhaps better as Node.iteritems()
     def iteritems(node, base_path=None, recursive=False):
@@ -1260,10 +1346,10 @@ def export(package, output_path='.', force=False):
 
     # Perhaps better as Node.export_path
     def get_export_path(node, node_path):
-        # If q_path is not present, generate fake path based on node parentage.
-        q_path = node._node.metadata.get('q_path')
-        if q_path:
-            dest = pathlib.PureWindowsPath(q_path)  # PureWindowsPath handles all win/lin/osx separators
+        # If filepath is not present, generate fake path based on node parentage.
+        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        if filepath:
+            dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
         else:
             assert isinstance(node_path, pathlib.PureWindowsPath)
             assert not node_path.anchor
@@ -1281,11 +1367,11 @@ def export(package, output_path='.', force=False):
                 # foo.xls -> foo_xls.csv
                 # ..etc.
                 dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
-        # if q_path isn't absolute
+        # if filepath isn't absolute
         if not dest.anchor:
             return pathlib.Path(*dest.parts)  # return a native path
 
-        # q_path is absolute, convert to relative.
+        # filepath is absolute, convert to relative.
         dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
         print("Warning:  Converted export path to relative path: {}".format(str(dest)))
         return dest
@@ -1308,11 +1394,14 @@ def export(package, output_path='.', force=False):
                 yield (found_node, get_export_path(found_node, node_path))
 
     # perhaps better as Node.export()
-    def export_node(node, dest):
+    def export_node(node, dest, use_symlinks=False):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
         if isinstance(node._node, FileNode):
-            copy(node(), str(dest))
+            if use_symlinks is True:
+                fs_link(node(), dest)
+            else:
+                copy(node(), str(dest))
         elif isinstance(node._node, TableNode):
             ext = node._node.metadata['q_ext']
             df = node()
@@ -1448,14 +1537,14 @@ def export(package, output_path='.', force=False):
 
         # bar_format is not respected unless both ncols and total are set.
         exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
-
         # tqdm is threaded, and its display may not specify the exact file currently being exported.
-        for node, dest in exports_bar:
-            # Escape { and } in filenames for .format called by tqdm
-            fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
-            exports_bar.bar_format = fmt + ": " + fname
-            exports_bar.update(0)
-            export_node(node, dest)
+        with exports_bar:
+            for node, dest in exports_bar:
+                # Escape { and } in filenames for .format called by tqdm
+                fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+                exports_bar.bar_format = fmt + ": " + fname
+                exports_bar.update(0)
+                export_node(node, dest, use_symlinks=symlinks)
     except OSError as error:
         commandex = CommandException("Unexpected error during export: " + str(error))
         commandex.original_error = error

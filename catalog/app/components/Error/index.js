@@ -33,8 +33,8 @@ function Error({
 }
 
 Error.propTypes = {
-  headline: PropTypes.string,
-  detail: PropTypes.string,
+  headline: PropTypes.node,
+  detail: PropTypes.node,
   object: PropTypes.object,
 };
 

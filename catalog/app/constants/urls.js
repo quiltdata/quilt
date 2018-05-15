@@ -12,7 +12,6 @@ export const installGit = 'https://git-scm.com/downloads';
 export const installQuilt = 'https://docs.quiltdata.com/installation.html';
 export const issues = 'https://github.com/quiltdata/quilt/blob/master/README.md#known-issues';
 export const jobs = 'https://quilt-data.breezy.hr/';
-export const makePackage = 'https://docs.quiltdata.com/make-a-package.html';
 export const slackInvite = 'https://slack.quiltdata.com/';
 export const pipGit = `git+${git}`;
 export const icon256 = 'https://d1zvn9rasera71.cloudfront.net/q-256-square.png';
