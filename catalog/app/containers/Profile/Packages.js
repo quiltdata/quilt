@@ -7,7 +7,7 @@ import { setPropTypes } from 'recompose';
 import Help from 'components/Help';
 import PackageList from 'components/PackageList';
 import config from 'constants/config';
-import { makePackage } from 'constants/urls';
+import { docs } from 'constants/urls';
 import { composeComponent } from 'utils/reactTools';
 
 import messages from './messages';
@@ -31,7 +31,7 @@ export default composeComponent('Profile.Packages',
       <PackageList
         push={push}
         emptyMessage={<FormattedMessage {...messages.noOwned} />}
-        emptyHref={makePackage}
+        emptyHref={docs}
         packages={packages.own}
         showPrefix={false}
       />
