@@ -37,8 +37,8 @@ from .core import (hash_contents, find_object_hashes, TableNode, FileNode, Group
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
-                   parse_package_extended as parse_package_extended_util)
+from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package_extended,
+                   parse_package as parse_package_util)
 from ..imports import _from_core_node
 
 from .. import nodes
@@ -65,34 +65,12 @@ class HTTPResponseException(CommandException):
 
 _registry_url = None
 
-def parse_package_extended(identifier):
-    #TODO: Unwrap this and modify 'util' version to raise QuiltException
-    try:
-        return parse_package_extended_util(identifier)
-    except ValueError:
-        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
-        raise CommandException("Specify package as %s." % pkg_format)
-
 def parse_package(name, allow_subpath=False):
-    #TODO: Unwrap this and modify 'util' version to raise QuiltException and call check_name()
+    # Many usages -- left as wrapper for "CommandException" usage
     try:
-        if allow_subpath:
-            team, owner, pkg, subpath = parse_package_util(name, allow_subpath)
-        else:
-            team, owner, pkg = parse_package_util(name, allow_subpath)
-            subpath = None
-    except ValueError:
-        pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
-        raise CommandException("Specify package as %s." % pkg_format)
-
-    try:
-        PackageStore.check_name(team, owner, pkg, subpath)
-    except StoreException as ex:
-        raise CommandException(str(ex))
-
-    if allow_subpath:
-        return team, owner, pkg, subpath
-    return team, owner, pkg
+        return parse_package_util(name, allow_subpath)
+    except QuiltException as err:
+        raise CommandException(str(err), original_error=err)
 
 
 def _load_config():

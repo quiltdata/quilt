@@ -39,7 +39,8 @@ def parse_package_extended(identifier):
     """
     match = EXTENDED_PACKAGE_RE.match(identifier)
     if match is None:
-        raise ValueError
+        pkg_format = '[team:]owner/package_name/path[:v:<version> or :t:<tag> or :h:<hash>]'
+        raise QuiltException("Specify package as %s." % pkg_format)
 
     full_name, pkg_hash, version, tag = match.groups()
     team, user, name, subpath = parse_package(full_name, allow_subpath=True)
@@ -48,21 +49,40 @@ def parse_package_extended(identifier):
     return PackageInfo(full_name, team, user, name, subpath, pkg_hash, version, tag)
 
 def parse_package(name, allow_subpath=False):
+    pkg_format = '[team:]owner/package_name/path' if allow_subpath else '[team:]owner/package_name'
     values = name.split(':', 1)
     team = values[0] if len(values) > 1 else None
 
     values = values[-1].split('/')
+
+    if len(values) < 2:
+        raise QuiltException("Specify package as %s." % pkg_format)
+
     # Can't do "owner, pkg, *subpath = ..." in Python2 :(
     (owner, pkg), subpath = values[:2], values[2:]
     if not owner or not pkg:
         # Make sure they're not empty.
-        raise ValueError
+        raise QuiltException("Specify package as %s." % pkg_format)
     if subpath and not allow_subpath:
-        raise ValueError
+        raise QuiltException("Specify package as %s." % pkg_format)
+
+    check_name(team, owner, pkg, subpath)
 
     if allow_subpath:
         return team, owner, pkg, subpath
     return team, owner, pkg
+
+def check_name(team, user, package, subpath=None):
+    if team is not None and not is_nodename(team):
+        raise QuiltException("Invalid team name: %r" % team)
+    if not is_nodename(user):
+        raise QuiltException("Invalid user name: %r" % user)
+    if not is_nodename(package):
+        raise QuiltException("Invalid package name: %r" % package)
+    if subpath:
+        for element in subpath:
+            if not is_nodename(element):
+                raise QuiltException("Invalid element in subpath: %r" % element)
 
 class FileWithReadProgress(Iterator):
     """

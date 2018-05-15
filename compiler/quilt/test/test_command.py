@@ -83,7 +83,7 @@ from six import assertRaisesRegex
 from .utils import QuiltTestCase, patch, quilt_dev_mode
 from ..tools import command, store
 from ..tools.compat import pathlib
-from ..tools.const import TEAM_ID_ERROR
+from ..tools.const import TEAM_ID_ERROR, QuiltException
 
 
 class CommandTest(QuiltTestCase):
@@ -1602,13 +1602,13 @@ class CommandTest(QuiltTestCase):
         assert command.parse_package_extended('team:user/package/sub/path:tag:some') == expected
 
         # bad parse strings
-        with pytest.raises(command.CommandException):
+        with pytest.raises(QuiltException):
             command.parse_package_extended('user/package:a:aaa111')
 
-        with pytest.raises(command.CommandException):
+        with pytest.raises(QuiltException):
             command.parse_package_extended('team:user/package:a:aaa111')
 
-        with pytest.raises(command.CommandException):
+        with pytest.raises(QuiltException):
             command.parse_package_extended('foo:bar:baz')
 
 

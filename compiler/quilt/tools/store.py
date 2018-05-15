@@ -13,7 +13,7 @@ from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADA
 from .core import FileNode, RootNode, TableNode, find_object_hashes
 from .hashing import digest_file
 from .package import Package, PackageException
-from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
+from .util import BASE_DIR, sub_dirs, sub_files, check_name
 
 CHUNK_SIZE = 4096
 
@@ -134,16 +134,10 @@ class PackageStore(object):
 
     @classmethod
     def check_name(cls, team, user, package, subpath=None):
-        if team is not None and not is_nodename(team):
-            raise StoreException("Invalid team name: %r" % team)
-        if not is_nodename(user):
-            raise StoreException("Invalid user name: %r" % user)
-        if not is_nodename(package):
-            raise StoreException("Invalid package name: %r" % package)
-        if subpath:
-            for element in subpath:
-                if not is_nodename(element):
-                    raise StoreException("Invalid element in subpath: %r" % element)
+        try:
+            check_name(team, user, package, subpath)
+        except QuiltException as err:
+            raise StoreException(str(err), original_error=err)
 
     def _version_path(self):
         return os.path.join(self._path, '.format')

@@ -15,7 +15,7 @@ from six import assertRaisesRegex
 from six.moves import urllib
 
 from ..tools import command
-from ..tools.const import HASH_TYPE
+from ..tools.const import HASH_TYPE, QuiltException
 from ..tools.core import (
     decode_node,
     encode_node,
@@ -298,15 +298,15 @@ packages:
         contents1, contents_hash1 = self.make_contents(table1=table_hash1)
 
         # missing/malformed requests
-        with assertRaisesRegex(self, command.CommandException, "package name is empty"):
+        with assertRaisesRegex(self, QuiltException, "package name is empty"):
             command.install(" ")
         with assertRaisesRegex(self, command.CommandException, "file not found: quilt.yml"):
             command.install("@quilt.yml")
-        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, QuiltException, "Specify package as"):
             command.install("packages:\n")
-        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, QuiltException, "Specify package as"):
             command.install("packages:\n- foo")
-        with assertRaisesRegex(self, command.CommandException, "Specify package as"):
+        with assertRaisesRegex(self, QuiltException, "Specify package as"):
             command.install("packages:\n- foo/bar:xxx:bar")
         with assertRaisesRegex(self, Exception, "No such file or directory"):
             self.validate_file('foo', 'bar', contents_hash1, contents1, table_hash1, table_data1)
