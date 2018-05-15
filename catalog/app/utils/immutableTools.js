@@ -12,5 +12,6 @@ export const remove = invoke('remove');
 export const removeIn = invoke('removeIn');
 export const sortBy = invoke('sortBy');
 export const push = invoke('push');
+export const map = invoke('map');
 export const toJS = invoke('toJS');
 export const fromJS = (...args) => (obj) => iFromJS(obj, ...args);
