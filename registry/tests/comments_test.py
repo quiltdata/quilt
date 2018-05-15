@@ -4,18 +4,14 @@
 Comments tests
 """
 
-import hashlib
 import json
-import time
 from unittest.mock import patch
-import urllib
 
 import requests
 
-from quilt_server.const import PaymentPlan, PUBLIC, TEAM
-from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode, FileNode
+from quilt_server.core import RootNode
 
-from .utils import mock_customer, QuiltTestCase
+from .utils import QuiltTestCase
 
 
 @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
