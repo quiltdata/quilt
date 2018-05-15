@@ -1,16 +1,14 @@
+*.egg-info
+*.py[cod]
 *.swp
 build
 .cache
 dist
-*.egg-info
-*.py[cod]
-tmp_*
 node_modules
+tmp_*
 
-quilt_packages
 metastore_db
 derby.log
-node_modules
 
 # let users have their own local ignores
 **/*.gitignore

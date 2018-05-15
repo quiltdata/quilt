@@ -3,6 +3,7 @@ coverage
 build
 quilt_packages
 stats.json
+static/config.js
 
 # Cruft
 .DS_Store
