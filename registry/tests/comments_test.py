@@ -33,6 +33,7 @@ class CommentsTestCase(QuiltTestCase):
             } if user else {}
         )
         assert resp.status_code == status
+        return json.loads(resp.data.decode('utf-8'))
 
     def _get_comments(self, owner, pkg, user, status=requests.codes.ok):
         resp = self.app.get(
@@ -63,7 +64,11 @@ class CommentsTestCase(QuiltTestCase):
         self._share_package(owner, pkg2, user1)
 
         # Post comments on both packages.
-        self._post_comment(owner, pkg1, owner, comment1)
+        resp = self._post_comment(owner, pkg1, owner, comment1)['comment']
+        assert resp['author'] == owner
+        assert resp['contents'] == comment1
+        assert resp['created']
+        assert len(resp['id']) == 16
         self._post_comment(owner, pkg1, user1, comment2)
         self._post_comment(owner, pkg2, user1, comment3)
 
@@ -78,8 +83,11 @@ class CommentsTestCase(QuiltTestCase):
         assert len(comments) == 2
         assert comments[0]['author'] == owner
         assert comments[0]['contents'] == comment1
+        assert comments[0]['created']
         assert comments[1]['author'] == user1
         assert comments[1]['contents'] == comment2
+        assert comments[1]['created']
+        assert comments[0]['id'] != comments[1]['id']
 
         comments = self._get_comments(owner, pkg2, user1)['comments']
         assert len(comments) == 1

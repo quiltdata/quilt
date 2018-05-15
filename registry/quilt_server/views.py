@@ -2325,6 +2325,17 @@ def reset_password():
 
     return resp.json()
 
+def _comment_dict(comment):
+    # JSON/JavaScript is not very good with large integers, so let's use strings to be safe.
+    str_id = '%016x' % comment.id
+
+    return dict(
+        id=str_id,
+        author=comment.author,
+        created=comment.created,
+        contents=comment.contents
+    )
+
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
 @api()
 @as_json
@@ -2338,7 +2349,10 @@ def comments_post(owner, package_name):
     db.session.add(comment)
     db.session.commit()
 
-    return dict()
+    # We disable automatic object expiration on commit, so refresh it manually.
+    db.session.refresh(comment)
+
+    return dict(comment=_comment_dict(comment))
 
 @app.route('/api/comments/<owner>/<package_name>/', methods=['GET'])
 @api(require_login=False)
@@ -2348,10 +2362,4 @@ def comments_list(owner, package_name):
 
     comments = Comment.query.filter_by(package=package).order_by(Comment.created)
 
-    return dict(
-        comments=[dict(
-            author=comment.author,
-            created=comment.created,
-            contents=comment.contents
-        ) for comment in comments]
-    )
+    return dict(comments=map(_comment_dict, comments))
