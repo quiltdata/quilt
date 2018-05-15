@@ -11,8 +11,8 @@ from six import string_types
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import Package, PackageException
-from quilt.tools.store import PackageStore
+from quilt.tools.package import Package
+from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
 
 class ImportTest(QuiltTestCase):
@@ -140,18 +140,26 @@ class ImportTest(QuiltTestCase):
         command.build('foo/grppkg', build_path)
 
         # Good imports
-        from quilt.data.foo.grppkg import dataframes
-        assert isinstance(dataframes, GroupNode)
+        from quilt.data.foo import grppkg
+        assert isinstance(grppkg.dataframes, GroupNode)
 
         # Make sure child dataframes were concatenated in the correct order (alphabetically by node name).
-        df = dataframes._data()
+        df = grppkg.dataframes._data()
         assert df['x'].tolist() == [1, 2, 3, 4]
         assert df['y'].tolist() == [1, 4, 9, 16]
 
         # Incompatible Schema
-        from quilt.data.foo.grppkg import incompatible
-        with self.assertRaises(PackageException):
-            incompatible._data()
+        with self.assertRaises(StoreException):
+            grppkg.incompatible._data()
+
+        # Empty group
+        grppkg.dataframes._add_group("empty")
+        assert grppkg.dataframes.empty._data() is None
+
+        # In-memory dataframe
+        grppkg._set(['dataframes', 'foo'], pd.DataFrame([1, 2, 3]))
+        with self.assertRaises(NotImplementedError):
+            grppkg.dataframes._data()
 
     def test_multiple_package_dirs(self):
         mydir = os.path.dirname(__file__)
@@ -239,6 +247,10 @@ class ImportTest(QuiltTestCase):
         package1._set(['newgroup'], 'data/nuts.csv', build_dir=mydir)
         assert package1.newgroup._data() == new_path
 
+        # Set some custom metadata
+        package1._meta['foo'] = 'bar'
+        package1.newgroup._meta['x'] = 'y'
+
         # Built a new package and verify the new contents
         command.build('foo/package3', package1)
 
@@ -255,6 +267,18 @@ class ImportTest(QuiltTestCase):
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
+
+        assert package3._meta['foo'] == 'bar'
+        assert package3.newgroup._meta['x'] == 'y'
+
+        # Try setting invalid metadata
+        package1.new.df._meta['_system'] = 1
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package4', package1)
+
+        package3._meta['foo'] = {'bar': lambda x: x}
+        with self.assertRaises(command.CommandException):
+            command.build('foo/package5', package3)
 
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)

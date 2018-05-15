@@ -1,6 +1,6 @@
 /* App selectors */
 import { Map } from 'immutable';
-import { createSelector } from 'reselect';
+import { createSelector, createStructuredSelector } from 'reselect';
 
 import { REDUX_KEY } from './constants';
 
@@ -37,6 +37,39 @@ const makeSelectPackageSummary = () => createSelector(
   })
 );
 
+const frequencies = {
+  week: 1000 * 60 * 60 * 24 * 7,
+};
+
+const selectTrafficType = (type) => createSelector(
+  (s) => s.getIn([REDUX_KEY, 'package', 'traffic', 'response']),
+  (response) => {
+    if (response instanceof Error) return response;
+    if (!response) return null;
+
+    const data = response.toJS()[type];
+    if (!data) return null;
+
+    const { startDate, frequency, timeSeries, total } = data;
+
+    const step = frequencies[frequency];
+    if (!step) return null;
+
+    const weekly = timeSeries.map((value, i) => ({
+      from: new Date((startDate * 1000) + (step * i)),
+      to: new Date((startDate * 1000) + (step * (i + 1))),
+      value,
+    }));
+
+    return { weekly, total };
+  }
+);
+
+const selectPackageTraffic = createStructuredSelector({
+  installs: selectTrafficType('installs'),
+  views: selectTrafficType('views'),
+});
+
 const makeSelectSearchText = () => createSelector(
   selectSearchText,
   (txt) => txt,
@@ -62,6 +95,7 @@ export {
   makeSelectEmail,
   makeSelectPackage,
   makeSelectPackageSummary,
+  selectPackageTraffic,
   makeSelectSearchText,
   makeSelectSignedIn,
   makeSelectUserName,

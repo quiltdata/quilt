@@ -10,6 +10,7 @@ We disable this behavior because it can cause lots of unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
+import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -891,7 +892,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
+    all_hashes = set(find_object_hashes(subnode, meta_only=meta_only))
 
     blobs = (
         S3Blob.query
@@ -961,6 +962,39 @@ def _iterate_data_nodes(node):
     elif isinstance(node, GroupNode):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
+
+
+def get_install_timeseries(owner, package_name, max_weeks_old=52):
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', sa.func.now() - Event.created) / 7)
+    result = (
+        db.session.query(
+            sa.func.count(Event.id),
+            weeks_ago.label('weeks_ago')
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == Event.Type.INSTALL)
+        .filter(weeks_ago <= max_weeks_old)
+        .group_by(weeks_ago)
+        .all()
+    )
+
+    result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
+    # result contains (count, weeks_ago) pairs
+    max_weeks_ago_in_result = max([weeks_ago for count, weeks_ago in result], default=0)
+    last = datetime.utcnow()
+    first = last - timedelta(weeks=max_weeks_ago_in_result)
+    counts = [0] * (max_weeks_ago_in_result + 1) # list of zeroes
+    for count, weeks_ago in result:
+        counts[weeks_ago] = count
+
+    return {
+        'startDate': calendar.timegm(first.utctimetuple()),
+        'endDate': calendar.timegm(last.utctimetuple()),
+        'frequency': 'week',
+        'timeSeries': reversed(counts) # 0 weeks ago needs to be at end of timeseries
+    }
+
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -1066,6 +1100,7 @@ def package_preview(owner, package_name, package_hash):
         total_size_uncompressed=total_size,
         file_types=file_types,
         log_count=log_count,
+        install_timeseries=get_install_timeseries(owner, package_name),
     )
 
 @app.route('/api/package/<owner>/<package_name>/', methods=['GET'])

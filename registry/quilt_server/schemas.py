@@ -33,9 +33,6 @@ PACKAGE_SCHEMA = {
                 'type': {
                     'enum': [RootNode.json_type]
                 },
-                'metadata': {
-                    'type': 'object'
-                },
                 'children': {
                     'type': 'object',
                     'additionalProperties': {
@@ -55,6 +52,10 @@ PACKAGE_SCHEMA = {
                                             'type': 'string',
                                             'pattern': SHA256_PATTERN
                                         }
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 },
                                 'required': ['type', 'hashes'],
@@ -78,6 +79,10 @@ PACKAGE_SCHEMA = {
                                             'type': 'string',
                                             'pattern': SHA256_PATTERN
                                         }
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 },
                                 'required': ['type', 'hashes'],
@@ -89,16 +94,21 @@ PACKAGE_SCHEMA = {
                                     'type': {
                                         'enum': [GroupNode.json_type]
                                     },
-                                    'metadata': {
-                                        'type': 'object'
-                                    },
                                     'children': {
                                         '$ref': '#/properties/contents/properties/children'
+                                    },
+                                    'metadata_hash': {
+                                        'type': 'string',
+                                        'pattern': SHA256_PATTERN
                                     }
                                 }
                             }
                         ]
                     }
+                },
+                'metadata_hash': {
+                    'type': 'string',
+                    'pattern': SHA256_PATTERN
                 }
             },
             'required': ['type', 'children'],

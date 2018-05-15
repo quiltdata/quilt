@@ -1,6 +1,6 @@
 import { fromJS } from 'immutable';
 import id from 'lodash/identity';
-import { composeHandlers } from 'utils/reduxTools';
+import { withInitialState, handleActions } from 'utils/reduxTools';
 
 import api from 'constants/api';
 import { push } from 'utils/immutableTools';
@@ -20,7 +20,7 @@ const updateMember = (name, k, v) => (members) => {
   return members.setIn([idx, k], v);
 };
 
-export default composeHandlers(fromJS(initial), {
+export default withInitialState(fromJS(initial), handleActions({
   [actions.ADDED]: {
     response: (p) => push(fromJS(p)),
   },
@@ -44,4 +44,4 @@ export default composeHandlers(fromJS(initial), {
     response: (p) =>
       p.status === api.ERROR ? id : updateMember(p.name, 'status', 'active'),
   },
-});
+}));
