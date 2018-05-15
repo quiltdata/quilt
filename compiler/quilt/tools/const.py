@@ -89,8 +89,8 @@ class QuiltException(Exception):
     even if not expected to be seen by a user.  This is available as the
     'message' attribute, or as `str(error)`.
 
-    **kwargs will be added directly as attributes to the error, so a
-    dict of `{'code': 90, 'original_error': <OSError Object>}` would be
+    **kwargs will be added directly as attributes to the error, e.g. the
+    params `(code=90, original_error=<OSError Object>)` would be
     added as `self.code` and `self.original_error`.
 
     :param message: Error message to display
