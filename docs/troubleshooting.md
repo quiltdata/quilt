@@ -109,18 +109,10 @@ assert new_data.equals(data)
 ```
 
 ## Exporting to symlinks on Windows doesn't work
-There are a few issues with symlinks on Windows.  Windows support for symlinks has never been stellar.  The
-following issues typically cause problems when symlinking:
-
-* Permissions
-* OS Bugs
-* OS Quirks
-
-### Solutions
-Any of these may potentially fix the problem.
+Symlinking with Windows has a few OS quirks to be mindful of.  If you're encountering difficulty getting symlinking to work, you might try the following:  
 
 * Ensure Windows is fully updated (known related bugs exist)
-* Grant the `Create Symbolic Links` privilege
+* Escalate administrator privileges ("run as admin"), or validate user privileges
   * See [this SuperUser article](https://superuser.com/questions/104845/permission-to-make-symbolic-links-in-windows-7/105381#105381) for relevant instructions
   * If UAC is on
     * If user __is not__ an administrator, they must have the `Create Symbolic Links` privilege
