@@ -121,8 +121,7 @@ Any of these may potentially fix the problem.
 
 * Ensure Windows is fully updated (known related bugs exist)
 * Grant the `Create Symbolic Links` privilege
-  * See [this SuperUser article](https://superuser.com/questions/104845/permission-to-make-symbolic-links-in-windows-7/105381#105381)
-    for relevant instructions
+  * See [this SuperUser article](https://superuser.com/questions/104845/permission-to-make-symbolic-links-in-windows-7/105381#105381) for relevant instructions
   * If UAC is on
     * If user __is not__ an administrator, they must have the `Create Symbolic Links` privilege
     * If user __is__ an administrator, they must escalate privileges, even if they have the `Create Symbolic Links` privilege
