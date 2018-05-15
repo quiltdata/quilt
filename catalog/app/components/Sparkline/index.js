@@ -56,7 +56,7 @@ export default composeComponent('Sparkline',
     width: 200,
     height: 20,
     color: bodyColor,
-    contourThickness: 2,
+    contourThickness: 1,
     cursorLineThickness: 1,
     cursorCircleR: 1.5,
     cursorCircleThickness: 1.5,
@@ -143,7 +143,7 @@ export default composeComponent('Sparkline',
         <linearGradient
           id={gradientId}
           x1="0"
-          y1={height - 2 * padding}
+          y1={height - (2 * padding)}
           x2="0"
           y2={padding}
           gradientUnits="userSpaceOnUse"

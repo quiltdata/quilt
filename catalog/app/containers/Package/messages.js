@@ -20,7 +20,7 @@ export default defineMessages({
   },
   getData: {
     id: 'app.components.Package.getData',
-    defaultMessage: 'Download',
+    defaultMessage: 'Install',
   },
   install: {
     id: 'app.components.Package.install',
@@ -41,11 +41,6 @@ export default defineMessages({
   learn: {
     id: 'app.components.Package.learn',
     defaultMessage: 'Learn more about Quilt',
-  },
-  sell: {
-    id: 'app.components.Package.sell',
-    defaultMessage: `Quilt packages import in one line of code
-      and load five to twenty times faster than files.`,
   },
   stats: {
     id: 'app.components.Package.stats',
