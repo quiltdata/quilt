@@ -341,7 +341,6 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     raise ApiException(requests.codes.bad_request, ex.message)
 
             auth = request.headers.get(AUTHORIZATION_HEADER)
-            print('auth: %r' % auth)
             g.auth_header = auth
             if auth is None:
                 if require_login or not ALLOW_ANONYMOUS_ACCESS:
