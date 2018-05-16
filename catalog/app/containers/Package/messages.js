@@ -80,7 +80,7 @@ export default defineMessages({
   },
   commentsErrorLoading: {
     id: 'app.components.Package.Comments.errorLoading',
-    defaultMessage: 'Could not load comments',
+    defaultMessage: 'Unable to load comments',
   },
   commentsRetry: {
     id: 'app.components.Package.Comments.retry',
@@ -88,7 +88,7 @@ export default defineMessages({
   },
   commentsSignIn: {
     id: 'app.components.Package.Comments.signIn',
-    defaultMessage: 'Sign in to write a comment',
+    defaultMessage: 'Sign in to comment',
   },
   commentOwner: {
     id: 'app.components.Package.Comment.owner',
