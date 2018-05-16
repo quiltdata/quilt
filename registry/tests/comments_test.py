@@ -102,7 +102,7 @@ class CommentsTestCase(QuiltTestCase):
 
         self.put_package(owner, pkg1, RootNode(children=dict()), is_public=True)
 
-        # Post a comments.
+        # Post a comment.
         self._post_comment(owner, pkg1, user1, comment1)
 
         # Anonymous still can't post.
