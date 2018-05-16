@@ -211,7 +211,7 @@ export class Package extends React.PureComponent {
                 version={hash}
               />
             </Col>
-           <Col xs={12}>
+            <Col xs={12}>
               <h2><FormattedMessage {...strings.contents} /></h2>
               <Tree>{previewBuffer.join('')}</Tree>
             </Col>
