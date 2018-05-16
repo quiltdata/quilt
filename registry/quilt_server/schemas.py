@@ -175,3 +175,14 @@ GET_OBJECTS_SCHEMA = {
         'pattern': SHA256_PATTERN
     }
 }
+
+COMMENT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'contents': {
+            'type': 'string'
+        }
+    },
+    'required': ['contents'],
+    'additionalProperties': False
+}

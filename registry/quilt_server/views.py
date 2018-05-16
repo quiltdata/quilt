@@ -41,9 +41,10 @@ from .analytics import MIXPANEL_EVENT, mp
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .models import (Access, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
-                     S3Blob, Tag, Version)
-from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .models import (Access, Comment, Customer, Event, Instance, InstanceBlobAssoc, Invitation,
+                     Log, Package, S3Blob, Tag, Version)
+from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
+                      USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -2362,3 +2363,42 @@ def reset_password():
             )
 
     return resp.json()
+
+def _comment_dict(comment):
+    # JSON/JavaScript is not very good with large integers, so let's use strings to be safe.
+    str_id = '%016x' % comment.id
+
+    return dict(
+        id=str_id,
+        author=comment.author,
+        created=comment.created.timestamp(),
+        contents=comment.contents
+    )
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
+@api()
+@as_json
+def comments_post(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    contents = request.get_json()['contents']
+
+    comment = Comment(package=package, author=g.auth.user, contents=contents)
+
+    db.session.add(comment)
+    db.session.commit()
+
+    # We disable automatic object expiration on commit, so refresh it manually.
+    db.session.refresh(comment)
+
+    return dict(comment=_comment_dict(comment))
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def comments_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    comments = Comment.query.filter_by(package=package).order_by(Comment.created)
+
+    return dict(comments=map(_comment_dict, comments))
