@@ -198,7 +198,11 @@ export class Package extends React.PureComponent {
           <Row>
             <Col xs={12}>
               <Install name={name} owner={owner} />
+            </Col>
+            <Col xs={12}>
               <Traffic {...traffic} />
+            </Col>
+            <Col xs={12}>
               <UpdateInfo
                 author={author}
                 time={time}
@@ -206,6 +210,8 @@ export class Package extends React.PureComponent {
                 size={manifest.response.total_size_uncompressed}
                 version={hash}
               />
+            </Col>
+           <Col xs={12}>
               <h2><FormattedMessage {...strings.contents} /></h2>
               <Tree>{previewBuffer.join('')}</Tree>
             </Col>
