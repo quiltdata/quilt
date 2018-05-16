@@ -466,6 +466,7 @@ class AccessTestCase(QuiltTestCase):
         assert can_access == [self.user]
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', False)
     def testShareTeamFails(self):
         resp = self._share_package(self.user, self.pkg, 'team')
         assert resp.status_code == requests.codes.forbidden

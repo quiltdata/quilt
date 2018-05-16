@@ -890,6 +890,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert len(instance_blobs) == 4
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', False)
     def testTeamAccessFails(self):
         # Verify that --team fails in the public cloud.
         resp = self.app.put(
