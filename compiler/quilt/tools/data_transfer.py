@@ -115,11 +115,8 @@ def download_fragments(store, obj_urls, obj_sizes):
                                             tqdm.write(message)
                                         break
 
-                                    # Fragments have the 'Content-Encoding: gzip' header set to make requests ungzip
-                                    # them automatically - but that turned out to be a bad idea because it makes
-                                    # resuming downloads impossible.
-                                    # HACK: For now, just delete the header. Eventually, update the data in S3.
-                                    response.raw.headers.pop('Content-Encoding', None)
+                                    # Prevent requests from processing 'Content-Encoding: gzip' automatically.
+                                    encoding = response.raw.headers.pop('Content-Encoding', None)
 
                                     # Make sure we're getting the expected range.
                                     content_range = response.headers.get('Content-Range', '')
@@ -162,14 +159,21 @@ def download_fragments(store, obj_urls, obj_sizes):
                         # We've already printed an error, so not much to do - just move on to the next object.
                         continue
 
-                    # Ungzip the downloaded fragment.
-                    temp_path = store.temporary_object_path(obj_hash)
-                    try:
-                        with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
-                            copyfileobj(f_in, f_out)
-                    finally:
-                        # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
-                        os.remove(temp_path_gz)
+                    if encoding == 'gzip':
+                        # Ungzip the downloaded fragment.
+                        temp_path = store.temporary_object_path(obj_hash)
+                        try:
+                            with gzip.open(temp_path_gz, 'rb') as f_in, open(temp_path, 'wb') as f_out:
+                                copyfileobj(f_in, f_out)
+                        finally:
+                            # Delete the file unconditionally - in case it's corrupted and cannot be ungzipped.
+                            os.remove(temp_path_gz)
+                    elif encoding is None:
+                        # The object is not actually compressed.
+                        temp_path = temp_path_gz
+                    else:
+                        tqdm.write("Unexpected encoding for %s: %r" % (obj_hash, encoding))
+                        continue
 
                     # Check the hash of the result.
                     file_hash = digest_file(temp_path)
