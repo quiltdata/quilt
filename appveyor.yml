@@ -50,8 +50,8 @@ install:
       }
       else
       {
-        c:\python35-x64\python.exe -m pip install --upgrade pip
-        c:\python35-x64\python.exe -m pip install -U pip
+        pip install --upgrade pip
+        pip install -U pip
         pip install -U numpy pytest
       }
 
