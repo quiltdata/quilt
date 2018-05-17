@@ -295,8 +295,8 @@ class ImportTest(QuiltTestCase):
 
         # "True" filter
         pkg_copy = pkg._filter(lambda node, name: True)
-        assert pkg_copy._keys() == pkg._keys()
-        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+        assert set(pkg_copy._keys()) == set(pkg._keys())
+        assert set(pkg_copy.dataframes._keys()) == set(pkg.dataframes._keys())
         # Group nodes are copied.
         assert pkg_copy is not pkg
         assert pkg_copy.dataframes is not pkg.dataframes
@@ -309,7 +309,7 @@ class ImportTest(QuiltTestCase):
 
         # "True" using dict syntax.
         pkg_copy = pkg._filter({})
-        assert pkg_copy._keys() == pkg._keys()
+        assert set(pkg_copy._keys()) == set(pkg._keys())
 
         # Non-existant metadata.
         pkg_copy = pkg._filter({'meta': {'non_existant': 'blah'}})
@@ -317,21 +317,21 @@ class ImportTest(QuiltTestCase):
 
         # Single node.
         pkg_copy = pkg._filter({'name': 'csv'})
-        assert pkg_copy._keys() == ['dataframes']
-        assert pkg_copy.dataframes._keys() == ['csv']
+        assert set(pkg_copy._keys()) == {'dataframes'}
+        assert set(pkg_copy.dataframes._keys()) == {'csv'}
 
         # Returning "True" for a group copies its children.
         pkg_copy = pkg._filter({'meta': {'foo': 'bar'}})
-        assert pkg_copy._keys() == ['dataframes']
-        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+        assert set(pkg_copy._keys()) == {'dataframes'}
+        assert set(pkg_copy.dataframes._keys()) == set(pkg.dataframes._keys())
         # Same thing for the root node.
         pkg_copy = pkg._filter({'name': ''})
-        assert pkg_copy._keys() == pkg._keys()
+        assert set(pkg_copy._keys()) == set(pkg._keys())
 
         # System metadata.
         pkg_copy = pkg._filter({'meta': {'_system': {'transform': 'csv'}}})
-        assert pkg_copy._keys() == ['dataframes']
-        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+        assert set(pkg_copy._keys()) == {'dataframes'}
+        assert set(pkg_copy.dataframes._keys()) == set(pkg.dataframes._keys())
 
         # Invalid filter.
         with self.assertRaises(ValueError):
