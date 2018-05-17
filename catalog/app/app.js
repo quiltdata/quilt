@@ -18,7 +18,7 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 import App from 'containers/App';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
-import AuthProvider from 'containers/Auth';
+import AuthProvider from 'containers/Auth/Provider';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
 import StoreProvider from 'utils/StoreProvider';
