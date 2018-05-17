@@ -38,7 +38,7 @@ import reactSteps from 'testing/steps/react';
 
 import { authLost } from '../actions';
 import { ERROR_REDIRECT_PATH } from '../constants';
-import AuthProvider from '../index';
+import AuthProvider from '../Provider';
 import Callback from '../Callback';
 import SignOut from '../SignOut';
 import { makeHeaders } from '../saga';
