@@ -280,6 +280,65 @@ class ImportTest(QuiltTestCase):
         with self.assertRaises(command.CommandException):
             command.build('foo/package5', package3)
 
+    def test_filtering(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+
+        pkg = command.load('foo/package')
+
+        pkg.dataframes._meta['foo'] = 'bar'
+
+        # "False" filter
+        empty = pkg._filter(lambda node, name: False)
+        assert not empty._keys()
+
+        # "True" filter
+        pkg_copy = pkg._filter(lambda node, name: True)
+        assert pkg_copy._keys() == pkg._keys()
+        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+        # Group nodes are copied.
+        assert pkg_copy is not pkg
+        assert pkg_copy.dataframes is not pkg.dataframes
+        # Group metadata is a copy of the original.
+        assert pkg_copy.dataframes._meta is not pkg.dataframes._meta
+        assert pkg_copy.dataframes._meta == pkg.dataframes._meta
+        # Leaf nodes are the originals.
+        assert pkg_copy.README is pkg.README
+        assert pkg_copy.dataframes.csv is pkg.dataframes.csv
+
+        # "True" using dict syntax.
+        pkg_copy = pkg._filter({})
+        assert pkg_copy._keys() == pkg._keys()
+
+        # Non-existant metadata.
+        pkg_copy = pkg._filter({'meta': {'non_existant': 'blah'}})
+        assert not pkg_copy._keys()
+
+        # Single node.
+        pkg_copy = pkg._filter({'name': 'csv'})
+        assert pkg_copy._keys() == ['dataframes']
+        assert pkg_copy.dataframes._keys() == ['csv']
+
+        # Returning "True" for a group copies its children.
+        pkg_copy = pkg._filter({'meta': {'foo': 'bar'}})
+        assert pkg_copy._keys() == ['dataframes']
+        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+        # Same thing for the root node.
+        pkg_copy = pkg._filter({'name': ''})
+        assert pkg_copy._keys() == pkg._keys()
+
+        # System metadata.
+        pkg_copy = pkg._filter({'meta': {'_system': {'transform': 'csv'}}})
+        assert pkg_copy._keys() == ['dataframes']
+        assert pkg_copy.dataframes._keys() == pkg.dataframes._keys()
+
+        # Invalid filter.
+        with self.assertRaises(ValueError):
+            pkg._filter([])
+        with self.assertRaises(ValueError):
+            pkg._filter({'whatever': 'blah'})
+
     def test_set_non_node_attr(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
