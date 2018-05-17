@@ -36,7 +36,7 @@ const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-
       key={handle}
       onClick={() => push(`/package/${handle}`)}
       primaryText={display}
-      style={Object.assign({ lineHeight: '1.2em'}, ellipsisObj)}
+      style={Object.assign({ lineHeight: '1.2em' }, ellipsisObj)}
       title={readmePreview}
     />
   );
