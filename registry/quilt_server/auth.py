@@ -259,7 +259,7 @@ def encode_code(code):
     return base64.b64encode(bytes(json.dumps({'id': code['id'], 'code': code['code']}), 'utf-8'))
 
 def decode_code(code_str):
-    return json.loads(base64.b64decode(code_str))
+    return json.loads(base64.b64decode(code_str).decode('utf8'))
 
 def decode_token(token_str):
     token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
