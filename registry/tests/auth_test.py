@@ -134,8 +134,10 @@ class AuthTestCase(QuiltTestCase):
     # account creation flow
     # one-time codes
     # compiler login flow
-    # refresh
+    # compiler refresh
     # anti-forgery, expiration, etc
     # user CRUD
     # test logout revokes code + tokens
     # test disabling a user revokes code + tokens
+    # test deleting a user revokes code + tokens
+    # migrate models to id-based instead of name-based primary keys
