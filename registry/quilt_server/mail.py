@@ -5,9 +5,9 @@ from . import app
 
 mail = Mail(app)
 
-SMTP_HOST = os.getenv('SENDGRID_HOST')
-SMTP_USER = os.getenv('SENDGRID_USERNAME')
-SMTP_PASS = os.getenv('SENDGRID_PASSWORD')
+SMTP_HOST = os.getenv('SMTP_HOST')
+SMTP_USER = os.getenv('SMTP_USERNAME')
+SMTP_PASS = os.getenv('SMTP_PASSWORD')
 
 def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
     if reply_to is None:

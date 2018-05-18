@@ -2,6 +2,7 @@ import base64
 from datetime import datetime, timedelta
 import uuid
 
+from flask import jsonify, request
 from flask_json import as_json, jsonify
 import itsdangerous
 import json
@@ -9,11 +10,15 @@ import jwt
 from passlib.context import CryptContext
 
 from . import app, db
+from .mail import send_email
 from .models import Code, Token, User
 
-# TODO: better way to set secret key
+CATALOG_URL = app.config['CATALOG_URL']
+
+# TODO: better way to set secret key -- probably in config.py
 app.secret_key = b'thirty two bytes for glory&honor'
 
+DEFAULT_SENDER = 'support@quiltdata.io'
 
 pwd_context = CryptContext(schemes=['pbkdf2_sha512'],
         pbkdf2_sha512__default_rounds=500000)
@@ -52,12 +57,67 @@ def set_unusable_password(username):
 def hash_password(password):
     return pwd_context.hash(password)
 
+def send_activation_email(user):
+    base = request.host_url
+    link = '{base}activate/{link}'.format(base=base, link=generate_activation_link(user.id))
+    body = (
+        '<head><title></title></head>'
+        '<body>'
+        '<p>You recently signed up for Quilt.</p>'
+        '<p>To activate your account, <a href="{link}">click here in the next 24 hours.</a></p>'
+        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
+        '</body>'
+    ).format(link=link)
+    send_email(user.email, DEFAULT_SENDER, 'Activate your Quilt account', body)
+
+@app.route('/activate/<link>')
+def activate_endpoint(link):
+    payload = verify_activation_link(link)
+    if payload:
+        _activate_user(payload['id'])
+        return redirect("{CATALOG_URL}/login".format(CATALOG_URL=CATALOG_URL), code=302)
+    else:
+        response = jsonify({error: "Account activation failed."})
+        response.status_code = 400
+        return response
+
+@app.route('/reset_password/<link>', methods=['POST'])
+@as_json
+def reset_password_endpoint(link):
+    payload = verify_reset_link(link)
+    if payload:
+        data = request.get_json()
+        password = data['password']
+        user_id = payload['id']
+        user = get_user_by_id(user_id)
+        user.password = hash_password(password)
+        db.session.add(user)
+        db.session.commit()
+        return {}
+    else:
+        return {'error': 'Password reset failed.'}, 400
+
+@app.route('/register', methods=['POST'])
+@as_json
+def register_endpoint():
+    data = request.get_json()
+    username = data['username']
+    password = data['password']
+    email = data['email']
+    try:
+        _create_user(username, password=password, email=email)
+        return {}
+    except Exception as e:
+        if str(e) == 'User already exists':
+            return {'error': 'User already exists'}, 409 # 409 Conflict
+        else:
+            return {'error': 'Internal server error.'}, 500
+
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
     existing_user = get_user(username)
     if requires_activation:
         is_active = False
-        # TODO: send email, etc.
     else:
         is_active = True
     if existing_user:
@@ -83,8 +143,14 @@ def _create_user(username, password='', email=None, is_admin=False,
                 is_active=is_active,
                 is_admin=is_admin)
 
-    db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except IntegrityError:
+        raise Exception('User already exists')
+
+    if requires_activation:
+        send_activation_email(user)
 
 def _activate_user(user_id):
     user = get_user_by_id(user_id)
@@ -93,6 +159,26 @@ def _activate_user(user_id):
     user.is_active = True
     db.session.add(user)
     db.session.commit()
+
+def get_code(user_id):
+    code = (
+        db.session.query(
+            Code
+        )
+        .filter(Code.user_id == user_id)
+        .one_or_none()
+    )
+    return code
+
+def get_tokens(user_id):
+    tokens = (
+        db.session.query(
+            Token
+        )
+        .filter(Token.user_id == user_id)
+        .all()
+    )
+    return tokens
 
 def update_last_login(user_id, timestamp=datetime.utcnow()):
     user = (
@@ -109,14 +195,23 @@ def update_last_login(user_id, timestamp=datetime.utcnow()):
     db.session.add(user)
     db.session.commit()
 
+def revoke_user_code_tokens(user_id):
+    code = get_code(user_id)
+    if code:
+        db.session.delete(code)
+    tokens = get_tokens(user_id)
+    for token in tokens:
+        db.session.delete(token)
+
 def _delete_user(username):
     # TODO: revoke all tokens + code
     user = get_user(username)
     if user:
         db.session.delete(user)
-        db.session.commit()
     else:
         raise Exception("User to delete not found")
+    revoke_user_code_tokens(user.id)
+    db.session.commit()
     return user
 
 def _enable_user(username):
@@ -134,6 +229,7 @@ def _disable_user(username):
     if user:
         user.is_active = False
         db.session.add(user)
+        revoke_user_code_tokens(user.id)
         db.session.commit()
         return True
     else:
@@ -166,7 +262,7 @@ def decode_code(code_str):
     return json.loads(base64.b64decode(code_str))
 
 def decode_token(token_str):
-    token = jwt.decode(s, app.secret_key, algorithm='HS256')
+    token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
     return token
 
 def check_token(user_id, token_id):
@@ -202,6 +298,12 @@ def verify_token_string(s):
 def exp_from_token(s):
     token = decode_token(s)
     return token['exp']
+
+def revoke_token_string(token_str):
+    token = decode_token(token_str)
+    user_id = token['id']
+    uuid = token['uuid']
+    return revoke_token(user_id, uuid)
 
 def revoke_token(user_id, token):
     t = (
@@ -307,7 +409,7 @@ def create_admin():
     user = get_user(admin_username)
     _activate_user(user.id)
 
-app.before_first_request(create_admin)
+# app.before_first_request(create_admin)
 
 # TODO: lots of user management stuff
 # TODO: build + test account creation
@@ -316,11 +418,12 @@ app.before_first_request(create_admin)
     # think about design for tables for third-party auth
 # TODO: check CSRF token on login?
 # TODO: move ApiException and friends to a new file and use them in this one
+# TODO: test code + tokens revoked on disable/delete
 
 @app.route('/beans/test')
 @as_json
 def beans_test():
-    return {}
+    return {'host': request.host_url}
 
 
 linkgenerator = itsdangerous.URLSafeTimedSerializer(

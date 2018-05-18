@@ -336,3 +336,44 @@ class AdminTestCase(QuiltTestCase):
             )
 
         assert resp.status_code == requests.codes.forbidden
+
+    def testApiRoot(self):
+        auth_headers = {
+            'Authorization': 'admin',
+            'content_type': 'application/json'
+        }
+        resp = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert resp.status_code == 200
+        data = json.loads(resp.get_data())
+        assert data['is_staff'] == True
+        assert data['current_user'] == 'admin'
+        assert data['email'] == 'admin@example.com'
+        assert data['is_active'] == True
+
+        auth_headers = {
+            'Authorization': 'test_user',
+            'content_type': 'application/json'
+        }
+        resp = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert resp.status_code == 200
+        data = json.loads(resp.get_data())
+        assert data['is_staff'] == False
+        assert data['current_user'] == 'test_user'
+        assert data['email'] == 'test_user@example.com'
+        assert data['is_active'] == True
+
+        auth_headers = {
+            'Authorization': 'nonexistent_user',
+            'content_type': 'application/json'
+        }
+        resp = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert resp.status_code == 401

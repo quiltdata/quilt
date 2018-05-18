@@ -23,7 +23,7 @@ class AuthTestCase(QuiltTestCase):
         super(AuthTestCase, self).setUp()
         _create_user(self.TEST_USER, password=self.TEST_PASSWORD, force=True, requires_activation=False)
         self.TEST_USER_ID = get_user(self.TEST_USER).id
-        # self.token_verify_mock.stop() # disable auth mock
+        self.token_verify_mock.stop() # disable auth mock
 
     def getToken(self):
         response = self.app.post('/login', 
@@ -69,19 +69,31 @@ class AuthTestCase(QuiltTestCase):
 
     def testLoginUserPass(self):
         token = self.getToken()
+        assert token
 
     def testVerifyTokenAsString(self):
         token = self.getToken()
-        verify_token_string(token)
+        assert verify_token_string(token)
 
     def testRefreshToken(self):
         # try to exchange a token for a new one that expires later
         token = self.getToken()
         t = self.decodeToken(token)
         exp = t.get('exp')
+
+        auth_headers = {
+            'Authorization': token,
+            'content-type': 'application/json'
+        }
+        api_root_request = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert api_root_request.status_code == 200
+
         time.sleep(2)
         auth_headers = {
-            'Authorization': self.TEST_USER,
+            'Authorization': token,
             'content-type': 'application/json'
         }
         new_token_request = self.app.post(
@@ -100,7 +112,9 @@ class AuthTestCase(QuiltTestCase):
 
     def testResetLink(self):
         link = generate_reset_link(self.TEST_USER_ID)
-        assert verify_reset_link(link)
+        payload = verify_reset_link(link)
+        assert payload
+        assert payload['id']
 
     def testLinksExpire(self):
         activate_link = generate_activation_link(self.TEST_USER_ID)
@@ -115,21 +129,6 @@ class AuthTestCase(QuiltTestCase):
         assert not verify_reset_link(activate_link)
         assert not verify_activation_link(reset_link)
 
-    def testApiRoot(self):
-        auth_headers = {
-            'Authorization': 'admin',
-            'content_type': 'application/json'
-        }
-        resp = self.app.get(
-            '/api-root',
-            headers=auth_headers
-        )
-        assert resp.status_code == 200
-        data = json.loads(resp.get_data())
-        assert data['is_staff'] == True
-        assert data['current_user'] == 'admin'
-        assert data['email'] == 'admin@quiltdata.io'
-        assert data['is_active'] == True
 
     # password reset emails
     # account creation flow
@@ -138,3 +137,5 @@ class AuthTestCase(QuiltTestCase):
     # refresh
     # anti-forgery, expiration, etc
     # user CRUD
+    # test logout revokes code + tokens
+    # test disabling a user revokes code + tokens

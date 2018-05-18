@@ -20,7 +20,7 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.auth import _create_user, get_user
+from quilt_server.auth import _create_user, get_user, verify_token_string
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
@@ -59,8 +59,15 @@ class QuiltTestCase(TestCase):
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
+        def mock_verify(username_or_token):
+            user = get_user(username_or_token)
+            if user:
+                return user
+            else:
+                return verify_token_string(username_or_token)
+
         # instead of checking token, just use username
-        self.token_verify_mock = mock.patch('quilt_server.views.verify_token_string', get_user)
+        self.token_verify_mock = mock.patch('quilt_server.views.verify_token_string', mock_verify)
         self.token_verify_mock.start()
 
 
@@ -74,7 +81,7 @@ class QuiltTestCase(TestCase):
 
         _create_user('test_user', email='test_user@example.com',
                 requires_activation=False, force=True)
-        _create_user('admin', email='admin@quiltdata.io',
+        _create_user('admin', email='admin@example.com',
                 requires_activation=False, is_admin=True, force=True)
         _create_user('bad_user', email='bad_user@example.com',
                 requires_activation=False, force=True)

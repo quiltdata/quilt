@@ -40,7 +40,8 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
         issue_token, issue_token_by_id, try_login, verify_token_string, reset_password, exp_from_token,
-        _enable_user, _disable_user, revoke_token, decode_token)
+        _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
+        verify_activation_link, verify_reset_link)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
@@ -169,6 +170,7 @@ def _validate_username(username):
 @app.route('/login')
 def login():
     # TODO : handle redirects
+    # TODO : redirect to catalog
     return render_template('login.html', QUILT_CDN=QUILT_CDN, next='/profile')
     next = request.args.get('next')
 
@@ -247,24 +249,10 @@ def login_post():
             token = issue_token(username)
         else:
             return jsonify({'error': 'Login attempt failed'})
+        # TODO: exp
         return jsonify({'token': token})
     except:
-        pass
-    
-    username = request.form['username']
-    password = request.form['password']
-    next = request.form['next']
-    if try_login(username, password):
-        # TODO: update last login
-        params = {'state': json.dumps({'next': CATALOG_URL + '/profile'}),
-            'next': '/profile',
-                  'code': issue_token(username)}
-        return redirect('oauth_callback?%s' % urlencode(params))
-    else:
-        return render_template('login.html', fail=True)
-
-
-# TODO: refresh
+        raise ApiException(requests.codes.unauthorized, "Login failed")
 
 # END NEW AUTH CODE
 
@@ -380,17 +368,18 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                     raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 # try to validate new auth
+                token = auth
+                user = verify_token_string(token)
+                if not user:
+                    raise ApiException(requests.codes.unauthorized, "Token invalid.")
                 try:
-                    token = auth
-                    user = verify_token_string(token)
-                    # g.user = user
+                    g.user = user
                     g.auth = Auth(user=user.name,
                                   email=user.email,
                                   is_logged_in=True,
                                   is_admin=user.is_admin,
                                   is_active=user.is_active)
-                    # g.token = decode_token(token)
-                except:
+                except Exception as e:
                     raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
             if not g.auth.is_active:
@@ -420,8 +409,8 @@ def apiroot():
 @as_json
 def refresh():
     # TODO: revoke old token
-    # revoke_token(g.user.id, g.token.token)
-    # TODO: issue new token
+    token_str = request.headers.get(AUTHORIZATION_HEADER)
+    revoke_token_string(token_str)
     return {'token': issue_token(g.auth.user)}
 
 @app.route('/logout')
@@ -429,7 +418,12 @@ def refresh():
 @as_json
 def logout():
     # TODO : delete token
-    return {}
+    data = request.get_json()
+    token = data['token']
+    if revoke_token(token):
+        return {}
+    else:
+        return {'error': 'Logout failed.'}, 400
 
 # TODO: delete this
 # endpoint that verifies token (@api) and issues code
@@ -2241,3 +2235,28 @@ def api_reset_password():
         return {}
     else:
         raise ApiException(requests.codes.not_found, "User not found.")
+
+@app.route('/reset_password', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def api_reset_password_form():
+    data = request.get_json()
+    link = data['link']
+    password = data['password']
+    # TODO: reset password
+    return {}
+    
+
+
+@app.route('/api/activate/<link>')
+@api(require_login=False)
+@as_json
+def api_activate_account(link):
+    payload = verify_activation_link(link)
+    if payload:
+        user_id = payload['id']
+        _activate_user(user_id)
+        # TODO: send confirmation email
+        return {}
+    else:
+        return {'error': 'Activation link not valid'}, 400
