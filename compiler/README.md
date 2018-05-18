@@ -8,7 +8,7 @@ The compiler parses and serializes data (`build`). It also communicates with the
 
 ## Developer
 ```
-git clone https://github.com/quiltdata/quilt-compiler.git
+git clone https://github.com/quiltdata/quilt.git
 cd quilt # repository root
 pip install -e compiler
 pip install -e compiler[tests]

@@ -1,5 +1,5 @@
 /* constants for use in CSS. prefer integers over strings so we can do math */
-import { grey300, grey200, grey800 } from 'material-ui/styles/colors';
+import { grey300, grey200, grey800, grey400 } from 'material-ui/styles/colors';
 
 export const appBackgroundColor = '#fafafa';
 export const authButtonStyle = {
@@ -37,6 +37,7 @@ export const palette = {
   accent2Color: grey200,
   accent3Color: grey300,
   textColor: grey800, // see also global-styles.js
+  borderColor: grey400,
 };
 
 export const plainTextStyle = {

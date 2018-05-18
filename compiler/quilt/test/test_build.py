@@ -11,7 +11,7 @@ from six import assertRaisesRegex, string_types
 import yaml
 
 from ..nodes import GroupNode, PackageNode
-from ..tools.package import ParquetLib, Package
+from ..tools.store import ParquetLib, PackageStore
 from ..tools.compat import pathlib
 from ..tools import build, command, store
 from .utils import QuiltTestCase, patch
@@ -24,7 +24,7 @@ class BuildTest(QuiltTestCase):
         """
         Test compilation to Parquet via the default library
         """
-        Package.reset_parquet_lib()
+        PackageStore.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_large.yml')
         build.build_package(None, 'test_parquet', PACKAGE, path)
@@ -67,17 +67,17 @@ class BuildTest(QuiltTestCase):
         Test setting the parquet library using the env variable.
         """
         try:
-            assert Package.get_parquet_lib() == ParquetLib.ARROW
+            assert PackageStore.get_parquet_lib() == ParquetLib.ARROW
 
             with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.ARROW.value}):
-                Package.reset_parquet_lib()
-                assert Package.get_parquet_lib() == ParquetLib.ARROW
+                PackageStore.reset_parquet_lib()
+                assert PackageStore.get_parquet_lib() == ParquetLib.ARROW
 
             with patch.dict(os.environ, {'QUILT_PARQUET_LIBRARY': ParquetLib.SPARK.value}):
-                Package.reset_parquet_lib()
-                assert Package.get_parquet_lib() == ParquetLib.SPARK
+                PackageStore.reset_parquet_lib()
+                assert PackageStore.get_parquet_lib() == ParquetLib.SPARK
         finally:
-            Package.reset_parquet_lib()
+            PackageStore.reset_parquet_lib()
 
     # shared testing logic between pyarrow and default env
     def _test_dataframes(self, dataframes):

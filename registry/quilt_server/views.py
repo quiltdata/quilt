@@ -6,10 +6,11 @@ API routes.
 NOTE: By default, SQLAlchemy expires all objects when the transaction is committed:
 http://docs.sqlalchemy.org/en/latest/orm/session_api.html#sqlalchemy.orm.session.Session.commit
 
-We disable this behavior because it can cause lots of unexpected queries with
+We disable this behavior because it can cause unexpected queries with
 major performance implications. See `expire_on_commit=False` in `__init__.py`.
 """
 
+import calendar
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -46,9 +47,10 @@ from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_email
-from .models import (Access, Code, Customer, Event, Instance, InstanceBlobAssoc, Invitation, Log, Package,
-                     S3Blob, Tag, Token, User, Version)
-from .schemas import GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA, USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA
+from .models import (Access, Code, Comment, Customer, Event, Instance, 
+        InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, Token, User, Version)
+from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
+                      USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -940,7 +942,7 @@ def package_get(owner, package_name, package_hash):
         except (AttributeError, KeyError):
             raise ApiException(requests.codes.not_found, "Invalid subpath: %r" % component)
 
-    all_hashes = set() if meta_only else set(find_object_hashes(subnode))
+    all_hashes = set(find_object_hashes(subnode, meta_only=meta_only))
 
     blobs = (
         S3Blob.query
@@ -1010,6 +1012,79 @@ def _iterate_data_nodes(node):
     elif isinstance(node, GroupNode):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
+
+
+def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
+    now = datetime.utcnow()
+    last_monday = (now - timedelta(days=now.weekday())).date()
+    next_monday = last_monday + timedelta(weeks=1)
+
+    weeks_ago = sa.func.trunc(sa.func.date_part('day', next_monday - Event.created) / 7)
+    result = (
+        db.session.query(
+            sa.func.count(Event.id),
+            weeks_ago.label('weeks_ago')
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == event_type)
+        .filter(weeks_ago < max_weeks_old)
+        .group_by(weeks_ago)
+        .all()
+    )
+
+    total = (
+        db.session.query(
+            sa.func.count(Event.id)
+        )
+        .filter(Event.package_owner == owner)
+        .filter(Event.package_name == package_name)
+        .filter(Event.type == event_type)
+        .scalar()
+    )
+
+    result = [(int(count), int(weeks_ago)) for count, weeks_ago in result]
+    # result contains (count, weeks_ago) pairs
+    last = next_monday
+    first = next_monday - timedelta(weeks=max_weeks_old)
+    counts = [0] * (max_weeks_old) # list of zeroes
+    for count, weeks_ago in result:
+        counts[weeks_ago] = count
+
+    return {
+        'startDate': calendar.timegm(first.timetuple()),
+        'endDate': calendar.timegm(last.timetuple()),
+        'frequency': 'week',
+        'timeSeries': reversed(counts), # 0 weeks ago needs to be at end of timeseries
+        'total': total
+    }
+
+@app.route('/api/package_timeseries/<owner>/<package_name>/<event_type>',
+        methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_timeseries(owner, package_name, event_type):
+    try:
+        event_enum = Event.Type[event_type.upper()]
+    except:
+        raise ApiException(requests.codes.bad_request, "Event type incorrectly specified.")
+
+    result = (
+        db.session.query(
+            Package,
+            sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
+            sa.func.bool_or(Access.user == TEAM).label('is_team')
+        )
+        .filter_by(owner=owner, name=package_name)
+        .join(Package.access)
+        .filter(_access_filter(g.auth))
+        .group_by(Package.id)
+        .one_or_none()
+    )
+    if not result:
+        raise ApiException(requests.codes.not_found, "Package does not exist.")
+
+    return get_event_timeseries(owner, package_name, event_enum)
 
 @app.route('/api/package_preview/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)
@@ -2245,8 +2320,6 @@ def api_reset_password_form():
     password = data['password']
     # TODO: reset password
     return {}
-    
-
 
 @app.route('/api/activate/<link>')
 @api(require_login=False)
@@ -2260,3 +2333,42 @@ def api_activate_account(link):
         return {}
     else:
         return {'error': 'Activation link not valid'}, 400
+
+def _comment_dict(comment):
+    # JSON/JavaScript is not very good with large integers, so let's use strings to be safe.
+    str_id = '%016x' % comment.id
+
+    return dict(
+        id=str_id,
+        author=comment.author,
+        created=comment.created.timestamp(),
+        contents=comment.contents
+    )
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
+@api()
+@as_json
+def comments_post(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    contents = request.get_json()['contents']
+
+    comment = Comment(package=package, author=g.auth.user, contents=contents)
+
+    db.session.add(comment)
+    db.session.commit()
+
+    # We disable automatic object expiration on commit, so refresh it manually.
+    db.session.refresh(comment)
+
+    return dict(comment=_comment_dict(comment))
+
+@app.route('/api/comments/<owner>/<package_name>/', methods=['GET'])
+@api(require_login=False)
+@as_json
+def comments_list(owner, package_name):
+    package = _get_package(g.auth, owner, package_name)
+
+    comments = Comment.query.filter_by(package=package).order_by(Comment.created)
+
+    return dict(comments=map(_comment_dict, comments))

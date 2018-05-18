@@ -1,3 +1,7 @@
+image:
+- Visual Studio 2015
+- Visual Studio 2017
+
 environment:
   global:
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\appveyor\\run_with_env.cmd"
@@ -13,13 +17,13 @@ environment:
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
-    
+
 
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
-    
+
 
 
     # Enable this if want to use conda
@@ -46,13 +50,11 @@ install:
       }
       else
       {
-        pip install --upgrade pip
-        pip install -U pip
         pip install -U numpy pytest
       }
 
   - ECHO "Install quilt compiler"
-  - ps: pip install --only-binary 'tables' "$env:APPVEYOR_BUILD_FOLDER\compiler[tests]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
@@ -62,7 +64,7 @@ install:
       }
 
 build: off
-  
+
 test_script:
   - ECHO "Test quilt compiler"
   - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"

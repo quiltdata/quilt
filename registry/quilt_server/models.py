@@ -38,6 +38,9 @@ class Package(db.Model):
     invitation = db.relationship(
         'Invitation', back_populates='package', cascade='save-update, merge, delete')
 
+    comments = db.relationship(
+        'Comment', back_populates='package', cascade='save-update, merge, delete')
+
     def sort_key(self):
         return (self.owner, self.name)
 
@@ -211,3 +214,14 @@ class Token(db.Model):
     #   both user_id and token are primary keys
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
+
+MAX_COMMENT_LENGTH = 10 * 1024
+
+class Comment(db.Model):
+    id = db.Column(db.BigInteger, primary_key=True)
+    package_id = db.Column(db.BigInteger, db.ForeignKey('package.id'), nullable=False, index=True)
+    author = db.Column(USERNAME_TYPE, nullable=False)
+    created = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False, index=True)
+    contents = db.Column(db.String(MAX_COMMENT_LENGTH), nullable=False)
+
+    package = db.relationship('Package', back_populates='comments')

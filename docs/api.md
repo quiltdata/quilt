@@ -78,6 +78,28 @@ See [teams docs](./teams.md) for additional commands and syntax.
 | --- | --- | --- |
 | `quilt search "SEARCH STRING"` |  `quilt.search("SEARCH STRING")` | Search registry for packages by user or package name |
 
+## Export a package or subpackage
+| Command line | Python | Description |
+| --- | --- | --- |
+| `quilt export USER/PACKAGE` |  `quilt.export("USER/PACKAGE")` | Export data to current dir |
+| `quilt export USER/PACKAGE DEST` |  `quilt.export("USER/PACKAGE", "DEST")` | Export data to specified destination |
+| `quilt export USER/PACKAGE [DEST] --force ` |  `quilt.export("USER/PACKAGE", "DEST", force=True)` | Overwrite files at destination |
+
+### Exporting to Symlinks
+If a node references raw (file) data, symlinks may be used instead of copying data when exporting.
+But __be cautious when using symlinks__ for export:
+* When using any OS
+  * If a file is edited, it may corrupt the local quilt repository
+    * Preventing this is up to you
+* When using Windows
+  * Symlinks may not be supported
+  * Symlinks may require special permissions
+  * Symlinks may require administrative access (even if an administrator has the appropriate permissions)
+
+| Command line | Python | Description |
+| --- | --- | --- | 
+| `quilt export USER/PACKAGE [DEST] [--symlinks]` | `quilt.export("USER/PACKAGE", "DEST", symlinks=True)` | Export data, using symlinks where possible |
+
 ## Import and use data
 For a package in the public cloud:
 ```python

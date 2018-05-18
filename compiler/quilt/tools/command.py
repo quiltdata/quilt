@@ -12,7 +12,7 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree
+from shutil import rmtree, copy
 import socket
 import stat
 import subprocess
@@ -28,15 +28,17 @@ import pkg_resources
 import requests
 from six import itervalues, string_types
 from six.moves.urllib.parse import urlparse, urlunparse
+from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
                     generate_contents, BuildException, load_yaml)
-from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, TargetType
+from .compat import pathlib
+from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
 from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
-from .util import (BASE_DIR, gzip_compress, is_nodename, parse_package as parse_package_util,
+from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
                    parse_package_extended as parse_package_extended_util)
 from ..imports import _from_core_node
 
@@ -485,7 +487,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?
+    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
     team, _, _ = parse_package(package)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
@@ -550,30 +552,44 @@ def build_from_node(package, node):
     """
     team, owner, pkg = parse_package(package)
     _check_team_id(team)
-    # deliberate access of protected member
-    store = node._package.get_store()
+    store = PackageStore()
     package_obj = store.create_package(team, owner, pkg)
 
     def _process_node(node, path=[]):
+        if not isinstance(node._meta, dict):
+            raise CommandException(
+                "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
+            )
+        meta = dict(node._meta)
+        system_meta = meta.pop(SYSTEM_METADATA, {})
+        if not isinstance(system_meta, dict):
+            raise CommandException(
+                "Error in %s: %s overwritten. %s is a reserved metadata key. Try a different key." %
+                ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
+            )
         if isinstance(node, nodes.GroupNode):
+            package_obj.save_group(path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
-            core_node = node._node
-            metadata = core_node.metadata or {}
-            if isinstance(core_node, TableNode):
-                dataframe = node._data()
-                package_obj.save_df(dataframe, path, metadata.get('q_path'), metadata.get('q_ext'),
-                                    TargetType.PANDAS)
-            elif isinstance(core_node, FileNode):
-                src_path = node._data()
-                package_obj.save_file(src_path, path, metadata.get('q_path'), TargetType.FILE)
+            # TODO: Reuse existing fragments if we have them.
+            data = node._data()
+            filepath = system_meta.get('filepath')
+            transform = system_meta.get('transform')
+            if isinstance(data, pd.DataFrame):
+                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, string_types):
+                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
             else:
-                assert False, "Unexpected core node type: %r" % core_node
+                assert False, "Unexpected data type: %r" % data
         else:
             assert False, "Unexpected node type: %r" % node
 
-    _process_node(node)
+    try:
+        _process_node(node)
+    except StoreException as ex:
+        raise CommandException("Failed to build the package: %s" % ex)
+
     package_obj.save_contents()
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
@@ -836,7 +852,16 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     At most one of `hash`, `version`, or `tag` can be given. If none are
     given, `tag` defaults to "latest".
+
+    `package` may be a node tree - in which case, its fragments get downloaded.
+    No other parameters are allowed.
     """
+    if isinstance(package, nodes.Node):
+        if not (hash is version is tag is None and force is meta_only is False):
+            raise ValueError("Parameters not allowed when installing a node")
+        _materialize(package)
+        return
+
     if hash is version is tag is None:
         tag = LATEST_TAG
 
@@ -923,24 +948,66 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
 
     pkgobj = store.install_package(team, owner, pkg, contents)
 
-    if not meta_only:
-        obj_urls = dataset['urls']
-        obj_sizes = dataset['sizes']
+    obj_urls = dataset['urls']
+    obj_sizes = dataset['sizes']
 
-        # Skip the objects we already have
-        for obj_hash in list(obj_urls):
-            if os.path.exists(store.object_path(obj_hash)):
-                del obj_urls[obj_hash]
-                del obj_sizes[obj_hash]
+    # Skip the objects we already have
+    for obj_hash in list(obj_urls):
+        if os.path.exists(store.object_path(obj_hash)):
+            del obj_urls[obj_hash]
+            del obj_sizes[obj_hash]
 
-        if obj_urls:
-            success = download_fragments(store, obj_urls, obj_sizes)
-            if not success:
-                raise CommandException("Failed to download fragments")
-        else:
-            print("All fragments are already downloaded!")
+    if obj_urls:
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
     pkgobj.save_contents()
+
+def _materialize(node):
+    store = PackageStore()
+
+    hashes = set()
+
+    stack = [node]
+    while stack:
+        obj = stack.pop()
+        if isinstance(obj, nodes.GroupNode):
+            stack.extend(child for name, child in obj._items())
+        else:
+            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+
+    missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
+
+    if missing_hashes:
+        print("Requesting %d signed URLs..." % len(missing_hashes))
+
+        teams = {None, _find_logged_in_team()}
+
+        obj_urls = dict()
+        obj_sizes = dict()
+
+        for team in teams:
+            session = _get_session(team)
+            response = session.post(
+                "{url}/api/get_objects".format(url=get_registry_url(team)),
+                json=list(missing_hashes)
+            )
+            data = response.json()
+            obj_urls.update(data['urls'])
+            obj_sizes.update(data['sizes'])
+
+        if len(obj_urls) != len(missing_hashes):
+            not_found = sorted(missing_hashes - set(obj_urls))
+            raise CommandException("Unable to download the following hashes: %s" % ', '.join(not_found))
+
+        success = download_fragments(store, obj_urls, obj_sizes)
+        if not success:
+            raise CommandException("Failed to download fragments")
+    else:
+        print("Fragments already downloaded")
 
 def access_list(package):
     """
@@ -1032,7 +1099,7 @@ def ls():                       # pylint:disable=C0103
     for pkg_dir in PackageStore.find_store_dirs():
         print("%s" % pkg_dir)
         packages = PackageStore(pkg_dir).ls_packages()
-        for package, tag, pkghash in packages:
+        for package, tag, pkghash in sorted(packages):
             print("{0:30} {1:20} {2}".format(package, tag, pkghash))
 
 def inspect(package):
@@ -1044,6 +1111,8 @@ def inspect(package):
     pkgobj = PackageStore.find_package(team, owner, pkg)
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
+
+    store = pkgobj.get_store()
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1064,7 +1133,7 @@ def inspect(package):
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
         elif isinstance(node, TableNode):
-            df = pkgobj.get_obj(node)
+            df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
@@ -1248,3 +1317,259 @@ def login_user_pass(username, password, team=None):
 def _cli_login_user_pass(username, password, team=None):
     login_user_pass(username, password, team)
     # TODO: hide password when typed in
+
+def export(package, output_path='.', force=False, symlinks=False):
+    """Export package file data.
+
+    Exports specified node (or its children) to files.
+
+    `symlinks`
+    **Warning** This is an advanced feature, use at your own risk.
+                You must have a thorough understanding of permissions,
+                and it is your responsibility to ensure that the linked
+                files are not modified.  If they do become modified, it
+                may corrupt your package store, and you may lose data,
+                or you may use or distribute incorrect data.
+    If `symlinks` is `True`:
+      * Nodes that point to binary data will be symlinked instead of copied.
+      * All other specified nodes (columnar data) will be exported as normal.
+
+    :param package: package/subpackage name, e.g., user/foo or user/foo/bar
+    :param output_path: distination folder
+    :param symlinks: Use at your own risk.  See full description above.
+    :param force: if True, overwrite existing files
+    """
+    # TODO: (future) Support other tags/versions (via load(), probably)
+    # TODO: (future) This would be *drastically* simplified by a 1:1 source-file to node-name correlation
+    # TODO: (future) This would be significantly simplified if node objects with useful accessors existed
+    #       (nodes.Node and subclasses are being phased out, per Kevin)
+
+    if symlinks is True:
+        from quilt import _DEV_MODE
+        if not _DEV_MODE:
+            response = input("Warning: Exporting using symlinks to the package store.\n"
+                "\tThis is an advanced feature.\n"
+                "\tThe package store must not be written to directly, or it may be corrupted.\n"
+                "\tManaging permissions and usage are your responsibility.\n\n"
+                "Are you sure you want to continue? (yes/No) ")
+            if response != 'yes':
+                raise CommandException("No action taken: 'yes' not given")
+    ## Helpers
+    # Perhaps better as Node.iteritems()
+    def iteritems(node, base_path=None, recursive=False):
+        if base_path is None:
+            base_path = pathlib.PureWindowsPath()
+        assert isinstance(node, nodes.GroupNode)
+
+        for name, child_node in node._items():
+            child_path = base_path / name
+            yield child_path, child_node
+            if recursive and isinstance(child_node, nodes.GroupNode):
+                for subpath, subnode in iteritems(child_node, child_path, recursive):
+                    yield subpath, subnode
+
+    # Perhaps better as Node.export_path
+    def get_export_path(node, node_path):
+        # If filepath is not present, generate fake path based on node parentage.
+        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        if filepath:
+            dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
+        else:
+            assert isinstance(node_path, pathlib.PureWindowsPath)
+            assert not node_path.anchor
+            print("Warning:  Missing export path in metadata.  Using node path: {}"
+                  .format('/'.join(node_path.parts)))
+            dest = node_path
+
+        # When exporting TableNodes, excel files are to be converted to csv.
+        # check also occurs in export_node(), but done here prevents filename conflicts
+        if isinstance(node._node, TableNode):
+            if dest.suffix != '.csv':
+                # avoid name collisions from files with same name but different source,
+                # as we shift all to being csv for export.
+                # foo.tsv -> foo_tsv.csv
+                # foo.xls -> foo_xls.csv
+                # ..etc.
+                dest = dest.with_name(dest.stem + dest.suffix.replace('.', '_')).with_suffix('.csv')
+        # if filepath isn't absolute
+        if not dest.anchor:
+            return pathlib.Path(*dest.parts)  # return a native path
+
+        # filepath is absolute, convert to relative.
+        dest = pathlib.Path(*dest.parts[1:])  # Issue warning as native path, and return it
+        print("Warning:  Converted export path to relative path: {}".format(str(dest)))
+        return dest
+
+    def iter_filename_map(node, base_path):
+        """Yields (<node>, <export path>) pairs for given `node`.
+
+        If `node` is a group node, yield pairs for children of `node`.
+        Otherwise, yield the path to export to for that node.
+
+        :returns: Iterator of (<node>, <export path>) pairs
+        """
+        # Handle singular node export
+        if not isinstance(node, nodes.GroupNode):
+            yield (node, get_export_path(node, base_path))
+            return
+
+        for node_path, found_node in iteritems(node, base_path=base_path, recursive=True):
+            if not isinstance(found_node, nodes.GroupNode):
+                yield (found_node, get_export_path(found_node, node_path))
+
+    # perhaps better as Node.export()
+    def export_node(node, dest, use_symlinks=False):
+        if not dest.parent.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(node._node, FileNode):
+            if use_symlinks is True:
+                fs_link(node(), dest)
+            else:
+                copy(node(), str(dest))
+        elif isinstance(node._node, TableNode):
+            ext = node._node.metadata['q_ext']
+            df = node()
+            # 100 decimal places of pi will allow you to draw a circle the size of the known
+            # universe, and only vary by approximately the width of a proton.
+            # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
+            # If not, and someone complains, we can up it or add a parameter.
+            df.to_csv(str(dest), index=False, float_format='%r')
+
+    def resolve_dirpath(dirpath):
+        """Checks the dirpath and ensures it exists and is writable
+        :returns: absolute, resolved dirpath
+        """
+        # ensure output path is writable.  I'd just check stat, but this is fully portable.
+        try:
+            dirpath.mkdir(exist_ok=True)  # could be '.'
+            with tempfile.TemporaryFile(dir=str(dirpath), prefix="quilt-export-write-test-", suffix='.tmp'):
+                pass
+        except OSError as error:
+            raise CommandException("Invalid export path: not writable: " + str(error))
+        return output_path.resolve()    # this gets the true absolute path, but requires the path exists.
+
+    def finalize(outpath, exports):
+        """Finalize exports
+
+        This performs the following tasks:
+            * Ensure destination doesn't exist
+            * Remove absolute anchor in dest, if any
+            * Prefix destination with target dir
+
+        :returns: (<source Path / dest Path pairs list>, <set of zero-byte files>)
+        """
+        # We return list instead of yielding, so that all prep logic is done before write is attempted.
+        final_export_map = []
+
+        for node, dest in exports:
+            dest = pathlib.PureWindowsPath(dest)
+            dest = outpath.joinpath(*dest.parts[1:]) if dest.anchor else outpath / dest
+
+            if dest.parent != outpath and dest.parent.exists() and not force:
+                raise CommandException("Invalid export path: subdir already exists: {!r}"
+                                       .format(str(dest.parent)))
+            if dest.exists() and not force:
+                raise CommandException("Invalid export path: file already exists: {!r}".format(str(dest)))
+
+            final_export_map.append((node, dest))
+        return final_export_map
+
+    def check_for_conflicts(export_list):
+        """Checks for conflicting exports in the final export map of (src, dest) pairs
+
+        Export conflicts can be introduced in various ways -- for example:
+            * export-time mapping -- user maps two files to the same name
+            * coded builds -- user creates two FileNodes with the same path
+            * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
+            * build-time duplication -- user enters the same file path twice under different nodes
+
+        This checks for these conflicts and raises an error if they have occurred.
+
+        :raises: CommandException
+        """
+        results = {}
+        conflicts = set()
+
+        # Export conflicts..
+        for src, dest in export_list:
+            if dest in conflicts:
+                continue    # already a known conflict
+            if dest not in results:
+                results[dest] = src
+                continue    # not a conflict..
+            if isinstance(src._node, FileNode) and src() == results[dest]():
+                continue    # not a conflict (same src filename, same dest)..
+            # ..add other conditions that prevent this from being a conflict here..
+
+            # dest is a conflict.
+            conflicts.add(dest)
+
+        if conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in conflicts)
+            conflict_error = CommandException(
+                "Invalid export: Identical filename(s) with conflicting contents cannot be exported:\n\t"
+                + conflict_strings
+                )
+            conflict_error.file_conflicts = conflicts
+            raise conflict_error
+
+        # Check for filenames that conflict with folder names
+        exports = set(results)
+        dirs = set()
+        for dest in results:
+            dirs.update(dest.parents)
+        file_dir_conflicts = exports & dirs
+
+        if file_dir_conflicts:
+            conflict_strings = (os.linesep + '\t').join(str(c) for c in file_dir_conflicts)
+            conflict_error = CommandException(
+                "Invalid Export: Filename(s) conflict with folder name(s):\n\t" + conflict_strings
+                )
+            conflict_error.dir_file_conflicts = file_dir_conflicts
+            raise conflict_error
+        # TODO: return abbreviated list of exports based on found non-conflicting duplicates
+
+    ## Export Logic
+    output_path = pathlib.Path(output_path)
+    node, _, info = _load(package)
+
+    if info.subpath:
+        subpath = pathlib.PureWindowsPath(*info.subpath)
+        # TODO: Change this over to `node['item/subitem']` notation once implemented
+        for name in info.subpath:
+            node = getattr(node, name)
+    else:
+        subpath = pathlib.PureWindowsPath()
+
+    resolved_output = resolve_dirpath(output_path)  # resolve/create output path
+    exports = iter_filename_map(node, subpath)      # Create src / dest map iterator
+    exports = finalize(resolved_output, exports)    # Fix absolutes, check dest nonexistent, prefix dest dir
+    check_for_conflicts(exports)                    # Prevent various potential dir/naming conflicts
+
+    # Skip it if there's nothing to do
+    if not exports:
+        # Technically successful, but with nothing to do.
+        # package may have no file nodes, or user may have filtered out all applicable targets.
+        # -- should we consider it an error and raise?
+        print("No files to export.")
+        return
+
+    # All prep done, let's export..
+    try:
+        fmt = "Exporting file {n_fmt} of {total_fmt} [{elapsed}]"
+        sys.stdout.flush()   # flush prior text before making progress bar
+
+        # bar_format is not respected unless both ncols and total are set.
+        exports_bar = tqdm(exports, desc="Exporting: ", ncols=1, total=len(exports), bar_format=fmt)
+        # tqdm is threaded, and its display may not specify the exact file currently being exported.
+        with exports_bar:
+            for node, dest in exports_bar:
+                # Escape { and } in filenames for .format called by tqdm
+                fname = str(dest.relative_to(resolved_output)).replace('{', "{{").replace('}', '}}')
+                exports_bar.bar_format = fmt + ": " + fname
+                exports_bar.update(0)
+                export_node(node, dest, use_symlinks=symlinks)
+    except OSError as error:
+        commandex = CommandException("Unexpected error during export: " + str(error))
+        commandex.original_error = error
+        raise commandex

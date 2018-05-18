@@ -17,6 +17,7 @@ import {
   restoreProps,
   saveProps,
 } from 'utils/reactTools';
+import { withInitialState } from 'utils/reduxTools';
 
 
 const scope = 'app/utils/ReducerInjector';
@@ -76,14 +77,12 @@ export const InjectReducer = composeComponent('InjectReducer',
   restoreProps(),
   Fragment);
 
-export const withInitialState = (reducer, initialState) =>
-  (state = initialState, action) => reducer(state, action);
 
 export const injectReducer = (mount, reducer, initial) =>
   composeHOC(`injectReducer(${mount})`, (Component) => (props) => (
     <InjectReducer
       mount={mount}
-      reducer={initial ? withInitialState(reducer, initial(props)) : reducer}
+      reducer={initial ? withInitialState(initial(props), reducer) : reducer}
     >
       <Component {...props} />
     </InjectReducer>

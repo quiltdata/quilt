@@ -87,6 +87,10 @@ class QuiltTestCase(TestCase):
                 requires_activation=False, force=True)
         _create_user('share_with', email='share_with@example.com',
                 requires_activation=False, force=True)
+        _create_user('user1', email='user1@example.com',
+                requires_activation=False, force=True)
+        _create_user('user2', email='user2@example.com',
+                requires_activation=False, force=True)
 
 
     def tearDown(self):

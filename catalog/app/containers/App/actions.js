@@ -20,6 +20,8 @@ import {
   SET_SEARCH_TEXT,
   SIGN_OUT,
   STORE_TOKENS,
+  GET_TRAFFIC,
+  GET_TRAFFIC_RESPONSE,
 } from './constants';
 
 export function getAuth(tokens) {
@@ -154,3 +156,14 @@ export function storeTokens(response) {
     response: modified,
   };
 }
+
+export const getTraffic = (owner, name) => ({
+  type: GET_TRAFFIC,
+  payload: { owner, name },
+});
+
+export const getTrafficResponse = (response) => ({
+  type: GET_TRAFFIC_RESPONSE,
+  payload: response,
+  error: response instanceof Error,
+});

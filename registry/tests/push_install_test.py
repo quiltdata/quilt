@@ -699,6 +699,69 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.not_found
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testPackageTimeseries(self):
+        huge_contents_hash = hash_contents(self.HUGE_CONTENTS)
+
+        readme_contents = 'Hello, World!'
+        self._mock_object('test_user', self.HASH1, readme_contents.encode())
+        # Push
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % huge_contents_hash,
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=self.HUGE_CONTENTS
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Get timeseries
+        resp = self.app.get(
+            '/api/package_timeseries/test_user/foo/install',
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        assert data['total'] == 0
+        assert data['startDate'] < data['endDate']
+        assert data['timeSeries'] == [0] * 52
+        assert data['frequency'] == 'week'
+
+        # install as anonymous user
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % huge_contents_hash,
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Get timeseries again
+        # Get timeseries
+        resp = self.app.get(
+            '/api/package_timeseries/test_user/foo/install',
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        assert data['total'] == 1
+        assert data['startDate'] < data['endDate']
+        assert data['timeSeries'] == [0] * 51 + [1]
+        assert data['frequency'] == 'week'
+        
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPreview(self):
         huge_contents_hash = hash_contents(self.HUGE_CONTENTS)
 
@@ -767,6 +830,19 @@ class PushInstallTestCase(QuiltTestCase):
                 ]]
             ]],
         ]
+
+        # install as anonymous user
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % huge_contents_hash,
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # get new preview
+        resp = self.app.get(
+            '/api/package_preview/test_user/foo/%s' % huge_contents_hash,
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPreviewStats(self):

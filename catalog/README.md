@@ -2,6 +2,20 @@
 The catalog is a web frontend for browsing meta-data held by the Quilt registry.
 
 # Developer
+## Configuration
+The app configuration (API endpoints, Stripe keys, etc.) is stored in the [environment](https://12factor.net/config),
+served at the `/config.js` endpoint (populated using `config.js.tmpl` as a template)
+and exposed to the app as the `window.__CONFIG` object.
+
+### Production environment
+The template is processed by `envsubst` and served by `nginx` (see `Dockerfile`).
+
+### Development environment
+The template is processed and served by the custom middleware (`server/middleware/config.js`).
+Overriding env vars via `.env` file is supported, see `.env.example` for details.
+All the variables mentioned in the template **must** be present in the environment / `.env` file,
+otherwise exception is raised.
+
 ## Running the catalog locally
 ```sh
 $ cd registry
@@ -9,14 +23,10 @@ $ cd registry
 $ docker-compose -f docker-compose-uidev.yml up
 # local web server for catalog w/hot reload
 $ cd ../catalog
+# copy and edit config file (see comments there for details)
+$ cp .env.example .env
+$ vi .env
 $ npm start 
-```
-To activate team features, modify `/static/config.js` to include something
-like the following under `window.__CONFIG`:
-```javascript
-team: {
-  name: "TEST",
-},
 ```
 
 ### Update docker images as backend components evolve
@@ -30,8 +40,6 @@ team: {
 * `// eslint-disable-line <ERROR-CODE>`
 
 ## Notes
-- `window.__CONFIG` contains environment-specific configuration variables like API endpoints, Stripe keys, etc. `config.js.tmpl` is populated by `quilt.yaml` (see `quilt-deployment` repo) 
-
 - As a rule all UI component classes should return react-bootstrap `Row`s;
   this prevents layout contamination (e.g. returning a Col that accidentally
   flows in with another `Col`) and allows for high-level layout control

@@ -9,8 +9,9 @@
 * [Tutorials](use-cases.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
-* [Push a package](make-a-package.md)
-* [Build.yml specification](buildyml.md)
+* [Build a package](build-a-package.md)
+* [Push a package](push-a-package.md)
+* [build.yml spec](buildyml.md)
 
 ## API Reference
 * [Python & CLI](api.md)
@@ -22,7 +23,7 @@
 * [Checks](checks.md)
 * [Package composition](compose.md)
 
-## Support
+## FAQ
 * [Troubleshooting](troubleshooting.md)
 
 ## Developer

@@ -1,22 +1,12 @@
-from enum import Enum
 import json
 import os
-from shutil import copyfile, move, rmtree
-
-import pandas as pd
 
 from .compat import pathlib
 from .const import TargetType, QuiltException
-from .core import (decode_node, encode_node, find_object_hashes, hash_contents,
+from .core import (decode_node, encode_node, hash_contents,
                    FileNode, GroupNode, TableNode,
                    PackageFormat)
-from .hashing import digest_file
 from .util import is_nodename
-
-
-class ParquetLib(Enum):
-    SPARK = 'pyspark'
-    ARROW = 'pyarrow'
 
 
 class PackageException(QuiltException):
@@ -27,32 +17,10 @@ class PackageException(QuiltException):
 
 
 class Package(object):
-    DF_NAME = 'df'
     CONTENTS_DIR = 'contents'
     TAGS_DIR = 'tags'
     VERSIONS_DIR = 'versions'
     LATEST = 'latest'
-
-    __parquet_lib = None
-
-    @classmethod
-    def get_parquet_lib(cls):
-        """
-        Find/choose a library to read and write Parquet files
-        based on installed options.
-        """
-        if cls.__parquet_lib is None:
-            parq_env = os.environ.get('QUILT_PARQUET_LIBRARY', ParquetLib.ARROW.value)
-            cls.__parquet_lib = ParquetLib(parq_env)
-        return cls.__parquet_lib
-
-    @classmethod
-    def reset_parquet_lib(cls):
-        cls.__parquet_lib = None
-
-    @classmethod
-    def set_parquet_lib(cls, parqlib):
-        cls.__parquet_lib = ParquetLib(parqlib)
 
     def __init__(self, store, user, package, path, contents=None, pkghash=None):
         self._store = store
@@ -137,53 +105,6 @@ class Package(object):
         with open(contents_path, 'r') as contents_file:
             return json.load(contents_file, object_hook=decode_node)
 
-    def file(self, hash_list):
-        """
-        Returns the path to an object file that matches the given hash.
-        """
-        assert isinstance(hash_list, list)
-        assert len(hash_list) == 1, "File objects must be contained in one file."
-        filehash = hash_list[0]
-        return self._store.object_path(filehash)
-
-    def _read_parquet_arrow(self, hash_list):
-        from pyarrow.parquet import ParquetDataset
-
-        objfiles = [self._store.object_path(h) for h in hash_list]
-        dataset = ParquetDataset(objfiles)
-        table = dataset.read(nthreads=4)
-        dataframe = table.to_pandas()
-        return dataframe
-
-    def _read_parquet_spark(self, hash_list):
-        from pyspark import sql as sparksql
-
-        spark = sparksql.SparkSession.builder.getOrCreate()
-        objfiles = [self._store.object_path(h) for h in hash_list]
-        dataframe = spark.read.parquet(*objfiles)
-        return dataframe
-
-    def _dataframe(self, hash_list):
-        """
-        Creates a DataFrame from a set of objects (identified by hashes).
-        """
-        parqlib = self.get_parquet_lib()
-        if parqlib is ParquetLib.SPARK:
-            return self._read_parquet_spark(hash_list)
-        elif parqlib is ParquetLib.ARROW:
-            try:
-                return self._read_parquet_arrow(hash_list)
-            except ValueError as err:
-                raise PackageException(str(err))
-        else:
-            assert False, "Unimplemented Parquet Library %s" % parqlib
-
-    def _check_hashes(self, hash_list):
-        for objhash in hash_list:
-            path = self._store.object_path(objhash)
-            if not os.path.exists(path):
-                raise PackageException("Missing object fragments; re-install the package")
-
     def save_package_tree(self, node_path, pkgnode):
         """
         Adds a package or sub-package tree from an existing package to this package's
@@ -200,71 +121,36 @@ class Package(object):
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
             contents.children = pkgnode.children.copy()
 
-    def save_cached_df(self, hashes, node_path, source_path, ext, target):
+    def save_cached_df(self, hashes, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
-        self._add_to_contents(node_path, hashes, ext, source_path, target)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
 
-    def save_df(self, dataframe, node_path, source_path, ext, target):
+    def save_df(self, dataframe, node_path, target, source_path, transform, custom_meta):
         """
         Save a DataFrame to the store.
         """
-        storepath = self._store.temporary_object_path('.'.join(node_path))
+        hashes = self._store.save_dataframe(dataframe)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
+        return hashes
 
-        # switch parquet lib
-        parqlib = self.get_parquet_lib()
-        if isinstance(dataframe, pd.DataFrame):
-            #parqlib is ParquetLib.ARROW: # other parquet libs are deprecated, remove?
-            import pyarrow as pa
-            from pyarrow import parquet
-            table = pa.Table.from_pandas(dataframe)
-            parquet.write_table(table, storepath)
-        elif parqlib is ParquetLib.SPARK:
-            from pyspark import sql as sparksql
-            assert isinstance(dataframe, sparksql.DataFrame)
-            dataframe.write.parquet(storepath)
-        else:
-            assert False, "Unimplemented ParquetLib %s" % parqlib
-
-        # Move serialized DataFrame to object store
-        if os.path.isdir(storepath): # Pyspark
-            hashes = []
-            files = [ofile for ofile in os.listdir(storepath) if ofile.endswith(".parquet")]
-            for obj in files:
-                path = os.path.join(storepath, obj)
-                objhash = digest_file(path)
-                move(path, self._store.object_path(objhash))
-                hashes.append(objhash)
-            self._add_to_contents(node_path, hashes, ext, source_path, target)
-            rmtree(storepath)
-            return hashes
-        else:
-            filehash = digest_file(storepath)
-            self._add_to_contents(node_path, [filehash], ext, source_path, target)
-            move(storepath, self._store.object_path(filehash))
-            return [filehash]
-
-    def save_file(self, srcfile, node_path, source_path, target):
+    def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
         """
         Save a (raw) file to the store.
         """
-        filehash = digest_file(srcfile)
-        self._add_to_contents(node_path, [filehash], '', source_path, target)
-        objpath = self._store.object_path(filehash)
-        if not os.path.exists(objpath):
-            # Copy the file to a temporary location first, then move, to make sure we don't end up with
-            # truncated contents if the build gets interrupted.
-            tmppath = self._store.temporary_object_path(filehash)
-            copyfile(srcfile, tmppath)
-            move(tmppath, objpath)
+        filehash = self._store.save_file(srcfile)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, [filehash], target, source_path, transform, metahash)
 
-    def save_group(self, node_path):
+    def save_group(self, node_path, custom_meta):
         """
         Save a group to the store.
         """
-        if node_path:
-            self._add_to_contents(node_path, None, '', None, TargetType.GROUP)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, None, TargetType.GROUP, None, None, metahash)
 
     def get_contents(self):
         """
@@ -296,26 +182,6 @@ class Package(object):
         with open (latest_tag, 'w') as tagfile:
             tagfile.write("{hsh}".format(hsh=instance_hash))
 
-    def get_obj(self, node):
-        """
-        Read an object from the package given a node from the
-        package tree.
-        """
-        if isinstance(node, TableNode):
-            self._check_hashes(node.hashes)
-            if node.format is PackageFormat.HDF5:
-                raise PackageException("HDF5 format is no longer supported")
-            return self._dataframe(node.hashes)
-        elif isinstance(node, GroupNode):
-            hash_list = list(find_object_hashes(node, sort=True))
-            self._check_hashes(hash_list)
-            return self._dataframe(hash_list)
-        elif isinstance(node, FileNode):
-            self._check_hashes(node.hashes)
-            return self.file(node.hashes)
-        else:
-            assert False, "Unhandled Node {node}".format(node=node)
-
     def get_hash(self):
         """
         Returns the hash digest of the package data.
@@ -334,20 +200,27 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, node_path, hashes, ext, source_path, target):
+    def _add_to_contents(self, node_path, hashes, target, source_path, transform, user_meta_hash):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
         assert isinstance(node_path, list)
+        assert user_meta_hash is None or isinstance(user_meta_hash, str)
 
         contents = self.get_contents()
 
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata_hash = user_meta_hash
+            return
+
         ptr = contents
         for node in node_path[:-1]:
-            ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr = ptr.children[node]
 
         metadata = dict(
-            q_ext=ext,
+            q_ext=transform,
             q_path=source_path,
             q_target=target.value
         )
@@ -358,12 +231,14 @@ class Package(object):
             node = TableNode(
                 hashes=hashes,
                 format=PackageFormat.default.value,
-                metadata=metadata
+                metadata=metadata,
+                metadata_hash=user_meta_hash
             )
         elif target is TargetType.FILE:
             node = FileNode(
                 hashes=hashes,
-                metadata=metadata
+                metadata=metadata,
+                metadata_hash=user_meta_hash
             )
         else:
             assert False, "Unhandled TargetType {tt}".format(tt=target)
