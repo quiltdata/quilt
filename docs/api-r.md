@@ -1,3 +1,1 @@
-R support has been graciously contributed by the community on [GitHub](https://github.com/stillmatic/quiltr)
-
-***
+Provisional R support is provided by [stillmatic/quiltr](https://github.com/stillmatic/quiltr)
