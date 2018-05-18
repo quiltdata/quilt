@@ -29,9 +29,9 @@ class AuthTestCase(QuiltTestCase):
         response = self.app.post('/login', 
                 data=json.dumps({'username': self.TEST_USER, 'password': self.TEST_PASSWORD}))
         try:
-            token = json.loads(response.get_data()).get('token')
+            token = json.loads(response.data.decode('utf8')).get('token')
         except Exception as e:
-            raise Exception(response.get_data())
+            raise Exception(response.data.decode('utf8'))
         return token
 
     def decodeToken(self, token):
@@ -101,7 +101,7 @@ class AuthTestCase(QuiltTestCase):
                 headers=auth_headers
             )
 
-        new_token = json.loads(new_token_request.get_data()).get('token')
+        new_token = json.loads(new_token_request.data.decode('utf8')).get('token')
         new_exp = self.decodeToken(new_token).get('exp')
         assert new_exp > exp
         pass

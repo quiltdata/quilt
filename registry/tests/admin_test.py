@@ -347,7 +347,7 @@ class AdminTestCase(QuiltTestCase):
             headers=auth_headers
         )
         assert resp.status_code == 200
-        data = json.loads(resp.get_data())
+        data = json.loads(resp.data.decode('utf8'))
         assert data['is_staff'] == True
         assert data['current_user'] == 'admin'
         assert data['email'] == 'admin@example.com'
@@ -362,7 +362,7 @@ class AdminTestCase(QuiltTestCase):
             headers=auth_headers
         )
         assert resp.status_code == 200
-        data = json.loads(resp.get_data())
+        data = json.loads(resp.data.decode('utf8'))
         assert data['is_staff'] == False
         assert data['current_user'] == 'test_user'
         assert data['email'] == 'test_user@example.com'
