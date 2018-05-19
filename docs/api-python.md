@@ -50,7 +50,7 @@ Grant read access to a user or group (one of `public` or `team`)
 Remove read access
 
 ## Local storage
-### `quilt.ls()
+### `quilt.ls()`
 List installed packages
 
 ### `quilt.rm("USER/PACKAGE")`
@@ -71,8 +71,8 @@ If a group matches the filter, the group and all of its desendants are included.
 
 If a group or leaf matches the filter, it's root-to-descendant path from the original package is preserved.
 
-#### Filter via dict 
-Dictionary filter supports two properies, `name` and `meta`:
+#### Filter with a dict 
+Dictionary filters supports two properies, `name` and `meta`:
 
 ``` python
 pkg = wine._filter({'name': 'README'})  # Just the readme
@@ -80,8 +80,8 @@ pkg = wine._filter({'meta': {'foo': 'bar'}})  # The group we created earlier
 pkg = wine._filter({'meta': {'_system': {'transform': 'csv'}}})  # Dataframes created from CSVs
 ```
 
-#### Filter via lambda
-Lambda filter accepts the node object and its name. It provides more flexibility, but requires more care when accessing values:
+#### Filter with a lambda function
+Lambda filters accept the node object and its name. It provides more flexibility, but requires more care when accessing values:
 
 ``` python
 pkg = wine._filter(lambda node, name: node._meta.get('_system', {}).get('filepath', '').endswith('.data'))
@@ -99,10 +99,11 @@ Export data to specified destination
 Overwrite files at destination
 
 ### `quilt export USER/PACKAGE [DEST] [--symlinks]`
-Export data, using symlinks where possible.
+Export data, using symlinks where possible. 
 
 If a node references raw (file) data, symlinks may be used instead of copying data when exporting.
-But __be cautious when using symlinks__ for export:
+
+####  _Caution when using symlinks_
 * When using any OS
   * If a file is edited, it may corrupt the local quilt repository. Preventing this is up to the user.
 * When using Windows

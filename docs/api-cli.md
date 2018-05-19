@@ -77,7 +77,8 @@ Overwrite files at destination
 Export data, using symlinks where possible.
 
 If a node references raw (file) data, symlinks may be used instead of copying data when exporting.
-But __be cautious when using symlinks__ for export:
+
+####  _Caution when using symlinks_
 * When using any OS
   * If a file is edited, it may corrupt the local quilt repository. Preventing this is up to the user.
 * When using Windows

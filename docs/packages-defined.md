@@ -1,6 +1,4 @@
-# Terminology
-
-## Packages defined
+# Packages defined
 A Quilt data package is a tree of serialized data wrapped in a software module. You can think of a package as a miniature, virtualized filesystem accessible to a variety of languages and platforms.
 
 Each Quilt package has a unique _handle_ of the form `USER_NAME/PACKAGE_NAME`.
