@@ -120,5 +120,3 @@ Finally, if matching results in identical node names, the nodes are renamed in a
 manner (paths are sorted lexicographically), and any duplicate names are numbered.  So for
 files "foo.txt" and "subdir/foo.txt", the result is "foo" (from foo.txt) and "foo_2" (from
 "subdir/foo.txt").  The naming behavior is consistent across platforms.
-***
-
