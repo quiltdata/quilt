@@ -6,6 +6,7 @@ import { List, ListItem } from 'material-ui/List';
 import PackageHandle from 'components/PackageHandle';
 import Pagination from 'components/Pagination';
 import { listStyle } from 'constants/style';
+import { ellipsisObj } from '../LayoutHelpers';
 
 const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-disable-line camelcase, react/prop-types
   const {
@@ -35,7 +36,7 @@ const renderPackage = (showPrefix, defaultOwner, push) => (item) => { // eslint-
       key={handle}
       onClick={() => push(`/package/${handle}`)}
       primaryText={display}
-      style={{ lineHeight: '1.2em' }}
+      style={Object.assign({ lineHeight: '1.2em' }, ellipsisObj)}
       title={readmePreview}
     />
   );
