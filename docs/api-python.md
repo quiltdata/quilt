@@ -60,6 +60,33 @@ Remove a package from local storage (but not from the registry)
 ###  `quilt.search("SEARCH STRING")`
 Search registry for packages by user or package name |
 
+
+## Filtering
+### `pkg._filter(DICT_OR_LAMBDA)`
+Top-level package nodes have a `_filter` method that accepts either a dictionary or a lambda.
+
+`_filter` returns a proper sub-tree of the parent package that contains only the nodes that match the filter.
+
+If a group matches the filter, the group and all of its desendants are included.
+
+If a group or leaf matches the filter, it's root-to-descendant path from the original package is preserved.
+
+#### Filter via dict 
+Dictionary filter supports two properies, `name` and `meta`:
+
+``` python
+pkg = wine._filter({'name': 'README'})  # Just the readme
+pkg = wine._filter({'meta': {'foo': 'bar'}})  # The group we created earlier
+pkg = wine._filter({'meta': {'_system': {'transform': 'csv'}}})  # Dataframes created from CSVs
+```
+
+#### Filter via lambda
+Lambda filter accepts the node object and its name. It provides more flexibility, but requires more care when accessing values:
+
+``` python
+pkg = wine._filter(lambda node, name: node._meta.get('_system', {}).get('filepath', '').endswith('.data'))
+```
+
 ## Export a package or subpackage
 
 ###  `quilt.export("USER/PACKAGE")`
