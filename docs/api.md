@@ -2,7 +2,7 @@
 * **package handles**
   * Packages are referenced by a handle of the form `OWNER/NAME`
   * Teams packages include a prefix, `TEAM:OWNER/NAME`
-* **READMEs** 
+* **READMEs**
   * A `README.md` is recommended at the root of your package. README files support [full markdown syntax via remarkable](https://jonschlinkert.github.io/remarkable/demo/). READMEs are rendered to HTML on the [package landing page](https://quiltdata.com/package/danWebster/sgRNAs).
 * **Short hashes**
   * Commands that take hashes support "short hashes", up to uniqueness. In practice, 6-8 characters is sufficient to achieve uniqueness.
@@ -15,7 +15,7 @@
   $ quilt install [@FILENAME]
   # quilt.yml is the default if @filename is absent
   ```
-  * Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages: 
+  * Installs a list of packages specified by a YAML file. The YAML file must contain a `packages` node with a list of packages:
   ```yaml
     packages:
       - USER/PACKAGE[/SUBPACKAGE][:h[ash]|:t[ag]|:v[ersion]][:HASH|TAG|VERSION]
@@ -128,6 +128,7 @@ Packages contain three types of nodes:
 * `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
 * `NODE._group_keys()` returns a list of all group children (groups are like folders)
 * `NODE._items()` returns a generator of the node's children as (name, node) pairs.
+* `NODE` might be iterated pythonic way using `for` expression
 
 #### Example
 ```
@@ -138,6 +139,8 @@ In [8]: wine._data_keys()
 Out[8]: ['README']
 In [9]: wine._group_keys()
 Out[9]: ['raw', 'tables']
+In [10]: for node in wine:
+             print(node)
 ```
 
 ### Editing Package Contents
