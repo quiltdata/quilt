@@ -19,3 +19,23 @@ export default function makeError(primary, secondary = '', response = {}) {
 
   return error;
 }
+
+/**
+ * Extensible error class
+ */
+export class BaseError {
+  static displayName = 'BaseError';
+
+  constructor(msg) {
+    const e = new Error(msg);
+    Object.setPrototypeOf(e, Object.getPrototypeOf(this));
+    Object.defineProperty(e, 'name', {
+      enumerable: false,
+      get() { return this.constructor.displayName; },
+    });
+    if (Error.captureStackTrace) Error.captureStackTrace(e, e.constructor);
+    return e;
+  }
+}
+
+Object.setPrototypeOf(BaseError.prototype, Error.prototype);
