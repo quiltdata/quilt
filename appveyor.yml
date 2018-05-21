@@ -45,7 +45,6 @@ install:
       {
         conda update -y conda
         conda create --yes -n quilt_env python=$QPYVER pip
-        #source activate quilt_env
         pip install pytest
       }
       else
