@@ -65,11 +65,10 @@ Search registry for packages by user or package name |
 ### `pkg._filter(DICT_OR_LAMBDA)`
 Top-level package nodes have a `_filter` method that accepts either a dictionary or a lambda.
 
-`_filter` returns a proper sub-tree of the parent package that contains only the nodes that match the filter.
-
-If a group matches the filter, the group and all of its desendants are included.
-
-If a group or leaf matches the filter, it's root-to-descendant path from the original package is preserved.
+ `_filter` always preserves the path structure of its parent. Therefore,
+ in addition to nodes that pass the filter, `_filter` will return the following:
+* All desendants of a matching node (so that mathcing groups include all descendants)
+* All ancestors of a matching node (so that the position in the tree remains unchanged)
 
 #### Filter with a dict 
 Dictionary filters support two properies, `name` and `meta`:
