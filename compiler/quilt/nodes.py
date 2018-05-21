@@ -29,10 +29,10 @@ class Node(object):
     def __repr__(self):
         return self._class_repr()
 
-    def __call__(self):
-        return self._data()
+    def __call__(self, asa=None):
+        raise NotImplementedError
 
-    def _data(self):
+    def _data(self, asa=None):
         raise NotImplementedError
 
 
@@ -47,20 +47,30 @@ class DataNode(Node):
         self._node = node
         self.__cached_data = data
 
-    def _data(self):
+    def _data(self, asa=None):
         """
-        Returns the contents of the node: a dataframe or a file path.
+        Returns the contents of the node: a dataframe or a file path, or passes
+        the node and is contents to a callable.        
         """
-        if self.__cached_data is None:
-            # TODO(dima): Temporary code.
+        if callable(asa):
             store = self._package.get_store()
-            if isinstance(self._node, core.TableNode):
-                self.__cached_data = store.load_dataframe(self._node.hashes)
-            elif isinstance(self._node, core.FileNode):
-                self.__cached_data = store.get_file(self._node.hashes)
-            else:
-                assert False
-        return self.__cached_data
+            return asa(self, [store.object_path(obj) for obj in self._node.hashes])
+        elif asa is not None:
+            raise AttributeError("{asa} is not callable".format(asa=asa))
+        else:
+            if self.__cached_data is None:
+                # TODO(dima): Temporary code.
+                store = self._package.get_store()
+                if isinstance(self._node, core.TableNode):
+                    self.__cached_data = store.load_dataframe(self._node.hashes)
+                elif isinstance(self._node, core.FileNode):
+                    self.__cached_data = store.get_file(self._node.hashes)
+                else:
+                    assert False
+            return self.__cached_data
+
+    def __call__(self, asa=None):
+        return self._data(asa)
 
 
 class GroupNode(Node):
@@ -112,13 +122,17 @@ class GroupNode(Node):
         child = GroupNode({})
         setattr(self, groupname, child)
 
-    def _data(self):
+    def _data(self, asa=None):
         """
         Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
         """
+        if asa is not None and not callable(asa):
+            raise AttributeError("{asa} is not callable".format(asa=asa))
+        
         store = None
         hash_list = []
         stack = [self]
+        store = None
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
@@ -135,10 +149,21 @@ class GroupNode(Node):
                     raise NotImplementedError("Can only merge dataframes from the same store")
                 hash_list += node._node.hashes
 
-        if not hash_list:
-            return None
+        if asa is None:
+            if not hash_list:
+                return None
+            return store.load_dataframe(hash_list)
+        else:
+            assert callable(asa)
+            if hash_list:
+                assert store is not None
+                return asa(self, [store.object_path(obj) for obj in hash_list])
+            else:
+                return asa(self, [])
 
-        return store.load_dataframe(hash_list)
+        
+    def __call__(self, asa=None):
+        return self._data(asa)
 
 def _create_filter_func(filter_dict):
     filter_name = filter_dict.pop('name', None)

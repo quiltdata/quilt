@@ -430,3 +430,39 @@ class ImportTest(QuiltTestCase):
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         with self.assertRaises(AttributeError):
             package4.newdf = df
+
+    def test_datanode_asa(self):
+
+        def test_lambda(node, hashes):
+            assert isinstance(node, DataNode)
+            assert hashes
+            for path in hashes:
+                assert os.path.exists(path)
+        
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        
+        pkg = command.load('foo/package')
+
+        pkg.dataframes._meta['foo'] = 'bar'
+        pkg.dataframes.csv(asa=test_lambda)
+
+    def test_groupnode_asa(self):
+        def test_lambda(node, hashes):
+            assert isinstance(node, GroupNode)
+            assert hashes
+            for path in hashes:
+                assert os.path.exists(path)
+        
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        
+        pkg = command.load('foo/package')
+
+        pkg.dataframes._meta['foo'] = 'bar'
+        pkg.dataframes(asa=test_lambda)
+        
+
+        
