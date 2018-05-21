@@ -21,6 +21,7 @@
 * [R](api-r.md)
 
 ## Advanced Usage
+* [Environment variables](env.md)
 * [Shared drives](shared-store.md)
 * [Checks](checks.md)
 * [Package composition](compose.md)

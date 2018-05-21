@@ -72,7 +72,7 @@ If a group matches the filter, the group and all of its desendants are included.
 If a group or leaf matches the filter, it's root-to-descendant path from the original package is preserved.
 
 #### Filter with a dict 
-Dictionary filters supports two properies, `name` and `meta`:
+Dictionary filters support two properies, `name` and `meta`:
 
 ``` python
 pkg = wine._filter({'name': 'README'})  # Just the readme
