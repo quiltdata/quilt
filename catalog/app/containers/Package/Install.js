@@ -37,7 +37,7 @@ const Install = ({ name, owner }) => (
     <Code>
       <Unselectable>$ </Unselectable>quilt install {makeHandle(owner, name)}
     </Code>
-    <h3><FormattedMessage {...strings.access} /></h3>
+    <h2><FormattedMessage {...strings.access} /></h2>
     <Tabs>
       <Tab label="Python">
         {
