@@ -1,4 +1,5 @@
-# Quilt is a data registry
+# Quilt versions and deploys data
+
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and Docker registries do for code: provide a centralized, collaborative store of record.
 
 ## Benefits
@@ -10,8 +11,8 @@ Quilt provides versioned, reusable building blocks for analysis in the form of _
 * **Deduplication** - Data fragments are hashed with `SHA256`. Duplicate data fragments are written to disk once globally per user. As a result, large, repeated data fragments consume less disk and network bandwidth.
 * **Faster analysis** - Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 
-
 ## Quick start
+
 ```
 $ pip install quilt
 $ quilt install uciml/iris
@@ -29,9 +30,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 4             5.0          3.6           1.4          0.2     Iris-setosa
 
 ```
-
-### Tutorial
-* [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
 
 ## Demo
 <iframe width="560" height="315" src="https://www.youtube.com/embed/bKIV1GUVLPc" frameborder="0" allowfullscreen></iframe>
