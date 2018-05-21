@@ -65,7 +65,7 @@ Search registry for packages by user or package name |
 ### `pkg._filter(DICT_OR_LAMBDA)`
 Top-level package nodes have a `_filter` method that accepts either a dictionary or a lambda.
 
- `_filter` always preserves the path structure of its parent. Therefore,
+ `_filter` always preserves paths from its parent. Therefore,
  in addition to nodes that pass the filter, `_filter` will return the following:
 * All desendants of a matching node (so that mathcing groups include all descendants)
 * All ancestors of a matching node (so that the position in the tree remains unchanged)
