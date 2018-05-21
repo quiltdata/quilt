@@ -26,16 +26,18 @@ export default function makeError(primary, secondary = '', response = {}) {
 export class BaseError {
   static displayName = 'BaseError';
 
-  constructor(msg) {
+  constructor(msg, props) {
     const e = new Error(msg);
     Object.setPrototypeOf(e, Object.getPrototypeOf(this));
-    Object.defineProperty(e, 'name', {
-      enumerable: false,
-      get() { return this.constructor.displayName; },
-    });
     if (Error.captureStackTrace) Error.captureStackTrace(e, e.constructor);
+    if (props) Object.assign(e, props);
     return e;
   }
 }
 
 Object.setPrototypeOf(BaseError.prototype, Error.prototype);
+
+Object.defineProperty(BaseError.prototype, 'name', {
+  enumerable: false,
+  get() { return this.constructor.displayName; },
+});

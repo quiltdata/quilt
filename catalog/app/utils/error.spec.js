@@ -2,13 +2,14 @@ import { BaseError } from 'utils/error';
 
 describe('utils/error/BaseError', () => {
   describe('instance', () => {
-    const e = new BaseError('test');
+    const e = new BaseError('test', { prop: 'test' });
 
     it('should be ok', () => {
       expect(e).toEqual(expect.any(Error));
       expect(e).toEqual(expect.any(BaseError));
       expect(e.name).toBe('BaseError');
       expect(e.message).toBe('test');
+      expect(e.prop).toBe('test');
       expect(e.stack).toEqual(expect.stringContaining(__filename));
       expect(e.stack).not.toEqual(expect.stringContaining('new BaseError'));
     });
@@ -19,7 +20,7 @@ describe('utils/error/BaseError', () => {
       static displayName = 'SpecificError';
     }
 
-    const e = new SpecificError('test');
+    const e = new SpecificError('test', { prop: 'test' });
 
     it('should be ok', () => {
       expect(e).toEqual(expect.any(Error));
@@ -27,6 +28,7 @@ describe('utils/error/BaseError', () => {
       expect(e).toEqual(expect.any(SpecificError));
       expect(e.name).toBe('SpecificError');
       expect(e.message).toBe('test');
+      expect(e.prop).toBe('test');
       expect(e.stack).toEqual(expect.stringContaining(__filename));
       expect(e.stack).not.toEqual(expect.stringContaining('new SpecificError'));
     });
@@ -37,8 +39,7 @@ describe('utils/error/BaseError', () => {
       static displayName = 'SpecificError';
 
       constructor(data) {
-        super('message');
-        this.data = data;
+        super('message', { data });
       }
     }
 
