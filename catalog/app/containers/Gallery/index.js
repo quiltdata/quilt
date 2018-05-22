@@ -86,6 +86,7 @@ const Card = styled.div`
 
   &:hover, &:focus {
     background-color: #efefef;
+    cursor: pointer;
   }
 
   &, &:visited, &:hover, &:focus {
