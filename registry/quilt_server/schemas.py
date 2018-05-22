@@ -154,6 +154,17 @@ USERNAME_SCHEMA = {
     'additionalProperties': False
 }
 
+EMAIL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'email': {
+            'type': 'string'
+        }
+    },
+    'required': ['email'],
+    'additionalProperties': False
+}
+
 USERNAME_EMAIL_SCHEMA = {
     'type': 'object',
     'properties': {

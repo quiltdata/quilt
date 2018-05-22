@@ -39,7 +39,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import (_create_user, _delete_user, consume_code_string, generate_uuid, get_exp, get_user, 
+from .auth import (_delete_user, consume_code_string, get_exp, get_user, issue_code, try_as_code,
         issue_token, issue_token_by_id, try_login, verify_token_string, reset_password, exp_from_token,
         _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
         verify_activation_link, verify_reset_link)
@@ -222,7 +222,7 @@ def oauth_callback():
         else:
             user = verify_token_string(code)
             exp = exp_from_token(code)
-        resp = {'refresh_token': code, 'access_token': code, 'exp': exp}
+        resp = {'refresh_token': code, 'access_token': code, 'expires_at': exp}
 
         if next:
             return redirect('%s#%s' % (next, urlencode(resp)))
@@ -261,24 +261,29 @@ def login_post():
 @app.route('/api/token', methods=['POST'])
 @as_json
 def token():
+    def token_success(user):
+        new_token = issue_token_by_id(user.id)
+        exp = exp_from_token(new_token)
+        return dict(
+            refresh_token=new_token,
+            access_token=new_token,
+            expires_at=exp
+        )
+
     refresh_token = request.values.get('refresh_token')
     if refresh_token is None:
         abort(requests.codes.bad_request)
 
-    # TODO: try as JWT
     # check if one-time code, then if token
+    user = try_as_code(refresh_token)
+    if user:
+        return token_success(user)
 
     user = verify_token_string(refresh_token)
     if not user:
         return {'error': 'Token invalid'}, 401
 
-    new_token = issue_token_by_id(user.id)
-    exp = exp_from_token(new_token)
-    return dict(
-        refresh_token=new_token,
-        access_token=new_token,
-        expires_at=exp
-    )
+    return token_success(user)
 
 
 class Auth:
@@ -426,6 +431,13 @@ def logout():
         return {}
     else:
         return {'error': 'Logout failed.'}, 400
+
+@app.route('/api/code')
+@api()
+@as_json
+def get_code():
+    return {'code': issue_code(g.user.name)}
+
 
 # TODO: delete this
 # endpoint that verifies token (@api) and issues code
@@ -2303,36 +2315,16 @@ def package_summary():
 @app.route('/api/users/reset_password', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
-def api_reset_password():
+def admin_reset_password():
     data = request.get_json()
     username = data['username']
-    if reset_password(username):
-        return {}
-    else:
+    user = get_user(username)
+    if not user:
         raise ApiException(requests.codes.not_found, "User not found.")
-
-@app.route('/reset_password', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
-@as_json
-def api_reset_password_form():
-    data = request.get_json()
-    link = data['link']
-    password = data['password']
-    # TODO: reset password
-    return {}
-
-@app.route('/api/activate/<link>')
-@api(require_login=False)
-@as_json
-def api_activate_account(link):
-    payload = verify_activation_link(link)
-    if payload:
-        user_id = payload['id']
-        _activate_user(user_id)
-        # TODO: send confirmation email
+    if reset_password(user):
         return {}
     else:
-        return {'error': 'Activation link not valid'}, 400
+        raise ApiException(requests.codes.server_error, "Internal server error.")
 
 def _comment_dict(comment):
     # JSON/JavaScript is not very good with large integers, so let's use strings to be safe.

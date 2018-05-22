@@ -4,6 +4,8 @@ import jwt
 import time
 import requests
 import unittest
+from unittest import mock
+from unittest.mock import patch
 from .utils import QuiltTestCase
 from quilt_server.models import Code
 from quilt_server.auth import (_create_user, _delete_user, _list_users, get_user, 
@@ -21,7 +23,9 @@ class AuthTestCase(QuiltTestCase):
 
     def setUp(self):
         super(AuthTestCase, self).setUp()
-        _create_user(self.TEST_USER, password=self.TEST_PASSWORD, force=True, requires_activation=False)
+        _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
+                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
+                force=True, requires_activation=False)
         self.TEST_USER_ID = get_user(self.TEST_USER).id
         self.token_verify_mock.stop() # disable auth mock
 
@@ -104,7 +108,6 @@ class AuthTestCase(QuiltTestCase):
         new_token = json.loads(new_token_request.data.decode('utf8')).get('token')
         new_exp = self.decodeToken(new_token).get('exp')
         assert new_exp > exp
-        pass
 
     def testActivationLink(self):
         link = generate_activation_link(self.TEST_USER_ID)
@@ -129,6 +132,116 @@ class AuthTestCase(QuiltTestCase):
         assert not verify_reset_link(activate_link)
         assert not verify_activation_link(reset_link)
 
+    @patch('quilt_server.auth.send_activation_email')
+    def testRegister(self, send_activation_email):
+        user = 'new_user'
+        email = 'new_user@example.com'
+        password = 'example_password'
+        response = self.app.post(
+            '/register',
+            headers={'content-type': 'application/json'},
+            data=json.dumps(
+                {'username': user,
+                 'email': email,
+                 'password': password}
+            )
+        )
+        assert response.status_code == 200
+        assert send_activation_email.called
+        user = send_activation_email.call_args[0][0]
+        link = send_activation_email.call_args[0][1]
+
+        activate_response = self.app.get(
+            '/activate/{link}'.format(link=link)
+        )
+        assert activate_response.status_code == 302
+
+    @patch('quilt_server.auth.send_reset_email')
+    def testReset(self, send_reset_email):
+        user = self.TEST_USER
+        email = '{user}{suf}'.format(user=user, suf=self.email_suffix)
+        password = 'new_password'
+        response = self.app.post(
+            '/reset_password',
+            headers={'content-type': 'application/json'},
+            data=json.dumps({'email': 'user-that-definitely-does-not-exist{suf}'
+                .format(suf=self.email_suffix)})
+        )
+        assert response.status_code == 200
+        assert not send_reset_email.called
+        assert self.getToken()
+
+        response = self.app.post(
+            '/reset_password',
+            headers={'content-type': 'application/json'},
+            data=json.dumps({'email': email})
+        )
+
+        assert response.status_code == 200
+        assert send_reset_email.called
+        assert self.getToken() # old password still works
+
+        called_user = send_reset_email.call_args[0][0]
+        assert called_user.name == user
+        assert called_user.email == email
+        reset_link = send_reset_email.call_args[0][1]
+
+        reset_response = self.app.post(
+            '/reset_password'.format(link=reset_link),
+            headers={'content-type': 'application/json'},
+            data=json.dumps({'link': reset_link, 'password': password})
+        )
+
+    def testGetCode(self):
+        token = self.getToken()
+        code_request = self.app.get(
+            '/api/code',
+            headers={
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+        )
+        assert code_request.status_code == 200
+
+
+    def testCompilerLogin(self):
+        # get initial token
+        token = self.getToken()
+        # request code
+        code_request = self.app.get(
+            '/api/code',
+            headers={
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+        )
+        assert code_request.status_code == 200
+        code = json.loads(code_request.data.decode('utf8')).get('code')
+
+        # exchange code for token
+        token_request = self.app.post(
+            '/api/token',
+            data={'refresh_token': code}
+        )
+        assert token_request.status_code == 200
+        payload = json.loads(token_request.data.decode('utf8'))
+        assert payload['access_token'] == payload['refresh_token']
+        assert 'expires_at' in payload
+        old_exp = payload['expires_at']
+        new_token = payload['refresh_token']
+
+        # refresh token
+        refresh_request = self.app.post(
+            '/api/token',
+            data={'refresh_token': new_token}
+        )
+        assert refresh_request.status_code == 200
+        refreshed_token_payload = json.loads(refresh_request.data.decode('utf8'))
+        assert 'expires_at' in refreshed_token_payload
+        assert refreshed_token_payload['access_token'] == refreshed_token_payload['refresh_token']
+        pass
+
+
 
     # password reset emails
     # account creation flow
@@ -136,7 +249,6 @@ class AuthTestCase(QuiltTestCase):
     # compiler login flow
     # compiler refresh
     # anti-forgery, expiration, etc
-    # user CRUD
     # test logout revokes code + tokens
     # test disabling a user revokes code + tokens
     # test deleting a user revokes code + tokens

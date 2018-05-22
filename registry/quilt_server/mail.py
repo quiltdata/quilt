@@ -1,13 +1,18 @@
 import os
+from flask import request
 from flask_mail import Mail, Message
 
 from . import app
 
+app.config['MAIL_SERVER'] = os.getenv('SMTP_HOST')
+app.config['MAIL_USERNAME'] = os.getenv('SMTP_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('SMTP_PASSWORD')
+app.config['MAIL_USE_TLS'] = True
+
 mail = Mail(app)
 
-SMTP_HOST = os.getenv('SMTP_HOST')
-SMTP_USER = os.getenv('SMTP_USERNAME')
-SMTP_PASS = os.getenv('SMTP_PASSWORD')
+CATALOG_URL = app.config['CATALOG_URL']
+DEFAULT_SENDER = 'support@quiltdata.io' # TODO: factor into config
 
 def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
     if reply_to is None:
@@ -26,5 +31,31 @@ def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
     else:
         mail.send(message)
 
+def send_activation_email(user, activation_link):
+    base = request.host_url # TODO: better way to get registry URL
+    link = '{base}activate/{link}'.format(base=base, link=activation_link)
+    body = (
+        '<head><title></title></head>'
+        '<body>'
+        '<p>You recently signed up for Quilt.</p>'
+        '<p>To activate your account, <a href="{link}">click here in the next 24 hours.</a></p>'
+        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
+        '</body>'
+    ).format(link=link)
+    send_email(user.email, DEFAULT_SENDER, 'Activate your Quilt account', body)
+
+def send_reset_email(user, reset_link):
+    base = CATALOG_URL
+    link = '{base}reset_password/{link}'.format(base=base, link=reset_link)
+    body = (
+        '<head><title></title></head>'
+        '<body>'
+        '<p>Your Quilt password has been reset.</p>'
+        '<p>To set a new password, <a href="{link}">click here in the next 24 hours.</a></p>'
+        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
+        '</body>'
+    ).format(link=link)
+    send_email(user.email, DEFAULT_SENDER, 'Reset your Quilt password', body)
+
+
 # TODO: fix configs so registry can actually send emails
-# TODO: make SMTP connection secure: TLS, SSL, etc

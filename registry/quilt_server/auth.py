@@ -2,7 +2,7 @@ import base64
 from datetime import datetime, timedelta
 import uuid
 
-from flask import jsonify, request
+from flask import jsonify, redirect, request
 from flask_json import as_json, jsonify
 import itsdangerous
 import json
@@ -10,15 +10,14 @@ import jwt
 from passlib.context import CryptContext
 
 from . import app, db
-from .mail import send_email
+from .mail import send_activation_email, send_reset_email
 from .models import Code, Token, User
-
-CATALOG_URL = app.config['CATALOG_URL']
+from .schemas import EMAIL_SCHEMA
 
 # TODO: better way to set secret key -- probably in config.py
 app.secret_key = b'thirty two bytes for glory&honor'
 
-DEFAULT_SENDER = 'support@quiltdata.io'
+CATALOG_URL = app.config['CATALOG_URL']
 
 pwd_context = CryptContext(schemes=['pbkdf2_sha512'],
         pbkdf2_sha512__default_rounds=500000)
@@ -32,7 +31,7 @@ def get_user(username):
     return (
             db.session.query(
                 User
-            ).filter(User.name==username)
+            ).filter(User.name == username)
             .one_or_none()
         )
 
@@ -41,7 +40,17 @@ def get_user_by_id(user_id):
         db.session.query(
             User
         )
-        .filter(User.id==user_id)
+        .filter(User.id == user_id)
+        .one_or_none()
+    )
+    return user
+
+def get_user_by_email(email):
+    user = (
+        db.session.query(
+            User
+        )
+        .filter(User.email == email)
         .one_or_none()
     )
     return user
@@ -53,22 +62,8 @@ def set_unusable_password(username):
     db.session.commit()
     return True
 
-
 def hash_password(password):
     return pwd_context.hash(password)
-
-def send_activation_email(user):
-    base = request.host_url
-    link = '{base}activate/{link}'.format(base=base, link=generate_activation_link(user.id))
-    body = (
-        '<head><title></title></head>'
-        '<body>'
-        '<p>You recently signed up for Quilt.</p>'
-        '<p>To activate your account, <a href="{link}">click here in the next 24 hours.</a></p>'
-        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
-        '</body>'
-    ).format(link=link)
-    send_email(user.email, DEFAULT_SENDER, 'Activate your Quilt account', body)
 
 @app.route('/activate/<link>')
 def activate_endpoint(link):
@@ -81,21 +76,32 @@ def activate_endpoint(link):
         response.status_code = 400
         return response
 
-@app.route('/reset_password/<link>', methods=['POST'])
+@app.route('/reset_password', methods=['POST'])
 @as_json
-def reset_password_endpoint(link):
+def reset_password_endpoint():
+    data = request.get_json()
+    if 'email' in data:
+        return reset_password_from_email(data['email'])
+    # try reset request
+    raw_password = data['password']
+    link = data['link']
     payload = verify_reset_link(link)
-    if payload:
-        data = request.get_json()
-        password = data['password']
-        user_id = payload['id']
+    user_id = payload['id']
+    try:
         user = get_user_by_id(user_id)
-        user.password = hash_password(password)
-        db.session.add(user)
-        db.session.commit()
+    except:
+        return {'error': 'User not found.'}, 404
+    user.password = hash_password(raw_password)
+    db.session.add(user)
+    db.session.commit()
+    return {}
+
+def reset_password_from_email(email):
+    user = get_user_by_email(email)
+    if not user:
+        # User not found. Return 200 anyway to avoid allowing people to enumerate emails
         return {}
-    else:
-        return {'error': 'Password reset failed.'}, 400
+    return reset_password(user)
 
 @app.route('/register', methods=['POST'])
 @as_json
@@ -150,7 +156,7 @@ def _create_user(username, password='', email=None, is_admin=False,
         raise Exception('User already exists')
 
     if requires_activation:
-        send_activation_email(user)
+        send_activation_email(user, generate_activation_link(user.id))
 
 def _activate_user(user_id):
     user = get_user_by_id(user_id)
@@ -253,13 +259,30 @@ def issue_code(username):
         code = Code(user_id=user_id, code=generate_uuid())
     db.session.add(code)
     db.session.commit()
-    return {'id': user_id, 'code': code.code}
+    return encode_code({'id': user_id, 'code': code.code})
 
-def encode_code(code):
-    return base64.b64encode(bytes(json.dumps({'id': code['id'], 'code': code['code']}), 'utf-8'))
+def encode_code(code_dict):
+    return base64.b64encode(bytes(json.dumps(code_dict), 'utf-8')).decode('utf8')
 
 def decode_code(code_str):
     return json.loads(base64.b64decode(code_str).decode('utf8'))
+
+def try_as_code(code_str):
+    try:
+        code = decode_code(code_str)
+    except:
+        return False
+    found = (
+        db.session.query(
+            Code
+        ).filter(Code.user_id == code['id'])
+        .filter(Code.code == code['code'])
+        .one_or_none()
+    )
+    if found:
+        return get_user_by_id(code['id'])
+    else:
+        return False
 
 def decode_token(token_str):
     token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
@@ -343,7 +366,6 @@ def issue_token_by_id(user_id, exp=None):
     token = Token(user_id=user_id, token=uuid)
     db.session.add(token)
     db.session.commit()
-    # TODO: store expiration time in database?
 
     exp = exp or get_exp()
     payload = {'id': user_id, 'uuid': uuid, 'exp': exp}
@@ -411,20 +433,7 @@ def create_admin():
 
 # app.before_first_request(create_admin)
 
-# TODO: lots of user management stuff
-# TODO: build + test account creation
-    # document how it currently works
-    # make sure it's extensible to stuff like github auth
-    # think about design for tables for third-party auth
-# TODO: check CSRF token on login?
 # TODO: move ApiException and friends to a new file and use them in this one
-# TODO: test code + tokens revoked on disable/delete
-
-@app.route('/beans/test')
-@as_json
-def beans_test():
-    return {'host': request.host_url}
-
 
 linkgenerator = itsdangerous.URLSafeTimedSerializer(
         app.secret_key,
@@ -433,7 +442,7 @@ linkgenerator = itsdangerous.URLSafeTimedSerializer(
 
 ACTIVATE_SALT = 'activate'
 PASSWORD_RESET_SALT = 'reset'
-MAX_LINK_AGE = 60 * 60 # 1 hour
+MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 
 def generate_activation_link(user_id):
     payload = {'id': user_id}
@@ -457,11 +466,10 @@ def verify_reset_link(link, max_age=None):
     except:
         return False
 
-def reset_password(username):
-    user = get_user(username)
+def reset_password(user):
     if not user:
         return False
-    set_unusable_password(username)
-    # TODO: send email
+    # set_unusable_password(user.name) # is this necessary?
     link = generate_reset_link(user.id)
+    send_reset_email(user, link)
     return True

@@ -79,6 +79,8 @@ class QuiltTestCase(TestCase):
         sqlalchemy_utils.create_database(self.db_url)
         quilt_server.db.create_all()
 
+        self.email_suffix = '@example.com'
+
         _create_user('test_user', email='test_user@example.com',
                 requires_activation=False, force=True)
         _create_user('admin', email='admin@example.com',
