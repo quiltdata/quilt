@@ -121,6 +121,7 @@ Packages contain three types of nodes:
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
   * All other data types return a string to the path of the object in the package store
+  * Provide a custom deserialzer by passing a fuction to `data(asa=FUNCTION)` with the signature `function(node, list_of_hashes)`.
 
 ### Enumerating package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape

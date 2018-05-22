@@ -433,36 +433,36 @@ class ImportTest(QuiltTestCase):
 
     def test_datanode_asa(self):
 
+        testdata = "justatest"
         def test_lambda(node, hashes):
             assert isinstance(node, DataNode)
             assert hashes
             for path in hashes:
                 assert os.path.exists(path)
+            return testdata
         
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)
-        
+        command.build('foo/package', build_path)        
         pkg = command.load('foo/package')
-
-        pkg.dataframes._meta['foo'] = 'bar'
-        pkg.dataframes.csv(asa=test_lambda)
+        assert pkg.dataframes.csv(asa=test_lambda) is testdata
 
     def test_groupnode_asa(self):
+
+        testdata = "justatest"
         def test_lambda(node, hashes):
             assert isinstance(node, GroupNode)
             assert hashes
             for path in hashes:
                 assert os.path.exists(path)
+            return testdata
         
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
         
         pkg = command.load('foo/package')
-
-        pkg.dataframes._meta['foo'] = 'bar'
-        pkg.dataframes(asa=test_lambda)
+        assert pkg.dataframes(asa=test_lambda) is testdata
         
 
         

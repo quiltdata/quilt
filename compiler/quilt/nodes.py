@@ -30,7 +30,7 @@ class Node(object):
         return self._class_repr()
 
     def __call__(self, asa=None):
-        raise NotImplementedError
+        return self._data(asa)
 
     def _data(self, asa=None):
         raise NotImplementedError
@@ -50,13 +50,11 @@ class DataNode(Node):
     def _data(self, asa=None):
         """
         Returns the contents of the node: a dataframe or a file path, or passes
-        the node and is contents to a callable.        
+        the node and its contents to a callable.        
         """
-        if callable(asa):
+        if asa is not None:
             store = self._package.get_store()
             return asa(self, [store.object_path(obj) for obj in self._node.hashes])
-        elif asa is not None:
-            raise AttributeError("{asa} is not callable".format(asa=asa))
         else:
             if self.__cached_data is None:
                 # TODO(dima): Temporary code.
@@ -68,9 +66,6 @@ class DataNode(Node):
                 else:
                     assert False
             return self.__cached_data
-
-    def __call__(self, asa=None):
-        return self._data(asa)
 
 
 class GroupNode(Node):
@@ -127,12 +122,11 @@ class GroupNode(Node):
         Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
         """
         if asa is not None and not callable(asa):
-            raise AttributeError("{asa} is not callable".format(asa=asa))
+            raise TypeError("{asa!r} is not callable".format(asa=asa))
         
         store = None
         hash_list = []
         stack = [self]
-        store = None
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
@@ -141,7 +135,8 @@ class GroupNode(Node):
                 if not isinstance(node._node, core.TableNode):
                     raise ValueError("Group contains non-dataframe nodes")
                 if not node._node.hashes:
-                    raise NotImplementedError("Can only merge built dataframes. Build this package and try again.")
+                    msg = "Can only merge built dataframes. Build this package and try again."
+                    raise NotImplementedError(msg)
                 node_store = node._package.get_store()
                 if store is None:
                     store = node_store
@@ -161,9 +156,6 @@ class GroupNode(Node):
             else:
                 return asa(self, [])
 
-        
-    def __call__(self, asa=None):
-        return self._data(asa)
 
 def _create_filter_func(filter_dict):
     filter_name = filter_dict.pop('name', None)
