@@ -160,7 +160,7 @@ class AuthTestCase(QuiltTestCase):
     def testReset(self, send_reset_email):
         user = self.TEST_USER
         email = '{user}{suf}'.format(user=user, suf=self.email_suffix)
-        password = 'new_password'
+        new_password = 'new_password'
         response = self.app.post(
             '/reset_password',
             headers={'content-type': 'application/json'},
@@ -187,10 +187,17 @@ class AuthTestCase(QuiltTestCase):
         reset_link = send_reset_email.call_args[0][1]
 
         reset_response = self.app.post(
-            '/reset_password'.format(link=reset_link),
+            '/reset_password',
             headers={'content-type': 'application/json'},
-            data=json.dumps({'link': reset_link, 'password': password})
+            data=json.dumps({'link': reset_link, 'password': new_password})
         )
+        assert reset_response.status_code == 200
+        assert not self.getToken()
+
+        new_password_request = self.app.post('/login', 
+                data=json.dumps({'username': self.TEST_USER, 'password': new_password}))
+        assert new_password_request.status_code == 200
+        assert json.loads(new_password_request.data.decode('utf8')).get('token')
 
     def testGetCode(self):
         token = self.getToken()
