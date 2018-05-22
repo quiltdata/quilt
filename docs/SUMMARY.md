@@ -27,7 +27,10 @@
 * [Package composition](compose.md)
 
 ## FAQ
-* [Troubleshooting](troubleshooting.md)
+* [Frequent questions](faq.md)
+
+## Support
+* [Support](support.md)
 
 ## Developer
 * [Basics](developer-basics.md)
