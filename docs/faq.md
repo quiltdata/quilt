@@ -1,5 +1,15 @@
 # Frequently asked questions and troubleshooting
 
+## How much data can I put into Quilt?
+
+There no limit on public data, as shown in our [Pricing grid](https://quiltdata.com/#pricing).
+
+In practice, users have been successful with packages at 2TB of total size
+with up to 40,000 individual files.
+
+We are constantly upping the amount of data users can put into Quilt.
+Contact us if you have questions about large data.
+
 ## How do install the latest quilt (compiler) directly from GitHub?
 For developers only:
 ```sh
