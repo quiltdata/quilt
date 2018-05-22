@@ -93,8 +93,9 @@ class InstallTest(QuiltTestCase):
 
         self._mock_tag('foo/bar', 'latest', contents_hash)
         self._mock_package('foo/bar', contents_hash, '', contents, [table_hash, file_hash])
-        self._mock_s3(table_hash, table_data)
-        self._mock_s3(file_hash, file_data)
+        # Test compressed and uncompressed fragments.
+        self._mock_s3(table_hash, table_data, gzip=True)
+        self._mock_s3(file_hash, file_data, gzip=False)
 
         command.install('foo/bar')
         self.validate_file('foo', 'bar', contents_hash, contents, table_hash, table_data)
@@ -537,13 +538,14 @@ packages:
             )
         , default=encode_node), match_querystring=True, status=status)
 
-    def _mock_s3(self, pkg_hash, contents):
+    def _mock_s3(self, pkg_hash, contents, gzip=True):
         s3_url = 'https://example.com/%s' % pkg_hash
-        headers = {
-            'Content-Range': 'bytes 0-%d/%d' % (len(contents) - 1, len(contents))
-        }
-        body = gzip_compress(contents)
-        self.requests_mock.add(responses.GET, s3_url, body, headers=headers)
+        headers = {}
+        if gzip:
+            contents = gzip_compress(contents)
+            headers['Content-Encoding'] = 'gzip'
+        headers['Content-Range'] = 'bytes 0-%d/%d' % (len(contents) - 1, len(contents))
+        self.requests_mock.add(responses.GET, s3_url, contents, headers=headers, stream=True)
 
     def _mock_get_objects(self, hashes, team=None):
         url = '%s/api/get_objects' % command.get_registry_url(team)

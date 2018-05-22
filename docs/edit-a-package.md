@@ -49,27 +49,6 @@ wine.mygroup._meta['created'] = time.time()
 
 Data nodes contain a built-in key `_meta['_system']` with information such as the original file path. You may access it, but any modifications to it may be lost.
 
-## Filter the package
-
-The top-level package node has a `_filter` method that accepts either a dictionary or a lambda.
-It returns a new package that has the same tree structure, but contains only the nodes that matched the filter.
-If a group matches the filter, its whole subtree is included.
-
-Dictionary filter supports two properies, `name` and `meta`:
-
-``` python
-pkg = wine._filter({'name': 'README'})  # Just the readme
-pkg = wine._filter({'meta': {'foo': 'bar'}})  # The group we created earlier
-pkg = wine._filter({'meta': {'_system': {'transform': 'csv'}}})  # Dataframes created from CSVs
-```
-
-Lambda filter accepts the node object and its name. It provides more flexibility, but requires more care when accessing values:
-
-``` python
-pkg = wine._filter(lambda node, name: node._meta.get('_system', {}).get('filepath', '').endswith('.data'))
-```
-
-
 ## Persist changes
 At this point, your changes only exist in memory. To persist your
 changes you can [build](./build-a-package.md) and [push](./push-a-package.md)

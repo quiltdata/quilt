@@ -21,6 +21,15 @@ export const CenterText = styled.div`
   text-align: center;
 `;
 
+// for use with material-ui, hence camelCase properties
+// to work, this sometimes requires that a width be set
+export const ellipsisObj = {
+  display: 'block',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
 /* Pad - simple padding box */
 const pad = '2em';
 const smPad = '.8em';
