@@ -121,9 +121,6 @@ class GroupNode(Node):
         """
         Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
         """
-        if asa is not None and not callable(asa):
-            raise TypeError("{asa!r} is not callable".format(asa=asa))
-        
         store = None
         hash_list = []
         stack = [self]
@@ -149,7 +146,6 @@ class GroupNode(Node):
                 return None
             return store.load_dataframe(hash_list)
         else:
-            assert callable(asa)
             if hash_list:
                 assert store is not None
                 return asa(self, [store.object_path(obj) for obj in hash_list])
