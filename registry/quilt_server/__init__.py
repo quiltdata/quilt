@@ -22,11 +22,15 @@ app = Flask(__name__.split('.')[0])
 app.wsgi_app = middleware.RequestEncodingMiddleware(app.wsgi_app)
 app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
-if app.config['TESTING'] and not app.secret_key:
-    app.secret_key = 'testing'
-if not app.secret_key:
-    raise Exception("Secret key not defined! You must set the "
-                    "QUILT_SECRET_KEY environment variable!")
+
+def set_secret_key():
+    if app.config['TESTING'] and not app.secret_key:
+        app.secret_key = 'testing'
+    if not app.secret_key:
+        raise Exception("Secret key not defined! You must set the "
+                        "QUILT_SECRET_KEY environment variable!")
+
+app.before_first_request(set_secret_key)
 
 class QuiltSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, app, info, options):
