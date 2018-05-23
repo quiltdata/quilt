@@ -53,6 +53,10 @@ class DataNode(Node):
         the node and its contents to a callable.        
         """
         if asa is not None:
+            if self._package is None or not self._node.hashes:
+                msg = "Can only use asa functions with built dataframes."
+                " Build this package and try again."
+                raise ValueError(msg)
             store = self._package.get_store()
             return asa(self, [store.object_path(obj) for obj in self._node.hashes])
         else:
