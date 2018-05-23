@@ -437,9 +437,9 @@ app.before_first_request(create_admin)
 
 
 linkgenerator = itsdangerous.URLSafeTimedSerializer(
-        app.secret_key,
-        salt='quilt'
-        )
+    app.secret_key,
+    salt='quilt'
+    )
 
 ACTIVATE_SALT = 'activate'
 PASSWORD_RESET_SALT = 'reset'

@@ -46,7 +46,7 @@ class AuthTestCase(QuiltTestCase):
         assert code == decode_code(encode_code(code))
 
     def testIssueToken(self):
-        issue_token(self.TEST_USER)
+        assert issue_token(self.TEST_USER)
 
     def testDeleteUser(self):
         _create_user(self.OTHER_USER, force=True, requires_activation=False)
@@ -246,7 +246,6 @@ class AuthTestCase(QuiltTestCase):
         refreshed_token_payload = json.loads(refresh_request.data.decode('utf8'))
         assert 'expires_at' in refreshed_token_payload
         assert refreshed_token_payload['access_token'] == refreshed_token_payload['refresh_token']
-        pass
 
 
 

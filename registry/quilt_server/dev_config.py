@@ -68,4 +68,4 @@ ENABLE_USER_ENDPOINTS = True
 QUILT_ADMIN_USERNAME = os.getenv('QUILT_ADMIN_USERNAME')
 QUILT_ADMIN_PASSWORD = os.getenv('QUILT_ADMIN_PASSWORD')
 
-SECRET_KEY = os.getenv('QUILT_SECRET_KEY')
+SECRET_KEY = os.getenv('QUILT_SECRET_KEY', 'testing') # hardcoded default for dev/testing
