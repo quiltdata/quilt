@@ -439,10 +439,10 @@ class ImportTest(QuiltTestCase):
             for path in hashes:
                 assert os.path.exists(path)
             return testdata
-        
+
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)        
+        command.build('foo/package', build_path)
         pkg = command.load('foo/package')
         assert pkg.dataframes.csv(asa=test_lambda) is testdata
 
@@ -454,22 +454,23 @@ class ImportTest(QuiltTestCase):
             for path in hashes:
                 assert os.path.exists(path)
             return testdata
-        
+
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
-        
+
         pkg = command.load('foo/package')
         assert pkg.dataframes(asa=test_lambda) is testdata
-        
+        assert pkg(asa=test_lambda) is testdata
+
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"
         def test_lambda(node, hashes):
             return testdata
-        
+
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)        
+        command.build('foo/package', build_path)
         pkg = command.load('foo/package')
         pkg._set(['dataframes', 'memory'], pd.DataFrame())
         with self.assertRaises(ValueError):

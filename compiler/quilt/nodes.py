@@ -50,7 +50,7 @@ class DataNode(Node):
     def _data(self, asa=None):
         """
         Returns the contents of the node: a dataframe or a file path, or passes
-        the node and its contents to a callable.        
+        the node and its contents to a callable.
         """
         if asa is not None:
             if self._package is None or not self._node.hashes:
@@ -128,14 +128,15 @@ class GroupNode(Node):
         store = None
         hash_list = []
         stack = [self]
+        alldfs = True
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
                 stack.extend(child for _, child in sorted(node._items(), reverse=True))
             else:
                 if not isinstance(node._node, core.TableNode):
-                    raise ValueError("Group contains non-dataframe nodes")
-                if not node._node.hashes:
+                    alldfs = False
+                if node._node is None or not node._node.hashes:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
                 node_store = node._package.get_store()
@@ -148,6 +149,8 @@ class GroupNode(Node):
         if asa is None:
             if not hash_list:
                 return None
+            if not alldfs:
+                raise ValueError("Group contains non-dataframe nodes")
             return store.load_dataframe(hash_list)
         else:
             if hash_list:
