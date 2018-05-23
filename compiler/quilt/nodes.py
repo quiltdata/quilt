@@ -136,7 +136,7 @@ class GroupNode(Node):
             else:
                 if not isinstance(node._node, core.TableNode):
                     alldfs = False
-                if not node._node.hashes:
+                if node._node is None or not node._node.hashes:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
                 node_store = node._package.get_store()
