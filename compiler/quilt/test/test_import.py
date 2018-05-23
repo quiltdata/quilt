@@ -461,6 +461,7 @@ class ImportTest(QuiltTestCase):
         
         pkg = command.load('foo/package')
         assert pkg.dataframes(asa=test_lambda) is testdata
+        assert pkg(asa=test_lambda) is testdata
         
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

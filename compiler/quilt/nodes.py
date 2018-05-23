@@ -128,13 +128,14 @@ class GroupNode(Node):
         store = None
         hash_list = []
         stack = [self]
+        alldfs = True
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
                 stack.extend(child for _, child in sorted(node._items(), reverse=True))
             else:
                 if not isinstance(node._node, core.TableNode):
-                    raise ValueError("Group contains non-dataframe nodes")
+                    alldfs = False
                 if not node._node.hashes:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
@@ -148,6 +149,8 @@ class GroupNode(Node):
         if asa is None:
             if not hash_list:
                 return None
+            if not alldfs:
+                raise ValueError("Group contains non-dataframe nodes")
             return store.load_dataframe(hash_list)
         else:
             if hash_list:
