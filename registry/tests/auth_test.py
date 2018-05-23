@@ -20,18 +20,23 @@ class AuthTestCase(QuiltTestCase):
     TEST_USER = 'test_user'
     TEST_PASSWORD = 'beans'
     OTHER_USER = 'edwin'
+    TEST_ADMIN = 'admin'
+    TEST_ADMIN_PASSWORD = 'quilt'
 
     def setUp(self):
         super(AuthTestCase, self).setUp()
         _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
                 email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
                 force=True, requires_activation=False)
+        _create_user(self.TEST_ADMIN, password=self.TEST_ADMIN_PASSWORD,
+                email='{user}{suf}'.format(user=self.TEST_ADMIN, suf=self.email_suffix),
+                is_admin=True, force=True, requires_activation=False)
         self.TEST_USER_ID = get_user(self.TEST_USER).id
         self.token_verify_mock.stop() # disable auth mock
 
-    def getToken(self):
+    def getToken(self, username=TEST_USER, password=TEST_PASSWORD):
         response = self.app.post('/login', 
-                data=json.dumps({'username': self.TEST_USER, 'password': self.TEST_PASSWORD}))
+                data=json.dumps({'username': username, 'password': password}))
         try:
             token = json.loads(response.data.decode('utf8')).get('token')
         except Exception as e:
@@ -246,6 +251,38 @@ class AuthTestCase(QuiltTestCase):
         refreshed_token_payload = json.loads(refresh_request.data.decode('utf8'))
         assert 'expires_at' in refreshed_token_payload
         assert refreshed_token_payload['access_token'] == refreshed_token_payload['refresh_token']
+
+    def testDisabledandDeletedUsersCodesAndTokensAreRevoked(self):
+        admin_token_request = self.app.post(
+            '/login',
+            data=json.dumps(
+                {'username': self.TEST_ADMIN,
+                 'password': self.TEST_ADMIN_PASSWORD}),
+            headers={'content-type': 'application/json'}
+        )
+        assert admin_token_request.status_code == 200
+        admin_token = json.loads(admin_token_request.data.decode('utf8'))['token']
+
+        def disable_user(username):
+            request = self.app.post(
+                'api/users/disable',
+                data=json.dumps({'username': username}),
+                headers={
+                    'content-type': 'application/json',
+                    'Authorization': admin_token
+                }
+            )
+            assert request.status_code == 200
+
+        def api_root(token):
+            request = self.app.get(
+                '/api-root',
+                headers={
+                    'content-type': 'application/json',
+                    'Authorization': token
+                }
+            )
+            return request
 
 
 
