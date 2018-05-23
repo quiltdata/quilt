@@ -442,7 +442,7 @@ class ImportTest(QuiltTestCase):
 
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)        
+        command.build('foo/package', build_path)
         pkg = command.load('foo/package')
         assert pkg.dataframes.csv(asa=test_lambda) is testdata
 
@@ -470,7 +470,7 @@ class ImportTest(QuiltTestCase):
 
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
-        command.build('foo/package', build_path)        
+        command.build('foo/package', build_path)
         pkg = command.load('foo/package')
         pkg._set(['dataframes', 'memory'], pd.DataFrame())
         with self.assertRaises(ValueError):
