@@ -12,9 +12,15 @@ export const makeHeadersFromTokens = (tokens) => ({
 const makeURL = (url, query) =>
   `${url}?${stringify(query)}`;
 
+const getPath = (loc) => loc.pathname + loc.search;
+
+// polyfill location.origin for IE 10
+const getOrigin = (loc) =>
+  loc.origin || /* istanbul ignore next */ `${loc.protocol}//${loc.host}`;
+
 export const makeSignInURL = (
-  path = window.location.pathname + window.location.search,
-  origin = window.location.origin,
+  path = getPath(window.location),
+  origin = getOrigin(window.location),
 ) =>
   // TODO(dima): Sign up vs sign in?
   makeURL(config.api + authorizePath, {

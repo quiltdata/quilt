@@ -1,27 +1,35 @@
 /* Convenience wrapper for fetch
  * inspired by https://github.com/react-boilerplate/react-boilerplate/blob/master/app/utils/request.js */
 import 'whatwg-fetch';
+import invoke from 'lodash/fp/invoke';
+
+import { BaseError } from 'utils/error';
+
+export class HttpError extends BaseError {
+  static displayName = 'HttpError';
+
+  constructor(response) {
+    super(response.statusText, {
+      response,
+      status: response.status,
+    });
+  }
+}
 
 function checkStatus(response) {
-  if (response.ok) {
-    return response;
-  }
-  const error = new Error(response.statusText);
-  error.response = response;
-  throw error;
+  if (response.ok) return response;
+  window.err = new HttpError(response);
+  throw new HttpError(response);
 }
 
-export function requestJSON(url, options) {
-  return request(url, options)
-    .then(checkStatus)
-    .then((response) => response.json());
-}
+const mkRequest = (method) => {
+  const process = invoke(method);
+  return (...args) => request(...args).then(process);
+};
 
-export function requestText(url) {
-  return request(url)
-    .then(checkStatus)
-    .then((response) => response.text());
-}
+export const requestJSON = mkRequest('json');
+
+export const requestText = mkRequest('text');
 
 export default function request(url, options) {
   /*
@@ -35,5 +43,5 @@ export default function request(url, options) {
     newOptions.headers['Cache-Control'] = 'no-store';
   }
   */
-  return fetch(url, options);
+  return fetch(url, options).then(checkStatus);
 }

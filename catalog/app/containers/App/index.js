@@ -1,4 +1,5 @@
 /* App */
+import id from 'lodash/identity';
 import React from 'react';
 import { Switch, Route } from 'react-router-dom';
 
@@ -6,9 +7,13 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 import Redirect from 'components/Redirect';
-import Callback from 'containers/Auth/Callback';
-import SignOut from 'containers/Auth/SignOut';
-import requireAuth from 'containers/Auth/wrapper';
+import {
+  SignIn,
+  SignOut,
+  SignUp,
+  requireAuth,
+} from 'containers/Auth';
+//import Callback from 'containers/Auth/Callback';
 import AuthBar from 'containers/AuthBar';
 import HomePage from 'containers/HomePage/Loadable';
 import NotFoundPage from 'containers/NotFoundPage/Loadable';
@@ -27,18 +32,16 @@ import { REDUX_KEY } from './constants';
 import reducer from './reducer';
 import saga from './saga';
 
-const requireAuthIfTeam = (Component) =>
-  config.team && config.alwaysRequiresAuth
-    ? requireAuth(Component) : Component;
+const requireAuthIfConfigured = config.alwaysRequiresAuth ? requireAuth : id;
 
 const grnaUrl = 'https://blog.quiltdata.com/designing-crispr-sgrnas-in-python-cd693674237d';
 
-const ProtectedHome = requireAuthIfTeam(HomePage);
-const ProtectedPackage = requireAuthIfTeam(Package);
-const ProtectedUser = requireAuthIfTeam(User);
+const ProtectedHome = requireAuthIfConfigured(HomePage);
+const ProtectedPackage = requireAuthIfConfigured(Package);
+const ProtectedUser = requireAuthIfConfigured(User);
 const ProtectedProfile = requireAuth(Profile);
-const ProtectedSearch = requireAuthIfTeam(SearchResults);
-const ProtectedNotFound = requireAuthIfTeam(NotFoundPage);
+const ProtectedSearch = requireAuthIfConfigured(SearchResults);
+const ProtectedNotFound = requireAuthIfConfigured(NotFoundPage);
 
 export default composeComponent('App',
   injectReducer(REDUX_KEY, reducer),
@@ -52,11 +55,14 @@ export default composeComponent('App',
           <Route path="/package/:owner/:name" exact component={ProtectedPackage} />
           <Route path="/package/:username" exact component={ProtectedUser} />
           <Route path="/user/:username" exact component={ProtectedUser} />
-          <Route path="/oauth_callback" exact component={Callback} />
           <Route path="/grna-search" exact render={() => <Redirect url={grnaUrl} />} />
           <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
           <Route path="/search" exact component={ProtectedSearch} />
+          <Route path="/signin" exact component={SignIn} />
+          <Route path="/signup" exact component={SignUp} />
           <Route path="/signout" exact component={SignOut} />
+          {/*<Route path="/oauth_callback" exact component={Callback} />
+          */}
           <Route path="" component={ProtectedNotFound} />
         </Switch>
       </Pad>

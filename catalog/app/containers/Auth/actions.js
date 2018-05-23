@@ -1,10 +1,32 @@
 import { actions } from './constants';
 
+/**
+ * Create a SIGN_UP action.
+ *
+ * @param {object} credentials
+ * @param {string} credentials.username
+ * @param {string} credentials.email
+ * @param {string} credentials.password
+ *
+ * @param {object} resolver
+ * @param {function} resolver.resolve
+ * @param {function} resolver.reject
+ *
+ * @returns {object} Constructed SIGN_UP action.
+ */
+export const signUp = (credentials, resolver) => ({
+  type: actions.SIGN_UP,
+  payload: credentials,
+  meta: { ...resolver },
+});
 
-export const signIn = (tokens, /* istanbul ignore next */ { onSuccess, onError } = {}) => ({
+
+
+
+export const signIn = (tokens, /* istanbul ignore next */ resolver) => ({
   type: actions.SIGN_IN,
   payload: tokens,
-  meta: { onSuccess, onError },
+  meta: { ...resolver },
 });
 
 signIn.success = (user) => ({
@@ -17,15 +39,15 @@ signIn.error = (e) => ({
   payload: e,
 });
 
-export const signOut = (onSuccess) => ({
+export const signOut = (resolver) => ({
   type: actions.SIGN_OUT,
-  meta: { onSuccess },
+  meta: { ...resolver },
 });
 
-export const check = ({ refetch = true, onComplete } = {}) => ({
+export const check = ({ refetch = true }, resolver) => ({
   type: actions.CHECK,
   payload: { refetch },
-  meta: { onComplete },
+  meta: { ...resolver },
 });
 
 export const refresh = () => ({
@@ -34,10 +56,7 @@ export const refresh = () => ({
 
 refresh.success = (tokens, user) => ({
   type: actions.REFRESH_SUCCESS,
-  payload: {
-    tokens,
-    user,
-  },
+  payload: { tokens, user },
 });
 
 refresh.error = (e) => ({

@@ -15,6 +15,7 @@ export const waitingStates = [
 ];
 
 export const actions = createActions(REDUX_KEY,
+  'SIGN_UP',
   'SIGN_IN',
   'SIGN_IN_SUCCESS',
   'SIGN_IN_ERROR',
