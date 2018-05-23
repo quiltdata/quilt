@@ -50,7 +50,7 @@ class DataNode(Node):
     def _data(self, asa=None):
         """
         Returns the contents of the node: a dataframe or a file path, or passes
-        the node and its contents to a callable.        
+        the node and its contents to a callable.
         """
         if asa is not None:
             if self._package is None or not self._node.hashes:
