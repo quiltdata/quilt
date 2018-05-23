@@ -132,6 +132,7 @@ Packages contain three types of nodes:
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
   * All other data types return a string to the path of the object in the package store
+  * Provide a custom deserialzer by passing a function to `data(asa=FUNCTION)` with the signature `function(NODE, LIST_OF_FILE_PATHS)`. A single node can contain data in multiple files (e.g., a DataFrame stored as a set of Parquet files). Calling `data(asa=FUNCTION)` on a GroupNode is currently only allowed for GroupNodes where all children are DataFrames (backed by Parquet files) with a common schema. In that case, FUNCTION is called with the GroupNode object and a list of the paths to all of the Parquet files in all of the child nodes.
 
 ### Enumerate package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
