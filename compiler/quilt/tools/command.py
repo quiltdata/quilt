@@ -1298,7 +1298,7 @@ def load(pkginfo):
 def login_user_pass(username, password, team=None):
     _check_team_id(team)
     registry_url = get_registry_url(team)
-    url = "%s/beans/login" % registry_url
+    url = "%s/login" % registry_url
     r = requests.post(url, json={'username': username, 'password': password})
     try:
         token = r.json()['token']

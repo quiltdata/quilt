@@ -12,10 +12,8 @@ from passlib.context import CryptContext
 from . import app, db
 from .mail import send_activation_email, send_reset_email
 from .models import Code, Token, User
+from .name_filter import blacklisted_name
 from .schemas import EMAIL_SCHEMA
-
-# TODO: better way to set secret key -- probably in config.py
-app.secret_key = b'thirty two bytes for glory&honor'
 
 CATALOG_URL = app.config['CATALOG_URL']
 
@@ -121,6 +119,8 @@ def register_endpoint():
 
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
+    if blacklisted_name(username):
+        raise Exception("Unacceptable username.")
     existing_user = get_user(username)
     if requires_activation:
         is_active = False
@@ -210,7 +210,6 @@ def revoke_user_code_tokens(user_id):
         db.session.delete(token)
 
 def _delete_user(username):
-    # TODO: revoke all tokens + code
     user = get_user(username)
     if user:
         db.session.delete(user)
@@ -421,19 +420,21 @@ def try_login(username, password):
         return False
     return True
 
-# TODO: change this to envvar-based solution
-admin_username = 'calvin'
-admin_password = 'beans'
-
 def create_admin():
-    # TODO: make sure this doesn't run in prod
-    _create_user(admin_username, password=admin_password, force=True)
+    # Only runs in dev
+    try:
+        admin_username = app.config['QUILT_ADMIN_USERNAME']
+        admin_password = app.config['QUILT_ADMIN_PASSWORD']
+    except:
+        return
+    if not admin_username or not admin_password:
+        return
+    _create_user(admin_username, password=admin_password, requires_activation=False, force=True)
     user = get_user(admin_username)
     _activate_user(user.id)
 
-# app.before_first_request(create_admin)
+app.before_first_request(create_admin)
 
-# TODO: move ApiException and friends to a new file and use them in this one
 
 linkgenerator = itsdangerous.URLSafeTimedSerializer(
         app.secret_key,

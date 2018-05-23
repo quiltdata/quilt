@@ -21,3 +21,7 @@ JSON_USE_ENCODE_METHODS = True  # Support the __json__ method in Node
 
 # 100MB max for request body.
 MAX_CONTENT_LENGTH = 100 * 1024 * 1024
+
+SECRET_KEY = os.getenv('QUILT_SECRET_KEY')
+
+DEFAULT_SENDER = os.getenv('QUILT_DEFAULT_SENDER')

@@ -376,6 +376,10 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             else:
                 # try to validate new auth
                 token = auth
+                # for compatibility with old clients
+                if token.startswith("Bearer "):
+                    token = token[7:]
+
                 user = verify_token_string(token)
                 if not user:
                     raise ApiException(requests.codes.unauthorized, "Token invalid.")
@@ -437,11 +441,6 @@ def logout():
 @as_json
 def get_code():
     return {'code': issue_code(g.user.name)}
-
-
-# TODO: delete this
-# endpoint that verifies token (@api) and issues code
-
 
 def _access_filter(auth):
     query = []

@@ -12,7 +12,8 @@ app.config['MAIL_USE_TLS'] = True
 mail = Mail(app)
 
 CATALOG_URL = app.config['CATALOG_URL']
-DEFAULT_SENDER = 'support@quiltdata.io' # TODO: factor into config
+DEFAULT_SENDER = app.config['DEFAULT_SENDER']
+REGISTRY_HOST = app.config['REGISTRY_HOST']
 
 def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
     if reply_to is None:
@@ -26,13 +27,12 @@ def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
             )
 
     if app.config['TESTING'] or dry_run:
-        # TODO: prettify print
         print(message)
     else:
         mail.send(message)
 
 def send_activation_email(user, activation_link):
-    base = request.host_url # TODO: better way to get registry URL
+    base = REGISTRY_HOST
     link = '{base}activate/{link}'.format(base=base, link=activation_link)
     body = (
         '<head><title></title></head>'
@@ -56,6 +56,3 @@ def send_reset_email(user, reset_link):
         '</body>'
     ).format(link=link)
     send_email(user.email, DEFAULT_SENDER, 'Reset your Quilt password', body)
-
-
-# TODO: fix configs so registry can actually send emails
