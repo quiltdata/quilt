@@ -23,6 +23,15 @@ app.wsgi_app = middleware.RequestEncodingMiddleware(app.wsgi_app)
 app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
 
+class ApiException(Exception):
+    """
+    Base class for API exceptions.
+    """
+    def __init__(self, status_code, message):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
+
 def set_secret_key():
     if app.config['TESTING'] and not app.secret_key:
         app.secret_key = 'testing'

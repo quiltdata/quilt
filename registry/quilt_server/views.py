@@ -37,7 +37,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
 
-from . import app, db
+from . import ApiException, app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_delete_user, consume_code_string, get_exp, get_user, issue_code, try_as_code,
         issue_token, issue_token_by_id, try_login, verify_token_string, reset_password, exp_from_token,
@@ -296,16 +296,6 @@ class Auth:
         self.is_logged_in = is_logged_in
         self.is_admin = is_admin
         self.is_active = is_active
-
-
-class ApiException(Exception):
-    """
-    Base class for API exceptions.
-    """
-    def __init__(self, status_code, message):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
 
 
 class PackageNotFoundException(ApiException):

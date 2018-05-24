@@ -9,7 +9,7 @@ import json
 import jwt
 from passlib.context import CryptContext
 
-from . import app, db
+from . import ApiException, app, db
 from .mail import send_activation_email, send_reset_email
 from .models import Code, Token, User
 from .name_filter import blacklisted_name
@@ -111,33 +111,40 @@ def register_endpoint():
     try:
         _create_user(username, password=password, email=email)
         return {}
-    except Exception as e:
-        if str(e) == 'User already exists':
-            return {'error': 'User already exists'}, 409 # 409 Conflict
-        else:
-            return {'error': 'Internal server error.'}, 500
+    except ApiException as e:
+        return {'error': e.message}, e.status_code # 409 Conflict
 
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
-    if blacklisted_name(username):
-        raise Exception("Unacceptable username.")
+    def check_conflicts(username, email):
+        # TODO: check email is valid
+        if blacklisted_name(username):
+            raise ApiException(400, "Unacceptable username.")
+        existing_user = get_user(username)
+        if existing_user and not force:
+            raise ApiException(409, "Username already taken.")
+        if email is not None:
+            existing_user_email = get_user_by_email(email)
+            if existing_user_email and not force:
+                raise ApiException(409, "Email already taken.")
+
+    check_conflicts(username, email)
+
     existing_user = get_user(username)
+
     if requires_activation:
         is_active = False
     else:
         is_active = True
     if existing_user:
-        if not force:
-            raise Exception('User already exists')
-        else:
-            user = existing_user
-            user.name = username
-            user.password = hash_password(password)
-            user.email = email
-            user.first_name = first_name
-            user.last_name = last_name
-            user.is_active = is_active
-            user.is_admin = is_admin
+        user = existing_user
+        user.name = username
+        user.password = hash_password(password)
+        user.email = email
+        user.first_name = first_name
+        user.last_name = last_name
+        user.is_active = is_active
+        user.is_admin = is_admin
     else:
         user = User(
                 id=generate_uuid(),
@@ -153,7 +160,8 @@ def _create_user(username, password='', email=None, is_admin=False,
         db.session.add(user)
         db.session.commit()
     except IntegrityError:
-        raise Exception('User already exists')
+        if not check_conflicts(username, email):
+            raise ApiException(500, "Internal server error.")
 
     if requires_activation:
         send_activation_email(user, generate_activation_link(user.id))
