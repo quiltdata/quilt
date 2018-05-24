@@ -9,7 +9,7 @@
 ### `quilt.push("USER/PACKAGE", is_public=False, is_team=False)`
 Stores the package in the registry
 
-### `quilt.install("USER/PACKAGE[/SUBPATH/...]" [, hash="HASH", tag="TAG", version="VERSION"] [, force=BOOL ] [, meta_only=BOOL])`
+### `quilt.install("USER/PACKAGE[/SUBPATH/...]" [, hash="HASH", tag="TAG", version="VERSION"] [, force=False] [, meta_only=False])`
  Installs a package or sub-package.
  * `force=True` - skips yes/no prompt in the case of overwrite
  * `meta_only=True` - install only the package metadata (useful for filtering large packages) 
