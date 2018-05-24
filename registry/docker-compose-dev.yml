@@ -24,6 +24,12 @@ services:
       - QUILT_SERVER_CONFIG=docker_config.py
       - OAUTH_CLIENT_SECRET=TESTING
       - STRIPE_SECRET_KEY=STRIPETEST
+      - REGISTRY_HOST=http://localhost:5000
+      - SMTP_HOST=email-smtp.us-east-1.amazonaws.com
+      - SMTP_PASSWORD=Amgk/FzDTYSRXdAgBVdo9y2xIGCWs6G5QsT3lzR4aIgQ
+      - SMTP_USERNAME=AKIAJ3PC7XYDWLIAX55A
+      - QUILT_DEFAULT_SENDER=support@quiltdata.io
+      - QUILT_SECRET_KEY=testing
     depends_on:
       db:
         condition: service_healthy
