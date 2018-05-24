@@ -5,7 +5,7 @@
 * [Packages defined](packages-defined.md)
 * [Installation](installation.md)
 
-## Get started with Quilt for Python
+## Get started (Python)
 * [Tutorials](tutorials.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
