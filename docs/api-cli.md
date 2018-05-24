@@ -10,8 +10,10 @@
 ### `quilt push USER/PACKAGE [--public ￨ --team]` 
 Stores the package in the registry |
 
-### `quilt install USER/PACKAGE[/SUBPATH/...] [-x HASH ￨ -t TAG ￨ -v VERSION]`
-Installs a package or sub-package
+### `quilt install USER/PACKAGE[/SUBPATH/...] [-x HASH ￨ -t TAG ￨ -v VERSION] [--force] [--meta-only]`
+ Installs a package or sub-package.
+ * `--force` - skips yes/no prompt in the case of overwrite
+ * `--meta-only` - install only the package metadata (useful for filtering large packages) 
 
 ### `quilt install @FILE=quilt.yml`
  Installs all specified packages using the requirements syntax (above) |
