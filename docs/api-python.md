@@ -9,7 +9,7 @@
 ### `quilt.push("USER/PACKAGE", is_public=False, is_team=False)`
 Stores the package in the registry
 
-### `quilt.install("USER/PACKAGE[/SUBPATH/...]" [, hash="HASH", tag="TAG", version="VERSION", force=BOOL, meta_only=BOOL])`
+### `quilt.install("USER/PACKAGE[/SUBPATH/...]" [, hash="HASH", tag="TAG", version="VERSION"] [, force=BOOL ] [, meta_only=BOOL])`
  Installs a package or sub-package.
  * `force=True` - skips yes/no prompt in the case of overwrite
  * `meta_only=True` - install only the package metadata (useful for filtering large packages) 
@@ -63,8 +63,8 @@ Search registry for packages by user or package name |
 
 
 ## Filtering
-Note that you can `quilt install USR/PKG --meta-only` if you wish to filter a large
-package without downloading its data to disk.
+Note that you can `quilt.install("USR/PKG", meta_only=True)` if you wish to filter a large
+package based solely on its metadata. This avoids downloading the data to disk.
 
 ### `pkg._filter(DICT_OR_LAMBDA)`
 Package root nodes have a `_filter` method that accepts either a dictionary or a lambda.
