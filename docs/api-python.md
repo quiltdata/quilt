@@ -64,7 +64,7 @@ Search registry for packages by user or package name |
 
 ## Filtering
 Note that you can `quilt.install("USR/PKG", meta_only=True)` if you wish to filter a large
-package based solely on its metadata. This avoids downloading the data to disk.
+package based solely on its metadata. This avoids downloading the primary data to disk.
 
 ### `pkg._filter(DICT_OR_LAMBDA)`
 Package root nodes have a `_filter` method that accepts either a dictionary or a lambda.
