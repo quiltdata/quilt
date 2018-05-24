@@ -6,45 +6,41 @@ import { withHandlers } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 
 import Lifecycle from 'components/Lifecycle';
+import Redirect from 'components/Redirect';
 import Working from 'components/Working';
+import defer from 'utils/defer';
 import { composeComponent } from 'utils/reactTools';
-import redirect from 'utils/redirect';
 
 import { signOut } from './actions';
 import msg from './messages';
 import * as selectors from './selectors';
 import { makeSignOutURL } from './util';
 
-const isExternal = (url) => /^https?:/.test(url);
-
 export default composeComponent('Auth.SignOut',
   connect(createStructuredSelector({
     authenticated: selectors.authenticated,
     waiting: selectors.waiting,
+    error: selectors.error,
   })),
   withHandlers({
-    afterSignOut: ({ dispatch }) => () => {
-      const url = makeSignOutURL();
-      /* istanbul ignore if */
-      if (isExternal(url)) {
-        redirect(url);
-      } else {
-        dispatch(push(url));
-      }
+    doSignOut: ({ dispatch }) => () => {
+      const result = defer();
+      dispatch(signOut(result.resolver));
+      result.promise.catch((e) => {
+        console.log('error signing out', e);
+        // TODO: notification
+        // TODO: captureError
+      });
     },
   }),
-  withHandlers({
-    doSignOut: ({ dispatch, authenticated, afterSignOut }) => () => {
-      if (authenticated) {
-        dispatch(signOut(afterSignOut));
-      } else {
-        afterSignOut();
-      }
-    },
-  }),
-  ({ waiting, doSignOut }) => (
+  ({ waiting, authenticated, error, doSignOut }) => (
     <Fragment>
-      {waiting ? null : <Lifecycle willMount={doSignOut} />}
-      <Working><FM {...msg.signingOut} /></Working>
+      {!waiting && authenticated && <Lifecycle willMount={doSignOut} />}
+      {!authenticated && <Redirect to={makeSignOutURL()} />}
+      {error
+        // TODO
+        ? <h1>error: {error}</h1>
+        : <Working><FM {...msg.signingOut} /></Working>
+      }
     </Fragment>
   ));

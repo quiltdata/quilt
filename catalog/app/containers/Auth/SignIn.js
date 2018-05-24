@@ -5,7 +5,7 @@ import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link, Redirect } from 'react-router-dom';
 import {
   branch,
   mapProps,
@@ -70,16 +70,18 @@ export default composeComponent('Auth.SignIn',
         throw new SubmissionError({ _error: 'unexpected' });
       }
     },
-    onSubmitSuccess: (values, dispatch) => {
-      console.log('signed in');
-      // redirect to next
-    },
   }),
   // TODO: styling, copy
-  branch(get('authenticated'), renderComponent(({}) => (
-    // redirect to next
-    <h1>already signed in</h1>
-  ))),
+  branch(get('authenticated'), renderComponent(({}) => {
+    // TODO: get next from route params
+    const next = '/';
+    return (
+      <div>
+        <h1>signed in</h1>
+        <Redirect to={next} />
+      </div>
+    );
+  })),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>
@@ -95,7 +97,6 @@ export default composeComponent('Auth.SignIn',
           }}
           fullWidth
         />
-      {/* TODO: forget / reset link */}
         <Field
           component={FormField}
           name="password"
@@ -121,6 +122,8 @@ export default composeComponent('Auth.SignIn',
         />
         {/* TODO: style & copy */}
         <p>Don't have an account? <Link to="/signup">Sign Up</Link>.</p>
+        {/* TODO: forget / reset link */}
+        <p>Don't remember your password? <Link to="/signup">Reset the password</Link>.</p>
       </form>
     </Container>
   ));

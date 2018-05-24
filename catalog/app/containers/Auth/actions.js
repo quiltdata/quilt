@@ -3,16 +3,16 @@ import { actions } from './constants';
 /**
  * Create a SIGN_UP action.
  *
- * @param {object} credentials
+ * @param {Object} credentials
  * @param {string} credentials.username
  * @param {string} credentials.email
  * @param {string} credentials.password
  *
- * @param {object} resolver
+ * @param {Object} resolver
  * @param {function} resolver.resolve
  * @param {function} resolver.reject
  *
- * @returns {object} Constructed SIGN_UP action.
+ * @returns {Action} Constructed SIGN_UP action.
  */
 export const signUp = (credentials, resolver) => ({
   type: actions.SIGN_UP,
@@ -21,27 +21,59 @@ export const signUp = (credentials, resolver) => ({
 });
 
 
-
-
-export const signIn = (tokens, /* istanbul ignore next */ resolver) => ({
+/**
+ * Create a SIGN_IN action.
+ *
+ * @param {{username: string, password: string} credentials
+ *
+ * @param {{resolve: string, reject: string}} resolver
+ *
+ * @returns {Action}
+ */
+export const signIn = (credentials, resolver) => ({
   type: actions.SIGN_IN,
-  payload: tokens,
+  payload: credentials,
   meta: { ...resolver },
 });
 
-signIn.success = (user) => ({
-  type: actions.SIGN_IN_SUCCESS,
-  payload: user,
+/**
+ * Create a SIGN_IN_RESULT action.
+ *
+ * @param {{tokens: Object, user: Object}|Error} result
+ *   Either an error or an object containing tokens and user data.
+ *   If error, action.error is true.
+ *
+ * @returns {Action}
+ */
+signIn.resolve = (result) => ({
+  type: actions.SIGN_IN_RESULT,
+  error: result instanceof Error,
+  payload: result,
 });
 
-signIn.error = (e) => ({
-  type: actions.SIGN_IN_ERROR,
-  payload: e,
-});
-
+/**
+ * Create a SIGN_OUT action.
+ *
+ * @param {Object} resolver
+ * @param {function} resolver.resolve
+ * @param {function} resolver.reject
+ *
+ * @returns {Action}
+ */
 export const signOut = (resolver) => ({
   type: actions.SIGN_OUT,
   meta: { ...resolver },
+});
+
+/**
+ * Create a SIGN_OUT_RESULT action.
+ *
+ * @returns {Action}
+ */
+signOut.resolve = (result) => ({
+  type: actions.SIGN_OUT_RESULT,
+  error: result instanceof Error,
+  payload: result,
 });
 
 export const check = ({ refetch = true }, resolver) => ({

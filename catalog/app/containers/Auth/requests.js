@@ -8,7 +8,7 @@ import * as errors from './errors';
 /**
  * Make a sign-up request.
  *
- * @param {object} credentials
+ * @param {Object} credentials
  *
  * @throws {UserAlreadyExists}
  */
@@ -16,10 +16,11 @@ export const signUp = async (credentials) => {
   try {
     console.log('sign up', credentials);
     // TODO: proper url
-    const res = await requestJSON('/register', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    //const res = await requestJSON(`${config.api}/register`, {
+      //method: 'POST',
+      //body: JSON.stringify(credentials),
+    //});
+    const res = undefined;
     console.log('sign up res', res);
   } catch (e) {
     console.log('sign up: error', e);
@@ -39,10 +40,11 @@ export const signOut = async (token) => {
   try {
     console.log('sign out', token);
     // TODO: proper url
-    const res = await requestJSON('/logout', {
-      method: 'POST',
-      body: JSON.stringify({ token }),
-    });
+    //const res = await requestJSON(`${config.api}/logout`, {
+      //method: 'POST',
+      //body: JSON.stringify({ token }),
+    //});
+    const res = {};
     console.log('sign out res', res);
   } catch (e) {
     // TODO: handle expected BE errors
@@ -52,9 +54,9 @@ export const signOut = async (token) => {
 };
 
 /**
- * Make a sign-in request
+ * Make a sign-in request.
  *
- * @param {object} credentials
+ * @param {Object} credentials
  * @param {string} credentials.username
  * @param {string} credentials.password
  */
@@ -62,10 +64,15 @@ export const signIn = async (credentials) => {
   try {
     console.log('sign in', credentials);
     // TODO: proper url
-    const res = await requestJSON('/login', {
-      method: 'POST',
-      body: JSON.stringify(credentials),
-    });
+    //const res = await requestJSON(`${config.api}/login`, {
+      //method: 'POST',
+      //body: JSON.stringify(credentials),
+    //});
+
+    const res = {
+      token: 'THE_TOKEN',
+    };
+
     console.log('sign in res', res);
     return res;
   } catch (e) {
@@ -76,11 +83,12 @@ export const signIn = async (credentials) => {
 }
 
 
-// OLD
 /**
- * Fetch user data from the User API.
+ * Fetch user data.
  *
- * @returns {object} User data.
+ * @param {Object} tokens
+ *
+ * @returns {Object} User data.
  *
  * @throws {NotAuthenticated} The API responds w/ 401.
  * @throws {AuthError}
@@ -89,14 +97,23 @@ export const signIn = async (credentials) => {
  */
 export const fetchUser = async (tokens) => {
   try {
-    const auth = await requestJSON(config.userApi, {
-      headers: makeHeadersFromTokens(tokens),
-    });
+    console.log('fetchUser', tokens);
+    //const auth = await requestJSON(config.userApi, {
+      //headers: makeHeadersFromTokens(tokens),
+    //});
     /* istanbul ignore next */
-    return auth.login && !auth.current_user
-      // GitHub
-      ? { ...auth, current_user: auth.login }
-      : auth;
+    //return auth.login && !auth.current_user
+      //// GitHub
+      //? { ...auth, current_user: auth.login }
+      //: auth;
+
+    return {
+      is_staff: false,
+      is_active: true,
+      email: 'admin@quilt',
+      current_user: 'admin',
+    };
+
   } catch (e) {
     if (e instanceof HttpError && e.status === 401) {
       throw new errors.NotAuthenticated('unable to fetch user data');
@@ -116,12 +133,13 @@ export const fetchUser = async (tokens) => {
   }
 }
 
+// OLD
 /**
  * Refresh auth tokens.
  *
  * @param {string} refreshToken
  *
- * @returns {object} Tokens adjusted for latency.
+ * @returns {Object} Tokens adjusted for latency.
  *
  * @throws {NotAuthenticated} The API responds w/ 401.
  * @throws {AuthError}
