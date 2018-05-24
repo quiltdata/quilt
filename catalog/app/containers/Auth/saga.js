@@ -8,7 +8,7 @@ import defer from 'utils/defer';
 import { waitTil } from 'utils/sagaTools';
 import { timestamp } from 'utils/time';
 
-import { signIn, refresh, check } from './actions';
+import { signIn, signOut, refresh, check } from './actions';
 import { actions } from './constants';
 import { AuthError, NotAuthenticated } from './errors';
 import * as requests from './requests';
@@ -21,7 +21,7 @@ import { makeHeadersFromTokens } from './util';
  * checking if auth token is up-to-date and
  * waiting til the auth requests are settled if they are in progress.
  *
- * @returns {object}
+ * @returns {Object}
  *   Object containing the auth headers, empty if not authenticated.
  */
 export function* makeHeaders() {
@@ -39,6 +39,9 @@ export function* makeHeaders() {
 
 /**
  * Handle SIGN_UP action.
+ * Make a sign-up request and call resolve or reject callback with the result.
+ *
+ * @param {Action} action
  */
 function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
   try {
@@ -52,32 +55,38 @@ function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
 
 /**
  * Handle SIGN_IN action.
- * Store tokens, then fetch user data and store it as well.
- * Dispatch SIGN_IN_SUCCESS if everything's ok.
+ * Make a sign-in request using the given credentials,
+ * then request the user data using received tokens.
+ * Finally, store the tokens and user data and dispatch a SIGN_IN_RESULT action.
+ * Call resolve or reject callback.
  *
- * @param {object} options
+ * @param {Object} options
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {object} action
+ *
+ * @param {Action} action
  */
 function* handleSignIn(
-  { storeTokens, storeUser, forgetTokens },
-  { payload: tokens, meta: { resolve, reject } },
+  { storeTokens, storeUser },
+  { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    // TODO
-    yield fork(storeTokens, tokens);
+    console.log('handleSignIn', { credentials });
+    const tokens = yield call(requests.signIn, credentials);
+    console.log('handleSignIn: tokens', { tokens });
     const user = yield call(requests.fetchUser, tokens);
+    console.log('handleSignIn: user', { user });
+    yield fork(storeTokens, tokens);
     yield fork(storeUser, user);
-    yield put(signIn.success(user));
+    yield put(signIn.resolve({ tokens, user }));
     /* istanbul ignore else */
-    if (resolve) yield call(resolve, user);
+    if (resolve) yield call(resolve, { tokens, user });
   } catch (e) {
+    console.log('handleSignIn: error', e);
     //if (e instanceof HttpError && e.status === 401) {
       //yield fork(forgetTokens);
     //}
-    yield put(signIn.error(e));
+    yield put(signIn.resolve(e));
     // TODO: throw?
     /* istanbul ignore else */
     if (reject) yield call(reject, e);
@@ -87,23 +96,28 @@ function* handleSignIn(
 /**
  * Handle SIGN_OUT action.
  *
- * @param {object} options
+ * @param {Object} options
  * @param {function} options.forgetTokens
  * @param {function} options.forgetUser
- * @param {object} action
+ *
+ * @param {Action} action
  */
-function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve } }) {
+function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
     console.log('handle signout');
-    //const token = yield select(TODO);
+    const { token } = yield select(selectors.tokens);
     // TODO: make sure to await the result
-    yield call(requests.signOut, token);
+    const res = yield call(requests.signOut, token);
+    console.log('handle signout: result', res);
     yield fork(forgetUser);
     yield fork(forgetTokens);
     /* istanbul ignore else */
+    yield put(signOut.resolve());
     if (resolve) yield call(resolve);
   } catch (e) {
     console.log('handle signout: error', e);
+    yield put(signOut.resolve(e));
+    if (reject) yield call(reject, e);
   }
 }
 
@@ -119,14 +133,14 @@ const isExpired = (tokens, time) => {
  * Refresh tokens if stale, store the refreshed ones.
  * Then refetch and store user data if requested.
  *
- * @param {object} options
+ * @param {Object} options
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
  * @param {function} options.forgetTokens
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
  * @param {function} options.onAuthError
- * @param {object} action
+ * @param {Action} action
  */
 function* handleCheck(
   { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
@@ -166,9 +180,9 @@ function* handleCheck(
 /**
  * Handle AUTH_LOST action.
  *
- * @param {object} options
+ * @param {Object} options
  * @param {function} options.onAuthLost
- * @param {object} action
+ * @param {Action} action
  */
 function* handleAuthLost({ onAuthLost }, { payload: err }) {
   yield call(onAuthLost, err);
@@ -180,7 +194,7 @@ const noop = () => {};
  * Main Auth saga.
  * Handles auth actions and fires CHECK action on specified condition.
  *
- * @param {object} options
+ * @param {Object} options
  * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
