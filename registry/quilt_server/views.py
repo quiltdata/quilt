@@ -418,7 +418,7 @@ def refresh():
     revoke_token_string(token_str)
     return {'token': issue_token(g.auth.user)}
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @api()
 @as_json
 def logout():
