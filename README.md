@@ -1,3 +1,4 @@
+<!-- /README.md and docs/README.md should remain identical copies, by hand (symlinks caused problems) !-->
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-orange.svg?style=flat-square)](https://slack.quiltdata.com/)
 
