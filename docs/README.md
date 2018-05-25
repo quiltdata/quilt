@@ -1,6 +1,6 @@
 # Quilt versions and deploys data
 
-Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and Docker registries do for code: provide a centralized, collaborative store of record.
+Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers and registries do for code: provide a centralized, collaborative store of record.
 
 ## Benefits
 
@@ -31,5 +31,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ```
 
-## Demo
+## [Demo](https://www.youtube.com/embed/bKIV1GUVLPc)
+
 <iframe width="560" height="315" src="https://www.youtube.com/embed/bKIV1GUVLPc" frameborder="0" allowfullscreen></iframe>

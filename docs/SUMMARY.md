@@ -3,9 +3,10 @@
 ## Quilt
 * [Introduction](README.md)
 * [Packages defined](packages-defined.md)
-* [Installation](installation.md)
+* [Key concepts](api-concepts.md)
 
-## Get started (Python)
+## Get started
+* [Installation](installation.md)
 * [Tutorials](tutorials.md)
 * [Use a package](use-a-package.md)
 * [Edit a package](edit-a-package.md)
@@ -13,7 +14,6 @@
 * [Push a package](push-a-package.md)
 
 ## API Reference
-* [Key concepts](api-concepts.md)
 * [Command line](api-cli.md)
 * [Python](api-python.md)
 * [build.yml](buildyml.md)
