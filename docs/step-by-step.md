@@ -141,7 +141,7 @@ quilt generate DIR
 
 The above command creates `build.yml` and `README.md` files that you can modify to your liking. A `README.md` file is highly recommended as it populates your package landing page with documentation. See the API section for more on how README markdown is converted to HTML.
 
-You can read more about the syntax of `build.yml` [here](https://docs.quiltdata.com/buildyml.html).
+See [`build.yml` syntax](https://docs.quiltdata.com/api/build.yml) for more.
 
 ##### Directory and file naming in `quilt generate`
 * Directories and files that start with a numeric character or underscore will be prefixed with the letter `n`. If a name collision results, the build will fail with an error.

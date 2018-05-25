@@ -7,7 +7,7 @@
 * [Articles](articles.md)
 * [Examples](examples.md)
 
-## API Reference
+## API
 * [Command line](api-cli.md)
 * [Python](api-python.md)
 * [build.yml](buildyml.md)
