@@ -1,4 +1,4 @@
-# Support
+# Contact Quilt Data
 
 * [Email](mailto:support@quiltdata.io)
 * [Live chat](https://quiltdata.com)

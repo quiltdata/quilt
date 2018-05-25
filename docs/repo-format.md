@@ -84,5 +84,3 @@ Here are quick outlines of how the basic Quilt commands interact with local stor
     - by hash (verify hash is associated with package)
 - read package manifest (find by hash)
 - parse package tree
-
-________

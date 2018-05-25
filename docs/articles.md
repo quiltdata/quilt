@@ -1,10 +1,9 @@
-# Tutorials
+# Articles
 
-## Start here
+## Introductory
 * [Reproducible Data Dependencies for Python](https://blog.jupyter.org/reproducible-data-dependencies-for-python-guest-post-d0f68293a99)
-* Other introductions
-  * [Data packages for fast, reproducible Python analysis](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
-  * [Quilt - a data package manager](https://qxf2.com/blog/quilt-data-package-manager/)
+* [Data packages for fast, reproducible Python analysis](https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f)
+* [Quilt - a data package manager](https://qxf2.com/blog/quilt-data-package-manager/)
 
 ## Machine learning
 * [Reproducible machine learning with Jupyter and Quilt](https://blog.dominodatalab.com/reproducible-machine-learning-with-jupyter-and-quilt/)

@@ -10,6 +10,12 @@ with up to 40,000 individual files.
 We are constantly upping the amount of data users can put into Quilt.
 Contact us if you have questions about large data.
 
+## Where are my data stored?
+* Local builds (without `quilt push`) - on your machine
+* qultdata.com user - in S3; if your package is private only you can read the data
+* Teams user - in a dedicated S3 bucket
+* Running your own registry - up to you :-)
+
 ## How do install the latest quilt (compiler) directly from GitHub?
 For developers only:
 ```sh

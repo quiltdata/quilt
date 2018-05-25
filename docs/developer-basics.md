@@ -9,5 +9,5 @@
 - [Compiler](https://github.com/quiltdata/quilt/blob/master/compiler/README.md)
 
 # Contribute
-- Conversation on [gitter](https://gitter.im/quilt-data/Lobby) or [slack](https://slack.quiltdata.com/).
-- Selected issues are tagged in [GitHub Issues](https://github.com/quiltdata/quilt/issues)
+- Converse on [Slack](https://slack.quiltdata.com/)
+- Select issues are tagged on [GitHub](https://github.com/quiltdata/quilt/issues)
