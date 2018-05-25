@@ -1,5 +1,4 @@
 import get from 'lodash/fp/get';
-import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
 import PT from 'prop-types';
 import React from 'react';
@@ -8,49 +7,28 @@ import { connect } from 'react-redux';
 import { Link, Redirect } from 'react-router-dom';
 import {
   branch,
-  mapProps,
   renderComponent,
   setPropTypes,
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import { createStructuredSelector } from 'reselect';
-import styled from 'styled-components';
 
 import Spinner from 'components/Spinner';
 import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import * as validators from 'utils/validators';
+import withParsedQuery from 'utils/withParsedQuery';
 
 import { signIn } from './actions';
 import * as errors from './errors';
 import msg from './messages';
 import { authenticated } from './selectors';
+import * as Form from './Form';
 
-const showError = (meta, errorMessages = {}) =>
-  meta.submitFailed && meta.error
-    ? errorMessages[meta.error] || meta.error
-    : undefined;
 
-const FormField = composeComponent('Auth.SignUp.Field',
-  setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, ...rest }) => ({
-    errorText: showError(meta, errors),
-    ...input,
-    ...rest,
-  })),
-  TextField);
-
-const Container = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  width: 400px;
-`;
+const DEFAULT_REDIRECT = '/profile';
 
 export default composeComponent('Auth.SignIn',
   connect(createStructuredSelector({ authenticated })),
@@ -62,32 +40,24 @@ export default composeComponent('Auth.SignIn',
       try {
         await result.promise;
       } catch(e) {
-        // TODO: handle all the errors from the BE
-        //if (e instanceof errors.UserAlreadyExists) {
-          //throw new SubmissionError({ _error: 'uniq' });
-        //}
+        if (e instanceof errors.InvalidCredentials) {
+          throw new SubmissionError({ _error: 'invalidCredentials' });
+        }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
     },
   }),
-  // TODO: styling, copy
-  branch(get('authenticated'), renderComponent(({}) => {
-    // TODO: get next from route params
-    const next = '/';
-    return (
-      <div>
-        <h1>signed in</h1>
-        <Redirect to={next} />
-      </div>
-    );
-  })),
+  withParsedQuery,
+  branch(get('authenticated'), renderComponent(({ location: { query } }) =>
+    <Redirect to={query.next || DEFAULT_REDIRECT} />
+  )),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
-    <Container>
+    <Form.Container>
       <form onSubmit={handleSubmit}>
-        <h1><FM {...msg.signInHeading} /></h1>
+        <Form.Heading><FM {...msg.signInHeading} /></Form.Heading>
         <Field
-          component={FormField}
+          component={Form.Field}
           name="username"
           validate={[validators.required]}
           disabled={submitting}
@@ -95,10 +65,9 @@ export default composeComponent('Auth.SignIn',
           errors={{
             required: <FM {...msg.signInUsernameRequired} />,
           }}
-          fullWidth
         />
         <Field
-          component={FormField}
+          component={Form.Field}
           name="password"
           type="password"
           validate={[validators.required]}
@@ -107,23 +76,25 @@ export default composeComponent('Auth.SignIn',
           errors={{
             required: <FM {...msg.signInPassRequired} />,
           }}
-          fullWidth
         />
-        {/* TODO: style & copy */}
-        {submitFailed && error && (
-          <p>form error: {error}</p>
-        )}
+        <Form.Error
+          {...{ submitFailed, error }}
+          errors={{
+            // TODO: proper error messages
+            invalidCredentials: 'Invalid credentials',
+            unexpected: 'Something went wrong',
+          }}
+        />
         {/* TODO: show spinner */}
         <RaisedButton
           type="submit"
           primary
-          disabled={submitting || submitFailed && invalid}
+          disabled={submitting || (submitFailed && invalid)}
           label={<FM {...msg.signInSubmit} />}
         />
         {/* TODO: style & copy */}
         <p>Don't have an account? <Link to="/signup">Sign Up</Link>.</p>
-        {/* TODO: forget / reset link */}
-        <p>Don't remember your password? <Link to="/signup">Reset the password</Link>.</p>
+        <p>Don't remember your password? <Link to="/reset_password">Reset the password</Link>.</p>
       </form>
-    </Container>
+    </Form.Container>
   ));

@@ -1,14 +1,14 @@
 import React, { Fragment } from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
-import { push } from 'react-router-redux';
-import { withHandlers } from 'recompose';
+import { Redirect } from 'react-router-dom';
+import { withHandlers, withState } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 
 import Lifecycle from 'components/Lifecycle';
-import Redirect from 'components/Redirect';
 import Working from 'components/Working';
 import defer from 'utils/defer';
+import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 
 import { signOut } from './actions';
@@ -20,27 +20,28 @@ export default composeComponent('Auth.SignOut',
   connect(createStructuredSelector({
     authenticated: selectors.authenticated,
     waiting: selectors.waiting,
-    error: selectors.error,
   })),
+  withState('error', 'setError', undefined),
   withHandlers({
-    doSignOut: ({ dispatch }) => () => {
+    doSignOut: ({ dispatch, setError }) => () => {
       const result = defer();
       dispatch(signOut(result.resolver));
       result.promise.catch((e) => {
         console.log('error signing out', e);
+        setError(e);
         // TODO: notification
-        // TODO: captureError
+        captureError(e);
       });
     },
   }),
   ({ waiting, authenticated, error, doSignOut }) => (
     <Fragment>
-      {!waiting && authenticated && <Lifecycle willMount={doSignOut} />}
+      {!error && !waiting && authenticated && <Lifecycle willMount={doSignOut} />}
       {!authenticated && <Redirect to={makeSignOutURL()} />}
       {error
         // TODO
-        ? <h1>error: {error}</h1>
-        : <Working><FM {...msg.signingOut} /></Working>
+        ? <h1>error: {error.toString()}</h1>
+        : <Working><FM {...msg.signOutWaiting} /></Working>
       }
     </Fragment>
   ));

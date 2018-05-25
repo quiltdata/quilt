@@ -47,6 +47,7 @@ const FormField = composeComponent('Auth.SignUp.Field',
   })),
   TextField);
 
+// TODO: memoize?
 const passwordsMatch = (field) => (v, vs) => {
   const pass = vs.get(field);
   return v && pass && v !== pass ? 'passMatch' : undefined;
@@ -57,6 +58,8 @@ const Container = styled.div`
   margin-right: auto;
   width: 400px;
 `;
+
+const passMatch = passwordsMatch('password');
 
 export default composeComponent('Auth.SignUp',
   connect(createStructuredSelector({ authenticated })),
@@ -74,8 +77,14 @@ export default composeComponent('Auth.SignUp',
         await result.promise;
       } catch(e) {
         // TODO: handle all the errors from the BE
-        if (e instanceof errors.UserAlreadyExists) {
-          throw new SubmissionError({ _error: 'uniq' });
+        if (e instanceof errors.UsernameTaken) {
+          throw new SubmissionError({ username: 'taken' });
+        }
+        if (e instanceof errors.InvalidUsername) {
+          throw new SubmissionError({ username: 'invalid' });
+        }
+        if (e instanceof errors.EmailTaken) {
+          throw new SubmissionError({ email: 'taken' });
         }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
@@ -105,6 +114,16 @@ export default composeComponent('Auth.SignUp',
           floatingLabelText={<FM {...msg.signUpUsernameLabel} />}
           errors={{
             required: <FM {...msg.signUpUsernameRequired} />,
+            taken: (
+              <FM
+                {...msg.signUpUsernameTaken}
+                values={{
+                  // TODO: proper reset link
+                  link: <Link to="/reset"><FM {...msg.signUpPassResetHint} /></Link>,
+                }}
+              />
+            ),
+            invalid: <FM {...msg.signUpUsernameInvalid} />,
           }}
           fullWidth
         />
@@ -116,6 +135,15 @@ export default composeComponent('Auth.SignUp',
           floatingLabelText={<FM {...msg.signUpEmailLabel} />}
           errors={{
             required: <FM {...msg.signUpEmailRequired} />,
+            taken: (
+              <FM
+                {...msg.signUpEmailTaken}
+                values={{
+                  // TODO: proper reset link
+                  link: <Link to="/reset"><FM {...msg.signUpPassResetHint} /></Link>,
+                }}
+              />
+            ),
           }}
           fullWidth
         />
@@ -135,7 +163,7 @@ export default composeComponent('Auth.SignUp',
           component={FormField}
           name="passwordCheck"
           type="password"
-          validate={[validators.required, passwordsMatch('password')]}
+          validate={[validators.required, passMatch]}
           disabled={submitting}
           floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
           errors={{
