@@ -9,10 +9,15 @@
 ### `quilt.push("USER/PACKAGE", is_public=False, is_team=False)`
 Stores the package in the registry
 
-### `quilt.install("USER/PACKAGE[/SUBPATH/...]" [, hash="HASH", tag="TAG", version="VERSION"] [, force=False] [, meta_only=False])`
+### `quilt.install(PKG [, hash="HASH", tag="TAG", version="VERSION"] [, force=False] [, meta_only=False])`
  Installs a package or sub-package.
+
  * `force=True` - skips yes/no prompt in the case of overwrite
  * `meta_only=True` - install only the package metadata (useful for filtering large packages) 
+
+ `PKG` may be any one of the following:
+ * A string of the form `"USR/PKG[/SUBPATH...]"`
+ * An anonymous package returned by filter: `pkg._filter(...)`
  
 ###  `quilt.delete("USER/PACKAGE")`
 Removes the package from the registry. Does not delete local data.
@@ -75,13 +80,19 @@ Package root nodes have a `_filter` method that accepts either a dictionary or a
 * All desendants of a matching node (so that mathcing groups include all descendants)
 * All ancestors of a matching node (so that the position in the tree remains unchanged)
 
+The return value of `_filter` can be passed to `install` as shown below.
+
 #### Filter with a dict 
 Dictionary filters support two properies, `name` and `meta`:
 
 ``` python
+import quilt
+
 pkg = wine._filter({'name': 'README'})  # Just the readme
 pkg = wine._filter({'meta': {'foo': 'bar'}})  # The group we created earlier
 pkg = wine._filter({'meta': {'_system': {'transform': 'csv'}}})  # Dataframes created from CSVs
+# install the filtered subste of the data
+quilt.install(pkg);
 ```
 
 #### Filter with a lambda function

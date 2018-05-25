@@ -32,7 +32,7 @@ Quilt provides versioned, reusable building blocks for analysis in the form of _
 
 ## Key concepts
 ### Data package
-A Quilt data package is a tree of serialized data wrapped in a Python module. You can think of a package as a miniature, virtualized filesystem accessible to a variety of languages and platforms.
+A Quilt data package is a tree of data wrapped in a Python module. You can think of a package as a miniature, virtualized filesystem accessible to a variety of languages and platforms.
 
 Each Quilt package has a unique _handle_ of the form `USER_NAME/PACKAGE_NAME`.
 
@@ -52,6 +52,11 @@ Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fr
 ### `build` creates a package
 
 Quilt uses [pandas](http://pandas.pydata.org/) to parse tabular file formats into data frames and [pyarrow](https://arrow.apache.org/docs/python/) to serialize data frames to [Parquet format](https://parquet.apache.org/).
+
+Unstructured data are copied "as is".
+
+You may use `transform: id` option to store tabular data in their original format
+(e.g. if you do not wish to use Parquet as the storage format).
 
 ### `push` stores a package in a server-side registry
 
