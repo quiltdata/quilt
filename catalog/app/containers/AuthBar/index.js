@@ -125,16 +125,16 @@ const Lockup = styled.div`
 `;
 
 const hintStyle = {
-  bottom: '4px',
-  color: '#AAA',
+  bottom: '6px',
+  color: '#888',
 };
 
 const inputStyle = {
-  color: '#DDD',
+  color: '#444',
 };
 
 const searchStyle = {
-  backgroundColor: 'rgba(255, 255, 255, .10)',
+  backgroundColor: 'rgba(255, 255, 255, .9)',
   borderRadius: '4px',
   fontSize: '15px',
   height: '36px',
@@ -159,7 +159,7 @@ const LeftGroup = composeComponent('AuthBar.LeftGroup',
     },
     handleEnter: ({ handleSearch, searchText }) => (evt) => {
       if (evt.key === 'Enter') {
-        // suppress onSubmit (didn't actually find this to be a problem tho)
+        /* suppress onSubmit (didn't actually find this to be a problem tho) */
         evt.preventDefault();
         handleSearch(searchText);
       }
@@ -174,7 +174,7 @@ const LeftGroup = composeComponent('AuthBar.LeftGroup',
       </Link>
       <TextField
         hintStyle={hintStyle}
-        hintText={`Search ${team ? team.name || team.id : ''}`}
+        hintText={`Search packages ${team ? `in ${team.id}` : ''}`}
         inputStyle={inputStyle}
         onChange={handleChange}
         onKeyPress={handleEnter}
