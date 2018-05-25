@@ -44,7 +44,6 @@ The data in a package are tracked in a hash tree. The _tophash_ for the tree is 
 Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [_object store_](./repo-format.md).
 
 ### Package lifecycle
-[Lifecycle diagram](https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true")
 
 <img width="320" src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true" />
 
