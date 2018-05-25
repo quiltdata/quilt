@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import uuid
 
 from flask import jsonify, redirect, request
+from flask_cors import CORS
 from flask_json import as_json, jsonify
 import itsdangerous
 import json
@@ -74,6 +75,8 @@ def activate_endpoint(link):
         response.status_code = 400
         return response
 
+CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
 @app.route('/reset_password', methods=['POST'])
 @as_json
 def reset_password_endpoint():
@@ -94,6 +97,8 @@ def reset_password_endpoint():
     db.session.commit()
     return {}
 
+CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
+
 def reset_password_from_email(email):
     user = get_user_by_email(email)
     if not user:
@@ -113,6 +118,8 @@ def register_endpoint():
         return {}
     except ApiException as e:
         return {'error': e.message}, e.status_code # 409 Conflict
+
+CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):

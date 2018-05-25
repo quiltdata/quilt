@@ -256,6 +256,7 @@ def login_post():
     except:
         raise ApiException(requests.codes.unauthorized, "Login failed")
 
+CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
 # END NEW AUTH CODE
 
 @app.route('/api/token', methods=['POST'])
@@ -405,6 +406,9 @@ def apiroot():
     return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
             'email': g.auth.email, 'current_user': g.auth.user}
 
+CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}})
+
+
 @app.route('/api/refresh', methods=['POST'])
 @api()
 @as_json
@@ -425,6 +429,8 @@ def logout():
         return {}
     else:
         return {'error': 'Logout failed.'}, 400
+
+CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/api/code')
 @api()
