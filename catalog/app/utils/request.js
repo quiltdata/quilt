@@ -9,28 +9,44 @@ export class HttpError extends BaseError {
   static displayName = 'HttpError';
 
   constructor(response) {
+    const text = response.text();
+    let json;
+    // eslint-disable-next-line no-empty
+    try { json = JSON.parse(text); } catch (e) {}
+
     super(response.statusText, {
       response,
       status: response.status,
+      text,
+      json,
     });
   }
 }
 
 function checkStatus(response) {
   if (response.ok) return response;
-  window.err = new HttpError(response);
   throw new HttpError(response);
 }
 
-const mkRequest = (method) => {
-  const process = invoke(method);
-  return (...args) => request(...args).then(process);
-};
+const pipeP = (first, ...rest) => (...args) =>
+  rest.reduce(
+    (res, fn) => res.then(fn),
+    Promise.resolve().then(() => first(...args)),
+  );
 
-export const requestJSON = mkRequest('json');
+export const requestJSON = pipeP(request, invoke('json'));
 
-export const requestText = mkRequest('text');
+export const requestText = pipeP(request, invoke('text'));
 
+/**
+ * Make an http request.
+ *
+ * @param {string} url
+ * @param {Object} options
+ *   Options passed to the `fetch` call.
+ *
+ * @throws {HttpError}
+ */
 export default function request(url, options) {
   /*
   const newOptions = Object.assign({}, options);
