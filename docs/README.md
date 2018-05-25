@@ -10,6 +10,8 @@
 
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers do for code: provide a centralized, collaborative store of record.
 
+## [Video Demo](https://www.youtube.com/watch?v=bKIV1GUVLPc)
+
 ## Benefits
 
 * **Reproducibility** - Imagine source code without versions. Ouch. Why live with un-versioned data? Versioned data makes analysis reproducible by creating unambiguous references to potentially complex data dependencies.
@@ -24,14 +26,8 @@ Quilt provides versioned, reusable building blocks for analysis in the form of _
 
 * **Faster analysis** - Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 
-
-## Demo
-
-[Video](https://www.youtube.com/embed/bKIV1GUVLPc).
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/bKIV1GUVLPc" frameborder="0" allowfullscreen></iframe>
-
 ## Key concepts
+
 ### Data package
 A Quilt data package is a tree of data wrapped in a Python module. You can think of a package as a miniature, virtualized filesystem accessible to a variety of languages and platforms.
 
@@ -44,6 +40,7 @@ The data in a package are tracked in a hash tree. The _tophash_ for the tree is 
 Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [_object store_](./repo-format.md).
 
 ### Package lifecycle
+[Lifecycle diagram](https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true")
 
 <img width="320" src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true" />
 
