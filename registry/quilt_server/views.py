@@ -425,7 +425,7 @@ def logout():
     # TODO : delete token
     data = request.get_json()
     token = data['token']
-    if revoke_token(token):
+    if revoke_token_string(token):
         return {}
     else:
         return {'error': 'Logout failed.'}, 400

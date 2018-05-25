@@ -274,6 +274,17 @@ class AuthTestCase(QuiltTestCase):
             )
             assert request.status_code == 200
 
+        def enable_user(username):
+            request = self.app.post(
+                'api/users/enable',
+                data=json.dumps({'username': username}),
+                headers={
+                    'content-type': 'application/json',
+                    'Authorization': admin_token
+                }
+            )
+            assert request.status_code == 200
+
         def api_root(token):
             request = self.app.get(
                 '/api-root',
@@ -284,6 +295,28 @@ class AuthTestCase(QuiltTestCase):
             )
             return request
 
+        def logout(token):
+            request = self.app.post(
+                '/logout',
+                headers={
+                    'content-type': 'application/json',
+                    'Authorization': token
+                },
+                data=json.dumps({'token': token})
+            )
+            return request
+
+        first_token = self.getToken('user1', 'user1')
+        assert api_root(first_token).status_code == 200
+        disable_user('user1')
+        assert not self.getToken('user1', 'user1')
+        assert api_root(first_token).status_code == 401
+        enable_user('user1')
+        new_token = self.getToken('user1', 'user1')
+        assert api_root(new_token).status_code == 200
+        assert logout(new_token).status_code == 200
+        assert api_root(new_token).status_code == 401
+
 
 
     # password reset emails
@@ -292,7 +325,6 @@ class AuthTestCase(QuiltTestCase):
     # compiler login flow
     # compiler refresh
     # anti-forgery, expiration, etc
-    # test logout revokes code + tokens
     # test disabling a user revokes code + tokens
     # test deleting a user revokes code + tokens
     # migrate models to id-based instead of name-based primary keys
