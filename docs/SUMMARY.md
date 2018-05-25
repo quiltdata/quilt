@@ -1,19 +1,13 @@
 # Summary
-
-## Quilt
+## Get started
 * [Introduction](README.md)
-* [Packages defined](packages-defined.md)
-* [Installation](installation.md)
+* [Install](installation.md)
+* [Quick start](quick-start.md)
+* [Work with packages](step-by-step.md)
+* [Articles](articles.md)
+* [Examples](examples.md)
 
-## Get started (Python)
-* [Tutorials](tutorials.md)
-* [Use a package](use-a-package.md)
-* [Edit a package](edit-a-package.md)
-* [Build a package](build-a-package.md)
-* [Push a package](push-a-package.md)
-
-## API Reference
-* [Key concepts](api-concepts.md)
+## API
 * [Command line](api-cli.md)
 * [Python](api-python.md)
 * [build.yml](buildyml.md)
@@ -25,13 +19,12 @@
 * [Shared drives](shared-store.md)
 * [Checks](checks.md)
 * [Package composition](compose.md)
-
-## FAQ
-* [Frequent questions](faq.md)
+* [PySpark](pyspark.md)
 
 ## Support
-* [Support](support.md)
+* [FAQ](faq.md)
+* [Contact](contact.md)
 
 ## Developer
 * [Basics](developer-basics.md)
-* [Local storage](quilt_repository_format.md)
+* [Object store](repo-format.md)
