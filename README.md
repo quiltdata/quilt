@@ -25,9 +25,9 @@ Quilt provides versioned, reusable building blocks for analysis in the form of _
 * **Faster analysis** - Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 
 
-## [Demo]
+## Demo
 
-[Video](https://www.youtube.com/embed/bKIV1GUVLPc)
+[Video](https://www.youtube.com/embed/bKIV1GUVLPc).
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/bKIV1GUVLPc" frameborder="0" allowfullscreen></iframe>
 
