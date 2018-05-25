@@ -37,6 +37,8 @@ export function* makeHeaders() {
   return makeHeadersFromTokens(tokens);
 }
 
+// TODO: use the "simple" requests (sign-up, pass reset, pass change)
+// directly (w/o actions and sagas)?
 /**
  * Handle SIGN_UP action.
  * Make a sign-up request and call resolve or reject callback with the result.
@@ -49,6 +51,36 @@ function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
     console.log('handle sign up res', res);
     yield call(resolve);
   } catch(e) {
+    yield call(reject, e);
+  }
+}
+
+/**
+ * Handle PASS_RESET action.
+ *
+ * @param {Action} action
+ */
+function* handlePassReset({ payload: email, meta: { resolve, reject } }) {
+  try {
+    const res = yield call(requests.resetPassword, email);
+    console.log('handle pass reset res', res);
+    yield call(resolve);
+  } catch (e) {
+    yield call(reject, e);
+  }
+}
+
+/**
+ * Handle PASS_CHANGE action.
+ *
+ * @param {Action} action
+ */
+function* handlePassChange({ payload: { link, password }, meta: { resolve, reject } }) {
+  try {
+    const res = yield call(requests.changePassword, link, password);
+    console.log('handle pass change res', res);
+    yield call(resolve);
+  } catch (e) {
     yield call(reject, e);
   }
 }
@@ -215,6 +247,8 @@ export default function* (/* istanbul ignore next */ {
   yield takeEvery(actions.SIGN_UP, handleSignUp);
   yield takeEvery(actions.SIGN_IN, handleSignIn, { storeTokens, storeUser, forgetTokens });
   yield takeEvery(actions.SIGN_OUT, handleSignOut, { forgetTokens, forgetUser });
+  yield takeEvery(actions.PASS_RESET, handlePassReset);
+  yield takeEvery(actions.PASS_CHANGE, handlePassChange);
   //yield takeEvery(actions.CHECK, handleCheck, { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
   //yield takeEvery(actions.AUTH_LOST, handleAuthLost, { onAuthLost });
 

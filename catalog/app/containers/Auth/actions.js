@@ -76,6 +76,41 @@ signOut.resolve = (result) => ({
   payload: result,
 });
 
+/**
+ * Create a PASS_RESET action.
+ *
+ * @param {string} email
+ *
+ * @param {Object} resolver
+ * @param {function} resolver.resolve
+ * @param {function} resolver.reject
+ *
+ * @returns {Action}
+ */
+export const passReset = (email, resolver) => ({
+  type: actions.PASS_RESET,
+  payload: email,
+  meta: { ...resolver },
+});
+
+/**
+ * Create a PASS_CHANGE action.
+ *
+ * @param {string} link
+ * @param {string} password
+ *
+ * @param {Object} resolver
+ * @param {function} resolver.resolve
+ * @param {function} resolver.reject
+ *
+ * @returns {Action}
+ */
+export const passChange = (link, password, resolver) => ({
+  type: actions.PASS_CHANGE,
+  payload: { link, password },
+  meta: { ...resolver },
+});
+
 export const check = ({ refetch = true }, resolver) => ({
   type: actions.CHECK,
   payload: { refetch },

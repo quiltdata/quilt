@@ -24,10 +24,19 @@ export const signUp = async (credentials) => {
     console.log('sign up res', res);
   } catch (e) {
     console.log('sign up: error', e);
-    if (e instanceof HttpError && e.status === 409) {
-      throw new errors.UserAlreadyExists({ originalError: e });
+    if (e instanceof HttpError) {
+      if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
+        throw new errors.InvalidUsername({ originalError: e });
+      }
+      if (e.status === 409 && e.json && e.json.error === 'Username already taken.') {
+        throw new errors.UsernameTaken({ originalError: e });
+      }
+      if (e.status === 409 && e.json && e.json.error === 'Email already taken.') {
+        throw new errors.EmailTaken({ originalError: e });
+      }
+      // TODO: invalid email?
     }
-    throw e;
+    throw new errors.AuthError({ originalError: e });
   }
 };
 
@@ -39,17 +48,16 @@ export const signUp = async (credentials) => {
 export const signOut = async (token) => {
   try {
     console.log('sign out', token);
-    // TODO: proper url
-    //const res = await requestJSON(`${config.api}/logout`, {
-      //method: 'POST',
-      //body: JSON.stringify({ token }),
-    //});
-    const res = {};
+    const res = await requestJSON(`${config.api}/logout`, {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
     console.log('sign out res', res);
   } catch (e) {
-    // TODO: handle expected BE errors
-    console.log('sign out: error', e);
-    throw e;
+    throw new errors.AuthError({
+      message: 'unable to sign out',
+      originalError: e,
+    });
   }
 };
 
@@ -62,26 +70,27 @@ export const signOut = async (token) => {
  */
 export const signIn = async (credentials) => {
   try {
-    console.log('sign in', credentials);
-    // TODO: proper url
-    //const res = await requestJSON(`${config.api}/login`, {
-      //method: 'POST',
-      //body: JSON.stringify(credentials),
-    //});
+    const res = await requestJSON(`${config.api}/login`, {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
 
-    const res = {
-      token: 'THE_TOKEN',
-    };
+    if (res.error) {
+      if (res.error === 'Login attempt failed') {
+        throw new errors.InvalidCredentials();
+      }
+      throw new Error(res.error);
+    }
 
-    console.log('sign in res', res);
     return res;
   } catch (e) {
-    // TODO: handle expected BE errors
-    console.log('sign in: error', e);
-    throw e;
+    if (e instanceof errors.AuthError) throw e;
+    throw new errors.AuthError({
+      message: 'unable to sign in',
+      originalError: e,
+    });
   }
 }
-
 
 /**
  * Fetch user data.
@@ -116,22 +125,94 @@ export const fetchUser = async (tokens) => {
 
   } catch (e) {
     if (e instanceof HttpError && e.status === 401) {
-      throw new errors.NotAuthenticated('unable to fetch user data');
+      throw new errors.NotAuthenticated({ originalError: e });
     }
 
-    // TODO: do it in error boundary instead?
-    //captureError(e);
-
-    throw new errors.AuthError('unable to fetch user data', { originalError: e });
-
-    /* istanbul ignore next */
-    //if (!err.headline) {
-      //err.headline = 'Auth request hiccup';
-      //err.detail = `fetchUser: ${err.message}`;
-    //}
-    //throw err;
+    throw new errors.AuthError({
+      message: 'unable to fetch user data',
+      originalError: e,
+    });
   }
 }
+
+/**
+ * Make a password reset request.
+ *
+ * @param {string} email
+ *
+ * @throws {AuthError}
+ */
+export const resetPassword = async (email) => {
+  try {
+    console.log('reset pw', email);
+    //const res = await requestJSON(`${config.api}/reset_password`, {
+      //method: 'POST',
+      //body: JSON.stringify({ email }),
+    //});
+  } catch (e) {
+    console.log('reset pw error', e);
+    throw new errors.AuthError({
+      message: 'unable to reset password',
+      originalError: e,
+    });
+  }
+}
+
+/**
+ * Make a password change request.
+ *
+ * @param {string} link
+ * @param {string} password
+ *
+ * @throws {AuthError}
+ * @throws {UserNotFound}
+ */
+export const changePassword = async (link, password) => {
+  try {
+    console.log('change pw', { link, password });
+    //const res = await requestJSON(`${config.api}/reset_password/${link}`, {
+      //method: 'POST',
+      //body: JSON.stringify({ password }),
+    //});
+  } catch (e) {
+    console.log('change pw error', e);
+    if (
+      e instanceof HttpError && e.status === 404
+      && e.json && e.json.error === 'User not found.'
+    ) {
+      throw new error.UserNotFound({ originalError: e });
+    }
+
+    throw new errors.AuthError({
+      message: 'unable to change password',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Get the code from the API.
+ *
+ * @param {Object} tokens
+ *
+ * @throws {AuthError}
+ */
+export const getCode = async (tokens) => {
+  try {
+    console.log('get code');
+    const headers = makeHeadersFromTokens(tokens);
+    //const res = await requestJSON(`${config.api}/api/code`, { headers });
+    const res = { code: 'THE_CODE' };
+    console.log('get code: res', res);
+    return res.code;
+  } catch (e) {
+    console.log('get code err', e);
+    throw new errors.AuthError({
+      message: 'unable to get the code',
+      originalError: e,
+    });
+  }
+};
 
 // OLD
 /**

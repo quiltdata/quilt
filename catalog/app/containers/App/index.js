@@ -7,10 +7,14 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 import Redirect from 'components/Redirect';
+// TODO: use loadable?
 import {
   SignIn,
   SignOut,
   SignUp,
+  PassReset,
+  PassChange,
+  Code,
   requireAuth,
 } from 'containers/Auth';
 //import Callback from 'containers/Auth/Callback';
@@ -42,6 +46,7 @@ const ProtectedUser = requireAuthIfConfigured(User);
 const ProtectedProfile = requireAuth(Profile);
 const ProtectedSearch = requireAuthIfConfigured(SearchResults);
 const ProtectedNotFound = requireAuthIfConfigured(NotFoundPage);
+const ProtectedCode = requireAuth(Code);
 
 export default composeComponent('App',
   injectReducer(REDUX_KEY, reducer),
@@ -58,11 +63,15 @@ export default composeComponent('App',
           <Route path="/grna-search" exact render={() => <Redirect url={grnaUrl} />} />
           <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
           <Route path="/search" exact component={ProtectedSearch} />
+
+          <Route path="/code" exact component={ProtectedCode} />
+
           <Route path="/signin" exact component={SignIn} />
           <Route path="/signup" exact component={SignUp} />
           <Route path="/signout" exact component={SignOut} />
-          {/*<Route path="/oauth_callback" exact component={Callback} />
-          */}
+          <Route path="/reset_password" exact component={PassReset} />
+          <Route path="/reset_password/:link" exact component={PassChange} />
+
           <Route path="" component={ProtectedNotFound} />
         </Switch>
       </Pad>

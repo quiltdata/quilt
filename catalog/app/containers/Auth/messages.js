@@ -3,47 +3,28 @@ import { defineMessages } from 'react-intl';
 const scope = 'app.containers.Auth';
 
 export default defineMessages({
-  signingIn: {
-    id: `${scope}.signingIn`,
-    defaultMessage: 'Authenticating...',
-  },
-  signingOut: {
-    id: `${scope}.signingOut`,
-    defaultMessage: 'Signing out...',
-  },
-  signInError: {
-    id: `${scope}.signInError`,
+  // Wrapper
+  wrapperFailureHeading: {
+    id: `${scope}.Wrapper.Failure.heading`,
     defaultMessage: 'Error signing in',
   },
-  signInInternalError: {
-    id: `${scope}.signInInternalError`,
-    defaultMessage: 'Error signing in. Please try again later.',
+  wrapperFailureDescription: {
+    id: `${scope}.Wrapper.Failure.description`,
+    defaultMessage: 'Something went wrong. Try again.',
   },
-  signInRetry: {
-    id: `${scope}.signInRetry`,
+  wrapperFailureRetry: {
+    id: `${scope}.Wrapper.Failure.retry`,
     defaultMessage: 'Retry',
-  },
-  authLost: {
-    id: `${scope}.authLost`,
-    defaultMessage: 'Authentication lost',
-  },
-  error: {
-    id: `${scope}.error`,
-    defaultMessage: 'Authentication error',
-  },
-  errorInternal: {
-    id: `${scope}.errorInternal`,
-    defaultMessage: 'Unexpected error',
-  },
-  errorForbidden: {
-    id: `${scope}.errorInternal`,
-    defaultMessage: 'Authentication lost. Try signing in again.',
   },
 
   // SignUp
   signUpHeading: {
     id: `${scope}.SignUp.heading`,
     defaultMessage: 'Sign Up',
+  },
+  signUpPassResetHint: {
+    id: `${scope}.SignUp.passResetHint`,
+    defaultMessage: "Dont't remember your password?",
   },
   signUpUsernameLabel: {
     id: `${scope}.SignUp.usernameLabel`,
@@ -53,6 +34,15 @@ export default defineMessages({
     id: `${scope}.SignUp.usernameRequired`,
     defaultMessage: 'Enter a username',
   },
+  signUpUsernameTaken: {
+    id: `${scope}.SignUp.usernameTaken`,
+    defaultMessage: 'This username is already taken. {link}',
+  },
+  signUpUsernameInvalid: {
+    id: `${scope}.SignUp.usernameInvalid`,
+    // TODO: specify username requirements
+    defaultMessage: 'This username is invalid',
+  },
   signUpEmailLabel: {
     id: `${scope}.SignUp.emailLabel`,
     defaultMessage: 'Email',
@@ -60,6 +50,10 @@ export default defineMessages({
   signUpEmailRequired: {
     id: `${scope}.SignUp.emailRequired`,
     defaultMessage: 'Enter your email',
+  },
+  signUpEmailTaken: {
+    id: `${scope}.SignUp.emailTaken`,
+    defaultMessage: "This email is already taken. {link}",
   },
   signUpPassLabel: {
     id: `${scope}.SignUp.passLabel`,
@@ -110,5 +104,59 @@ export default defineMessages({
   signInSubmit: {
     id: `${scope}.SignIn.submit`,
     defaultMessage: 'Sign In',
+  },
+
+  // SignOut
+  signOutWaiting: {
+    id: `${scope}.SignOut.waiting`,
+    defaultMessage: 'Signing out',
+  },
+
+  // PassReset
+  passResetHeading: {
+    id: `${scope}.PassReset.heading`,
+    defaultMessage: 'Reset Password',
+  },
+  passResetEmailLabel: {
+    id: `${scope}.PassReset.emailLabel`,
+    defaultMessage: 'Email',
+  },
+  passResetEmailRequired: {
+    id: `${scope}.PassReset.emailRequired`,
+    defaultMessage: 'Enter your email',
+  },
+  passResetSubmit: {
+    id: `${scope}.PassReset.submit`,
+    defaultMessage: 'Reset',
+  },
+
+  // PassChange
+  passChangeHeading: {
+    id: `${scope}.PassChange.heading`,
+    defaultMessage: 'Change Password',
+  },
+  passChangePassLabel: {
+    id: `${scope}.PassChange.passLabel`,
+    defaultMessage: 'New password',
+  },
+  passChangePassRequired: {
+    id: `${scope}.PassChange.passRequired`,
+    defaultMessage: 'Enter a password',
+  },
+  passChangePassCheckLabel: {
+    id: `${scope}.PassChange.passCheckLabel`,
+    defaultMessage: 'Re-enter your new password',
+  },
+  passChangePassCheckRequired: {
+    id: `${scope}.PassChange.passCheckRequired`,
+    defaultMessage: 'Enter the password again',
+  },
+  passChangePassCheckMatch: {
+    id: `${scope}.PassChange.passCheckMatch`,
+    defaultMessage: 'Passwords must match',
+  },
+  passChangeSubmit: {
+    id: `${scope}.PassChange.submit`,
+    defaultMessage: 'Change Password',
   },
 });
