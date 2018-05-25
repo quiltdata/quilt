@@ -12,7 +12,7 @@ Or, in Python:
 # log in to the registry (requires a free account)
 quilt.login()
 # push it to the registry
-quilt.push("USR/PKG", public=True)
+quilt.push("USR/PKG", is_public=True)
 ```
 
-Users on Individual and Business plans can omit the ~~`--public`~~ flag to create private packages.
+Users on Individual and Business plans can omit the ~~is_public=True~~ to create private packages.
