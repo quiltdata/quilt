@@ -15,4 +15,4 @@ quilt.login()
 quilt.push("USR/PKG", is_public=True)
 ```
 
-Users on Individual and Business plans can omit the ~~is_public=True~~ to create private packages.
+Users on Individual and Business plans can omit ~~is_public=True~~ to create private packages.
