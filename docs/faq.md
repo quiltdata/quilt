@@ -55,21 +55,33 @@ For details, including how to make `!pip install quilt` work, see [Installing Py
 When working with virtual environments like `conda create`, `jupyter` can be installed in the `root` environment. If you then install and run `quilt` in another environment, `foo`, Jupyter will not be able to find quilt.
 
 ### Solutions
-Install `quilt` in the `root` environment, or install Jupyter in `foo` (run `which jupyter` in Jupyter's Terminal to ensure that you're using the environment local Jupyter).
+Install `quilt` in the `root` environment, or install Jupyter in `foo`
+(run `which jupyter` in Jupyter's Terminal to ensure that you're using the
+environment local Jupyter).
 
 Alternatively, `pip install quilt` from Jupyter's Terminal.
 
 ## Avoid pandas `index_col`
-This keyword argument should be temporarily avoided in `build.yml` as it causes `pyarrow` to hiccup on serialization.
+This keyword argument should be temporarily avoided in `build.yml` as it causes
+`pyarrow` to hiccup on serialization.
 
 ## Packages missing after upgrade to Quilt 2.8
-Quilt 2.8 changes where data packages are stored on your local machine. As a result, Quilt will no longer look for packages in quilt_packages directories. You will need to reinstall any previously installed packages. Locally built packages can be rebuilt. Or, to migrate existing packages to the new store without rebuilding, first revert to an ealier version of Quilt, then push your packages to the Quilt registry.
+Quilt 2.8 changes where data packages are stored on your local machine.
+
+As a result, Quilt will no longer look for packages in quilt_packages directories.
+You will need to reinstall any previously installed packages.
+Locally built packages can be rebuilt.
+Or, to migrate existing packages to the new store without rebuilding, first revert
+to an earlier version of Quilt, then push your packages to the Quilt registry.
+
 ```bash
 pip install quilt==2.7.1
 quilt push <your_username>/<your_package>
 ``` 
 
-Once your packages are stored at the registry, you can upgrade to quilt 2.8.0 (or later) and re-install them.
+Once your packages are stored at the registry, you can upgrade to quilt 2.8.0
+(or later) and re-install them.
+
 ```bash
 pip install --upgrade quilt
 quilt install <your_username>/<your_package>
@@ -77,12 +89,15 @@ quilt install <your_username>/<your_package>
 
 ## Exception when installing `quilt` on OS X El Capitan
 
-`pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when removing the old version of the package:
+`pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when
+removing the old version of the package:
+
 ```
 OSError: [Errno 1] Operation not permitted: '/tmp/pip-zFP4QS-uninstall/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/pyOpenSSL-0.13.1-py2.7.egg-info'
 ```
 
-This problem is not specific to `quilt`, and is caused by outdated packages in OS X. See [this stackoverflow question](https://stackoverflow.com/questions/31900008/oserror-errno-1-operation-not-permitted-when-installing-scrapy-in-osx-10-11) for more information.
+This problem is not specific to `quilt`, and is caused by outdated packages in OS X.
+See [this stackoverflow question](https://stackoverflow.com/questions/31900008/oserror-errno-1-operation-not-permitted-when-installing-scrapy-in-osx-10-11) for more information.
 
 ### Solutions
 - Use a virtual environment such as [`conda`](https://conda.io/docs/installation.html) or [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/)
@@ -93,13 +108,17 @@ This problem is not specific to `quilt`, and is caused by outdated packages in O
 
 Unfortunately, this is caused by a [bug in pyarrow](https://github.com/apache/arrow/issues/1300).
 
-There does not appear to be a way to save a dataframe with a string column whose size is over 2GB. It is possible, however, to split it up into multiple dataframes - which will then get merged into one when accessed.
+There does not appear to be a way to save a dataframe with a string column whose
+size is over 2GB. It is possible, however, to split it up into multiple dataframes
+(which will then get merged into one when accessed).
 
 ### Workaround
 
-Suppose the problematic dataframe is called `big_data`, it comes from `big_data.csv`, and the root of your package is in `my_dir`.
+Suppose the problematic dataframe is called `big_data`, it comes from `big_data.csv`,
+and the root of your package is in `my_dir`.
 
-First, delete the dataframe from the build file, `my_dir/build.yml`. (If you were building directly from a directory, then run `quilt generate my_dir` first.)
+First, delete the dataframe from the build file, `my_dir/build.yml`.
+(If you were building directly from a directory, then run `quilt generate my_dir` first.)
 
 Build a temporary package that contains the rest of the data:
 ```
@@ -133,8 +152,9 @@ new_data = pkg.big_data()
 assert new_data.equals(data)
 ```
 
-### Exporting to symlinks on Windows doesn't work
-Symlinking with Windows has a few OS quirks to be mindful of.  If you're encountering difficulty getting symlinking to work, you might try the following:  
+### Exporting to symbolic links on Windows doesn't work
+
+Symbolic links on Windows have a few quirks to be aware of.
 
 * Ensure Windows is fully updated (known related bugs exist)
 * Escalate administrator privileges ("run as admin"), or validate user privileges

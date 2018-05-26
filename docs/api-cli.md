@@ -76,14 +76,14 @@ Export data to specified destination
 Overwrite files at destination
 
 ### `quilt export USER/PACKAGE [DEST] [--symlinks]`
-Export data, using symlinks where possible.
+Export data with symbolic links to reduce disk footprint.
 
-If a node references raw (file) data, symlinks may be used instead of copying data when exporting.
+If a node references raw (file) data, symbolic links may be used instead of copying data when exporting.
 
-####  _Caution when using symlinks_
+####  _Caution when using symbolic links_
 * When using any OS
   * If a file is edited, it may corrupt the local quilt repository. Preventing this is up to the user.
 * When using Windows
-  * Symlinks may not be supported
-  * Symlinks may require special permissions
-  * Symlinks may require administrative access (even if an administrator has the appropriate permissions)
+  * Symbolic links may not be supported
+  * Symbolic links may require special permissions
+  * Symbolic links may require administrative access (even if an administrator has the appropriate permissions)

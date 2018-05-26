@@ -1,4 +1,4 @@
-# Sharing Package Storage
+# Shared drives
 
 Groups that share packages across users can save storage and network traffic by installing packages from a shared directory (e.g. on a network file server).
 
