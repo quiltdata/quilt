@@ -8,8 +8,7 @@ import { BaseError } from 'utils/error';
 export class HttpError extends BaseError {
   static displayName = 'HttpError';
 
-  constructor(response) {
-    const text = response.text();
+  constructor(response, text) {
     let json;
     // eslint-disable-next-line no-empty
     try { json = JSON.parse(text); } catch (e) {}
@@ -25,7 +24,9 @@ export class HttpError extends BaseError {
 
 function checkStatus(response) {
   if (response.ok) return response;
-  throw new HttpError(response);
+  return response.text().then((text) => {
+    throw new HttpError(response, text);
+  });
 }
 
 const pipeP = (first, ...rest) => (...args) =>
