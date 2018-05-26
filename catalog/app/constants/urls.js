@@ -10,7 +10,6 @@ export const git = 'https://github.com/quiltdata/quilt.git';
 export const gitWeb = 'https://github.com/quiltdata/quilt';
 export const installGit = 'https://git-scm.com/downloads';
 export const installQuilt = `${docs}/get-started/install`;
-export const issues = 'https://github.com/quiltdata/quilt/blob/master/README.md#known-issues';
 export const jobs = 'https://quilt-data.breezy.hr/';
 export const slackInvite = 'https://slack.quiltdata.com/';
 export const pipGit = `git+${git}`;

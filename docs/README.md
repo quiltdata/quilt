@@ -77,6 +77,6 @@ Quilt is offered as a managed service at [quiltdata.com](https://quiltdata.com).
 Alternatively, users can run their own registries (refer to the [registry documentation](../registry/README.md)).
 
 ## Architecture
-Quilt consists of three components. See the [developer overview](https://github.com/quiltdata/quilt/blob/master/docs/CONTRIBUTING.md) for further details.
+Quilt consists of three components. See the [contributing docs](https://github.com/quiltdata/quilt/blob/master/docs/CONTRIBUTING.md) for further details.
     
 <img width="640" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />

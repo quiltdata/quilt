@@ -4,13 +4,12 @@
 
 Pull requests generally edit one of the following components at a time.
 
-### [Compiler client](../compiler/)
+### [Compiler](../compiler/)
 * Serializes tabular data to Apache Parquet
 * Transforms and parses files
 * `build`s packages locally
 * `push`es packages to the registry
 * `pull`s packages from the registry
-* Implemented in Python with pandas and PyArrow
 
 Technologies:
 * Python
