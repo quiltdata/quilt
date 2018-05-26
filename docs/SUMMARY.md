@@ -1,4 +1,15 @@
+<!--
+	Used by gitbook to generate docs.quiltdata.com navigation
+	WARNING - changing section names changes docs paths used both
+	within docs and other parts of Quilt, like /catalog
+
+	Paths are of the form: word1-word2-word3/bullet-name
+	So, for example: docs.quiltdata.com/get-started/install
+	(all lowercase)
+!-->
+
 # Summary
+
 ## Get started
 * [Introduction](README.md)
 * [Install](installation.md)
@@ -26,5 +37,5 @@
 * [Contact](contact.md)
 
 ## Developer
-* [Basics](developer-basics.md)
+* [Contributing](CONTRIBUTING.md)
 * [Object store](repo-format.md)

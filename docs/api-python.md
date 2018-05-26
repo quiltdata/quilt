@@ -77,13 +77,13 @@ Package root nodes have a `_filter` method that accepts either a dictionary or a
  `_filter` always returns nodes in the same position as they are found in the parent
  package. (The parent package in `pkg._filter(...)` is `pkg`.) Therefore, in addition
  to nodes that match the filter, `_filter` will include the following:
-* All desendants of a matching node (so that mathcing groups include all descendants)
+* All descendants of a matching node (so that matching groups include all descendants)
 * All ancestors of a matching node (so that the position in the tree remains unchanged)
 
 The return value of `_filter` can be passed to `install` as shown below.
 
 #### Filter with a dict 
-Dictionary filters support two properies, `name` and `meta`:
+Dictionary filters support two properties, `name` and `meta`:
 
 ``` python
 import quilt
@@ -114,17 +114,17 @@ Export data to specified destination
 Overwrite files at destination
 
 ### `quilt export USER/PACKAGE [DEST] [--symlinks]`
-Export data, using symlinks where possible. 
+Export data, using symbolic inks where possible. 
 
-If a node references raw (file) data, symlinks may be used instead of copying data when exporting.
+If a node references raw (file) data, symbolic links may be used instead of copying data when exporting.
 
-####  _Caution when using symlinks_
+####  _Caution when using symbolic links_
 * When using any OS
   * If a file is edited, it may corrupt the local quilt repository. Preventing this is up to the user.
 * When using Windows
-  * Symlinks may not be supported
-  * Symlinks may require special permissions
-  * Symlinks may require administrative access (even if an administrator has the appropriate permissions)
+  * Symbolic links may not be supported
+  * Symbolic links may require special permissions
+  * Symbolic links may require administrative access (even if an administrator has the appropriate permissions)
 
 ## Import and use data
 For a package in the public cloud:
@@ -184,5 +184,3 @@ pkg._set(['foo'], "example.txt")
 quilt.build('USER/PKG', pkg)
 ```
 This adds a child node named `data` to the new empty package, with the new DataFrame as its value. Then it adds the contents of `example.txt` to a node called `foo`. Finally, it commits this change to disk by building the package with the modified object.
-
-See [the examples repo](https://github.com/quiltdata/examples) for additional usage examples.

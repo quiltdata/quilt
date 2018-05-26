@@ -9,7 +9,7 @@ by a hash, tag, or version--is _immutable_ for reproducibility.
 $ quilt install uciml/iris
 ```
 
-Note that most Quilt commands are available _both on the command line and in Python_.
+> Note: most Quilt commands are available _both on the command line and in Python_.
 
 You can install a package as follows:
 

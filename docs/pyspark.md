@@ -22,8 +22,7 @@
     ...
     ```
 
-That's it. Read more about the `uciml/iris` package on its [landing page](https://quiltdata.com/package/uciml/iris), or [browse  packages on Quilt](https://quiltdata.com/search/?q=).
-
 ## Forthcoming
+
 * Build packages in PySpark
 * Access and build packages in Java and Scala

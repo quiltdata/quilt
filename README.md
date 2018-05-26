@@ -1,6 +1,8 @@
 <!-- /README.md and docs/README.md should remain identical copies, by hand (symlinks caused problems) !-->
-[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)](https://docs.quiltdata.com/)
-[![chat on_slack](https://img.shields.io/badge/chat-on_slack-orange.svg?style=flat-square)](https://slack.quiltdata.com/)
+[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
+[![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
+
+`master` status
 
  [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches)
  [![CircleCI](https://circleci.com/gh/quiltdata/quilt/tree/master.svg?style=svg)](https://circleci.com/gh/quiltdata/quilt/tree/master)
@@ -22,7 +24,7 @@ Quilt provides versioned, reusable building blocks for analysis in the form of _
 
 * **Less data prep** - the registry abstracts away network, storage, and file format so that users can focus on what they wish to do with the data.
 
-* **Deduplication** - Data fragments are hashed with `SHA256`. Duplicate data fragments are written to disk once globally per user. As a result, large, repeated data fragments consume less disk and network bandwidth.
+* **De-duplication** - Data fragments are hashed with `SHA256`. Duplicate data fragments are written to disk once globally per user. As a result, large, repeated data fragments consume less disk and network bandwidth.
 
 * **Faster analysis** - Serialized data loads 5 to 20 times faster than files. Moreover, specialized storage formats like Apache Parquet minimize I/O bottlenecks so that tools like Presto DB and Hive run faster.
 
@@ -37,7 +39,7 @@ Packages are stored in a server-side _registry_. The registry controls permissio
 
 The data in a package are tracked in a hash tree. The _tophash_ for the tree is the hash of all hashes of all data in the package. The combination of a package handle and tophash form a package _instance_. Package instances are immutable.
 
-Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [_object store_](./repo-format.md).
+Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fragments are de-duplicated and kept in a local [object store](./repo-format.md).
 
 ### Package lifecycle
 
@@ -75,25 +77,6 @@ Quilt is offered as a managed service at [quiltdata.com](https://quiltdata.com).
 Alternatively, users can run their own registries (refer to the [registry documentation](../registry/README.md)).
 
 ## Architecture
-Quilt consists of 3 components ([diagram](https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png)):
-
-1. A [data catalog](catalog)
-    - Displays package meta-data in HTML
-    - Implemented with JavaScript with redux, sagas
-    
-2. A [data registry](registry)
-    - Controls permissions
-    - Stores package fragments in blob storage
-    - Stores package meta-data
-    - De-duplicates repeated data fragments
-    - Implemented in Python with Flask and PostgreSQL
-    
-3. A [data compiler](compiler)
-    - Serializes tabular data to Apache Parquet
-    - Transforms and parses files
-    - `build`s packages locally
-    - `push`es packages to the registry
-    - `pull`s packages from the registry
-    - Implemented in Python with pandas and PyArrow
+Quilt consists of three components. See the [contributing docs](https://github.com/quiltdata/quilt/blob/master/docs/CONTRIBUTING.md) for further details.
     
 <img width="640" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/arch.png" />
