@@ -1,6 +1,8 @@
 <!-- /README.md and docs/README.md should remain identical copies, by hand (symlinks caused problems) !-->
-[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-brightgreen.svg)](https://docs.quiltdata.com/)
-[![chat on_slack](https://img.shields.io/badge/chat-on_slack-orange.svg?style=flat-square)](https://slack.quiltdata.com/)
+[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
+[![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
+
+`master` status
 
  [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches)
  [![CircleCI](https://circleci.com/gh/quiltdata/quilt/tree/master.svg?style=svg)](https://circleci.com/gh/quiltdata/quilt/tree/master)
