@@ -173,7 +173,10 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ApiException(500, "Internal server error.")
 
     if requires_activation:
-        send_activation_email(user, generate_activation_link(user.id))
+        try:
+            send_activation_email(user, generate_activation_link(user.id))
+        except Exception as e:
+            raise ApiException(500, "Internal server error.")
 
 def _activate_user(user_id):
     user = get_user_by_id(user_id)
