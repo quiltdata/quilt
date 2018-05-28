@@ -2,10 +2,10 @@
 import RaisedButton from 'material-ui/RaisedButton';
 import PT from 'prop-types';
 import React from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 import { installQuilt } from 'constants/urls';
-import { makeSignInURL } from 'containers/Auth/util';
 
 const Container = styled.div`
 
@@ -21,7 +21,13 @@ const Container = styled.div`
 function TakeAction({ signUp }) {
   return (
     <Container>
-      {signUp && <RaisedButton href={makeSignInURL()} label="Sign Up" primary />}
+      {signUp && (
+        <RaisedButton
+          containerElement={<Link to="/signup" />}
+          label="Sign Up"
+          primary
+        />
+      )}
       <RaisedButton href={installQuilt} label="Install" />
     </Container>
   );

@@ -1,7 +1,3 @@
-/**
- * Sagas and stuff for Auth
- */
-
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
 
 import defer from 'utils/defer';
@@ -19,7 +15,7 @@ import { makeHeadersFromTokens } from './util';
 /**
  * Make auth headers from stored auth data,
  * checking if auth token is up-to-date and
- * waiting til the auth requests are settled if they are in progress.
+ * waiting until any pending auth requests are settled.
  *
  * @returns {Object}
  *   Object containing the auth headers, empty if not authenticated.
@@ -27,7 +23,7 @@ import { makeHeadersFromTokens } from './util';
 export function* makeHeaders() {
   const checked = defer();
   yield put(check({ refetch: false }, checked.resolver));
-  yield checked.promise;
+  try { yield checked.promise; } catch (e) {}
   yield call(waitTil, selectors.waiting, (w) => !w);
 
   const authenticated = yield select(selectors.authenticated);
@@ -35,54 +31,6 @@ export function* makeHeaders() {
 
   const tokens = yield select(selectors.tokens);
   return makeHeadersFromTokens(tokens);
-}
-
-// TODO: use the "simple" requests (sign-up, pass reset, pass change)
-// directly (w/o actions and sagas)?
-/**
- * Handle SIGN_UP action.
- * Make a sign-up request and call resolve or reject callback with the result.
- *
- * @param {Action} action
- */
-function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
-  try {
-    const res = yield call(requests.signUp, credentials);
-    console.log('handle sign up res', res);
-    yield call(resolve);
-  } catch(e) {
-    yield call(reject, e);
-  }
-}
-
-/**
- * Handle PASS_RESET action.
- *
- * @param {Action} action
- */
-function* handlePassReset({ payload: email, meta: { resolve, reject } }) {
-  try {
-    const res = yield call(requests.resetPassword, email);
-    console.log('handle pass reset res', res);
-    yield call(resolve);
-  } catch (e) {
-    yield call(reject, e);
-  }
-}
-
-/**
- * Handle PASS_CHANGE action.
- *
- * @param {Action} action
- */
-function* handlePassChange({ payload: { link, password }, meta: { resolve, reject } }) {
-  try {
-    const res = yield call(requests.changePassword, link, password);
-    console.log('handle pass change res', res);
-    yield call(resolve);
-  } catch (e) {
-    yield call(reject, e);
-  }
 }
 
 /**
@@ -103,23 +51,15 @@ function* handleSignIn(
   { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    console.log('handleSignIn', { credentials });
     const tokens = yield call(requests.signIn, credentials);
-    console.log('handleSignIn: tokens', { tokens });
     const user = yield call(requests.fetchUser, tokens);
-    console.log('handleSignIn: user', { user });
     yield fork(storeTokens, tokens);
     yield fork(storeUser, user);
     yield put(signIn.resolve({ tokens, user }));
     /* istanbul ignore else */
     if (resolve) yield call(resolve, { tokens, user });
   } catch (e) {
-    console.log('handleSignIn: error', e);
-    //if (e instanceof HttpError && e.status === 401) {
-      //yield fork(forgetTokens);
-    //}
     yield put(signIn.resolve(e));
-    // TODO: throw?
     /* istanbul ignore else */
     if (reject) yield call(reject, e);
   }
@@ -137,9 +77,9 @@ function* handleSignIn(
 function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
     console.log('handle signout');
-    const { token } = yield select(selectors.tokens);
+    const tokens = yield select(selectors.tokens);
     // TODO: make sure to await the result
-    const res = yield call(requests.signOut, token);
+    const res = yield call(requests.signOut, tokens);
     console.log('handle signout: result', res);
     yield fork(forgetUser);
     yield fork(forgetTokens);
@@ -172,40 +112,43 @@ const isExpired = (tokens, time) => {
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
  * @param {function} options.onAuthError
+ *
  * @param {Action} action
  */
 function* handleCheck(
   { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
-  { payload: { refetch }, meta: { resolve } },
+  { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
     const tokens = yield select(selectors.tokens);
     const time = yield call(timestamp);
-    if (!tokens.refresh_token || !isExpired(tokens, time)) {
+    if (!isExpired(tokens, time)) {
       if (resolve) yield call(resolve);
       return;
     }
 
     yield put(refresh());
-    const newTokens = yield call(requests.refreshTokens, tokens.refresh_token);
+    const newTokens = yield call(requests.refreshTokens, tokens);
     yield fork(storeTokens, newTokens);
     let user;
     if (refetch) {
       user = yield call(requests.fetchUser, newTokens);
       yield fork(storeUser, user);
     }
-    yield put(refresh.success(newTokens, user));
-    if (resolve) yield call(resolve);
+    const payload = { tokens: newTokens, user };
+    yield put(refresh.resolve(payload));
+    if (resolve) yield call(resolve, payload);
   } catch (e) {
-    yield put(refresh.error(e));
-    if (e instanceof NotAuthenticated) {
-      yield fork(forgetTokens);
-      yield fork(forgetUser);
-      yield call(onAuthLost, e);
-    } else {
-      yield call(onAuthError, e);
-    }
-    if (resolve) yield call(resolve);
+    yield put(refresh.resolve(e));
+    // TODO: figure out when to destroy tokens and when to keep (for retry)
+    //if (e instanceof NotAuthenticated) {
+      //yield fork(forgetTokens);
+      //yield fork(forgetUser);
+      //yield call(onAuthLost, e);
+    //} else {
+      //yield call(onAuthError, e);
+    //}
+    if (reject) yield call(reject, e);
   }
 }
 
@@ -244,13 +187,10 @@ export default function* (/* istanbul ignore next */ {
   onAuthLost = noop,
   onAuthError = noop,
 } = {}) {
-  yield takeEvery(actions.SIGN_UP, handleSignUp);
   yield takeEvery(actions.SIGN_IN, handleSignIn, { storeTokens, storeUser, forgetTokens });
   yield takeEvery(actions.SIGN_OUT, handleSignOut, { forgetTokens, forgetUser });
-  yield takeEvery(actions.PASS_RESET, handlePassReset);
-  yield takeEvery(actions.PASS_CHANGE, handlePassChange);
-  //yield takeEvery(actions.CHECK, handleCheck, { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
-  //yield takeEvery(actions.AUTH_LOST, handleAuthLost, { onAuthLost });
+  yield takeEvery(actions.CHECK, handleCheck, { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
+  yield takeEvery(actions.AUTH_LOST, handleAuthLost, { onAuthLost });
 
-  //if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(check()); });
+  if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(check()); });
 }

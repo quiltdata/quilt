@@ -34,7 +34,6 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
       }),
       reject: combine({
         state: 'SIGNED_OUT',
-        error: id,
       }),
     }),
   }),
@@ -60,16 +59,19 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
     },
   }),
   REFRESHING: handleActions({
-    [actions.REFRESH_SUCCESS]: combine({
-      state: 'SIGNED_IN',
-      tokens: ({ tokens }) => fromJS()(tokens),
-      user: ({ user }) => user ? fromJS()(user) : noop,
-    }),
-    [actions.REFRESH_ERROR]: combine({
-      state: 'SIGNED_OUT',
-      error: id,
-      tokens: unset,
-      user: unset,
+    [actions.REFRESH_RESULT]: handleResult({
+      resolve: combine({
+        state: 'SIGNED_IN',
+        tokens: ({ tokens }) => fromJS(tokens),
+        user: ({ user }) => user ? fromJS(user) : noop,
+      }),
+      reject: combine({
+        // TODO: see saga for destroy / keep logic
+        state: 'SIGNED_OUT',
+        error: id,
+        tokens: unset,
+        user: unset,
+      }),
     }),
   }),
 }));

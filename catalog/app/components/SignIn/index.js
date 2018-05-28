@@ -4,16 +4,13 @@ import RaisedButton from 'material-ui/RaisedButton';
 import PropTypes from 'prop-types';
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
+import { Link } from 'react-router-dom';
 
 import MIcon from 'components/MIcon';
 import Spinner from 'components/Spinner';
 import { authButtonStyle } from 'constants/style';
-import { makeSignInURL } from 'containers/Auth/util';
-import redirect from 'utils/redirect';
 
 import strings from './messages';
-
-const onClickSignIn = () => redirect(makeSignInURL());
 
 const SignIn = ({ error, useNavStyle, waiting }) => {
   if (waiting) {
@@ -24,18 +21,16 @@ const SignIn = ({ error, useNavStyle, waiting }) => {
     const title = `${error.message}\n${JSON.stringify(error)}`;
     icon = <MIcon drop="6px" title={title}>error_outline</MIcon>;
   }
+  const Button = useNavStyle ? FlatButton : RaisedButton;
   return (
     <div>
       {icon}
-      {
-        useNavStyle ?
-          <FlatButton onClick={onClickSignIn} style={authButtonStyle}>
-            <FormattedMessage {...strings.logIn} />
-          </FlatButton> :
-          <RaisedButton onClick={onClickSignIn}>
-            <FormattedMessage {...strings.logIn} />
-          </RaisedButton>
-      }
+      <Button
+        containerElement={<Link to="/signin" />}
+        style={useNavStyle ? authButtonStyle : undefined}
+      >
+        <FormattedMessage {...strings.logIn} />
+      </Button>
     </div>
   );
 };

@@ -1,32 +1,11 @@
 import { actions } from './constants';
 
 /**
- * Create a SIGN_UP action.
- *
- * @param {Object} credentials
- * @param {string} credentials.username
- * @param {string} credentials.email
- * @param {string} credentials.password
- *
- * @param {Object} resolver
- * @param {function} resolver.resolve
- * @param {function} resolver.reject
- *
- * @returns {Action} Constructed SIGN_UP action.
- */
-export const signUp = (credentials, resolver) => ({
-  type: actions.SIGN_UP,
-  payload: credentials,
-  meta: { ...resolver },
-});
-
-
-/**
  * Create a SIGN_IN action.
  *
  * @param {{username: string, password: string} credentials
  *
- * @param {{resolve: string, reject: string}} resolver
+ * @param {{resolve: function, reject: function}} resolver
  *
  * @returns {Action}
  */
@@ -54,9 +33,7 @@ signIn.resolve = (result) => ({
 /**
  * Create a SIGN_OUT action.
  *
- * @param {Object} resolver
- * @param {function} resolver.resolve
- * @param {function} resolver.reject
+ * @param {{ resolve: function, reject: function }} resolver
  *
  * @returns {Action}
  */
@@ -68,6 +45,8 @@ export const signOut = (resolver) => ({
 /**
  * Create a SIGN_OUT_RESULT action.
  *
+ * @param {?Error} result
+ *
  * @returns {Action}
  */
 signOut.resolve = (result) => ({
@@ -77,60 +56,52 @@ signOut.resolve = (result) => ({
 });
 
 /**
- * Create a PASS_RESET action.
+ * Create a CHECK action.
  *
- * @param {string} email
+ * @param {Object} options
+ * @param {boolean} options.refetch
+ *   If true, user data will be refetched after token refresh.
  *
- * @param {Object} resolver
- * @param {function} resolver.resolve
- * @param {function} resolver.reject
- *
- * @returns {Action}
- */
-export const passReset = (email, resolver) => ({
-  type: actions.PASS_RESET,
-  payload: email,
-  meta: { ...resolver },
-});
-
-/**
- * Create a PASS_CHANGE action.
- *
- * @param {string} link
- * @param {string} password
- *
- * @param {Object} resolver
- * @param {function} resolver.resolve
- * @param {function} resolver.reject
+ * @param {{ resolve: function, reject: function }} resolver
  *
  * @returns {Action}
  */
-export const passChange = (link, password, resolver) => ({
-  type: actions.PASS_CHANGE,
-  payload: { link, password },
-  meta: { ...resolver },
-});
-
-export const check = ({ refetch = true }, resolver) => ({
+export const check = ({ refetch = true } = {}, resolver) => ({
   type: actions.CHECK,
   payload: { refetch },
   meta: { ...resolver },
 });
 
+/**
+ * Create a REFRESH action.
+ *
+ * @returns {Action}
+ */
 export const refresh = () => ({
   type: actions.REFRESH,
 });
 
-refresh.success = (tokens, user) => ({
+/**
+ * Create a REFRESH_RESULT action.
+ *
+ * @param {{ tokens: Object, user: Object }|Error} payload
+ *
+ * @returns {Action}
+ */
+refresh.resolve = (payload) => ({
   type: actions.REFRESH_SUCCESS,
-  payload: { tokens, user },
+  error: payload instanceof Error,
+  payload,
 });
 
-refresh.error = (e) => ({
-  type: actions.REFRESH_ERROR,
-  payload: e,
-});
-
+/**
+ * Create an AUTH_LOST action.
+ *
+ * @param {Error} error
+ *   Error that caused authentication loss.
+ *
+ * @returns {Action}
+ */
 export const authLost = (e) => ({
   type: actions.AUTH_LOST,
   payload: e,

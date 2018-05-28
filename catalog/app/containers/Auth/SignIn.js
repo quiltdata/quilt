@@ -1,6 +1,6 @@
 import get from 'lodash/fp/get';
 import RaisedButton from 'material-ui/RaisedButton';
-import PT from 'prop-types';
+// import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
@@ -8,13 +8,12 @@ import { Link, Redirect } from 'react-router-dom';
 import {
   branch,
   renderComponent,
-  setPropTypes,
-  withStateHandlers,
+  // setPropTypes,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import { createStructuredSelector } from 'reselect';
 
-import Spinner from 'components/Spinner';
+// import Spinner from 'components/Spinner';
 import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
@@ -25,10 +24,12 @@ import { signIn } from './actions';
 import * as errors from './errors';
 import msg from './messages';
 import { authenticated } from './selectors';
-import * as Form from './Form';
+import * as Layout from './Layout';
 
 
 const DEFAULT_REDIRECT = '/profile';
+
+const Container = Layout.mkLayout(<FM {...msg.signInHeading} />);
 
 export default composeComponent('Auth.SignIn',
   connect(createStructuredSelector({ authenticated })),
@@ -53,11 +54,10 @@ export default composeComponent('Auth.SignIn',
     <Redirect to={query.next || DEFAULT_REDIRECT} />
   )),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
-    <Form.Container>
+    <Container>
       <form onSubmit={handleSubmit}>
-        <Form.Heading><FM {...msg.signInHeading} /></Form.Heading>
         <Field
-          component={Form.Field}
+          component={Layout.Field}
           name="username"
           validate={[validators.required]}
           disabled={submitting}
@@ -67,7 +67,7 @@ export default composeComponent('Auth.SignIn',
           }}
         />
         <Field
-          component={Form.Field}
+          component={Layout.Field}
           name="password"
           type="password"
           validate={[validators.required]}
@@ -77,24 +77,46 @@ export default composeComponent('Auth.SignIn',
             required: <FM {...msg.signInPassRequired} />,
           }}
         />
-        <Form.Error
+        <Layout.Error
           {...{ submitFailed, error }}
           errors={{
-            // TODO: proper error messages
-            invalidCredentials: 'Invalid credentials',
-            unexpected: 'Something went wrong',
+            invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
+            unexpected: <FM {...msg.signInErrorUnexpected} />,
           }}
         />
-        {/* TODO: show spinner */}
-        <RaisedButton
-          type="submit"
-          primary
-          disabled={submitting || (submitFailed && invalid)}
-          label={<FM {...msg.signInSubmit} />}
-        />
-        {/* TODO: style & copy */}
-        <p>Don't have an account? <Link to="/signup">Sign Up</Link>.</p>
-        <p>Don't remember your password? <Link to="/reset_password">Reset the password</Link>.</p>
+        <Layout.Actions>
+          {/* TODO: show spinner */}
+          <RaisedButton
+            type="submit"
+            primary
+            disabled={submitting || (submitFailed && invalid)}
+            label={<FM {...msg.signInSubmit} />}
+          />
+        </Layout.Actions>
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintSignUp}
+            values={{
+              link: (
+                <Link to="/signup">
+                  <FM {...msg.signInHintSignUpLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintReset}
+            values={{
+              link: (
+                <Link to="/reset_password">
+                  <FM {...msg.signInHintResetLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
       </form>
-    </Form.Container>
+    </Container>
   ));

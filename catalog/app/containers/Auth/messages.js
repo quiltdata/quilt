@@ -75,9 +75,25 @@ export default defineMessages({
     id: `${scope}.SignUp.passCheckMatch`,
     defaultMessage: 'Passwords must match',
   },
+  signUpErrorUnexpected: {
+    id: `${scope}.SignUp.errorUnexpected`,
+    defaultMessage: 'Something went wrong. Try again later.',
+  },
   signUpSubmit: {
     id: `${scope}.SignUp.submit`,
     defaultMessage: 'Sign Up',
+  },
+  signUpSuccess: {
+    id: `${scope}.SignUp.success`,
+    defaultMessage: 'You have signed up for Quilt. Check your email for further instructions.',
+  },
+  signUpHintSignIn: {
+    id: `${scope}.SignUp.hintSignIn`,
+    defaultMessage: 'Already have an account? {link}.',
+  },
+  signUpHintSignInLink: {
+    id: `${scope}.SignUp.hintSignInLink`,
+    defaultMessage: 'Sign in',
   },
 
   // SignIn
@@ -105,6 +121,30 @@ export default defineMessages({
     id: `${scope}.SignIn.submit`,
     defaultMessage: 'Sign In',
   },
+  signInErrorInvalidCredentials: {
+    id: `${scope}.SignIn.errorInvalidCredentials`,
+    defaultMessage: 'Invalid credentials',
+  },
+  signInErrorUnexpected: {
+    id: `${scope}.SignIn.errorUnexpected`,
+    defaultMessage: 'Something went wrong. Try again later.',
+  },
+  signInHintSignUp: {
+    id: `${scope}.SignIn.hintSignUp`,
+    defaultMessage: "Don't have an account? {link}.",
+  },
+  signInHintSignUpLink: {
+    id: `${scope}.SignIn.hintSignUpLink`,
+    defaultMessage: 'Sign up',
+  },
+  signInHintReset: {
+    id: `${scope}.SignIn.hintReset`,
+    defaultMessage: "Don't remember your password? {link}.",
+  },
+  signInHintResetLink: {
+    id: `${scope}.SignIn.hintResetLink`,
+    defaultMessage: 'Reset it',
+  },
 
   // SignOut
   signOutWaiting: {
@@ -128,6 +168,22 @@ export default defineMessages({
   passResetSubmit: {
     id: `${scope}.PassReset.submit`,
     defaultMessage: 'Reset',
+  },
+  passResetSuccess: {
+    id: `${scope}.PassReset.success`,
+    defaultMessage: 'You have requested a password reset. Check your email for further instructions.',
+  },
+  passResetErrorUnexpected: {
+    id: `${scope}.PassReset.errorUnexpected`,
+    defaultMessage: 'Something went wrong. Try again later.',
+  },
+  passResetHintSignUp: {
+    id: `${scope}.PassReset.hintSignUp`,
+    defaultMessage: "Don't have an account? {link}.",
+  },
+  passResetHintSignUpLink: {
+    id: `${scope}.PassReset.hintSignUpLink`,
+    defaultMessage: "Sign up",
   },
 
   // PassChange
@@ -158,5 +214,29 @@ export default defineMessages({
   passChangeSubmit: {
     id: `${scope}.PassChange.submit`,
     defaultMessage: 'Change Password',
+  },
+  passChangeErrorInvalid: {
+    id: `${scope}.PassChange.errorInvalid`,
+    defaultMessage: 'This reset link is invalid. Try {link} again.',
+  },
+  passChangeErrorInvalidLink: {
+    id: `${scope}.PassChange.errorInvalidLink`,
+    defaultMessage: 'resetting password',
+  },
+  passChangeErrorUnexpected: {
+    id: `${scope}.PassChange.errorUnexpected`,
+    defaultMessage: 'Something went wrong. Try again later.',
+  },
+  passChangeSuccess: {
+    id: `${scope}.PassChange.success`,
+    defaultMessage: 'Your password has been changed.',
+  },
+  passChangeSuccessCTA: {
+    id: `${scope}.PassChange.success`,
+    defaultMessage: 'Now you can {link} using your new password.',
+  },
+  passChangeSuccessCTALink: {
+    id: `${scope}.PassChange.successCTALink`,
+    defaultMessage: 'sign in',
   },
 });

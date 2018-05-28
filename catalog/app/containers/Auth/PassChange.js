@@ -21,47 +21,19 @@ import Spinner from 'components/Spinner';
 import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
-import * as validators from 'utils/validators';
+import validate, * as validators from 'utils/validators';
 
-import { passChange } from './actions';
 import * as errors from './errors';
 import msg from './messages';
-import { authenticated } from './selectors';
+import { changePassword } from './requests';
+// import { authenticated } from './selectors';
+import * as Layout from './Layout';
 
 
-const showError = (meta, errorMessages = {}) =>
-  meta.submitFailed && meta.error
-    ? errorMessages[meta.error] || meta.error
-    : undefined;
-
-const FormField = composeComponent('Auth.SignUp.Field',
-  setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, ...rest }) => ({
-    errorText: showError(meta, errors),
-    ...input,
-    ...rest,
-  })),
-  TextField);
-
-const passwordsMatch = (field) => (v, vs) => {
-  const pass = vs.get(field);
-  return v && pass && v !== pass ? 'passMatch' : undefined;
-};
-
-const Container = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  width: 400px;
-`;
-
-const passMatch = passwordsMatch('password');
+const Container = Layout.mkLayout(<FM {...msg.passChangeHeading} />);
 
 export default composeComponent('Auth.PassChange',
-  // TODO: what to show if user is authenticated
+  // TODO: what to show if the user is authenticated
   //connect(createStructuredSelector({ authenticated })),
   withStateHandlers({
     done: false,
@@ -70,35 +42,43 @@ export default composeComponent('Auth.PassChange',
   }),
   reduxForm({
     form: 'Auth.PassChange',
-    onSubmit: async (values, dispatch, { setDone }) => {
-      const link = 'sup'; // TODO: get the link from route params
-      const result = defer();
-      dispatch(passChange(link, values.toJS().password, result.resolver));
+    onSubmit: async (values, dispatch, { setDone, match }) => {
       try {
-        await result.promise;
+        await changePassword(match.params.link, values.toJS().password);
         setDone();
       } catch(e) {
-        if (e instanceof errors.UserNotFound) {
-          throw new SubmissionError({ _error: 'notFound' });
+        if (e instanceof errors.InvalidResetLink) {
+          throw new SubmissionError({ _error: 'invalid' });
         }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
     },
   }),
-  // TODO: styling, copy
   branch(get('done'), renderComponent(({}) => (
-    <h1>
-      password changed successfully.
-      <Link to="/signin">Sign in with your new password</Link>
-    </h1>
+    <Container>
+      <Layout.Message>
+        <FM {...msg.passChangeSuccess} />
+      </Layout.Message>
+      <Layout.Message>
+        <FM
+          {...msg.passChangeSuccessCTA}
+          values={{
+            link: (
+              <Link to="/signin">
+                <FM {...msg.passChangeSuccessCTALink} />
+              </Link>
+            ),
+          }}
+        />
+      </Layout.Message>
+    </Container>
   ))),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>
-        <h1><FM {...msg.passChangeHeading} /></h1>
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="password"
           type="password"
           validate={[validators.required]}
@@ -107,25 +87,41 @@ export default composeComponent('Auth.PassChange',
           errors={{
             required: <FM {...msg.passChangePassRequired} />,
           }}
-          fullWidth
         />
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="passwordCheck"
           type="password"
-          validate={[validators.required, passMatch]}
+          validate={[
+            validators.required,
+            validate('check', validators.matchesField('password')),
+          ]}
           disabled={submitting}
           floatingLabelText={<FM {...msg.passChangePassCheckLabel} />}
           errors={{
             required: <FM {...msg.passChangePassCheckRequired} />,
-            passMatch: <FM {...msg.passChangePassCheckMatch} />,
+            check: <FM {...msg.passChangePassCheckMatch} />,
           }}
           fullWidth
         />
-        {/* TODO: style & copy */}
-        {submitFailed && error && (
-          <p>form error: {error}</p>
-        )}
+        <Layout.Error
+          {...{ submitFailed, error}}
+          errors={{
+            invalid: (
+              <FM
+                {...msg.passChangeErrorInvalid}
+                values={{
+                  link: (
+                    <Layout.ErrorLink to="/reset_password">
+                      <FM {...msg.passChangeErrorInvalidLink} />
+                    </Layout.ErrorLink>
+                  ),
+                }}
+              />
+            ),
+            unexpected: <FM {...msg.passChangeErrorUnexpected} />,
+          }}
+        />
         {/* TODO: show spinner */}
         <RaisedButton
           type="submit"
