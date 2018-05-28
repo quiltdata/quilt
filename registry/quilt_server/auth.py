@@ -87,6 +87,8 @@ def reset_password_endpoint():
     raw_password = data['password']
     link = data['link']
     payload = verify_reset_link(link)
+    if not payload:
+        return {'error': 'Invalid link.'}, 400
     user_id = payload['id']
     try:
         user = get_user_by_id(user_id)
