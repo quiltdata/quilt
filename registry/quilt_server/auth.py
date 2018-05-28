@@ -69,7 +69,7 @@ def activate_endpoint(link):
     payload = verify_activation_link(link)
     if payload:
         _activate_user(payload['id'])
-        return redirect("{CATALOG_URL}/login".format(CATALOG_URL=CATALOG_URL), code=302)
+        return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
     else:
         response = jsonify({error: "Account activation failed."})
         response.status_code = 400
