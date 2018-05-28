@@ -17,7 +17,3 @@ export const pipGit = `git+${git}`;
 export const icon256 = 'https://d1zvn9rasera71.cloudfront.net/q-256-square.png';
 export const tutorial = 'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial';
 export const twitter = 'https://twitter.com/quiltdata';
-// paths - leading / by convention
-export const authorizePath = '/login';
-export const tokenPath = '/api/token';
-export const authHandlerPath = '/oauth_callback';

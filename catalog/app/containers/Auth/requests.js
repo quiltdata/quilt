@@ -1,5 +1,4 @@
 import config from 'constants/config';
-import { tokenPath } from 'constants/urls';
 import { requestJSON, HttpError } from 'utils/request';
 
 import { adjustTokensForLatency, makeHeadersFromTokens } from './util';
@@ -14,16 +13,14 @@ import * as errors from './errors';
  */
 export const signUp = async (credentials) => {
   try {
-    console.log('sign up', credentials);
-    // TODO: proper url
-    //const res = await requestJSON(`${config.api}/register`, {
-      //method: 'POST',
-      //body: JSON.stringify(credentials),
-    //});
-    const res = undefined;
-    console.log('sign up res', res);
+    const res = await requestJSON(`${config.api}/register`, {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (e) {
-    console.log('sign up: error', e);
     if (e instanceof HttpError) {
       if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
@@ -45,14 +42,16 @@ export const signUp = async (credentials) => {
  *
  * @param {string} token
  */
-export const signOut = async (token) => {
+export const signOut = async (tokens) => {
   try {
-    console.log('sign out', token);
     const res = await requestJSON(`${config.api}/logout`, {
       method: 'POST',
-      body: JSON.stringify({ token }),
+      body: JSON.stringify({ token: tokens.token }),
+      headers: {
+        ...makeHeadersFromTokens(tokens),
+        'Content-Type': 'application/json',
+      },
     });
-    console.log('sign out res', res);
   } catch (e) {
     throw new errors.AuthError({
       message: 'unable to sign out',
@@ -106,23 +105,11 @@ export const signIn = async (credentials) => {
  */
 export const fetchUser = async (tokens) => {
   try {
-    console.log('fetchUser', tokens);
-    //const auth = await requestJSON(config.userApi, {
-      //headers: makeHeadersFromTokens(tokens),
-    //});
-    /* istanbul ignore next */
-    //return auth.login && !auth.current_user
-      //// GitHub
-      //? { ...auth, current_user: auth.login }
-      //: auth;
+    const auth = await requestJSON(`${config.api}/api-root`, {
+      headers: makeHeadersFromTokens(tokens),
+    });
 
-    return {
-      is_staff: false,
-      is_active: true,
-      email: 'admin@quilt',
-      current_user: 'admin',
-    };
-
+    return auth;
   } catch (e) {
     if (e instanceof HttpError && e.status === 401) {
       throw new errors.NotAuthenticated({ originalError: e });
@@ -144,13 +131,14 @@ export const fetchUser = async (tokens) => {
  */
 export const resetPassword = async (email) => {
   try {
-    console.log('reset pw', email);
-    //const res = await requestJSON(`${config.api}/reset_password`, {
-      //method: 'POST',
-      //body: JSON.stringify({ email }),
-    //});
+    const res = await requestJSON(`${config.api}/reset_password`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (e) {
-    console.log('reset pw error', e);
     throw new errors.AuthError({
       message: 'unable to reset password',
       originalError: e,
@@ -165,22 +153,25 @@ export const resetPassword = async (email) => {
  * @param {string} password
  *
  * @throws {AuthError}
- * @throws {UserNotFound}
+ * @throws {InvalidResetLink}
  */
 export const changePassword = async (link, password) => {
   try {
-    console.log('change pw', { link, password });
-    //const res = await requestJSON(`${config.api}/reset_password/${link}`, {
-      //method: 'POST',
-      //body: JSON.stringify({ password }),
-    //});
+    const res = await requestJSON(`${config.api}/reset_password`, {
+      method: 'POST',
+      body: JSON.stringify({ link, password }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   } catch (e) {
-    console.log('change pw error', e);
-    if (
-      e instanceof HttpError && e.status === 404
-      && e.json && e.json.error === 'User not found.'
-    ) {
-      throw new error.UserNotFound({ originalError: e });
+    if (e instanceof HttpError) {
+      if (e.status === 404 && e.json && e.json.error === 'User not found.') {
+        throw new errors.InvalidResetLink({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error === 'Invalid link.') {
+        throw new errors.InvalidResetLink({ originalError: e });
+      }
     }
 
     throw new errors.AuthError({
@@ -214,40 +205,27 @@ export const getCode = async (tokens) => {
   }
 };
 
-// OLD
 /**
  * Refresh auth tokens.
  *
- * @param {string} refreshToken
+ * @param {Object} tokens
  *
- * @returns {Object} Tokens adjusted for latency.
+ * @returns {Object} Refreshed tokens adjusted for latency.
  *
- * @throws {NotAuthenticated} The API responds w/ 401.
  * @throws {AuthError}
- *   Wrap any caught error into AuthError,
- *   with original error attached as `originalError` property.
  */
-export const refreshTokens = async (refreshToken) => {
+export const refreshTokens = async (tokens) => {
   try {
-    const body = new FormData();
-    body.append('refresh_token', refreshToken);
-    const newTokens = await requestJSON(`${config.api}${tokenPath}`, {
+    const newTokens = await requestJSON(`${config.api}/api/refresh`, {
       method: 'POST',
-      body,
+      headers: makeHeadersFromTokens(tokens),
     });
-    // response could be ok per request method checks but still harbor error
-    if (newTokens.error) {
-      //throw makeError('Auth refresh hiccup', `refreshTokens: ${newTokens.error}`);
-      throw new AuthError('unable to refresh tokens', {
-        originalError: newTokens.error,
-      });
-    }
     return adjustTokensForLatency(newTokens);
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
-      throw new errors.NotAuthenticated('unable to refresh tokens');
-    }
-    if (e instanceof errors.AuthError) throw e;
+    // TODO: handle possible backend errors
+    //if (e instanceof HttpError && e.status === 401) {
+      //throw new errors.NotAuthenticated({ originalError: e });
+    //}
     throw new errors.AuthError('unable to refresh tokens', { originalError: e });
   }
 }

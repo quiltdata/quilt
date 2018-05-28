@@ -1,61 +1,34 @@
 import get from 'lodash/fp/get';
-import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
-import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
-import { connect } from 'react-redux';
+// import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   branch,
-  mapProps,
   renderComponent,
-  setPropTypes,
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
-import { createStructuredSelector } from 'reselect';
-import styled from 'styled-components';
+// import { createStructuredSelector } from 'reselect';
 
-import Spinner from 'components/Spinner';
-import defer from 'utils/defer';
+// import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import * as validators from 'utils/validators';
 
-import { passReset } from './actions';
 import * as errors from './errors';
 import msg from './messages';
-import { authenticated } from './selectors';
+import { resetPassword } from './requests';
+// import { authenticated } from './selectors';
+import * as Layout from './Layout';
 
 
-const showError = (meta, errorMessages = {}) =>
-  meta.submitFailed && meta.error
-    ? errorMessages[meta.error] || meta.error
-    : undefined;
-
-const FormField = composeComponent('Auth.SignUp.Field',
-  setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, ...rest }) => ({
-    errorText: showError(meta, errors),
-    ...input,
-    ...rest,
-  })),
-  TextField);
-
-const Container = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  width: 400px;
-`;
+const Container = Layout.mkLayout(<FM {...msg.passResetHeading} />);
 
 // TODO: what to show if user is authenticated?
 export default composeComponent('Auth.PassReset',
-  //connect(createStructuredSelector({ authenticated })),
+  // connect(createStructuredSelector({ authenticated })),
   withStateHandlers({
     done: false,
   }, {
@@ -64,10 +37,8 @@ export default composeComponent('Auth.PassReset',
   reduxForm({
     form: 'Auth.PassReset',
     onSubmit: async (values, dispatch, { setDone }) => {
-      const result = defer();
-      dispatch(passReset(values.toJS().email, result.resolver));
       try {
-        await result.promise;
+        await resetPassword(values.toJS().email);
         setDone();
       } catch(e) {
         captureError(e);
@@ -75,16 +46,18 @@ export default composeComponent('Auth.PassReset',
       }
     },
   }),
-  // TODO: styling, copy
   branch(get('done'), renderComponent(({}) => (
-    <h1>password reset request received. check your email</h1>
+    <Container>
+      <Layout.Message>
+        <FM {...msg.passResetSuccess} />
+      </Layout.Message>
+    </Container>
   ))),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>
-        <h1><FM {...msg.passResetHeading} /></h1>
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="email"
           validate={[validators.required]}
           disabled={submitting}
@@ -92,21 +65,34 @@ export default composeComponent('Auth.PassReset',
           errors={{
             required: <FM {...msg.passResetEmailRequired} />,
           }}
-          fullWidth
         />
-        {/* TODO: style & copy */}
-        {submitFailed && error && (
-          <p>form error: {error}</p>
-        )}
-        {/* TODO: show spinner */}
-        <RaisedButton
-          type="submit"
-          primary
-          disabled={submitting || submitFailed && invalid}
-          label={<FM {...msg.passResetSubmit} />}
+        <Layout.Error
+          {...{ submitFailed, error }}
+          errors={{
+            unexpected: <FM {...msg.passResetErrorUnexpected} />,
+          }}
         />
-        {/* TODO: style & copy */}
-        <p>Don't have an account? <Link to="/signup">Sign Up</Link>.</p>
+        <Layout.Actions>
+          {/* TODO: show spinner */}
+          <RaisedButton
+            type="submit"
+            primary
+            disabled={submitting || (submitFailed && invalid)}
+            label={<FM {...msg.passResetSubmit} />}
+          />
+        </Layout.Actions>
+        <Layout.Hint>
+          <FM
+            {...msg.passResetHintSignUp}
+            values={{
+              link: (
+                <Link to="/signup">
+                  <FM {...msg.passResetHintSignUpLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
       </form>
     </Container>
   ));

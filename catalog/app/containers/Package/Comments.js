@@ -5,6 +5,7 @@ import RaisedButton from 'material-ui/RaisedButton';
 import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
+import { Link } from 'react-router-dom';
 import { setPropTypes } from 'recompose';
 import styled from 'styled-components';
 
@@ -120,7 +121,7 @@ export default composeComponent('Package.Comments',
         : (
           <Message>
             <RaisedButton
-              href={makeSignInURL()}
+              containerElement={<Link to={makeSignInURL()} />}
               label={<FM {...msg.commentsSignIn} />}
             />
           </Message>

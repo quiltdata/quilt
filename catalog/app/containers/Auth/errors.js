@@ -51,10 +51,10 @@ export class InvalidUsername extends AuthError {
   }
 }
 
-export class UserNotFound extends AuthError {
-  static displayName = 'UserNotFound';
+export class InvalidResetLink extends AuthError {
+  static displayName = 'InvalidResetLink';
 
   constructor(props) {
-    super(withDefaultMessage('user not found', props));
+    super(withDefaultMessage('invalid reset link', props));
   }
 }

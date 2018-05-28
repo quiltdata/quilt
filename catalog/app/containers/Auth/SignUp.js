@@ -1,82 +1,43 @@
 import get from 'lodash/fp/get';
-import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
-import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
-import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   branch,
-  mapProps,
   renderComponent,
-  setPropTypes,
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import { createStructuredSelector } from 'reselect';
-import styled from 'styled-components';
 
-import Spinner from 'components/Spinner';
-import defer from 'utils/defer';
+// import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
-import * as validators from 'utils/validators';
+import validate, * as validators from 'utils/validators';
 
-import { signUp } from './actions';
 import * as errors from './errors';
 import msg from './messages';
-import { authenticated } from './selectors';
+import { signUp } from './requests';
+import * as Layout from './Layout';
 
 
-const showError = (meta, errorMessages = {}) =>
-  meta.submitFailed && meta.error
-    ? errorMessages[meta.error] || meta.error
-    : undefined;
+const Container = Layout.mkLayout(<FM {...msg.signUpHeading} />);
 
-const FormField = composeComponent('Auth.SignUp.Field',
-  setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, ...rest }) => ({
-    errorText: showError(meta, errors),
-    ...input,
-    ...rest,
-  })),
-  TextField);
-
-// TODO: memoize?
-const passwordsMatch = (field) => (v, vs) => {
-  const pass = vs.get(field);
-  return v && pass && v !== pass ? 'passMatch' : undefined;
-};
-
-const Container = styled.div`
-  margin-left: auto;
-  margin-right: auto;
-  width: 400px;
-`;
-
-const passMatch = passwordsMatch('password');
-
+// TODO: what to show if authenticated?
 export default composeComponent('Auth.SignUp',
-  connect(createStructuredSelector({ authenticated })),
   withStateHandlers({
-    signedUp: false,
+    done: false,
   }, {
-    setSignedUp: () => () => ({ signedUp: true }),
+    setDone: () => () => ({ done: true }),
   }),
   reduxForm({
     form: 'Auth.SignUp',
-    onSubmit: async (values, dispatch) => {
-      const result = defer();
-      dispatch(signUp(values.remove('passwordCheck').toJS(), result.resolver));
+    onSubmit: async (values, dispatch, { setDone }) => {
       try {
-        await result.promise;
+        await signUp(values.remove('passwordCheck').toJS());
+        setDone();
       } catch(e) {
-        // TODO: handle all the errors from the BE
         if (e instanceof errors.UsernameTaken) {
           throw new SubmissionError({ username: 'taken' });
         }
@@ -90,24 +51,19 @@ export default composeComponent('Auth.SignUp',
         throw new SubmissionError({ _error: 'unexpected' });
       }
     },
-    onSubmitSuccess: (values, dispatch, { setSignedUp }) => {
-      setSignedUp();
-    },
   }),
-  // TODO: styling, copy
-  branch(get('authenticated'), renderComponent(({}) => (
-    <h1>already signed in. sign out to register: btn</h1>
-  ))),
-  // TODO: styling, copy
-  branch(get('signedUp'), renderComponent(({}) => (
-    <h1>successfully signed up. check your email</h1>
+  branch(get('done'), renderComponent(({}) => (
+    <Container>
+      <Layout.Message>
+        <FM {...msg.signUpSuccess} />
+      </Layout.Message>
+    </Container>
   ))),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>
-        <h1><FM {...msg.signUpHeading} /></h1>
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="username"
           validate={[validators.required]}
           disabled={submitting}
@@ -118,17 +74,15 @@ export default composeComponent('Auth.SignUp',
               <FM
                 {...msg.signUpUsernameTaken}
                 values={{
-                  // TODO: proper reset link
-                  link: <Link to="/reset"><FM {...msg.signUpPassResetHint} /></Link>,
+                  link: <Link to="/reset_password"><FM {...msg.signUpPassResetHint} /></Link>,
                 }}
               />
             ),
             invalid: <FM {...msg.signUpUsernameInvalid} />,
           }}
-          fullWidth
         />
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="email"
           validate={[validators.required]}
           disabled={submitting}
@@ -139,16 +93,14 @@ export default composeComponent('Auth.SignUp',
               <FM
                 {...msg.signUpEmailTaken}
                 values={{
-                  // TODO: proper reset link
-                  link: <Link to="/reset"><FM {...msg.signUpPassResetHint} /></Link>,
+                  link: <Link to="/reset_password"><FM {...msg.signUpPassResetHint} /></Link>,
                 }}
               />
             ),
           }}
-          fullWidth
         />
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="password"
           type="password"
           validate={[validators.required]}
@@ -157,34 +109,49 @@ export default composeComponent('Auth.SignUp',
           errors={{
             required: <FM {...msg.signUpPassRequired} />,
           }}
-          fullWidth
         />
         <Field
-          component={FormField}
+          component={Layout.Field}
           name="passwordCheck"
           type="password"
-          validate={[validators.required, passMatch]}
+          validate={[
+            validators.required,
+            validate('check', validators.matchesField('password')),
+          ]}
           disabled={submitting}
           floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
           errors={{
             required: <FM {...msg.signUpPassCheckRequired} />,
-            passMatch: <FM {...msg.signUpPassCheckMatch} />,
+            check: <FM {...msg.signUpPassCheckMatch} />,
           }}
-          fullWidth
         />
-        {/* TODO: style & copy */}
-        {submitFailed && error && (
-          <p>form error: {error}</p>
-        )}
-        {/* TODO: show spinner */}
-        <RaisedButton
-          type="submit"
-          primary
-          disabled={submitting || submitFailed && invalid}
-          label={<FM {...msg.signUpSubmit} />}
+        <Layout.Error
+          {...{ submitFailed, error }}
+          errors={{
+            unexpected: <FM {...msg.signUpErrorUnexpected} />,
+          }}
         />
-        {/* TODO: style & copy */}
-        <p>Already have an account? <Link to="/signin">Sign In</Link>.</p>
+        <Layout.Actions>
+          {/* TODO: show spinner */}
+          <RaisedButton
+            type="submit"
+            primary
+            disabled={submitting || submitFailed && invalid}
+            label={<FM {...msg.signUpSubmit} />}
+          />
+        </Layout.Actions>
+        <Layout.Hint>
+          <FM
+            {...msg.signUpHintSignIn}
+            values={{
+              link: (
+                <Link to="/signin">
+                  <FM {...msg.signUpHintSignInLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
       </form>
     </Container>
   ));

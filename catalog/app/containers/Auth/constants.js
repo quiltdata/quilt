@@ -15,17 +15,13 @@ export const waitingStates = [
 ];
 
 export const actions = createActions(REDUX_KEY,
-  'SIGN_UP',
   'SIGN_IN',
   'SIGN_IN_RESULT',
   'SIGN_OUT',
   'SIGN_OUT_RESULT',
-  'PASS_RESET',
-  'PASS_CHANGE',
   'CHECK',
   'REFRESH',
-  'REFRESH_SUCCESS',
-  'REFRESH_ERROR',
+  'REFRESH_RESULT',
   'AUTH_LOST',
 ); // eslint-disable-line function-paren-newline
 
