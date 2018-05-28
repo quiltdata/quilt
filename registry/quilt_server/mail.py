@@ -33,7 +33,7 @@ def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
 
 def send_activation_email(user, activation_link):
     base = REGISTRY_HOST
-    link = '{base}activate/{link}'.format(base=base, link=activation_link)
+    link = '{base}/activate/{link}'.format(base=base, link=activation_link)
     body = (
         '<head><title></title></head>'
         '<body>'
@@ -46,7 +46,7 @@ def send_activation_email(user, activation_link):
 
 def send_reset_email(user, reset_link):
     base = CATALOG_URL
-    link = '{base}reset_password/{link}'.format(base=base, link=reset_link)
+    link = '{base}/reset_password/{link}'.format(base=base, link=reset_link)
     body = (
         '<head><title></title></head>'
         '<body>'
