@@ -30,3 +30,4 @@ REGISTRY_HOST = os.getenv('REGISTRY_HOST')
 
 DEV_USERNAME = os.getenv('DEV_USERNAME')
 DEV_PASSWORD = os.getenv('DEV_PASSWORD')
+DEV_EMAIL = os.getenv('DEV_EMAIL', 'support@quiltdata.io')

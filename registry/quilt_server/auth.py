@@ -440,11 +440,13 @@ def create_admin():
     try:
         admin_username = app.config['DEV_USERNAME']
         admin_password = app.config['DEV_PASSWORD']
+        admin_email = app.config['DEV_EMAIL']
     except:
         return
-    if not admin_username or not admin_password:
+    if not admin_username or not admin_password or not admin_email:
         return
-    _create_user(admin_username, password=admin_password, requires_activation=False, force=True)
+    _create_user(admin_username, password=admin_password, email=admin_email,
+            requires_activation=False, force=True)
     user = get_user(admin_username)
     _activate_user(user.id)
 
