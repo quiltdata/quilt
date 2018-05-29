@@ -89,7 +89,7 @@ export const refresh = () => ({
  * @returns {Action}
  */
 refresh.resolve = (payload) => ({
-  type: actions.REFRESH_SUCCESS,
+  type: actions.REFRESH_RESULT,
   error: payload instanceof Error,
   payload,
 });
