@@ -438,8 +438,8 @@ def try_login(username, password):
 def create_admin():
     # Only runs in dev
     try:
-        admin_username = app.config['QUILT_ADMIN_USERNAME']
-        admin_password = app.config['QUILT_ADMIN_PASSWORD']
+        admin_username = app.config['DEV_USERNAME']
+        admin_password = app.config['DEV_PASSWORD']
     except:
         return
     if not admin_username or not admin_password:
