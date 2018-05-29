@@ -6,7 +6,7 @@ import { timestamp } from 'utils/time';
 
 import { signIn, signOut, refresh, check } from './actions';
 import { actions } from './constants';
-import { AuthError, NotAuthenticated } from './errors';
+import { NotAuthenticated } from './errors';
 import * as requests from './requests';
 import * as selectors from './selectors';
 import { makeHeadersFromTokens } from './util';
@@ -23,6 +23,7 @@ import { makeHeadersFromTokens } from './util';
 export function* makeHeaders() {
   const checked = defer();
   yield put(check({ refetch: false }, checked.resolver));
+  // eslint-disable-next-line no-empty
   try { yield checked.promise; } catch (e) {}
   yield call(waitTil, selectors.waiting, (w) => !w);
 
@@ -76,20 +77,17 @@ function* handleSignIn(
  */
 function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
-    console.log('handle signout');
     const tokens = yield select(selectors.tokens);
-    // TODO: make sure to await the result
-    const res = yield call(requests.signOut, tokens);
-    console.log('handle signout: result', res);
-    yield fork(forgetUser);
-    yield fork(forgetTokens);
-    /* istanbul ignore else */
+    yield call(requests.signOut, tokens);
     yield put(signOut.resolve());
+    /* istanbul ignore else */
     if (resolve) yield call(resolve);
   } catch (e) {
-    console.log('handle signout: error', e);
     yield put(signOut.resolve(e));
     if (reject) yield call(reject, e);
+  } finally {
+    yield fork(forgetUser);
+    yield fork(forgetTokens);
   }
 }
 
@@ -116,6 +114,7 @@ const isExpired = (tokens, time) => {
  * @param {Action} action
  */
 function* handleCheck(
+  // eslint-disable-next-line object-curly-newline
   { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
@@ -140,14 +139,13 @@ function* handleCheck(
     if (resolve) yield call(resolve, payload);
   } catch (e) {
     yield put(refresh.resolve(e));
-    // TODO: figure out when to destroy tokens and when to keep (for retry)
-    //if (e instanceof NotAuthenticated) {
-      //yield fork(forgetTokens);
-      //yield fork(forgetUser);
-      //yield call(onAuthLost, e);
-    //} else {
-      //yield call(onAuthError, e);
-    //}
+    if (e instanceof NotAuthenticated) {
+      yield fork(forgetTokens);
+      yield fork(forgetUser);
+      yield call(onAuthLost, e);
+    } else {
+      yield call(onAuthError, e);
+    }
     if (reject) yield call(reject, e);
   }
 }
@@ -189,7 +187,9 @@ export default function* (/* istanbul ignore next */ {
 } = {}) {
   yield takeEvery(actions.SIGN_IN, handleSignIn, { storeTokens, storeUser, forgetTokens });
   yield takeEvery(actions.SIGN_OUT, handleSignOut, { forgetTokens, forgetUser });
-  yield takeEvery(actions.CHECK, handleCheck, { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
+  yield takeEvery(actions.CHECK, handleCheck,
+    // eslint-disable-next-line object-curly-newline
+    { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
   yield takeEvery(actions.AUTH_LOST, handleAuthLost, { onAuthLost });
 
   if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(check()); });

@@ -13,7 +13,7 @@ import * as errors from './errors';
  */
 export const signUp = async (credentials) => {
   try {
-    const res = await requestJSON(`${config.api}/register`, {
+    await requestJSON(`${config.api}/register`, {
       method: 'POST',
       body: JSON.stringify(credentials),
       headers: {
@@ -44,7 +44,7 @@ export const signUp = async (credentials) => {
  */
 export const signOut = async (tokens) => {
   try {
-    const res = await requestJSON(`${config.api}/logout`, {
+    await requestJSON(`${config.api}/logout`, {
       method: 'POST',
       body: JSON.stringify({ token: tokens.token }),
       headers: {
@@ -89,7 +89,7 @@ export const signIn = async (credentials) => {
       originalError: e,
     });
   }
-}
+};
 
 /**
  * Fetch user data.
@@ -120,7 +120,7 @@ export const fetchUser = async (tokens) => {
       originalError: e,
     });
   }
-}
+};
 
 /**
  * Make a password reset request.
@@ -131,7 +131,7 @@ export const fetchUser = async (tokens) => {
  */
 export const resetPassword = async (email) => {
   try {
-    const res = await requestJSON(`${config.api}/reset_password`, {
+    await requestJSON(`${config.api}/reset_password`, {
       method: 'POST',
       body: JSON.stringify({ email }),
       headers: {
@@ -144,7 +144,7 @@ export const resetPassword = async (email) => {
       originalError: e,
     });
   }
-}
+};
 
 /**
  * Make a password change request.
@@ -157,7 +157,7 @@ export const resetPassword = async (email) => {
  */
 export const changePassword = async (link, password) => {
   try {
-    const res = await requestJSON(`${config.api}/reset_password`, {
+    await requestJSON(`${config.api}/reset_password`, {
       method: 'POST',
       body: JSON.stringify({ link, password }),
       headers: {
@@ -186,18 +186,17 @@ export const changePassword = async (link, password) => {
  *
  * @param {Object} tokens
  *
+ * @returns {string} The code.
+ *
  * @throws {AuthError}
  */
 export const getCode = async (tokens) => {
   try {
-    console.log('get code');
-    const headers = makeHeadersFromTokens(tokens);
-    //const res = await requestJSON(`${config.api}/api/code`, { headers });
-    const res = { code: 'THE_CODE' };
-    console.log('get code: res', res);
-    return res.code;
+    const { code } = await requestJSON(`${config.api}/api/code`, {
+      headers: makeHeadersFromTokens(tokens),
+    });
+    return code;
   } catch (e) {
-    console.log('get code err', e);
     throw new errors.AuthError({
       message: 'unable to get the code',
       originalError: e,
@@ -222,10 +221,12 @@ export const refreshTokens = async (tokens) => {
     });
     return adjustTokensForLatency(newTokens);
   } catch (e) {
-    // TODO: handle possible backend errors
-    //if (e instanceof HttpError && e.status === 401) {
-      //throw new errors.NotAuthenticated({ originalError: e });
-    //}
-    throw new errors.AuthError('unable to refresh tokens', { originalError: e });
+    if (e instanceof HttpError && e.status === 401) {
+      throw new errors.NotAuthenticated({ originalError: e });
+    }
+    throw new errors.AuthError({
+      message: 'unable to refresh tokens',
+      originalError: e,
+    });
   }
-}
+};

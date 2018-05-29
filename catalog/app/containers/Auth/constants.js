@@ -29,5 +29,8 @@ export const actions = createActions(REDUX_KEY,
 // export const LATENCY_SECONDS = 35990;
 export const LATENCY_SECONDS = 20;
 
-export const ERROR_NOTIFICATION_TTL = 20000;
-export const ERROR_REDIRECT_PATH = '/';
+// export const ERROR_NOTIFICATION_TTL = 20000;
+// export const ERROR_REDIRECT_PATH = '/';
+
+export const SIGN_OUT_REDIRECT = '/';
+export const SIGN_IN_REDIRECT = '/profile';

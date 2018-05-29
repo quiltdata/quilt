@@ -13,16 +13,21 @@ import {
 } from 'utils/reduxTools';
 
 import { actions } from './constants';
+import { NotAuthenticated } from './errors';
 
 
 const initial = {
   state: 'SIGNED_OUT',
 };
 
+const handleAuthLost = (lost, error) => (e) =>
+  e instanceof NotAuthenticated ? lost : error;
+
 export default withInitialState(fromJS(initial), handleTransitions(get('state'), {
   SIGNED_OUT: handleActions({
     [actions.SIGN_IN]: combine({
       state: 'SIGNING_IN',
+      error: unset,
     }),
   }),
   SIGNING_IN: handleActions({
@@ -38,18 +43,14 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
     }),
   }),
   SIGNED_IN: handleActions({
-    [actions.SIGN_OUT_RESULT]: handleResult({
-      resolve: combine({
-        state: 'SIGNED_OUT',
-        tokens: unset,
-        user: unset,
-      }),
-      reject: combine({
-        error: id,
-      }),
+    [actions.SIGN_OUT_RESULT]: combine({
+      state: 'SIGNED_OUT',
+      tokens: unset,
+      user: unset,
     }),
     [actions.REFRESH]: {
       state: 'REFRESHING',
+      error: unset,
     },
     [actions.AUTH_LOST]: {
       state: 'SIGNED_OUT',
@@ -66,11 +67,12 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
         user: ({ user }) => user ? fromJS(user) : noop,
       }),
       reject: combine({
-        // TODO: see saga for destroy / keep logic
-        state: 'SIGNED_OUT',
+        // if auth lost, sign out and destroy auth data,
+        // otherwise (backend malfunction or smth) just register error
+        state: handleAuthLost('SIGNED_OUT', 'SIGNED_IN'),
         error: id,
-        tokens: unset,
-        user: unset,
+        tokens: handleAuthLost(unset, noop),
+        user: handleAuthLost(unset, noop),
       }),
     }),
   }),

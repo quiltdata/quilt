@@ -61,6 +61,7 @@ export const Hint = styled.p`
 export const Message = styled.p`
 `;
 
+// eslint-disable-next-line react/prop-types
 export const mkLayout = (heading) => ({ children }) => (
   <Container>
     <Heading>{heading}</Heading>

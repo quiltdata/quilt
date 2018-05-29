@@ -3,10 +3,19 @@ import { defineMessages } from 'react-intl';
 const scope = 'app.containers.Auth';
 
 export default defineMessages({
+  notificationAuthLost: {
+    id: `${scope}.notificationAuthLost`,
+    defaultMessage: 'Authentication lost. Please sign in again.',
+  },
+  notificationAuthError: {
+    id: `${scope}.notificationAuthError`,
+    defaultMessage: 'Authentication error. Try again later.',
+  },
+
   // Wrapper
   wrapperFailureHeading: {
     id: `${scope}.Wrapper.Failure.heading`,
-    defaultMessage: 'Error signing in',
+    defaultMessage: 'Authentication error',
   },
   wrapperFailureDescription: {
     id: `${scope}.Wrapper.Failure.description`,
@@ -53,7 +62,7 @@ export default defineMessages({
   },
   signUpEmailTaken: {
     id: `${scope}.SignUp.emailTaken`,
-    defaultMessage: "This email is already taken. {link}",
+    defaultMessage: 'This email is already taken. {link}',
   },
   signUpPassLabel: {
     id: `${scope}.SignUp.passLabel`,
@@ -183,7 +192,7 @@ export default defineMessages({
   },
   passResetHintSignUpLink: {
     id: `${scope}.PassReset.hintSignUpLink`,
-    defaultMessage: "Sign up",
+    defaultMessage: 'Sign up',
   },
 
   // PassChange
@@ -238,5 +247,23 @@ export default defineMessages({
   passChangeSuccessCTALink: {
     id: `${scope}.PassChange.successCTALink`,
     defaultMessage: 'sign in',
+  },
+
+  // Code
+  codeHeading: {
+    id: `${scope}.Code.heading`,
+    defaultMessage: 'Code',
+  },
+  codeError: {
+    id: `${scope}.Code.error`,
+    defaultMessage: 'Something went wrong. Try again later.',
+  },
+  codeWorking: {
+    id: `${scope}.Code.working`,
+    defaultMessage: 'Getting the code',
+  },
+  codeCopy: {
+    id: `${scope}.Code.copy`,
+    defaultMessage: 'Copy to clipboard',
   },
 });

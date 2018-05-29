@@ -1,7 +1,5 @@
 import { stringify } from 'query-string';
 
-// import config from 'constants/config';
-
 import { LATENCY_SECONDS } from './constants';
 
 export const makeHeadersFromTokens = ({ token }) => ({
@@ -19,9 +17,6 @@ const getPath = (loc) => loc.pathname + loc.search;
 export const makeSignInURL = (next = getPath(window.location)) =>
   // TODO(dima): Sign up vs sign in?
   makeURL('/signin', { next });
-
-export const makeSignOutURL = () => '/';
-  // config.signOutUrl || [> istanbul ignore next <] '/';
 
 export const adjustTokensForLatency = (tokens) => ({
   ...tokens,

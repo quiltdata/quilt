@@ -1,24 +1,17 @@
 import get from 'lodash/fp/get';
-import TextField from 'material-ui/TextField';
 import RaisedButton from 'material-ui/RaisedButton';
-import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
-import { connect } from 'react-redux';
+// import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   branch,
-  mapProps,
   renderComponent,
-  setPropTypes,
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
-import { createStructuredSelector } from 'reselect';
-import styled from 'styled-components';
 
-import Spinner from 'components/Spinner';
-import defer from 'utils/defer';
+// import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import validate, * as validators from 'utils/validators';
@@ -34,7 +27,7 @@ const Container = Layout.mkLayout(<FM {...msg.passChangeHeading} />);
 
 export default composeComponent('Auth.PassChange',
   // TODO: what to show if the user is authenticated
-  //connect(createStructuredSelector({ authenticated })),
+  // connect(createStructuredSelector({ authenticated })),
   withStateHandlers({
     done: false,
   }, {
@@ -46,7 +39,7 @@ export default composeComponent('Auth.PassChange',
       try {
         await changePassword(match.params.link, values.toJS().password);
         setDone();
-      } catch(e) {
+      } catch (e) {
         if (e instanceof errors.InvalidResetLink) {
           throw new SubmissionError({ _error: 'invalid' });
         }
@@ -55,7 +48,7 @@ export default composeComponent('Auth.PassChange',
       }
     },
   }),
-  branch(get('done'), renderComponent(({}) => (
+  branch(get('done'), renderComponent(() => (
     <Container>
       <Layout.Message>
         <FM {...msg.passChangeSuccess} />
@@ -105,7 +98,7 @@ export default composeComponent('Auth.PassChange',
           fullWidth
         />
         <Layout.Error
-          {...{ submitFailed, error}}
+          {...{ submitFailed, error }}
           errors={{
             invalid: (
               <FM
@@ -126,7 +119,7 @@ export default composeComponent('Auth.PassChange',
         <RaisedButton
           type="submit"
           primary
-          disabled={submitting || submitFailed && invalid}
+          disabled={submitting || (submitFailed && invalid)}
           label={<FM {...msg.passChangeSubmit} />}
         />
       </form>
