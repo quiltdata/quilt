@@ -9,7 +9,6 @@ import {
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
-import { createStructuredSelector } from 'reselect';
 
 // import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
@@ -37,7 +36,7 @@ export default composeComponent('Auth.SignUp',
       try {
         await signUp(values.remove('passwordCheck').toJS());
         setDone();
-      } catch(e) {
+      } catch (e) {
         if (e instanceof errors.UsernameTaken) {
           throw new SubmissionError({ username: 'taken' });
         }
@@ -52,7 +51,7 @@ export default composeComponent('Auth.SignUp',
       }
     },
   }),
-  branch(get('done'), renderComponent(({}) => (
+  branch(get('done'), renderComponent(() => (
     <Container>
       <Layout.Message>
         <FM {...msg.signUpSuccess} />
@@ -136,7 +135,7 @@ export default composeComponent('Auth.SignUp',
           <RaisedButton
             type="submit"
             primary
-            disabled={submitting || submitFailed && invalid}
+            disabled={submitting || (submitFailed && invalid)}
             label={<FM {...msg.signUpSubmit} />}
           />
         </Layout.Actions>

@@ -38,7 +38,10 @@ export default composeComponent('Auth.Provider',
   }),
   withHandlers({
     onAuthLost: ({ intl, dispatch }) => () => {
-      dispatch(notify(intl.formatMessage(msg.authLost)));
+      dispatch(notify(intl.formatMessage(msg.notificationAuthLost)));
+    },
+    onAuthError: ({ intl, dispatch }) => () => {
+      dispatch(notify(intl.formatMessage(msg.notificationAuthError)));
     },
   }),
   injectReducer(REDUX_KEY, reducer, () =>

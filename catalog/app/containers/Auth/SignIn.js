@@ -21,13 +21,12 @@ import * as validators from 'utils/validators';
 import withParsedQuery from 'utils/withParsedQuery';
 
 import { signIn } from './actions';
+import { SIGN_IN_REDIRECT } from './constants';
 import * as errors from './errors';
 import msg from './messages';
 import { authenticated } from './selectors';
 import * as Layout from './Layout';
 
-
-const DEFAULT_REDIRECT = '/profile';
 
 const Container = Layout.mkLayout(<FM {...msg.signInHeading} />);
 
@@ -40,7 +39,7 @@ export default composeComponent('Auth.SignIn',
       dispatch(signIn(values.toJS(), result.resolver));
       try {
         await result.promise;
-      } catch(e) {
+      } catch (e) {
         if (e instanceof errors.InvalidCredentials) {
           throw new SubmissionError({ _error: 'invalidCredentials' });
         }
@@ -50,9 +49,9 @@ export default composeComponent('Auth.SignIn',
     },
   }),
   withParsedQuery,
-  branch(get('authenticated'), renderComponent(({ location: { query } }) =>
-    <Redirect to={query.next || DEFAULT_REDIRECT} />
-  )),
+  branch(get('authenticated'),
+    renderComponent(({ location: { query } }) =>
+      <Redirect to={query.next || SIGN_IN_REDIRECT} />)),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>

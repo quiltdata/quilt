@@ -17,7 +17,6 @@ import {
   Code,
   requireAuth,
 } from 'containers/Auth';
-//import Callback from 'containers/Auth/Callback';
 import AuthBar from 'containers/AuthBar';
 import HomePage from 'containers/HomePage/Loadable';
 import NotFoundPage from 'containers/NotFoundPage/Loadable';

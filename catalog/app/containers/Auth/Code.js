@@ -1,26 +1,47 @@
+import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
+import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
 import {
+  branch,
   lifecycle,
+  renderComponent,
+  withHandlers,
   withStateHandlers,
 } from 'recompose';
 import { createStructuredSelector } from 'reselect';
+import styled from 'styled-components';
 
 import Working from 'components/Working';
+import copyToClipboard from 'utils/clipboard';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 
+import msg from './messages';
 import { getCode } from './requests';
 import * as selectors from './selectors';
+import * as Layout from './Layout';
+
+const Container = Layout.mkLayout(<FM {...msg.codeHeading} />);
+
+// TODO: styling
+const Code = styled.div`
+  overflow-wrap: break-word;
+`;
 
 export default composeComponent('Auth.Code',
   connect(createStructuredSelector({
     tokens: selectors.tokens,
   })),
   withStateHandlers({
-    result: undefined,
+    result: null,
   }, {
     setResult: () => (result) => ({ result }),
+  }),
+  withHandlers({
+    copy: ({ result }) => () => {
+      copyToClipboard(result);
+    },
   }),
   lifecycle({
     componentWillMount() {
@@ -32,11 +53,22 @@ export default composeComponent('Auth.Code',
         });
     },
   }),
-  ({ result }) =>
-    result
-      ? (
-        result instanceof Error
-          ? <h1>error: {result}</h1>
-          : <h1>code: {result}</h1>
-      )
-      : <Working>getting the code...</Working>);
+  branch((p) => p.result instanceof Error, renderComponent(() => (
+    <Container>
+      <Layout.Message>
+        <FM {...msg.codeError} />
+      </Layout.Message>
+    </Container>
+  ))),
+  branch((p) => p.result, renderComponent(({ result, copy }) => (
+    <Container>
+      <Code>{result}</Code>
+      <Container.Actions>
+        <RaisedButton
+          onClick={copy}
+          label={<FM {...msg.codeCopy} />}
+        />
+      </Container.Actions>
+    </Container>
+  ))),
+  () => <Working><FM {...msg.codeWorking} /></Working>);

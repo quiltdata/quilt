@@ -17,7 +17,6 @@ import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import * as validators from 'utils/validators';
 
-import * as errors from './errors';
 import msg from './messages';
 import { resetPassword } from './requests';
 // import { authenticated } from './selectors';
@@ -40,13 +39,13 @@ export default composeComponent('Auth.PassReset',
       try {
         await resetPassword(values.toJS().email);
         setDone();
-      } catch(e) {
+      } catch (e) {
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
     },
   }),
-  branch(get('done'), renderComponent(({}) => (
+  branch(get('done'), renderComponent(() => (
     <Container>
       <Layout.Message>
         <FM {...msg.passResetSuccess} />
