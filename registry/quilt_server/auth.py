@@ -69,7 +69,7 @@ def activate_endpoint(link):
     payload = verify_activation_link(link)
     if payload:
         _activate_user(payload['id'])
-        return redirect("{CATALOG_URL}/login".format(CATALOG_URL=CATALOG_URL), code=302)
+        return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
     else:
         response = jsonify({error: "Account activation failed."})
         response.status_code = 400
@@ -87,6 +87,8 @@ def reset_password_endpoint():
     raw_password = data['password']
     link = data['link']
     payload = verify_reset_link(link)
+    if not payload:
+        return {'error': 'Invalid link.'}, 400
     user_id = payload['id']
     try:
         user = get_user_by_id(user_id)
@@ -171,7 +173,10 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ApiException(500, "Internal server error.")
 
     if requires_activation:
-        send_activation_email(user, generate_activation_link(user.id))
+        try:
+            send_activation_email(user, generate_activation_link(user.id))
+        except Exception as e:
+            raise ApiException(500, "Internal server error.")
 
 def _activate_user(user_id):
     user = get_user_by_id(user_id)
