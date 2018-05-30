@@ -1,4 +1,13 @@
-<!-- /README.md and docs/README.md should remain identical copies, by hand (symlinks caused problems) !-->
+<!--
+READ THIS IF YOU ARE EDITING THIS FILE
+* /README.md and docs/README.md should remain identical copies, (symlinks don't work)
+* Do not use relative links (e.g. ./foo.md) in either of these files,
+  as the links will break in one of the two copies. Instead, use links to
+  the files on GitHub
+  (e.g. https://github.com/quiltdata/quilt/blob/master/docs/buildyml.md),
+  which Gitbook correctly interprets as intra-docs links.
+!-->
+
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 
@@ -48,13 +57,19 @@ Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fr
 ### Core commands
 
 ### `build` creates a package
+`build` hashes and serializes data. All data and metadata are tracked in a
+hash-tree that specifies the structure of the package.
 
-Quilt uses [pandas](http://pandas.pydata.org/) to parse tabular file formats into data frames and [pyarrow](https://arrow.apache.org/docs/python/) to serialize data frames to [Parquet format](https://parquet.apache.org/).
+By default:
+* Unstrcutured and semi-structured data are copied "as is"
+* Tabular file formats (like CSV, TSV, XLS, etc.) are parsed with
+[pandas](http://pandas.pydata.org/) and serialized to Parquet with
+[pyarrow](https://arrow.apache.org/docs/python/).
 
-Unstructured data are copied "as is".
+You may override the above defaults, for example if you wish data to remain with the `kwargs` and `transform`
+in CSV format, with the `transform` and `kwargs` keywords in
+[`build.yml`](https://github.com/quiltdata/quilt/blob/master/docs/buildyml.md).
 
-You may use `transform: id` option to store tabular data in their original format
-(e.g. if you do not wish to use Parquet as the storage format).
 
 ### `push` stores a package in a server-side registry
 
