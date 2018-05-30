@@ -204,6 +204,34 @@ class AuthTestCase(QuiltTestCase):
         assert new_password_request.status_code == 200
         assert json.loads(new_password_request.data.decode('utf8')).get('token')
 
+    @patch('quilt_server.auth.send_activation_email')
+    def testActivate(self, send_activation_email):
+        payload = {
+            'username' : 'new_user',
+            'password' : 'password',
+            'email' : 'new_user@quiltdata.io'
+        }
+
+        new_user_request = self.app.post(
+            '/register',
+            headers={'content-type': 'application/json'},
+            data=json.dumps(payload)
+        )
+        assert new_user_request.status_code == 200
+        assert send_activation_email.called
+
+        assert not self.getToken(payload['username'], payload['password'])
+
+        called_user = send_activation_email.call_args[0][0]
+        activate_link = send_activation_email.call_args[0][1]
+
+        activate_request = self.app.get(
+            '/activate/{link}'.format(link=activate_link)
+        )
+
+        assert activate_request.status_code == 302
+        assert self.getToken(payload['username'], payload['password'])
+
     def testGetCode(self):
         token = self.getToken()
         code_request = self.app.get(
@@ -316,8 +344,6 @@ class AuthTestCase(QuiltTestCase):
         assert api_root(new_token).status_code == 200
         assert logout(new_token).status_code == 200
         assert api_root(new_token).status_code == 401
-
-
 
     # password reset emails
     # account creation flow
