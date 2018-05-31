@@ -25,13 +25,15 @@ export const signUp = async (credentials) => {
       if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
       }
+      if (e.status === 400 && e.json && e.json.error === 'Unacceptable email.') {
+        throw new errors.InvalidEmail({ originalError: e });
+      }
       if (e.status === 409 && e.json && e.json.error === 'Username already taken.') {
         throw new errors.UsernameTaken({ originalError: e });
       }
       if (e.status === 409 && e.json && e.json.error === 'Email already taken.') {
         throw new errors.EmailTaken({ originalError: e });
       }
-      // TODO: invalid email?
     }
     throw new errors.AuthError({ originalError: e });
   }

@@ -44,6 +44,9 @@ export default composeComponent('Auth.SignUp',
         if (e instanceof errors.EmailTaken) {
           throw new SubmissionError({ email: 'taken' });
         }
+        if (e instanceof errors.InvalidEmail) {
+          throw new SubmissionError({ email: 'invalid' });
+        }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
@@ -102,6 +105,7 @@ export default composeComponent('Auth.SignUp',
                 }}
               />
             ),
+            invalid: <FM {...msg.signUpEmailInvalid} />,
           }}
         />
         <Field
