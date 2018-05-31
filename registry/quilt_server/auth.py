@@ -12,6 +12,7 @@ from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
+from .const import VALID_EMAIL_RE, VALID_NAME_RE
 from .mail import send_activation_email, send_reset_email
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
 from .name_filter import blacklisted_name
@@ -127,6 +128,10 @@ CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
     def check_conflicts(username, email):
+        if not VALID_NAME_RE.match(username):
+            raise ApiException(400, "Unacceptable username.")
+        if not VALID_EMAIL_RE.match(email):
+            raise ApiException(400, "Unacceptable email.")
         if email is None:
             raise ApiException(400, "Must provide email.")
         # TODO: check email is valid
