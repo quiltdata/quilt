@@ -171,18 +171,7 @@ def _validate_username(username):
 
 @app.route('/login')
 def login():
-    # TODO : handle redirects
-    # TODO : redirect to catalog
-    return render_template('login.html', QUILT_CDN=QUILT_CDN, next='/profile')
-    next = request.args.get('next')
-
-    if not _valid_catalog_redirect(next):
-        return render_template('oauth_fail.html', error="Invalid redirect", QUILT_CDN=QUILT_CDN)
-
-    session = _create_session(next=next)
-    url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
-
-    return redirect(url)
+    return redirect('{CATALOG_URL}/code'.format(CATALOG_URL=CATALOG_URL), code=302)
 
 @app.route('/oauth_callback')
 def oauth_callback():

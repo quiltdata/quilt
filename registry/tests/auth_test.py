@@ -7,11 +7,14 @@ import unittest
 from unittest import mock
 from unittest.mock import patch
 from .utils import QuiltTestCase
+from quilt_server import app
 from quilt_server.models import Code
 from quilt_server.auth import (_create_user, _delete_user, _list_users, get_user, 
         issue_token, encode_code, decode_code, generate_uuid, verify_token_string,
         generate_activation_link, generate_reset_link, verify_activation_link, verify_reset_link
         )
+
+CATALOG_URL = app.config['CATALOG_URL']
 
 class AuthTestCase(QuiltTestCase):
     """
@@ -168,6 +171,13 @@ class AuthTestCase(QuiltTestCase):
         )
         assert activate_response.status_code == 302
         assert activate_response.location[-6:] == 'signin'
+
+    def testLoginRedirectsToCode(self):
+        response = self.app.get(
+            '/login'
+        )
+        assert response.status_code == 302
+        assert response.location == '{CATALOG_URL}/code'.format(CATALOG_URL=CATALOG_URL)
 
     @patch('quilt_server.auth.send_reset_email')
     def testReset(self, send_reset_email):
