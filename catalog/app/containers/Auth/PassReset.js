@@ -1,8 +1,6 @@
 import get from 'lodash/fp/get';
-import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
-// import { connect } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   branch,
@@ -10,16 +8,13 @@ import {
   withStateHandlers,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
-// import { createStructuredSelector } from 'reselect';
 
-// import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import * as validators from 'utils/validators';
 
 import msg from './messages';
 import { resetPassword } from './requests';
-// import { authenticated } from './selectors';
 import * as Layout from './Layout';
 
 
@@ -72,12 +67,10 @@ export default composeComponent('Auth.PassReset',
           }}
         />
         <Layout.Actions>
-          {/* TODO: show spinner */}
-          <RaisedButton
-            type="submit"
-            primary
-            disabled={submitting || (submitFailed && invalid)}
+          <Layout.Submit
             label={<FM {...msg.passResetSubmit} />}
+            disabled={submitting || (submitFailed && invalid)}
+            busy={submitting}
           />
         </Layout.Actions>
         <Layout.Hint>

@@ -1,6 +1,4 @@
 import get from 'lodash/fp/get';
-import RaisedButton from 'material-ui/RaisedButton';
-// import PT from 'prop-types';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
@@ -8,12 +6,10 @@ import { Link, Redirect } from 'react-router-dom';
 import {
   branch,
   renderComponent,
-  // setPropTypes,
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import { createStructuredSelector } from 'reselect';
 
-// import Spinner from 'components/Spinner';
 import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
@@ -84,12 +80,10 @@ export default composeComponent('Auth.SignIn',
           }}
         />
         <Layout.Actions>
-          {/* TODO: show spinner */}
-          <RaisedButton
-            type="submit"
-            primary
-            disabled={submitting || (submitFailed && invalid)}
+          <Layout.Submit
             label={<FM {...msg.signInSubmit} />}
+            disabled={submitting || (submitFailed && invalid)}
+            busy={submitting}
           />
         </Layout.Actions>
         <Layout.Hint>

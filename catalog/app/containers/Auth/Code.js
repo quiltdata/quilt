@@ -24,7 +24,6 @@ import * as Layout from './Layout';
 
 const Container = Layout.mkLayout(<FM {...msg.codeHeading} />);
 
-// TODO: styling
 const Code = styled.div`
   overflow-wrap: break-word;
 `;
@@ -63,12 +62,12 @@ export default composeComponent('Auth.Code',
   branch((p) => p.result, renderComponent(({ result, copy }) => (
     <Container>
       <Code>{result}</Code>
-      <Container.Actions>
+      <Layout.Actions>
         <RaisedButton
           onClick={copy}
           label={<FM {...msg.codeCopy} />}
         />
-      </Container.Actions>
+      </Layout.Actions>
     </Container>
   ))),
   () => <Working><FM {...msg.codeWorking} /></Working>);
