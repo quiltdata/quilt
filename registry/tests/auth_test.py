@@ -19,9 +19,13 @@ class AuthTestCase(QuiltTestCase):
     """
     TEST_USER = 'test_user'
     TEST_PASSWORD = 'beans'
+    TEST_USER_EMAIL = 'test_user@example.com'
     OTHER_USER = 'edwin'
+    OTHER_USER_PASSWORD = 'test'
+    OTHER_USER_EMAIL = 'edwin@example.com'
     TEST_ADMIN = 'admin'
     TEST_ADMIN_PASSWORD = 'quilt'
+    TEST_ADMIN_EMAIL = 'quilt@example.com'
 
     def setUp(self):
         super(AuthTestCase, self).setUp()
@@ -54,13 +58,15 @@ class AuthTestCase(QuiltTestCase):
         assert issue_token(self.TEST_USER)
 
     def testDeleteUser(self):
-        _create_user(self.OTHER_USER, force=True, requires_activation=False)
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
+                force=True, requires_activation=False)
         assert get_user(self.OTHER_USER)
         _delete_user(self.OTHER_USER)
         assert not get_user(self.OTHER_USER)
 
     def testCreateNewUser(self):
-        _create_user(self.OTHER_USER, force=True, requires_activation=False)
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
+                force=True, requires_activation=False)
         assert get_user(self.OTHER_USER)
 
     def testUserExists(self):
@@ -68,7 +74,8 @@ class AuthTestCase(QuiltTestCase):
 
     def testDuplicateUserFails(self):
         try:
-            _create_user(self.TEST_USER, requires_activation=False)
+            _create_user(self.TEST_USER, pasword=self.TEST_PASSWORD,
+                    email=self.TEST_USER_EMAIL, requires_activation=False)
         except:
             return True
         raise Exception('Creating duplicate user failed to raise')
@@ -160,12 +167,14 @@ class AuthTestCase(QuiltTestCase):
             '/activate/{link}'.format(link=link)
         )
         assert activate_response.status_code == 302
+        assert activate_response.location[-6:] == 'signin'
 
     @patch('quilt_server.auth.send_reset_email')
     def testReset(self, send_reset_email):
         user = self.TEST_USER
         email = '{user}{suf}'.format(user=user, suf=self.email_suffix)
         new_password = 'new_password'
+        bad_password = 'bad'
         response = self.app.post(
             '/reset_password',
             headers={'content-type': 'application/json'},
@@ -204,6 +213,16 @@ class AuthTestCase(QuiltTestCase):
         assert new_password_request.status_code == 200
         assert json.loads(new_password_request.data.decode('utf8')).get('token')
 
+        # test link doesn't work twice
+        new_reset_response = self.app.post(
+            '/reset_password',
+            headers={'content-type': 'application/json'},
+            data=json.dumps({'link': reset_link, 'password': bad_password})
+        )
+        assert new_reset_response.status_code != 200
+        assert not self.getToken(user, bad_password)
+
+
     @patch('quilt_server.auth.send_activation_email')
     def testActivate(self, send_activation_email):
         payload = {
@@ -230,6 +249,7 @@ class AuthTestCase(QuiltTestCase):
         )
 
         assert activate_request.status_code == 302
+        assert activate_request.location[-6:] == 'signin'
         assert self.getToken(payload['username'], payload['password'])
 
     def testGetCode(self):

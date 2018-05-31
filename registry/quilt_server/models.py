@@ -214,6 +214,14 @@ class Token(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
 
+class ActivationToken(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, primary_key=True)
+
+class PasswordResetToken(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, primary_key=True)
+
 MAX_COMMENT_LENGTH = 10 * 1024
 
 class Comment(db.Model):

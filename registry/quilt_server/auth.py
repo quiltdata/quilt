@@ -9,10 +9,11 @@ import itsdangerous
 import json
 import jwt
 from passlib.context import CryptContext
+from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
 from .mail import send_activation_email, send_reset_email
-from .models import Code, Token, User
+from .models import ActivationToken, Code, PasswordResetToken, Token, User
 from .name_filter import blacklisted_name
 from .schemas import EMAIL_SCHEMA
 
@@ -69,7 +70,7 @@ def activate_endpoint(link):
     payload = verify_activation_link(link)
     if payload:
         _activate_user(payload['id'])
-        return redirect("{CATALOG_URL}/login".format(CATALOG_URL=CATALOG_URL), code=302)
+        return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
     else:
         response = jsonify({error: "Account activation failed."})
         response.status_code = 400
@@ -87,6 +88,8 @@ def reset_password_endpoint():
     raw_password = data['password']
     link = data['link']
     payload = verify_reset_link(link)
+    if not payload:
+        return {'error': 'Reset token invalid.'}, 401
     user_id = payload['id']
     try:
         user = get_user_by_id(user_id)
@@ -124,16 +127,17 @@ CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}
 def _create_user(username, password='', email=None, is_admin=False,
         first_name=None, last_name=None, force=False, requires_activation=True):
     def check_conflicts(username, email):
+        if email is None:
+            raise ApiException(400, "Must provide email.")
         # TODO: check email is valid
         if blacklisted_name(username):
             raise ApiException(400, "Unacceptable username.")
         existing_user = get_user(username)
         if existing_user and not force:
             raise ApiException(409, "Username already taken.")
-        if email is not None:
-            existing_user_email = get_user_by_email(email)
-            if existing_user_email and not force:
-                raise ApiException(409, "Email already taken.")
+        existing_user_email = get_user_by_email(email)
+        if existing_user_email and not force:
+            raise ApiException(409, "Email already taken.")
 
     check_conflicts(username, email)
 
@@ -446,7 +450,7 @@ def create_admin():
     if not admin_username or not admin_password or not admin_email:
         return
     _create_user(admin_username, password=admin_password, email=admin_email,
-            requires_activation=False, force=True)
+            is_admin=True, requires_activation=False, force=True)
     user = get_user(admin_username)
     _activate_user(user.id)
 
@@ -462,25 +466,86 @@ ACTIVATE_SALT = 'activate'
 PASSWORD_RESET_SALT = 'reset'
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 
+def generate_activation_token(user_id):
+    existing_token = (
+        db.session.query(
+            ActivationToken
+        ).filter(ActivationToken.user_id == user_id)
+        .one_or_none()
+    )
+    at = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
+    db.session.add(at)
+    db.session.commit()
+    return at.token
+
+def consume_activation_token(user_id, token):
+    token = (
+        db.session.query(
+            ActivationToken
+        ).filter(ActivationToken.user_id == user_id)
+        .filter(ActivationToken.token == token)
+        .one_or_none()
+    )
+    if not token:
+        return False
+    db.session.delete(token)
+    db.session.commit()
+    return True
+
+def generate_reset_token(user_id):
+    existing_token = (
+        db.session.query(
+            PasswordResetToken
+        ).filter(PasswordResetToken.user_id == user_id)
+        .one_or_none()
+    )
+    rt = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
+    db.session.add(rt)
+    db.session.commit()
+    return rt.token
+
+def consume_reset_token(user_id, token):
+    token = (
+        db.session.query(
+            PasswordResetToken
+        ).filter(PasswordResetToken.user_id == user_id)
+        .filter(PasswordResetToken.token == token)
+        .one_or_none()
+    )
+    if not token:
+        return False
+    db.session.delete(token)
+    db.session.commit()
+    return True
+
+
 def generate_activation_link(user_id):
-    payload = {'id': user_id}
+    token = generate_activation_token(user_id)
+    payload = {'id': user_id, 'token': token}
     return linkgenerator.dumps(payload, salt=ACTIVATE_SALT)
 
 def generate_reset_link(user_id):
-    payload = {'id': user_id}
+    token = generate_reset_token(user_id)
+    payload = {'id': user_id, 'token': token}
     return linkgenerator.dumps(payload, salt=PASSWORD_RESET_SALT)
 
 def verify_activation_link(link, max_age=None):
     max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        return linkgenerator.loads(link, max_age=max_age, salt=ACTIVATE_SALT)
+        payload = linkgenerator.loads(link, max_age=max_age, salt=ACTIVATE_SALT)
+        if not consume_activation_token(payload['id'], payload['token']):
+            return False
+        return payload
     except:
         return False
 
 def verify_reset_link(link, max_age=None):
     max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        return linkgenerator.loads(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
+        payload = linkgenerator.loads(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
+        if not consume_reset_token(payload['id'], payload['token']):
+            return False
+        return payload
     except:
         return False
 
