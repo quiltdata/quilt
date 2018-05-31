@@ -1,5 +1,4 @@
 import get from 'lodash/fp/get';
-import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { Link } from 'react-router-dom';
@@ -10,7 +9,6 @@ import {
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 
-// import Spinner from 'components/Spinner';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import validate, * as validators from 'utils/validators';
@@ -73,7 +71,11 @@ export default composeComponent('Auth.SignUp',
               <FM
                 {...msg.signUpUsernameTaken}
                 values={{
-                  link: <Link to="/reset_password"><FM {...msg.signUpPassResetHint} /></Link>,
+                  link: (
+                    <Layout.FieldErrorLink to="/reset_password">
+                      <FM {...msg.signUpPassResetHint} />
+                    </Layout.FieldErrorLink>
+                  ),
                 }}
               />
             ),
@@ -92,7 +94,11 @@ export default composeComponent('Auth.SignUp',
               <FM
                 {...msg.signUpEmailTaken}
                 values={{
-                  link: <Link to="/reset_password"><FM {...msg.signUpPassResetHint} /></Link>,
+                  link: (
+                    <Layout.FieldErrorLink to="/reset_password">
+                      <FM {...msg.signUpPassResetHint} />
+                    </Layout.FieldErrorLink>
+                  ),
                 }}
               />
             ),
@@ -131,12 +137,10 @@ export default composeComponent('Auth.SignUp',
           }}
         />
         <Layout.Actions>
-          {/* TODO: show spinner */}
-          <RaisedButton
-            type="submit"
-            primary
-            disabled={submitting || (submitFailed && invalid)}
+          <Layout.Submit
             label={<FM {...msg.signUpSubmit} />}
+            disabled={submitting || (submitFailed && invalid)}
+            busy={submitting}
           />
         </Layout.Actions>
         <Layout.Hint>

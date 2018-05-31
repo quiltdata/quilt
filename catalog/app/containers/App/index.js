@@ -7,7 +7,6 @@ import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
 import Redirect from 'components/Redirect';
-// TODO: use loadable?
 import {
   SignIn,
   SignOut,

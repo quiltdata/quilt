@@ -43,6 +43,7 @@ export default memoize(composeHOC('Auth.Wrapper',
           <span>
             <FM {...msg.wrapperFailureDescription} />
             <RaisedButton
+              style={{ marginLeft: '1em' }}
               onClick={retry}
               label={<FM {...msg.wrapperFailureRetry} />}
             />
