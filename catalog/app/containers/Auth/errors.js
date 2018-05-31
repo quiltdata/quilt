@@ -51,6 +51,14 @@ export class InvalidUsername extends AuthError {
   }
 }
 
+export class InvalidEmail extends AuthError {
+  static displayName = 'InvalidEmail';
+
+  constructor(props) {
+    super(withDefaultMessage('invalid email', props));
+  }
+}
+
 export class InvalidResetLink extends AuthError {
   static displayName = 'InvalidResetLink';
 

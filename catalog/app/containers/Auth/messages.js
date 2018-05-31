@@ -64,6 +64,10 @@ export default defineMessages({
     id: `${scope}.SignUp.emailTaken`,
     defaultMessage: 'This email is already taken. {link}',
   },
+  signUpEmailInvalid: {
+    id: `${scope}.SignUp.emailInvalid`,
+    defaultMessage: 'Enter a valid email address',
+  },
   signUpPassLabel: {
     id: `${scope}.SignUp.passLabel`,
     defaultMessage: 'Password',
