@@ -17,12 +17,12 @@ $ pip install quilt
 ## Linux
 ### Ubuntu
 ```bash
-$ sudo apt-get install libssl-dev
+$ sudo apt-get install libssl-dev # you can skip this line on 18.04
 $ pip install quilt
 ```
 
 ## Fedora
 ```bash
-$ sudo dnf install openssl-devel # you can skip this line on 18.04
+$ sudo dnf install openssl-devel
 $ pip install quilt
 ```
