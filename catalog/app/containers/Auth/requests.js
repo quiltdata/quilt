@@ -28,6 +28,9 @@ export const signUp = async (credentials) => {
       if (e.status === 400 && e.json && e.json.error === 'Unacceptable email.') {
         throw new errors.InvalidEmail({ originalError: e });
       }
+      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+        throw new errors.InvalidPassword({ originalError: e });
+      }
       if (e.status === 409 && e.json && e.json.error === 'Username already taken.') {
         throw new errors.UsernameTaken({ originalError: e });
       }
@@ -173,6 +176,9 @@ export const changePassword = async (link, password) => {
       }
       if (e.status === 400 && e.json && e.json.error === 'Invalid link.') {
         throw new errors.InvalidResetLink({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+        throw new errors.InvalidPassword({ originalError: e });
       }
     }
 

@@ -47,6 +47,9 @@ export default composeComponent('Auth.SignUp',
         if (e instanceof errors.InvalidEmail) {
           throw new SubmissionError({ email: 'invalid' });
         }
+        if (e instanceof errors.InvalidPassword) {
+          throw new SubmissionError({ password: 'invalid' });
+        }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
@@ -117,6 +120,7 @@ export default composeComponent('Auth.SignUp',
           floatingLabelText={<FM {...msg.signUpPassLabel} />}
           errors={{
             required: <FM {...msg.signUpPassRequired} />,
+            invalid: <FM {...msg.signUpPassInvalid} />,
           }}
         />
         <Field

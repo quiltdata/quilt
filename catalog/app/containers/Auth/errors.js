@@ -66,3 +66,11 @@ export class InvalidResetLink extends AuthError {
     super(withDefaultMessage('invalid reset link', props));
   }
 }
+
+export class InvalidPassword extends AuthError {
+  static displayName = 'InvalidPassword';
+
+  constructor(props) {
+    super(withDefaultMessage('invalid password', props));
+  }
+}
