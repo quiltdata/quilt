@@ -87,23 +87,6 @@ pip install --upgrade quilt
 quilt install <your_username>/<your_package>
 ```
 
-## Exception when installing `quilt` on OS X El Capitan
-
-`pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when
-removing the old version of the package:
-
-```
-OSError: [Errno 1] Operation not permitted: '/tmp/pip-zFP4QS-uninstall/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/pyOpenSSL-0.13.1-py2.7.egg-info'
-```
-
-This problem is not specific to `quilt`, and is caused by outdated packages in OS X.
-See [this stackoverflow question](https://stackoverflow.com/questions/31900008/oserror-errno-1-operation-not-permitted-when-installing-scrapy-in-osx-10-11) for more information.
-
-### Solutions
-- Use a virtual environment such as [`conda`](https://conda.io/docs/installation.html) or [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/)
-- Upgrade `pyOpenSSL` using `brew` or `easy_install`
-- Upgrade to a more recent version of OS X
-
 ## `ArrowNotImplementedError` when saving a large dataframe
 
 Unfortunately, this is caused by a [bug in pyarrow](https://github.com/apache/arrow/issues/1300).
