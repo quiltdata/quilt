@@ -23,6 +23,6 @@ $ pip install quilt
 
 ## Fedora
 ```bash
-$ sudo dnf install openssl-devel
+$ sudo dnf install openssl-devel # you can skip this line on 18.04
 $ pip install quilt
 ```
