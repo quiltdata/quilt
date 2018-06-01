@@ -39,6 +39,9 @@ export default composeComponent('Auth.PassChange',
         if (e instanceof errors.InvalidResetLink) {
           throw new SubmissionError({ _error: 'invalid' });
         }
+        if (e instanceof errors.InvalidPassword) {
+          throw new SubmissionError({ password: 'invalid' });
+        }
         captureError(e);
         throw new SubmissionError({ _error: 'unexpected' });
       }
@@ -75,6 +78,7 @@ export default composeComponent('Auth.PassChange',
           floatingLabelText={<FM {...msg.passChangePassLabel} />}
           errors={{
             required: <FM {...msg.passChangePassRequired} />,
+            invalid: <FM {...msg.passChangePassInvalid} />,
           }}
         />
         <Field

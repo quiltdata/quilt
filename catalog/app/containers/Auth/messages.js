@@ -76,6 +76,10 @@ export default defineMessages({
     id: `${scope}.SignUp.passRequired`,
     defaultMessage: 'Enter a password',
   },
+  signUpPassInvalid: {
+    id: `${scope}.SignUp.passInvalid`,
+    defaultMessage: 'Password must be at least 8 characters long',
+  },
   signUpPassCheckLabel: {
     id: `${scope}.SignUp.passCheckLabel`,
     defaultMessage: 'Password check',
@@ -211,6 +215,10 @@ export default defineMessages({
   passChangePassRequired: {
     id: `${scope}.PassChange.passRequired`,
     defaultMessage: 'Enter a password',
+  },
+  passChangePassInvalid: {
+    id: `${scope}.PassChange.passInvalid`,
+    defaultMessage: 'Password must be at least 8 characters long',
   },
   passChangePassCheckLabel: {
     id: `${scope}.PassChange.passCheckLabel`,
