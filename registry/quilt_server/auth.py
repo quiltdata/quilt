@@ -271,10 +271,6 @@ def _disable_user(username):
     else:
         raise Exception("User to disable not found")
 
-def _list_users():
-    users = db.session.query(User).all()
-    return users
-
 def issue_code(username):
     user_id = get_user(username).id
     code = (
