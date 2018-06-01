@@ -1,5 +1,5 @@
 import os
-from flask import request
+from flask import render_template, request
 from flask_mail import Mail, Message
 
 from . import app
@@ -16,14 +16,18 @@ CATALOG_URL = app.config['CATALOG_URL']
 DEFAULT_SENDER = app.config['DEFAULT_SENDER']
 REGISTRY_HOST = app.config['REGISTRY_HOST']
 
-def send_email(recipient, sender, subject, body, reply_to=None, dry_run=False):
+TEAM_ID = app.config['TEAM_ID']
+TEAM_NAME = app.config['TEAM_NAME']
+
+def send_email(recipient, sender, subject, html, body, reply_to=None, dry_run=False):
     if reply_to is None:
         reply_to = sender
 
     message = Message(
             subject=subject, 
             recipients=[recipient], 
-            html=body,
+            html=html,
+            body=body,
             sender=sender
             )
 
@@ -43,20 +47,16 @@ def send_activation_email(user, activation_link):
         '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
         '</body>'
     ).format(link=link)
-    send_email(user.email, DEFAULT_SENDER, 'Activate your Quilt account', body)
+    send_email(recipient=user.email, sender=DEFAULT_SENDER,
+            subject='Activate your Quilt account', html=body)
 
 def send_reset_email(user, reset_link):
     base = CATALOG_URL
     link = '{base}/reset_password/{link}'.format(base=base, link=reset_link)
-    body = (
-        '<head><title></title></head>'
-        '<body>'
-        '<p>Your Quilt password has been reset.</p>'
-        '<p>To set a new password, <a href="{link}">click here in the next 24 hours.</a></p>'
-        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
-        '</body>'
-    ).format(link=link)
-    send_email(user.email, DEFAULT_SENDER, 'Reset your Quilt password', body)
+    html_body = render_template('reset_pw_email.html', link=link, team=TEAM_NAME)
+    text_body = render_template('reset_pw_email.txt', link=link)
+    send_email(recipient=user.email, sender=DEFAULT_SENDER,
+            subject='Reset your Quilt password', html=html_body)
 
 def send_invitation_email(email, owner, package_name):
     body = (

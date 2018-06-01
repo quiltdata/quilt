@@ -9,6 +9,7 @@ See `app.config.from_object('...')` in __init__.py.
 import os
 
 TEAM_ID = os.getenv('TEAM_ID')
+TEAM_NA<E = os.getenv('TEAM_NAME')
 ALLOW_ANONYMOUS_ACCESS = bool(os.getenv('ALLOW_ANONYMOUS_ACCESS', ''))
 ALLOW_TEAM_ACCESS = bool(os.getenv('ALLOW_TEAM_ACCESS', ''))
 
