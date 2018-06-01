@@ -19,9 +19,11 @@
 * [Examples](examples.md)
 
 ## API
+* [Overview](api-overview.md)
 * [Command line](api-cli.md)
 * [Python](api-python.md)
 * [build.yml](buildyml.md)
+* [quilt.yml requirements](quiltyml.md)
 * [Teams](api-teams.md)
 * [R](api-r.md)
 
