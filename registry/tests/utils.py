@@ -70,6 +70,11 @@ class QuiltTestCase(TestCase):
         self.token_verify_mock = mock.patch('quilt_server.views.verify_token_string', mock_verify)
         self.token_verify_mock.start()
 
+        # disable 8 character restriction for passwords
+        self.validate_password_mock = mock.patch('quilt_server.auth.validate_password',
+                lambda x: True)
+        self.validate_password_mock.start()
+
 
         self.app = quilt_server.app.test_client()
         quilt_server.app.config['TESTING'] = True

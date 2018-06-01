@@ -79,6 +79,11 @@ def activate_endpoint(link):
 
 CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
+def validate_password(password):
+    if len(password) < 8:
+        raise ApiException(400, "Password must be at least 8 characters long.")
+    return True
+
 @app.route('/reset_password', methods=['POST'])
 @as_json
 def reset_password_endpoint():
@@ -87,6 +92,7 @@ def reset_password_endpoint():
         return reset_password_from_email(data['email'])
     # try reset request
     raw_password = data['password']
+    validate_password(raw_password)
     link = data['link']
     payload = verify_reset_link(link)
     if not payload:
@@ -145,6 +151,7 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ApiException(409, "Email already taken.")
 
     check_conflicts(username, email)
+    validate_password(password)
 
     existing_user = get_user(username)
 
