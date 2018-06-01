@@ -7,6 +7,7 @@ injectGlobal`
   html,
   body {
     background-color: ${backgroundColor};
+    cursor: auto;
     text-rendering: optimizeLegibility;
     height: 100%;
     width: 100%;

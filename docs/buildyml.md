@@ -1,4 +1,5 @@
 # `build.yml` structure and options
+
 A `build.yml` file specifies the structure, type, and names for package contents.
 
 Below is the general syntax of the `build.yml` file:
@@ -97,7 +98,7 @@ By default, `quilt build` converts some file types (e.g., csv, tsv) to Pandas Da
 
 See also [dtypes](https://docs.scipy.org/doc/numpy/reference/arrays.dtypes.html).
 
-## Glob / Wildcard matching
+## Glob and wildcard matching
 If a string containing wildcards is used as a node name, it will be matched
 against the build directory.  The filename of any matching path, minus the
 extension, will be used as the nodename. As when specifying a single data node,
@@ -120,5 +121,3 @@ Finally, if matching results in identical node names, the nodes are renamed in a
 manner (paths are sorted lexicographically), and any duplicate names are numbered.  So for
 files "foo.txt" and "subdir/foo.txt", the result is "foo" (from foo.txt) and "foo_2" (from
 "subdir/foo.txt").  The naming behavior is consistent across platforms.
-***
-

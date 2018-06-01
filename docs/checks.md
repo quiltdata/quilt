@@ -9,7 +9,6 @@ Checks can be used to prevent model drift and data deployment errors that result
 - [ ] print offending line number when a check fails
 - [ ] allow package users (other than the owner) to see checks and `build.yml` source
 
-
 ## Syntax
 - Checks are defined in a top-level dictionary called `checks:`
 - `qc.data` is an automatic variable that contains the node's data in pandas data frame
@@ -27,7 +26,7 @@ Checks can be used to prevent model drift and data deployment errors that result
 | `check_column_substr(COL_REGEX, SUBSTR)` | Check that all column values contain substing `SUBSTR` |
 | ~~`check_column_datetime(COL_REGEX, FORMAT)`~~ | Not yet supported. Check that all column datetimes conform to [`FORMAT`](https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior) |
 
->  `COL_REGEX` is a string literal or regular expression that matches one or more columns; the corresponding check is applied to each matching column
+> `COL_REGEX` is a string literal or regular expression that matches one or more columns; the corresponding check is applied to each matching column
 
 
 ## Example

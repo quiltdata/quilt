@@ -1,1 +1,0 @@
-Jupyter uses the [Python API](./python.md). See our GitHub account for a [sample Jupyter notebook with Quilt](https://github.com/quiltdata/examples/blob/master/Examples.ipynb).

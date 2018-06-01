@@ -46,7 +46,7 @@ export class Gallery extends React.PureComponent {
           key={handle}
           team={Boolean(config.team)}
         >
-          <h1>{makeHandle(owner, name)}</h1>
+          <h4>{makeHandle(owner, name)}</h4>
           <p>{body}</p>
         </Card>
       );
@@ -86,6 +86,7 @@ const Card = styled.div`
 
   &:hover, &:focus {
     background-color: #efefef;
+    cursor: pointer;
   }
 
   &, &:visited, &:hover, &:focus {
@@ -93,7 +94,7 @@ const Card = styled.div`
     text-decoration: none; /* No underlines on the link */
   }
 
-  h1 {
+  h4 {
     font-size: 1em;
   }
 
