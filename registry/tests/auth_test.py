@@ -124,6 +124,21 @@ class AuthTestCase(QuiltTestCase):
         new_exp = self.decodeToken(new_token).get('exp')
         assert new_exp > exp
 
+        # test re-creating user doesn't invalidate tokens
+        _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
+                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
+                force=True, requires_activation=False)
+
+        auth_headers = {
+            'Authorization': new_token,
+            'content-type': 'application/json'
+        }
+        api_root_request = self.app.get(
+            '/api-root',
+            headers=auth_headers
+        )
+        assert api_root_request.status_code == 200
+
     def testActivationLink(self):
         link = generate_activation_link(self.TEST_USER_ID)
         assert verify_activation_link(link)
