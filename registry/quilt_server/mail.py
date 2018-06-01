@@ -57,3 +57,16 @@ def send_reset_email(user, reset_link):
         '</body>'
     ).format(link=link)
     send_email(user.email, DEFAULT_SENDER, 'Reset your Quilt password', body)
+
+def send_invitation_email(email, owner, package_name):
+    body = (
+        "{owner} shared data with you on Quilt.\n"
+        "{owner}/{pkg}\n"
+        "Sign up to access the data.\n"
+    ).format(owner=owner, pkg=package_name)
+    subject = "{owner} shared data with you on Quilt".format(owner=owner)
+    try:
+        send_email(recipient=email, body=body, sender=DEFAULT_SENDER, subject=subject)
+        return {}
+    except:
+        raise ApiException(requests.codes.server_error, "Server error")

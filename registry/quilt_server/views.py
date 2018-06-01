@@ -46,7 +46,7 @@ from .auth import (_delete_user, consume_code_string, get_exp, get_user, issue_c
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .mail import send_email
+from .mail import send_invitation_email
 from .models import (Access, Code, Comment, Customer, Event, Instance, 
         InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, Token, User, Version)
 from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
@@ -1620,20 +1620,7 @@ def access_put(owner, package_name, user):
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
-
-        # TODO: prettify this email, add sign up link
-        body = (
-            "{owner} shared data with you on Quilt.\n"
-            "{owner}/{pkg}\n"
-            "Sign up to access the data.\n"
-        ).format(owner=owner, pkg=package_name)
-        subject = "{owner} shared data with you on Quilt".format(owner=owner)
-
-        try:
-            send_email(recipient=email, body=body, sender='support@quiltdata.io', subject=subject)
-            return {}
-        except:
-            raise ApiException(requests.codes.server_error, "Server error")
+        return send_invitation_email(email, owner, package_name)
 
     else:
         _validate_username(user)
