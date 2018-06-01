@@ -9,7 +9,7 @@ from unittest.mock import patch
 from .utils import QuiltTestCase
 from quilt_server import app
 from quilt_server.models import Code
-from quilt_server.auth import (_create_user, _delete_user, _list_users, get_user, 
+from quilt_server.auth import (_create_user, _delete_user, get_user, 
         issue_token, encode_code, decode_code, generate_uuid, verify_token_string,
         generate_activation_link, generate_reset_link, verify_activation_link, verify_reset_link
         )
@@ -82,9 +82,6 @@ class AuthTestCase(QuiltTestCase):
         except:
             return True
         raise Exception('Creating duplicate user failed to raise')
-
-    def testListUsers(self):
-        _list_users()
 
     def testLoginUserPass(self):
         token = self.getToken()
