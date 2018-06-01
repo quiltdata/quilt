@@ -3,10 +3,7 @@ import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
 import { Link, Redirect } from 'react-router-dom';
-import {
-  branch,
-  renderComponent,
-} from 'recompose';
+import { branch, renderComponent } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 import { createStructuredSelector } from 'reselect';
 
