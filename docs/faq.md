@@ -152,7 +152,7 @@ new_data = pkg.big_data()
 assert new_data.equals(data)
 ```
 
-### Exporting to symbolic links on Windows doesn't work
+## Exporting to symbolic links on Windows doesn't work
 
 Symbolic links on Windows have a few quirks to be aware of.
 
@@ -172,3 +172,10 @@ Symbolic links on Windows have a few quirks to be aware of.
     * `fsutil`: *For advanced users only.*  See the [Microsoft documentation on fsutil](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/cc753059(v=ws.11))
       * `fsutil behavior query SymlinkEvaluation` will display the current state of symlink evaluation
       * Use `fsutil behavior set SymlinkEvaluation R2R:1` to enable (for example) remote-to-remote symlinks
+      
+      
+ ## `Segmentation fault (core dumped)`
+ Seen on Ubuntu 18.04, Google Cloud Platform.
+ 
+ ### Solution
+ `sudo pip install quilt` # ¯\_(ツ)_/¯
