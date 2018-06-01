@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>{{ team_name }}</title>
+  <style type="text/css">
+  #outer {
+    max-width: 600px;
+    margin: 0 auto;
+    font-family: Helvetica, sans-serif;
+  }
+  #inner {
+    padding: 0 15px;
+  }
+  p {
+    color: #202020;
+    font-size: 16px;
+    line-height: 150%;
+  }
+  #video-container {
+    margin-bottom: 20px;
+    background-color: #404040;
+    color: #F2F2F2;
+    text-align: center;
+  }
+  #video {
+    width: 570px;
+    vertical-align: bottom;
+    color: #F2F2F2;
+  }
+  #title {
+    padding: 9px 18px;
+    font-size: 14px;
+  }
+  .code {
+    background-color: #ddd;
+    font-family: monospace;
+  }
+  .line {
+    height: 1px;
+    border-top: 2px solid #EEEEEE;
+  }
+  #copyright {
+    margin-top: 20px;
+    color: #656565;
+    text-align: center;
+    font-size: 12px;
+  }
+  </style>
+</head>
+<body>
+  <div id="outer">
+    <div id="inner">
+      <p>Welcome to {% if team_id %}Quilt Team Edition{% else %}Quilt{% endif %}.</p>
+{% if needsreset %}
+      <p>To get started, <a href="{{ authurl }}{{ reseturl }}">click here to set your password</a>.</p>
+{% endif %}
+{% if team_id %}
+      <p>Your team id is "{{ team_id }}". Your team data catalog is available at <a href="{{frontend}}">{{frontend}}</a>. To use Quilt on the command line, <a href="https://docs.quiltdata.com/installation.html">install Quilt</a>, then type <span class="code">$ quilt login {{ team_id }}</span>.</p>
+{% endif %}
+      <p>
+        Quilt versions, packages, and deploys data so that your workflows are fast, reproducible, and auditable. Below is a brief video to get you started.
+{% if team_id %}
+        Quilt Team Edition features a dedicated registry with enhanced auditing and security.
+{% endif %}
+      </p>
+      <p>
+        Visit the <a href="https://docs.quiltdata.com">docs</a> to learn more.
+        If you have any questions, simply reply to this email.
+      </p>
+      <div id="video-container">
+        <div><a href="https://www.youtube.com/watch?v=bKIV1GUVLPc" clicktracking="off" target="_blank"><img id="video" src="https://d1zvn9rasera71.cloudfront.net/intro-video-thumb.png" alt="Video" /></a></div>
+        <div id="title">Introduction to Quilt</div>
+      </div>
+    </div>
+
+    <div class="line"></div>
+
+    <div id="copyright"><em>Copyright &copy; 2017 Quilt Data, Inc. All rights reserved.</em></div>
+  </div>
+</body>
+</html>

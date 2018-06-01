@@ -1,0 +1,5 @@
+Your Quilt password has been reset.
+
+Click here to set your new password: {{ link }}.
+
+Copyright &copy; 2018 Quilt Data, Inc. All rights reserved.
