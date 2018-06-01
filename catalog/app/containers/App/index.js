@@ -1,12 +1,12 @@
 /* App */
 import id from 'lodash/identity';
 import React from 'react';
-import { Switch, Route } from 'react-router-dom';
+import { Switch, Route, Redirect } from 'react-router-dom';
 
 import CoreLF from 'components/CoreLF';
 import Footer from 'components/Footer';
 import { Pad } from 'components/LayoutHelpers';
-import Redirect from 'components/Redirect';
+import ExternalRedirect from 'components/Redirect';
 import {
   SignIn,
   SignOut,
@@ -46,6 +46,10 @@ const ProtectedSearch = requireAuthIfConfigured(SearchResults);
 const ProtectedNotFound = requireAuthIfConfigured(NotFoundPage);
 const ProtectedCode = requireAuth(Code);
 
+// eslint-disable-next-line react/prop-types
+const redirectTo = (path) => ({ location: { search } }) =>
+  <Redirect to={`${path}${search}`} />;
+
 export default composeComponent('App',
   injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
@@ -58,13 +62,14 @@ export default composeComponent('App',
           <Route path="/package/:owner/:name" exact component={ProtectedPackage} />
           <Route path="/package/:username" exact component={ProtectedUser} />
           <Route path="/user/:username" exact component={ProtectedUser} />
-          <Route path="/grna-search" exact render={() => <Redirect url={grnaUrl} />} />
+          <Route path="/grna-search" exact render={() => <ExternalRedirect url={grnaUrl} />} />
           <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
           <Route path="/search" exact component={ProtectedSearch} />
 
           <Route path="/code" exact component={ProtectedCode} />
 
           <Route path="/signin" exact component={SignIn} />
+          <Route path="/login" exact render={redirectTo('/signin')} />
           <Route path="/signup" exact component={SignUp} />
           <Route path="/signout" exact component={SignOut} />
           <Route path="/reset_password" exact component={PassReset} />
