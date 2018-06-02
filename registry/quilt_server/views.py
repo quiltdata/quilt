@@ -1620,7 +1620,8 @@ def access_put(owner, package_name, user):
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
-        return send_invitation_email(email, owner, package_name)
+        send_invitation_email(email, owner, package_name)
+        return {}
 
     else:
         _validate_username(user)

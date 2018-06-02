@@ -2,7 +2,8 @@ import os
 from flask import render_template, request
 from flask_mail import Mail, Message
 
-from . import app
+from . import app, db
+from .models import User
 
 app.config['MAIL_SERVER'] = os.getenv('SMTP_HOST')
 app.config['MAIL_USERNAME'] = os.getenv('SMTP_USERNAME')
@@ -19,13 +20,16 @@ REGISTRY_HOST = app.config['REGISTRY_HOST']
 TEAM_ID = app.config['TEAM_ID']
 TEAM_NAME = app.config['TEAM_NAME']
 
-def send_email(recipient, sender, subject, html, body, reply_to=None, dry_run=False):
+def send_email(recipient, sender, subject, html, body=None, reply_to=None, dry_run=False):
     if reply_to is None:
         reply_to = sender
 
+    if not isinstance(recipient, list):
+        recipient = [recipient]
+
     message = Message(
             subject=subject, 
-            recipients=[recipient], 
+            recipients=recipient, 
             html=html,
             body=body,
             sender=sender
@@ -56,7 +60,7 @@ def send_reset_email(user, reset_link):
     html_body = render_template('reset_pw_email.html', link=link, team=TEAM_NAME)
     text_body = render_template('reset_pw_email.txt', link=link)
     send_email(recipient=user.email, sender=DEFAULT_SENDER,
-            subject='Reset your Quilt password', html=html_body)
+            subject='Reset your Quilt password', html=html_body, body=text_body)
 
 def send_invitation_email(email, owner, package_name):
     body = (
@@ -66,7 +70,16 @@ def send_invitation_email(email, owner, package_name):
     ).format(owner=owner, pkg=package_name)
     subject = "{owner} shared data with you on Quilt".format(owner=owner)
     try:
-        send_email(recipient=email, body=body, sender=DEFAULT_SENDER, subject=subject)
-        return {}
+        send_email(recipient=email, html=body, sender=DEFAULT_SENDER, subject=subject)
     except:
         raise ApiException(requests.codes.server_error, "Server error")
+
+def send_user_signup_email(username, email):
+    recipients = (
+        db.session.query(
+            User.email
+        ).filter(User.is_admin == True)
+        .all()
+    )
+    recipients = [r[0] for r in recipients] # flatten out tuples
+    return {}
