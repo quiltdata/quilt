@@ -85,7 +85,11 @@ def send_new_user_email(username, email):
             user=username, email=email, authurl=CATALOG_URL)
     send_email(recipient=recipients, sender=DEFAULT_SENDER, subject=subject,
             html=html, body=body)
-    return {}
 
 def send_welcome_email(username, email):
-    pass
+    subject = "Welcome to Quilt"
+    html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
+            frontend=CATALOG_URL, needsreset=False)
+    body = render_template('welcome_email.txt')
+    send_email(recipient=email, sender=DEFAULT_SENDER, subject=subject,
+            html=html, body=body)
