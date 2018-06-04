@@ -90,6 +90,7 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                     temp_path_gz = store.temporary_object_path(obj_hash + '.gz')
                     with open(temp_path_gz, 'ab') as output_file:
+                        original_last_update = 0
                         for attempt in range(S3_TIMEOUT_RETRIES):
                             try:
                                 starting_length = output_file.tell()
@@ -132,7 +133,7 @@ def download_fragments(store, obj_urls, obj_sizes):
                                     compressed_read = starting_length
                                     original_read = compressed_read * original_size // compressed_size
                                     with lock:
-                                        progress.update(original_read)
+                                        progress.update(original_read - original_last_update)
                                     original_last_update = original_read
 
                                     # Do the actual download.
