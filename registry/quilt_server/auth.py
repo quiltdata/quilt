@@ -196,6 +196,7 @@ def _activate_user(user_id):
     user.is_active = True
     db.session.add(user)
     db.session.commit()
+    send_new_user_email(user.name, user.email)
 
 def get_code(user_id):
     code = (
