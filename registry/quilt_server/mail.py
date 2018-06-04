@@ -74,7 +74,7 @@ def send_invitation_email(email, owner, package_name):
     except:
         raise ApiException(requests.codes.server_error, "Server error")
 
-def send_user_signup_email(username, email):
+def send_new_user_email(username, email):
     recipients = (
         db.session.query(
             User.email
@@ -82,4 +82,14 @@ def send_user_signup_email(username, email):
         .all()
     )
     recipients = [r[0] for r in recipients] # flatten out tuples
+    subject = "New Quilt User: {user}".format(user=username)
+    html = render_template('new_user_activated.html', team=TEAM_ID,
+            user=username, email=email, authurl=CATALOG_URL)
+    body = render_template('new_user_activated.txt', team=TEAM_ID,
+            user=username, email=email, authurl=CATALOG_URL)
+    send_email(recipient=recipients, sender=DEFAULT_SENDER, subject=subject,
+            html=html, body=body)
     return {}
+
+def send_welcome_email(username, email):
+    pass

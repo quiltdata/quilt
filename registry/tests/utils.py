@@ -86,13 +86,17 @@ class QuiltTestCase(TestCase):
 
         self.email_suffix = '@example.com'
 
-        _create_user('test_user', email='test_user@example.com',
+        self.TEST_USER = 'test_user'
+        self.TEST_USER_EMAIL = 'test_user@example.com'
+        self.OTHER_USER = 'share_with'
+        self.OTHER_USER_EMAIL = 'share_with@example.com'
+        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL,
                 requires_activation=False, force=True)
         _create_user('admin', email='admin@example.com',
                 requires_activation=False, is_admin=True, force=True)
         _create_user('bad_user', email='bad_user@example.com',
                 requires_activation=False, force=True)
-        _create_user('share_with', email='share_with@example.com',
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
                 requires_activation=False, force=True)
         _create_user('user1', email='user1@example.com', password='user1',
                 requires_activation=False, force=True)
