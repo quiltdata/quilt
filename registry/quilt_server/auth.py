@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
 from .const import VALID_EMAIL_RE, VALID_NAME_RE
-from .mail import send_activation_email, send_reset_email
+from .mail import send_activation_email, send_reset_email, send_new_user_email
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
 from .name_filter import blacklisted_name
 from .schemas import EMAIL_SCHEMA
