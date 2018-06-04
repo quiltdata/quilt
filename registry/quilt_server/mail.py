@@ -43,24 +43,18 @@ def send_email(recipient, sender, subject, html, body=None, reply_to=None, dry_r
 def send_activation_email(user, activation_link):
     base = REGISTRY_HOST
     link = '{base}/activate/{link}'.format(base=base, link=activation_link)
-    body = (
-        '<head><title></title></head>'
-        '<body>'
-        '<p>You recently signed up for Quilt.</p>'
-        '<p>To activate your account, <a href="{link}">click here in the next 24 hours.</a></p>'
-        '<p>Sincerely, <a href="https://quiltdata.com">Quilt Data</a></p>'
-        '</body>'
-    ).format(link=link)
+    html = render_template('activation_email.html', link=link, team=TEAM_ID)
+    body = render_template('activation_email.txt', link=link, team=TEAM_ID)
     send_email(recipient=user.email, sender=DEFAULT_SENDER,
-            subject='Activate your Quilt account', html=body)
+            subject='Activate your Quilt account', html=html, body=body)
 
 def send_reset_email(user, reset_link):
     base = CATALOG_URL
     link = '{base}/reset_password/{link}'.format(base=base, link=reset_link)
-    html_body = render_template('reset_pw_email.html', link=link, team=TEAM_NAME)
-    text_body = render_template('reset_pw_email.txt', link=link)
+    html = render_template('reset_pw_email.html', link=link, team=TEAM_NAME)
+    body = render_template('reset_pw_email.txt', link=link)
     send_email(recipient=user.email, sender=DEFAULT_SENDER,
-            subject='Reset your Quilt password', html=html_body, body=text_body)
+            subject='Reset your Quilt password', html=html, body=body)
 
 def send_invitation_email(email, owner, package_name):
     body = (
@@ -69,8 +63,10 @@ def send_invitation_email(email, owner, package_name):
         "Sign up to access the data.\n"
     ).format(owner=owner, pkg=package_name)
     subject = "{owner} shared data with you on Quilt".format(owner=owner)
+    html = render_template('invitation_email.html', owner=owner, pkg=package_name)
+    body = render_template('invitation_email.txt', owner=owner, pkg=package_name)
     try:
-        send_email(recipient=email, html=body, sender=DEFAULT_SENDER, subject=subject)
+        send_email(recipient=email, html=html, body=body, sender=DEFAULT_SENDER, subject=subject)
     except:
         raise ApiException(requests.codes.server_error, "Server error")
 
