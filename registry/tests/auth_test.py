@@ -11,7 +11,8 @@ from quilt_server import app
 from quilt_server.models import Code
 from quilt_server.auth import (_create_user, _delete_user, get_user, 
         issue_token, encode_code, decode_code, generate_uuid, verify_token_string,
-        generate_activation_link, generate_reset_link, verify_activation_link, verify_reset_link
+        generate_activation_link, generate_reset_link, verify_activation_link,
+        verify_reset_link, verify_hash
         )
 
 CATALOG_URL = app.config['CATALOG_URL']
@@ -386,6 +387,11 @@ class AuthTestCase(QuiltTestCase):
         assert api_root(new_token).status_code == 200
         assert logout(new_token).status_code == 200
         assert api_root(new_token).status_code == 401
+
+    def testMigratePasswordsWillWork(self):
+        old_pw = 'quilt'
+        old_pw_hash = 'pbkdf2_sha256$20000$PEZ6yGDDm4LK$Jx9/lOYmgbELXywYYrySjTkc1yBcpZM4fUjRtI8ajRA='
+        assert verify_hash(old_pw, old_pw_hash)
 
     # password reset emails
     # account creation flow

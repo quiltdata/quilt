@@ -20,7 +20,7 @@ from .schemas import EMAIL_SCHEMA
 
 CATALOG_URL = app.config['CATALOG_URL']
 
-pwd_context = CryptContext(schemes=['pbkdf2_sha512'],
+pwd_context = CryptContext(schemes=['pbkdf2_sha512', 'django_pbkdf2_sha256'],
         pbkdf2_sha512__default_rounds=500000)
 # Each round should take about half a second, 
 # 500000 rounds experimentally determined
