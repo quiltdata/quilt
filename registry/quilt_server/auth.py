@@ -120,6 +120,8 @@ def reset_password_from_email(email):
 @as_json
 def register_endpoint():
     data = request.get_json()
+    if app.config['DISABLE_SIGNUP']:
+        raise ApiException(400, "Signup is disabled.")
     username = data['username']
     password = data['password']
     email = data['email']
