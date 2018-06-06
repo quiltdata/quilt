@@ -86,10 +86,11 @@ def send_new_user_email(username, email):
     send_email(recipient=recipients, sender=DEFAULT_SENDER, subject=subject,
             html=html, body=body)
 
-def send_welcome_email(username, email):
+def send_welcome_email(username, email, link=None):
     subject = "Welcome to Quilt"
     html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
-            frontend=CATALOG_URL, needsreset=False)
-    body = render_template('welcome_email.txt')
+            frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+    body = render_template('welcome_email.txt', team_id=TEAM_ID, team_name=TEAM_NAME,
+            frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
     send_email(recipient=email, sender=DEFAULT_SENDER, subject=subject,
             html=html, body=body)

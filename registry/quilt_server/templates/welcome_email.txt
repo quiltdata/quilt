@@ -1,6 +1,6 @@
 Welcome to {% if team_id %}Quilt Team Edition{% else %}Quilt{% endif %}.
 {% if needsreset %}
-To get started, click here to set your password: {{ authurl }}{{ reseturl }}.
+To get started, click here to set your password: {{ reseturl }}.
 {% endif %}
 {% if team_id %}
 Your team id is "{{ team_id }}". Your team data catalog is available at {{frontend}}. To use Quilt on the command line, install Quilt (https://docs.quiltdata.com/installation.html) then type `$ quilt login {{ team_id }}`.

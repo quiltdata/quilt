@@ -52,7 +52,7 @@
     <div id="inner">
       <p>Welcome to {% if team_id %}Quilt Team Edition{% else %}Quilt{% endif %}.</p>
 {% if needsreset %}
-      <p>To get started, <a href="{{ authurl }}{{ reseturl }}">click here to set your password</a>.</p>
+      <p>To get started, <a href="{{ reseturl }}">click here to set your password</a>.</p>
 {% endif %}
 {% if team_id %}
       <p>Your team id is "{{ team_id }}". Your team data catalog is available at <a href="{{frontend}}">{{frontend}}</a>. To use Quilt on the command line, <a href="https://docs.quiltdata.com/installation.html">install Quilt</a>, then type <span class="code">$ quilt login {{ team_id }}</span>.</p>

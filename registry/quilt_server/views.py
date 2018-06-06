@@ -40,7 +40,8 @@ import stripe
 from . import ApiException, app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_delete_user, consume_code_string, get_exp, get_user, issue_code, try_as_code,
-        issue_token, issue_token_by_id, try_login, verify_token_string, reset_password, exp_from_token,
+        issue_token, issue_token_by_id, try_login, verify_token_string,
+        reset_password, exp_from_token, _create_user,
         _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
         verify_activation_link, verify_reset_link)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
@@ -2128,55 +2129,12 @@ def list_users_detailed():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_EMAIL_SCHEMA)
 @as_json
 def create_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
     data = request.get_json()
     username = data['username']
     _validate_username(username)
-
-    resp = auth_session.post(user_create_api, headers=auth_headers,
-        data=json.dumps({
-            "username": username,
-            "first_name": "",
-            "last_name": "",
-            "email": data['email'],
-            "is_superuser": False,
-            "is_staff": False,
-            "is_active": True,
-            "last_login": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            requests.codes.not_found,
-            "Cannot create user"
-            )
-
-    if resp.status_code == requests.codes.bad:
-        if resp.text == '{"email":["Enter a valid email address."]}':
-            raise ApiException(
-                requests.codes.bad,
-                "Please enter a valid email address."
-                )
-
-        raise ApiException(
-            requests.codes.bad,
-            "Bad request. Maybe there's already a user with the username you provided?"
-            )
-
-    elif resp.status_code != requests.codes.created:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    email = data['email']
+    _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
+    return {}, 200
 
 @app.route('/api/users/disable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)

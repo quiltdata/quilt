@@ -13,7 +13,8 @@ from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
 from .const import VALID_EMAIL_RE, VALID_NAME_RE
-from .mail import send_activation_email, send_reset_email, send_new_user_email
+from .mail import (send_activation_email, send_reset_email, send_new_user_email,
+        send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
 from .name_filter import blacklisted_name
 from .schemas import EMAIL_SCHEMA
@@ -134,7 +135,8 @@ def register_endpoint():
 CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def _create_user(username, password='', email=None, is_admin=False,
-        first_name=None, last_name=None, force=False, requires_activation=True):
+        first_name=None, last_name=None, force=False,
+        requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_NAME_RE.match(username):
             raise ApiException(400, "Unacceptable username.")
@@ -157,6 +159,8 @@ def _create_user(username, password='', email=None, is_admin=False,
 
     existing_user = get_user(username)
 
+    new_password = "" if requires_reset else hash_password(password)
+
     if requires_activation:
         is_active = False
     else:
@@ -164,7 +168,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     if existing_user:
         user = existing_user
         user.name = username
-        user.password = hash_password(password)
+        user.password = new_password
         user.email = email
         user.first_name = first_name
         user.last_name = last_name
@@ -174,7 +178,7 @@ def _create_user(username, password='', email=None, is_admin=False,
         user = User(
                 id=generate_uuid(),
                 name=username,
-                password=hash_password(password),
+                password=new_password,
                 email=email,
                 first_name=first_name,
                 last_name=last_name,
