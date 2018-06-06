@@ -58,7 +58,7 @@ def get_user_by_email(email):
     return user
 
 def set_unusable_password(username):
-    user = get_user(username)
+    user = User.get_by_name(username)
     user.password = ''
     db.session.add(user)
     db.session.commit()
@@ -100,7 +100,7 @@ def reset_password_endpoint():
         return {'error': 'Reset token invalid.'}, 401
     user_id = payload['id']
     try:
-        user = get_user_by_id(user_id)
+        user = User.get_by_id(user_id)
     except:
         return {'error': 'User not found.'}, 404
     user.password = hash_password(raw_password)
@@ -111,7 +111,7 @@ def reset_password_endpoint():
 CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def reset_password_from_email(email):
-    user = get_user_by_email(email)
+    user = User.get_by_email(email)
     if not user:
         # User not found. Return 200 anyway to avoid allowing people to enumerate emails
         return {}
@@ -157,7 +157,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     check_conflicts(username, email)
     validate_password(password)
 
-    existing_user = get_user(username)
+    existing_user = User.get_by_name(username)
 
     new_password = "" if requires_reset else hash_password(password)
 
@@ -195,8 +195,11 @@ def _create_user(username, password='', email=None, is_admin=False,
     if requires_activation:
         send_activation_email(user, generate_activation_link(user.id))
 
+    if requires_reset:
+        send_welcome_email(user, user.email, generate_reset_link(user.id))
+
 def _activate_user(user_id):
-    user = get_user_by_id(user_id)
+    user = User.get_by_id(user_id)
     if user is None:
         raise Exception("User not found")
     user.is_active = True
@@ -248,7 +251,7 @@ def revoke_user_code_tokens(user_id):
         db.session.delete(token)
 
 def _delete_user(username):
-    user = get_user(username)
+    user = User.get_by_name(username)
     if user:
         db.session.delete(user)
     else:
@@ -258,7 +261,7 @@ def _delete_user(username):
     return user
 
 def _enable_user(username):
-    user = get_user(username)
+    user = User.get_by_name(username)
     if user:
         user.is_active = True
         db.session.add(user)
@@ -268,7 +271,7 @@ def _enable_user(username):
         raise Exception("User to enable not found")
 
 def _disable_user(username):
-    user = get_user(username)
+    user = User.get_by_name(username)
     if user:
         user.is_active = False
         db.session.add(user)
@@ -279,7 +282,7 @@ def _disable_user(username):
         raise Exception("User to disable not found")
 
 def issue_code(username):
-    user_id = get_user(username).id
+    user_id = User.get_by_name(username).id
     code = (
         db.session.query(
             Code
@@ -313,7 +316,7 @@ def try_as_code(code_str):
         .one_or_none()
     )
     if found:
-        return get_user_by_id(code['id'])
+        return User.get_by_id(code['id'])
     else:
         return False
 
@@ -335,7 +338,7 @@ def check_token(user_id, token_id):
 def _verify(payload):
     user_id = payload['id']
     uuid = payload['uuid']
-    user = get_user_by_id(user_id)
+    user = User.get_by_id(user_id)
     if user is None:
         raise Exception('User ID invalid')
 
@@ -391,7 +394,7 @@ def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
 
 def issue_token(username, exp=None):
-    user_id = get_user(username).id
+    user_id = User.get_by_name(username).id
     return issue_token_by_id(user_id, exp)
 
 def issue_token_by_id(user_id, exp=None):
@@ -466,7 +469,7 @@ def create_admin():
         return
     _create_user(admin_username, password=admin_password, email=admin_email,
             is_admin=True, requires_activation=False, force=True)
-    user = get_user(admin_username)
+    user = User.get_by_name(admin_username)
     _activate_user(user.id)
 
 app.before_first_request(create_admin)
