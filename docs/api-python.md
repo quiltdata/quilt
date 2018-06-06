@@ -105,15 +105,18 @@ pkg = wine._filter(lambda node, name: node._meta.get('_system', {}).get('filepat
 ## Export a package or subpackage
 
 ###  `quilt.export("USER/PACKAGE")`
-Export data to current dir
+Export data to current directory.
 
 ###  `quilt.export("USER/PACKAGE", "DEST")`
-Export data to specified destination
+Export data to specified destination.
 
 ###  `quilt.export("USER/PACKAGE", "DEST", force=True)`
-Overwrite files at destination
+Overwrite files at destination.
 
-### `quilt export USER/PACKAGE [DEST] [--symlinks]`
+###  `quilt.export("USER/PACKAGE", "DEST", symlinks=False)`
+Use symlinks to the Quilt package directory instead of copies of files. This saves disk storage space and reduces disk I/O.  See note below.
+
+### `quilt export USER/PACKAGE [DEST] [--symlinks]` (command-line)
 Export data, using symbolic inks where possible. 
 
 If a node references raw (file) data, symbolic links may be used instead of copying data when exporting.
