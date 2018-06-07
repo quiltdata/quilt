@@ -1,5 +1,6 @@
 import memoize from 'lodash/memoize';
 import RaisedButton from 'material-ui/RaisedButton';
+import { stringify } from 'query-string';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';
@@ -20,7 +21,6 @@ import { check } from './actions';
 import { NotAuthenticated } from './errors';
 import msg from './messages';
 import * as selectors from './selectors';
-import { makeSignInURL } from './util';
 
 export default memoize(composeHOC('Auth.Wrapper',
   saveProps(),
@@ -56,5 +56,5 @@ export default memoize(composeHOC('Auth.Wrapper',
       <Working><FM {...msg.wrapperWorking} /></Working>)),
   branch((p) => !p.authenticated,
     renderComponent(({ location: { pathname, search } }) =>
-      <Redirect to={makeSignInURL(pathname + search)} />)),
+      <Redirect to={`/signin?${stringify({ next: pathname + search })}`} />)),
   restoreProps()));

@@ -28,14 +28,3 @@ export const actions = createActions(REDUX_KEY,
   'AUTH_LOST',
   'GET_CODE',
 ); // eslint-disable-line function-paren-newline
-
-// DEBUG - 10 second expiry
-// export const LATENCY_SECONDS = 35990;
-export const LATENCY_SECONDS = 20;
-
-// export const ERROR_NOTIFICATION_TTL = 20000;
-// export const ERROR_REDIRECT_PATH = '/';
-
-// TODO: move to the app config and inject
-export const SIGN_OUT_REDIRECT = '/';
-export const SIGN_IN_REDIRECT = '/profile';

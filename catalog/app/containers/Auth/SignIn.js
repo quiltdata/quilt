@@ -14,17 +14,19 @@ import * as validators from 'utils/validators';
 import withParsedQuery from 'utils/withParsedQuery';
 
 import { signIn } from './actions';
-import { SIGN_IN_REDIRECT } from './constants';
 import * as errors from './errors';
 import msg from './messages';
-import { authenticated } from './selectors';
+import * as selectors from './selectors';
 import * as Layout from './Layout';
 
 
 const Container = Layout.mkLayout(<FM {...msg.signInHeading} />);
 
 export default composeComponent('Auth.SignIn',
-  connect(createStructuredSelector({ authenticated })),
+  connect(createStructuredSelector({
+    authenticated: selectors.authenticated,
+    signInRedirect: selectors.signInRedirect,
+  })),
   reduxForm({
     form: 'Auth.SignIn',
     onSubmit: async (values, dispatch) => {
@@ -43,8 +45,8 @@ export default composeComponent('Auth.SignIn',
   }),
   withParsedQuery,
   branch(get('authenticated'),
-    renderComponent(({ location: { query } }) =>
-      <Redirect to={query.next || SIGN_IN_REDIRECT} />)),
+    renderComponent(({ location: { query }, signInRedirect }) =>
+      <Redirect to={query.next || signInRedirect} />)),
   ({ handleSubmit, submitting, submitFailed, invalid, error }) => (
     <Container>
       <form onSubmit={handleSubmit}>

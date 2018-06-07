@@ -60,7 +60,12 @@ const render = (messages) => {
     <StoreProvider store={store}>
       <InjectReducer mount="form" reducer={form}>
         <LanguageProvider messages={messages}>
-          <AuthProvider checkOn={checkAuthOn} storage={storage} api={config.api}>
+          <AuthProvider
+            checkOn={checkAuthOn}
+            storage={storage}
+            api={config.api}
+            signInRedirect="/profile"
+          >
             <RouterProvider history={history}>
               <App />
             </RouterProvider>

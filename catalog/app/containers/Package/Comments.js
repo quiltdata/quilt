@@ -3,6 +3,7 @@ import Divider from 'material-ui/Divider';
 import { List } from 'material-ui/List';
 import RaisedButton from 'material-ui/RaisedButton';
 import PT from 'prop-types';
+import { stringify } from 'query-string';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { Link } from 'react-router-dom';
@@ -13,7 +14,6 @@ import MIcon from 'components/MIcon';
 import Spinner from 'components/Spinner';
 import api, { apiStatus } from 'constants/api';
 import { palette } from 'constants/style';
-import { makeSignInURL } from 'containers/Auth/util';
 import { composeComponent } from 'utils/reactTools';
 
 import Comment from './Comment';
@@ -63,8 +63,16 @@ export default composeComponent('Package.Comments',
     addComment: PT.func.isRequired,
     user: PT.string.isRequired,
     owner: PT.string.isRequired,
+    location: PT.string.isRequired,
   }),
-  ({ comments: { status, response }, addComment, getComments, user, owner }) => (
+  ({
+    comments: { status, response },
+    addComment,
+    getComments,
+    user,
+    owner,
+    location,
+  }) => (
     <List>
       {invoke(status, {
         [api.SUCCESS]: () =>
@@ -121,7 +129,9 @@ export default composeComponent('Package.Comments',
         : (
           <Message>
             <RaisedButton
-              containerElement={<Link to={makeSignInURL()} />}
+              containerElement={
+                <Link to={`/signin?${stringify({ next: location })}`} />
+              }
               label={<FM {...msg.commentsSignIn} />}
             />
           </Message>

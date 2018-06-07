@@ -12,7 +12,6 @@ import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 
 import { signOut } from './actions';
-import { SIGN_OUT_REDIRECT } from './constants';
 import msg from './messages';
 import * as selectors from './selectors';
 
@@ -20,6 +19,7 @@ export default composeComponent('Auth.SignOut',
   connect(createStructuredSelector({
     authenticated: selectors.authenticated,
     waiting: selectors.waiting,
+    signOutRedirect: selectors.signOutRedirect,
   })),
   withHandlers({
     doSignOut: ({ dispatch }) => () => {
@@ -28,10 +28,10 @@ export default composeComponent('Auth.SignOut',
       result.promise.catch(captureError);
     },
   }),
-  ({ waiting, authenticated, doSignOut }) => (
+  ({ waiting, authenticated, signOutRedirect, doSignOut }) => (
     <Fragment>
       {!waiting && authenticated && <Lifecycle willMount={doSignOut} />}
-      {!authenticated && <Redirect to={SIGN_OUT_REDIRECT} />}
+      {!authenticated && <Redirect to={signOutRedirect} />}
       <Working><FM {...msg.signOutWaiting} /></Working>
     </Fragment>
   ));
