@@ -203,17 +203,17 @@ class User(db.Model):
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
 
-    @staticmethod
-    def get_by_id(user_id):
-        return db.session.query(User).filter(User.id == user_id).one_or_none()
+    @classmethod
+    def get_by_id(cls, user_id):
+        return db.session.query(cls).filter(cls.id == user_id).one_or_none()
 
-    @staticmethod
-    def get_by_name(username):
-        return db.session.query(User).filter(User.name == username).one_or_none()
+    @classmethod
+    def get_by_name(cls, username):
+        return db.session.query(cls).filter(cls.name == username).one_or_none()
 
-    @staticmethod
-    def get_by_email(email):
-        return db.session.query(User).filter(User.email == email).one_or_none()
+    @classmethod
+    def get_by_email(cls, email):
+        return db.session.query(cls).filter(cls.email == email).one_or_none()
 
 
 class Code(db.Model):
