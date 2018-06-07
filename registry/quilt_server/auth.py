@@ -436,22 +436,15 @@ def verify_hash(password, pw_hash):
     return True
 
 def try_login(username, password):
-    result = (
-        db.session.query(
-            User.name,
-            User.password,
-            User.is_active
-        ).filter(User.name==username)
-        .one_or_none()
-    )
-    if not result:
+    user = User.get_by_name(username)
+    if not user:
         return False
 
-    if not result.is_active:
+    if not user.is_active:
         return False
 
     try:
-        verify_hash(password, result.password)
+        verify_hash(password, user.password)
     except Exception as e:
         return False
     return True

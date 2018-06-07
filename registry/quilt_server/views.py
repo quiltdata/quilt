@@ -229,8 +229,6 @@ def oauth_callback():
 # Cache the settings for a day to avoid pre-flight requests.
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
-# BEGIN NEW AUTH CODE
-
 @app.route('/login', methods=['POST'])
 def login_post():
     try:
@@ -241,13 +239,12 @@ def login_post():
             token = issue_token(username)
         else:
             return jsonify({'error': 'Login attempt failed'})
-        # TODO: exp
+
         return jsonify({'token': token})
-    except:
+    except Exception:
         raise ApiException(requests.codes.unauthorized, "Login failed")
 
 CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
-# END NEW AUTH CODE
 
 @app.route('/api/token', methods=['POST'])
 @as_json
