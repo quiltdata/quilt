@@ -196,14 +196,6 @@ def argument_parser():
     login_p.add_argument("team", type=str, nargs='?', help="Specify team to log in as")
     login_p.set_defaults(func=command.login)
 
-    # quilt login-user-pass
-    shorthelp = "Log in to Quilt server with username and password"
-    login_up_p = subparsers.add_parser("login-user-pass", description=shorthelp, help=shorthelp)
-    login_up_p.add_argument("username", type=str, help="Your Quilt username")
-    login_up_p.add_argument("password", type=str, help="Your Quilt password")
-    login_up_p.add_argument("team", type=str, nargs='?', help="Quilt team you wish to authenticate with")
-    login_up_p.set_defaults(func=command._cli_login_user_pass)
-
     # quilt logout
     shorthelp = "Log out of current Quilt server"
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
