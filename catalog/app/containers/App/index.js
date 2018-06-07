@@ -9,7 +9,6 @@ import { Pad } from 'components/LayoutHelpers';
 import Redirect from 'components/Redirect';
 import AuthBar from 'containers/AuthBar';
 import HomePage from 'containers/HomePage/Loadable';
-import LogIn from 'components/LogIn'
 import NotFoundPage from 'containers/NotFoundPage/Loadable';
 import Notifications from 'containers/Notifications';
 import OAuth2 from 'containers/OAuth2/Loadable';
@@ -63,7 +62,6 @@ export default composeComponent('App',
           <Route path="/profile/:section(admin)?" exact component={ProtectedProfile} />
           <Route path="/search" exact component={ProtectedSearch} />
           <Route path="/signout" exact component={SignOut} />
-          <Route path="/login" exact component={LogIn} />
           <Route path="" component={ProtectedNotFound} />
         </Switch>
       </Pad>
