@@ -99,9 +99,8 @@ def reset_password_endpoint():
     if not payload:
         return {'error': 'Reset token invalid.'}, 401
     user_id = payload['id']
-    try:
-        user = User.get_by_id(user_id)
-    except:
+    user = User.get_by_id(user_id)
+    if not user:
         return {'error': 'User not found.'}, 404
     user.password = hash_password(raw_password)
     db.session.add(user)
@@ -306,7 +305,7 @@ def decode_code(code_str):
 def try_as_code(code_str):
     try:
         code = decode_code(code_str)
-    except:
+    except (TypeError, ValueError):
         return False
     found = (
         db.session.query(
@@ -351,7 +350,7 @@ def verify_token_string(s):
         token = decode_token(s)
         user = _verify(token)
         return user
-    except:
+    except (TypeError, ValueError):
         return False
 
 def exp_from_token(s):
@@ -463,7 +462,7 @@ def create_admin():
         admin_username = app.config['DEV_USERNAME']
         admin_password = app.config['DEV_PASSWORD']
         admin_email = app.config['DEV_EMAIL']
-    except:
+    except KeyError:
         return
     if not admin_username or not admin_password or not admin_email:
         return
@@ -554,7 +553,7 @@ def verify_activation_link(link, max_age=None):
         if not consume_activation_token(payload['id'], payload['token']):
             return False
         return payload
-    except:
+    except (TypeError, KeyError, ValueError):
         return False
 
 def verify_reset_link(link, max_age=None):
@@ -564,7 +563,7 @@ def verify_reset_link(link, max_age=None):
         if not consume_reset_token(payload['id'], payload['token']):
             return False
         return payload
-    except:
+    except (TypeError, KeyError, ValueError):
         return False
 
 def reset_password(user):
