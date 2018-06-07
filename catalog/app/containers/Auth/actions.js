@@ -1,19 +1,75 @@
+import { actionCreator } from 'utils/reduxTools';
+
 import { actions } from './constants';
 
+
 /**
- * Create a SIGN_IN action.
+ * Create a SIGN_UP action.
  *
- * @param {{username: string, password: string} credentials
+ * @param {{username: string, email: string, password: string}} credentials
  *
  * @param {{resolve: function, reject: function}} resolver
  *
  * @returns {Action}
  */
-export const signIn = (credentials, resolver) => ({
-  type: actions.SIGN_IN,
+export const signUp = actionCreator(actions.SIGN_UP, (credentials, resolver) => ({
   payload: credentials,
   meta: { ...resolver },
-});
+}));
+
+/**
+ * Create a RESET_PASSWORD action.
+ *
+ * @param {string} email
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const resetPassword = actionCreator(actions.RESET_PASSWORD, (email, resolver) => ({
+  payload: email,
+  meta: { ...resolver },
+}));
+
+/**
+ * Create a CHANGE_PASSWORD action.
+ *
+ * @param {string} link
+ * @param {string} password
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const changePassword = actionCreator(actions.CHANGE_PASSWORD, (link, password, resolver) => ({
+  payload: { link, password },
+  meta: { ...resolver },
+}));
+
+/**
+ * Create a GET_CODE action.
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const getCode = actionCreator(actions.GET_CODE, (resolver) => ({
+  meta: { ...resolver },
+}));
+
+/**
+ * Create a SIGN_IN action.
+ *
+ * @param {{username: string, password: string}} credentials
+ *
+ * @param {{resolve: function, reject: function}} resolver
+ *
+ * @returns {Action}
+ */
+export const signIn = actionCreator(actions.SIGN_IN, (credentials, resolver) => ({
+  payload: credentials,
+  meta: { ...resolver },
+}));
 
 /**
  * Create a SIGN_IN_RESULT action.
@@ -24,11 +80,10 @@ export const signIn = (credentials, resolver) => ({
  *
  * @returns {Action}
  */
-signIn.resolve = (result) => ({
-  type: actions.SIGN_IN_RESULT,
-  error: result instanceof Error,
-  payload: result,
-});
+signIn.resolve = actionCreator(actions.SIGN_IN_RESULT, (payload) => ({
+  error: payload instanceof Error,
+  payload,
+}));
 
 /**
  * Create a SIGN_OUT action.
@@ -37,10 +92,9 @@ signIn.resolve = (result) => ({
  *
  * @returns {Action}
  */
-export const signOut = (resolver) => ({
-  type: actions.SIGN_OUT,
+export const signOut = actionCreator(actions.SIGN_OUT, (resolver) => ({
   meta: { ...resolver },
-});
+}));
 
 /**
  * Create a SIGN_OUT_RESULT action.
@@ -49,11 +103,10 @@ export const signOut = (resolver) => ({
  *
  * @returns {Action}
  */
-signOut.resolve = (result) => ({
-  type: actions.SIGN_OUT_RESULT,
+signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
   error: result instanceof Error,
   payload: result,
-});
+}));
 
 /**
  * Create a CHECK action.
@@ -66,20 +119,17 @@ signOut.resolve = (result) => ({
  *
  * @returns {Action}
  */
-export const check = ({ refetch = true } = {}, resolver) => ({
-  type: actions.CHECK,
+export const check = actionCreator(actions.CHECK, ({ refetch = true } = {}, resolver) => ({
   payload: { refetch },
   meta: { ...resolver },
-});
+}));
 
 /**
  * Create a REFRESH action.
  *
  * @returns {Action}
  */
-export const refresh = () => ({
-  type: actions.REFRESH,
-});
+export const refresh = actionCreator(actions.REFRESH);
 
 /**
  * Create a REFRESH_RESULT action.
@@ -88,11 +138,10 @@ export const refresh = () => ({
  *
  * @returns {Action}
  */
-refresh.resolve = (payload) => ({
-  type: actions.REFRESH_RESULT,
+refresh.resolve = actionCreator(actions.REFRESH_RESULT, (payload) => ({
   error: payload instanceof Error,
   payload,
-});
+}));
 
 /**
  * Create an AUTH_LOST action.
@@ -102,7 +151,6 @@ refresh.resolve = (payload) => ({
  *
  * @returns {Action}
  */
-export const authLost = (e) => ({
-  type: actions.AUTH_LOST,
-  payload: e,
-});
+export const authLost = actionCreator(actions.AUTH_LOST, (payload) => ({
+  payload,
+}));

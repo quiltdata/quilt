@@ -9,12 +9,13 @@ import {
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 
+import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import * as validators from 'utils/validators';
 
+import { resetPassword } from './actions';
 import msg from './messages';
-import { resetPassword } from './requests';
 import * as Layout from './Layout';
 
 
@@ -32,7 +33,9 @@ export default composeComponent('Auth.PassReset',
     form: 'Auth.PassReset',
     onSubmit: async (values, dispatch, { setDone }) => {
       try {
-        await resetPassword(values.toJS().email);
+        const result = defer();
+        dispatch(resetPassword(values.toJS().email, result.resolver));
+        await result.promise;
         setDone();
       } catch (e) {
         captureError(e);

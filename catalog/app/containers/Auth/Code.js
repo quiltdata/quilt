@@ -9,17 +9,18 @@ import {
   withHandlers,
   withStateHandlers,
 } from 'recompose';
-import { createStructuredSelector } from 'reselect';
+// import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import Working from 'components/Working';
 import copyToClipboard from 'utils/clipboard';
+import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 
+import { getCode } from './actions';
 import msg from './messages';
-import { getCode } from './requests';
-import * as selectors from './selectors';
+// import * as selectors from './selectors';
 import * as Layout from './Layout';
 
 const Container = Layout.mkLayout(<FM {...msg.codeHeading} />);
@@ -29,9 +30,7 @@ const Code = styled.div`
 `;
 
 export default composeComponent('Auth.Code',
-  connect(createStructuredSelector({
-    tokens: selectors.tokens,
-  })),
+  connect(),
   withStateHandlers({
     result: null,
   }, {
@@ -44,7 +43,9 @@ export default composeComponent('Auth.Code',
   }),
   lifecycle({
     componentWillMount() {
-      getCode(this.props.tokens)
+      const result = defer();
+      this.props.dispatch(getCode(result.resolver));
+      result.promise
         .then(this.props.setResult)
         .catch((e) => {
           captureError(e);

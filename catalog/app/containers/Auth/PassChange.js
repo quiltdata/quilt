@@ -9,13 +9,14 @@ import {
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 
+import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import validate, * as validators from 'utils/validators';
 
+import { changePassword } from './actions';
 import * as errors from './errors';
 import msg from './messages';
-import { changePassword } from './requests';
 import * as Layout from './Layout';
 
 
@@ -24,6 +25,8 @@ const Container = Layout.mkLayout(<FM {...msg.passChangeHeading} />);
 export default composeComponent('Auth.PassChange',
   // TODO: what to show if the user is authenticated
   // connect(createStructuredSelector({ authenticated })),
+  // TODO: inject captureError
+  // withErrorReporting(),
   withStateHandlers({
     done: false,
   }, {
@@ -33,7 +36,11 @@ export default composeComponent('Auth.PassChange',
     form: 'Auth.PassChange',
     onSubmit: async (values, dispatch, { setDone, match }) => {
       try {
-        await changePassword(match.params.link, values.toJS().password);
+        const { link } = match.params;
+        const { password } = values.toJS();
+        const result = defer();
+        dispatch(changePassword(link, password, result.resolver));
+        await result.promise;
         setDone();
       } catch (e) {
         if (e instanceof errors.InvalidResetLink) {
