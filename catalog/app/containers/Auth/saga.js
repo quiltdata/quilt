@@ -1,16 +1,14 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
 
 import defer from 'utils/defer';
+import { requestJSON, HttpError } from 'utils/request';
 import { waitTil } from 'utils/sagaTools';
 import { timestamp } from 'utils/time';
 
-import { signIn, signOut, refresh, check } from './actions';
-import { actions } from './constants';
-import { NotAuthenticated } from './errors';
-import * as requests from './requests';
+import * as actions from './actions';
+import * as errors from './errors';
 import * as selectors from './selectors';
-import { makeHeadersFromTokens } from './util';
-
+import { adjustTokensForLatency, makeHeadersFromTokens } from './util';
 
 /**
  * Make auth headers from stored auth data,
@@ -22,7 +20,7 @@ import { makeHeadersFromTokens } from './util';
  */
 export function* makeHeaders() {
   const checked = defer();
-  yield put(check({ refetch: false }, checked.resolver));
+  yield put(actions.check({ refetch: false }, checked.resolver));
   // eslint-disable-next-line no-empty
   try { yield checked.promise; } catch (e) {}
   yield call(waitTil, selectors.waiting, (w) => !w);
@@ -35,6 +33,268 @@ export function* makeHeaders() {
 }
 
 /**
+ * Make a sign-up request.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {Object} credentials
+ *
+ * @throws {InvalidUsername}
+ * @throws {InvalidEmail}
+ * @throws {InvalidPassword}
+ * @throws {UsernameTaken}
+ * @throws {EmailTaken}
+ * @throws {AuthError}
+ */
+const signUp = async (api, credentials) => {
+  try {
+    await requestJSON(`${api}/register`, {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (e) {
+    if (e instanceof HttpError) {
+      if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
+        throw new errors.InvalidUsername({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error === 'Unacceptable email.') {
+        throw new errors.InvalidEmail({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+        throw new errors.InvalidPassword({ originalError: e });
+      }
+      if (e.status === 409 && e.json && e.json.error === 'Username already taken.') {
+        throw new errors.UsernameTaken({ originalError: e });
+      }
+      if (e.status === 409 && e.json && e.json.error === 'Email already taken.') {
+        throw new errors.EmailTaken({ originalError: e });
+      }
+    }
+    throw new errors.AuthError({ originalError: e });
+  }
+};
+
+/**
+ * Make a sign-out request (revoke the token).
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {string} token
+ *
+ * @throws {AuthError}
+ */
+const signOut = async (api, tokens) => {
+  try {
+    await requestJSON(`${api}/logout`, {
+      method: 'POST',
+      body: JSON.stringify({ token: tokens.token }),
+      headers: {
+        ...makeHeadersFromTokens(tokens),
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (e) {
+    throw new errors.AuthError({
+      message: 'unable to sign out',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Make a sign-in request.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {Object} credentials
+ * @param {string} credentials.username
+ * @param {string} credentials.password
+ *
+ * @throws {InvalidCredentials}
+ * @throws {AuthError}
+ */
+const signIn = async (api, credentials) => {
+  try {
+    const res = await requestJSON(`${api}/login`, {
+      method: 'POST',
+      body: JSON.stringify(credentials),
+    });
+
+    if (res.error) {
+      if (res.error === 'Login attempt failed') {
+        throw new errors.InvalidCredentials();
+      }
+      throw new Error(res.error);
+    }
+
+    return res;
+  } catch (e) {
+    if (e instanceof errors.AuthError) throw e;
+    throw new errors.AuthError({
+      message: 'unable to sign in',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Fetch user data.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {Object} tokens
+ *
+ * @returns {Object} User data.
+ *
+ * @throws {NotAuthenticated} The API responds w/ 401.
+ * @throws {AuthError}
+ *   Wrap any caught error into AuthError,
+ *   with original error attached as `originalError` property.
+ */
+const fetchUser = async (api, tokens) => {
+  try {
+    const auth = await requestJSON(`${api}/api-root`, {
+      headers: makeHeadersFromTokens(tokens),
+    });
+    return auth;
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 401) {
+      throw new errors.NotAuthenticated({ originalError: e });
+    }
+
+    throw new errors.AuthError({
+      message: 'unable to fetch user data',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Make a password reset request.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {string} email
+ *
+ * @throws {AuthError}
+ */
+const resetPassword = async (api, email) => {
+  try {
+    await requestJSON(`${api}/reset_password`, {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (e) {
+    throw new errors.AuthError({
+      message: 'unable to reset password',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Make a password change request.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {string} link
+ * @param {string} password
+ *
+ * @throws {AuthError}
+ * @throws {InvalidResetLink}
+ * @throws {InvalidPassword}
+ */
+const changePassword = async (api, link, password) => {
+  try {
+    await requestJSON(`${api}/reset_password`, {
+      method: 'POST',
+      body: JSON.stringify({ link, password }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  } catch (e) {
+    if (e instanceof HttpError) {
+      if (e.status === 404 && e.json && e.json.error === 'User not found.') {
+        throw new errors.InvalidResetLink({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error === 'Invalid link.') {
+        throw new errors.InvalidResetLink({ originalError: e });
+      }
+      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+        throw new errors.InvalidPassword({ originalError: e });
+      }
+    }
+
+    throw new errors.AuthError({
+      message: 'unable to change password',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Get the code from the API.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {Object} tokens
+ *
+ * @returns {string} The code.
+ *
+ * @throws {AuthError}
+ */
+const getCode = async (api, tokens) => {
+  try {
+    const { code } = await requestJSON(`${api}/api/code`, {
+      headers: makeHeadersFromTokens(tokens),
+    });
+    return code;
+  } catch (e) {
+    throw new errors.AuthError({
+      message: 'unable to get the code',
+      originalError: e,
+    });
+  }
+};
+
+/**
+ * Refresh auth tokens.
+ *
+ * @param {string} api The API URL.
+ *
+ * @param {Object} tokens
+ *
+ * @returns {Object} Refreshed tokens adjusted for latency.
+ *
+ * @throws {NotAuthenticated}
+ * @throws {AuthError}
+ */
+const refreshTokens = async (api, tokens) => {
+  try {
+    const newTokens = await requestJSON(`${api}/api/refresh`, {
+      method: 'POST',
+      headers: makeHeadersFromTokens(tokens),
+    });
+    return adjustTokensForLatency(newTokens);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 401) {
+      throw new errors.NotAuthenticated({ originalError: e });
+    }
+    throw new errors.AuthError({
+      message: 'unable to refresh tokens',
+      originalError: e,
+    });
+  }
+};
+
+/**
  * Handle SIGN_IN action.
  * Make a sign-in request using the given credentials,
  * then request the user data using received tokens.
@@ -42,25 +302,26 @@ export function* makeHeaders() {
  * Call resolve or reject callback.
  *
  * @param {Object} options
+ * @param {string} options.api
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
  *
  * @param {Action} action
  */
 function* handleSignIn(
-  { storeTokens, storeUser },
+  { api, storeTokens, storeUser },
   { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    const tokens = yield call(requests.signIn, credentials);
-    const user = yield call(requests.fetchUser, tokens);
+    const tokens = yield call(signIn, api, credentials);
+    const user = yield call(fetchUser, api, tokens);
     yield fork(storeTokens, tokens);
     yield fork(storeUser, user);
-    yield put(signIn.resolve({ tokens, user }));
+    yield put(actions.signIn.resolve({ tokens, user }));
     /* istanbul ignore else */
     if (resolve) yield call(resolve, { tokens, user });
   } catch (e) {
-    yield put(signIn.resolve(e));
+    yield put(actions.signIn.resolve(e));
     /* istanbul ignore else */
     if (reject) yield call(reject, e);
   }
@@ -70,20 +331,21 @@ function* handleSignIn(
  * Handle SIGN_OUT action.
  *
  * @param {Object} options
+ * @param {string} options.api
  * @param {function} options.forgetTokens
  * @param {function} options.forgetUser
  *
  * @param {Action} action
  */
-function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
+function* handleSignOut({ api, forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
     const tokens = yield select(selectors.tokens);
-    yield call(requests.signOut, tokens);
-    yield put(signOut.resolve());
+    yield call(signOut, api, tokens);
+    yield put(actions.signOut.resolve());
     /* istanbul ignore else */
     if (resolve) yield call(resolve);
   } catch (e) {
-    yield put(signOut.resolve(e));
+    yield put(actions.signOut.resolve(e));
     if (reject) yield call(reject, e);
   } finally {
     yield fork(forgetUser);
@@ -104,6 +366,7 @@ const isExpired = (tokens, time) => {
  * Then refetch and store user data if requested.
  *
  * @param {Object} options
+ * @param {string} options.api
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
  * @param {function} options.forgetTokens
@@ -115,7 +378,7 @@ const isExpired = (tokens, time) => {
  */
 function* handleCheck(
   // eslint-disable-next-line object-curly-newline
-  { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
+  { api, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
@@ -126,20 +389,20 @@ function* handleCheck(
       return;
     }
 
-    yield put(refresh());
-    const newTokens = yield call(requests.refreshTokens, tokens);
+    yield put(actions.refresh());
+    const newTokens = yield call(refreshTokens, api, tokens);
     yield fork(storeTokens, newTokens);
     let user;
     if (refetch) {
-      user = yield call(requests.fetchUser, newTokens);
+      user = yield call(fetchUser, api, newTokens);
       yield fork(storeUser, user);
     }
     const payload = { tokens: newTokens, user };
-    yield put(refresh.resolve(payload));
+    yield put(actions.refresh.resolve(payload));
     if (resolve) yield call(resolve, payload);
   } catch (e) {
-    yield put(refresh.resolve(e));
-    if (e instanceof NotAuthenticated) {
+    yield put(actions.refresh.resolve(e));
+    if (e instanceof errors.NotAuthenticated) {
       yield fork(forgetTokens);
       yield fork(forgetUser);
       yield call(onAuthLost, e);
@@ -161,6 +424,71 @@ function* handleAuthLost({ onAuthLost }, { payload: err }) {
   yield call(onAuthLost, err);
 }
 
+/**
+ * Handle SIGN_UP action.
+ *
+ * @param {Object} options
+ * @param {string} optiosn.api
+ * @param {Action} action
+ */
+function* handleSignUp({ api }, { payload: credentials, meta: { resolve, reject } }) {
+  try {
+    yield call(signUp, api, credentials);
+    if (resolve) yield call(resolve);
+  } catch (e) {
+    if (reject) yield call(reject, e);
+  }
+}
+
+/**
+ * Handle RESET_PASSWORD action.
+ *
+ * @param {Object} options
+ * @param {string} options.api
+ * @param {Action} action
+ */
+function* handleResetPassword({ api }, { payload: email, meta: { resolve, reject } }) {
+  try {
+    yield call(resetPassword, api, email);
+    if (resolve) yield call(resolve);
+  } catch (e) {
+    if (reject) yield call(reject, e);
+  }
+}
+
+/**
+ * Handle CHANGE_PASSWORD action.
+ *
+ * @param {Object} options
+ * @param {string} options.api
+ * @param {Action} action
+ */
+function* handleChangePassword({ api }, { payload: { link, password }, meta: { resolve, reject } }) {
+  try {
+    yield call(changePassword, api, link, password);
+    if (resolve) yield call(resolve);
+  } catch (e) {
+    if (reject) yield call(reject, e);
+  }
+}
+
+/**
+ * Handle GET_CODE action.
+ *
+ * @param {Object} options
+ * @param {string} options.api
+ * @param {Action} action
+ */
+function* handleGetCode({ api }, { meta: { resolve, reject } }) {
+  try {
+    const tokens = yield select(selectors.tokens);
+    const code = yield call(getCode, api, tokens);
+    if (resolve) yield call(resolve, code);
+  } catch (e) {
+    if (reject) yield call(reject, e);
+  }
+}
+
 const noop = () => {};
 
 /**
@@ -168,6 +496,7 @@ const noop = () => {};
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
+ * @param {string} options.api
  * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
@@ -177,6 +506,7 @@ const noop = () => {};
  * @param {function} options.onAuthError
  */
 export default function* (/* istanbul ignore next */ {
+  api,
   checkOn,
   storeTokens = noop,
   forgetTokens = noop,
@@ -185,12 +515,16 @@ export default function* (/* istanbul ignore next */ {
   onAuthLost = noop,
   onAuthError = noop,
 } = {}) {
-  yield takeEvery(actions.SIGN_IN, handleSignIn, { storeTokens, storeUser, forgetTokens });
-  yield takeEvery(actions.SIGN_OUT, handleSignOut, { forgetTokens, forgetUser });
-  yield takeEvery(actions.CHECK, handleCheck,
+  yield takeEvery(actions.signIn.type, handleSignIn, { api, storeTokens, storeUser, forgetTokens });
+  yield takeEvery(actions.signOut.type, handleSignOut, { api, forgetTokens, forgetUser });
+  yield takeEvery(actions.check.type, handleCheck,
     // eslint-disable-next-line object-curly-newline
-    { storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
-  yield takeEvery(actions.AUTH_LOST, handleAuthLost, { onAuthLost });
+    { api, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
+  yield takeEvery(actions.authLost.type, handleAuthLost, { onAuthLost });
+  yield takeEvery(actions.signUp.type, handleSignUp, { api });
+  yield takeEvery(actions.resetPassword.type, handleResetPassword, { api });
+  yield takeEvery(actions.changePassword.type, handleChangePassword, { api });
+  yield takeEvery(actions.getCode.type, handleGetCode, { api });
 
-  if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(check()); });
+  if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
 }

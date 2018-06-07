@@ -9,13 +9,14 @@ import {
 } from 'recompose';
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable';
 
+import defer from 'utils/defer';
 import { captureError } from 'utils/errorReporting';
 import { composeComponent } from 'utils/reactTools';
 import validate, * as validators from 'utils/validators';
 
+import { signUp } from './actions';
 import * as errors from './errors';
 import msg from './messages';
-import { signUp } from './requests';
 import * as Layout from './Layout';
 
 
@@ -32,7 +33,9 @@ export default composeComponent('Auth.SignUp',
     form: 'Auth.SignUp',
     onSubmit: async (values, dispatch, { setDone }) => {
       try {
-        await signUp(values.remove('passwordCheck').toJS());
+        const result = defer();
+        dispatch(signUp(values.remove('passwordCheck').toJS(), result.resolver));
+        await result.promise;
         setDone();
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {

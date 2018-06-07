@@ -23,8 +23,10 @@ import config from 'constants/config';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
 import AuthProvider from 'containers/Auth/Provider';
+import config from 'constants/config';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
+import * as storage from 'utils/storage';
 import StoreProvider from 'utils/StoreProvider';
 import tracking from 'utils/tracking';
 // Load the favicon, the manifest.json file and the .htaccess file
@@ -56,17 +58,14 @@ const store = configureStore(initialState, history);
 const MOUNT_NODE = document.getElementById('app');
 
 // Check auth when location changes.
-// No reason to refresh on oauth_callback route; only time we enter that
-// route is when a log in is in progress.
-const checkAuthOn = ({ type, payload }) =>
-  type === LOCATION_CHANGE && !payload.pathname.startsWith('/oauth_callback');
+const checkAuthOn = LOCATION_CHANGE;
 
 const render = (messages) => {
   ReactDOM.render(
     <StoreProvider store={store}>
       <InjectReducer mount="form" reducer={form}>
         <LanguageProvider messages={messages}>
-          <AuthProvider checkOn={checkAuthOn}>
+          <AuthProvider checkOn={checkAuthOn} storage={storage} api={config.api}>
             <RouterProvider history={history}>
               <App />
             </RouterProvider>
