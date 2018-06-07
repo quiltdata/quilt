@@ -12,7 +12,7 @@
 
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers do for code: provide a centralized, collaborative store of record.
 
-## Video Demo
+## Demo
 
 [<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/video-thumb.jpg" />](https://www.youtube.com/watch?v=bKIV1GUVLPc)
 

@@ -1,18 +1,21 @@
-<!-- /README.md and docs/README.md should remain identical copies, by hand (symlinks caused problems) !-->
+<!-- /README.md and docs/README.md should remain identical copies (symlinks caused problems) !-->
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 
 `master` status
 
- [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches)
- [![CircleCI](https://circleci.com/gh/quiltdata/quilt/tree/master.svg?style=svg)](https://circleci.com/gh/quiltdata/quilt/tree/master)
+[![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches)
+[![CircleCI](https://circleci.com/gh/quiltdata/quilt/tree/master.svg?style=svg)](https://circleci.com/gh/quiltdata/quilt/tree/master)
 [![Windows](https://ci.appveyor.com/api/projects/status/7s4sufpi2gr90ase/branch/master?svg=true)](https://ci.appveyor.com/project/akarve/quilt/branch/master)
 
 # Manage data like code
 
 Quilt provides versioned, reusable building blocks for analysis in the form of _data packages_. A data package may contain data of any type or size. In spirit, Quilt does for data what package managers do for code: provide a centralized, collaborative store of record.
 
-## [Video Demo](https://www.youtube.com/watch?v=bKIV1GUVLPc)
+## Demo
+
+[<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/video-thumb.jpg" />](https://www.youtube.com/watch?v=bKIV1GUVLPc)
+
 
 ## Benefits
 
@@ -43,7 +46,7 @@ Leaf nodes in the package tree are called _fragments_ or _objects_. Installed fr
 
 ### Package lifecycle
 
-<img width="320" src="https://github.com/quiltdata/resources/blob/955656180ef6398a2729c7ebc28e5dc708f26bd3/img/big-picture.png?raw=true" />
+<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/big-picture.png" />
 
 ### Core commands
 
