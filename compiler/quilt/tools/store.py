@@ -119,7 +119,7 @@ class PackageStore(object):
         return store_dirs
 
     @classmethod
-    def find_package(cls, team, user, package, store_dir=None):
+    def find_package(cls, team, user, package, pkghash=None, store_dir=None):
         """
         Finds an existing package in one of the package directories.
         """
@@ -127,7 +127,7 @@ class PackageStore(object):
         dirs = cls.find_store_dirs()
         for store_dir in dirs:
             store = PackageStore(store_dir)
-            pkg = store.get_package(team, user, package)
+            pkg = store.get_package(team, user, package, pkghash=pkghash)
             if pkg is not None:
                 return pkg
         return None
@@ -162,7 +162,7 @@ class PackageStore(object):
 
     # TODO: find a package instance other than 'latest', e.g. by
     # looking-up by hash, tag or version in the local store.
-    def get_package(self, team, user, package):
+    def get_package(self, team, user, package, pkghash=None):
         """
         Gets a package from this store.
         """
@@ -174,7 +174,8 @@ class PackageStore(object):
                     store=self,
                     user=user,
                     package=package,
-                    path=path
+                    path=path,
+                    pkghash=pkghash,
                     )
             except PackageException:
                 pass

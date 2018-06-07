@@ -1281,16 +1281,19 @@ def reset_password(team, username):
 
 def _load(package):
     info = parse_package_extended(package)
-    team, user, name = info.team, info.user, info.name
-
-    pkgobj = PackageStore.find_package(team, user, name)
+    pkgobj = PackageStore.find_package(info.team,
+                                       info.user,
+                                       info.name,
+                                       pkghash=info.hash)
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
     node = _from_core_node(pkgobj, pkgobj.get_contents())
     return node, pkgobj, info
 
 def load(pkginfo):
-    """functional interface to "from quilt.data.USER import PKG"""
+    """
+    functional interface to "from quilt.data.USER import PKG"
+    """
     # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
