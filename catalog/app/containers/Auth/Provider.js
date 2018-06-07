@@ -4,7 +4,7 @@ import PT from 'prop-types';
 import { Fragment } from 'react';
 import { injectIntl } from 'react-intl';
 import { connect } from 'react-redux';
-import { mapProps, withHandlers, setPropTypes } from 'recompose';
+import { defaultProps, mapProps, withHandlers, setPropTypes } from 'recompose';
 
 import { push as notify } from 'containers/Notifications/actions';
 import { composeComponent } from 'utils/reactTools';
@@ -40,6 +40,23 @@ export default composeComponent('Auth.Provider',
      * The API URL.
      */
     api: PT.string.isRequired,
+    /**
+     * Expected API latency in seconds.
+     */
+    latency: PT.number,
+    /**
+     * Where to redirect after sign-out.
+     */
+    signOutRedirect: PT.string,
+    /**
+     * Where to redirect after sign-in by default (if no `next` param provided).
+     */
+    signInRedirect: PT.string,
+  }),
+  defaultProps({
+    latency: 20,
+    signOutRedirect: '/',
+    signInRedirect: '/',
   }),
   injectIntl,
   connect(undefined, undefined, undefined, { pure: false }),
@@ -56,9 +73,13 @@ export default composeComponent('Auth.Provider',
       dispatch(notify(intl.formatMessage(msg.notificationAuthError)));
     },
   }),
-  injectReducer(REDUX_KEY, reducer, ({ storage }) =>
-    fromJS(storage.load()).filter(Boolean).update((s) =>
-      s.set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT'))),
+  injectReducer(REDUX_KEY, reducer, ({ storage, signInRedirect, signOutRedirect }) =>
+    fromJS(storage.load())
+      .filter(Boolean)
+      .update((s) =>
+        s.set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT'))
+      .set('signInRedirect', signInRedirect)
+      .set('signOutRedirect', signOutRedirect)),
   injectSaga(REDUX_KEY, saga),
   mapProps(pick(['children'])),
   Fragment);

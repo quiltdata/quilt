@@ -8,7 +8,18 @@ import { timestamp } from 'utils/time';
 import * as actions from './actions';
 import * as errors from './errors';
 import * as selectors from './selectors';
-import { adjustTokensForLatency, makeHeadersFromTokens } from './util';
+
+/**
+ * Make auth headers from given auth token.
+ *
+ * @param {Object} tokens
+ * @param {string} tokens.token
+ *
+ * @returns {Object} Auth headers.
+ */
+const makeHeadersFromTokens = ({ token }) => ({
+  Authorization: `Bearer ${token}`,
+});
 
 /**
  * Make auth headers from stored auth data,
@@ -32,6 +43,13 @@ export function* makeHeaders() {
   return makeHeadersFromTokens(tokens);
 }
 
+const adjustTokensForLatency = (tokens, latency) => ({
+  ...tokens,
+  expires_at:
+    Number.isFinite(tokens.expires_at)
+      ? tokens.expires_at - latency
+      : tokens.expires_at,
+});
 /**
  * Make a sign-up request.
  *
@@ -269,6 +287,8 @@ const getCode = async (api, tokens) => {
  *
  * @param {string} api The API URL.
  *
+ * @param {number} latency
+ *
  * @param {Object} tokens
  *
  * @returns {Object} Refreshed tokens adjusted for latency.
@@ -276,13 +296,13 @@ const getCode = async (api, tokens) => {
  * @throws {NotAuthenticated}
  * @throws {AuthError}
  */
-const refreshTokens = async (api, tokens) => {
+const refreshTokens = async (api, latency, tokens) => {
   try {
     const newTokens = await requestJSON(`${api}/api/refresh`, {
       method: 'POST',
       headers: makeHeadersFromTokens(tokens),
     });
-    return adjustTokensForLatency(newTokens);
+    return adjustTokensForLatency(newTokens, latency);
   } catch (e) {
     if (e instanceof HttpError && e.status === 401) {
       throw new errors.NotAuthenticated({ originalError: e });
@@ -367,6 +387,7 @@ const isExpired = (tokens, time) => {
  *
  * @param {Object} options
  * @param {string} options.api
+ * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
  * @param {function} options.forgetTokens
@@ -378,7 +399,7 @@ const isExpired = (tokens, time) => {
  */
 function* handleCheck(
   // eslint-disable-next-line object-curly-newline
-  { api, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
+  { api, latency, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
@@ -390,7 +411,7 @@ function* handleCheck(
     }
 
     yield put(actions.refresh());
-    const newTokens = yield call(refreshTokens, api, tokens);
+    const newTokens = yield call(refreshTokens, api, latency, tokens);
     yield fork(storeTokens, newTokens);
     let user;
     if (refetch) {
@@ -507,6 +528,7 @@ const noop = () => {};
  */
 export default function* (/* istanbul ignore next */ {
   api,
+  latency,
   checkOn,
   storeTokens = noop,
   forgetTokens = noop,
@@ -519,7 +541,7 @@ export default function* (/* istanbul ignore next */ {
   yield takeEvery(actions.signOut.type, handleSignOut, { api, forgetTokens, forgetUser });
   yield takeEvery(actions.check.type, handleCheck,
     // eslint-disable-next-line object-curly-newline
-    { api, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
+    { api, latency, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
   yield takeEvery(actions.authLost.type, handleAuthLost, { onAuthLost });
   yield takeEvery(actions.signUp.type, handleSignUp, { api });
   yield takeEvery(actions.resetPassword.type, handleResetPassword, { api });

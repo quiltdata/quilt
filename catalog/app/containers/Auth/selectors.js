@@ -21,3 +21,7 @@ export const authenticated = createSelector(username, Boolean);
 export const email = createSelector(getIn([REDUX_KEY, 'user', 'email']), id);
 
 export const tokens = createSelector(getIn([REDUX_KEY, 'tokens'], Map({})), toJS());
+
+export const signInRedirect = createSelector(getIn([REDUX_KEY, 'signInRedirect']), id);
+
+export const signOutRedirect = createSelector(getIn([REDUX_KEY, 'signOutRedirect']), id);

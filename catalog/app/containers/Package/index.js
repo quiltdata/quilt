@@ -115,6 +115,7 @@ export class Package extends React.PureComponent {
       boundAddComment,
       boundGetComments,
       match: { params },
+      location: { pathname, search },
     } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
@@ -187,6 +188,7 @@ export class Package extends React.PureComponent {
                 getComments={boundGetComments}
                 user={user}
                 owner={owner}
+                location={pathname + search}
               />
             </Tab>
           </Tabs>
@@ -227,6 +229,10 @@ Package.propTypes = {
       name: PropTypes.string.isRequired,
       owner: PropTypes.string.isRequired,
     }).isRequired,
+  }).isRequired,
+  location: PropTypes.shape({
+    pathname: PropTypes.string.isRequired,
+    search: PropTypes.string.isRequired,
   }).isRequired,
   user: PropTypes.string,
   traffic: PropTypes.object,
