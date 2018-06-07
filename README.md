@@ -22,7 +22,7 @@ provide a centralized store of record.
 
 ## Demo
 
-[<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/video-thumb.jpg" />](https://www.youtube.com/watch?v=bKIV1GUVLPc)
+[<img width="320" src="https://raw.githubusercontent.com/quiltdata/resources/master/img/video-thumb.jpg" />](https://youtu.be/bKIV1GUVLPc?autoplay=1)
 
 
 ## Benefits
