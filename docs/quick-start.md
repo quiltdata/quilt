@@ -4,9 +4,7 @@
 $ pip install quilt
 $ quilt install uciml/iris
 $ python
-Python 3.6.3 | packaged by conda-forge | (default, Nov  4 2017, 10:13:32) 
-[GCC 4.2.1 Compatible Apple LLVM 6.1.0 (clang-602.0.53)] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
+
 >>> from quilt.data.uciml import iris
 >>> iris.tables.iris()
      sepal_length  sepal_width  petal_length  petal_width           class
