@@ -140,3 +140,20 @@ export const handleResult = ({ resolve, reject }) => (state, action) =>
  */
 export const createActions = (scope, ...actions) =>
   actions.reduce((acc, action) => ({ ...acc, [action]: `${scope}/${action}` }), {});
+
+
+/**
+ * Create an action creator for the given action type.
+ *
+ * @param {string} type
+ *   Action type (exposed as .type on the resulting function for convenience).
+ *
+ * @param {function} create
+ *   Wrapped action creator function, which is called with the arguments
+ *   provided to the resulting function.
+ *   Result of calling it is extended with the .type prop provided above.
+ *
+ * @returns {function} The action creator.
+ */
+export const actionCreator = (type, create = () => {}) =>
+  Object.assign((...args) => ({ type, ...create(...args) }), { type });
