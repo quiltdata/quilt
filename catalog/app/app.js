@@ -8,6 +8,7 @@ import ReactDOM from 'react-dom';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import { reducer as form } from 'redux-form/immutable';
+import { LOCATION_CHANGE } from 'react-router-redux';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
 //  See https://github.com/react-boilerplate/react-boilerplate/issues/238#issuecomment-222080327
@@ -15,11 +16,15 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 
 // Import root app
 import App from 'containers/App';
+import { makeSelectUserName } from 'containers/App/selectors';
+import { ROUTER_START } from 'containers/App/constants';
+import config from 'constants/config';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
 import StoreProvider from 'utils/StoreProvider';
+import tracking from 'utils/tracking';
 // Load the favicon, the manifest.json file and the .htaccess file
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico';
@@ -62,6 +67,14 @@ const render = (messages) => {
     MOUNT_NODE
   );
 };
+
+// track navigation
+store.runSaga(tracking, {
+  selectUsername: makeSelectUserName(),
+  locationChangeAction: LOCATION_CHANGE,
+  routerStartAction: ROUTER_START,
+  token: config.mixpanelToken,
+});
 
 if (module.hot) {
   // Hot reloadable React components and translation json files
