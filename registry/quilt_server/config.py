@@ -33,7 +33,7 @@ DISABLE_SIGNUP = os.getenv('DISABLE_SIGNUP', False)
 
 MAIL_DEV = False
 
-'MAIL_SERVER' = os.getenv('SMTP_HOST')
-'MAIL_USERNAME' = os.getenv('SMTP_USERNAME')
-'MAIL_PASSWORD' = os.getenv('SMTP_PASSWORD')
-'MAIL_USE_TLS' = True
+MAIL_SERVER = os.getenv('SMTP_HOST')
+MAIL_USERNAME = os.getenv('SMTP_USERNAME')
+MAIL_PASSWORD = os.getenv('SMTP_PASSWORD')
+MAIL_USE_TLS = True
