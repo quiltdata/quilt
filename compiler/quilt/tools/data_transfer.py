@@ -90,59 +90,69 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                     temp_path_gz = store.temporary_object_path(obj_hash + '.gz')
                     with open(temp_path_gz, 'ab') as output_file:
+                        original_last_update = 0
                         for attempt in range(S3_TIMEOUT_RETRIES):
                             try:
-                                starting_length = output_file.tell()
+                                existing_file_size = output_file.tell()
+
+                                # Use the Range header to resume downloads.
+                                # Weird corner case: if the file is already completely downloaded, we will
+                                # get a RANGE_NOT_SATISFIABLE, and not get the Content-Encoding header.
+                                # So, always download at least one byte.
+                                range_start = max(existing_file_size - 1, 0)
+
                                 response = s3_session.get(
                                     url,
                                     headers={
-                                        'Range': 'bytes=%d-' % starting_length
+                                        'Range': 'bytes=%d-' % range_start
                                     },
                                     stream=True,
                                     timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
                                 )
 
-                                # RANGE_NOT_SATISFIABLE means, we already have the whole file.
-                                if response.status_code == requests.codes.RANGE_NOT_SATISFIABLE:
+                                if not response.ok:
+                                    message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
+                                        obj_hash, response.request.url, response.status_code, response.text
+                                    )
                                     with lock:
-                                        progress.update(original_size)
-                                else:
-                                    if not response.ok:
-                                        message = "Download failed for %s:\nURL: %s\nStatus code: %s\nResponse: %r\n" % (
-                                            obj_hash, response.request.url, response.status_code, response.text
-                                        )
-                                        with lock:
-                                            tqdm.write(message)
-                                        break
+                                        tqdm.write(message)
+                                    break
 
-                                    # Prevent requests from processing 'Content-Encoding: gzip' automatically.
-                                    encoding = response.raw.headers.pop('Content-Encoding', None)
+                                # Prevent requests from processing 'Content-Encoding: gzip' automatically.
+                                encoding = response.raw.headers.pop('Content-Encoding', None)
 
-                                    # Make sure we're getting the expected range.
-                                    content_range = response.headers.get('Content-Range', '')
-                                    match = CONTENT_RANGE_RE.match(content_range)
-                                    if not match or not int(match.group(1)) == starting_length:
-                                        with lock:
-                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
-                                        break
+                                # Make sure we're getting the expected range.
+                                content_range = response.headers.get('Content-Range', '')
+                                match = CONTENT_RANGE_RE.match(content_range)
+                                if not match or not int(match.group(1)) == range_start:
+                                    with lock:
+                                        tqdm.write("Unexpected Content-Range: %s" % content_range)
+                                    break
 
-                                    compressed_size = int(match.group(3))
+                                compressed_size = int(match.group(3))
 
-                                    # We may have started with a partially-downloaded file, so update the progress bar.
-                                    compressed_read = starting_length
+                                # We may have started with a partially-downloaded file, so update the progress bar.
+                                compressed_read = existing_file_size
+                                original_read = compressed_read * original_size // compressed_size
+                                with lock:
+                                    progress.update(original_read - original_last_update)
+                                original_last_update = original_read
+
+                                # If we've downloaded an extra byte, skip it.
+                                skip_bytes = existing_file_size - range_start
+                                assert 0 <= skip_bytes <= 1
+                                response.raw.read(skip_bytes)
+
+                                # Do the actual download.
+                                for chunk in response.iter_content(CHUNK_SIZE):
+                                    output_file.write(chunk)
+                                    compressed_read += len(chunk)
                                     original_read = compressed_read * original_size // compressed_size
                                     with lock:
-                                        progress.update(original_read)
+                                        progress.update(original_read - original_last_update)
                                     original_last_update = original_read
 
-                                    # Do the actual download.
-                                    for chunk in response.iter_content(CHUNK_SIZE):
-                                        output_file.write(chunk)
-                                        compressed_read += len(chunk)
-                                        original_read = compressed_read * original_size // compressed_size
-                                        with lock:
-                                            progress.update(original_read - original_last_update)
-                                        original_last_update = original_read
+                                assert output_file.tell() == compressed_read
 
                                 success = True
                                 break  # Done!

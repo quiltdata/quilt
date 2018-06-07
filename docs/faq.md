@@ -16,6 +16,9 @@ Contact us if you have questions about large data.
 * Teams user - in a dedicated S3 bucket
 * Running your own registry - up to you :-)
 
+## How do I convert a package into files?
+You can use [`quilt export`](api-cli.md#export-a-package-or-subpackage).
+
 ## How do install the latest quilt (compiler) directly from GitHub?
 For developers only:
 ```sh
