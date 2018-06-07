@@ -350,7 +350,7 @@ def verify_token_string(s):
         token = decode_token(s)
         user = _verify(token)
         return user
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, jwt.exceptions.DecodeError):
         return False
 
 def exp_from_token(s):
@@ -546,7 +546,7 @@ def verify_activation_link(link, max_age=None):
         if not consume_activation_token(payload['id'], payload['token']):
             return False
         return payload
-    except (TypeError, KeyError, ValueError):
+    except (TypeError, KeyError, ValueError, itsdangerous.BadData):
         return False
 
 def verify_reset_link(link, max_age=None):
