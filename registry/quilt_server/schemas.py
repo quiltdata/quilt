@@ -197,3 +197,35 @@ COMMENT_SCHEMA = {
     'required': ['contents'],
     'additionalProperties': False
 }
+
+USERNAME_PASSWORD_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'password': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'password'],
+    'additionalProperties': False
+}
+
+PASSWORD_RESET_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'password': {
+            'type': 'string'
+        },
+        'link': {
+            'type': 'string'
+        },
+        'email': {
+            'type': 'string'
+        }
+    },
+    'additionalProperties': False
+    # no required properties because correct usage of the endpoint
+    #   provides either email or (password, link)
+}

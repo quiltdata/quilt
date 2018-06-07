@@ -43,7 +43,7 @@ from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_a
         issue_token, issue_token_by_id, try_login, verify_token_string,
         reset_password, exp_from_token, _create_user,
         _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
-        verify_activation_link, verify_reset_link)
+        reset_password_response, activate_response)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
@@ -51,7 +51,8 @@ from .mail import send_invitation_email
 from .models import (Access, Code, Comment, Customer, Event, Instance, 
         InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, Token, User, Version)
 from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
-                      USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA)
+                      PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA,
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -229,23 +230,6 @@ def oauth_callback():
 # Cache the settings for a day to avoid pre-flight requests.
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
-@app.route('/login', methods=['POST'])
-def login_post():
-    try:
-        data = request.get_json(force=True)
-        username = data.get('username')
-        password = data.get('password')
-        if try_login(username, password):
-            token = issue_token(username)
-        else:
-            return jsonify({'error': 'Login attempt failed'})
-
-        return jsonify({'token': token})
-    except Exception:
-        raise ApiException(requests.codes.unauthorized, "Login failed")
-
-CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
-
 @app.route('/api/token', methods=['POST'])
 @as_json
 def token():
@@ -314,19 +298,23 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None, enabled=True, require_admin=False):
+def api(require_login=True, schema=None, enabled=True,
+        require_admin=False, require_anonymous=False):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
     """
     if require_admin:
-        require_login=True
+        require_login = True
 
     if schema is not None:
         Draft4Validator.check_schema(schema)
         validator = Draft4Validator(schema)
     else:
         validator = None
+
+    if require_login and require_anonymous:
+        raise Exception("Can't both require login and require anonymous access.")
 
     def innerdec(f):
         @wraps(f)
@@ -349,8 +337,9 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or not ALLOW_ANONYMOUS_ACCESS:
-                    raise ApiException(requests.codes.unauthorized, "Not logged in")
+                if not require_anonymous:
+                    if require_login or not ALLOW_ANONYMOUS_ACCESS:
+                        raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
                 # try to validate new auth
                 token = auth
@@ -371,11 +360,12 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
                 except Exception as e:
                     raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
-            if not g.auth.is_active:
-                raise ApiException(
-                    requests.codes.forbidden,
-                    "Account is inactive. Must have an active account."
-                    )
+                if not g.auth.is_active:
+                    raise ApiException(
+                        requests.codes.forbidden,
+                        "Account is inactive. Must have an active account."
+                        )
+
             if require_admin and not g.auth.is_admin:
                 raise ApiException(
                     requests.codes.forbidden,
@@ -385,6 +375,39 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             return f(*args, **kwargs)
         return wrapper
     return innerdec
+
+@app.route('/login', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_SCHEMA)
+@as_json
+def login_post():
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        if try_login(username, password):
+            token = issue_token(username)
+        else:
+            return {'error': 'Login attempt failed'}
+
+        return {'token': token}
+    except Exception:
+        return {'error': 'Login failed.'}, requests.codes.unauthorized
+
+CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
+
+@app.route('/activate/<link>')
+def activate_endpoint(link):
+    return activate_response(link)
+
+CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1)}})
+
+@app.route('/reset_password', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=PASSWORD_RESET_SCHEMA)
+@as_json
+def reset_password_endpoint():
+    return reset_password_response()
+
+CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/api-root')
 @api()

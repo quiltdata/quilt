@@ -39,8 +39,7 @@ def set_unusable_password(username):
 def hash_password(password):
     return pwd_context.hash(password)
 
-@app.route('/activate/<link>')
-def activate_endpoint(link):
+def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
         _activate_user(payload['id'])
@@ -50,16 +49,12 @@ def activate_endpoint(link):
         response.status_code = 400
         return response
 
-CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1)}})
-
 def validate_password(password):
     if len(password) < 8:
         raise ApiException(400, "Password must be at least 8 characters long.")
     return True
 
-@app.route('/reset_password', methods=['POST'])
-@as_json
-def reset_password_endpoint():
+def reset_password_response():
     data = request.get_json()
     if 'email' in data:
         return reset_password_from_email(data['email'])
@@ -78,8 +73,6 @@ def reset_password_endpoint():
     db.session.add(user)
     db.session.commit()
     return {}
-
-CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def reset_password_from_email(email):
     user = User.get_by_email(email)

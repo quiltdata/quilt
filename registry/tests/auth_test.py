@@ -43,8 +43,11 @@ class AuthTestCase(QuiltTestCase):
         self.token_verify_mock.stop() # disable auth mock
 
     def getToken(self, username=TEST_USER, password=TEST_PASSWORD):
-        response = self.app.post('/login', 
-                data=json.dumps({'username': username, 'password': password}))
+        response = self.app.post(
+                '/login',
+                headers={'content-type': 'application/json'},
+                data=json.dumps({'username': username, 'password': password})
+                )
         try:
             token = json.loads(response.data.decode('utf8')).get('token')
         except Exception as e:
@@ -231,8 +234,11 @@ class AuthTestCase(QuiltTestCase):
         assert reset_response.status_code == 200
         assert not self.getToken()
 
-        new_password_request = self.app.post('/login', 
-                data=json.dumps({'username': self.TEST_USER, 'password': new_password}))
+        new_password_request = self.app.post(
+                '/login',
+                headers={'content-type': 'application/json'},
+                data=json.dumps({'username': self.TEST_USER, 'password': new_password})
+                )
         assert new_password_request.status_code == 200
         assert json.loads(new_password_request.data.decode('utf8')).get('token')
 
