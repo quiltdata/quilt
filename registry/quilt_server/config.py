@@ -23,10 +23,17 @@ JSON_USE_ENCODE_METHODS = True  # Support the __json__ method in Node
 # 100MB max for request body.
 MAX_CONTENT_LENGTH = 100 * 1024 * 1024
 
-SECRET_KEY = os.getenv('QUILT_SECRET_KEY')
+SECRET_KEY = os.environ['QUILT_SECRET_KEY']
 
 DEFAULT_SENDER = os.getenv('QUILT_DEFAULT_SENDER')
 
 REGISTRY_HOST = os.getenv('REGISTRY_HOST')
 
 DISABLE_SIGNUP = os.getenv('DISABLE_SIGNUP', False)
+
+MAIL_DEV = False
+
+'MAIL_SERVER' = os.getenv('SMTP_HOST')
+'MAIL_USERNAME' = os.getenv('SMTP_USERNAME')
+'MAIL_PASSWORD' = os.getenv('SMTP_PASSWORD')
+'MAIL_USE_TLS' = True

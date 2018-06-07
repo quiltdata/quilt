@@ -1,17 +1,9 @@
-import os
 from flask import render_template, request
 from flask_mail import Mail, Message
 
 from . import app, db
 from .models import User
 
-app.config['MAIL_SERVER'] = os.getenv('SMTP_HOST')
-app.config['MAIL_USERNAME'] = os.getenv('SMTP_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('SMTP_PASSWORD')
-app.config['MAIL_DEV'] = os.getenv('MAIL_DEV')
-app.config['MAIL_USE_TLS'] = True
-
-mail = Mail(app)
 
 CATALOG_URL = app.config['CATALOG_URL']
 DEFAULT_SENDER = app.config['DEFAULT_SENDER']
@@ -19,6 +11,8 @@ REGISTRY_HOST = app.config['REGISTRY_HOST']
 
 TEAM_ID = app.config['TEAM_ID']
 TEAM_NAME = app.config['TEAM_NAME']
+
+mail = Mail(app)
 
 def send_email(recipient, sender, subject, html, body=None, reply_to=None, dry_run=False):
     if reply_to is None:

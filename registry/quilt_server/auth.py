@@ -415,7 +415,7 @@ def try_login(username, password):
     return True
 
 def create_admin():
-    # Only runs in dev
+    # Only runs in dev -- only dev_config reads in the environment variables
     try:
         admin_username = app.config['DEV_USERNAME']
         admin_password = app.config['DEV_PASSWORD']
