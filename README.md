@@ -1,4 +1,8 @@
-<!-- /README.md and docs/README.md should remain identical copies (symlinks caused problems) !-->
+<!--
+	Are you editing this file?
+	* /README.md and docs/README.md should be identical copies (symlinks don't work)
+	* Use only *absolute links* in these files. Relative links will break.
+!-->
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 
@@ -77,7 +81,7 @@ Data `import` is lazy to minimize I/O. Data are only loaded from disk if and whe
 
 ## Service
 Quilt is offered as a managed service at [quiltdata.com](https://quiltdata.com).
-Alternatively, users can run their own registries (refer to the [registry documentation](../registry/README.md)).
+Alternatively, users can run their own registries (refer to the [registry documentation](https://github.com/quiltdata/quilt/blob/master/registry/README.md)).
 
 ## Architecture
 Quilt consists of three components. See the [contributing docs](https://github.com/quiltdata/quilt/blob/master/docs/CONTRIBUTING.md) for further details.
