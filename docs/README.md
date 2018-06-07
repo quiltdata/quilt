@@ -71,7 +71,7 @@ package handle and tophash form a package _instance_. Package instances are
 immutable.
 
 Leaf nodes in the package tree are called _fragments_ or _objects_. Installed
-fragments are de-duplicated and kept in a local [object store](./repo-format.md).
+fragments are de-duplicated and kept in a local [object store](https://github.com/quiltdata/quilt/blob/master/docs/repo-format.md).
 
 ### Package lifecycle
 
