@@ -29,34 +29,6 @@ pwd_context = CryptContext(schemes=['pbkdf2_sha512', 'django_pbkdf2_sha256'],
 def generate_uuid():
     return str(uuid.uuid4())
 
-def get_user(username):
-    return (
-            db.session.query(
-                User
-            ).filter(User.name == username)
-            .one_or_none()
-        )
-
-def get_user_by_id(user_id):
-    user = (
-        db.session.query(
-            User
-        )
-        .filter(User.id == user_id)
-        .one_or_none()
-    )
-    return user
-
-def get_user_by_email(email):
-    user = (
-        db.session.query(
-            User
-        )
-        .filter(User.email == email)
-        .one_or_none()
-    )
-    return user
-
 def set_unusable_password(username):
     user = User.get_by_name(username)
     user.password = ''
@@ -146,10 +118,10 @@ def _create_user(username, password='', email=None, is_admin=False,
         # TODO: check email is valid
         if blacklisted_name(username):
             raise ApiException(400, "Unacceptable username.")
-        existing_user = get_user(username)
+        existing_user = User.get_by_name(username)
         if existing_user and not force:
             raise ApiException(409, "Username already taken.")
-        existing_user_email = get_user_by_email(email)
+        existing_user_email = User.get_by_email(email)
         if existing_user_email and not force:
             raise ApiException(409, "Email already taken.")
 

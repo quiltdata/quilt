@@ -20,9 +20,10 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.auth import _create_user, get_user, verify_token_string
+from quilt_server.auth import _create_user, verify_token_string
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
+from quilt_server.models import User
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
 
 class MockMixpanelConsumer(object):
@@ -60,7 +61,7 @@ class QuiltTestCase(TestCase):
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
         def mock_verify(username_or_token):
-            user = get_user(username_or_token)
+            user = User.get_by_name(username_or_token)
             if user:
                 return user
             else:

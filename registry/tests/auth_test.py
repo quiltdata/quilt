@@ -8,9 +8,9 @@ from unittest import mock
 from unittest.mock import patch
 from .utils import QuiltTestCase
 from quilt_server import app
-from quilt_server.models import Code
-from quilt_server.auth import (_create_user, _delete_user, get_user, 
-        issue_token, encode_code, decode_code, generate_uuid, verify_token_string,
+from quilt_server.models import Code, User
+from quilt_server.auth import (_create_user, _delete_user, issue_token,
+        encode_code, decode_code, generate_uuid, verify_token_string,
         generate_activation_link, generate_reset_link, verify_activation_link,
         verify_reset_link, verify_hash
         )
@@ -39,7 +39,7 @@ class AuthTestCase(QuiltTestCase):
         _create_user(self.TEST_ADMIN, password=self.TEST_ADMIN_PASSWORD,
                 email='{user}{suf}'.format(user=self.TEST_ADMIN, suf=self.email_suffix),
                 is_admin=True, force=True, requires_activation=False)
-        self.TEST_USER_ID = get_user(self.TEST_USER).id
+        self.TEST_USER_ID = User.get_by_name(self.TEST_USER).id
         self.token_verify_mock.stop() # disable auth mock
 
     def getToken(self, username=TEST_USER, password=TEST_PASSWORD):
@@ -64,17 +64,17 @@ class AuthTestCase(QuiltTestCase):
     def testDeleteUser(self):
         _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
                 force=True, requires_activation=False)
-        assert get_user(self.OTHER_USER)
+        assert User.get_by_name(self.OTHER_USER)
         _delete_user(self.OTHER_USER)
-        assert not get_user(self.OTHER_USER)
+        assert not User.get_by_name(self.OTHER_USER)
 
     def testCreateNewUser(self):
         _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
                 force=True, requires_activation=False)
-        assert get_user(self.OTHER_USER)
+        assert User.get_by_name(self.OTHER_USER)
 
     def testUserExists(self):
-        assert get_user(self.TEST_USER)
+        assert User.get_by_name(self.TEST_USER)
 
     def testDuplicateUserFails(self):
         try:

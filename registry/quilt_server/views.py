@@ -39,7 +39,7 @@ import stripe
 
 from . import ApiException, app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import (_delete_user, consume_code_string, get_exp, get_user, issue_code, try_as_code,
+from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_as_code,
         issue_token, issue_token_by_id, try_login, verify_token_string,
         reset_password, exp_from_token, _create_user,
         _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
@@ -2245,7 +2245,7 @@ def package_summary():
 def admin_reset_password():
     data = request.get_json()
     username = data['username']
-    user = get_user(username)
+    user = User.get_by_name(username)
     if not user:
         raise ApiException(requests.codes.not_found, "User not found.")
     if reset_password(user):
