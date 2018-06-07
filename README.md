@@ -81,14 +81,18 @@ fragments are de-duplicated and kept in a local [object store](https://github.co
 
 ### `build` creates a package
 
-Quilt uses [pandas](http://pandas.pydata.org/) to parse tabular file formats
-into data frames and [pyarrow](https://arrow.apache.org/docs/python/) to
-serialize data frames to [Parquet format](https://parquet.apache.org/).
+`build` hashes and serializes data. All data and metadata are tracked in a
+hash-tree that specifies the structure of the package.
 
-Unstructured data are copied "as is".
+By default:
+* Unstrcutured and semi-structured data are copied "as is" (e.g. JSON, TXT)
+* Tabular file formats (like CSV, TSV, XLS, etc.) are parsed with
+[pandas](http://pandas.pydata.org/) and serialized to Parquet with
+[pyarrow](https://arrow.apache.org/docs/python/).
 
-You may use `transform: id` option to store tabular data in their original
-format (e.g. if you do not wish to use Parquet as the storage format).
+You may override the above defaults, for example if you wish data to remain in
+its original format, with the `transform: id` setting in
+[`build.yml`](https://github.com/quiltdata/quilt/blob/master/docs/buildyml.md).
 
 ### `push` stores a package in a server-side registry
 
