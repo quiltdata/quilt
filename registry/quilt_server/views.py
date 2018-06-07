@@ -1060,7 +1060,7 @@ def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
 def package_timeseries(owner, package_name, event_type):
     try:
         event_enum = Event.Type[event_type.upper()]
-    except:
+    except KeyError:
         raise ApiException(requests.codes.bad_request, "Event type incorrectly specified.")
 
     result = (
