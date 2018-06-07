@@ -1,4 +1,4 @@
-Your Quilt password has been reset.
+{{ name }}, your Quilt password has been reset.
 
 Click here to set your new password: {{ link }}.
 

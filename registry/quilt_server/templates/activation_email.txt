@@ -1,4 +1,4 @@
-You recently signed up for Quilt{% if team %} Team Edition{% endif %}.
+You recently signed up for Quilt{% if team %} Team Edition{% endif %}. Your username is {{ name }}.
 To activate your new account, please click the following link in the next 24 hours.
 {{ link }}
 Sincerely, Quilt Data
