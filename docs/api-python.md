@@ -140,12 +140,14 @@ from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
 
 ## Using packages
+
 Packages contain three types of nodes:
 * `PackageNode` - the root of the package tree
 * `GroupNode` - like a folder; may contain one or more `GroupNode` or `DataNode` objects
 * `DataNode` - a leaf node in the package; contains actual data
 
 ### Work with package contents
+
 * List node contents with dot notation: `PACKAGE.NODE.ANOTHER_NODE`
 * Retrieve the contents of a `DataNode` with `_data()`, or simply `()`: `PACKAGE.NODE.ANOTHER_NODE()`
   * Columnar data (`XLS`, `CSV`, `TSV`, etc.) returns as a `pandas.DataFrame`
@@ -153,11 +155,13 @@ Packages contain three types of nodes:
   * Provide a custom deserialzer by passing a function to `data(asa=FUNCTION)` with the signature `function(NODE, LIST_OF_FILE_PATHS)`. A single node can contain data in multiple files (e.g., a DataFrame stored as a set of Parquet files). Calling `data(asa=FUNCTION)` on a GroupNode calls FUNCTION with the GroupNode object and a list of the paths to all of the objects in all of the child nodes.
 
 ### Enumerate package contents
+
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
 * `NODE._keys()` returns a list of all children
 * `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
 * `NODE._group_keys()` returns a list of all group children (groups are like folders)
 * `NODE._items()` returns a generator of the node's children as (name, node) pairs.
+* `NODE` is iterable: `for child in NODE:...` 
 
 #### Example
 ```

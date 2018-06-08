@@ -47,6 +47,10 @@ class DataNode(Node):
         self._node = node
         self.__cached_data = data
 
+    def __iter__(self):
+        # return an empty iterator (not None, not [], which are non-empty)
+        return iter(())
+
     def _data(self, asa=None):
         """
         Returns the contents of the node: a dataframe or a file path, or passes
@@ -93,6 +97,10 @@ class GroupNode(Node):
             group_info += '\n'
         data_info = '\n'.join(sorted(self._data_keys()))
         return '%s\n%s%s' % (pinfo, group_info, data_info)
+
+    def __iter__(self):
+        for _, child in self._items():
+            yield child
 
     def _items(self):
         return ((name, child) for name, child in iteritems(self.__dict__)

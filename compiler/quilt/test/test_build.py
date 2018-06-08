@@ -10,7 +10,7 @@ from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
 import yaml
 
-from ..nodes import GroupNode, PackageNode
+from ..nodes import DataNode, GroupNode, PackageNode
 from ..tools.store import ParquetLib, PackageStore
 from ..tools.compat import pathlib
 from ..tools import build, command, store
@@ -463,6 +463,39 @@ class BuildTest(QuiltTestCase):
 
         assert type(compose_root) is PackageNode
         assert simple.foo().equals(compose_root.foo())
+
+    def test_group_node_iter(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+        build_compose_contents = {
+            'contents': {
+                'grp': {
+                    'subgrp1': {
+                        'data1': {
+                            'file': 'data/foo.csv'
+                        }
+                    },
+                    'subgrp2': {
+                        'data2': {
+                            'file': 'data/foo.csv'
+                        }
+                    },
+                }
+            }
+        }
+
+        build.build_package_from_contents(None, 'test', 'pkg_node', str(mydir), build_compose_contents)
+
+        from quilt.data.test import pkg_node
+
+        for node in pkg_node:
+            assert isinstance(node, GroupNode)
+
+        for grps in pkg_node.grp:
+            assert isinstance(grps, GroupNode)
+            for dat in grps:
+                assert isinstance(dat, DataNode)
+                for nothing in dat:
+                    assert False, 'DataNode should not have iterable children'
 
     def test_package_and_file_raises_exception(self):
         mydir = pathlib.Path(os.path.dirname(__file__))

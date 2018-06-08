@@ -41,6 +41,14 @@ class ImportTest(QuiltTestCase):
         assert set(dataframes._group_keys()) == set()
         assert set(dataframes._data_keys()) == {'csv', 'nulls'}
 
+        assert len(list(package)) == 2
+
+        for item in package:
+            assert isinstance(item, (GroupNode, DataNode))
+
+        for node in dataframes:
+            assert isinstance(node, DataNode)
+
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)
         assert isinstance(dataframes.csv(), pd.DataFrame)
