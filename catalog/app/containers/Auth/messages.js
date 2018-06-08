@@ -5,7 +5,7 @@ const scope = 'app.containers.Auth';
 export default defineMessages({
   notificationAuthLost: {
     id: `${scope}.notificationAuthLost`,
-    defaultMessage: 'Authentication lost. Please sign in again.',
+    defaultMessage: 'Authentication lost. Sign in again.',
   },
   notificationAuthError: {
     id: `${scope}.notificationAuthError`,
@@ -29,11 +29,11 @@ export default defineMessages({
   // SignUp
   signUpHeading: {
     id: `${scope}.SignUp.heading`,
-    defaultMessage: 'Sign Up',
+    defaultMessage: 'Sign up',
   },
   signUpPassResetHint: {
     id: `${scope}.SignUp.passResetHint`,
-    defaultMessage: "Dont't remember your password?",
+    defaultMessage: 'Did you forget your password?',
   },
   signUpUsernameLabel: {
     id: `${scope}.SignUp.usernameLabel`,
@@ -45,12 +45,12 @@ export default defineMessages({
   },
   signUpUsernameTaken: {
     id: `${scope}.SignUp.usernameTaken`,
-    defaultMessage: 'This username is already taken. {link}',
+    defaultMessage: 'Username taken. {link}',
   },
   signUpUsernameInvalid: {
     id: `${scope}.SignUp.usernameInvalid`,
     // TODO: specify username requirements
-    defaultMessage: 'This username is invalid',
+    defaultMessage: 'Username invalid',
   },
   signUpEmailLabel: {
     id: `${scope}.SignUp.emailLabel`,
@@ -62,7 +62,7 @@ export default defineMessages({
   },
   signUpEmailTaken: {
     id: `${scope}.SignUp.emailTaken`,
-    defaultMessage: 'This email is already taken. {link}',
+    defaultMessage: 'Email taken. {link}',
   },
   signUpEmailInvalid: {
     id: `${scope}.SignUp.emailInvalid`,
@@ -98,7 +98,7 @@ export default defineMessages({
   },
   signUpSubmit: {
     id: `${scope}.SignUp.submit`,
-    defaultMessage: 'Sign Up',
+    defaultMessage: 'Sign up',
   },
   signUpSuccess: {
     id: `${scope}.SignUp.success`,
@@ -116,7 +116,7 @@ export default defineMessages({
   // SignIn
   signInHeading: {
     id: `${scope}.SignIn.heading`,
-    defaultMessage: 'Sign In',
+    defaultMessage: 'Sign in',
   },
   signInUsernameLabel: {
     id: `${scope}.SignIn.usernameLabel`,
@@ -136,7 +136,7 @@ export default defineMessages({
   },
   signInSubmit: {
     id: `${scope}.SignIn.submit`,
-    defaultMessage: 'Sign In',
+    defaultMessage: 'Sign in',
   },
   signInErrorInvalidCredentials: {
     id: `${scope}.SignIn.errorInvalidCredentials`,
@@ -156,7 +156,7 @@ export default defineMessages({
   },
   signInHintReset: {
     id: `${scope}.SignIn.hintReset`,
-    defaultMessage: "Don't remember your password? {link}.",
+    defaultMessage: 'Did you forget your password? {link}.',
   },
   signInHintResetLink: {
     id: `${scope}.SignIn.hintResetLink`,
