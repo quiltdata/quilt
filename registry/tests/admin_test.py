@@ -12,7 +12,6 @@ import time
 import quilt_server
 from quilt_server.core import GroupNode, RootNode
 from .utils import QuiltTestCase
-from quilt_server.views import QUILT_AUTH_URL
 
 class AdminTestCase(QuiltTestCase):
     """
@@ -141,23 +140,6 @@ class AdminTestCase(QuiltTestCase):
         assert len(data) == 4
 
     def testAdminListUserUI(self):
-        user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-        self.requests_mock.add(responses.GET, user_list_api, json.dumps({
-            'status': 200,
-            'count': 1,
-            'next': None,
-            'previous': None,
-            'results': [{
-                'username': self.user,
-                'id': 1,
-                'date_joined': '2018-01-14T19:33:27.656835Z',
-                'email': 'user@quiltdata.io',
-                'is_staff': False,
-                'is_superuser': False,
-                'is_active': True,
-                'last_login': '2018-01-14T19:33:27.656835Z'
-            }]
-            }))
         resp = self.app.get(
             '/api/users/list_detailed',
             headers={
@@ -175,23 +157,6 @@ class AdminTestCase(QuiltTestCase):
         assert user['last_seen']
 
     def testAdminPackageUserUI(self):
-        user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-        self.requests_mock.add(responses.GET, user_list_api, json.dumps({
-            'status': 200,
-            'count': 1,
-            'next': None,
-            'previous': None,
-            'results': [{
-                'username': self.user,
-                'id': 1,
-                'date_joined': '2018-01-14T19:33:27.656835Z',
-                'email': 'user@quiltdata.io',
-                'is_staff': False,
-                'is_superuser': False,
-                'is_active': True,
-                'last_login': '2018-01-14T19:33:27.656835Z'
-            }]
-            }))
         resp = self.app.get(
             '/api/admin/package_summary',
             headers={
@@ -211,11 +176,6 @@ class AdminTestCase(QuiltTestCase):
             assert 'latest' not in package[key]
 
     def testPasswordReset(self):
-        reset_pass_api = "%s/accounts/users/%s/reset_pass/" % (QUILT_AUTH_URL, self.user)
-        self.requests_mock.add(responses.POST, reset_pass_api, json.dumps({
-            'status': 200
-            }))
-
         resp = self.app.post(
             '/api/users/reset_password',
             data=json.dumps({"username":self.user}),
@@ -227,11 +187,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testCreateUser(self):
-        create_user_api = '%s/accounts/users/' % QUILT_AUTH_URL
-        self.requests_mock.add(responses.POST, create_user_api, status=201, body=json.dumps({
-            'status': 201
-            }))
-
         resp = self.app.post(
             '/api/users/create',
             data=json.dumps({"username":"usertwo", "email":"user2@quiltdata.io"}),
@@ -244,8 +199,6 @@ class AdminTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
     def testCreateUserNonAdmin(self):
-        create_user_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
         resp = self.app.post(
             '/api/users/create',
             data=json.dumps({"username":"usertwo", "email":"user2@quiltdata.io"}),
