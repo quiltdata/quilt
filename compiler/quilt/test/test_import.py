@@ -483,6 +483,32 @@ class ImportTest(QuiltTestCase):
         pkg._set(['dataframes', 'memory'], pd.DataFrame())
         with self.assertRaises(ValueError):
             assert pkg.dataframes.memory(asa=test_lambda) is testdata
-
-
         
+    def test_load_by_hash(self):
+        """
+        Tests loading two different versions of the same
+        package using command.load and specifying the package
+        hash.
+        """
+        # Old Version
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        package = command.load('foo/package')
+        pkghash = package._package.get_hash()
+
+        # New Version
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/package', build_path)
+        command.ls()
+
+        load_pkg_new = command.load('foo/package')
+        load_pkg_old = command.load('foo/package:h:%s' % pkghash)    
+        assert load_pkg_old._package.get_hash() == pkghash
+
+        assert load_pkg_new.foo
+        with self.assertRaises(AttributeError):
+            load_pkg_new.dataframes
+        
+
