@@ -264,7 +264,7 @@ def try_as_code(code_str):
     try:
         code = decode_code(code_str)
     except (TypeError, ValueError):
-        return False
+        return None
     found = (
         db.session.query(
             Code
@@ -275,7 +275,7 @@ def try_as_code(code_str):
     if found:
         return User.get_by_id(code['id'])
 
-    return False
+    return None
 
 def decode_token(token_str):
     token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
@@ -309,7 +309,7 @@ def verify_token_string(token_string):
         user = _verify(token)
         return user
     except Exception:
-        return False
+        return None
 
 def exp_from_token(token):
     token = decode_token(token)
@@ -379,7 +379,7 @@ def consume_code(user_id, code):
         .one_or_none()
     )
     if code is None:
-        return False
+        return None
 
     db.session.delete(code)
     db.session.commit()
@@ -503,20 +503,20 @@ def verify_activation_link(link, max_age=None):
     try:
         payload = linkgenerator.loads(link, max_age=max_age, salt=ACTIVATE_SALT)
         if not consume_activation_token(payload['id'], payload['token']):
-            return False
+            return None
         return payload
     except (TypeError, KeyError, ValueError, itsdangerous.BadData):
-        return False
+        return None
 
 def verify_reset_link(link, max_age=None):
     max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
         payload = linkgenerator.loads(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
         if not consume_reset_token(payload['id'], payload['token']):
-            return False
+            return None
         return payload
     except (TypeError, KeyError, ValueError, itsdangerous.BadData):
-        return False
+        return None
 
 def reset_password(user):
     if not user:
