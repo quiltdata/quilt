@@ -130,14 +130,26 @@ If a node references raw (file) data, symbolic links may be used instead of copy
   * Symbolic links may require administrative access (even if an administrator has the appropriate permissions)
 
 ## Import and use data
+
 For a package in the public cloud:
+
 ```python
 from quilt.data.USER import PACKAGE
 ```
+
 For a package in a team registry:
+
 ```python
 from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
+
+### `quilt.load("USR/PKG[:h:HASH])`
+
+Returns the specified package. You can use `quilt.load` to simultaneously load
+different versions of the same package.
+
+> Note, since Python module loads are cached by name, importing different versions of
+> the same package using `import` syntax will fail.
 
 ## Using packages
 
