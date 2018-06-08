@@ -59,10 +59,7 @@ def send_invitation_email(email, owner, package_name):
     subject = "{owner} shared data with you on Quilt".format(owner=owner)
     html = render_template('invitation_email.html', owner=owner, pkg=package_name)
     body = render_template('invitation_email.txt', owner=owner, pkg=package_name)
-    try:
-        send_email(recipient=email, html=html, body=body, sender=DEFAULT_SENDER, subject=subject)
-    except:
-        raise ApiException(requests.codes.server_error, "Server error")
+    send_email(recipient=email, html=html, body=body, sender=DEFAULT_SENDER, subject=subject)
 
 def send_new_user_email(username, email):
     recipients = (
