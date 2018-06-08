@@ -72,7 +72,7 @@ class DeleteTestCase(QuiltTestCase):
     def testDeleteAccessTagVersionLog(self):
         hashes = [hash_contents(contents) for contents in self.contents_list]
 
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         tag = 'tag1'
         version = '1.0'
 

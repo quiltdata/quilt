@@ -59,16 +59,6 @@ QUILT_CDN = 'https://cdn.quiltdata.com/'
 
 DEPLOYMENT_ID = app.config['DEPLOYMENT_ID']
 
-OAUTH_ACCESS_TOKEN_URL = app.config['OAUTH']['access_token_url']
-OAUTH_AUTHORIZE_URL = app.config['OAUTH']['authorize_url']
-OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
-OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
-OAUTH_REDIRECT_URL = app.config['OAUTH']['redirect_url']
-
-OAUTH_USER_API = app.config['OAUTH']['user_api']
-OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
-OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
-
 CATALOG_URL = app.config['CATALOG_URL']
 CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
@@ -135,14 +125,6 @@ for python_name in ['CPython', 'Jython', 'PyPy']:
 
 
 ### Web routes ###
-
-# TODO: deprecate
-def _create_session(next=''):
-    return OAuth2Session(
-        client_id=OAUTH_CLIENT_ID,
-        redirect_uri=OAUTH_REDIRECT_URL,
-        state=json.dumps(dict(next=next))
-    )
 
 @app.route('/healthcheck')
 def healthcheck():
@@ -218,7 +200,7 @@ def oauth_callback():
         if next:
             return redirect('%s#%s' % (next, urlencode(resp)))
         else:
-            token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
+            token = resp['refresh_token']
             return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
@@ -1652,19 +1634,11 @@ def access_put(owner, package_name, user):
         elif user == TEAM:
             if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
-        else:
-            resp = auth_session.get(OAUTH_PROFILE_API % user,
-                                    headers=auth_headers)
-            if resp.status_code == requests.codes.not_found:
-                raise ApiException(
-                    requests.codes.not_found,
-                    "User %s does not exist" % user
-                    )
-            elif resp.status_code != requests.codes.ok:
-                raise ApiException(
-                    requests.codes.server_error,
-                    "Unknown error"
-                    )
+        elif not User.get_by_name(user):
+            raise ApiException(
+                requests.codes.not_found,
+                "User %s does not exist" % user
+                )
 
         try:
             access = Access(package=package, user=user)
@@ -2075,30 +2049,40 @@ def client_log():
 
     return dict()
 
+def list_users_helper():
+    users = (
+        db.session.query(
+            User.name,
+            User.email,
+            User.first_name,
+            User.last_name,
+            User.is_admin,
+            User.date_joined,
+            User.last_login,
+            User.is_active
+        ).all()
+    )
+    results = [{
+        'username': user.name,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'date_joined': user.date_joined,
+        'last_login': user.last_login,
+        'is_superuser': user.is_admin,
+        'is_active': user.is_active
+    } for user in users]
+    return {
+        'count': len(users),
+        'results': results,
+        'status': 200
+    }
+
 @app.route('/api/users/list', methods=['GET'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_users():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
-    }
-
-    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-
-    resp = auth_session.get(user_list_api, headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            requests.codes.not_found,
-            "Cannot list users"
-            )
-    elif resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    return list_users_helper()
 
 @app.route('/api/users/list_detailed', methods=['GET'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
@@ -2119,14 +2103,7 @@ def list_users_detailed():
     for event_user, event_type, event_count in events:
         event_results[(event_user, event_type)] = event_count
 
-    # replicate code from list_users since endpoints aren't callable from each other
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
-    }
-
-    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-
-    users = auth_session.get(user_list_api, headers=auth_headers).json()
+    users = list_users_helper()
 
     results = {
         user['username'] : {
@@ -2137,7 +2114,7 @@ def list_users_detailed():
             'deletes' : event_results[(user['username'], Event.Type.DELETE)],
             'status' : 'active' if user['is_active'] else 'disabled',
             'last_seen' : user['last_login'],
-            'is_admin' : user['is_staff']
+            'is_admin' : user['is_superuser']
             }
         for user in users['results']
     }

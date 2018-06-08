@@ -121,31 +121,6 @@ class QuiltTestCase(TestCase):
         invite_url = quilt_server.app.config['INVITE_SEND_URL']
         self.requests_mock.add(responses.POST, invite_url, json.dumps(dict()))
 
-    def _mock_user(self):
-        """Mocks the auth API call and just returns the value of the Authorization header"""
-        user_url = quilt_server.app.config['OAUTH']['user_api']
-
-        def cb(request):
-            auth = request.headers.get('Authorization')
-            if auth is None:
-                return (401, {}, "Not logged in")
-            else:
-                # Hack to make it easy to simulate admin users:
-                # if the username is "admin", it's an "admin".
-                is_staff = auth == 'admin'
-                return (200, {}, json.dumps(dict(
-                    current_user=auth,
-                    email='%s@example.com' % auth,
-                    is_staff=is_staff
-                )))
-
-        self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
-
-    def _mock_check_user(self, user):
-        """Mocks the username check call and returns just the username"""
-        user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
-        self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
-
     def put_package(self, owner, package, contents, is_public=False, is_team=False, tag_latest=False):
         contents_hash = hash_contents(contents)
         pkgurl = '/api/package/{usr}/{pkg}/{hash}'.format(
@@ -189,8 +164,6 @@ class QuiltTestCase(TestCase):
         return pkgurl
 
     def _share_package(self, owner, pkg, other_user):
-        self._mock_check_user(other_user)
-
         return self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(
                 owner=owner, usr=other_user, pkg=pkg

@@ -172,7 +172,7 @@ class AdminTestCase(QuiltTestCase):
         assert user['pushes'] == 3
         assert user['packages'] == 1
         assert user['status'] == 'active'
-        assert user['last_seen'] == '2018-01-14T19:33:27.656835Z'
+        assert user['last_seen']
 
     def testAdminPackageUserUI(self):
         user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
