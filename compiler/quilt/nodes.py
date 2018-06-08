@@ -54,8 +54,10 @@ class DataNode(Node):
         """
         if asa is not None:
             if self._package is None or not self._node.hashes:
-                msg = "Can only use asa functions with built dataframes."
-                " Build this package and try again."
+                msg = (
+                    "Can only use asa functions with built dataframes."
+                    " Build this package and try again."
+                )
                 raise ValueError(msg)
             store = self._package.get_store()
             return asa(self, [store.object_path(obj) for obj in self._node.hashes])
@@ -78,12 +80,9 @@ class GroupNode(Node):
     Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
     supported for Parquet packages).
     """
-    def __init__(self, meta):
-        super(GroupNode, self).__init__(meta)
-
     def __setattr__(self, name, value):
         if name.startswith('_') or isinstance(value, Node):
-            super(Node, self).__setattr__(name, value)
+            super(GroupNode, self).__setattr__(name, value)
         else:
             raise AttributeError("{val} is not a valid package node".format(val=value))
 
