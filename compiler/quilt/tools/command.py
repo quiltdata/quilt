@@ -1281,6 +1281,12 @@ def reset_password(team, username):
 
 def _load(package):
     info = parse_package_extended(package)
+    # TODO: support tags & versions.
+    if info.tag is not None:
+        raise CommandException("Loading packages by tag is not supported.")
+    if info.version is not None:
+        raise CommandException("Loading packages by version is not supported.")
+
     pkgobj = PackageStore.find_package(info.team,
                                        info.user,
                                        info.name,
@@ -1294,7 +1300,6 @@ def load(pkginfo):
     """
     functional interface to "from quilt.data.USER import PKG"
     """
-    # TODO: support hashes/versions/etc.
     return _load(pkginfo)[0]
 
 def export(package, output_path='.', force=False, symlinks=False):
