@@ -1,4 +1,4 @@
-FROM nginx:latest
+FROM nginx:16.04
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 COPY nginx-s3.conf /etc/nginx/conf.d/
