@@ -12,11 +12,7 @@ CATALOG_HOST = os.environ['CATALOG_HOST']
 
 CATALOG_URL = 'https://%s' % CATALOG_HOST
 
-QUILT_AUTH_URL = 'https://%s' % OAUTH_API_HOST  # TODO: Disable it for GitHub?
-
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
-
-INVITE_SEND_URL = 'https://%s/pkginvite/send/' % OAUTH_API_HOST
 
 # Optional
 MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN')

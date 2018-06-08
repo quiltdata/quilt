@@ -1,4 +1,4 @@
-from flask import render_template, request
+from flask import render_template
 from flask_mail import Mail, Message
 
 from . import app, db
@@ -22,12 +22,12 @@ def send_email(recipient, sender, subject, html, body=None, reply_to=None, dry_r
         recipient = [recipient]
 
     message = Message(
-            subject=subject, 
-            recipients=recipient, 
-            html=html,
-            body=body,
-            sender=sender
-            )
+        subject=subject,
+        recipients=recipient,
+        html=html,
+        body=body,
+        sender=sender
+    )
 
     if app.config['TESTING'] or app.config['MAIL_DEV'] or dry_run:
         print(message)
@@ -40,7 +40,7 @@ def send_activation_email(user, activation_link):
     html = render_template('activation_email.html', link=link, team=TEAM_ID, name=user.name)
     body = render_template('activation_email.txt', link=link, team=TEAM_ID, name=user.name)
     send_email(recipient=user.email, sender=DEFAULT_SENDER,
-            subject='Activate your Quilt account', html=html, body=body)
+               subject='Activate your Quilt account', html=html, body=body)
 
 def send_reset_email(user, reset_link):
     base = CATALOG_URL
@@ -48,7 +48,7 @@ def send_reset_email(user, reset_link):
     html = render_template('reset_pw_email.html', link=link, team=TEAM_NAME, name=user.name)
     body = render_template('reset_pw_email.txt', link=link, name=user.name)
     send_email(recipient=user.email, sender=DEFAULT_SENDER,
-            subject='Reset your Quilt password', html=html, body=body)
+               subject='Reset your Quilt password', html=html, body=body)
 
 def send_invitation_email(email, owner, package_name):
     body = (
@@ -65,23 +65,23 @@ def send_new_user_email(username, email):
     recipients = (
         db.session.query(
             User.email
-        ).filter(User.is_admin == True)
+        ).filter(User.is_admin is True)
         .all()
     )
     recipients = [r[0] for r in recipients] # flatten out tuples
     subject = "New Quilt User: {user}".format(user=username)
     html = render_template('new_user_activated.html', team=TEAM_ID,
-            user=username, email=email, authurl=CATALOG_URL)
+                           user=username, email=email, authurl=CATALOG_URL)
     body = render_template('new_user_activated.txt', team=TEAM_ID,
-            user=username, email=email, authurl=CATALOG_URL)
+                           user=username, email=email, authurl=CATALOG_URL)
     send_email(recipient=recipients, sender=DEFAULT_SENDER, subject=subject,
-            html=html, body=body)
+               html=html, body=body)
 
 def send_welcome_email(username, email, link=None):
-    subject = "Welcome to Quilt"
+    subject = "Welcome to Quilt, {username}".format(username=username)
     html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
-            frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
     body = render_template('welcome_email.txt', team_id=TEAM_ID, team_name=TEAM_NAME,
-            frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
     send_email(recipient=email, sender=DEFAULT_SENDER, subject=subject,
-            html=html, body=body)
+               html=html, body=body)

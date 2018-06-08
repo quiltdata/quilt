@@ -1,12 +1,12 @@
 import base64
 from datetime import datetime, timedelta
+import json
 import uuid
 
-from flask import jsonify, redirect, request
+from flask import redirect, request
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 import itsdangerous
-import json
 import jwt
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
@@ -14,16 +14,17 @@ from sqlalchemy.exc import IntegrityError
 from . import ApiException, app, db
 from .const import VALID_EMAIL_RE, VALID_NAME_RE
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
-        send_welcome_email)
+                   send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
 from .name_filter import blacklisted_name
-from .schemas import EMAIL_SCHEMA
 
 CATALOG_URL = app.config['CATALOG_URL']
 
-pwd_context = CryptContext(schemes=['pbkdf2_sha512', 'django_pbkdf2_sha256'],
-        pbkdf2_sha512__default_rounds=500000)
-# Each round should take about half a second, 
+pwd_context = CryptContext(
+    schemes=['pbkdf2_sha512', 'django_pbkdf2_sha256'],
+    pbkdf2_sha512__default_rounds=500000
+    )
+# Each round should take about half a second,
 # 500000 rounds experimentally determined
 
 def generate_uuid():
@@ -44,10 +45,10 @@ def activate_response(link):
     if payload:
         _activate_user(payload['id'])
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
-    else:
-        response = jsonify({error: "Account activation failed."})
-        response.status_code = 400
-        return response
+
+    response = jsonify({'error': "Account activation failed."})
+    response.status_code = 400
+    return response
 
 def validate_password(password):
     if len(password) < 8:
@@ -99,23 +100,20 @@ def register_endpoint():
 CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def _create_user(username, password='', email=None, is_admin=False,
-        first_name=None, last_name=None, force=False,
-        requires_activation=True, requires_reset=False):
+                 first_name=None, last_name=None, force=False,
+                 requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_NAME_RE.match(username):
             raise ApiException(400, "Unacceptable username.")
-        if not VALID_EMAIL_RE.match(email):
-            raise ApiException(400, "Unacceptable email.")
-        if email is None:
-            raise ApiException(400, "Must provide email.")
-        # TODO: check email is valid
         if blacklisted_name(username):
             raise ApiException(400, "Unacceptable username.")
-        existing_user = User.get_by_name(username)
-        if existing_user and not force:
+        if email is None:
+            raise ApiException(400, "Must provide email.")
+        if not VALID_EMAIL_RE.match(email):
+            raise ApiException(400, "Unacceptable email.")
+        if User.get_by_name(username) and not force:
             raise ApiException(409, "Username already taken.")
-        existing_user_email = User.get_by_email(email)
-        if existing_user_email and not force:
+        if User.get_by_email(email) and not force:
             raise ApiException(409, "Email already taken.")
 
     check_conflicts(username, email)
@@ -140,14 +138,15 @@ def _create_user(username, password='', email=None, is_admin=False,
         user.is_admin = is_admin
     else:
         user = User(
-                id=generate_uuid(),
-                name=username,
-                password=new_password,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                is_active=is_active,
-                is_admin=is_admin)
+            id=generate_uuid(),
+            name=username,
+            password=new_password,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=is_active,
+            is_admin=is_admin
+            )
 
     try:
         db.session.add(user)
@@ -192,13 +191,7 @@ def get_tokens(user_id):
     return tokens
 
 def update_last_login(user_id, timestamp=datetime.utcnow()):
-    user = (
-        db.session.query(
-            User
-        )
-        .filter(User.id==user_id)
-        .one_or_none()
-    )
+    user = User.get_by_id(user_id)
     if not user:
         raise Exception("User not found")
 
@@ -250,7 +243,7 @@ def issue_code(username):
     code = (
         db.session.query(
             Code
-        ).filter(Code.user_id==user_id)
+        ).filter(Code.user_id == user_id)
         .one_or_none()
     )
     if code:
@@ -281,8 +274,8 @@ def try_as_code(code_str):
     )
     if found:
         return User.get_by_id(code['id'])
-    else:
-        return False
+
+    return False
 
 def decode_token(token_str):
     token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
@@ -293,8 +286,8 @@ def check_token(user_id, token_id):
         db.session.query(
             Token
         )
-        .filter(Token.user_id==user_id)
-        .filter(Token.token==token_id)
+        .filter(Token.user_id == user_id)
+        .filter(Token.token == token_id)
         .one_or_none()
     )
     return token is not None
@@ -310,16 +303,16 @@ def _verify(payload):
         raise Exception('Token invalid')
     return user
 
-def verify_token_string(s):
+def verify_token_string(token_string):
     try:
-        token = decode_token(s)
+        token = decode_token(token_string)
         user = _verify(token)
         return user
     except Exception:
         return False
 
-def exp_from_token(s):
-    token = decode_token(s)
+def exp_from_token(token):
+    token = decode_token(token)
     return token['exp']
 
 def revoke_token_string(token_str):
@@ -329,17 +322,17 @@ def revoke_token_string(token_str):
     return revoke_token(user_id, uuid)
 
 def revoke_token(user_id, token):
-    t = (
+    found = (
         db.session.query(
             Token
         )
-        .filter(Token.user_id==user_id)
-        .filter(Token.token==token)
+        .filter(Token.user_id == user_id)
+        .filter(Token.token == token)
         .one_or_none()
     )
-    if t is None:
+    if found is None:
         return False
-    db.session.delete(t)
+    db.session.delete(found)
     db.session.commit()
     return True
 
@@ -347,7 +340,7 @@ def revoke_tokens(user_id):
     tokens = (
         db.session.query(
             Token
-        ).filter(Token.user_id==user_id)
+        ).filter(Token.user_id == user_id)
         .all()
     )
     for token in tokens:
@@ -381,8 +374,8 @@ def consume_code(user_id, code):
         db.session.query(
             Code
         )
-        .filter(Code.user_id==user_id)
-        .filter(Code.code==code)
+        .filter(Code.user_id == user_id)
+        .filter(Code.code == code)
         .one_or_none()
     )
     if code is None:
@@ -410,7 +403,7 @@ def try_login(username, password):
 
     try:
         verify_hash(password, user.password)
-    except Exception as e:
+    except Exception:
         return False
     return True
 
@@ -425,7 +418,7 @@ def create_admin():
     if not admin_username or not admin_password or not admin_email:
         return
     _create_user(admin_username, password=admin_password, email=admin_email,
-            is_admin=True, requires_activation=False, force=True)
+                 is_admin=True, requires_activation=False, force=True)
     user = User.get_by_name(admin_username)
     _activate_user(user.id)
 
@@ -445,13 +438,14 @@ def generate_activation_token(user_id):
     existing_token = (
         db.session.query(
             ActivationToken
-        ).filter(ActivationToken.user_id == user_id)
+        )
+        .filter(ActivationToken.user_id == user_id)
         .one_or_none()
     )
-    at = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
-    db.session.add(at)
+    new_token = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
+    db.session.add(new_token)
     db.session.commit()
-    return at.token
+    return new_token.token
 
 def consume_activation_token(user_id, token):
     token = (
@@ -474,10 +468,10 @@ def generate_reset_token(user_id):
         ).filter(PasswordResetToken.user_id == user_id)
         .one_or_none()
     )
-    rt = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
-    db.session.add(rt)
+    reset_token = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
+    db.session.add(reset_token)
     db.session.commit()
-    return rt.token
+    return reset_token.token
 
 def consume_reset_token(user_id, token):
     token = (

@@ -22,7 +22,6 @@ services:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=docker_config.py
-      - OAUTH_CLIENT_SECRET=TESTING
       - STRIPE_SECRET_KEY=STRIPETEST
       - REGISTRY_HOST=http://localhost:5000
       - QUILT_DEFAULT_SENDER=support@quiltdata.io

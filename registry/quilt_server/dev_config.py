@@ -20,9 +20,6 @@ CATALOG_URL = 'http://localhost:3000'
 
 REGISTRY_HOST = 'http://localhost:5000'
 
-# TODO: move invite sending to flask
-INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL
-
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
 
@@ -36,10 +33,6 @@ DEPLOYMENT_ID = socket.gethostname()
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
 ENABLE_USER_ENDPOINTS = True
-
-# Only used in dev
-QUILT_ADMIN_USERNAME = os.getenv('QUILT_ADMIN_USERNAME')
-QUILT_ADMIN_PASSWORD = os.getenv('QUILT_ADMIN_PASSWORD')
 
 SECRET_KEY = os.getenv('QUILT_SECRET_KEY', 'testing') # hardcoded default for dev/testing
 DEFAULT_SENDER = os.getenv('QUILT_DEFAULT_SENDER', 'support@quiltdata.io')

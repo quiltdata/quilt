@@ -12,7 +12,7 @@ major performance implications. See `expire_on_commit=False` in `__init__.py`.
 
 import calendar
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import wraps
 import gzip
 import json
@@ -22,16 +22,13 @@ from urllib.parse import urlencode
 
 import boto3
 from botocore.exceptions import ClientError
-import flask
 from flask import abort, g, redirect, render_template, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
 from oauthlib.oauth2 import OAuth2Error
-import re
 import requests
-from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
@@ -40,17 +37,17 @@ import stripe
 from . import ApiException, app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_as_code,
-        issue_token, issue_token_by_id, try_login, verify_token_string,
-        reset_password, exp_from_token, _create_user,
-        _enable_user, _disable_user, revoke_token, decode_token, revoke_token_string,
-        reset_password_response, activate_response)
+                   issue_token, issue_token_by_id, try_login, verify_token_string,
+                   reset_password, exp_from_token, _create_user,
+                   _enable_user, _disable_user, revoke_token_string,
+                   reset_password_response, activate_response)
 from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_invitation_email
-from .models import (Access, Code, Comment, Customer, Event, Instance, 
-        InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, Token, User, Version)
-from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
+from .models import (Access, Comment, Customer, Event, Instance,
+                     InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
+from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA,
                       USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
@@ -62,11 +59,7 @@ DEPLOYMENT_ID = app.config['DEPLOYMENT_ID']
 CATALOG_URL = app.config['CATALOG_URL']
 CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
-QUILT_AUTH_URL = app.config['QUILT_AUTH_URL']
-
 AUTHORIZATION_HEADER = 'Authorization'
-
-INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
@@ -98,8 +91,6 @@ s3_client = boto3.client(
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
-
-auth_session = requests.Session()
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
@@ -193,15 +184,15 @@ def oauth_callback():
             exp = get_exp()
             token = issue_token_by_id(try_code.user_id, exp)
         else:
-            user = verify_token_string(code)
+            verify_token_string(code)
             exp = exp_from_token(code)
         resp = {'refresh_token': code, 'access_token': code, 'expires_at': exp}
 
         if next:
             return redirect('%s#%s' % (next, urlencode(resp)))
-        else:
-            token = resp['refresh_token']
-            return render_template('oauth_success.html', code=token, **common_tmpl_args)
+
+        token = resp['refresh_token']
+        return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
 
@@ -302,8 +293,10 @@ def api(require_login=True, schema=None, enabled=True,
         @wraps(f)
         def wrapper(*args, **kwargs):
             if not enabled:
-                raise ApiException(requests.codes.bad_request,
-                        "This endpoint is not enabled.")
+                raise ApiException(
+                    requests.codes.bad_request,
+                    "This endpoint is not enabled."
+                    )
 
             g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=True)
 
@@ -339,7 +332,7 @@ def api(require_login=True, schema=None, enabled=True,
                                   is_logged_in=True,
                                   is_admin=user.is_admin,
                                   is_active=user.is_active)
-                except Exception as e:
+                except Exception:
                     raise ApiException(requests.codes.unauthorized, "Invalid credentials")
 
                 if not g.auth.is_active:
@@ -405,7 +398,6 @@ CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}
 @api()
 @as_json
 def refresh():
-    # TODO: revoke old token
     token_str = request.headers.get(AUTHORIZATION_HEADER)
     revoke_token_string(token_str)
     return {'token': issue_token(g.auth.user)}
@@ -414,13 +406,12 @@ def refresh():
 @api()
 @as_json
 def logout():
-    # TODO : delete token
     data = request.get_json()
     token = data['token']
     if revoke_token_string(token):
         return {}
-    else:
-        return {'error': 'Logout failed.'}, 400
+
+    return {'error': 'Logout failed.'}, 400
 
 CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 
@@ -732,10 +723,11 @@ def package_put(owner, package_name, package_hash):
         if not public and not _private_packages_allowed():
             raise ApiException(
                 requests.codes.payment_required,
-                ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                (
+                    "Insufficient permissions. Run `quilt push --public %s/%s` to make " +
                     "this package public, or upgrade your service plan to create " +
-                    "private packages: https://quiltdata.com/profile.") %
-                (owner, package_name)
+                    "private packages: https://quiltdata.com/profile."
+                ) % (owner, package_name)
             )
 
         package = Package(owner=owner, name=package_name)
@@ -781,7 +773,7 @@ def package_put(owner, package_name, package_hash):
                 raise ApiException(
                     requests.codes.forbidden,
                     ("%(team)s:%(user)s/%(pkg)s is private. To share it with the team, " +
-                        "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
+                     "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
 
@@ -859,7 +851,7 @@ def package_put(owner, package_name, package_hash):
             keywords_tsv=keywords_tsv,
         )
 
-        blob_by_hash = { blob.hash: blob for blob in blobs }
+        blob_by_hash = {blob.hash: blob for blob in blobs}
 
         for blob_hash in all_hashes:
             blob_size = sizes.get(blob_hash)
@@ -1059,7 +1051,7 @@ def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
     }
 
 @app.route('/api/package_timeseries/<owner>/<package_name>/<event_type>',
-        methods=['GET'])
+           methods=['GET'])
 @api(require_login=False)
 @as_json
 def package_timeseries(owner, package_name, event_type):
@@ -1294,19 +1286,28 @@ def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
     tags = (
-        db.session.query(Tag.instance_id,
-            sa.func.array_agg(Tag.tag).label('tag_list'))
+        db.session.query(
+            Tag.instance_id,
+            sa.func.array_agg(Tag.tag).label('tag_list')
+        )
         .group_by(Tag.instance_id)
         .subquery('tags')
     )
     versions = (
-        db.session.query(Version.instance_id,
-            sa.func.array_agg(Version.version).label('version_list'))
+        db.session.query(
+            Version.instance_id,
+            sa.func.array_agg(Version.version).label('version_list')
+        )
         .group_by(Version.instance_id)
         .subquery('versions')
     )
     logs = (
-        db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
+        db.session.query(
+            Log,
+            Instance,
+            tags.c.tag_list,
+            versions.c.version_list
+        )
         .filter_by(package=package)
         .join(Log.instance)
         .outerjoin(tags, Log.instance_id == tags.c.instance_id)
@@ -1324,7 +1325,7 @@ def logs_list(owner, package_name):
     ) for log, instance, tag_list, version_list in logs]
 
 
-    return { 'logs' : results }
+    return {'logs' : results}
 
 VERSION_SCHEMA = {
     'type': 'object',
@@ -1605,10 +1606,6 @@ def access_put(owner, package_name, user):
             "Only the package owner can grant access"
         )
 
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
-        }
-
     package = (
         Package.query
         .with_for_update()
@@ -1789,7 +1786,8 @@ def search():
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
             sa.func.bool_or(Access.user == TEAM).label('is_team'),
-            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')  # Just save the query as a variable
+            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')
+            # Just save the query as a variable
         )
         .join(Instance.package)
         .join(Package.access)
@@ -1878,8 +1876,10 @@ def profile():
         db.session.commit()
 
     # We want to show only the packages owned by or explicitly shared with the user -
-    # but also show whether they're public, in case a package is both public and shared with the user.
-    # So do a "GROUP BY" to get the public info, then "HAVING" to filter out packages that aren't shared.
+    # but also show whether they're public, in case a package is both public
+    #   and shared with the user.
+    # So do a "GROUP BY" to get the public info,
+    #   then "HAVING" to filter out packages that aren't shared.
     packages = (
         db.session.query(
             Package,
@@ -2163,7 +2163,7 @@ def delete_user():
     username = data['username']
     try:
         _delete_user(username)
-    except Exception as e:
+    except Exception:
         raise ApiException(
             requests.codes.not_found,
             "User not found"
@@ -2216,7 +2216,7 @@ def audit_user(user):
 @as_json
 def package_summary():
     events = (
-        db.session.query(Event.package_owner, Event.package_name, Event.type, 
+        db.session.query(Event.package_owner, Event.package_name, Event.type,
                          sa.func.count(Event.type), sa.func.max(Event.created))
         .group_by(Event.package_owner, Event.package_name, Event.type)
         )
