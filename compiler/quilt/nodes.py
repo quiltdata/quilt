@@ -47,6 +47,10 @@ class DataNode(Node):
         self._node = node
         self.__cached_data = data
 
+    def __iter__(self):
+        # return an empty iterator (not None, not [], which are non-empty)
+        return iter(())
+
     def _data(self, asa=None):
         """
         Returns the contents of the node: a dataframe or a file path, or passes
@@ -54,8 +58,10 @@ class DataNode(Node):
         """
         if asa is not None:
             if self._package is None or not self._node.hashes:
-                msg = "Can only use asa functions with built dataframes."
-                " Build this package and try again."
+                msg = (
+                    "Can only use asa functions with built dataframes."
+                    " Build this package and try again."
+                )
                 raise ValueError(msg)
             store = self._package.get_store()
             return asa(self, [store.object_path(obj) for obj in self._node.hashes])
