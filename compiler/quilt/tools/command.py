@@ -1279,28 +1279,31 @@ def reset_password(team, username):
             ), data=json.dumps({'username':username})
     )
 
-def _load(package):
+def _load(package, hash=None):
     info = parse_package_extended(package)
     # TODO: support tags & versions.
-    if info.tag is not None:
+    if info.tag:
         raise CommandException("Loading packages by tag is not supported.")
-    if info.version is not None:
+    elif info.version:
         raise CommandException("Loading packages by version is not supported.")
+    elif info.hash:
+        raise CommandException("Use hash=HASH to specify package hash.")
 
     pkgobj = PackageStore.find_package(info.team,
                                        info.user,
                                        info.name,
-                                       pkghash=info.hash)
+                                       pkghash=hash)
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
     node = _from_core_node(pkgobj, pkgobj.get_contents())
+
     return node, pkgobj, info
 
-def load(pkginfo):
+def load(pkginfo, hash=None):
     """
     functional interface to "from quilt.data.USER import PKG"
     """
-    return _load(pkginfo)[0]
+    return _load(pkginfo, hash)[0]
 
 def export(package, output_path='.', force=False, symlinks=False):
     """Export package file data.

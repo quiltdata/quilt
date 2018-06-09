@@ -504,11 +504,18 @@ class ImportTest(QuiltTestCase):
         command.ls()
 
         load_pkg_new = command.load('foo/package')
-        load_pkg_old = command.load('foo/package:h:%s' % pkghash)    
+        load_pkg_old = command.load('foo/package', hash=pkghash)    
         assert load_pkg_old._package.get_hash() == pkghash
 
         assert load_pkg_new.foo
         with self.assertRaises(AttributeError):
             load_pkg_new.dataframes
-        
-
+        # Known failure cases
+        # At present load does not support extended package syntax
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:h:%s' % pkghash)
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:t:latest')
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:v:1.0.0')
+    

@@ -143,7 +143,7 @@ For a package in a team registry:
 from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
 
-### `quilt.load("USR/PKG[:h:HASH])`
+### `quilt.load("USR/PKG", hash=None)`
 
 Returns the specified package. You can use `quilt.load` to simultaneously load
 different versions of the same package.
