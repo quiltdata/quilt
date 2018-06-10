@@ -1,5 +1,8 @@
-/* Convenience wrapper for fetch
- * inspired by https://github.com/react-boilerplate/react-boilerplate/blob/master/app/utils/request.js */
+/**
+ * Convenience wrapper for fetch
+ * inspired by https://github.com/react-boilerplate/react-boilerplate/blob/master/app/utils/request.js
+ */
+
 import 'whatwg-fetch';
 import invoke from 'lodash/fp/invoke';
 
