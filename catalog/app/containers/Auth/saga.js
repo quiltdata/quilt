@@ -43,12 +43,12 @@ export function* makeHeaders() {
   return makeHeadersFromTokens(tokens);
 }
 
-const adjustTokensForLatency = (tokens, latency) => ({
+export const adjustTokensForLatency = (tokens, latency) => ({
   ...tokens,
-  expires_at:
-    Number.isFinite(tokens.expires_at)
-      ? tokens.expires_at - latency
-      : tokens.expires_at,
+  exp:
+    Number.isFinite(tokens.exp)
+      ? tokens.exp - latency
+      : tokens.exp,
 });
 /**
  * Make a sign-up request.
@@ -91,7 +91,10 @@ const signUp = async (api, credentials) => {
         throw new errors.EmailTaken({ originalError: e });
       }
     }
-    throw new errors.AuthError({ originalError: e });
+    throw new errors.AuthError({
+      message: 'unable to sign up',
+      originalError: e,
+    });
   }
 };
 
@@ -323,17 +326,19 @@ const refreshTokens = async (api, latency, tokens) => {
  *
  * @param {Object} options
  * @param {string} options.api
+ * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
  *
  * @param {Action} action
  */
 function* handleSignIn(
-  { api, storeTokens, storeUser },
+  { api, latency, storeTokens, storeUser },
   { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    const tokens = yield call(signIn, api, credentials);
+    const tokensRaw = yield call(signIn, api, credentials);
+    const tokens = adjustTokensForLatency(tokensRaw, latency);
     const user = yield call(fetchUser, api, tokens);
     yield fork(storeTokens, tokens);
     yield fork(storeUser, user);
@@ -455,9 +460,9 @@ function* handleAuthLost({ onAuthLost }, { payload: err }) {
 function* handleSignUp({ api }, { payload: credentials, meta: { resolve, reject } }) {
   try {
     yield call(signUp, api, credentials);
-    if (resolve) yield call(resolve);
+    yield call(resolve);
   } catch (e) {
-    if (reject) yield call(reject, e);
+    yield call(reject, e);
   }
 }
 
@@ -471,9 +476,9 @@ function* handleSignUp({ api }, { payload: credentials, meta: { resolve, reject 
 function* handleResetPassword({ api }, { payload: email, meta: { resolve, reject } }) {
   try {
     yield call(resetPassword, api, email);
-    if (resolve) yield call(resolve);
+    yield call(resolve);
   } catch (e) {
-    if (reject) yield call(reject, e);
+    yield call(reject, e);
   }
 }
 
@@ -487,9 +492,9 @@ function* handleResetPassword({ api }, { payload: email, meta: { resolve, reject
 function* handleChangePassword({ api }, { payload: { link, password }, meta: { resolve, reject } }) {
   try {
     yield call(changePassword, api, link, password);
-    if (resolve) yield call(resolve);
+    yield call(resolve);
   } catch (e) {
-    if (reject) yield call(reject, e);
+    yield call(reject, e);
   }
 }
 
@@ -504,9 +509,9 @@ function* handleGetCode({ api }, { meta: { resolve, reject } }) {
   try {
     const tokens = yield select(selectors.tokens);
     const code = yield call(getCode, api, tokens);
-    if (resolve) yield call(resolve, code);
+    yield call(resolve, code);
   } catch (e) {
-    if (reject) yield call(reject, e);
+    yield call(reject, e);
   }
 }
 
@@ -536,8 +541,9 @@ export default function* (/* istanbul ignore next */ {
   forgetUser = noop,
   onAuthLost = noop,
   onAuthError = noop,
-} = {}) {
-  yield takeEvery(actions.signIn.type, handleSignIn, { api, storeTokens, storeUser, forgetTokens });
+}) {
+  yield takeEvery(actions.signIn.type, handleSignIn,
+    { api, latency, storeTokens, storeUser, forgetTokens });
   yield takeEvery(actions.signOut.type, handleSignOut, { api, forgetTokens, forgetUser });
   yield takeEvery(actions.check.type, handleCheck,
     // eslint-disable-next-line object-curly-newline
