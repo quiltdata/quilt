@@ -16,10 +16,7 @@ import Error from 'components/Error';
 import { Skip } from 'components/LayoutHelpers';
 import PaymentDialog from 'components/PaymentDialog';
 import paymentMessages from 'components/PaymentDialog/messages';
-import {
-  makeSelectEmail,
-  makeSelectUserName,
-} from 'containers/App/selectors';
+import * as authSelectors from 'containers/Auth/selectors';
 import { printObject } from 'utils/string';
 import Working from 'components/Working';
 import { injectReducer } from 'utils/ReducerInjector';
@@ -227,7 +224,7 @@ export default compose(
   injectIntl,
   connect(createStructuredSelector({
     profile: makeSelectProfile(),
-    user: makeSelectUserName(),
-    email: makeSelectEmail(),
+    user: authSelectors.username,
+    email: authSelectors.email,
   })),
 )(Profile);

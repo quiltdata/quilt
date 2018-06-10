@@ -1,5 +1,5 @@
 import { fromJS } from 'immutable';
-import { withInitialState, handleActions } from 'utils/reduxTools';
+import { withInitialState, handleActions, combine } from 'utils/reduxTools';
 
 import api from 'constants/api';
 
@@ -12,13 +12,13 @@ const initial = {
 };
 
 export default withInitialState(fromJS(initial), handleActions({
-  [actions.GET]: {
+  [actions.GET]: combine({
     status: (p) => p.name ? api.WAITING : null,
     response: null,
-  },
+  }),
 
-  [actions.GET_RESPONSE]: {
+  [actions.GET_RESPONSE]: combine({
     status: (p) => p.status,
     response: (p) => fromJS(p.response),
-  },
+  }),
 }));

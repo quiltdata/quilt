@@ -212,17 +212,18 @@
   "jest": {
     "collectCoverageFrom": [
       "app/**/*.{js,jsx}",
-      "!app/**/*.test.{js,jsx}",
+      "!app/testing/**/*.{js,jsx}",
+      "!app/**/tests/*.{js,jsx}",
       "!app/*/RbGenerated*/*.{js,jsx}",
       "!app/app.js",
       "!app/*/*/Loadable.js"
     ],
     "coverageThreshold": {
       "global": {
-        "statements": 98,
-        "branches": 91,
-        "functions": 98,
-        "lines": 98
+        "statements": 5,
+        "branches": 5,
+        "functions": 5,
+        "lines": 5
       }
     },
     "moduleDirectories": [
@@ -239,7 +240,8 @@
       "jest-localstorage-mock",
       "<rootDir>/internals/testing/enzyme-setup.js"
     ],
-    "testRegex": "tests/.*\\.test\\.js$",
+    "testRegex": ".*\\.(test|spec)\\.js$",
+    "testURL": "https://quilt-test",
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ]
@@ -267,9 +269,9 @@
     "query-string": "^5.1.0",
     "raven-for-redux": "^1.3.0",
     "raven-js": "^3.23.1",
-    "react": "^16.2.0",
+    "react": "^16.4.0",
     "react-bootstrap": "^0.32.1",
-    "react-dom": "^16.2.0",
+    "react-dom": "^16.4.0",
     "react-helmet": "^5.2.0",
     "react-intl": "^2.4.0",
     "react-loadable": "^5.3.1",
@@ -279,7 +281,6 @@
     "react-stripe-checkout": "^2.6.3",
     "recompose": "^0.26.0",
     "redux": "^3.7.2",
-    "redux-auth-wrapper": "^2.0.2",
     "redux-form": "^7.2.3",
     "redux-immutable": "^4.0.0",
     "redux-saga": "^0.16.0",
@@ -323,6 +324,7 @@
     "eslint-plugin-redux-saga": "^0.6.0",
     "eventsource-polyfill": "^0.9.6",
     "exports-loader": "^0.7.0",
+    "fetch-mock": "^6.4.4",
     "file-loader": "^1.1.6",
     "html-loader": "^0.5.5",
     "html-webpack-plugin": "^2.30.1",

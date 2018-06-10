@@ -3,10 +3,7 @@ window.__CONFIG = {
   alwaysRequiresAuth: Boolean('$ALWAYS_REQUIRES_AUTH'),
   api: '$REGISTRY_URL',
   sentryDSN: '$SENTRY_DSN',
-  signOutUrl: '$SIGN_OUT_URL',
   stripeKey: '$STRIPE_KEY',
-  // eslint-disable-next-line no-constant-condition
-  team: '$TEAM_ID' ? { id: '$TEAM_ID', name: '$TEAM_NAME' } : undefined,
-  // eslint-disable-next-line comma-dangle
-  userApi: '$USER_API'
+  // eslint-disable-next-line no-constant-condition, comma-dangle
+  team: '$TEAM_ID' ? { id: '$TEAM_ID', name: '$TEAM_NAME' } : undefined
 };

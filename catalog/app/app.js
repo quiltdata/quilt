@@ -5,6 +5,7 @@ import 'babel-polyfill';
 // Import all the third party stuff
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { LOCATION_CHANGE } from 'react-router-redux';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import { reducer as form } from 'redux-form/immutable';
@@ -17,8 +18,11 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 import App from 'containers/App';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
+import AuthProvider from 'containers/Auth/Provider';
+import config from 'constants/config';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
+import * as storage from 'utils/storage';
 import StoreProvider from 'utils/StoreProvider';
 // Load the favicon, the manifest.json file and the .htaccess file
 /* eslint-disable import/no-unresolved, import/extensions */
@@ -48,14 +52,24 @@ const history = createHistory();
 const store = configureStore(initialState, history);
 const MOUNT_NODE = document.getElementById('app');
 
+// Check auth when location changes.
+const checkAuthOn = LOCATION_CHANGE;
+
 const render = (messages) => {
   ReactDOM.render(
     <StoreProvider store={store}>
       <InjectReducer mount="form" reducer={form}>
         <LanguageProvider messages={messages}>
-          <RouterProvider history={history}>
-            <App />
-          </RouterProvider>
+          <AuthProvider
+            checkOn={checkAuthOn}
+            storage={storage}
+            api={config.api}
+            signInRedirect="/profile"
+          >
+            <RouterProvider history={history}>
+              <App />
+            </RouterProvider>
+          </AuthProvider>
         </LanguageProvider>
       </InjectReducer>
     </StoreProvider>,
