@@ -58,6 +58,11 @@ class ImportTest(QuiltTestCase):
         str(dataframes)
         str(README)
 
+        # Store data is read-only
+        with self.assertRaises(IOError):
+            with open(README(), 'w'):
+                pass
+
         # Bad attributes of imported packages
 
         with self.assertRaises(AttributeError):
