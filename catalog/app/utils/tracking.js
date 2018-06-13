@@ -17,8 +17,11 @@ export const mkTracker = (token) => {
 
   return {
     nav: (loc, user) => tracker.then((inst) =>
+    // use same distinct_id as registry for event attribution
+    // else undefined to let mixpanel decide
       inst.track('WEB', {
         type: 'navigation',
+        distinct_id: user || undefined,
         origin: window.location.origin,
         location: `${loc.pathname}${loc.search}${loc.hash}`,
         user,
