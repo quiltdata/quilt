@@ -473,11 +473,9 @@ class PackageStore(object):
         Make the object read-only and move it to the store.
         """
         destpath = self.object_path(objhash)
-        try:
+        if os.path.exists(destpath):
             # Windows: delete any existing object at the destination.
             os.chmod(destpath, S_IWUSR)
             os.remove(destpath)
-        except IOError:
-            pass
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
