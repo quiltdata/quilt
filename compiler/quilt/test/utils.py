@@ -4,6 +4,7 @@ Unittest setup.
 
 import os
 import shutil
+from stat import S_IWUSR
 import tempfile
 import unittest
 
@@ -50,7 +51,17 @@ class BasicQuiltTestCase(unittest.TestCase):
 
     def tearDown(self):
         os.chdir(self._old_dir)
-        shutil.rmtree(self._test_dir)
+
+        def _onerror(func, path, exc_info):
+            """
+            Handle read-only files on Windows
+            """
+            if not os.access(path, os.W_OK):
+                os.chmod(path, stat.S_IWUSR)
+                func(path)
+            else:
+                raise
+        shutil.rmtree(self._test_dir, onerror=_onerror)
 
 class QuiltTestCase(BasicQuiltTestCase):
     """
