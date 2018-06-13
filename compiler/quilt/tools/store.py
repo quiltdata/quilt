@@ -4,7 +4,7 @@ Build: parse and add user-supplied files to store
 import json
 import os
 from shutil import copyfile, move, rmtree
-from stat import S_IRUSR, S_IRGRP, S_IROTH
+from stat import S_IRUSR, S_IRGRP, S_IROTH, S_IWUSR
 import uuid
 
 from enum import Enum
@@ -334,6 +334,7 @@ class PackageStore(object):
         for obj in remove_objs:
             path = self.object_path(obj)
             if os.path.exists(path):
+                os.chmod(path, S_IWUSR)
                 os.remove(path)
         return remove_objs
 
@@ -467,9 +468,16 @@ class PackageStore(object):
         self._move_to_store(path, metahash)
         return metahash
 
-    def _move_to_store(self, objpath, objhash):
+    def _move_to_store(self, srcpath, objhash):
         """
         Make the object read-only and move it to the store.
         """
-        os.chmod(objpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
-        move(objpath, self.object_path(objhash))
+        destpath = self.object_path(objhash)
+        try:
+            # Windows: delete any existing object at the destination.
+            os.chmod(destpath, S_IWUSR)
+            os.remove(destpath)
+        except IOError:
+            pass
+        os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
+        move(srcpath, destpath)
