@@ -48,6 +48,7 @@ export const adjustTokensForLatency = (tokens, latency) => ({
   exp:
     Number.isFinite(tokens.exp)
       ? tokens.exp - latency
+      /* istanbul ignore next */
       : tokens.exp,
 });
 /**
@@ -74,6 +75,7 @@ const signUp = async (api, credentials) => {
       },
     });
   } catch (e) {
+    /* istanbul ignore else */
     if (e instanceof HttpError) {
       if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
@@ -145,9 +147,11 @@ const signIn = async (api, credentials) => {
     });
 
     if (res.error) {
+      /* istanbul ignore else */
       if (res.error === 'Login attempt failed') {
         throw new errors.InvalidCredentials();
       }
+      /* istanbul ignore next */
       throw new Error(res.error);
     }
 
@@ -241,6 +245,7 @@ const changePassword = async (api, link, password) => {
       },
     });
   } catch (e) {
+    /* istanbul ignore else */
     if (e instanceof HttpError) {
       if (e.status === 404 && e.json && e.json.error === 'User not found.') {
         throw new errors.InvalidResetLink({ originalError: e });
@@ -371,6 +376,7 @@ function* handleSignOut({ api, forgetTokens, forgetUser }, { meta: { resolve, re
     if (resolve) yield call(resolve);
   } catch (e) {
     yield put(actions.signOut.resolve(e));
+    /* istanbul ignore else */
     if (reject) yield call(reject, e);
   } finally {
     yield fork(forgetUser);
@@ -379,9 +385,9 @@ function* handleSignOut({ api, forgetTokens, forgetUser }, { meta: { resolve, re
 }
 
 const isExpired = (tokens, time) => {
-  // "expires_at" used to be "expires_on"
-  const expiresAt = tokens.expires_at || /* istanbul ignore next */ tokens.expires_on;
-  return expiresAt && expiresAt < time;
+  // some backwards compatibility
+  const exp = tokens.exp || tokens.expires_at || tokens.expires_on;
+  return exp && exp < time;
 };
 
 /**
@@ -411,6 +417,7 @@ function* handleCheck(
     const tokens = yield select(selectors.tokens);
     const time = yield call(timestamp);
     if (!isExpired(tokens, time)) {
+      /* istanbul ignore else */
       if (resolve) yield call(resolve);
       return;
     }
@@ -425,6 +432,7 @@ function* handleCheck(
     }
     const payload = { tokens: newTokens, user };
     yield put(actions.refresh.resolve(payload));
+    /* istanbul ignore else */
     if (resolve) yield call(resolve, payload);
   } catch (e) {
     yield put(actions.refresh.resolve(e));
@@ -435,6 +443,7 @@ function* handleCheck(
     } else {
       yield call(onAuthError, e);
     }
+    /* istanbul ignore else */
     if (reject) yield call(reject, e);
   }
 }
@@ -515,8 +524,6 @@ function* handleGetCode({ api }, { meta: { resolve, reject } }) {
   }
 }
 
-const noop = () => {};
-
 /**
  * Main Auth saga.
  * Handles auth actions and fires CHECK action on specified condition.
@@ -531,16 +538,16 @@ const noop = () => {};
  * @param {function} options.onAuthLost
  * @param {function} options.onAuthError
  */
-export default function* (/* istanbul ignore next */ {
+export default function* ({
   api,
   latency,
   checkOn,
-  storeTokens = noop,
-  forgetTokens = noop,
-  storeUser = noop,
-  forgetUser = noop,
-  onAuthLost = noop,
-  onAuthError = noop,
+  storeTokens,
+  forgetTokens,
+  storeUser,
+  forgetUser,
+  onAuthLost,
+  onAuthError,
 }) {
   yield takeEvery(actions.signIn.type, handleSignIn,
     { api, latency, storeTokens, storeUser, forgetTokens });
@@ -554,5 +561,6 @@ export default function* (/* istanbul ignore next */ {
   yield takeEvery(actions.changePassword.type, handleChangePassword, { api });
   yield takeEvery(actions.getCode.type, handleGetCode, { api });
 
+  /* istanbul ignore else */
   if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
 }
