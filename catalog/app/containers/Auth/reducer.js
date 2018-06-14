@@ -48,16 +48,16 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
       tokens: unset,
       user: unset,
     }),
-    [actions.REFRESH]: {
+    [actions.REFRESH]: combine({
       state: 'REFRESHING',
       error: unset,
-    },
-    [actions.AUTH_LOST]: {
+    }),
+    [actions.AUTH_LOST]: combine({
       state: 'SIGNED_OUT',
       error: id,
       tokens: unset,
       user: unset,
-    },
+    }),
   }),
   REFRESHING: handleActions({
     [actions.REFRESH_RESULT]: handleResult({
