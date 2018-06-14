@@ -12,6 +12,7 @@ import { createStructuredSelector } from 'reselect';
 
 import LanguageProvider from 'containers/LanguageProvider';
 // import Notifications from 'containers/Notifications';
+import { PUSH } from 'containers/Notifications/constants';
 import { translationMessages as messages } from 'i18n';
 import defer from 'utils/defer';
 import StoreProvider from 'utils/StoreProvider';
@@ -31,7 +32,7 @@ import {
   actions,
   errors,
   selectors,
-  // makeHeaders,
+  makeHeaders,
 } from '.';
 import { adjustTokensForLatency } from './saga';
 
@@ -76,6 +77,8 @@ const dataSets = {
 const signInRedirect = '/after-sign-in';
 const signOutRedirect = '/after-sign-out';
 
+const checkOn = '@@CHECK_ON';
+
 const selector = createStructuredSelector({
   state: selectors.state,
   waiting: selectors.waiting,
@@ -117,7 +120,7 @@ const storeSteps = [
     });
   }),
 
-  step(/store should be in signed-in state with stale tokens/, (ctx) => {
+  step(/store should be in signed-in state with stale tokens$/, (ctx) => {
     expect(selector(ctx.store.getState())).toEqual({
       state: 'SIGNED_IN',
       waiting: false,
@@ -131,11 +134,53 @@ const storeSteps = [
     });
   }),
 
-  step(/store should be in signed-out state/, (ctx) => {
+  step(/store should be in signed-in state with stale tokens and error/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNED_IN',
+      waiting: false,
+      error: expect.any(errors.AuthError),
+      username: user.current_user,
+      authenticated: true,
+      email: user.email,
+      tokens: tokensStale,
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in refreshing state/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'REFRESHING',
+      waiting: true,
+      error: undefined,
+      username: user.current_user,
+      authenticated: true,
+      email: user.email,
+      tokens: tokensStale,
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in signed-out state$/, (ctx) => {
     expect(selector(ctx.store.getState())).toEqual({
       state: 'SIGNED_OUT',
       waiting: false,
       error: undefined,
+      username: undefined,
+      authenticated: false,
+      email: undefined,
+      tokens: {},
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in signed-out state with error/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNED_OUT',
+      waiting: false,
+      error: expect.any(Error),
       username: undefined,
       authenticated: false,
       email: undefined,
@@ -149,6 +194,7 @@ const storeSteps = [
 const treeMounted = step(/the component tree is mounted/, (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
+  jest.spyOn(store, 'dispatch');
   const storage = ctx.storage || {
     load: () => ({}),
     set: () => {},
@@ -166,6 +212,7 @@ const treeMounted = step(/the component tree is mounted/, (ctx) => {
             latency={latency}
             signInRedirect={signInRedirect}
             signOutRedirect={signOutRedirect}
+            checkOn={checkOn}
           >
             <h1>test</h1>
           </AuthProvider>
@@ -222,6 +269,22 @@ feature('containers/Auth/Provider')
   .when('the component tree is mounted')
   .then('store should be in signed-out state')
 
+  .scenario('Intercepting "checkOn" action')
+  .given('refreshTokens request is expected')
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+  .when('dispatching action that will be caught by "checkOn"')
+  .then('store should be in refreshing state')
+
+  .step(/dispatching action that will be caught by "checkOn"/, (ctx) => {
+    ctx.store.dispatch({ type: checkOn });
+  })
+
+  .step(/refreshTokens request is expected/, () => {
+    fetchMock.postOnce(`${api}/api/refresh`, new Promise(() => {}));
+  }, () => {
+    fetchMock.restore();
+  })
 
   .scenario('Dispatching signUp action')
   .given('signUp request is expected')
@@ -300,6 +363,10 @@ feature('containers/Auth/Provider')
   .when('changePassword request is rejected with an "invalid password" error')
   .then('reject should be called with an "InvalidPassword" error instance')
 
+  .back()
+  .when('changePassword request is rejected with an unexpected error')
+  .then('reject should be called with an "AuthError" error instance')
+
 
   .scenario('Dispatching getCode action')
 
@@ -310,9 +377,14 @@ feature('containers/Auth/Provider')
   .when('getCode action is dispatched')
   .then('getCode request should be made')
 
-  .when('getCode request is resolved')
+  .when('getCode request succeeds')
   .then('resolve should be called with the recevied code')
   .then('reject should not be called')
+
+  .back()
+  .when('getCode request fails')
+  .then('reject should be called with an "AuthError"')
+  .then('resolve should not be called')
 
   .step(/signUp request is expected/, (ctx) => {
     const result = defer();
@@ -459,11 +531,16 @@ feature('containers/Auth/Provider')
     }));
   })
 
-  .step(/getCode request is resolved/, async (ctx) => {
+  .step(/getCode request succeeds/, async (ctx) => {
     const code = 'the code';
     ctx.requestResolver.resolve({ code });
     await flushPromises();
     return { ...ctx, code };
+  })
+
+  .step(/getCode request fails/, async (ctx) => {
+    ctx.requestResolver.resolve({ status: 500, body: 'error' });
+    await flushPromises();
   })
 
   .step(/resolve should be called with the received code/, (ctx) => {
@@ -522,7 +599,7 @@ feature('containers/Auth/Provider: signing in')
   .when('signIn request fails with "invalid credentials" error')
   .then('reject should be called with "InvalidCredentials" error')
   .then('resolve should not be called')
-  .then('store should be in signed-out state with "InvalidCredentials" error')
+  .then('store should be in signed-out state')
 
 
   .scenario('Signing in, sign-in request fails')
@@ -531,7 +608,7 @@ feature('containers/Auth/Provider: signing in')
   .when('signIn request fails with unexpected error')
   .then('reject should be called with "AuthError" error')
   .then('resolve should not be called')
-  .then('store should be in signed-out state with "AuthError" error')
+  .then('store should be in signed-out state')
 
 
   .scenario('Signing in, user request fails')
@@ -541,7 +618,7 @@ feature('containers/Auth/Provider: signing in')
   .when('fetchUser request fails with unexpected error')
   .then('reject should be called with "AuthError" error')
   .then('resolve should not be called')
-  .then('store should be in signed-out state with "AuthError" error')
+  .then('store should be in signed-out state')
 
 
   .steps([treeMounted, ...storageSteps, ...storeSteps])
@@ -718,5 +795,355 @@ feature('containers/Auth/Provider: signing out')
   })
 
   .steps([treeMounted, ...storageSteps, ...storeSteps])
+
+  .run();
+
+
+feature('containers/Auth/Provider: check')
+  .given('refreshTokens request is expected')
+  .given('fetchUser request is expected')
+
+
+  .scenario('Dispatching check when tokens are current')
+
+  .given('storage has current auth data')
+  .given('the component tree is mounted')
+
+  .when('check action is dispatched')
+  .then('resolve should be called')
+  .then('reject should not be called')
+
+
+  .scenario('Dispatching check with refetch when tokens are stale, requests succeed')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('check action is dispatched')
+  .then('store should be in refreshing state')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request succeeds')
+  .then('tokens should be stored')
+  .then('fetchUser request should be made')
+
+  .when('fetchUser request succeeds')
+  .then('store should be in signed-in state')
+  .then('resolve should be called with tokens and user data')
+  .then('reject should not be called')
+
+
+  .scenario('Dispatching check without refetch when tokens are stale, requests succeed')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('check action without refetch is dispatched')
+  .when('refreshTokens request succeeds')
+  .then('tokens should be stored')
+  .then('store should be in signed-in state')
+  .then('resolve should be called with tokens')
+  .then('reject should not be called')
+
+
+  .scenario('Dispatching check with refetch when tokens are stale, refreshTokens request succeeds, fetchUser request fails with 401')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('check action is dispatched')
+  .when('refreshTokens request succeeds')
+  .when('fetchUser request fails with "not authenticated" error')
+  .then('tokens should be destroyed')
+  .then('user data should be destroyed')
+  .then('"authentication lost" notification should be shown')
+  .then('store should be in signed-out state with error')
+  .then('resolve should not be called')
+  .then('reject should be called with NotAuthenticated error')
+
+
+  .scenario('Dispatching check without refetch when tokens are stale, refreshTokens request fails with 401')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('check action without refetch is dispatched')
+  .when('refreshTokens request fails with "not authenticated" error')
+  .then('"authentication lost" notification should be shown')
+  .then('store should be in signed-out state with error')
+  .then('resolve should not be called')
+  .then('reject should be called with NotAuthenticated error')
+
+  .scenario('Dispatching check without refetch when tokens are stale, refreshTokens request fails with 500')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('check action without refetch is dispatched')
+  .when('refreshTokens request fails with unexpected error')
+  .then('"authentication error" notification should be shown')
+  .then('store should be in signed-in state with stale tokens and error')
+  .then('resolve should not be called')
+  .then('reject should be called with AuthError')
+
+
+  .step(/"authentication (.*)" notification should be shown/, (ctx, type) => {
+    const re = invoke(type, {
+      lost: () => /Authentication lost/,
+      error: () => /Authentication error/,
+    });
+
+    expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
+      type: PUSH,
+      notification: expect.objectContaining({
+        message: expect.stringMatching(re),
+      }),
+    }));
+  })
+
+  .step(/refreshTokens request is expected/, (ctx) => {
+    const result = defer();
+    fetchMock.postOnce(`${api}/api/refresh`, result.promise, { name: 'refreshTokens' });
+    return { ...ctx, refreshTokensRequestResolver: result.resolver };
+  }, () => {
+    fetchMock.restore();
+  })
+
+  .step(/fetchUser request is expected/, (ctx) => {
+    const result = defer();
+    fetchMock.getOnce(`${api}/api-root`, result.promise, { name: 'fetchUser' });
+    return { ...ctx, fetchUserRequestResolver: result.resolver };
+  })
+
+  .step(/refreshTokens request succeeds/, async (ctx) => {
+    ctx.refreshTokensRequestResolver.resolve(tokensRaw);
+    await flushPromises();
+  })
+
+  .step(/fetchUser request succeeds/, async (ctx) => {
+    ctx.fetchUserRequestResolver.resolve(user);
+    await flushPromises();
+  })
+
+  .step(/refreshTokens request fails with unexpected error/, async (ctx) => {
+    ctx.refreshTokensRequestResolver.resolve({ status: 500, body: 'error' });
+    await flushPromises();
+  })
+
+  .step(/refreshTokens request fails with "not authenticated" error/, async (ctx) => {
+    ctx.refreshTokensRequestResolver.resolve({ status: 401, body: 'error' });
+    await flushPromises();
+  })
+
+  .step(/fetchUser request fails with "not authenticated" error/, async (ctx) => {
+    ctx.fetchUserRequestResolver.resolve({ status: 401, body: 'error' });
+    await flushPromises();
+  })
+
+  .step(/refreshTokens request should be made/, () => {
+    expect(fetchMock.called('refreshTokens')).toBe(true);
+    expect(fetchMock.lastOptions('refreshTokens')).toEqual(expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: `Bearer ${tokensStale.token}`,
+      }),
+    }));
+  })
+
+  .step(/fetchUser request should be made/, () => {
+    expect(fetchMock.called('fetchUser')).toBe(true);
+    expect(fetchMock.lastOptions('fetchUser')).toEqual(expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: `Bearer ${tokens.token}`,
+      }),
+    }));
+  })
+
+  .step(/check action is dispatched/, (ctx) => {
+    const resolve = jest.fn();
+    const reject = jest.fn();
+    ctx.store.dispatch(actions.check({}, { resolve, reject }));
+    return { ...ctx, resolve, reject };
+  })
+
+  .step(/check action without refetch is dispatched/, (ctx) => {
+    const resolve = jest.fn();
+    const reject = jest.fn();
+    ctx.store.dispatch(actions.check({ refetch: false }, { resolve, reject }));
+    return { ...ctx, resolve, reject };
+  })
+
+  .step(/resolve should be called$/, (ctx) => {
+    expect(ctx.resolve).toBeCalled();
+  })
+
+  .step(/resolve should be called with tokens$/, (ctx) => {
+    expect(ctx.resolve).toBeCalledWith({ tokens });
+  })
+
+  .step(/resolve should be called with tokens and user data/, (ctx) => {
+    expect(ctx.resolve).toBeCalledWith({ user, tokens });
+  })
+
+  .step(/resolve should not be called/, (ctx) => {
+    expect(ctx.resolve).not.toBeCalled();
+  })
+
+  .step(/reject should be called with NotAuthenticated error/, (ctx) => {
+    expect(ctx.reject).toBeCalledWith(expect.any(errors.NotAuthenticated));
+  })
+
+  .step(/reject should be called with AuthError/, (ctx) => {
+    expect(ctx.reject).toBeCalledWith(expect.any(errors.AuthError));
+  })
+
+  .step(/reject should not be called/, (ctx) => {
+    expect(ctx.reject).not.toBeCalled();
+  })
+
+  .steps([treeMounted, ...storageSteps, ...storeSteps])
+
+
+  .run();
+
+
+feature('containers/Auth/Provider: authLost')
+  .scenario('Dispatching authLost')
+
+  .given('storage has current auth data')
+  .given('the component tree is mounted')
+
+  .when('authLost action is dispatched')
+  .then('store should be in signed-out state with error')
+  .then('"authentication lost" notification should be shown')
+
+
+  .steps([treeMounted, ...storageSteps, ...storeSteps])
+
+  .step(/authLost action is dispatched/, (ctx) => {
+    ctx.store.dispatch(actions.authLost(new Error('test')));
+  })
+
+  .step(/"authentication lost" notification should be shown/, (ctx) => {
+    expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
+      type: PUSH,
+      notification: expect.objectContaining({
+        message: expect.stringMatching(/Authentication lost/),
+      }),
+    }));
+  })
+
+  .run();
+
+
+feature('containers/Auth/saga: makeHeaders()')
+  .given('refreshTokens request is expected')
+
+  .scenario('Requesting auth headers when auth data is absent')
+
+  .given('storage has empty auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('result should be an empty object')
+
+
+  .scenario('Requesting auth headers when auth data is current')
+
+  .given('storage has current auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('result should be an object containing the proper auth header')
+
+  .scenario('Requesting auth headers when auth data is stale and then gets refreshed successfully')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request succeeds')
+  .then('result should be an object containing the proper auth header')
+
+
+  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with "not authenticated" error')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request fails with "not authenticated" error')
+  .then('result should be an empty object')
+
+
+  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with unexpected error')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request fails with unexpected error')
+  .then('result should be an object containing the stale auth header')
+
+
+  .steps([treeMounted, ...storageSteps])
+
+  .step(/refreshTokens request is expected/, (ctx) => {
+    const result = defer();
+    fetchMock.postOnce(`${api}/api/refresh`, result.promise);
+    return { ...ctx, requestResolver: result.resolver };
+  }, () => {
+    fetchMock.restore();
+  })
+
+  .step(/refreshTokens request should be made/, () => {
+    expect(fetchMock.done()).toBe(true);
+    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
+      headers: expect.objectContaining({
+        Authorization: `Bearer ${tokensStale.token}`,
+      }),
+    }));
+  })
+
+  .step(/refreshTokens request succeeds/, async (ctx) => {
+    ctx.requestResolver.resolve(tokensRaw);
+    await flushPromises();
+  })
+
+  .step(/refreshTokens request fails with unexpected error/, async (ctx) => {
+    ctx.requestResolver.resolve({ status: 500, body: 'error' });
+    await flushPromises();
+  })
+
+  .step(/refreshTokens request fails with "not authenticated" error/, async (ctx) => {
+    ctx.requestResolver.resolve({ status: 401, body: 'error' });
+    await flushPromises();
+  })
+
+  .step(/the saga is run/, (ctx) => ({
+    ...ctx,
+    result: ctx.store.runSaga(makeHeaders).done,
+  }))
+
+  .step(/result should be an empty object/, async ({ result }) => {
+    expect(await result).toEqual({});
+  })
+
+  .step(/result should be an object containing the proper auth header/, async ({ result }) => {
+    expect(await result).toEqual({
+      Authorization: `Bearer ${tokens.token}`,
+    });
+  })
+
+  .step(/result should be an object containing the stale auth header/, async ({ result }) => {
+    expect(await result).toEqual({
+      Authorization: `Bearer ${tokensStale.token}`,
+    });
+  })
 
   .run();
