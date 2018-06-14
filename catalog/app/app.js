@@ -16,11 +16,9 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 
 // Import root app
 import App from 'containers/App';
-import { makeSelectUserName } from 'containers/App/selectors';
-import { ROUTER_START } from 'containers/App/constants';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
-import AuthProvider from 'containers/Auth/Provider';
+import { Provider as AuthProvider, selectors } from 'containers/Auth';
 import config from 'constants/config';
 import { InjectReducer } from 'utils/ReducerInjector';
 import RouterProvider from 'utils/router';
@@ -82,9 +80,8 @@ const render = (messages) => {
 
 // track navigation
 store.runSaga(tracking, {
-  selectUsername: makeSelectUserName(),
+  selectUsername: selectors.username,
   locationChangeAction: LOCATION_CHANGE,
-  routerStartAction: ROUTER_START,
   token: config.mixpanelToken,
 });
 
