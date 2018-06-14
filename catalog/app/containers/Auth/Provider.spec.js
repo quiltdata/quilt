@@ -24,7 +24,6 @@ import {
   flushPromises,
   // getLocation,
   // mockComponent,
-  spyOnDispatch,
 } from 'testing/util';
 
 import {
@@ -89,10 +88,67 @@ const selector = createStructuredSelector({
   signOutRedirect: selectors.signOutRedirect,
 });
 
+const storeSteps = [
+  step(/store should be in signing-in state/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNING_IN',
+      waiting: true,
+      error: undefined,
+      username: undefined,
+      authenticated: false,
+      email: undefined,
+      tokens: {},
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in signed-in state$/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNED_IN',
+      waiting: false,
+      error: undefined,
+      username: user.current_user,
+      authenticated: true,
+      email: user.email,
+      tokens,
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in signed-in state with stale tokens/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNED_IN',
+      waiting: false,
+      error: undefined,
+      username: user.current_user,
+      authenticated: true,
+      email: user.email,
+      tokens: tokensStale,
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+
+  step(/store should be in signed-out state/, (ctx) => {
+    expect(selector(ctx.store.getState())).toEqual({
+      state: 'SIGNED_OUT',
+      waiting: false,
+      error: undefined,
+      username: undefined,
+      authenticated: false,
+      email: undefined,
+      tokens: {},
+      signInRedirect,
+      signOutRedirect,
+    });
+  }),
+];
+
 const treeMounted = step(/the component tree is mounted/, (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
-  store.dispatchSpy = spyOnDispatch(store);
   const storage = ctx.storage || {
     load: () => ({}),
     set: () => {},
@@ -122,73 +178,49 @@ const treeMounted = step(/the component tree is mounted/, (ctx) => {
   return { ...ctx, history, store, tree, mounted };
 });
 
-const storageHasData = step(/storage has (current|stale|empty) auth data/, (ctx, dataSet) => ({
-  ...ctx,
-  storage: {
-    set: jest.fn(),
-    remove: jest.fn(),
-    load: jest.fn(() => dataSets[dataSet]),
-  },
-}));
+const storageSteps = [
+  step(/storage has (current|stale|empty) auth data/, (ctx, dataSet) => ({
+    ...ctx,
+    storage: {
+      set: jest.fn(),
+      remove: jest.fn(),
+      load: jest.fn(() => dataSets[dataSet]),
+    },
+  })),
+
+  step(/tokens should be stored/, (ctx) => {
+    expect(ctx.storage.set).toBeCalledWith('tokens', tokens);
+  }),
+
+  step(/user data should be stored/, (ctx) => {
+    expect(ctx.storage.set).toBeCalledWith('user', user);
+  }),
+
+  step(/tokens should be destroyed/, (ctx) => {
+    expect(ctx.storage.remove).toBeCalledWith('tokens');
+  }),
+
+  step(/user data should be destroyed/, (ctx) => {
+    expect(ctx.storage.remove).toBeCalledWith('user');
+  }),
+];
 
 
 feature('containers/Auth/Provider')
   .scenario('Initializing the provider when storage has current data')
   .given('storage has current auth data')
   .when('the component tree is mounted')
-  .then('the provider should be initialized with the signed-in state')
+  .then('store should be in signed-in state')
 
   .scenario('Initializing the provider when storage has stale data')
   .given('storage has stale auth data')
   .when('the component tree is mounted')
-  .then('the provider should be initialized with the signed-in state with stale tokens')
+  .then('store should be in signed-in state with stale tokens')
 
   .scenario('Initializing the provider when storage has no data')
   .given('storage has empty auth data')
   .when('the component tree is mounted')
-  .then('the provider should be initialized with the signed-out state')
-
-  .step(/the provider should be initialized with the signed-in state$/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens,
-      signInRedirect,
-      signOutRedirect,
-    });
-  })
-
-  .step(/the provider should be initialized with the signed-in state with stale tokens/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens: tokensStale,
-      signInRedirect,
-      signOutRedirect,
-    });
-  })
-
-  .step(/the provider should be initialized with the signed-out state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_OUT',
-      waiting: false,
-      error: undefined,
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
-  })
+  .then('store should be in signed-out state')
 
 
   .scenario('Dispatching signUp action')
@@ -455,7 +487,7 @@ feature('containers/Auth/Provider')
   })
 
 
-  .steps([treeMounted, storageHasData])
+  .steps([treeMounted, ...storageSteps, ...storeSteps])
 
   .run();
 
@@ -479,7 +511,6 @@ feature('containers/Auth/Provider: signing in')
   .when('fetchUser request succeeds')
   .then('tokens should be stored')
   .then('user data should be stored')
-  .then('signIn.resolve action should be dispatched with tokens and user data')
   .then('resolve should be called with tokens and user data')
   .then('reject should not be called')
   .then('store should be in signed-in state')
@@ -489,7 +520,6 @@ feature('containers/Auth/Provider: signing in')
 
   .when('signIn action is dispatched')
   .when('signIn request fails with "invalid credentials" error')
-  .then('signIn.resolve action should be dispatched with "InvalidCredentials" error')
   .then('reject should be called with "InvalidCredentials" error')
   .then('resolve should not be called')
   .then('store should be in signed-out state with "InvalidCredentials" error')
@@ -499,7 +529,6 @@ feature('containers/Auth/Provider: signing in')
 
   .when('signIn action is dispatched')
   .when('signIn request fails with unexpected error')
-  .then('signIn.resolve action should be dispatched with "AuthError" error')
   .then('reject should be called with "AuthError" error')
   .then('resolve should not be called')
   .then('store should be in signed-out state with "AuthError" error')
@@ -510,13 +539,12 @@ feature('containers/Auth/Provider: signing in')
   .when('signIn action is dispatched')
   .when('signIn request succeeds')
   .when('fetchUser request fails with unexpected error')
-  .then('signIn.resolve action should be dispatched with "AuthError" error')
   .then('reject should be called with "AuthError" error')
   .then('resolve should not be called')
   .then('store should be in signed-out state with "AuthError" error')
 
 
-  .steps([treeMounted, storageHasData])
+  .steps([treeMounted, ...storageSteps, ...storeSteps])
 
   .step(/signIn action is dispatched/, (ctx) => {
     const resolve = jest.fn();
@@ -584,26 +612,6 @@ feature('containers/Auth/Provider: signing in')
     await flushPromises();
   })
 
-  .step(/tokens should be stored/, (ctx) => {
-    expect(ctx.storage.set).toBeCalledWith('tokens', tokens);
-  })
-
-  .step(/user data should be stored/, (ctx) => {
-    expect(ctx.storage.set).toBeCalledWith('user', user);
-  })
-
-  .step(/signIn.resolve action should be dispatched with tokens and user data/, (ctx) => {
-    expect(ctx.store.dispatchSpy).toBeCalledWith(actions.signIn.resolve({ tokens, user }));
-  })
-
-  .step(/signIn.resolve action should be dispatched with "(.*)" error/, async (ctx, error) => {
-    expect(ctx.store.dispatchSpy).toBeCalledWith(expect.objectContaining({
-      type: actions.signIn.resolve.type,
-      payload: expect.any(errors[error]),
-      error: true,
-    }));
-  })
-
   .step(/resolve should be called with tokens and user data/, (ctx) => {
     expect(ctx.resolve).toBeCalledWith({ tokens, user });
   })
@@ -620,47 +628,95 @@ feature('containers/Auth/Provider: signing in')
     expect(ctx.reject).not.toBeCalled();
   })
 
-  .step(/store should be in signing-in state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNING_IN',
-      waiting: true,
-      error: undefined,
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
+
+  .run();
+
+
+feature('containers/Auth/Provider: signing out')
+  .given('storage has current auth data')
+  .given('the component tree is mounted')
+  .given('signOut request is expected')
+
+
+  .scenario('Signing out successfully')
+
+  .when('signOut action is dispatched')
+  .then('signOut request should be made')
+  .then('store should be in signed-in state')
+
+  .when('signOut request succeeds')
+  .then('store should be in signed-out state')
+  .then('tokens should be destroyed')
+  .then('user data should be destroyed')
+  .then('resolve should be called')
+  .then('reject should not be called')
+
+
+  .scenario('Signing out, sign-out request fails')
+
+  .when('signOut action is dispatched')
+  .when('signOut request fails')
+  .then('store should be in signed-out state')
+  .then('tokens should be destroyed')
+  .then('user data should be destroyed')
+  .then('resolve should not be called')
+  .then('reject should be called')
+
+
+  .step(/signOut action is dispatched/, (ctx) => {
+    const resolve = jest.fn();
+    const reject = jest.fn();
+    ctx.store.dispatch(actions.signOut({ resolve, reject }));
+    return { ...ctx, resolve, reject };
   })
 
-  .step(/store should be in signed-in state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens,
-      signInRedirect,
-      signOutRedirect,
-    });
+  .step(/signOut request is expected/, (ctx) => {
+    const result = defer();
+    fetchMock.postOnce(`${api}/logout`, result.promise);
+    return { ...ctx, requestResolver: result.resolver };
+  }, () => {
+    fetchMock.restore();
   })
 
-  .step(/store should be in signed-out state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_OUT',
-      waiting: false,
-      error: undefined,
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
+  .step(/signOut request should be made/, () => {
+    expect(fetchMock.done()).toBe(true);
+    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
+      body: JSON.stringify({ token: tokens.token }),
+      headers: expect.objectContaining({
+        Authorization: `Bearer ${tokens.token}`,
+      }),
+    }));
   })
 
+  .step(/signOut request succeeds/, async (ctx) => {
+    ctx.requestResolver.resolve({ sendAsJson: false });
+    await flushPromises();
+  })
+
+  .step(/signOut request fails/, async (ctx) => {
+    ctx.requestResolver.resolve({
+      status: 400,
+      body: { error: 'Logout failed.' },
+    });
+    await flushPromises();
+  })
+
+  .step(/resolve should be called/, (ctx) => {
+    expect(ctx.resolve).toBeCalled();
+  })
+
+  .step(/resolve should not be called/, (ctx) => {
+    expect(ctx.resolve).not.toBeCalled();
+  })
+
+  .step(/reject should be called/, (ctx) => {
+    expect(ctx.reject).toBeCalledWith(expect.any(errors.AuthError));
+  })
+
+  .step(/reject should not be called/, (ctx) => {
+    expect(ctx.reject).not.toBeCalled();
+  })
+
+  .steps([treeMounted, ...storageSteps, ...storeSteps])
 
   .run();
