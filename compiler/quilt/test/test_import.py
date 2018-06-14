@@ -37,10 +37,14 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
+        assert package['dataframes'] == dataframes
+        assert package['README'] == README
+
         assert set(dataframes._keys()) == {'csv', 'nulls'}
         assert set(dataframes._group_keys()) == set()
         assert set(dataframes._data_keys()) == {'csv', 'nulls'}
 
+        assert len(package) == 2
         assert len(list(package)) == 2
 
         for item in package:
@@ -357,7 +361,7 @@ class ImportTest(QuiltTestCase):
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             package4.newdf = df
 
     def test_load_update(self):
@@ -380,7 +384,7 @@ class ImportTest(QuiltTestCase):
         command.build(newpkgname, module)
 
         # current spec requires that build() *not* update the in-memory module tree.
-        newpath1 = getattr(module, newfilename)()
+        newpath1 = module[newfilename]()
         assert newpath1 == newfilename
 
         # current spec requires that load() reload from disk, i.e. gets a reference
@@ -388,7 +392,7 @@ class ImportTest(QuiltTestCase):
         # this is important because of potential changes to myfile
         reloaded_module = command.load(newpkgname)
         assert reloaded_module is not module
-        newpath2 = getattr(reloaded_module, newfilename)()
+        newpath2 = reloaded_module[newfilename]()
         assert 'myfile' not in newpath2
 
     def test_multiple_updates(self):
@@ -409,7 +413,7 @@ class ImportTest(QuiltTestCase):
 
         package6._set([newfilename1], newfilename2)
 
-        assert getattr(package6, newfilename1)() == newfilename2
+        assert package6[newfilename1]() == newfilename2
 
     def test_team_non_team_imports(self):
         mydir = os.path.dirname(__file__)
@@ -436,7 +440,7 @@ class ImportTest(QuiltTestCase):
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             package4.newdf = df
 
     def test_datanode_asa(self):
@@ -518,4 +522,3 @@ class ImportTest(QuiltTestCase):
             command.load('foo/package:t:latest')
         with self.assertRaises(command.CommandException):
             command.load('foo/package:v:1.0.0')
-    

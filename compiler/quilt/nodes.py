@@ -5,7 +5,7 @@ import copy
 import os
 
 import pandas as pd
-from six import iteritems, string_types
+from six import iteritems, itervalues, string_types
 
 from .tools import core
 from .tools.const import SYSTEM_METADATA
@@ -84,11 +84,54 @@ class GroupNode(Node):
     Warning: calling _data() on a large dataset may exceed local memory capacity in Python (Only
     supported for Parquet packages).
     """
+    def __init__(self, meta):
+        super(GroupNode, self).__init__(meta)
+
+        self._children = {}
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            return super(GroupNode, self).__getattr__(name)
+        else:
+            try:
+                return self[name]
+            except KeyError:
+                raise AttributeError
+
     def __setattr__(self, name, value):
-        if name.startswith('_') or isinstance(value, Node):
+        if name.startswith('_'):
             super(GroupNode, self).__setattr__(name, value)
         else:
-            raise AttributeError("{val} is not a valid package node".format(val=value))
+            self[name] = value
+
+    def __delattr__(self, name):
+        if name.startswith('_'):
+            super(GroupNode, self).__detattr__(name, value)
+        else:
+            try:
+                del self[name]
+            except KeyError:
+                raise AttributeError
+
+    def __getitem__(self, name):
+        return self._children[name]
+
+    def __setitem__(self, name, value):
+        if not isinstance(value, Node):
+            raise TypeError("{val} is not a valid package node".format(val=value))
+        self._children[name] = value
+
+    def __delitem__(self, name):
+        del self._children[name]
+
+    def __contains__(self, name):
+        return name in self._children
+
+    def _get(self, name, default=None):
+        return self._children.get(name, default)
+
+    def __len__(self):
+        return len(self._children)
 
     def __repr__(self):
         pinfo = super(GroupNode, self).__repr__()
@@ -99,34 +142,32 @@ class GroupNode(Node):
         return '%s\n%s%s' % (pinfo, group_info, data_info)
 
     def __iter__(self):
-        for _, child in self._items():
-            yield child
+        return itervalues(self._children)
 
     def _items(self):
-        return ((name, child) for name, child in iteritems(self.__dict__)
-                if not name.startswith('_'))
+        return self._children.items()
 
     def _data_keys(self):
         """
         every child key referencing a dataframe
         """
-        return [name for name, child in self._items() if not isinstance(child, GroupNode)]
+        return [name for name, child in iteritems(self._children) if not isinstance(child, GroupNode)]
 
     def _group_keys(self):
         """
         every child key referencing a group that is not a dataframe
         """
-        return [name for name, child in self._items() if isinstance(child, GroupNode)]
+        return [name for name, child in iteritems(self._children) if isinstance(child, GroupNode)]
 
     def _keys(self):
         """
-        keys directly accessible on this object via getattr or .
+        keys directly accessible on this object via []
         """
-        return [name for name in self.__dict__ if not name.startswith('_')]
+        return self._children.keys()
 
     def _add_group(self, groupname):
         child = GroupNode({})
-        setattr(self, groupname, child)
+        self[groupname] = child
 
     def _data(self, asa=None):
         """
@@ -258,16 +299,16 @@ class PackageNode(GroupNode):
 
         node = self
         for key in path[:-1]:
-            child = getattr(node, key, None)
+            child = node._get(key)
             if not isinstance(child, GroupNode):
                 child = GroupNode({})
-                setattr(node, key, child)
+                node[key] = child
 
             node = child
 
         key = path[-1]
         data_node = DataNode(self._package, core_node, value, metadata)
-        setattr(node, key, data_node)
+        node[key] = data_node
 
     def _filter(self, lambda_or_dict):
         if isinstance(lambda_or_dict, dict):
@@ -289,13 +330,13 @@ class PackageNode(GroupNode):
                     child_func = (lambda *args: True) if matched else func
                     filtered_child = _filter_node(child_name, child_node, child_func)
                     if filtered_child is not None:
-                        setattr(filtered, child_name, filtered_child)
+                        filtered[child_name] = filtered_child
 
                 # Return the group if:
                 # 1) It has children, or
                 # 2) Group itself matched the filter, or
                 # 3) It's the package itself.
-                if matched or next(filtered._items(), None) or node == self:
+                if matched or len(filtered) or node == self:
                     return filtered
             else:
                 if matched:

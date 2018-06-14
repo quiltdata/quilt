@@ -1522,9 +1522,8 @@ def export(package, output_path='.', force=False, symlinks=False):
 
     if info.subpath:
         subpath = pathlib.PureWindowsPath(*info.subpath)
-        # TODO: Change this over to `node['item/subitem']` notation once implemented
         for name in info.subpath:
-            node = getattr(node, name)
+            node = node._get(name)
     else:
         subpath = pathlib.PureWindowsPath()
 
