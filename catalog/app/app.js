@@ -9,7 +9,6 @@ import { LOCATION_CHANGE } from 'react-router-redux';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import { reducer as form } from 'redux-form/immutable';
-import { LOCATION_CHANGE } from 'react-router-redux';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
 //  See https://github.com/react-boilerplate/react-boilerplate/issues/238#issuecomment-222080327
@@ -19,7 +18,6 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 import App from 'containers/App';
 import { makeSelectUserName } from 'containers/App/selectors';
 import { ROUTER_START } from 'containers/App/constants';
-import config from 'constants/config';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
 import AuthProvider from 'containers/Auth/Provider';
