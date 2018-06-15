@@ -214,7 +214,7 @@
     "collectCoverageFrom": [
       "app/**/*.{js,jsx}",
       "!app/testing/**/*.{js,jsx}",
-      "!app/**/tests/*.{js,jsx}",
+      "!app/**/tests/**/*.{js,jsx}",
       "!app/*/RbGenerated*/*.{js,jsx}",
       "!app/app.js",
       "!app/*/*/Loadable.js"
