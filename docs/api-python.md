@@ -176,7 +176,7 @@ Packages contain three types of nodes:
 * `NODE` is iterable: `for child in NODE:...` 
 
 #### Example
-```
+```python
 from quilt.data.uciml import wine
 In [7]: wine._keys()
 Out[7]: ['README', 'raw', 'tables']
@@ -192,14 +192,22 @@ Sets a child node. `PATH` is an array of strings, one for each level of the tree
 
 #### `GROUPNODE._add_group(NAME)` adds an empty `GroupNode` with the given name to the children of `GROUPNODE`.
 
+#### `NODE._meta` allows attaching metadata to a node
+Attach JSON metadata to any group or data node by modifying the `_meta` attribute.
+
+The `'_system'` key is reserved; anything assigned to it may get overwritten. Currently, data nodes contain two keys under `'_system'`:
+- `'filepath'`: the original path of the file this node was built from
+- `'tranform'`: transform applied to the file
+
 #### Example
-```
+```python
 import pandas as pd
 import quilt
-quilt.build('USER/PKG') # create new, empty packckage
+quilt.build('USER/PKG') # create new, empty package
 from quilt.data.USER import PKG as pkg
 pkg._set(['data'], pd.DataFrame(data=[1, 2, 3]))
 pkg._set(['foo'], "example.txt")
+pkg._meta['author'] = "me"
 quilt.build('USER/PKG', pkg)
 ```
 This adds a child node named `data` to the new empty package, with the new DataFrame as its value. Then it adds the contents of `example.txt` to a node called `foo`. Finally, it commits this change to disk by building the package with the modified object.
