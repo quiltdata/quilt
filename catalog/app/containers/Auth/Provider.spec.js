@@ -1,195 +1,43 @@
 /* eslint-disable import/first */
 
 import { mount } from 'enzyme';
-import fetchMock from 'fetch-mock';
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
 import invoke from 'lodash/fp/invoke';
 import React from 'react';
-// import { Switch, Route } from 'react-router-dom';
-// import { LOCATION_CHANGE } from 'react-router-redux';
-import { createStructuredSelector } from 'reselect';
 
 import LanguageProvider from 'containers/LanguageProvider';
-// import Notifications from 'containers/Notifications';
 import { PUSH } from 'containers/Notifications/constants';
 import { translationMessages as messages } from 'i18n';
-import defer from 'utils/defer';
 import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
 
 import feature, { step } from 'testing/feature';
-// import feature from 'testing/feature';
-import {
-  // findMockComponent,
-  flushPromises,
-  // getLocation,
-  // mockComponent,
-} from 'testing/util';
 
 import {
   Provider as AuthProvider,
-  actions,
-  errors,
-  selectors,
   makeHeaders,
 } from '.';
-import { adjustTokensForLatency } from './saga';
 
 jest.mock('constants/config', () => ({}));
 
 jest.mock('utils/time');
 import { timestamp } from 'utils/time';
 
+import storeSteps from './tests/support/store';
+import storageSteps from './tests/support/storage';
+import requestsSteps from './tests/support/requests';
+import {
+  api,
+  latency,
+  date,
+  tokensStale,
+  tokens,
+  signInRedirect,
+  signOutRedirect,
+  checkOn,
+} from './tests/support/fixtures';
 
-const api = 'https://api';
-
-const latency = 10;
-
-const unit = 100000; // ~ a day
-const date = new Date('2018-01-01T12:00:00Z').getTime() / 1000; // 1514808000
-
-const tokensStaleRaw = {
-  token: 'ACCESS1',
-  exp: date - unit,
-};
-
-const tokensRaw = {
-  token: 'ACCESS2',
-  exp: date + unit,
-};
-
-const tokensStale = adjustTokensForLatency(tokensStaleRaw, latency);
-const tokens = adjustTokensForLatency(tokensRaw, latency);
-
-const user = {
-  current_user: 'admin',
-  email: 'admin@localhost',
-  is_active: true,
-  is_staff: true,
-};
-const dataSets = {
-  empty: { tokens: null, user: null },
-  current: { tokens, user },
-  stale: { tokens: tokensStale, user },
-};
-
-const signInRedirect = '/after-sign-in';
-const signOutRedirect = '/after-sign-out';
-
-const checkOn = '@@CHECK_ON';
-
-const selector = createStructuredSelector({
-  state: selectors.state,
-  waiting: selectors.waiting,
-  error: selectors.error,
-  username: selectors.username,
-  authenticated: selectors.authenticated,
-  email: selectors.email,
-  tokens: selectors.tokens,
-  signInRedirect: selectors.signInRedirect,
-  signOutRedirect: selectors.signOutRedirect,
-});
-
-const storeSteps = [
-  step(/store should be in signing-in state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNING_IN',
-      waiting: true,
-      error: undefined,
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in signed-in state$/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens,
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in signed-in state with stale tokens$/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens: tokensStale,
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in signed-in state with stale tokens and error/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_IN',
-      waiting: false,
-      error: expect.any(errors.AuthError),
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens: tokensStale,
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in refreshing state/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'REFRESHING',
-      waiting: true,
-      error: undefined,
-      username: user.current_user,
-      authenticated: true,
-      email: user.email,
-      tokens: tokensStale,
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in signed-out state$/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_OUT',
-      waiting: false,
-      error: undefined,
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-
-  step(/store should be in signed-out state with error/, (ctx) => {
-    expect(selector(ctx.store.getState())).toEqual({
-      state: 'SIGNED_OUT',
-      waiting: false,
-      error: expect.any(Error),
-      username: undefined,
-      authenticated: false,
-      email: undefined,
-      tokens: {},
-      signInRedirect,
-      signOutRedirect,
-    });
-  }),
-];
 
 const treeMounted = step(/the component tree is mounted/, (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
@@ -225,33 +73,6 @@ const treeMounted = step(/the component tree is mounted/, (ctx) => {
   return { ...ctx, history, store, tree, mounted };
 });
 
-const storageSteps = [
-  step(/storage has (current|stale|empty) auth data/, (ctx, dataSet) => ({
-    ...ctx,
-    storage: {
-      set: jest.fn(),
-      remove: jest.fn(),
-      load: jest.fn(() => dataSets[dataSet]),
-    },
-  })),
-
-  step(/tokens should be stored/, (ctx) => {
-    expect(ctx.storage.set).toBeCalledWith('tokens', tokens);
-  }),
-
-  step(/user data should be stored/, (ctx) => {
-    expect(ctx.storage.set).toBeCalledWith('user', user);
-  }),
-
-  step(/tokens should be destroyed/, (ctx) => {
-    expect(ctx.storage.remove).toBeCalledWith('tokens');
-  }),
-
-  step(/user data should be destroyed/, (ctx) => {
-    expect(ctx.storage.remove).toBeCalledWith('user');
-  }),
-];
-
 
 feature('containers/Auth/Provider')
   .scenario('Initializing the provider when storage has current data')
@@ -280,12 +101,6 @@ feature('containers/Auth/Provider')
     ctx.store.dispatch({ type: checkOn });
   })
 
-  .step(/refreshTokens request is expected/, () => {
-    fetchMock.postOnce(`${api}/api/refresh`, new Promise(() => {}));
-  }, () => {
-    fetchMock.restore();
-  })
-
   .scenario('Dispatching signUp action')
   .given('signUp request is expected')
   .given('the component tree is mounted')
@@ -293,33 +108,33 @@ feature('containers/Auth/Provider')
   .when('signUp action is dispatched')
   .then('signUp request should be made')
 
-  .when('signUp request is resolved')
+  .when('signUp request succeeds')
   .then('resolve should be called')
   .then('reject should not be called')
 
   .back()
-  .when('signUp request is rejected with an "invalid username" error')
-  .then('reject should be called with an "InvalidUsername" error instance')
+  .when('signUp request fails with 400, error: "Unacceptable username."')
+  .then('reject should be called with InvalidUsername error')
 
   .back()
-  .when('signUp request is rejected with an "invalid email" error')
-  .then('reject should be called with an "InvalidEmail" error instance')
+  .when('signUp request fails with 400, error: "Unacceptable email."')
+  .then('reject should be called with InvalidEmail error')
 
   .back()
-  .when('signUp request is rejected with an "invalid password" error')
-  .then('reject should be called with an "InvalidPassword" error instance')
+  .when('signUp request fails with 400, error: "Password must be ..."')
+  .then('reject should be called with InvalidPassword error')
 
   .back()
-  .when('signUp request is rejected with a "username taken" error')
-  .then('reject should be called with a "UsernameTaken" error instance')
+  .when('signUp request fails with 409, error: "Username already taken."')
+  .then('reject should be called with UsernameTaken error')
 
   .back()
-  .when('signUp request is rejected with an "email taken" error')
-  .then('reject should be called with an "EmailTaken" error instance')
+  .when('signUp request fails with 409, error: "Email already taken."')
+  .then('reject should be called with EmailTaken error')
 
   .back()
-  .when('signUp request is rejected with an unexpected error')
-  .then('reject should be called with an "AuthError" instance')
+  .when('signUp request fails with 500')
+  .then('reject should be called with AuthError error')
 
 
   .scenario('Dispatching resetPassword action')
@@ -330,42 +145,42 @@ feature('containers/Auth/Provider')
   .when('resetPassword action is dispatched')
   .then('resetPassword request should be made')
 
-  .when('resetPassword request is resolved')
+  .when('resetPassword request succeeds')
   .then('resolve should be called')
   .then('reject should not be called')
 
   .back()
-  .when('resetPassword request is rejected with an unexpected error')
-  .then('reject should be called with an "AuthError" instance')
+  .when('resetPassword request fails with 500')
+  .then('reject should be called with AuthError error')
 
 
   .scenario('Dispatching changePassword action')
 
-  .given('resetPassword request is expected')
+  .given('changePassword request is expected')
   .given('the component tree is mounted')
 
   .when('changePassword action is dispatched')
   .then('changePassword request should be made')
 
-  .when('changePassword request is resolved')
+  .when('changePassword request succeeds')
   .then('resolve should be called')
   .then('reject should not be called')
 
   .back()
-  .when('changePassword request is rejected with an "user not found" error')
-  .then('reject should be called with an "InvalidResetLink" error instance')
+  .when('changePassword request fails with 404, error: "User not found."')
+  .then('reject should be called with InvalidResetLink error')
 
   .back()
-  .when('changePassword request is rejected with an "invalid link" error')
-  .then('reject should be called with an "InvalidResetLink" error instance')
+  .when('changePassword request fails with 400, error: "Invalid link."')
+  .then('reject should be called with InvalidResetLink error')
 
   .back()
-  .when('changePassword request is rejected with an "invalid password" error')
-  .then('reject should be called with an "InvalidPassword" error instance')
+  .when('changePassword request fails with 400, error: "Password must be ..."')
+  .then('reject should be called with InvalidPassword error')
 
   .back()
-  .when('changePassword request is rejected with an unexpected error')
-  .then('reject should be called with an "AuthError" error instance')
+  .when('changePassword request fails with 500')
+  .then('reject should be called with AuthError error')
 
 
   .scenario('Dispatching getCode action')
@@ -378,193 +193,16 @@ feature('containers/Auth/Provider')
   .then('getCode request should be made')
 
   .when('getCode request succeeds')
-  .then('resolve should be called with the recevied code')
+  .then('resolve should be called with the received code')
   .then('reject should not be called')
 
   .back()
-  .when('getCode request fails')
-  .then('reject should be called with an "AuthError"')
+  .when('getCode request fails with 500')
+  .then('reject should be called with AuthError error')
   .then('resolve should not be called')
 
-  .step(/signUp request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/register`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
 
-  .step(/signUp action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    const credentials = {
-      username: 'bob',
-      email: 'bob@example.com',
-      password: 's3cr3t',
-    };
-    ctx.store.dispatch(actions.signUp(credentials, { resolve, reject }));
-    return { ...ctx, credentials, resolve, reject };
-  })
-
-  .step(/signUp request should be made/, (ctx) => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      body: JSON.stringify(ctx.credentials),
-    }));
-  })
-
-  .step(/signUp request is resolved/, async (ctx) => {
-    ctx.requestResolver.resolve({ sendAsJson: false });
-    await flushPromises();
-  })
-
-  .step(/signUp request is rejected with an? (".*"|unexpected)/, async (ctx, responseError) => {
-    const [status, error] = invoke(responseError, {
-      '"invalid username"': () => [400, 'Unacceptable username.'],
-      '"invalid email"': () => [400, 'Unacceptable email.'],
-      '"invalid password"': () => [400, 'Password must be ...'],
-      '"username taken"': () => [409, 'Username already taken.'],
-      '"email taken"': () => [409, 'Email already taken.'],
-      unexpected: () => [500, 'error'],
-    });
-    ctx.requestResolver.resolve({ status, body: { error } });
-    await flushPromises();
-  })
-
-  .step(/resetPassword request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/reset_password`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/resetPassword action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    const email = 'bob@example.com';
-    ctx.store.dispatch(actions.resetPassword(email, { resolve, reject }));
-    return { ...ctx, email, resolve, reject };
-  })
-
-  .step(/resetPassword request should be made/, (ctx) => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      body: JSON.stringify({ email: ctx.email }),
-    }));
-  })
-
-  .step(/resetPassword request is resolved/, async (ctx) => {
-    ctx.requestResolver.resolve({ sendAsJson: false });
-    await flushPromises();
-  })
-
-  .step(/resetPassword request is rejected with an? (".*"|unexpected)/, async (ctx, responseError) => {
-    const [status, error] = invoke(responseError, {
-      unexpected: () => [500, 'error'],
-    });
-    ctx.requestResolver.resolve({ status, body: { error } });
-    await flushPromises();
-  })
-
-  .step(/changePassword request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/reset_password`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/changePassword action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    const link = 'test-link';
-    const password = 'n3w!s3cr3t';
-    ctx.store.dispatch(actions.changePassword(link, password, { resolve, reject }));
-    return { ...ctx, link, password, resolve, reject };
-  })
-
-  .step(/changePassword request should be made/, ({ link, password }) => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      body: JSON.stringify({ link, password }),
-    }));
-  })
-
-  .step(/changePassword request is resolved/, async (ctx) => {
-    ctx.requestResolver.resolve({ sendAsJson: false });
-    await flushPromises();
-  })
-
-  .step(/changePassword request is rejected with an? (".*"|unexpected)/, async (ctx, responseError) => {
-    const [status, error] = invoke(responseError, {
-      '"user not found"': () => [404, 'User not found.'],
-      '"invalid link"': () => [400, 'Invalid link.'],
-      '"invalid password"': () => [400, 'Password must be ...'],
-      unexpected: () => [500, 'error'],
-    });
-    ctx.requestResolver.resolve({ status, body: { error } });
-    await flushPromises();
-  })
-
-  .step(/getCode request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.getOnce(`${api}/api/code`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/getCode action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    ctx.store.dispatch(actions.getCode({ resolve, reject }));
-    return { ...ctx, resolve, reject };
-  })
-
-  .step(/getCode request should be made/, () => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokens.token}`,
-      }),
-    }));
-  })
-
-  .step(/getCode request succeeds/, async (ctx) => {
-    const code = 'the code';
-    ctx.requestResolver.resolve({ code });
-    await flushPromises();
-    return { ...ctx, code };
-  })
-
-  .step(/getCode request fails/, async (ctx) => {
-    ctx.requestResolver.resolve({ status: 500, body: 'error' });
-    await flushPromises();
-  })
-
-  .step(/resolve should be called with the received code/, (ctx) => {
-    expect(ctx.resolve).toBeCalledWith(ctx.code);
-  })
-
-  .step(/resolve should be called/, (ctx) => {
-    expect(ctx.resolve).toBeCalled();
-  })
-
-  .step(/resolve should not be called/, (ctx) => {
-    expect(ctx.resolve).not.toBeCalled();
-  })
-
-  .step(/reject should be called with an? "(.*)"/, (ctx, errorType) => {
-    expect(ctx.reject).toBeCalledWith(expect.any(errors[errorType]));
-  })
-
-  .step(/reject should not be called/, (ctx) => {
-    expect(ctx.reject).not.toBeCalled();
-  })
-
-
-  .steps([treeMounted, ...storageSteps, ...storeSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
 
   .run();
 
@@ -596,8 +234,8 @@ feature('containers/Auth/Provider: signing in')
   .scenario('Signing in with invalid credentials')
 
   .when('signIn action is dispatched')
-  .when('signIn request fails with "invalid credentials" error')
-  .then('reject should be called with "InvalidCredentials" error')
+  .when('signIn request fails with 200, error: "Login attempt failed"')
+  .then('reject should be called with InvalidCredentials error')
   .then('resolve should not be called')
   .then('store should be in signed-out state')
 
@@ -605,8 +243,8 @@ feature('containers/Auth/Provider: signing in')
   .scenario('Signing in, sign-in request fails')
 
   .when('signIn action is dispatched')
-  .when('signIn request fails with unexpected error')
-  .then('reject should be called with "AuthError" error')
+  .when('signIn request fails with 500')
+  .then('reject should be called with AuthError error')
   .then('resolve should not be called')
   .then('store should be in signed-out state')
 
@@ -615,96 +253,13 @@ feature('containers/Auth/Provider: signing in')
 
   .when('signIn action is dispatched')
   .when('signIn request succeeds')
-  .when('fetchUser request fails with unexpected error')
-  .then('reject should be called with "AuthError" error')
+  .when('fetchUser request fails with 500')
+  .then('reject should be called with AuthError error')
   .then('resolve should not be called')
   .then('store should be in signed-out state')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps])
-
-  .step(/signIn action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    const credentials = { username: 'bob', password: 's3cr3t' };
-    ctx.store.dispatch(actions.signIn(credentials, { resolve, reject }));
-    return { ...ctx, credentials, resolve, reject };
-  })
-
-  .step(/signIn request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/login`, result.promise, { name: 'signIn' });
-    return { ...ctx, signInRequestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/fetchUser request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.getOnce(`${api}/api-root`, result.promise, { name: 'fetchUser' });
-    return { ...ctx, fetchUserRequestResolver: result.resolver };
-  })
-
-  .step(/signIn request should be made/, (ctx) => {
-    expect(fetchMock.called('signIn')).toBe(true);
-    expect(fetchMock.lastOptions('signIn')).toEqual(expect.objectContaining({
-      body: JSON.stringify(ctx.credentials),
-    }));
-  })
-
-  .step(/fetchUser request should be made/, () => {
-    expect(fetchMock.called('fetchUser')).toBe(true);
-    expect(fetchMock.lastOptions('fetchUser')).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokens.token}`,
-      }),
-    }));
-  })
-
-  .step(/signIn request succeeds/, async (ctx) => {
-    ctx.signInRequestResolver.resolve(tokensRaw);
-    await flushPromises();
-  })
-
-  .step(/signIn request fails with (".*"|unexpected) error/, async (ctx, responseError) => {
-    const [status, error] = invoke(responseError, {
-      '"invalid credentials"': () => [200, 'Login attempt failed'],
-      unexpected: () => [500, 'error'],
-    });
-    ctx.signInRequestResolver.resolve({ status, body: { error } });
-    await flushPromises();
-  })
-
-  .step(/fetchUser request succeeds/, async (ctx) => {
-    ctx.fetchUserRequestResolver.resolve(user);
-    await flushPromises();
-  })
-
-  .step(/fetchUser request fails with (".*"|unexpected) error/, async (ctx, responseError) => {
-    const [status, error] = invoke(responseError, {
-      '"not authenticated"': () => [401, 'whatever'],
-      unexpected: () => [500, 'error'],
-    });
-    ctx.fetchUserRequestResolver.resolve({ status, body: { error } });
-    await flushPromises();
-  })
-
-  .step(/resolve should be called with tokens and user data/, (ctx) => {
-    expect(ctx.resolve).toBeCalledWith({ tokens, user });
-  })
-
-  .step(/resolve should not be called/, (ctx) => {
-    expect(ctx.resolve).not.toBeCalled();
-  })
-
-  .step(/reject should be called with "(.*)" error/, (ctx, error) => {
-    expect(ctx.reject).toBeCalledWith(expect.any(errors[error]));
-  })
-
-  .step(/reject should not be called/, (ctx) => {
-    expect(ctx.reject).not.toBeCalled();
-  })
-
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
 
   .run();
 
@@ -732,69 +287,15 @@ feature('containers/Auth/Provider: signing out')
   .scenario('Signing out, sign-out request fails')
 
   .when('signOut action is dispatched')
-  .when('signOut request fails')
+  .when('signOut request fails with 400, error: "Logout failed."')
   .then('store should be in signed-out state')
   .then('tokens should be destroyed')
   .then('user data should be destroyed')
   .then('resolve should not be called')
-  .then('reject should be called')
+  .then('reject should be called with AuthError error')
 
 
-  .step(/signOut action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    ctx.store.dispatch(actions.signOut({ resolve, reject }));
-    return { ...ctx, resolve, reject };
-  })
-
-  .step(/signOut request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/logout`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/signOut request should be made/, () => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      body: JSON.stringify({ token: tokens.token }),
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokens.token}`,
-      }),
-    }));
-  })
-
-  .step(/signOut request succeeds/, async (ctx) => {
-    ctx.requestResolver.resolve({ sendAsJson: false });
-    await flushPromises();
-  })
-
-  .step(/signOut request fails/, async (ctx) => {
-    ctx.requestResolver.resolve({
-      status: 400,
-      body: { error: 'Logout failed.' },
-    });
-    await flushPromises();
-  })
-
-  .step(/resolve should be called/, (ctx) => {
-    expect(ctx.resolve).toBeCalled();
-  })
-
-  .step(/resolve should not be called/, (ctx) => {
-    expect(ctx.resolve).not.toBeCalled();
-  })
-
-  .step(/reject should be called/, (ctx) => {
-    expect(ctx.reject).toBeCalledWith(expect.any(errors.AuthError));
-  })
-
-  .step(/reject should not be called/, (ctx) => {
-    expect(ctx.reject).not.toBeCalled();
-  })
-
-  .steps([treeMounted, ...storageSteps, ...storeSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
 
   .run();
 
@@ -838,7 +339,7 @@ feature('containers/Auth/Provider: check')
   .given('storage has stale auth data')
   .given('the component tree is mounted')
 
-  .when('check action without refetch is dispatched')
+  .when('check (with refetch = false) action is dispatched')
   .when('refreshTokens request succeeds')
   .then('tokens should be stored')
   .then('store should be in signed-in state')
@@ -853,7 +354,7 @@ feature('containers/Auth/Provider: check')
 
   .when('check action is dispatched')
   .when('refreshTokens request succeeds')
-  .when('fetchUser request fails with "not authenticated" error')
+  .when('fetchUser request fails with 401')
   .then('tokens should be destroyed')
   .then('user data should be destroyed')
   .then('"authentication lost" notification should be shown')
@@ -867,8 +368,8 @@ feature('containers/Auth/Provider: check')
   .given('storage has stale auth data')
   .given('the component tree is mounted')
 
-  .when('check action without refetch is dispatched')
-  .when('refreshTokens request fails with "not authenticated" error')
+  .when('check (with refetch = false) action is dispatched')
+  .when('refreshTokens request fails with 401')
   .then('"authentication lost" notification should be shown')
   .then('store should be in signed-out state with error')
   .then('resolve should not be called')
@@ -879,12 +380,12 @@ feature('containers/Auth/Provider: check')
   .given('storage has stale auth data')
   .given('the component tree is mounted')
 
-  .when('check action without refetch is dispatched')
-  .when('refreshTokens request fails with unexpected error')
+  .when('check (with refetch = false) action is dispatched')
+  .when('refreshTokens request fails with 500')
   .then('"authentication error" notification should be shown')
   .then('store should be in signed-in state with stale tokens and error')
   .then('resolve should not be called')
-  .then('reject should be called with AuthError')
+  .then('reject should be called with AuthError error')
 
 
   .step(/"authentication (.*)" notification should be shown/, (ctx, type) => {
@@ -901,107 +402,7 @@ feature('containers/Auth/Provider: check')
     }));
   })
 
-  .step(/refreshTokens request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/api/refresh`, result.promise, { name: 'refreshTokens' });
-    return { ...ctx, refreshTokensRequestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/fetchUser request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.getOnce(`${api}/api-root`, result.promise, { name: 'fetchUser' });
-    return { ...ctx, fetchUserRequestResolver: result.resolver };
-  })
-
-  .step(/refreshTokens request succeeds/, async (ctx) => {
-    ctx.refreshTokensRequestResolver.resolve(tokensRaw);
-    await flushPromises();
-  })
-
-  .step(/fetchUser request succeeds/, async (ctx) => {
-    ctx.fetchUserRequestResolver.resolve(user);
-    await flushPromises();
-  })
-
-  .step(/refreshTokens request fails with unexpected error/, async (ctx) => {
-    ctx.refreshTokensRequestResolver.resolve({ status: 500, body: 'error' });
-    await flushPromises();
-  })
-
-  .step(/refreshTokens request fails with "not authenticated" error/, async (ctx) => {
-    ctx.refreshTokensRequestResolver.resolve({ status: 401, body: 'error' });
-    await flushPromises();
-  })
-
-  .step(/fetchUser request fails with "not authenticated" error/, async (ctx) => {
-    ctx.fetchUserRequestResolver.resolve({ status: 401, body: 'error' });
-    await flushPromises();
-  })
-
-  .step(/refreshTokens request should be made/, () => {
-    expect(fetchMock.called('refreshTokens')).toBe(true);
-    expect(fetchMock.lastOptions('refreshTokens')).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokensStale.token}`,
-      }),
-    }));
-  })
-
-  .step(/fetchUser request should be made/, () => {
-    expect(fetchMock.called('fetchUser')).toBe(true);
-    expect(fetchMock.lastOptions('fetchUser')).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokens.token}`,
-      }),
-    }));
-  })
-
-  .step(/check action is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    ctx.store.dispatch(actions.check({}, { resolve, reject }));
-    return { ...ctx, resolve, reject };
-  })
-
-  .step(/check action without refetch is dispatched/, (ctx) => {
-    const resolve = jest.fn();
-    const reject = jest.fn();
-    ctx.store.dispatch(actions.check({ refetch: false }, { resolve, reject }));
-    return { ...ctx, resolve, reject };
-  })
-
-  .step(/resolve should be called$/, (ctx) => {
-    expect(ctx.resolve).toBeCalled();
-  })
-
-  .step(/resolve should be called with tokens$/, (ctx) => {
-    expect(ctx.resolve).toBeCalledWith({ tokens });
-  })
-
-  .step(/resolve should be called with tokens and user data/, (ctx) => {
-    expect(ctx.resolve).toBeCalledWith({ user, tokens });
-  })
-
-  .step(/resolve should not be called/, (ctx) => {
-    expect(ctx.resolve).not.toBeCalled();
-  })
-
-  .step(/reject should be called with NotAuthenticated error/, (ctx) => {
-    expect(ctx.reject).toBeCalledWith(expect.any(errors.NotAuthenticated));
-  })
-
-  .step(/reject should be called with AuthError/, (ctx) => {
-    expect(ctx.reject).toBeCalledWith(expect.any(errors.AuthError));
-  })
-
-  .step(/reject should not be called/, (ctx) => {
-    expect(ctx.reject).not.toBeCalled();
-  })
-
-  .steps([treeMounted, ...storageSteps, ...storeSteps])
-
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
 
   .run();
 
@@ -1018,10 +419,6 @@ feature('containers/Auth/Provider: authLost')
 
 
   .steps([treeMounted, ...storageSteps, ...storeSteps])
-
-  .step(/authLost action is dispatched/, (ctx) => {
-    ctx.store.dispatch(actions.authLost(new Error('test')));
-  })
 
   .step(/"authentication lost" notification should be shown/, (ctx) => {
     expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
@@ -1067,7 +464,7 @@ feature('containers/Auth/saga: makeHeaders()')
   .then('result should be an object containing the proper auth header')
 
 
-  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with "not authenticated" error')
+  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with 401')
 
   .given('storage has stale auth data')
   .given('the component tree is mounted')
@@ -1075,11 +472,11 @@ feature('containers/Auth/saga: makeHeaders()')
   .when('the saga is run')
   .then('refreshTokens request should be made')
 
-  .when('refreshTokens request fails with "not authenticated" error')
+  .when('refreshTokens request fails with 401')
   .then('result should be an empty object')
 
 
-  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with unexpected error')
+  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with 500')
 
   .given('storage has stale auth data')
   .given('the component tree is mounted')
@@ -1087,43 +484,11 @@ feature('containers/Auth/saga: makeHeaders()')
   .when('the saga is run')
   .then('refreshTokens request should be made')
 
-  .when('refreshTokens request fails with unexpected error')
+  .when('refreshTokens request fails with 500')
   .then('result should be an object containing the stale auth header')
 
 
-  .steps([treeMounted, ...storageSteps])
-
-  .step(/refreshTokens request is expected/, (ctx) => {
-    const result = defer();
-    fetchMock.postOnce(`${api}/api/refresh`, result.promise);
-    return { ...ctx, requestResolver: result.resolver };
-  }, () => {
-    fetchMock.restore();
-  })
-
-  .step(/refreshTokens request should be made/, () => {
-    expect(fetchMock.done()).toBe(true);
-    expect(fetchMock.lastOptions()).toEqual(expect.objectContaining({
-      headers: expect.objectContaining({
-        Authorization: `Bearer ${tokensStale.token}`,
-      }),
-    }));
-  })
-
-  .step(/refreshTokens request succeeds/, async (ctx) => {
-    ctx.requestResolver.resolve(tokensRaw);
-    await flushPromises();
-  })
-
-  .step(/refreshTokens request fails with unexpected error/, async (ctx) => {
-    ctx.requestResolver.resolve({ status: 500, body: 'error' });
-    await flushPromises();
-  })
-
-  .step(/refreshTokens request fails with "not authenticated" error/, async (ctx) => {
-    ctx.requestResolver.resolve({ status: 401, body: 'error' });
-    await flushPromises();
-  })
+  .steps([treeMounted, ...storageSteps, ...requestsSteps])
 
   .step(/the saga is run/, (ctx) => ({
     ...ctx,
