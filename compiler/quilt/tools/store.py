@@ -4,6 +4,7 @@ Build: parse and add user-supplied files to store
 import json
 import os
 from shutil import copyfile, move, rmtree
+from stat import S_IRUSR, S_IRGRP, S_IROTH, S_IWUSR
 import uuid
 
 from enum import Enum
@@ -333,6 +334,7 @@ class PackageStore(object):
         for obj in remove_objs:
             path = self.object_path(obj)
             if os.path.exists(path):
+                os.chmod(path, S_IWUSR)
                 os.remove(path)
         return remove_objs
 
@@ -403,12 +405,12 @@ class PackageStore(object):
             for obj in files:
                 path = os.path.join(storepath, obj)
                 objhash = digest_file(path)
-                move(path, self.object_path(objhash))
+                self._move_to_store(path, objhash)
                 hashes.append(objhash)
             rmtree(storepath)
         else:
             filehash = digest_file(storepath)
-            move(storepath, self.object_path(filehash))
+            self._move_to_store(storepath, filehash)
             hashes = [filehash]
 
         return hashes
@@ -426,13 +428,12 @@ class PackageStore(object):
         Save a (raw) file to the store.
         """
         filehash = digest_file(srcfile)
-        objpath = self.object_path(filehash)
-        if not os.path.exists(objpath):
+        if not os.path.exists(self.object_path(filehash)):
             # Copy the file to a temporary location first, then move, to make sure we don't end up with
             # truncated contents if the build gets interrupted.
             tmppath = self.temporary_object_path(filehash)
             copyfile(srcfile, tmppath)
-            move(tmppath, objpath)
+            self._move_to_store(tmppath, filehash)
 
         return filehash
 
@@ -464,5 +465,17 @@ class PackageStore(object):
                 raise StoreException("Metadata is not serializable")
 
         metahash = digest_file(path)
-        move(path, self.object_path(metahash))
+        self._move_to_store(path, metahash)
         return metahash
+
+    def _move_to_store(self, srcpath, objhash):
+        """
+        Make the object read-only and move it to the store.
+        """
+        destpath = self.object_path(objhash)
+        if os.path.exists(destpath):
+            # Windows: delete any existing object at the destination.
+            os.chmod(destpath, S_IWUSR)
+            os.remove(destpath)
+        os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
+        move(srcpath, destpath)

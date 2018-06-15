@@ -12,7 +12,7 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree, copy
+from shutil import rmtree, copyfile
 import socket
 import stat
 import subprocess
@@ -1412,7 +1412,7 @@ def export(package, output_path='.', force=False, symlinks=False):
             if use_symlinks is True:
                 fs_link(node(), dest)
             else:
-                copy(node(), str(dest))
+                copyfile(node(), str(dest))
         elif isinstance(node._node, TableNode):
             ext = node._node.metadata['q_ext']
             df = node()
