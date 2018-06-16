@@ -1,0 +1,72 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request fails When the component tree is mounted When getCode request fails with 500 Then the user should see the error screen 1`] = `
+<div>
+  <div
+    class="Layout__Container-impPvH jENRsS"
+  >
+    <h1
+      class="Layout__Heading-jIHkQT rMSYT"
+    >
+      <span>
+        Code
+      </span>
+    </h1>
+    <p
+      class="Layout__Message-jynbjD kFxxmn"
+    >
+      <span>
+        Something went wrong. Try again later.
+      </span>
+    </p>
+  </div>
+</div>
+`;
+
+exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request succeeds When the component tree is mounted Then the user should see the placeholder screen 1`] = `
+<div>
+  <div
+    __name="Working"
+  >
+    <span>
+      Getting the code
+    </span>
+  </div>
+</div>
+`;
+
+exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request succeeds When the component tree is mounted When getCode request succeeds Then the user should see the code screen with the copy button 1`] = `
+<div>
+  <div
+    class="Layout__Container-impPvH jENRsS"
+  >
+    <h1
+      class="Layout__Heading-jIHkQT rMSYT"
+    >
+      <span>
+        Code
+      </span>
+    </h1>
+    <div
+      class="Code-gIZKDq jtKURq"
+    >
+      the code
+    </div>
+    <div
+      class="Layout__Actions-kQsGbS gOPcrG"
+    >
+      <div
+        __name="RaisedButton"
+      >
+        <div
+          __prop="label"
+        >
+          <span>
+            Copy to clipboard
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
