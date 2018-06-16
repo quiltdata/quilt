@@ -113,6 +113,17 @@ class GroupNode(Node):
             except KeyError:
                 raise AttributeError
 
+    def __dir__(self):
+        attrs = set()
+        try:
+            attrs.update(super(GroupNode, self).__dir__())
+        except AttributeError:
+            # Fallback for PY2
+            attrs.update(dir(type(self)))
+            attrs.update(self.__dict__)
+        attrs.update(self._children)
+        return sorted(attrs)
+
     def __getitem__(self, name):
         return self._children[name]
 

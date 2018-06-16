@@ -47,6 +47,8 @@ class ImportTest(QuiltTestCase):
         assert len(package) == 2
         assert len(list(package)) == 2
 
+        assert 'dataframes' in dir(package)
+
         for item in package:
             assert isinstance(item, (GroupNode, DataNode))
 
