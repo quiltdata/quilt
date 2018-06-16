@@ -1,19 +1,35 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request fails When the component tree is mounted When getCode request fails with 500 Then the user should see the error screen 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  text-align: center;
+}
+
 <div>
   <div
-    class="Layout__Container-impPvH jENRsS"
+    class="c0"
   >
     <h1
-      class="Layout__Heading-jIHkQT rMSYT"
+      class="c1"
     >
       <span>
         Code
       </span>
     </h1>
     <p
-      class="Layout__Message-jynbjD kFxxmn"
+      class="c2"
     >
       <span>
         Something went wrong. Try again later.
@@ -36,24 +52,52 @@ exports[`Feature: containers/Auth/Code Background: Given storage has current aut
 `;
 
 exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request succeeds When the component tree is mounted When getCode request succeeds Then the user should see the code screen with the copy button 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c3 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c2 {
+  overflow-wrap: break-word;
+}
+
 <div>
   <div
-    class="Layout__Container-impPvH jENRsS"
+    class="c0"
   >
     <h1
-      class="Layout__Heading-jIHkQT rMSYT"
+      class="c1"
     >
       <span>
         Code
       </span>
     </h1>
     <div
-      class="Code-gIZKDq jtKURq"
+      class="c2"
     >
       the code
     </div>
     <div
-      class="Layout__Actions-kQsGbS gOPcrG"
+      class="c3"
     >
       <div
         __name="RaisedButton"
