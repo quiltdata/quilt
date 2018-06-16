@@ -5,24 +5,75 @@ import { createElement } from 'react';
 export const getLocation = ({ location: l }) =>
   `${l.pathname}${l.search}${l.hash}`;
 
-const mapProps = (props, mapper = id) =>
+/**
+ * Get attributes from props.
+ *
+ * @param {Object} props
+ *
+ * @param {string[]|function} mapper
+ *
+ * @returns {Object} Attribute map.
+ */
+const getAttrs = (props, mapper) =>
   mapper instanceof Array ? pick(props, mapper) : mapper(props);
 
-const defaultRender = ({ children }) => [children];
+const defaultRenderChildren = ({ children }) => [children];
 
-const renderProps = (props) =>
+const renderChildren = (props, el) =>
   Object.entries(props).map(([key, value]) =>
-    createElement('div', { __prop: key }, value));
+    createElement(el, { __prop: key }, value));
 
-const mapRender = (props, mapper = defaultRender) =>
-  mapper instanceof Array ? renderProps(pick(props, mapper)) : mapper(props);
+/**
+ * Get children from props.
+ *
+ * @param {Object} props
+ *
+ * @param {string[]|function} mapper
+ *
+ * @param {react.Component} el React component for rendering elements.
+ *
+ * @returns {react.Element[]} An array of react elements to use as children.
+ */
+const getChildren = (props, mapper, el) =>
+  mapper instanceof Array ? renderChildren(pick(props, mapper), el) : mapper(props);
 
-export const mockComponent = (name, propMapper, renderMapper) => (props) =>
-  createElement(
-    'div',
-    { __name: name, ...mapProps(props, propMapper) },
-    ...mapRender(props, renderMapper)
-  );
+/**
+ * Create a mock component that renders as div.
+ *
+ * @param {Object} options
+ *
+ * @param {string} options.name
+ *
+ * @param {react.Component} options.el
+ *   React component for rendering top-level element.
+ *   Defaults to div.
+ *
+ * @param {react.Component} options.childEl
+ *   React component for rendering nested elements.
+ *   Defaults to div.
+ *
+ * @param {string[]|function} options.attrs
+ *   If array of strings, pick these props and render them as resulting element's attributes.
+ *   If function, call it with props and use returned object as resulting element's attributes.
+ *   Renders all the props by default.
+ *
+ * @param {string[]|function} options.children
+ *   If array of strings, pick these props and render them as nested elements, like this:
+ *     <element __prop={key}>{value}</element>
+ *   If function, call it with props and use returned array as resulting element's children.
+ *   Renders children as they are by default.
+ *
+ * @returns {react.Component}
+ */
+export const mockComponent = (name, {
+  el = 'div',
+  childEl = 'div',
+  attrs = id,
+  children = defaultRenderChildren,
+} = {}) => (props) =>
+  createElement(el,
+    { __name: name, ...getAttrs(props, attrs) },
+    ...getChildren(props, children, childEl));
 
 export const findMockComponent = (html, name, prop) => {
   const comp = html.find(`[__name="${name}"]`);
