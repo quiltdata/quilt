@@ -63,6 +63,8 @@ def send_invitation_email(email, owner, package_name):
 
 def send_new_user_email(username, email):
     recipients = [user.email for user in User.query.filter_by(is_admin=True).all()]
+    if len(recipients) == 0:
+        return
     subject = "New Quilt User: {user}".format(user=username)
     html = render_template('new_user_activated.html', team=TEAM_ID,
                            user=username, email=email, authurl=CATALOG_URL)
