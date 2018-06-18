@@ -40,7 +40,7 @@ def hash_password(password):
 def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
-        _activate_user(payload['id'])
+        _activate_user(User.get_by_id(payload['id']))
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
 
     response = jsonify({'error': "Account activation failed."})
@@ -134,8 +134,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     if requires_reset:
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
-def _activate_user(user_id):
-    user = User.get_by_id(user_id)
+def _activate_user(user):
     if user is None:
         raise Exception("User not found")
     user.is_active = True
@@ -337,7 +336,7 @@ def create_admin():
     _create_user(admin_username, password=admin_password, email=admin_email,
                  is_admin=True, requires_activation=False, force=True)
     user = User.get_by_name(admin_username)
-    _activate_user(user.id)
+    _activate_user(user)
 
 app.before_first_request(create_admin)
 
