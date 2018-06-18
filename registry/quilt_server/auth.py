@@ -4,7 +4,6 @@ import json
 import uuid
 
 from flask import redirect, request
-from flask_cors import CORS
 from flask_json import as_json, jsonify
 import itsdangerous
 import jwt
@@ -56,7 +55,7 @@ def validate_password(password):
 def reset_password_response():
     data = request.get_json()
     if 'email' in data:
-        return reset_password_from_email(data['email'])
+        return reset_password(User.get_by_email(data['email']))
     # try reset request
     raw_password = data['password']
     validate_password(raw_password)
@@ -72,30 +71,6 @@ def reset_password_response():
     db.session.add(user)
     db.session.commit()
     return {}
-
-def reset_password_from_email(email):
-    user = User.get_by_email(email)
-    if not user:
-        # User not found. Return 200 anyway to avoid allowing people to enumerate emails
-        return {}
-    return reset_password(user)
-
-@app.route('/register', methods=['POST'])
-@as_json
-def register_endpoint():
-    data = request.get_json()
-    if app.config['DISABLE_SIGNUP']:
-        raise ApiException(400, "Signup is disabled.")
-    username = data['username']
-    password = data['password']
-    email = data['email']
-    try:
-        _create_user(username, password=password, email=email)
-        return {}
-    except ApiException as e:
-        return {'error': e.message}, e.status_code # 409 Conflict
-
-CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
 def _create_user(username, password='', email=None, is_admin=False,
                  first_name=None, last_name=None, force=False,

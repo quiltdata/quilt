@@ -393,6 +393,23 @@ def apiroot():
 
 CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}})
 
+@app.route('/register', methods=['POST'])
+@as_json
+def register_endpoint():
+    data = request.get_json()
+    if app.config['DISABLE_SIGNUP']:
+        raise ApiException(400, "Signup is disabled.")
+    username = data['username']
+    password = data['password']
+    email = data['email']
+    try:
+        _create_user(username, password=password, email=email)
+        db.session.commit()
+        return {}
+    except ApiException as e:
+        return {'error': e.message}, e.status_code # 409 Conflict
+
+CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/api/refresh', methods=['POST'])
 @api()
@@ -2249,6 +2266,7 @@ def admin_reset_password():
     if not user:
         raise ApiException(requests.codes.not_found, "User not found.")
     if reset_password(user, set_unusable=True):
+        db.session.commit()
         return {}
     else:
         raise ApiException(requests.codes.server_error, "Internal server error.")
