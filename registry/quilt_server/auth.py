@@ -30,12 +30,10 @@ pwd_context = CryptContext(
 def generate_uuid():
     return str(uuid.uuid4())
 
-def set_unusable_password(username):
-    user = User.get_by_name(username)
+def set_unusable_password(user):
     user.password = ''
     db.session.add(user)
     db.session.commit()
-    return True
 
 def hash_password(password):
     return pwd_context.hash(password)
@@ -442,10 +440,11 @@ def verify_reset_link(link, max_age=None):
     except (TypeError, KeyError, ValueError, itsdangerous.BadData):
         return None
 
-def reset_password(user):
+def reset_password(user, set_unusable=False):
     if not user:
         return False
-    # set_unusable_password(user.name) # is this necessary?
+    if set_unusable:
+        set_unusable_password(user) # is this necessary?
     link = generate_reset_link(user.id)
     send_reset_email(user, link)
     return True

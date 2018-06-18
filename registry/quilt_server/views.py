@@ -2248,7 +2248,7 @@ def admin_reset_password():
     user = User.get_by_name(username)
     if not user:
         raise ApiException(requests.codes.not_found, "User not found.")
-    if reset_password(user):
+    if reset_password(user, set_unusable=True):
         return {}
     else:
         raise ApiException(requests.codes.server_error, "Internal server error.")
