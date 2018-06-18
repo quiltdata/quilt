@@ -221,19 +221,44 @@ class Code(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     code = db.Column(postgresql.UUID, nullable=False)
 
+    @classmethod
+    def get(cls, user_id):
+        return cls.query.filter(cls.user_id == user_id).one_or_none()
+
 class Token(db.Model):
     # each user can have an arbitrary number of tokens, so 
     #   both user_id and token are primary keys
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
 
+    @classmethod
+    def get(cls, user_id, token):
+        return (
+            cls.query
+            .filter(cls.user_id == user_id)
+            .filter(cls.token == token)
+            .one_or_none()
+        )
+
+    @classmethod
+    def get_all(cls, user_id):
+        return cls.query.filter(cls.user_id == user_id).all()
+
 class ActivationToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
 
+    @classmethod
+    def get(cls, user_id):
+        return cls.query.filter(cls.user_id == user_id).one_or_none()
+
 class PasswordResetToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
+
+    @classmethod
+    def get(cls, user_id):
+        return cls.query.filter(cls.user_id == user_id).one_or_none()
 
 MAX_COMMENT_LENGTH = 10 * 1024
 

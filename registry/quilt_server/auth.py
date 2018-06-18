@@ -170,27 +170,8 @@ def _activate_user(user_id):
     db.session.commit()
     send_new_user_email(user.name, user.email)
 
-def get_code(user_id):
-    code = (
-        db.session.query(
-            Code
-        )
-        .filter(Code.user_id == user_id)
-        .one_or_none()
-    )
-    return code
-
-def get_tokens(user_id):
-    tokens = (
-        db.session.query(
-            Token
-        )
-        .filter(Token.user_id == user_id)
-        .all()
-    )
-    return tokens
-
-def update_last_login(user_id, timestamp=datetime.utcnow()):
+def update_last_login(user_id, timestamp=None):
+    timestamp = timestamp or datetime.utcnow()
     user = User.get_by_id(user_id)
     if not user:
         raise Exception("User not found")
@@ -200,10 +181,10 @@ def update_last_login(user_id, timestamp=datetime.utcnow()):
     db.session.commit()
 
 def revoke_user_code_tokens(user_id):
-    code = get_code(user_id)
+    code = Code.get(user_id)
     if code:
         db.session.delete(code)
-    tokens = get_tokens(user_id)
+    tokens = Token.get_all(user_id)
     for token in tokens:
         db.session.delete(token)
 
@@ -240,12 +221,7 @@ def _disable_user(username):
 
 def issue_code(username):
     user_id = User.get_by_name(username).id
-    code = (
-        db.session.query(
-            Code
-        ).filter(Code.user_id == user_id)
-        .one_or_none()
-    )
+    code = Code.get(user_id)
     if code:
         code.code = generate_uuid()
     else:
@@ -265,32 +241,18 @@ def try_as_code(code_str):
         code = decode_code(code_str)
     except (TypeError, ValueError):
         return None
-    found = (
-        db.session.query(
-            Code
-        ).filter(Code.user_id == code['id'])
-        .filter(Code.code == code['code'])
-        .one_or_none()
-    )
-    if found:
-        return User.get_by_id(code['id'])
+    found = Code.get(code['id'])
+    if not found or found.code != code['code']:
+        return None
+    return User.get_by_id(code['id'])
 
     return None
 
 def decode_token(token_str):
-    token = jwt.decode(token_str, app.secret_key, algorithm='HS256')
-    return token
+    return jwt.decode(token_str, app.secret_key, algorithm='HS256')
 
-def check_token(user_id, token_id):
-    token = (
-        db.session.query(
-            Token
-        )
-        .filter(Token.user_id == user_id)
-        .filter(Token.token == token_id)
-        .one_or_none()
-    )
-    return token is not None
+def check_token(user_id, token):
+    return Token.get(user_id, token) is not None
 
 def _verify(payload):
     user_id = payload['id']
@@ -322,14 +284,7 @@ def revoke_token_string(token_str):
     return revoke_token(user_id, uuid)
 
 def revoke_token(user_id, token):
-    found = (
-        db.session.query(
-            Token
-        )
-        .filter(Token.user_id == user_id)
-        .filter(Token.token == token)
-        .one_or_none()
-    )
+    found = Token.get(user_id, token)
     if found is None:
         return False
     db.session.delete(found)
@@ -337,12 +292,7 @@ def revoke_token(user_id, token):
     return True
 
 def revoke_tokens(user_id):
-    tokens = (
-        db.session.query(
-            Token
-        ).filter(Token.user_id == user_id)
-        .all()
-    )
+    tokens = Token.get_all(user_id)
     for token in tokens:
         db.session.delete(token)
     db.session.commit()
@@ -370,17 +320,11 @@ def consume_code_string(code_str):
     return consume_code(code['id'], code['code'])
 
 def consume_code(user_id, code):
-    code = (
-        db.session.query(
-            Code
-        )
-        .filter(Code.user_id == user_id)
-        .filter(Code.code == code)
-        .one_or_none()
-    )
-    if code is None:
+    found = Code.get(user_id)
+    if found is None:
         return None
-
+    if found.token != code:
+        return None
     db.session.delete(code)
     db.session.commit()
     return user_id
@@ -435,58 +379,38 @@ PASSWORD_RESET_SALT = 'reset'
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 
 def generate_activation_token(user_id):
-    existing_token = (
-        db.session.query(
-            ActivationToken
-        )
-        .filter(ActivationToken.user_id == user_id)
-        .one_or_none()
-    )
+    existing_token = ActivationToken.get(user_id)
     new_token = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
     db.session.add(new_token)
     db.session.commit()
     return new_token.token
 
 def consume_activation_token(user_id, token):
-    token = (
-        db.session.query(
-            ActivationToken
-        ).filter(ActivationToken.user_id == user_id)
-        .filter(ActivationToken.token == token)
-        .one_or_none()
-    )
-    if not token:
+    found = ActivationToken.get(user_id)
+    if not found:
         return False
-    db.session.delete(token)
+    if found.token != token:
+        return False
+    db.session.delete(found)
     db.session.commit()
     return True
 
 def generate_reset_token(user_id):
-    existing_token = (
-        db.session.query(
-            PasswordResetToken
-        ).filter(PasswordResetToken.user_id == user_id)
-        .one_or_none()
-    )
+    existing_token = PasswordResetToken.get(user_id)
     reset_token = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
     db.session.add(reset_token)
     db.session.commit()
     return reset_token.token
 
 def consume_reset_token(user_id, token):
-    token = (
-        db.session.query(
-            PasswordResetToken
-        ).filter(PasswordResetToken.user_id == user_id)
-        .filter(PasswordResetToken.token == token)
-        .one_or_none()
-    )
-    if not token:
+    found = PasswordResetToken.get(user_id)
+    if not found:
         return False
-    db.session.delete(token)
+    if found.token != token:
+        return False
+    db.session.delete(found)
     db.session.commit()
     return True
-
 
 def generate_activation_link(user_id):
     token = generate_activation_token(user_id)
