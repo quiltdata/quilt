@@ -1,7 +1,7 @@
 from flask import render_template
 from flask_mail import Mail, Message
 
-from . import app, db
+from . import app
 from .models import User
 
 
@@ -62,7 +62,7 @@ def send_invitation_email(email, owner, package_name):
     send_email(recipient=email, html=html, body=body, sender=DEFAULT_SENDER, subject=subject)
 
 def send_new_user_email(username, email):
-    recipients = User.filter_by(is_admin=True).all()
+    recipients = User.query.filter_by(is_admin=True).all()
     subject = "New Quilt User: {user}".format(user=username)
     html = render_template('new_user_activated.html', team=TEAM_ID,
                            user=username, email=email, authurl=CATALOG_URL)
