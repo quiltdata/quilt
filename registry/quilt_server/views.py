@@ -2178,13 +2178,7 @@ def enable_user():
 def delete_user():
     data = request.get_json()
     username = data['username']
-    try:
-        _delete_user(username)
-    except Exception:
-        raise ApiException(
-            requests.codes.not_found,
-            "User not found"
-            )
+    _delete_user(User.get_by_name(username))
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)

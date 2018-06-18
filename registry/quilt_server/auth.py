@@ -123,7 +123,6 @@ def _create_user(username, password='', email=None, is_admin=False,
 
     try:
         db.session.add(user)
-        db.session.commit()
     except IntegrityError:
         if not check_conflicts(username, email):
             raise ApiException(500, "Internal server error.")
@@ -134,9 +133,11 @@ def _create_user(username, password='', email=None, is_admin=False,
     if requires_reset:
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
+    db.session.commit()
+
 def _activate_user(user):
     if user is None:
-        raise Exception("User not found")
+        raise ApiException(404, "User not found")
     user.is_active = True
     db.session.add(user)
     db.session.commit()
@@ -156,12 +157,11 @@ def revoke_user_code_tokens(user_id):
     for token in tokens:
         db.session.delete(token)
 
-def _delete_user(username):
-    user = User.get_by_name(username)
+def _delete_user(user):
     if user:
         db.session.delete(user)
     else:
-        raise Exception("User to delete not found")
+        raise ApiException(404, "User to delete not found")
     revoke_user_code_tokens(user.id)
     db.session.commit()
     return user
@@ -174,7 +174,7 @@ def _enable_user(username):
         db.session.commit()
         return True
     else:
-        raise Exception("User to enable not found")
+        raise ApiException(404, "User to enable not found")
 
 def _disable_user(username):
     user = User.get_by_name(username)
@@ -185,7 +185,7 @@ def _disable_user(username):
         db.session.commit()
         return True
     else:
-        raise Exception("User to disable not found")
+        raise ApiException(404, "User to disable not found")
 
 def issue_code(username):
     user_id = User.get_by_name(username).id
@@ -227,10 +227,10 @@ def _verify(payload):
     uuid = payload['uuid']
     user = User.get_by_id(user_id)
     if user is None:
-        raise Exception('User ID invalid')
+        raise ApiException(400, 'User ID invalid')
 
     if not check_token(user_id, uuid):
-        raise Exception('Token invalid')
+        raise ApiException(400, 'Token invalid')
     return user
 
 def verify_token_string(token_string):
@@ -300,9 +300,9 @@ def consume_code(user_id, code):
 def verify_hash(password, pw_hash):
     try:
         if not pwd_context.verify(password, pw_hash):
-            raise Exception('Password verification failed')
+            raise ApiException(401, 'Password verification failed')
     except ValueError:
-        raise Exception('Password verification failed')
+        raise ApiException(401, 'Password verification failed')
     return True
 
 def try_login(username, password):

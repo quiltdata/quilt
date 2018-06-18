@@ -68,7 +68,7 @@ class AuthTestCase(QuiltTestCase):
         _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
                 force=True, requires_activation=False)
         assert User.get_by_name(self.OTHER_USER)
-        _delete_user(self.OTHER_USER)
+        _delete_user(User.get_by_name(self.OTHER_USER))
         assert not User.get_by_name(self.OTHER_USER)
 
     def testCreateNewUser(self):
