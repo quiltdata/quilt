@@ -31,3 +31,4 @@ MAIL_SERVER = os.getenv('SMTP_HOST')
 MAIL_USERNAME = os.getenv('SMTP_USERNAME')
 MAIL_PASSWORD = os.getenv('SMTP_PASSWORD')
 
+SECRET_KEY = os.environ['QUILT_SECRET_KEY']
