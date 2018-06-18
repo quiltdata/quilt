@@ -142,12 +142,8 @@ def _activate_user(user):
     db.session.commit()
     send_new_user_email(user.name, user.email)
 
-def update_last_login(user_id, timestamp=None):
+def update_last_login(user, timestamp=None):
     timestamp = timestamp or datetime.utcnow()
-    user = User.get_by_id(user_id)
-    if not user:
-        raise Exception("User not found")
-
     user.last_login = timestamp
     db.session.add(user)
     db.session.commit()
@@ -321,6 +317,7 @@ def try_login(username, password):
         verify_hash(password, user.password)
     except Exception:
         return False
+    update_last_login(user)
     return True
 
 def create_admin():
