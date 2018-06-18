@@ -292,16 +292,16 @@ def api(require_login=True, schema=None, enabled=True,
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
+            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=True)
+
+            user_agent_str = request.headers.get('user-agent', '')
+            g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
+
             if not enabled:
                 raise ApiException(
                     requests.codes.bad_request,
                     "This endpoint is not enabled."
                     )
-
-            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=True)
-
-            user_agent_str = request.headers.get('user-agent', '')
-            g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if validator is not None:
                 try:
