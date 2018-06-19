@@ -492,7 +492,7 @@ class BuildTest(QuiltTestCase):
         build.build_package_from_contents(None, 'test', 'pkg', str(mydir), build_compose_contents)
         from quilt.data.test import pkg
 
-        pretty = '<GroupNode> is empty'
+        pretty = '<GroupNode>'
         assert type(pkg.empty_group_node) is GroupNode
         assert repr(pkg.empty_group_node) == pretty
 

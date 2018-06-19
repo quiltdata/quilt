@@ -81,14 +81,14 @@ class GroupNode(Node):
         pinfo = super(GroupNode, self).__repr__()
         items = [name + '/' for name in sorted(self._group_keys())]
         if not items:
-            return "%s is empty" % pinfo
+            return pinfo
         if items:
             items.append('\n')
         items += sorted(self._data_keys())
         # strip last new line if needed
         if items[-1] == '\n':
             items.pop()
-        # copare with + 1 helps to prevent hide under '...' only one item
+        # compare with +1 which helps to prevent hide under '...' only one item
         if len(items) > PRETTY_MAX_LEN + 1:
             preview = PRETTY_MAX_LEN // 2
             items = items[:preview] + ['...'] + items[-preview:]
