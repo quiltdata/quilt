@@ -53,7 +53,8 @@ def validate_password(password):
 def reset_password_response():
     data = request.get_json()
     if 'email' in data:
-        return reset_password(User.get_by_email(data['email']))
+        reset_password(User.get_by_email(data['email']))
+        return {}
     # try reset request
     raw_password = data['password']
     validate_password(raw_password)
@@ -71,7 +72,7 @@ def reset_password_response():
     return {}
 
 def _create_user(username, password='', email=None, is_admin=False,
-                 first_name=None, last_name=None, force=False,
+                 first_name=None, last_name=None,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_NAME_RE.match(username):
@@ -82,15 +83,13 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ApiException(400, "Must provide email.")
         if not VALID_EMAIL_RE.match(email):
             raise ApiException(400, "Unacceptable email.")
-        if User.get_by_name(username) and not force:
+        if User.get_by_name(username):
             raise ApiException(409, "Username already taken.")
-        if User.get_by_email(email) and not force:
+        if User.get_by_email(email):
             raise ApiException(409, "Email already taken.")
 
     check_conflicts(username, email)
     validate_password(password)
-
-    existing_user = User.get_by_name(username)
 
     new_password = "" if requires_reset else hash_password(password)
 
@@ -98,26 +97,17 @@ def _create_user(username, password='', email=None, is_admin=False,
         is_active = False
     else:
         is_active = True
-    if existing_user:
-        user = existing_user
-        user.name = username
-        user.password = new_password
-        user.email = email
-        user.first_name = first_name
-        user.last_name = last_name
-        user.is_active = is_active
-        user.is_admin = is_admin
-    else:
-        user = User(
-            id=generate_uuid(),
-            name=username,
-            password=new_password,
-            email=email,
-            first_name=first_name,
-            last_name=last_name,
-            is_active=is_active,
-            is_admin=is_admin
-            )
+
+    user = User(
+        id=generate_uuid(),
+        name=username,
+        password=new_password,
+        email=email,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=is_active,
+        is_admin=is_admin
+        )
 
     db.session.add(user)
 
@@ -147,7 +137,19 @@ def _update_user(username, password=None, email=None, is_admin=None, is_active=N
     if is_active is not None:
         existing_user.is_active = is_active
 
-    db.session.add(user)
+    db.session.add(existing_user)
+
+def _create_or_update_user(username, password=None, email=None, is_admin=None, is_active=True):
+    existing_user = User.get_by_name(username)
+    if not existing_user:
+        _create_user(username=username, password=password if password else '',
+                     email=email, is_admin=is_admin,
+                     requires_activation=False)
+        if not is_active:
+            _disable_user(User.get_by_name(username))
+    else:
+        _update_user(username=username, password=password if password else '', email=email,
+                     is_admin=is_admin, is_active=is_active)
 
 def _activate_user(user):
     if user is None:
@@ -180,8 +182,7 @@ def _delete_user(user):
     db.session.commit()
     return user
 
-def _enable_user(username):
-    user = User.get_by_name(username)
+def _enable_user(user):
     if user:
         user.is_active = True
         db.session.add(user)
@@ -189,8 +190,7 @@ def _enable_user(username):
     else:
         raise ApiException(404, "User to enable not found")
 
-def _disable_user(username):
-    user = User.get_by_name(username)
+def _disable_user(user):
     if user:
         user.is_active = False
         db.session.add(user)
@@ -341,8 +341,8 @@ def create_admin():
         return
     if not admin_username or not admin_password or not admin_email:
         return
-    _create_user(admin_username, password=admin_password, email=admin_email,
-                 is_admin=True, requires_activation=False, force=True)
+    _create_or_update_user(admin_username, password=admin_password, email=admin_email,
+                 is_admin=True, requires_activation=False)
     user = User.get_by_name(admin_username)
     _activate_user(user)
 

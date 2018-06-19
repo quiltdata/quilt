@@ -21,7 +21,7 @@ import sqlalchemy_utils
 
 import quilt_server
 from quilt_server import db
-from quilt_server.auth import _create_user, _update_user, verify_token_string
+from quilt_server.auth import _create_or_update_user, verify_token_string
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
@@ -91,12 +91,12 @@ class QuiltTestCase(TestCase):
         self.TEST_USER_EMAIL = 'test_user@example.com'
         self.OTHER_USER = 'share_with'
         self.OTHER_USER_EMAIL = 'share_with@example.com'
-        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL, requires_activation=False)
-        _create_user('admin', email='admin@example.com', is_admin=True, requires_activation=False)
-        _create_user('bad_user', email='bad_user@example.com', requires_activation=False)
-        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL, requires_activation=False)
-        _create_user('user1', email='user1@example.com', password='user1', requires_activation=False)
-        _create_user('user2', email='user2@example.com', password='user2', requires_activation=False)
+        _create_or_update_user(self.TEST_USER, email=self.TEST_USER_EMAIL)
+        _create_or_update_user('admin', email='admin@example.com', is_admin=True)
+        _create_or_update_user('bad_user', email='bad_user@example.com')
+        _create_or_update_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL)
+        _create_or_update_user('user1', email='user1@example.com', password='user1')
+        _create_or_update_user('user2', email='user2@example.com', password='user2')
         db.session.commit()
 
     def tearDown(self):

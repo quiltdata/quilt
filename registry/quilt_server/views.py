@@ -2159,7 +2159,7 @@ def disable_user():
     if g.auth.user == username:
         raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
-    _disable_user(username)
+    _disable_user(User.get_by_name(username))
     return {}
 
 @app.route('/api/users/enable', methods=['POST'])
@@ -2168,7 +2168,7 @@ def disable_user():
 def enable_user():
     data = request.get_json()
     username = data['username']
-    _enable_user(username)
+    _enable_user(User.get_by_name(username))
     return {}
 
 # This endpoint is disabled pending a rework of authentication

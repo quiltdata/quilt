@@ -7,9 +7,9 @@ import unittest
 from unittest import mock
 from unittest.mock import patch
 from .utils import QuiltTestCase
-from quilt_server import app
+from quilt_server import app, db
 from quilt_server.models import Code, User
-from quilt_server.auth import (_create_user, _delete_user, issue_token,
+from quilt_server.auth import (_create_user, _create_or_update_user, _delete_user, issue_token,
         encode_code, decode_code, generate_uuid, verify_token_string,
         generate_activation_link, generate_reset_link, verify_activation_link,
         verify_reset_link, verify_hash
@@ -24,21 +24,21 @@ class AuthTestCase(QuiltTestCase):
     TEST_USER = 'test_user'
     TEST_PASSWORD = 'beans'
     TEST_USER_EMAIL = 'test_user@example.com'
-    OTHER_USER = 'edwin'
-    OTHER_USER_PASSWORD = 'test'
-    OTHER_USER_EMAIL = 'edwin@example.com'
+    SECOND_USER = 'edwin'
+    SECOND_USER_PASSWORD = 'test'
+    SECOND_USER_EMAIL = 'edwin@example.com'
     TEST_ADMIN = 'admin'
     TEST_ADMIN_PASSWORD = 'quilt'
     TEST_ADMIN_EMAIL = 'quilt@example.com'
 
     def setUp(self):
         super(AuthTestCase, self).setUp()
-        _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
-                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
-                force=True, requires_activation=False)
-        _create_user(self.TEST_ADMIN, password=self.TEST_ADMIN_PASSWORD,
+        _create_or_update_user(self.TEST_USER, password=self.TEST_PASSWORD,
+                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix))
+        _create_or_update_user(self.TEST_ADMIN, password=self.TEST_ADMIN_PASSWORD,
                 email='{user}{suf}'.format(user=self.TEST_ADMIN, suf=self.email_suffix),
-                is_admin=True, force=True, requires_activation=False)
+                is_admin=True)
+        db.session.commit()
         self.TEST_USER_ID = User.get_by_name(self.TEST_USER).id
         self.token_verify_mock.stop() # disable auth mock
 
@@ -65,16 +65,16 @@ class AuthTestCase(QuiltTestCase):
         assert issue_token(self.TEST_USER)
 
     def testDeleteUser(self):
-        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
-                force=True, requires_activation=False)
-        assert User.get_by_name(self.OTHER_USER)
-        _delete_user(User.get_by_name(self.OTHER_USER))
-        assert not User.get_by_name(self.OTHER_USER)
+        _create_user(self.SECOND_USER, email=self.SECOND_USER_EMAIL,
+                requires_activation=False)
+        assert User.get_by_name(self.SECOND_USER)
+        _delete_user(User.get_by_name(self.SECOND_USER))
+        assert not User.get_by_name(self.SECOND_USER)
 
     def testCreateNewUser(self):
-        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
-                force=True, requires_activation=False)
-        assert User.get_by_name(self.OTHER_USER)
+        _create_user(self.SECOND_USER, email=self.SECOND_USER_EMAIL,
+                requires_activation=False)
+        assert User.get_by_name(self.SECOND_USER)
 
     def testUserExists(self):
         assert User.get_by_name(self.TEST_USER)
@@ -126,9 +126,12 @@ class AuthTestCase(QuiltTestCase):
         assert new_exp > exp
 
         # test re-creating user doesn't invalidate tokens
-        _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
-                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
-                force=True, requires_activation=False)
+        try:
+            _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
+                    email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
+                    requires_activation=False)
+        except:
+            pass
 
         auth_headers = {
             'Authorization': new_token,
