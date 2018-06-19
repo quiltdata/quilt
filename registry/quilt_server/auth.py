@@ -43,9 +43,7 @@ def activate_response(link):
         _activate_user(User.get_by_id(payload['id']))
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
 
-    response = jsonify({'error': "Account activation failed."})
-    response.status_code = 400
-    return response
+    return redirect("{CATALOG_URL}/activation_error".format(CATALOG_URL=CATALOG_URL), code=302)
 
 def validate_password(password):
     if len(password) < 8:
