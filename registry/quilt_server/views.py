@@ -581,8 +581,15 @@ def download_object_preview_impl(owner, obj_hash):
     )
 
     body = resp['Body']
-    with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-        data = fd.read(MAX_PREVIEW_SIZE)
+    encoding = resp.get('ContentEncoding')
+    if encoding == 'gzip':
+        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+            data = fd.read(MAX_PREVIEW_SIZE)
+    elif encoding is None:
+        data = body.read(MAX_PREVIEW_SIZE)
+    else:
+        # GzipFile raises an OSError if ungzipping fails, so do the same here.
+        raise OSError("Unexpected encoding: %r" % encoding)
 
     return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
 

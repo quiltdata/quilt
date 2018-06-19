@@ -9,6 +9,8 @@ and exposed to the app as the `window.__CONFIG` object.
 
 ### Production environment
 The template is processed by `envsubst` and served by `nginx` (see `Dockerfile`).
+To create a static config file with the given settings, use `npm run config $ENV_FILE`,
+where `$ENV_FILE` is an env-file with the required settings (see `.env.example` for details).
 
 ### Development environment
 The template is processed and served by the custom middleware (`server/middleware/config.js`).

@@ -177,7 +177,8 @@ class QuiltTestCase(TestCase):
         contents_gzipped = gzip.compress(contents)
 
         self.s3_stubber.add_response('get_object', dict(
-            Body=BytesIO(contents_gzipped)
+            Body=BytesIO(contents_gzipped),
+            ContentEncoding='gzip'
         ), dict(
             Bucket=quilt_server.app.config['PACKAGE_BUCKET_NAME'],
             Key='objs/%s/%s' % (owner, blob_hash),

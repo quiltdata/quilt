@@ -16,6 +16,9 @@ Contact us if you have questions about large data.
 * Teams user - in a dedicated S3 bucket
 * Running your own registry - up to you :-)
 
+## How do I convert a package into files?
+You can use [`quilt export`](api-cli.md#export-a-package-or-subpackage).
+
 ## How do install the latest quilt (compiler) directly from GitHub?
 For developers only:
 ```sh
@@ -87,23 +90,6 @@ pip install --upgrade quilt
 quilt install <your_username>/<your_package>
 ```
 
-## Exception when installing `quilt` on OS X El Capitan
-
-`pip` may try to upgrade `pyOpenSSL`, and fail with the following exception when
-removing the old version of the package:
-
-```
-OSError: [Errno 1] Operation not permitted: '/tmp/pip-zFP4QS-uninstall/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/pyOpenSSL-0.13.1-py2.7.egg-info'
-```
-
-This problem is not specific to `quilt`, and is caused by outdated packages in OS X.
-See [this stackoverflow question](https://stackoverflow.com/questions/31900008/oserror-errno-1-operation-not-permitted-when-installing-scrapy-in-osx-10-11) for more information.
-
-### Solutions
-- Use a virtual environment such as [`conda`](https://conda.io/docs/installation.html) or [`virtualenvwrapper`](https://virtualenvwrapper.readthedocs.io/en/latest/)
-- Upgrade `pyOpenSSL` using `brew` or `easy_install`
-- Upgrade to a more recent version of OS X
-
 ## `ArrowNotImplementedError` when saving a large dataframe
 
 Unfortunately, this is caused by a [bug in pyarrow](https://github.com/apache/arrow/issues/1300).
@@ -152,7 +138,7 @@ new_data = pkg.big_data()
 assert new_data.equals(data)
 ```
 
-### Exporting to symbolic links on Windows doesn't work
+## Exporting to symbolic links on Windows doesn't work
 
 Symbolic links on Windows have a few quirks to be aware of.
 
@@ -172,3 +158,10 @@ Symbolic links on Windows have a few quirks to be aware of.
     * `fsutil`: *For advanced users only.*  See the [Microsoft documentation on fsutil](https://docs.microsoft.com/en-us/previous-versions/windows/it-pro/windows-server-2012-R2-and-2012/cc753059(v=ws.11))
       * `fsutil behavior query SymlinkEvaluation` will display the current state of symlink evaluation
       * Use `fsutil behavior set SymlinkEvaluation R2R:1` to enable (for example) remote-to-remote symlinks
+      
+      
+ ## `Segmentation fault (core dumped)`
+ Seen on Ubuntu 18.04, Google Cloud Platform.
+ 
+ ### Solution
+ `sudo pip install quilt` # ¯\_(ツ)_/¯
