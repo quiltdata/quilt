@@ -121,11 +121,7 @@ def _create_user(username, password='', email=None, is_admin=False,
             is_admin=is_admin
             )
 
-    try:
-        db.session.add(user)
-    except IntegrityError:
-        if not check_conflicts(username, email):
-            raise ApiException(500, "Internal server error.")
+    db.session.add(user)
 
     if requires_activation:
         send_activation_email(user, generate_activation_link(user.id))
@@ -133,7 +129,27 @@ def _create_user(username, password='', email=None, is_admin=False,
     if requires_reset:
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError:
+        if not check_conflicts(username, email):
+            raise ApiException(500, "Internal server error.")
+
+def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
+    existing_user = User.get_by_name(username)
+    if not existing_user:
+        raise ApiException(404, "User to update not found")
+    if password is not None:
+        new_password = hash_password(password)
+        existing_user.password = new_password
+    if email is not None:
+        existing_user.email = email
+    if is_admin is not None:
+        existing_user.is_admin = is_admin
+    if is_active is not None:
+        existing_user.is_active = is_active
+
+    db.session.add(user)
 
 def _activate_user(user):
     if user is None:
@@ -172,7 +188,6 @@ def _enable_user(username):
         user.is_active = True
         db.session.add(user)
         db.session.commit()
-        return True
     else:
         raise ApiException(404, "User to enable not found")
 
@@ -183,7 +198,6 @@ def _disable_user(username):
         db.session.add(user)
         revoke_user_code_tokens(user.id)
         db.session.commit()
-        return True
     else:
         raise ApiException(404, "User to disable not found")
 
@@ -303,7 +317,6 @@ def verify_hash(password, pw_hash):
             raise ApiException(401, 'Password verification failed')
     except ValueError:
         raise ApiException(401, 'Password verification failed')
-    return True
 
 def try_login(username, password):
     user = User.get_by_name(username)
@@ -315,7 +328,7 @@ def try_login(username, password):
 
     try:
         verify_hash(password, user.password)
-    except Exception:
+    except ApiException:
         return False
     update_last_login(user)
     return True

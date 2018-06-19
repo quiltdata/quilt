@@ -397,7 +397,7 @@ class AuthTestCase(QuiltTestCase):
     def testMigratePasswordsWillWork(self):
         old_pw = 'quilt'
         old_pw_hash = 'pbkdf2_sha256$20000$PEZ6yGDDm4LK$Jx9/lOYmgbELXywYYrySjTkc1yBcpZM4fUjRtI8ajRA='
-        assert verify_hash(old_pw, old_pw_hash)
+        verify_hash(old_pw, old_pw_hash)
 
     # password reset emails
     # account creation flow

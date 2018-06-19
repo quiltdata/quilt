@@ -20,7 +20,8 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
-from quilt_server.auth import _create_user, verify_token_string
+from quilt_server import db
+from quilt_server.auth import _create_user, _update_user, verify_token_string
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
@@ -76,7 +77,6 @@ class QuiltTestCase(TestCase):
                 lambda x: True)
         self.validate_password_mock.start()
 
-
         self.app = quilt_server.app.test_client()
         quilt_server.app.config['TESTING'] = True
         quilt_server.app.config['SQLALCHEMY_ECHO'] = False
@@ -91,19 +91,13 @@ class QuiltTestCase(TestCase):
         self.TEST_USER_EMAIL = 'test_user@example.com'
         self.OTHER_USER = 'share_with'
         self.OTHER_USER_EMAIL = 'share_with@example.com'
-        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL,
-                requires_activation=False)
-        _create_user('admin', email='admin@example.com',
-                requires_activation=False, is_admin=True)
-        _create_user('bad_user', email='bad_user@example.com',
-                requires_activation=False)
-        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
-                requires_activation=False)
-        _create_user('user1', email='user1@example.com', password='user1',
-                requires_activation=False)
-        _create_user('user2', email='user2@example.com', password='user2',
-                requires_activation=False)
-
+        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL, requires_activation=False)
+        _create_user('admin', email='admin@example.com', is_admin=True, requires_activation=False)
+        _create_user('bad_user', email='bad_user@example.com', requires_activation=False)
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL, requires_activation=False)
+        _create_user('user1', email='user1@example.com', password='user1', requires_activation=False)
+        _create_user('user2', email='user2@example.com', password='user2', requires_activation=False)
+        db.session.commit()
 
     def tearDown(self):
         quilt_server.db.session.remove()
