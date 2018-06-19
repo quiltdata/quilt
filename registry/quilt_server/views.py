@@ -535,19 +535,6 @@ def _private_packages_allowed():
     plan = _get_customer_plan(customer)
     return plan != PaymentPlan.FREE
 
-@app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
-@api()
-@as_json
-def blob_get(owner, blob_hash):
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the owner can upload objects.")
-    return dict(
-        head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-        get=_generate_presigned_url(S3_GET_OBJECT, owner, blob_hash),
-        put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
-    )
-
 @app.route('/api/get_objects', methods=['POST'])
 @api(require_login=False, schema=GET_OBJECTS_SCHEMA)
 @as_json
