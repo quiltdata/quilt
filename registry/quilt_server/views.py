@@ -189,9 +189,11 @@ def oauth_callback():
         resp = {'refresh_token': code, 'access_token': code, 'expires_at': exp}
 
         if next:
+            db.session.commit()
             return redirect('%s#%s' % (next, urlencode(resp)))
 
         token = resp['refresh_token']
+        db.session.commit()
         return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
@@ -209,6 +211,7 @@ def token():
     def token_success(user):
         new_token = issue_token_by_id(user.id)
         exp = exp_from_token(new_token)
+        db.session.commit()
         return dict(
             refresh_token=new_token,
             access_token=new_token,
@@ -364,6 +367,7 @@ def login_post():
         else:
             return {'error': 'Login attempt failed'}
 
+        db.session.commit()
         return {'token': token}
     except Exception:
         return {'error': 'Login failed.'}, requests.codes.unauthorized
@@ -402,12 +406,9 @@ def register_endpoint():
     username = data['username']
     password = data['password']
     email = data['email']
-    try:
-        _create_user(username, password=password, email=email)
-        db.session.commit()
-        return {}
-    except ApiException as e:
-        return {'error': e.message}, e.status_code # 409 Conflict
+    _create_user(username, password=password, email=email)
+    db.session.commit()
+    return {}
 
 CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
 
@@ -417,7 +418,9 @@ CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}
 def refresh():
     token_str = request.headers.get(AUTHORIZATION_HEADER)
     revoke_token_string(token_str)
-    return {'token': issue_token(g.auth.user)}
+    token = issue_token(g.auth.user)
+    db.session.commit()
+    return {'token': token}
 
 @app.route('/logout', methods=['POST'])
 @api()
@@ -426,6 +429,7 @@ def logout():
     data = request.get_json()
     token = data['token']
     if revoke_token_string(token):
+        db.session.commit()
         return {}
 
     return {'error': 'Logout failed.'}, 400
@@ -436,7 +440,9 @@ CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 @api()
 @as_json
 def get_code():
-    return {'code': issue_code(g.user.name)}
+    code = issue_code(g.user.name)
+    db.session.commit()
+    return {'code': code}
 
 def _access_filter(auth):
     query = []
@@ -2148,6 +2154,7 @@ def create_user():
     _validate_username(username)
     email = data['email']
     _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
+    db.session.commit()
     return {}, 200
 
 @app.route('/api/users/disable', methods=['POST'])
@@ -2160,6 +2167,7 @@ def disable_user():
         raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
     _disable_user(User.get_by_name(username))
+    db.session.commit()
     return {}
 
 @app.route('/api/users/enable', methods=['POST'])
@@ -2169,6 +2177,7 @@ def enable_user():
     data = request.get_json()
     username = data['username']
     _enable_user(User.get_by_name(username))
+    db.session.commit()
     return {}
 
 # This endpoint is disabled pending a rework of authentication
@@ -2179,6 +2188,7 @@ def delete_user():
     data = request.get_json()
     username = data['username']
     _delete_user(User.get_by_name(username))
+    db.session.commit()
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)

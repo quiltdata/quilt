@@ -41,6 +41,7 @@ def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
         _activate_user(User.get_by_id(payload['id']))
+        db.session.commit()
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
 
     return redirect("{CATALOG_URL}/activation_error".format(CATALOG_URL=CATALOG_URL), code=302)
@@ -117,12 +118,6 @@ def _create_user(username, password='', email=None, is_admin=False,
     if requires_reset:
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
-    try:
-        db.session.commit()
-    except IntegrityError:
-        if not check_conflicts(username, email):
-            raise ApiException(500, "Internal server error.")
-
 def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
     existing_user = User.get_by_name(username)
     if not existing_user:
@@ -156,14 +151,12 @@ def _activate_user(user):
         raise ApiException(404, "User not found")
     user.is_active = True
     db.session.add(user)
-    db.session.commit()
     send_new_user_email(user.name, user.email)
 
 def update_last_login(user, timestamp=None):
     timestamp = timestamp or datetime.utcnow()
     user.last_login = timestamp
     db.session.add(user)
-    db.session.commit()
 
 def revoke_user_code_tokens(user_id):
     code = Code.get(user_id)
@@ -179,14 +172,12 @@ def _delete_user(user):
     else:
         raise ApiException(404, "User to delete not found")
     revoke_user_code_tokens(user.id)
-    db.session.commit()
     return user
 
 def _enable_user(user):
     if user:
         user.is_active = True
         db.session.add(user)
-        db.session.commit()
     else:
         raise ApiException(404, "User to enable not found")
 
@@ -195,7 +186,6 @@ def _disable_user(user):
         user.is_active = False
         db.session.add(user)
         revoke_user_code_tokens(user.id)
-        db.session.commit()
     else:
         raise ApiException(404, "User to disable not found")
 
@@ -207,7 +197,6 @@ def issue_code(username):
     else:
         code = Code(user_id=user_id, code=generate_uuid())
     db.session.add(code)
-    db.session.commit()
     return encode_code({'id': user_id, 'code': code.code})
 
 def encode_code(code_dict):
@@ -268,14 +257,12 @@ def revoke_token(user_id, token):
     if found is None:
         return False
     db.session.delete(found)
-    db.session.commit()
     return True
 
 def revoke_tokens(user_id):
     tokens = Token.get_all(user_id)
     for token in tokens:
         db.session.delete(token)
-    db.session.commit()
 
 def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
@@ -288,7 +275,6 @@ def issue_token_by_id(user_id, exp=None):
     uuid = generate_uuid()
     token = Token(user_id=user_id, token=uuid)
     db.session.add(token)
-    db.session.commit()
 
     exp = exp or get_exp()
     payload = {'id': user_id, 'uuid': uuid, 'exp': exp}
@@ -306,7 +292,6 @@ def consume_code(user_id, code):
     if found.token != code:
         return None
     db.session.delete(code)
-    db.session.commit()
     return user_id
 
 def verify_hash(password, pw_hash):
@@ -329,6 +314,7 @@ def try_login(username, password):
     except ApiException:
         return False
     update_last_login(user)
+    db.session.commit()
     return True
 
 def create_admin():
@@ -345,6 +331,7 @@ def create_admin():
                  is_admin=True, requires_activation=False)
     user = User.get_by_name(admin_username)
     _activate_user(user)
+    db.session.commit()
 
 app.before_first_request(create_admin)
 
