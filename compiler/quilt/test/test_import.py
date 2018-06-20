@@ -8,6 +8,10 @@ import time
 import pandas as pd
 from six import string_types
 
+# required so headless renderer doesn't barf on Mac; used in quilt.asa.img
+import matplotlib as mpl
+mpl.use('TkAgg')
+from quilt.asa.img import plot
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
 from quilt.tools.const import PACKAGE_DIR_NAME
@@ -481,6 +485,20 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/package')
         assert pkg.dataframes(asa=test_lambda) is testdata
         assert pkg(asa=test_lambda) is testdata
+
+    def test_asa_img(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_img.yml')
+        command.build('foo/imgtest', build_path)
+        pkg = command.load('foo/imgtest')
+        # expect no exceptions on root
+        pkg(asa=plot())
+        # expect no exceptions on GroupNode with only DF children
+        pkg.dataframes(asa=plot())
+        # expect no exceptions on GroupNode with mixed children
+        pkg.mixed(asa=plot())
+        # expect no exceptions on an actual image
+        pkg.mixed.img(asa=plot())
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

@@ -1,0 +1,15 @@
+---
+contents:
+  mixed:
+    img:
+      file: data/sf_logo.png
+    tsv: 
+      file: data/group3.tsv
+
+  dataframes:
+    csv: 
+      file: data/foo.csv
+    nulls:
+      file: data/nulls.csv
+  README:
+    file: data/README.md
