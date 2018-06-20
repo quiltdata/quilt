@@ -278,4 +278,16 @@ export default defineMessages({
     id: `${scope}.Code.copy`,
     defaultMessage: 'Copy to clipboard',
   },
+
+  // Activation Error
+  activationErrorHeading: {
+    id: `${scope}.ActivationError.heading`,
+    defaultMessage: 'Activation Error',
+  },
+  activationErrorMessage: {
+    id: `${scope}.ActivationError.message`,
+    defaultMessage:
+      `Oops! Something went wrong with activating your account.
+      Please email us at {email} and we'll help you out.`,
+  },
 });

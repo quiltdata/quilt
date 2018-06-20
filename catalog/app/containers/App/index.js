@@ -14,6 +14,7 @@ import {
   PassReset,
   PassChange,
   Code,
+  ActivationError,
   requireAuth,
 } from 'containers/Auth';
 import AuthBar from 'containers/AuthBar';
@@ -74,6 +75,7 @@ export default composeComponent('App',
           <Route path="/signout" exact component={SignOut} />
           <Route path="/reset_password" exact component={PassReset} />
           <Route path="/reset_password/:link" exact component={PassChange} />
+          <Route path="/activation_error" exact component={ActivationError} />
 
           <Route path="" component={ProtectedNotFound} />
         </Switch>

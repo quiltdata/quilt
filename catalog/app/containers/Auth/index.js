@@ -5,6 +5,7 @@ export { default as SignUp } from './SignUp';
 export { default as PassReset } from './PassReset';
 export { default as PassChange } from './PassChange';
 export { default as Code } from './Code';
+export { default as ActivationError } from './ActivationError';
 export { default as requireAuth } from './wrapper';
 export * as actions from './actions';
 export * as errors from './errors';
