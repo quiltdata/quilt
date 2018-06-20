@@ -55,6 +55,7 @@ def reset_password_response():
     data = request.get_json()
     if 'email' in data:
         reset_password(User.get_by_email(data['email']))
+        db.session.commit()
         return {}
     # try reset request
     raw_password = data['password']
@@ -314,7 +315,6 @@ def try_login(username, password):
     except ApiException:
         return False
     update_last_login(user)
-    db.session.commit()
     return True
 
 def create_admin():
@@ -349,7 +349,6 @@ def generate_activation_token(user_id):
     existing_token = ActivationToken.get(user_id)
     new_token = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
     db.session.add(new_token)
-    db.session.commit()
     return new_token.token
 
 def consume_activation_token(user_id, token):
@@ -359,14 +358,12 @@ def consume_activation_token(user_id, token):
     if found.token != token:
         return False
     db.session.delete(found)
-    db.session.commit()
     return True
 
 def generate_reset_token(user_id):
     existing_token = PasswordResetToken.get(user_id)
     reset_token = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
     db.session.add(reset_token)
-    db.session.commit()
     return reset_token.token
 
 def consume_reset_token(user_id, token):
@@ -376,7 +373,6 @@ def consume_reset_token(user_id, token):
     if found.token != token:
         return False
     db.session.delete(found)
-    db.session.commit()
     return True
 
 def generate_activation_link(user_id):
