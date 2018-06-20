@@ -19,9 +19,12 @@ Or, in development:
 """
 
 from math import ceil, floor, sqrt
+from six import string_types
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+
+from quilt.nodes import DataNode, GroupNode
 
 def plot(figsize=(10, 10), limit=100, **kwargs):
     """Display an image [in a Jupyter Notebook] from a Quilt fragment path.
@@ -33,23 +36,39 @@ def plot(figsize=(10, 10), limit=100, **kwargs):
     Keyword arguments
     * figsize=(10, 10) # (HEIGHT_INCHES, WIDTH_INCHES)
     * limit=100 # maximum number of images to display
-    * **kwargs - all remaining kwargs as passed to plt.subplots;
+    * **kwargs - all remaining kwargs are passed to plt.subplots;
       see https://matplotlib.org/api/_as_gen/matplotlib.pyplot.subplots.html
     """
     def _plot(node, paths):
-        display = paths
-        if len(paths) > limit:
-            print("Displaying {} of {} images...".format(limit, len(paths)))
-            display = paths[:limit]
+        # assume DataNode with one path; doesn't work with multi-fragment images
+        display = [('', paths[0])]
+        # for GroupNodes display all DataNode children
+        if isinstance(node, GroupNode):
+            display = [(x, y._data()) for (x, y) in node._items() if isinstance(y, DataNode)]
+            if len(display) > limit:
+                print('Displaying {} of {} images...'.format(limit, len(display)))
+                display = display[:limit]
+        # display can be empty e.g. if no DataNode children
+        if len(display) < 1:
+            return
 
         cols = floor(sqrt(len(display)))
         rows = ceil(len(display) / cols)
-
         plt.subplots(rows, cols, figsize=figsize, **kwargs)
-        i = 1
-        for path in display:
-            plt.subplot(rows, cols, i)
-            plt.imshow(mpimg.imread(path))
-            i = i + 1
 
+        i = 0
+        for dnode in display:
+            i += 1
+            # don't try to read DataFrames as images
+            if isinstance(dnode[1], string_types):
+                axes = plt.subplot(rows, cols, i)
+                axes.axis('off')
+                plt.title(dnode[0])
+                try:
+                    # throws OSError if file is not a recognizable image
+                    bits = mpimg.imread(dnode[1])
+                    plt.imshow(bits)
+                except OSError as err:
+                    print('{}: {}'.format(dnode[0], str(err)))
+                    continue 
     return _plot
