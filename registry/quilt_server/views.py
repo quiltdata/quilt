@@ -440,7 +440,8 @@ CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 @api()
 @as_json
 def get_code():
-    code = issue_code(g.user.name)
+    user = User.get_by_name(g.user.name)
+    code = issue_code(user)
     db.session.commit()
     return {'code': code}
 

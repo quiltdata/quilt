@@ -190,8 +190,8 @@ def _disable_user(user):
     else:
         raise ApiException(404, "User to disable not found")
 
-def issue_code(username):
-    user_id = User.get_by_name(username).id
+def issue_code(user):
+    user_id = user.id
     code = Code.get(user_id)
     if code:
         code.code = generate_uuid()
