@@ -1,0 +1,45 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Feature: containers/Auth/ActivationError Background: Scenario: Mounting the component When the component tree is mounted Then the user should see the error message 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  text-align: center;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Activation Error
+    </span>
+  </h1>
+  <p
+    class="c2"
+  >
+    <span>
+      Oops! Something went wrong with activating your account.
+      Please email us at 
+      <a
+        href="mailto:support@quiltdata.io"
+      >
+        support@quiltdata.io
+      </a>
+       and we'll help you out.
+    </span>
+  </p>
+</div>
+`;
