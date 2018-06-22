@@ -11,14 +11,23 @@ const defaultSuccess = () => ({ sendAsJson: false });
 
 export default (requests) => [
   step(/(.+) request is expected/, (ctx, name) => {
-    const result = defer();
+    const results = [];
+    const resolve = (res) =>
+      results[results.length - 1].resolver.resolve(res);
+    const respond = () => {
+      const result = defer();
+      results.push(result);
+      return result.promise;
+    };
+
     const [method, endpoint, opts] = requests[name].setup(ctx);
-    fetchMock[method](`${api}${endpoint}`, result.promise, { name, ...opts });
+    fetchMock[method](`${api}${endpoint}`, respond, { name, ...opts });
+
     return {
       ...ctx,
       requestResolvers: {
         ...ctx.requestResolvers,
-        [name]: result.resolver.resolve,
+        [name]: resolve,
       },
       requests: (ctx.requests || 0) + 1,
     };
