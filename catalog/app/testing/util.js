@@ -1,9 +1,16 @@
+import flow from 'lodash/flow';
 import id from 'lodash/identity';
-import pick from 'lodash/pick';
-import { createElement } from 'react';
+import kebabCase from 'lodash/kebabCase';
+import omit from 'lodash/fp/omit';
+import pick from 'lodash/fp/pick';
+import pickBy from 'lodash/fp/pickBy';
+import { createElement, Component } from 'react';
 
 export const getLocation = ({ location: l }) =>
   `${l.pathname}${l.search}${l.hash}`;
+
+export const getComponentName = (name) => `component-${kebabCase(name)}`;
+export const getPropName = (name) => `prop-${kebabCase(name)}`;
 
 /**
  * Get attributes from props.
@@ -12,16 +19,23 @@ export const getLocation = ({ location: l }) =>
  *
  * @param {string[]|function} mapper
  *
- * @returns {Object} Attribute map.
+ * @param {string[]|function} drop
+ *
+ * @returns {function} Attribute mapper.
  */
-const getAttrs = (props, mapper) =>
-  mapper instanceof Array ? pick(props, mapper) : mapper(props);
+const getAttrs = (mapper, drop) => {
+  if (typeof mapper === 'function') return mapper;
+  return flow(
+    drop instanceof Array && !mapper ? omit(drop) : id,
+    mapper instanceof Array ? pick(mapper) : mapper || id,
+  );
+};
 
 const defaultRenderChildren = ({ children }) => [children];
 
-const renderChildren = (props, el) =>
+const renderChildren = (props) =>
   Object.entries(props).map(([key, value]) =>
-    createElement(el, { __prop: key }, value));
+    createElement(getPropName(key), {}, value));
 
 /**
  * Get children from props.
@@ -30,12 +44,12 @@ const renderChildren = (props, el) =>
  *
  * @param {string[]|function} mapper
  *
- * @param {react.Component} el React component for rendering elements.
- *
  * @returns {react.Element[]} An array of react elements to use as children.
  */
-const getChildren = (props, mapper, el) =>
-  mapper instanceof Array ? renderChildren(pick(props, mapper), el) : mapper(props);
+const getChildren = (mapper) =>
+  mapper instanceof Array
+    ? flow(pick(mapper), pickBy(Boolean), renderChildren)
+    : mapper || defaultRenderChildren;
 
 /**
  * Create a mock component that renders as div.
@@ -44,14 +58,6 @@ const getChildren = (props, mapper, el) =>
  *
  * @param {string} options.name
  *
- * @param {react.Component} options.el
- *   React component for rendering top-level element.
- *   Defaults to div.
- *
- * @param {react.Component} options.childEl
- *   React component for rendering nested elements.
- *   Defaults to div.
- *
  * @param {string[]|function} options.attrs
  *   If array of strings, pick these props and render them as resulting element's attributes.
  *   If function, call it with props and use returned object as resulting element's attributes.
@@ -59,27 +65,38 @@ const getChildren = (props, mapper, el) =>
  *
  * @param {string[]|function} options.children
  *   If array of strings, pick these props and render them as nested elements, like this:
- *     <element __prop={key}>{value}</element>
+ *     <prop-${key}>{value}</prop-${key}>
  *   If function, call it with props and use returned array as resulting element's children.
  *   Renders children as they are by default.
  *
  * @returns {react.Component}
  */
 export const mockComponent = (name, {
-  el = 'div',
-  childEl = 'div',
-  attrs = id,
-  children = defaultRenderChildren,
-} = {}) => (props) =>
-  createElement(el,
-    { __name: name, ...getAttrs(props, attrs) },
-    ...getChildren(props, children, childEl));
+  attrs,
+  children,
+} = {}) => {
+  const attrMapper = getAttrs(attrs, children);
+  const childrenMapper = getChildren(children);
+  const component = getComponentName(name);
+  return (props) => createElement(component, attrMapper(props), ...childrenMapper(props));
+};
 
-export const findMockComponent = (html, name, prop) => {
-  const comp = html.find(`[__name="${name}"]`);
-  return prop
-    ? comp.find(`[__prop="${prop}"]`)
-    : comp;
+export const mockComponentClass = (name, { methods = {}, ...opts }) => {
+  const render = mockComponent(name, opts);
+
+  class Mock extends Component {
+    render() { return render(this.props); }
+  }
+
+  Object.assign(Mock.prototype, methods);
+
+  return Mock;
+};
+
+export const mockComponentSelector = (name, prop) => {
+  const componentSelector = `${getComponentName(name)}`;
+  if (!prop) return componentSelector;
+  return `${componentSelector} ${getPropName(prop)}`;
 };
 
 export const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
