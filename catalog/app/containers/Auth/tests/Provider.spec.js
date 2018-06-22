@@ -41,12 +41,23 @@ import {
 } from './support/fixtures';
 
 
+const headerJson = {
+  'Content-Type': 'application/json',
+};
+const headerAuth = {
+  Authorization: `Bearer ${tokens.token}`,
+};
+const headerAuthStale = {
+  Authorization: `Bearer ${tokensStale.token}`,
+};
+
 const requests = {
   signUp: {
     setup: () => ['postOnce', '/register'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.credentials),
+        headers: headerJson,
       }),
   },
   resetPassword: {
@@ -54,6 +65,7 @@ const requests = {
     expect: ({ email }) =>
       expect.objectContaining({
         body: JSON.stringify({ email }),
+        headers: headerJson,
       }),
   },
   changePassword: {
@@ -61,6 +73,7 @@ const requests = {
     expect: ({ link, password }) =>
       expect.objectContaining({
         body: JSON.stringify({ link, password }),
+        headers: headerJson,
       }),
   },
   getCode: {
@@ -68,7 +81,8 @@ const requests = {
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: `Bearer ${tokens.token}`,
+          ...headerAuth,
+          ...headerJson,
         }),
       }),
     success: () => ({ code: 'the code' }),
@@ -78,7 +92,8 @@ const requests = {
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: `Bearer ${tokensStale.token}`,
+          ...headerAuthStale,
+          ...headerJson,
         }),
       }),
     success: () => tokensRaw,
@@ -88,6 +103,7 @@ const requests = {
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.credentials),
+        headers: headerJson,
       }),
     success: () => tokensRaw,
   },
@@ -96,7 +112,8 @@ const requests = {
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
-          Authorization: `Bearer ${tokens.token}`,
+          ...headerAuth,
+          ...headerJson,
         }),
       }),
     success: () => user,
@@ -107,7 +124,8 @@ const requests = {
       expect.objectContaining({
         body: JSON.stringify({ token: tokens.token }),
         headers: expect.objectContaining({
-          Authorization: `Bearer ${tokens.token}`,
+          ...headerAuth,
+          ...headerJson,
         }),
       }),
   },
