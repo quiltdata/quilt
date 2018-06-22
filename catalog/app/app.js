@@ -8,7 +8,6 @@ import ReactDOM from 'react-dom';
 import { LOCATION_CHANGE } from 'react-router-redux';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
-import { reducer as form } from 'redux-form/immutable';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
 //  See https://github.com/react-boilerplate/react-boilerplate/issues/238#issuecomment-222080327
@@ -20,7 +19,7 @@ import App from 'containers/App';
 import LanguageProvider from 'containers/LanguageProvider';
 import { Provider as AuthProvider, selectors } from 'containers/Auth';
 import config from 'constants/config';
-import { InjectReducer } from 'utils/ReducerInjector';
+import FormProvider from 'utils/ReduxFormProvider';
 import RouterProvider from 'utils/router';
 import * as storage from 'utils/storage';
 import StoreProvider from 'utils/StoreProvider';
@@ -59,7 +58,7 @@ const checkAuthOn = LOCATION_CHANGE;
 const render = (messages) => {
   ReactDOM.render(
     <StoreProvider store={store}>
-      <InjectReducer mount="form" reducer={form}>
+      <FormProvider>
         <LanguageProvider messages={messages}>
           <AuthProvider
             checkOn={checkAuthOn}
@@ -72,7 +71,7 @@ const render = (messages) => {
             </RouterProvider>
           </AuthProvider>
         </LanguageProvider>
-      </InjectReducer>
+      </FormProvider>
     </StoreProvider>,
     MOUNT_NODE
   );
