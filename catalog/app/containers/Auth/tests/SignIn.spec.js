@@ -262,7 +262,6 @@ feature('containers/Auth/SignIn')
   .step(/the component tree is mounted/, (ctx) => {
     const history = createHistory({ initialEntries: ['/'] });
     const store = configureStore(fromJS({}), history);
-    jest.spyOn(store, 'dispatch');
     const storage = ctx.storage || {
       load: () => ({}),
       set: () => {},
