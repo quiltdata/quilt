@@ -17,16 +17,16 @@ import feature, { step } from 'testing/feature';
 import {
   Provider as AuthProvider,
   makeHeaders,
-} from '.';
+} from '..';
 
 jest.mock('constants/config', () => ({}));
 
 jest.mock('utils/time');
 import { timestamp } from 'utils/time';
 
-import storeSteps from './tests/support/store';
-import storageSteps from './tests/support/storage';
-import requestsSteps from './tests/support/requests';
+import storeSteps from './support/store';
+import storageSteps from './support/storage';
+import requestsSteps from './support/requests';
 import {
   api,
   latency,
@@ -38,7 +38,7 @@ import {
   signInRedirect,
   signOutRedirect,
   checkOn,
-} from './tests/support/fixtures';
+} from './support/fixtures';
 
 
 const requests = {
