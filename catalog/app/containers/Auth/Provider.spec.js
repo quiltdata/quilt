@@ -33,11 +33,85 @@ import {
   date,
   tokensStale,
   tokens,
+  tokensRaw,
+  user,
   signInRedirect,
   signOutRedirect,
   checkOn,
 } from './tests/support/fixtures';
 
+
+const requests = {
+  signUp: {
+    setup: () => ['postOnce', '/register'],
+    expect: (ctx) =>
+      expect.objectContaining({
+        body: JSON.stringify(ctx.credentials),
+      }),
+  },
+  resetPassword: {
+    setup: () => ['postOnce', '/reset_password'],
+    expect: ({ email }) =>
+      expect.objectContaining({
+        body: JSON.stringify({ email }),
+      }),
+  },
+  changePassword: {
+    setup: () => ['postOnce', '/reset_password'],
+    expect: ({ link, password }) =>
+      expect.objectContaining({
+        body: JSON.stringify({ link, password }),
+      }),
+  },
+  getCode: {
+    setup: () => ['getOnce', '/api/code'],
+    expect: () =>
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${tokens.token}`,
+        }),
+      }),
+    success: () => ({ code: 'the code' }),
+  },
+  refreshTokens: {
+    setup: () => ['postOnce', '/api/refresh'],
+    expect: () =>
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${tokensStale.token}`,
+        }),
+      }),
+    success: () => tokensRaw,
+  },
+  signIn: {
+    setup: () => ['postOnce', '/login'],
+    expect: (ctx) =>
+      expect.objectContaining({
+        body: JSON.stringify(ctx.credentials),
+      }),
+    success: () => tokensRaw,
+  },
+  fetchUser: {
+    setup: () => ['getOnce', '/api-root'],
+    expect: () =>
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${tokens.token}`,
+        }),
+      }),
+    success: () => user,
+  },
+  signOut: {
+    setup: () => ['postOnce', '/logout'],
+    expect: () =>
+      expect.objectContaining({
+        body: JSON.stringify({ token: tokens.token }),
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${tokens.token}`,
+        }),
+      }),
+  },
+};
 
 const treeMounted = step(/the component tree is mounted/, (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
@@ -202,7 +276,7 @@ feature('containers/Auth/Provider')
   .then('resolve should not be called')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
 
   .run();
 
@@ -259,7 +333,7 @@ feature('containers/Auth/Provider: signing in')
   .then('store should be in signed-out state')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
 
   .run();
 
@@ -295,7 +369,7 @@ feature('containers/Auth/Provider: signing out')
   .then('reject should be called with AuthError error')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
 
   .run();
 
@@ -402,7 +476,7 @@ feature('containers/Auth/Provider: check')
     }));
   })
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps])
+  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
 
   .run();
 
@@ -488,7 +562,7 @@ feature('containers/Auth/saga: makeHeaders()')
   .then('result should be an object containing the stale auth header')
 
 
-  .steps([treeMounted, ...storageSteps, ...requestsSteps])
+  .steps([treeMounted, ...storageSteps, ...requestsSteps(requests)])
 
   .step(/the saga is run/, (ctx) => ({
     ...ctx,
