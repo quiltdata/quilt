@@ -9,6 +9,10 @@ import * as actions from './actions';
 import * as errors from './errors';
 import * as selectors from './selectors';
 
+const headerJson = {
+  'Content-Type': 'application/json',
+};
+
 /**
  * Make auth headers from given auth token.
  *
@@ -70,9 +74,7 @@ const signUp = async (api, credentials) => {
     await requestJSON(`${api}/register`, {
       method: 'POST',
       body: JSON.stringify(credentials),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headerJson,
     });
   } catch (e) {
     /* istanbul ignore else */
@@ -116,7 +118,7 @@ const signOut = async (api, tokens) => {
       body: JSON.stringify({ token: tokens.token }),
       headers: {
         ...makeHeadersFromTokens(tokens),
-        'Content-Type': 'application/json',
+        ...headerJson,
       },
     });
   } catch (e) {
@@ -144,9 +146,7 @@ const signIn = async (api, credentials) => {
     const res = await requestJSON(`${api}/login`, {
       method: 'POST',
       body: JSON.stringify(credentials),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headerJson,
     });
 
     if (res.error) {
@@ -185,7 +185,10 @@ const signIn = async (api, credentials) => {
 const fetchUser = async (api, tokens) => {
   try {
     const auth = await requestJSON(`${api}/api-root`, {
-      headers: makeHeadersFromTokens(tokens),
+      headers: {
+        ...makeHeadersFromTokens(tokens),
+        ...headerJson,
+      },
     });
     return auth;
   } catch (e) {
@@ -214,9 +217,7 @@ const resetPassword = async (api, email) => {
     await requestJSON(`${api}/reset_password`, {
       method: 'POST',
       body: JSON.stringify({ email }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headerJson,
     });
   } catch (e) {
     throw new errors.AuthError({
@@ -243,9 +244,7 @@ const changePassword = async (api, link, password) => {
     await requestJSON(`${api}/reset_password`, {
       method: 'POST',
       body: JSON.stringify({ link, password }),
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: headerJson,
     });
   } catch (e) {
     /* istanbul ignore else */
@@ -282,7 +281,10 @@ const changePassword = async (api, link, password) => {
 const getCode = async (api, tokens) => {
   try {
     const { code } = await requestJSON(`${api}/api/code`, {
-      headers: makeHeadersFromTokens(tokens),
+      headers: {
+        ...makeHeadersFromTokens(tokens),
+        ...headerJson,
+      },
     });
     return code;
   } catch (e) {
@@ -311,7 +313,10 @@ const refreshTokens = async (api, latency, tokens) => {
   try {
     const newTokens = await requestJSON(`${api}/api/refresh`, {
       method: 'POST',
-      headers: makeHeadersFromTokens(tokens),
+      headers: {
+        ...makeHeadersFromTokens(tokens),
+        ...headerJson,
+      },
     });
     return adjustTokensForLatency(newTokens, latency);
   } catch (e) {
