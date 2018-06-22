@@ -18,15 +18,15 @@ import {
   actions,
   errors,
   Code,
-} from '.';
+} from '..';
 
 import {
   api,
   date,
   tokens,
-} from './tests/support/fixtures';
-import requestsSteps from './tests/support/requests';
-import storageSteps from './tests/support/storage';
+} from './support/fixtures';
+import requestsSteps from './support/requests';
+import storageSteps from './support/storage';
 
 jest.mock('constants/config', () => ({}));
 
