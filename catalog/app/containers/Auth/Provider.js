@@ -65,7 +65,6 @@ export default composeComponent('Auth.Provider',
     forgetTokens: ({ storage }) => () => storage.remove('tokens'),
     storeUser: ({ storage }) => (user) => storage.set('user', user),
     forgetUser: ({ storage }) => () => storage.remove('user'),
-    // TODO: inject notifications?
     onAuthLost: ({ intl, dispatch }) => () => {
       dispatch(notify(intl.formatMessage(msg.notificationAuthLost)));
     },
