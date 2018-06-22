@@ -144,6 +144,9 @@ const signIn = async (api, credentials) => {
     const res = await requestJSON(`${api}/login`, {
       method: 'POST',
       body: JSON.stringify(credentials),
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
     if (res.error) {
