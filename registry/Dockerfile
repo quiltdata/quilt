@@ -26,7 +26,6 @@ RUN pip3 install /usr/src/quilt-server/
 
 USER quilt
 WORKDIR /home/quilt
-COPY scripts ./scripts
 COPY migrations ./migrations
 
 ENV QUILT_SERVER_CONFIG=prod_config.py
