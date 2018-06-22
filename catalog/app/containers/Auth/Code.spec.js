@@ -1,4 +1,4 @@
-/* eslint-disable import/first */
+/* eslint-disable import/first, global-require */
 
 import { mount } from 'enzyme';
 import createHistory from 'history/createMemoryHistory';
@@ -11,9 +11,7 @@ import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
 
 import feature from 'testing/feature';
-import {
-  findMockComponent,
-} from 'testing/util';
+import { mockComponentSelector } from 'testing/util';
 
 import {
   Provider as AuthProvider,
@@ -25,6 +23,7 @@ import {
 import {
   api,
   date,
+  tokens,
 } from './tests/support/fixtures';
 import requestsSteps from './tests/support/requests';
 import storageSteps from './tests/support/storage';
@@ -41,15 +40,25 @@ jest.mock('utils/errorReporting');
 import { captureError } from 'utils/errorReporting';
 
 jest.mock('material-ui/RaisedButton', () =>
-  // eslint-disable-next-line global-require
   require('testing/util').mockComponent('RaisedButton', {
-    attrs: ['onClick'],
     children: ['label'],
   }));
 jest.mock('components/Working', () =>
-  // eslint-disable-next-line global-require
   require('testing/util').mockComponent('Working'));
 
+
+const requests = {
+  getCode: {
+    setup: () => ['getOnce', '/api/code'],
+    expect: () =>
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: `Bearer ${tokens.token}`,
+        }),
+      }),
+    success: () => ({ code: 'the code' }),
+  },
+};
 
 feature('containers/Auth/Code')
   .given('storage has current auth data')
@@ -76,7 +85,7 @@ feature('containers/Auth/Code')
   .then('the user should see the error screen')
   .then('the error should be captured')
 
-  .steps([...storageSteps, ...requestsSteps])
+  .steps([...storageSteps, ...requestsSteps(requests)])
 
   .step(/getCode action should be dispatched/, (ctx) => {
     expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
@@ -86,7 +95,8 @@ feature('containers/Auth/Code')
 
   .step(/the user should see the placeholder screen/, (ctx) => {
     const html = ctx.mounted.render();
-    expect(findMockComponent(html, 'Working').text()).toMatch('Getting the code');
+    expect(html.find(mockComponentSelector('Working')).text())
+      .toMatch('Getting the code');
     expect(html).toMatchSnapshot();
   })
 
@@ -94,7 +104,8 @@ feature('containers/Auth/Code')
     const html = ctx.mounted.render();
     const { code } = ctx.requestResults.getCode;
     expect(html.find('div>div>h1+div').text()).toMatch(code);
-    expect(findMockComponent(html, 'RaisedButton', 'label').text()).toMatch('Copy');
+    expect(html.find(mockComponentSelector('RaisedButton', 'label')).text())
+      .toMatch('Copy');
     expect(html).toMatchSnapshot();
   })
 
@@ -105,7 +116,7 @@ feature('containers/Auth/Code')
   })
 
   .step(/copy button is clicked/, (ctx) => {
-    ctx.mounted.update().find({ __name: 'RaisedButton' }).simulate('click');
+    ctx.mounted.update().find(mockComponentSelector('RaisedButton')).simulate('click');
   })
 
   .step(/the code should be copied to the clipboard/, (ctx) => {

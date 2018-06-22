@@ -41,13 +41,11 @@ exports[`Feature: containers/Auth/Code Background: Given storage has current aut
 
 exports[`Feature: containers/Auth/Code Background: Given storage has current auth data Given getCode request is expected Scenario: Mounting the component, getCode request succeeds When the component tree is mounted Then the user should see the placeholder screen 1`] = `
 <div>
-  <div
-    __name="Working"
-  >
+  <component-working>
     <span>
       Getting the code
     </span>
-  </div>
+  </component-working>
 </div>
 `;
 
@@ -99,17 +97,13 @@ exports[`Feature: containers/Auth/Code Background: Given storage has current aut
     <div
       class="c3"
     >
-      <div
-        __name="RaisedButton"
-      >
-        <div
-          __prop="label"
-        >
+      <component-raised-button>
+        <prop-label>
           <span>
             Copy to clipboard
           </span>
-        </div>
-      </div>
+        </prop-label>
+      </component-raised-button>
     </div>
   </div>
 </div>
