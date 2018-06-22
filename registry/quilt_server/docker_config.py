@@ -11,6 +11,9 @@ AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
 CATALOG_URL = 'http://localhost:3000'
 
+REGISTRY_HOST = 'localhost:5000'
+REGISTRY_URL = 'http://localhost:5000'
+
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
 

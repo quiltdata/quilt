@@ -18,7 +18,8 @@ QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', STAGE_AUTH_URL)
 
 CATALOG_URL = 'http://localhost:3000'
 
-REGISTRY_HOST = 'http://localhost:5000'
+REGISTRY_HOST = 'localhost:5000'
+REGISTRY_URL = 'http://localhost:5000'
 
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
