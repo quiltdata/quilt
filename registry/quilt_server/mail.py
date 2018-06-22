@@ -7,7 +7,7 @@ from .models import User
 
 CATALOG_URL = app.config['CATALOG_URL']
 DEFAULT_SENDER = app.config['DEFAULT_SENDER']
-REGISTRY_HOST = app.config['REGISTRY_HOST']
+REGISTRY_URL = app.config['REGISTRY_URL']
 
 TEAM_ID = app.config['TEAM_ID']
 TEAM_NAME = app.config['TEAM_NAME']
@@ -35,7 +35,7 @@ def send_email(recipient, sender, subject, html, body=None, reply_to=None, dry_r
         mail.send(message)
 
 def send_activation_email(user, activation_link):
-    base = REGISTRY_HOST
+    base = REGISTRY_URL
     link = '{base}/activate/{link}'.format(base=base, link=activation_link)
     html = render_template('activation_email.html', link=link, team=TEAM_ID, name=user.name)
     body = render_template('activation_email.txt', link=link, team=TEAM_ID, name=user.name)
