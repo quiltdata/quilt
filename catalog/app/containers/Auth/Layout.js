@@ -4,7 +4,7 @@ import TextField from 'material-ui/TextField';
 import PT from 'prop-types';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { mapProps, setPropTypes, withHandlers } from 'recompose';
+import { mapProps, setPropTypes } from 'recompose';
 import styled from 'styled-components';
 
 import Spinner from 'components/Spinner';
@@ -36,6 +36,26 @@ const isAutofilled = (el) => {
   }
 };
 
+const handleAutofilledInput = (el) => {
+  if (!el) return;
+  const input = el.getInputNode();
+  if (!input) return;
+  let tries = 0;
+  // workaround for chrome autofill issue
+  // see https://github.com/mui-org/material-ui/issues/718
+  // and https://stackoverflow.com/questions/35049555/chrome-autofill-autocomplete-no-value-for-password
+  const interval = setInterval(() => {
+    const filled = isAutofilled(input);
+    if (filled) {
+      if (!el.state.hasValue) el.setState({ hasValue: true });
+      clearInterval(interval);
+    }
+    tries += 1;
+    if (tries > MAX_TRIES) clearInterval(interval);
+  }, 100);
+};
+
+
 export const Field = composeComponent('Auth.Field',
   setPropTypes({
     input: PT.object.isRequired,
@@ -51,26 +71,7 @@ export const Field = composeComponent('Auth.Field',
     ...input,
     ...rest,
   })),
-  withHandlers({
-    handleRef: () => (el) => {
-      if (!el) return;
-      const input = el.getInputNode();
-      let tries = 0;
-      // workaround for chrome autofill issue
-      // see https://github.com/mui-org/material-ui/issues/718
-      // and https://stackoverflow.com/questions/35049555/chrome-autofill-autocomplete-no-value-for-password
-      const interval = setInterval(() => {
-        const filled = isAutofilled(input);
-        if (filled) {
-          if (!el.state.hasValue) el.setState({ hasValue: true });
-          clearInterval(interval);
-        }
-        tries += 1;
-        if (tries > MAX_TRIES) clearInterval(interval);
-      }, 100);
-    },
-  }),
-  ({ handleRef, ...rest }) => <TextField ref={handleRef} {...rest} />);
+  (props) => <TextField ref={handleAutofilledInput} {...props} />);
 
 export const FieldErrorLink = styled(Link)`
   color: inherit !important;
