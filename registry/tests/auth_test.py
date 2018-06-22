@@ -402,6 +402,16 @@ class AuthTestCase(QuiltTestCase):
         old_pw_hash = 'pbkdf2_sha256$20000$PEZ6yGDDm4LK$Jx9/lOYmgbELXywYYrySjTkc1yBcpZM4fUjRtI8ajRA='
         verify_hash(old_pw, old_pw_hash)
 
+    def testBadLoginAttempt(self):
+        username = 'asdf'
+        password = 'jkl;asdf'
+        response = self.app.post(
+                '/login',
+                # headers={'content-type': 'application/json'},
+                data=json.dumps({'username': username, 'password': password})
+                )
+        assert response.status_code == 400
+
     # password reset emails
     # account creation flow
     # one-time codes
