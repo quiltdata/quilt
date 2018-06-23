@@ -55,6 +55,7 @@ export const adjustTokensForLatency = (tokens, latency) => ({
       /* istanbul ignore next */
       : tokens.exp,
 });
+
 /**
  * Make a sign-up request.
  *
