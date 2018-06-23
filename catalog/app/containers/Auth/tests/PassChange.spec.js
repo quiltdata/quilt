@@ -82,7 +82,6 @@ feature('containers/Auth/PassChange')
   .when('I submit the form')
   .then('I should see error on password field: "Enter a password"')
   .then('I should see error on passwordCheck field: "Enter the password again"')
-
   .then('I should see the form in error state')
 
   .when('I enter password into password field')
