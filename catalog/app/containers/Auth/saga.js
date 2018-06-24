@@ -570,6 +570,5 @@ export default function* ({
   yield takeEvery(actions.changePassword.type, handleChangePassword, { api });
   yield takeEvery(actions.getCode.type, handleGetCode, { api });
 
-  /* istanbul ignore else */
   if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
 }
