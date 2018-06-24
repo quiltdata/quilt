@@ -4,6 +4,7 @@ import defer from 'utils/defer';
 import { step } from 'testing/feature';
 import { flushPromises } from 'testing/util';
 
+// TODO: make it an argument
 import { api } from './fixtures';
 
 
@@ -35,9 +36,11 @@ export default (requests) => [
     if (ctx.requests === 1) fetchMock.restore();
   }),
 
-  step(/(.+) request should be made/, (ctx, name) => {
-    expect(fetchMock.called(name)).toBe(true);
-    expect(fetchMock.lastOptions(name)).toEqual(requests[name].expect(ctx));
+  step(/(.+) request should( not)? be made/, (ctx, name, not) => {
+    expect(fetchMock.called(name)).toBe(!not);
+    if (!not) {
+      expect(fetchMock.lastOptions(name)).toEqual(requests[name].expect(ctx));
+    }
   }),
 
   step(/(.+) request succeeds/, async (ctx, name) => {
