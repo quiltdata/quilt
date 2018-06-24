@@ -1,0 +1,1310 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="false"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter a username
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter your email
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter a password
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter the password again
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="true"
+      fullwidth="true"
+      name="username"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="true"
+      fullwidth="true"
+      name="email"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="true"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="true"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+        <prop-children>
+          <component-spinner
+            style="font-size: 1.5em; opacity: 0.5; position: absolute; right: -1.5em;"
+          />
+        </prop-children>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Username invalid
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="bob"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Username taken. 
+          <component-link
+            classname="Layout__FieldErrorLink-gSdyKf hfUEbP"
+            to="/reset_password"
+          >
+            <span>
+              Did you forget your password?
+            </span>
+          </component-link>
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." When I enter valid username into username field When I submit the form When signUp request fails with 400, error: "Unacceptable email." Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="bob1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter a valid email address
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." When I enter valid username into username field When I submit the form When signUp request fails with 400, error: "Unacceptable email." When I enter email that is taken into email field When I submit the form When signUp request fails with 409, error: "Email already taken." Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="bob1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="bob@example.com"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Email taken. 
+          <component-link
+            classname="Layout__FieldErrorLink-gSdyKf hfUEbP"
+            to="/reset_password"
+          >
+            <span>
+              Did you forget your password?
+            </span>
+          </component-link>
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." When I enter valid username into username field When I submit the form When signUp request fails with 400, error: "Unacceptable email." When I enter email that is taken into email field When I submit the form When signUp request fails with 409, error: "Email already taken." When I enter valid email into email field When I submit the form When signUp request fails with 400, error: "Password must be" Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="bob1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="bob1@example.com"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Password must be at least 8 characters long
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." When I enter valid username into username field When I submit the form When signUp request fails with 400, error: "Unacceptable email." When I enter email that is taken into email field When I submit the form When signUp request fails with 409, error: "Email already taken." When I enter valid email into email field When I submit the form When signUp request fails with 400, error: "Password must be" When I enter valid password into password field When I enter valid password into passwordCheck field When I submit the form When signUp request fails with 500 Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  color: #f44336;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.c2 a {
+  color: inherit !important;
+  text-decoration: underline;
+}
+
+.c3 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c4 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c4 + .c4 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="username"
+      value="bob1"
+    >
+      <prop-floating-label-text>
+        <span>
+          Username
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="bob1@example.com"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="password"
+      type="password"
+      value="valid"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="passwordCheck"
+      type="password"
+      value="valid"
+    >
+      <prop-floating-label-text>
+        <span>
+          Password check
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <p
+      class="c2"
+    >
+      <span>
+        Something went wrong. Try again later.
+      </span>
+    </p>
+    <div
+      class="c3"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Sign up
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c4"
+    >
+      <span>
+        Already have an account? 
+        <component-link
+          to="/signin"
+        >
+          <span>
+            Sign in
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given signUp request is expected When the component tree is mounted When I submit the form When I enter invalid username into username field When I enter invalid email into email field When I enter invalid password into password field When I enter valid password into passwordCheck field When I enter invalid password into passwordCheck field When I submit the form When signUp request fails with 400, error: "Unacceptable username." When I enter username that is taken into username field When I submit the form When signUp request fails with 409, error: "Username already taken." When I enter valid username into username field When I submit the form When signUp request fails with 400, error: "Unacceptable email." When I enter email that is taken into email field When I submit the form When signUp request fails with 409, error: "Email already taken." When I enter valid email into email field When I submit the form When signUp request fails with 400, error: "Password must be" When I enter valid password into password field When I enter valid password into passwordCheck field When I submit the form When signUp request succeeds Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  text-align: center;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Sign up
+    </span>
+  </h1>
+  <p
+    class="c2"
+  >
+    <span>
+      You have signed up for Quilt. Check your email for further instructions.
+    </span>
+  </p>
+</div>
+`;
