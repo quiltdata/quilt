@@ -1,12 +1,10 @@
-/* eslint-disable import/first, global-require */
-
-import { mount } from 'enzyme';
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
 import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
+import copyToClipboard from 'utils/clipboard';
 import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
 
@@ -20,31 +18,19 @@ import {
   Code,
 } from '..';
 
-import {
-  api,
-  date,
-  tokens,
-} from './support/fixtures';
+import { api, tokens } from './support/fixtures';
 import requestsSteps from './support/requests';
 import storageSteps from './support/storage';
+import reactSteps from './support/react';
+import errorSteps from './support/error';
 
-jest.mock('constants/config', () => ({}));
+jest.mock('material-ui/RaisedButton');
 
-jest.mock('utils/time');
-import { timestamp } from 'utils/time';
-
+jest.mock('components/Working');
+jest.mock('constants/config');
 jest.mock('utils/clipboard');
-import copyToClipboard from 'utils/clipboard';
-
 jest.mock('utils/errorReporting');
-import { captureError } from 'utils/errorReporting';
-
-jest.mock('material-ui/RaisedButton', () =>
-  require('testing/util').mockComponent('RaisedButton', {
-    children: ['label'],
-  }));
-jest.mock('components/Working', () =>
-  require('testing/util').mockComponent('Working'));
+jest.mock('utils/time');
 
 
 const requests = {
@@ -60,6 +46,53 @@ const requests = {
   },
 };
 
+const screens = {
+  placeholder: (html) => {
+    expect(html.find(mockComponentSelector('Working')).text())
+      .toMatch('Getting the code');
+  },
+  'copy-code': (html, ctx) => {
+    const { code } = ctx.requestResults.getCode;
+    expect(html.find('div>div>h1+div').text()).toMatch(code);
+    expect(html.find(mockComponentSelector('RaisedButton', 'label')).text())
+      .toMatch('Copy');
+  },
+  error: (html) => {
+    expect(html.find('div>p>span').text()).toMatch('Something went wrong');
+  },
+};
+
+const setup = (ctx) => {
+  const history = createHistory({ initialEntries: ['/'] });
+  const store = configureStore(fromJS({}), history);
+  jest.spyOn(store, 'dispatch');
+  const tree = (
+    // we must wrap the tree into div, because enzyme doesn't support fragments
+    // https://github.com/airbnb/enzyme/issues/1213
+    <div>
+      <StoreProvider store={store}>
+        <LanguageProvider messages={messages}>
+          <AuthProvider
+            storage={ctx.storage}
+            api={api}
+          >
+            <Code />
+          </AuthProvider>
+        </LanguageProvider>
+      </StoreProvider>
+    </div>
+  );
+  return { tree, store };
+};
+
+const steps = [
+  ...reactSteps({ setup, screens }),
+  ...errorSteps(errors.AuthError),
+  ...requestsSteps(requests),
+  ...storageSteps,
+];
+
+
 feature('containers/Auth/Code')
   .given('storage has current auth data')
   .given('getCode request is expected')
@@ -69,10 +102,12 @@ feature('containers/Auth/Code')
 
   .when('the component tree is mounted')
   .then('getCode action should be dispatched')
-  .then('the user should see the placeholder screen')
+  .then('I should see the placeholder screen')
+  .then('the rendered markup should match the snapshot')
 
   .when('getCode request succeeds')
-  .then('the user should see the code screen with the copy button')
+  .then('I should see the copy-code screen')
+  .then('the rendered markup should match the snapshot')
 
   .when('copy button is clicked')
   .then('the code should be copied to the clipboard')
@@ -82,37 +117,15 @@ feature('containers/Auth/Code')
 
   .when('the component tree is mounted')
   .when('getCode request fails with 500')
-  .then('the user should see the error screen')
+  .then('I should see the error screen')
+  .then('the rendered markup should match the snapshot')
   .then('the error should be captured')
 
-  .steps([...storageSteps, ...requestsSteps(requests)])
 
   .step(/getCode action should be dispatched/, (ctx) => {
     expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
       type: actions.getCode.type,
     }));
-  })
-
-  .step(/the user should see the placeholder screen/, (ctx) => {
-    const html = ctx.mounted.render();
-    expect(html.find(mockComponentSelector('Working')).text())
-      .toMatch('Getting the code');
-    expect(html).toMatchSnapshot();
-  })
-
-  .step(/the user should see the code screen with the copy button/, (ctx) => {
-    const html = ctx.mounted.render();
-    const { code } = ctx.requestResults.getCode;
-    expect(html.find('div>div>h1+div').text()).toMatch(code);
-    expect(html.find(mockComponentSelector('RaisedButton', 'label')).text())
-      .toMatch('Copy');
-    expect(html).toMatchSnapshot();
-  })
-
-  .step(/the user should see the error screen/, (ctx) => {
-    const html = ctx.mounted.render();
-    expect(html.find('div>p>span').text()).toMatch('Something went wrong');
-    expect(html).toMatchSnapshot();
   })
 
   .step(/copy button is clicked/, (ctx) => {
@@ -124,38 +137,7 @@ feature('containers/Auth/Code')
     expect(copyToClipboard).toBeCalledWith(code);
   })
 
-  .step(/the error should be captured/, () => {
-    expect(captureError).toBeCalledWith(expect.any(errors.AuthError));
-  })
 
-  .step(/the component tree is mounted/, (ctx) => {
-    const history = createHistory({ initialEntries: ['/'] });
-    const store = configureStore(fromJS({}), history);
-    jest.spyOn(store, 'dispatch');
-    const storage = ctx.storage || {
-      load: () => ({}),
-      set: () => {},
-      remove: () => {},
-    };
-    const tree = (
-      // we must wrap the tree into div, because enzyme doesn't support fragments
-      // https://github.com/airbnb/enzyme/issues/1213
-      <div>
-        <StoreProvider store={store}>
-          <LanguageProvider messages={messages}>
-            <AuthProvider
-              storage={storage}
-              api={api}
-            >
-              <Code />
-            </AuthProvider>
-          </LanguageProvider>
-        </StoreProvider>
-      </div>
-    );
-    timestamp.mockReturnValue(date);
-    const mounted = mount(tree);
-    return { ...ctx, history, store, tree, mounted };
-  })
+  .steps(steps)
 
   .run();
