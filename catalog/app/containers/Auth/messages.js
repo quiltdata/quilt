@@ -25,6 +25,10 @@ export default defineMessages({
     id: `${scope}.Wrapper.Failure.retry`,
     defaultMessage: 'Retry',
   },
+  wrapperWorking: {
+    id: `${scope}.Wrapper.working`,
+    defaultMessage: 'Authenticating...',
+  },
 
   // SignUp
   signUpHeading: {
