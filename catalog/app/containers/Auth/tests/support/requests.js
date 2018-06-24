@@ -39,7 +39,10 @@ export default (requests) => [
   step(/(.+) request should( not)? be made/, (ctx, name, not) => {
     expect(fetchMock.called(name)).toBe(!not);
     if (!not) {
-      expect(fetchMock.lastOptions(name)).toEqual(requests[name].expect(ctx));
+      const expectation = requests[name].expect;
+      if (expectation) {
+        expect(fetchMock.lastOptions(name)).toEqual(expectation(ctx));
+      }
     }
   }),
 
