@@ -84,3 +84,6 @@ script:
     if [[ "$TEST_CATALOG" = true ]]; then
       npm test
     fi
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
