@@ -4,7 +4,6 @@ import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
-import FormProvider from 'utils/ReduxFormProvider';
 import StoreProvider from 'utils/StoreProvider';
 import { timestamp } from 'utils/time';
 import configureStore from 'store';
@@ -54,17 +53,15 @@ const setup = (ctx) => {
   const store = configureStore(fromJS({}), history);
   const tree = (
     <StoreProvider store={store}>
-      <FormProvider>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={ctx.storage}
-            api={api}
-            signOutRedirect={signOutRedirect}
-          >
-            <SignOut />
-          </AuthProvider>
-        </LanguageProvider>
-      </FormProvider>
+      <LanguageProvider messages={messages}>
+        <AuthProvider
+          storage={ctx.storage}
+          api={api}
+          signOutRedirect={signOutRedirect}
+        >
+          <SignOut />
+        </AuthProvider>
+      </LanguageProvider>
     </StoreProvider>
   );
   timestamp.mockReturnValue(date);
