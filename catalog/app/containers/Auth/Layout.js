@@ -24,6 +24,7 @@ export const Heading = styled.h1`
 
 const MAX_TRIES = 30;
 
+/* istanbul ignore next */
 const isAutofilled = (el) => {
   try {
     return el.matches(':autofill');
@@ -36,6 +37,7 @@ const isAutofilled = (el) => {
   }
 };
 
+/* istanbul ignore next */
 const handleAutofilledInput = (el) => {
   if (!el) return;
   const input = el.getInputNode();
