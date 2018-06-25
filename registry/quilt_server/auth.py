@@ -335,20 +335,8 @@ def create_admin():
 
 app.before_first_request(create_admin)
 
-# Mixin to make linkgenerator use tildes instead of dots
-class ReplaceDotWithTildeMixin(object):
-    def load_payload(self, payload, *args, **kwargs):
-        return (super(ReplaceDotWithTildeMixin, self)
-                .load_payload(payload.replace(b'~', b'.'), *args, **kwargs))
 
-    def dump_payload(self, obj):
-        payload = super(ReplaceDotWithTildeMixin, self).dump_payload(obj)
-        return payload.replace(b'.', b'~')
-
-class URLSafeTimedSerializerNoDot(ReplaceDotWithTildeMixin, itsdangerous.URLSafeTimedSerializer):
-    pass
-
-linkgenerator = URLSafeTimedSerializerNoDot(
+linkgenerator = itsdangerous.URLSafeTimedSerializer(
     app.secret_key,
     salt='quilt'
     )
@@ -386,12 +374,6 @@ def consume_reset_token(user_id, token):
         return False
     db.session.delete(found)
     return True
-
-def urlsanitize(link):
-    return link.replace('.', '~')
-
-def urlunsanitize(link):
-    return link.replace('~', '.')
 
 def generate_activation_link(user_id):
     token = generate_activation_token(user_id)
