@@ -2156,7 +2156,7 @@ def create_user():
     email = data['email']
     _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
     db.session.commit()
-    return {}, 200
+    return {}
 
 @app.route('/api/users/disable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
@@ -2167,7 +2167,8 @@ def disable_user():
     if g.auth.user == username:
         raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
-    _disable_user(User.get_by_name(username))
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    _disable_user(user)
     db.session.commit()
     return {}
 
@@ -2177,7 +2178,8 @@ def disable_user():
 def enable_user():
     data = request.get_json()
     username = data['username']
-    _enable_user(User.get_by_name(username))
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    _enable_user(user)
     db.session.commit()
     return {}
 
@@ -2188,8 +2190,10 @@ def enable_user():
 def delete_user():
     data = request.get_json()
     username = data['username']
-    _delete_user(User.get_by_name(username))
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    _delete_user(user)
     db.session.commit()
+    return {}
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)

@@ -159,14 +159,6 @@ def update_last_login(user, timestamp=None):
     user.last_login = timestamp
     db.session.add(user)
 
-def revoke_user_code_tokens(user_id):
-    code = Code.get(user_id)
-    if code:
-        db.session.delete(code)
-    tokens = Token.get_all(user_id)
-    for token in tokens:
-        db.session.delete(token)
-
 def _delete_user(user):
     if user:
         db.session.delete(user)
@@ -254,16 +246,22 @@ def revoke_token_string(token_str):
     return revoke_token(user_id, uuid)
 
 def revoke_token(user_id, token):
-    found = Token.get(user_id, token)
+    found = Token.query.filter_by(user_id=user_id, token=token).with_for_update().one_or_none()
     if found is None:
         return False
     db.session.delete(found)
     return True
 
 def revoke_tokens(user_id):
-    tokens = Token.get_all(user_id)
+    tokens = Token.query.filter_by(user_id=user_id).with_for_update().all()
     for token in tokens:
         db.session.delete(token)
+
+def revoke_user_code_tokens(user_id):
+    code = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
+    if code:
+        db.session.delete(code)
+    revoke_tokens(user_id)
 
 def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
@@ -287,7 +285,7 @@ def consume_code_string(code_str):
     return consume_code(code['id'], code['code'])
 
 def consume_code(user_id, code):
-    found = Code.get(user_id)
+    found = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
     if found is None:
         return None
     if found.token != code:
@@ -328,9 +326,7 @@ def create_admin():
     if not admin_username or not admin_password or not admin_email:
         return
     _create_or_update_user(admin_username, password=admin_password, email=admin_email,
-                 is_admin=True, requires_activation=False)
-    user = User.get_by_name(admin_username)
-    _activate_user(user)
+                 is_admin=True, is_active=True)
     db.session.commit()
 
 app.before_first_request(create_admin)
