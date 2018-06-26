@@ -328,15 +328,13 @@ def api(require_login=True, schema=None, enabled=True,
                 user = verify_token_string(token)
                 if not user:
                     raise ApiException(requests.codes.unauthorized, "Token invalid.")
-                try:
-                    g.user = user
-                    g.auth = Auth(user=user.name,
-                                  email=user.email,
-                                  is_logged_in=True,
-                                  is_admin=user.is_admin,
-                                  is_active=user.is_active)
-                except Exception:
-                    raise ApiException(requests.codes.unauthorized, "Invalid credentials")
+
+                g.user = user
+                g.auth = Auth(user=user.name,
+                              email=user.email,
+                              is_logged_in=True,
+                              is_admin=user.is_admin,
+                              is_active=user.is_active)
 
                 if not g.auth.is_active:
                     raise ApiException(
@@ -358,19 +356,15 @@ def api(require_login=True, schema=None, enabled=True,
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_SCHEMA)
 @as_json
 def login_post():
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        if try_login(username, password):
-            token = issue_token(username)
-        else:
-            return {'error': 'Login attempt failed'}
-
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    if try_login(username, password):
+        token = issue_token(username)
         db.session.commit()
         return {'token': token}
-    except Exception:
-        return {'error': 'Login failed.'}, requests.codes.unauthorized
+    else:
+        return {'error': 'Login attempt failed'}, 401
 
 CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
 

@@ -232,7 +232,7 @@ def verify_token_string(token_string):
         token = decode_token(token_string)
         user = _verify(token)
         return user
-    except Exception:
+    except (jwt.exceptions.InvalidTokenError, ApiException):
         return None
 
 def exp_from_token(token):
