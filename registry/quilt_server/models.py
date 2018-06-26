@@ -205,15 +205,15 @@ class User(db.Model):
 
     @classmethod
     def get_by_id(cls, user_id):
-        return db.session.query(cls).filter(cls.id == user_id).one_or_none()
+        return cls.query.filter_by(id=user_id).one_or_none()
 
     @classmethod
     def get_by_name(cls, username):
-        return db.session.query(cls).filter(cls.name == username).one_or_none()
+        return cls.query.filter_by(name=username).one_or_none()
 
     @classmethod
     def get_by_email(cls, email):
-        return db.session.query(cls).filter(cls.email == email).one_or_none()
+        return cls.query.filter_by(email=email).one_or_none()
 
 
 class Code(db.Model):
@@ -223,7 +223,7 @@ class Code(db.Model):
 
     @classmethod
     def get(cls, user_id):
-        return cls.query.filter(cls.user_id == user_id).one_or_none()
+        return cls.query.filter_by(user_id=user_id).one_or_none()
 
 class Token(db.Model):
     # each user can have an arbitrary number of tokens, so 
@@ -233,16 +233,11 @@ class Token(db.Model):
 
     @classmethod
     def get(cls, user_id, token):
-        return (
-            cls.query
-            .filter(cls.user_id == user_id)
-            .filter(cls.token == token)
-            .one_or_none()
-        )
+        return cls.query.filter_by(user_id=user_id).filter_by(token=token).one_or_none()
 
     @classmethod
     def get_all(cls, user_id):
-        return cls.query.filter(cls.user_id == user_id).all()
+        return cls.query.filter_by(user_id=user_id).all()
 
 class ActivationToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
