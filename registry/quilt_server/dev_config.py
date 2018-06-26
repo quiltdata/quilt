@@ -8,12 +8,11 @@ import socket
 
 DEBUG = True
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/packages'
+SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI',
+                                    'postgresql://postgres@localhost/packages')
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
-
 STAGE_AUTH_URL = 'https://stage-auth.quiltdata.com'
-
 QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', STAGE_AUTH_URL)
 
 if AUTH_PROVIDER == 'quilt':
@@ -39,6 +38,10 @@ elif AUTH_PROVIDER == 'github':
 else:
     assert False, "Unknown auth provider: %s" % AUTH_PROVIDER
 
+
+REGISTRY_HOST = os.getenv('REGISTRY_HOST', 'localhost')
+S3_HOST = os.getenv('S3_HOST', 'localhost')
+
 OAUTH.update(dict(
     redirect_url='http://localhost:5000/oauth_callback',
 ))
@@ -51,7 +54,7 @@ INVITE_SEND_URL = '%s/pkginvite/send/' % QUILT_AUTH_URL
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
 
-S3_ENDPOINT = 'http://localhost:5001'
+S3_ENDPOINT = 'http://%s:5001' % S3_HOST
 PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
