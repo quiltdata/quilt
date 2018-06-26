@@ -32,6 +32,9 @@ def generate_uuid():
 def hash_password(password):
     return pwd_context.hash(password)
 
+def get_admins():
+    return [user.email for user in User.query.filter_by(is_admin=True).all()]
+
 def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
@@ -150,7 +153,9 @@ def _activate_user(user):
         raise ApiException(404, "User not found")
     user.is_active = True
     db.session.add(user)
-    send_new_user_email(user.name, user.email)
+    admins = get_admins()
+    if admins:
+        send_new_user_email(user.name, user.email, admins)
 
 def update_last_login(user, timestamp=None):
     timestamp = timestamp or datetime.utcnow()

@@ -19,7 +19,8 @@ class MailTestCase(QuiltTestCase):
         # just make sure all templates work
         test_user = User.get_by_name(self.TEST_USER)
         with app.app_context():
-            send_new_user_email(self.TEST_USER, self.TEST_USER_EMAIL)
+            send_new_user_email(self.TEST_USER, self.TEST_USER_EMAIL,
+                    ['admin@example.com', 'admin2@example.com'])
             send_invitation_email(self.TEST_USER_EMAIL, self.OTHER_USER, 'test')
             send_reset_email(test_user, 'test')
             send_activation_email(test_user, 'test')
