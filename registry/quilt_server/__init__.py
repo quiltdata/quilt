@@ -32,14 +32,6 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
-def set_secret_key():
-    if app.config['TESTING'] and not app.secret_key:
-        app.secret_key = 'testing'
-    if not app.secret_key:
-        raise Exception("Secret key not defined! You must set the "
-                        "QUILT_SECRET_KEY environment variable!")
-
-app.before_first_request(set_secret_key)
 
 class QuiltSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, app, info, options):
