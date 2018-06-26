@@ -337,6 +337,14 @@ linkgenerator = itsdangerous.URLSafeTimedSerializer(
     salt='quilt'
     )
 
+def dump_link(payload, salt=None):
+    link = linkgenerator.dumps(payload, salt=salt)
+    return link.replace('.', '~')
+
+def load_link(link, max_age, salt=None):
+    payload = link.replace('~', '.')
+    return linkgenerator.loads(payload, max_age=max_age, salt=salt)
+
 ACTIVATE_SALT = 'activate'
 PASSWORD_RESET_SALT = 'reset'
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
@@ -374,17 +382,17 @@ def consume_reset_token(user_id, token):
 def generate_activation_link(user_id):
     token = generate_activation_token(user_id)
     payload = {'id': user_id, 'token': token}
-    return linkgenerator.dumps(payload, salt=ACTIVATE_SALT)
+    return dump_link(payload, ACTIVATE_SALT)
 
 def generate_reset_link(user_id):
     token = generate_reset_token(user_id)
     payload = {'id': user_id, 'token': token}
-    return linkgenerator.dumps(payload, salt=PASSWORD_RESET_SALT)
+    return dump_link(payload, PASSWORD_RESET_SALT)
 
 def verify_activation_link(link, max_age=None):
     max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        payload = linkgenerator.loads(link, max_age=max_age, salt=ACTIVATE_SALT)
+        payload = load_link(link, max_age=max_age, salt=ACTIVATE_SALT)
         if not consume_activation_token(payload['id'], payload['token']):
             return None
         return payload
@@ -394,7 +402,7 @@ def verify_activation_link(link, max_age=None):
 def verify_reset_link(link, max_age=None):
     max_age = max_age if max_age is not None else MAX_LINK_AGE
     try:
-        payload = linkgenerator.loads(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
+        payload = load_link(link, max_age=max_age, salt=PASSWORD_RESET_SALT)
         if not consume_reset_token(payload['id'], payload['token']):
             return None
         return payload
