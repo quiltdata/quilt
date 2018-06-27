@@ -212,6 +212,23 @@ USERNAME_PASSWORD_SCHEMA = {
     'additionalProperties': False
 }
 
+USERNAME_PASSWORD_EMAIL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'password': {
+            'type': 'string'
+        },
+        'email': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'password', 'email'],
+    'additionalProperties': False
+}
+
 PASSWORD_RESET_SCHEMA = {
     'type': 'object',
     'properties': {

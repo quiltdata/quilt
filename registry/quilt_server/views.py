@@ -49,7 +49,7 @@ from .models import (Access, Comment, Customer, Event, Instance,
                      InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA,
-                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA)
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -393,6 +393,7 @@ CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}
 
 @app.route('/register', methods=['POST'])
 @as_json
+@api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_EMAIL_SCHEMA)
 def register_endpoint():
     data = request.get_json()
     if app.config['DISABLE_SIGNUP']:
