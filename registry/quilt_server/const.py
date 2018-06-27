@@ -20,3 +20,11 @@ class PaymentPlan(Enum):
     TEAM_UNPAID = 'team_unpaid'
 
 FTS_LANGUAGE = 'english'
+
+BAD_NAMES = set([
+    'TEAM',
+    'PUBLIC'
+])
+
+def blacklisted_name(username):
+    return username in BAD_NAMES
