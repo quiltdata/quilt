@@ -114,9 +114,11 @@ def _create_user(username, password='', email=None, is_admin=False,
     db.session.add(user)
 
     if requires_activation:
+        db.session.flush() # necessary due to foreign key relationship with User
         send_activation_email(user, generate_activation_link(user.id))
 
     if requires_reset:
+        db.session.flush() # necessary due to foreign key relationship with User
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
 def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
@@ -319,8 +321,7 @@ PASSWORD_RESET_SALT = 'reset'
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 
 def generate_activation_token(user_id):
-    existing_token = ActivationToken.get(user_id)
-    new_token = existing_token or ActivationToken(user_id=user_id, token=generate_uuid())
+    new_token = ActivationToken(user_id=user_id, token=generate_uuid())
     db.session.add(new_token)
     return new_token.token
 
@@ -334,10 +335,9 @@ def consume_activation_token(user_id, token):
     return True
 
 def generate_reset_token(user_id):
-    existing_token = PasswordResetToken.get(user_id)
-    reset_token = existing_token or PasswordResetToken(user_id=user_id, token=generate_uuid())
-    db.session.add(reset_token)
-    return reset_token.token
+    reset_token = generate_uuid()
+    PasswordResetToken.upsert(user_id, reset_token)
+    return reset_token
 
 def consume_reset_token(user_id, token):
     found = PasswordResetToken.get(user_id)

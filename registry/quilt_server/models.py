@@ -241,7 +241,7 @@ class Token(db.Model):
 
 class ActivationToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    token = db.Column(postgresql.UUID, primary_key=True)
+    token = db.Column(postgresql.UUID, nullable=False)
 
     @classmethod
     def get(cls, user_id):
@@ -249,11 +249,21 @@ class ActivationToken(db.Model):
 
 class PasswordResetToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    token = db.Column(postgresql.UUID, primary_key=True)
+    token = db.Column(postgresql.UUID, nullable=False)
 
     @classmethod
     def get(cls, user_id):
         return cls.query.filter_by(user_id=user_id).one_or_none()
+
+    @classmethod
+    def upsert(cls, user_id, token):
+        stmt = postgresql.insert(cls.__table__).values([user_id, token])
+        on_conflict_stmt = stmt.on_conflict_do_update(
+            index_elements=[cls.__table__.c.user_id],
+            set_={'token': token}
+            )
+
+        db.session.execute(on_conflict_stmt)
 
 MAX_COMMENT_LENGTH = 10 * 1024
 
