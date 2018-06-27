@@ -2068,18 +2068,7 @@ def client_log():
     return dict()
 
 def list_users_helper():
-    users = (
-        db.session.query(
-            User.name,
-            User.email,
-            User.first_name,
-            User.last_name,
-            User.is_admin,
-            User.date_joined,
-            User.last_login,
-            User.is_active
-        ).all()
-    )
+    users = User.query.all()
     results = [{
         'username': user.name,
         'email': user.email,
@@ -2093,7 +2082,6 @@ def list_users_helper():
     return {
         'count': len(users),
         'results': results,
-        'status': 200
     }
 
 @app.route('/api/users/list', methods=['GET'])

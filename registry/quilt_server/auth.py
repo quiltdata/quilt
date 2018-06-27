@@ -211,8 +211,6 @@ def try_as_code(code_str):
         return None
     return User.get_by_id(code['id'])
 
-    return None
-
 def decode_token(token_str):
     return jwt.decode(token_str, app.secret_key, algorithm='HS256')
 
@@ -288,10 +286,8 @@ def consume_code_string(code_str):
     return consume_code(code['id'], code['code'])
 
 def consume_code(user_id, code):
-    found = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
+    found = Code.query.filter_by(user_id=user_id, code=code).with_for_update().one_or_none()
     if found is None:
-        return None
-    if found.token != code:
         return None
     db.session.delete(code)
     return user_id

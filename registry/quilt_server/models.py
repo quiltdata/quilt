@@ -245,7 +245,7 @@ class ActivationToken(db.Model):
 
     @classmethod
     def get(cls, user_id):
-        return cls.query.filter(cls.user_id == user_id).one_or_none()
+        return cls.query.filter_by(user_id=user_id).one_or_none()
 
 class PasswordResetToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
@@ -253,7 +253,7 @@ class PasswordResetToken(db.Model):
 
     @classmethod
     def get(cls, user_id):
-        return cls.query.filter(cls.user_id == user_id).one_or_none()
+        return cls.query.filter_by(user_id=user_id).one_or_none()
 
 MAX_COMMENT_LENGTH = 10 * 1024
 
