@@ -60,7 +60,7 @@ setup(
         # See quilt.asa.img module
         'img': [
             'matplotlib>=2.2.2',
-            'pillow>=5.1.0'
+            'Pillow>=5.1.0'
         ]
     },
     include_package_data=True,

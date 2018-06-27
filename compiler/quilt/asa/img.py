@@ -21,12 +21,14 @@ Or, in development:
 from math import ceil, floor, sqrt
 from six import string_types
 
+from PIL import Image
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+#import matplotlib.image as mpimg
+import numpy as np
 
 from quilt.nodes import DataNode, GroupNode
 
-def plot(figsize=(10, 10), limit=100, **kwargs):
+def plot(figsize=(20, 20), limit=100, **kwargs):
     """Display an image [in a Jupyter Notebook] from a Quilt fragment path.
     Intended for use with `%matplotlib inline`.
 
@@ -67,8 +69,8 @@ def plot(figsize=(10, 10), limit=100, **kwargs):
                 plt.title(dnode[0])
                 try:
                     # throws OSError if file is not a recognizable image
-                    bits = mpimg.imread(dnode[1])
-                    plt.imshow(bits)
+                    bits = Image.open(dnode[1])
+                    plt.imshow(np.asarray(bits))
                 except OSError as err:
                     print('{}: {}'.format(dnode[0], str(err)))
                     continue 
