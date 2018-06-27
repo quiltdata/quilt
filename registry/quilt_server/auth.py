@@ -135,18 +135,6 @@ def _update_user(username, password=None, email=None, is_admin=None, is_active=N
 
     db.session.add(existing_user)
 
-def _create_or_update_user(username, password=None, email=None, is_admin=None, is_active=True):
-    existing_user = User.get_by_name(username)
-    if not existing_user:
-        _create_user(username=username, password=password if password else '',
-                     email=email, is_admin=is_admin,
-                     requires_activation=False)
-        if not is_active:
-            _disable_user(User.get_by_name(username))
-    else:
-        _update_user(username=username, password=password if password else '', email=email,
-                     is_admin=is_admin, is_active=is_active)
-
 def _activate_user(user):
     if user is None:
         raise ApiException(404, "User not found")
@@ -312,23 +300,6 @@ def try_login(username, password):
         return False
     update_last_login(user)
     return True
-
-def create_admin():
-    # Only runs in dev -- only dev_config reads in the environment variables
-    try:
-        admin_username = app.config['DEV_USERNAME']
-        admin_password = app.config['DEV_PASSWORD']
-        admin_email = app.config['DEV_EMAIL']
-    except KeyError:
-        return
-    if not admin_username or not admin_password or not admin_email:
-        return
-    _create_or_update_user(admin_username, password=admin_password, email=admin_email,
-                 is_admin=True, is_active=True)
-    db.session.commit()
-
-app.before_first_request(create_admin)
-
 
 linkgenerator = itsdangerous.URLSafeTimedSerializer(
     app.secret_key,

@@ -21,11 +21,23 @@ import sqlalchemy_utils
 
 import quilt_server
 from quilt_server import db
-from quilt_server.auth import _create_or_update_user, verify_token_string
+from quilt_server.auth import verify_token_string, _create_user, _disable_user, _update_user
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
+
+def _create_or_update_user(username, password=None, email=None, is_admin=None, is_active=True):
+    existing_user = User.get_by_name(username)
+    if not existing_user:
+        _create_user(username=username, password=password if password else '',
+                     email=email, is_admin=is_admin,
+                     requires_activation=False)
+        if not is_active:
+            _disable_user(User.get_by_name(username))
+    else:
+        _update_user(username=username, password=password if password else '', email=email,
+                     is_admin=is_admin, is_active=is_active)
 
 class MockMixpanelConsumer(object):
     """

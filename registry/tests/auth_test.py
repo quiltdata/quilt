@@ -6,10 +6,10 @@ import requests
 import unittest
 from unittest import mock
 from unittest.mock import patch
-from .utils import QuiltTestCase
+from .utils import QuiltTestCase, _create_or_update_user
 from quilt_server import app, db
 from quilt_server.models import Code, User
-from quilt_server.auth import (_create_user, _create_or_update_user, _delete_user, issue_token,
+from quilt_server.auth import (_create_user, _delete_user, issue_token,
         encode_code, decode_code, generate_uuid, verify_token_string,
         generate_activation_link, generate_reset_link, verify_activation_link,
         verify_reset_link, verify_hash
