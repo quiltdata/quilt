@@ -392,8 +392,8 @@ def apiroot():
 CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/register', methods=['POST'])
-@as_json
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_EMAIL_SCHEMA)
+@as_json
 def register_endpoint():
     data = request.get_json()
     if app.config['DISABLE_SIGNUP']:
