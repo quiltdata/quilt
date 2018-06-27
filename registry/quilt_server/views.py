@@ -1805,8 +1805,7 @@ def search():
             Package.name,
             sa.func.bool_or(Access.user == PUBLIC).label('is_public'),
             sa.func.bool_or(Access.user == TEAM).label('is_team'),
-            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')
-            # Just save the query as a variable
+            sa.func.plainto_tsquery(FTS_LANGUAGE, query).label('query')  # Just save the query as a variable
         )
         .join(Instance.package)
         .join(Package.access)
@@ -1895,10 +1894,8 @@ def profile():
         db.session.commit()
 
     # We want to show only the packages owned by or explicitly shared with the user -
-    # but also show whether they're public, in case a package is both public
-    #   and shared with the user.
-    # So do a "GROUP BY" to get the public info,
-    #   then "HAVING" to filter out packages that aren't shared.
+    # but also show whether they're public, in case a package is both public and shared with the user.
+    # So do a "GROUP BY" to get the public info, then "HAVING" to filter out packages that aren't shared.
     packages = (
         db.session.query(
             Package,
