@@ -8,9 +8,8 @@ import time
 import pandas as pd
 from six import string_types
 
-# required so headless renderer doesn't barf on Mac; used in quilt.asa.img
 import matplotlib as mpl
-mpl.use('TkAgg')
+mpl.use('Agg') # so headless renderer doesn't barf; used in quilt.asa.img
 from quilt.asa.img import plot
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
