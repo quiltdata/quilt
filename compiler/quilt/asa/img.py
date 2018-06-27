@@ -51,9 +51,10 @@ def plot(figsize=(10, 10), limit=100, **kwargs):
         # display can be empty e.g. if no DataNode children
         if len(display) < 1:
             return
-
-        cols = floor(sqrt(len(display)))
-        rows = ceil(len(display) / cols)
+        # cast to int to avoid downstream complaints of
+        # 'float' object cannot be interpreted as an index
+        cols = int(floor(sqrt(len(display))))
+        rows = int(ceil(len(display) / cols))
         plt.subplots(rows, cols, figsize=figsize, **kwargs)
 
         i = 0
