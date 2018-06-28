@@ -35,3 +35,5 @@ MAIL_USERNAME = os.getenv('SMTP_USERNAME')
 MAIL_PASSWORD = os.getenv('SMTP_PASSWORD')
 
 SECRET_KEY = os.environ['QUILT_SECRET_KEY']
+
+DEFAULT_SENDER = os.getenv('QUILT_DEFAULT_SENDER', 'support@quiltdata.io')
