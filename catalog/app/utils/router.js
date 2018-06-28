@@ -1,7 +1,9 @@
+import { Map } from 'immutable';
 import { ConnectedRouter, LOCATION_CHANGE } from 'react-router-redux';
 import { combineReducers } from 'redux-immutable';
 import { createSelector } from 'reselect';
 
+import { get } from 'utils/immutableTools';
 import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
 
@@ -15,12 +17,9 @@ import { injectReducer } from 'utils/ReducerInjector';
 
 export const REDUX_KEY = 'router';
 
-export const selectRouterDomain = (state) => state.get(REDUX_KEY);
+export const selectRouterDomain = (state) => state.get(REDUX_KEY, Map({}));
 
-export const makeSelectLocation = () => createSelector(
-  selectRouterDomain,
-  (routeState) => routeState.get('location')
-);
+export const selectLocation = createSelector(selectRouterDomain, get('location', null));
 
 export const reducer = combineReducers({
   location: (state = null, action) => {

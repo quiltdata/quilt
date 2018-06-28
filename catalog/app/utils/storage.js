@@ -4,32 +4,36 @@ import assert from 'assert';
 import mapValues from 'lodash/mapValues';
 
 export const keys = {
-  RESPONSE: 'RESPONSE',
-  TOKENS: 'TOKENS', // auth response data
+  user: 'RESPONSE',
+  tokens: 'TOKENS', // auth response data
 };
 Object.freeze(keys);
 
-export function getStorage(key) {
-  assert(key in keys, `unexpected key: ${key}`);
-  return localStorage.getItem(key);
+const assertKey = (key, scope) =>
+  assert(key in keys, `storage.${scope}: unexpected key: ${key}`);
+
+export function get(key) {
+  assertKey(key, 'get');
+  return JSON.parse(localStorage.getItem(keys[key]));
 }
 
-export function setStorage(key, value) {
-  assert(key in keys, `unexpected key: ${key}`);
-  assert(typeof value === 'string', `value should be a string: ${value}`);
-  return localStorage.setItem(key, value);
+export function set(key, value) {
+  assertKey(key, 'set');
+  return localStorage.setItem(keys[key], JSON.stringify(value));
 }
 
-export function removeStorage(key) {
-  return localStorage.removeItem(key);
+export function remove(key) {
+  assertKey(key, 'remove');
+  return localStorage.removeItem(keys[key]);
 }
 
-export function loadState() {
+export function load() {
   // user privacy may cause reads from localStorage to fail and throw
   try {
-    return mapValues(keys, (key) => JSON.parse(getStorage(key)));
+    return mapValues(keys, (_v, k) => get(k));
   } catch (err) {
-    console.error('loadState:', err); // eslint-disable-line no-console
-    return undefined; // let reducers determine state
+    console.error('storage.load:', err); // eslint-disable-line no-console
+    // let reducers determine state
+    return undefined;
   }
 }

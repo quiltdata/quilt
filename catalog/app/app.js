@@ -5,10 +5,9 @@ import 'babel-polyfill';
 // Import all the third party stuff
 import React from 'react';
 import ReactDOM from 'react-dom';
+import { LOCATION_CHANGE } from 'react-router-redux';
 import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
-import { reducer as form } from 'redux-form/immutable';
-import { LOCATION_CHANGE } from 'react-router-redux';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
 //  See https://github.com/react-boilerplate/react-boilerplate/issues/238#issuecomment-222080327
@@ -16,13 +15,13 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 
 // Import root app
 import App from 'containers/App';
-import { makeSelectUserName } from 'containers/App/selectors';
-import { ROUTER_START } from 'containers/App/constants';
-import config from 'constants/config';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
-import { InjectReducer } from 'utils/ReducerInjector';
+import { Provider as AuthProvider, selectors } from 'containers/Auth';
+import config from 'constants/config';
+import FormProvider from 'utils/ReduxFormProvider';
 import RouterProvider from 'utils/router';
+import * as storage from 'utils/storage';
 import StoreProvider from 'utils/StoreProvider';
 import tracking from 'utils/tracking';
 // Load the favicon, the manifest.json file and the .htaccess file
@@ -53,16 +52,26 @@ const history = createHistory();
 const store = configureStore(initialState, history);
 const MOUNT_NODE = document.getElementById('app');
 
+// Check auth when location changes.
+const checkAuthOn = LOCATION_CHANGE;
+
 const render = (messages) => {
   ReactDOM.render(
     <StoreProvider store={store}>
-      <InjectReducer mount="form" reducer={form}>
+      <FormProvider>
         <LanguageProvider messages={messages}>
-          <RouterProvider history={history}>
-            <App />
-          </RouterProvider>
+          <AuthProvider
+            checkOn={checkAuthOn}
+            storage={storage}
+            api={config.api}
+            signInRedirect="/profile"
+          >
+            <RouterProvider history={history}>
+              <App />
+            </RouterProvider>
+          </AuthProvider>
         </LanguageProvider>
-      </InjectReducer>
+      </FormProvider>
     </StoreProvider>,
     MOUNT_NODE
   );
@@ -70,9 +79,8 @@ const render = (messages) => {
 
 // track navigation
 store.runSaga(tracking, {
-  selectUsername: makeSelectUserName(),
+  selectUsername: selectors.username,
   locationChangeAction: LOCATION_CHANGE,
-  routerStartAction: ROUTER_START,
   token: config.mixpanelToken,
 });
 

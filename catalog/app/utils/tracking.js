@@ -32,16 +32,10 @@ export const mkTracker = (token) => {
 export default function* tracking({
   selectUsername,
   locationChangeAction,
-  routerStartAction,
   token,
 }) {
   const tracker = mkTracker(token);
-  let started = false;
-  yield takeEvery([locationChangeAction, routerStartAction], function* onLocationChange({ type, payload: location }) {
-    if (!started) {
-      if (type !== routerStartAction) return;
-      started = true;
-    }
+  yield takeEvery(locationChangeAction, function* onLocationChange({ payload: location }) {
     const user = yield select(selectUsername);
     tracker.nav(location, user);
   });

@@ -14,16 +14,11 @@ import styled from 'styled-components';
 import logo from 'img/logo/horizontal-white.png';
 import logoTeam from 'img/logo/horizontal-white-team.png';
 
-import status from 'constants/api';
 import { backgroundColor } from 'constants/style';
 import { blog, company, docs, jobs } from 'constants/urls';
 import { setSearchText } from 'containers/App/actions';
-import {
-  makeSelectAuth,
-  makeSelectSearchText,
-  makeSelectSignedIn,
-  makeSelectUserName,
-} from 'containers/App/selectors';
+import { selectSearchText } from 'containers/App/selectors';
+import * as authSelectors from 'containers/Auth/selectors';
 import UserMenu from 'components/UserMenu';
 import { composeComponent } from 'utils/reactTools';
 
@@ -56,14 +51,15 @@ const Right = styled.div`
 
 export default composeComponent('AuthBar',
   connect(createStructuredSelector({
-    auth: makeSelectAuth(),
-    searchText: makeSelectSearchText(),
-    signedIn: makeSelectSignedIn(),
-    name: makeSelectUserName(),
+    searchText: selectSearchText,
+    error: authSelectors.error,
+    waiting: authSelectors.waiting,
+    signedIn: authSelectors.authenticated,
+    name: authSelectors.username,
   })),
   setPropTypes({
     dispatch: PropTypes.func.isRequired,
-    auth: PropTypes.object,
+    error: PropTypes.object,
     searchText: PropTypes.string,
     signedIn: PropTypes.bool.isRequired,
     name: PropTypes.string,
@@ -77,8 +73,15 @@ export default composeComponent('AuthBar',
       dispatch(setSearchText(text));
     },
   }),
-  // eslint-disable-next-line object-curly-newline
-  ({ auth, name, searchText, signedIn, handleChange, handleSearch }) => (
+  ({
+    error,
+    waiting,
+    name,
+    searchText,
+    signedIn,
+    handleChange,
+    handleSearch,
+  }) => (
     <Bar>
       <NavRow>
         <Right>
@@ -101,10 +104,10 @@ export default composeComponent('AuthBar',
       <ColNoPad xs={12} sm={6} smPush={6}>
         <Right>
           <UserMenu
-            error={auth.error}
+            error={error}
             signedIn={signedIn}
             name={name}
-            waiting={auth.status === status.WAITING}
+            waiting={waiting}
           />
         </Right>
       </ColNoPad>
