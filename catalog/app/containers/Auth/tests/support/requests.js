@@ -65,9 +65,9 @@ export default (requests) => [
     await flushPromises();
   }),
 
-  step(/(.+) request fails with (\d+), error: "(.+)"/, async (ctx, name, statusStr, error) => {
+  step(/(.+) request fails with (\d+), (.+): "(.+)"/, async (ctx, name, statusStr, key, error) => {
     const status = parseInt(statusStr, 10);
-    ctx.requestResolvers[name]({ status, body: { error } });
+    ctx.requestResolvers[name]({ status, body: { [key]: error } });
     await flushPromises();
   }),
 
