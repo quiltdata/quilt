@@ -22,8 +22,10 @@ class PaymentPlan(Enum):
 FTS_LANGUAGE = 'english'
 
 BAD_NAMES = set([
-    'TEAM',
-    'PUBLIC'
+    TEAM,
+    PUBLIC,
+    'anonymous',
+    'quilt'
 ])
 
 def blacklisted_name(username):
