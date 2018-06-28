@@ -1,6 +1,3 @@
-/* eslint-disable import/first */
-
-import { mount } from 'enzyme';
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
 import invoke from 'lodash/fp/invoke';
@@ -10,23 +7,20 @@ import LanguageProvider from 'containers/LanguageProvider';
 import { PUSH } from 'containers/Notifications/constants';
 import { translationMessages as messages } from 'i18n';
 import StoreProvider from 'utils/StoreProvider';
+import { timestamp } from 'utils/time';
 import configureStore from 'store';
 
-import feature, { step } from 'testing/feature';
+import feature from 'testing/feature';
 
 import {
   Provider as AuthProvider,
   makeHeaders,
 } from '..';
 
-jest.mock('constants/config', () => ({}));
-
-jest.mock('utils/time');
-import { timestamp } from 'utils/time';
-
-import storeSteps from './support/store';
-import storageSteps from './support/storage';
+import reactSteps from './support/react';
 import requestsSteps from './support/requests';
+import storageSteps from './support/storage';
+import storeSteps from './support/store';
 import {
   api,
   latency,
@@ -39,6 +33,9 @@ import {
   signOutRedirect,
   checkOn,
 } from './support/fixtures';
+
+jest.mock('constants/config');
+jest.mock('utils/time');
 
 
 const headerJson = {
@@ -131,7 +128,7 @@ const requests = {
   },
 };
 
-const treeMounted = step(/the component tree is mounted/, (ctx) => {
+const setup = (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
   jest.spyOn(store, 'dispatch');
@@ -141,29 +138,26 @@ const treeMounted = step(/the component tree is mounted/, (ctx) => {
     remove: () => {},
   };
   const tree = (
-    // we must wrap the tree into div, because enzyme doesn't support fragments
-    // https://github.com/airbnb/enzyme/issues/1213
-    <div>
-      <StoreProvider store={store}>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={storage}
-            api={api}
-            latency={latency}
-            signInRedirect={signInRedirect}
-            signOutRedirect={signOutRedirect}
-            checkOn={checkOn}
-          >
-            <h1>test</h1>
-          </AuthProvider>
-        </LanguageProvider>
-      </StoreProvider>
-    </div>
+    <StoreProvider store={store}>
+      <LanguageProvider messages={messages}>
+        <AuthProvider
+          storage={storage}
+          api={api}
+          latency={latency}
+          signInRedirect={signInRedirect}
+          signOutRedirect={signOutRedirect}
+          checkOn={checkOn}
+        >
+          <h1>test</h1>
+        </AuthProvider>
+      </LanguageProvider>
+    </StoreProvider>
   );
   timestamp.mockReturnValue(date);
-  const mounted = mount(tree);
-  return { ...ctx, history, store, tree, mounted };
-});
+  return { store, tree };
+};
+
+const treeSteps = reactSteps({ setup });
 
 
 feature('containers/Auth/Provider')
@@ -294,7 +288,12 @@ feature('containers/Auth/Provider')
   .then('resolve should not be called')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...storeSteps,
+    ...requestsSteps(requests),
+  ])
 
   .run();
 
@@ -351,7 +350,12 @@ feature('containers/Auth/Provider: signing in')
   .then('store should be in signed-out state')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...storeSteps,
+    ...requestsSteps(requests),
+  ])
 
   .run();
 
@@ -387,7 +391,12 @@ feature('containers/Auth/Provider: signing out')
   .then('reject should be called with AuthError error')
 
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...storeSteps,
+    ...requestsSteps(requests),
+  ])
 
   .run();
 
@@ -494,7 +503,12 @@ feature('containers/Auth/Provider: check')
     }));
   })
 
-  .steps([treeMounted, ...storageSteps, ...storeSteps, ...requestsSteps(requests)])
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...storeSteps,
+    ...requestsSteps(requests),
+  ])
 
   .run();
 
@@ -509,9 +523,6 @@ feature('containers/Auth/Provider: authLost')
   .then('store should be in signed-out state with error')
   .then('"authentication lost" notification should be shown')
 
-
-  .steps([treeMounted, ...storageSteps, ...storeSteps])
-
   .step(/"authentication lost" notification should be shown/, (ctx) => {
     expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
       type: PUSH,
@@ -520,6 +531,12 @@ feature('containers/Auth/Provider: authLost')
       }),
     }));
   })
+
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...storeSteps,
+  ])
 
   .run();
 
@@ -580,8 +597,6 @@ feature('containers/Auth/saga: makeHeaders()')
   .then('result should be an object containing the stale auth header')
 
 
-  .steps([treeMounted, ...storageSteps, ...requestsSteps(requests)])
-
   .step(/the saga is run/, (ctx) => ({
     ...ctx,
     result: ctx.store.runSaga(makeHeaders).done,
@@ -602,5 +617,11 @@ feature('containers/Auth/saga: makeHeaders()')
       Authorization: `Bearer ${tokensStale.token}`,
     });
   })
+
+  .steps([
+    ...treeSteps,
+    ...storageSteps,
+    ...requestsSteps(requests),
+  ])
 
   .run();

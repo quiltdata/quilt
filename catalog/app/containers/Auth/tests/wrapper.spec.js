@@ -29,7 +29,7 @@ jest.mock('material-ui/RaisedButton');
 jest.mock('react-router-dom');
 jest.mock('components/Error');
 jest.mock('components/Working');
-jest.mock('constants/config', () => ({}));
+jest.mock('constants/config');
 jest.mock('utils/time');
 jest.mock('utils/errorReporting');
 

@@ -27,7 +27,7 @@ jest.mock('material-ui/RaisedButton');
 jest.mock('material-ui/TextField');
 jest.mock('react-router-dom');
 jest.mock('components/Spinner');
-jest.mock('constants/config', () => ({}));
+jest.mock('constants/config');
 jest.mock('utils/time');
 jest.mock('utils/errorReporting');
 
