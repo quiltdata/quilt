@@ -21,14 +21,15 @@ Or, in development:
 from math import ceil, floor, sqrt
 from six import string_types
 
-from PIL import Image
+#from PIL import Image
 import matplotlib.pyplot as plt
-#import matplotlib.image as mpimg
+import matplotlib.image as mpimg
 import numpy as np
 
 from quilt.nodes import DataNode, GroupNode
+from quilt.tools.build import splitext_no_dot
 
-def plot(figsize=(20, 20), limit=100, **kwargs):
+def plot(figsize=(10, 10), limit=100, tlimit=10, **kwargs):
     """Display an image [in a Jupyter Notebook] from a Quilt fragment path.
     Intended for use with `%matplotlib inline`.
 
@@ -38,40 +39,43 @@ def plot(figsize=(20, 20), limit=100, **kwargs):
     Keyword arguments
     * figsize=(10, 10) # (HEIGHT_INCHES, WIDTH_INCHES)
     * limit=100 # maximum number of images to display
+    * tlimit=10 # limit number of characters in subplot title
     * **kwargs - all remaining kwargs are passed to plt.subplots;
       see https://matplotlib.org/api/_as_gen/matplotlib.pyplot.subplots.html
     """
     def _plot(node, paths):
         # assume DataNode with one path; doesn't work with multi-fragment images
-        display = [('', paths[0])]
+        display = [('', paths[0], node._meta)]
         # for GroupNodes display all DataNode children
         if isinstance(node, GroupNode):
-            display = [(x, y._data()) for (x, y) in node._items() if isinstance(y, DataNode)]
+            display = [(x, y._data(), y._meta) for (x, y) in node._items() if isinstance(y, DataNode)]
             if len(display) > limit:
                 print('Displaying {} of {} images...'.format(limit, len(display)))
                 display = display[:limit]
         # display can be empty e.g. if no DataNode children
-        if len(display) < 1:
+        if not len(display):
             return
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
-        cols = int(floor(sqrt(len(display))))
-        rows = int(ceil(len(display) / cols))
+        flen = float(len(display)) # so we can ceil
+        cols = int(floor(sqrt(flen)))
+        rows = int(ceil(flen/cols))
+        plt.tight_layout();
         plt.subplots(rows, cols, figsize=figsize, **kwargs)
 
-        i = 0
-        for dnode in display:
-            i += 1
+        for i, (name, file, meta) in enumerate(display):
+            fpath = meta.get('_system', {}).get('filepath', None)
             # don't try to read DataFrames as images
-            if isinstance(dnode[1], string_types):
-                axes = plt.subplot(rows, cols, i)
+            if isinstance(file, string_types) and fpath:
+                fname, ext = splitext_no_dot(fpath)
+                axes = plt.subplot(rows, cols, i + 1) # shift to 1-index
                 axes.axis('off')
-                plt.title(dnode[0])
+                plt.title(name[:tlimit] + '...' if len(name) > tlimit else name)
                 try:
                     # throws OSError if file is not a recognizable image
-                    bits = Image.open(dnode[1])
-                    plt.imshow(np.asarray(bits))
+                    bits = mpimg.imread(file, format=ext)
+                    plt.imshow(bits)
                 except OSError as err:
-                    print('{}: {}'.format(dnode[0], str(err)))
+                    print('{}: {}'.format(name, str(err)))
                     continue 
     return _plot
