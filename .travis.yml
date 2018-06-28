@@ -1,6 +1,6 @@
 # use miniconda for python, so don't specify "python", which doesn't
 # work on travis osx anyway
-language: generic
+language: python
 os:
   - linux
 
@@ -47,8 +47,12 @@ install:
     fi
 
 script:
-  - pytest compiler
+  - pytest --cov=./ compiler
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
-      pytest ./registry
+      pytest --cov=./ ./registry
     fi
+
+after_success:
+  - pip install codecov
+  - codecov
