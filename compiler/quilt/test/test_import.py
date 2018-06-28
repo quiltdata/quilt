@@ -496,8 +496,11 @@ class ImportTest(QuiltTestCase):
         pkg.dataframes(asa=plot())
         # expect no exceptions on GroupNode with mixed children
         pkg.mixed(asa=plot())
-        # expect no exceptions on an actual image
+        # expect no exceptions on dir of images
         pkg.mixed.img(asa=plot())
+        # expect no exceptions on single images
+        pkg.mixed.img.sf(asa=plot())
+        pkg.mixed.img.portal(asa=plot())
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

@@ -2,7 +2,10 @@
 contents:
   mixed:
     img:
-      file: data/sf_logo.png
+      sf:
+        file: data/sf_logo.png
+      portal:
+        file: data/portal_gun.jpg
     tsv: 
       file: data/group3.tsv
 
