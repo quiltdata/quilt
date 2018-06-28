@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Feature: containers/Auth/PassChange Background: Scenario: Changing the password when the link is valid Given changePassword request is expected When the component tree is mounted When I enter invalid password into password field When I enter invalid password into passwordCheck field When I submit the form When changePassword request fails with 400, error: "Password must be" Then the rendered markup should match the snapshot 1`] = `
+exports[`Feature: containers/Auth/PassChange Background: Scenario: Changing the password when the link is valid Given changePassword request is expected When the component tree is mounted When I enter invalid password into password field When I enter invalid password into passwordCheck field When I submit the form When changePassword request fails with 400, message: "Password must be" Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;
@@ -86,7 +86,7 @@ exports[`Feature: containers/Auth/PassChange Background: Scenario: Changing the 
 </div>
 `;
 
-exports[`Feature: containers/Auth/PassChange Background: Scenario: Changing the password when the link is valid Given changePassword request is expected When the component tree is mounted When I enter invalid password into password field When I enter invalid password into passwordCheck field When I submit the form When changePassword request fails with 400, error: "Password must be" When I enter password into password field When I enter password into passwordCheck field When I submit the form When changePassword request succeeds Then the rendered markup should match the snapshot 1`] = `
+exports[`Feature: containers/Auth/PassChange Background: Scenario: Changing the password when the link is valid Given changePassword request is expected When the component tree is mounted When I enter invalid password into password field When I enter invalid password into passwordCheck field When I submit the form When changePassword request fails with 400, message: "Password must be" When I enter password into password field When I enter password into passwordCheck field When I submit the form When changePassword request succeeds Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;
@@ -310,7 +310,7 @@ exports[`Feature: containers/Auth/PassChange Background: Scenario: Trying to cha
 </div>
 `;
 
-exports[`Feature: containers/Auth/PassChange Background: Scenario: Trying to change the password when the link is invalid Given changePassword request is expected When the component tree is mounted When I submit the form When I enter password into password field When I enter invalid password into passwordCheck field When I enter password into passwordCheck field When I submit the form When changePassword request fails with 400, error: "Invalid link." Then the rendered markup should match the snapshot 1`] = `
+exports[`Feature: containers/Auth/PassChange Background: Scenario: Trying to change the password when the link is invalid Given changePassword request is expected When the component tree is mounted When I submit the form When I enter password into password field When I enter invalid password into passwordCheck field When I enter password into passwordCheck field When I submit the form When changePassword request fails with 401, error: "Reset token invalid." Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;

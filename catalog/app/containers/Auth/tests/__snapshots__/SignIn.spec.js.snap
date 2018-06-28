@@ -381,7 +381,7 @@ exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given 
 </div>
 `;
 
-exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given storage has empty auth data Given signIn request is expected Given fetchUser request is expected When the component tree is mounted When I submit the form When I enter username into username field When I enter invalid password into password field When I submit the form When signIn request fails with 200, error: "Login attempt failed" Then the rendered markup should match the snapshot 1`] = `
+exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given storage has empty auth data Given signIn request is expected Given fetchUser request is expected When the component tree is mounted When I submit the form When I enter username into username field When I enter invalid password into password field When I submit the form When signIn request fails with 401 Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;
@@ -521,7 +521,7 @@ exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given 
 </div>
 `;
 
-exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given storage has empty auth data Given signIn request is expected Given fetchUser request is expected When the component tree is mounted When I submit the form When I enter username into username field When I enter invalid password into password field When I submit the form When signIn request fails with 200, error: "Login attempt failed" When I enter valid password into password field When I submit the form When signIn request fails with 500 Then the rendered markup should match the snapshot 1`] = `
+exports[`Feature: containers/Auth/SignIn Background: Scenario: Signing in Given storage has empty auth data Given signIn request is expected Given fetchUser request is expected When the component tree is mounted When I submit the form When I enter username into username field When I enter invalid password into password field When I submit the form When signIn request fails with 401 When I enter valid password into password field When I submit the form When signIn request fails with 500 Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;

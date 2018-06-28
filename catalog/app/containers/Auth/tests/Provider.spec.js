@@ -199,23 +199,23 @@ feature('containers/Auth/Provider')
   .then('reject should not be called')
 
   .back()
-  .when('signUp request fails with 400, error: "Unacceptable username."')
+  .when('signUp request fails with 400, message: "Unacceptable username."')
   .then('reject should be called with InvalidUsername error')
 
   .back()
-  .when('signUp request fails with 400, error: "Unacceptable email."')
+  .when('signUp request fails with 400, message: "Unacceptable email."')
   .then('reject should be called with InvalidEmail error')
 
   .back()
-  .when('signUp request fails with 400, error: "Password must be ..."')
+  .when('signUp request fails with 400, message: "Password must be ..."')
   .then('reject should be called with InvalidPassword error')
 
   .back()
-  .when('signUp request fails with 409, error: "Username already taken."')
+  .when('signUp request fails with 409, message: "Username already taken."')
   .then('reject should be called with UsernameTaken error')
 
   .back()
-  .when('signUp request fails with 409, error: "Email already taken."')
+  .when('signUp request fails with 409, message: "Email already taken."')
   .then('reject should be called with EmailTaken error')
 
   .back()
@@ -257,11 +257,11 @@ feature('containers/Auth/Provider')
   .then('reject should be called with InvalidResetLink error')
 
   .back()
-  .when('changePassword request fails with 400, error: "Invalid link."')
+  .when('changePassword request fails with 401, error: "Reset token invalid."')
   .then('reject should be called with InvalidResetLink error')
 
   .back()
-  .when('changePassword request fails with 400, error: "Password must be ..."')
+  .when('changePassword request fails with 400, message: "Password must be ..."')
   .then('reject should be called with InvalidPassword error')
 
   .back()
@@ -325,7 +325,7 @@ feature('containers/Auth/Provider: signing in')
   .scenario('Signing in with invalid credentials')
 
   .when('signIn action is dispatched')
-  .when('signIn request fails with 200, error: "Login attempt failed"')
+  .when('signIn request fails with 401')
   .then('reject should be called with InvalidCredentials error')
   .then('resolve should not be called')
   .then('store should be in signed-out state')

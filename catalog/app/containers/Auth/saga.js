@@ -80,19 +80,19 @@ const signUp = async (api, credentials) => {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HttpError) {
-      if (e.status === 400 && e.json && e.json.error === 'Unacceptable username.') {
+      if (e.status === 400 && e.json && e.json.message === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
       }
-      if (e.status === 400 && e.json && e.json.error === 'Unacceptable email.') {
+      if (e.status === 400 && e.json && e.json.message === 'Unacceptable email.') {
         throw new errors.InvalidEmail({ originalError: e });
       }
-      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+      if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
         throw new errors.InvalidPassword({ originalError: e });
       }
-      if (e.status === 409 && e.json && e.json.error === 'Username already taken.') {
+      if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {
         throw new errors.UsernameTaken({ originalError: e });
       }
-      if (e.status === 409 && e.json && e.json.error === 'Email already taken.') {
+      if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
         throw new errors.EmailTaken({ originalError: e });
       }
     }
@@ -144,24 +144,16 @@ const signOut = async (api, tokens) => {
  */
 const signIn = async (api, credentials) => {
   try {
-    const res = await requestJSON(`${api}/login`, {
+    return await requestJSON(`${api}/login`, {
       method: 'POST',
       body: JSON.stringify(credentials),
       headers: headerJson,
     });
-
-    if (res.error) {
-      /* istanbul ignore else */
-      if (res.error === 'Login attempt failed') {
-        throw new errors.InvalidCredentials();
-      }
-      /* istanbul ignore next */
-      throw new Error(res.error);
+  } catch (e) {
+    if (e instanceof HttpError && e.status === 401) {
+      throw new errors.InvalidCredentials();
     }
 
-    return res;
-  } catch (e) {
-    if (e instanceof errors.AuthError) throw e;
     throw new errors.AuthError({
       message: 'unable to sign in',
       originalError: e,
@@ -253,10 +245,10 @@ const changePassword = async (api, link, password) => {
       if (e.status === 404 && e.json && e.json.error === 'User not found.') {
         throw new errors.InvalidResetLink({ originalError: e });
       }
-      if (e.status === 400 && e.json && e.json.error === 'Invalid link.') {
+      if (e.status === 401 && e.json && e.json.error === 'Reset token invalid.') {
         throw new errors.InvalidResetLink({ originalError: e });
       }
-      if (e.status === 400 && e.json && e.json.error.match(/Password must be/)) {
+      if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
         throw new errors.InvalidPassword({ originalError: e });
       }
     }

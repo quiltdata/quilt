@@ -143,7 +143,7 @@ feature('containers/Auth/SignIn')
   .then('I should see the form in waiting state')
   .then('the rendered markup should match the snapshot')
 
-  .when('signIn request fails with 200, error: "Login attempt failed"')
+  .when('signIn request fails with 401')
   .then('I should see the form in invalid state')
   .then('I should see form error: "Invalid credentials"')
   .then('the rendered markup should match the snapshot')
