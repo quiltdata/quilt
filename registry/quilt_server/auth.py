@@ -8,6 +8,7 @@ from flask_json import as_json, jsonify
 import itsdangerous
 import jwt
 from passlib.context import CryptContext
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
@@ -146,9 +147,8 @@ def _activate_user(user):
     if admins:
         send_new_user_email(user.name, user.email, admins)
 
-def update_last_login(user, timestamp=None):
-    timestamp = timestamp or datetime.utcnow()
-    user.last_login = timestamp
+def update_last_login(user):
+    user.last_login = func.now()
     db.session.add(user)
 
 def _delete_user(user):
