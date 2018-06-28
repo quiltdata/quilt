@@ -6,7 +6,7 @@ import requests
 import unittest
 from unittest import mock
 from unittest.mock import patch
-from .utils import QuiltTestCase, _create_or_update_user
+from .utils import QuiltTestCase
 from quilt_server import app, db
 from quilt_server.models import Code, User
 from quilt_server.auth import (_create_user, _delete_user, issue_token,
@@ -21,28 +21,14 @@ class AuthTestCase(QuiltTestCase):
     """
     unit tests for Flask-based auth
     """
-    TEST_USER = 'test_user'
-    TEST_PASSWORD = 'beans'
-    TEST_USER_EMAIL = 'test_user@example.com'
-    SECOND_USER = 'edwin'
-    SECOND_USER_PASSWORD = 'test'
-    SECOND_USER_EMAIL = 'edwin@example.com'
-    TEST_ADMIN = 'admin'
-    TEST_ADMIN_PASSWORD = 'quilt'
-    TEST_ADMIN_EMAIL = 'quilt@example.com'
-
     def setUp(self):
         super(AuthTestCase, self).setUp()
-        _create_or_update_user(self.TEST_USER, password=self.TEST_PASSWORD,
-                email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix))
-        _create_or_update_user(self.TEST_ADMIN, password=self.TEST_ADMIN_PASSWORD,
-                email='{user}{suf}'.format(user=self.TEST_ADMIN, suf=self.email_suffix),
-                is_admin=True)
-        db.session.commit()
         self.TEST_USER_ID = User.get_by_name(self.TEST_USER).id
         self.token_verify_mock.stop() # disable auth mock
 
-    def getToken(self, username=TEST_USER, password=TEST_PASSWORD):
+    def getToken(self, username=None, password=None):
+        username = username or self.TEST_USER
+        password = password or self.TEST_USER_PASSWORD
         response = self.app.post(
                 '/login',
                 headers={'content-type': 'application/json'},
@@ -65,16 +51,10 @@ class AuthTestCase(QuiltTestCase):
         assert issue_token(self.TEST_USER)
 
     def testDeleteUser(self):
-        _create_user(self.SECOND_USER, email=self.SECOND_USER_EMAIL,
-                requires_activation=False)
-        assert User.get_by_name(self.SECOND_USER)
-        _delete_user(User.get_by_name(self.SECOND_USER))
-        assert not User.get_by_name(self.SECOND_USER)
-
-    def testCreateNewUser(self):
-        _create_user(self.SECOND_USER, email=self.SECOND_USER_EMAIL,
-                requires_activation=False)
-        assert User.get_by_name(self.SECOND_USER)
+        assert User.get_by_name(self.OTHER_USER)
+        _delete_user(User.get_by_name(self.OTHER_USER))
+        db.session.commit()
+        assert not User.get_by_name(self.OTHER_USER)
 
     def testUserExists(self):
         assert User.get_by_name(self.TEST_USER)

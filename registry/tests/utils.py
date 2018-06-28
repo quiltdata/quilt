@@ -27,18 +27,6 @@ from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
 
-def _create_or_update_user(username, password=None, email=None, is_admin=None, is_active=True):
-    existing_user = User.get_by_name(username)
-    if not existing_user:
-        _create_user(username=username, password=password if password else '',
-                     email=email, is_admin=is_admin,
-                     requires_activation=False)
-        if not is_active:
-            _disable_user(User.get_by_name(username))
-    else:
-        _update_user(username=username, password=password if password else '', email=email,
-                     is_admin=is_admin, is_active=is_active)
-
 class MockMixpanelConsumer(object):
     """
     Mock Mixpanel consumer that just logs the events to stdout.
@@ -101,14 +89,22 @@ class QuiltTestCase(TestCase):
 
         self.TEST_USER = 'test_user'
         self.TEST_USER_EMAIL = 'test_user@example.com'
+        self.TEST_USER_PASSWORD = 'beans'
         self.OTHER_USER = 'share_with'
         self.OTHER_USER_EMAIL = 'share_with@example.com'
-        _create_or_update_user(self.TEST_USER, email=self.TEST_USER_EMAIL)
-        _create_or_update_user('admin', email='admin@example.com', is_admin=True)
-        _create_or_update_user('bad_user', email='bad_user@example.com')
-        _create_or_update_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL)
-        _create_or_update_user('user1', email='user1@example.com', password='user1')
-        _create_or_update_user('user2', email='user2@example.com', password='user2')
+        self.OTHER_USER_PASSWORD = 'test'
+        self.TEST_ADMIN = 'admin'
+        self.TEST_ADMIN_EMAIL = 'admin@example.com'
+        self.TEST_ADMIN_PASSWORD = 'quilt'
+        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL,
+                     password=self.TEST_USER_PASSWORD, requires_activation=False)
+        _create_user(self.TEST_ADMIN, email=self.TEST_ADMIN_EMAIL,
+                     password=self.TEST_ADMIN_PASSWORD, is_admin=True, requires_activation=False)
+        _create_user('bad_user', email='bad_user@example.com', requires_activation=False)
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
+                     password=self.OTHER_USER_PASSWORD, requires_activation=False)
+        _create_user('user1', email='user1@example.com', password='user1', requires_activation=False)
+        _create_user('user2', email='user2@example.com', password='user2', requires_activation=False)
         db.session.commit()
 
     def tearDown(self):
