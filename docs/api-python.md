@@ -166,8 +166,16 @@ Packages contain three types of nodes:
   * All other data types return a string to the path of the object in the package store
   * Provide a custom deserialzer by passing a function to `data(asa=FUNCTION)` with the signature `function(NODE, LIST_OF_FILE_PATHS)`. A single node can contain data in multiple files (e.g., a DataFrame stored as a set of Parquet files). Calling `data(asa=FUNCTION)` on a GroupNode calls FUNCTION with the GroupNode object and a list of the paths to all of the objects in all of the child nodes.
 
-### Enumerate package contents
+#### Display package images in Jupyter notebooks
+```python
+from quilt.data.akarve import BSDS300 as bsd
+from quilt.asa.img import plot
 
+bsd.images.test(asa=plot(figsize=(20, 20)))
+```
+<img src="https://raw.githubusercontent.com/quiltdata/resources/master/img/quilt-asa-plot.png" />
+
+### Enumerate package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
 * `NODE._keys()` returns a list of all children
 * `NODE._data_keys()` returns a list of all data children (leaf nodes containing actual data)
