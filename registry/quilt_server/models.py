@@ -193,7 +193,7 @@ db.Index('idx_package', Event.package_owner, Event.package_name)
 class User(db.Model):
     id = db.Column(postgresql.UUID, primary_key=True)
     name = db.Column(db.String(64), nullable=False, unique=True)
-    email = db.Column(db.String(64), nullable=False, unique=True) # should this be longer?
+    email = db.Column(db.String(320), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     last_login = db.Column(postgresql.TIMESTAMP(True), nullable=False, server_default=db.func.now())
