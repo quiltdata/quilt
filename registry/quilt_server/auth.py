@@ -12,7 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 
 from . import ApiException, app, db
-from .const import VALID_EMAIL_RE, VALID_NAME_RE, blacklisted_name
+from .const import VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
@@ -78,7 +78,7 @@ def _create_user(username, password='', email=None, is_admin=False,
                  first_name=None, last_name=None,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
-        if not VALID_NAME_RE.match(username):
+        if not VALID_USERNAME_RE.match(username):
             raise ApiException(400, "Unacceptable username.")
         if blacklisted_name(username):
             raise ApiException(400, "Unacceptable username.")

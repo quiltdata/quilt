@@ -41,7 +41,8 @@ from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_a
                    reset_password, exp_from_token, _create_user,
                    _enable_user, _disable_user, revoke_token_string,
                    reset_password_response, activate_response)
-from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
+from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
+                    VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_invitation_email
@@ -136,7 +137,7 @@ def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 def _validate_username(username):
-    if not VALID_NAME_RE.fullmatch(username):
+    if not VALID_USERNAME_RE.fullmatch(username):
         raise ApiException(
             requests.codes.bad,
             """

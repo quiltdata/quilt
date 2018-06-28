@@ -11,6 +11,7 @@ PUBLIC = 'public' # This username is blocked by Quilt signup
 TEAM = 'team'
 
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
+VALID_USERNAME_RE = re.compile(r'^[a-z][a-z0-9_]*$')
 VALID_EMAIL_RE = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 
 class PaymentPlan(Enum):
