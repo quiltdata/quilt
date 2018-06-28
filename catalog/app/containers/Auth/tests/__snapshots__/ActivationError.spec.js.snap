@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Feature: containers/Auth/ActivationError Background: Scenario: Mounting the component When the component tree is mounted Then the user should see the error message 1`] = `
+exports[`Feature: containers/Auth/ActivationError Background: Scenario: Mounting the component When the component tree is mounted Then the rendered markup should match the snapshot 1`] = `
 .c0 {
   margin-left: auto;
   margin-right: auto;

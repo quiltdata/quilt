@@ -1,6 +1,3 @@
-/* eslint-disable import/first */
-
-import { mount } from 'enzyme';
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
 import React from 'react';
@@ -14,34 +11,43 @@ import feature from 'testing/feature';
 
 import { ActivationError } from '..';
 
-jest.mock('constants/config', () => ({}));
+import reactSteps from './support/react';
+
+
+jest.mock('constants/config');
+
+
+const setup = () => {
+  const history = createHistory({ initialEntries: ['/'] });
+  const store = configureStore(fromJS({}), history);
+  const tree = (
+    <StoreProvider store={store}>
+      <LanguageProvider messages={messages}>
+        <ActivationError />
+      </LanguageProvider>
+    </StoreProvider>
+  );
+  return { tree };
+};
+
+const screens = {
+  error: (html) => {
+    expect(html.find('h1').text()).toBe('Activation Error');
+    expect(html.find('p').text()).toMatch(/Oops.+activating[^]+support@quiltdata\.io/m);
+  },
+};
+
+const steps = [
+  ...reactSteps({ setup, screens }),
+];
 
 
 feature('containers/Auth/ActivationError')
   .scenario('Mounting the component')
 
   .when('the component tree is mounted')
-  .then('the user should see the error message')
+  .then('I should see the error screen')
+  .then('the rendered markup should match the snapshot')
 
-  .step(/the component tree is mounted/, (ctx) => {
-    const history = createHistory({ initialEntries: ['/'] });
-    const store = configureStore(fromJS({}), history);
-    const tree = (
-      <StoreProvider store={store}>
-        <LanguageProvider messages={messages}>
-          <ActivationError />
-        </LanguageProvider>
-      </StoreProvider>
-    );
-    const mounted = mount(tree);
-    return { ...ctx, mounted };
-  })
-
-  .step(/the user should see the error message/, (ctx) => {
-    const html = ctx.mounted.render();
-    expect(html.find('h1').text()).toBe('Activation Error');
-    expect(html.find('p').text()).toMatch(/Oops.+activating[^]+support@quiltdata\.io/m);
-    expect(html).toMatchSnapshot();
-  })
-
+  .steps(steps)
   .run();
