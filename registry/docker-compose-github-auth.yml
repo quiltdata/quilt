@@ -48,8 +48,7 @@ services:
     ports:
       - "5000:80"
     depends_on:
-      db:
-        condition: service_healthy
+      - flask
     volumes:
       - ./nginx/nginx-quilt.conf:/etc/nginx/nginx-quilt.template
     environment:
