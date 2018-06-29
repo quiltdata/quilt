@@ -1,5 +1,6 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
+import makeError from 'utils/error';
 import request from 'utils/sagaRequest';
 
 import {
@@ -12,6 +13,7 @@ export function* get({ payload: { handle } }) {
   if (!handle) return;
   try {
     const response = yield call(request, `/audit/${handle}/`);
+    if (response.message) throw makeError(response.message);
     const events = response.events.map(({ created, user, type }) => ({
       time: created * 1000,
       user,

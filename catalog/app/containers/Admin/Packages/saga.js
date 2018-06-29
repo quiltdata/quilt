@@ -1,5 +1,6 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
+import makeError from 'utils/error';
 import request from 'utils/sagaRequest';
 
 import { getSuccess, getError } from './actions';
@@ -8,6 +9,7 @@ import { actions } from './constants';
 export function* get() {
   try {
     const response = yield call(request, '/admin/package_summary');
+    if (response.message) throw makeError(response.message);
     const entries = Object.entries(response.packages)
       .map(([handle, pkg]) => ({
         handle,

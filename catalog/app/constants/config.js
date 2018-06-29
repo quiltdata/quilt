@@ -5,10 +5,8 @@ Object.freeze(config);
 
 const mustHave = {
   alwaysRequiresAuth: 'boolean',
-  api: 'string',
-  userApi: 'string',
   // eslint-disable-next-line comma-dangle
-  signOutUrl: 'string'
+  api: 'string'
 };
 
 const mustHaveTeam = {

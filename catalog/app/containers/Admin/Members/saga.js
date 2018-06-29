@@ -1,5 +1,6 @@
 import { call, put, takeLatest, takeEvery } from 'redux-saga/effects';
 
+import makeError from 'utils/error';
 import request from 'utils/sagaRequest';
 
 import {
@@ -34,7 +35,8 @@ export function* add({ payload: { username, email }, meta: { resolve, reject } }
       method: 'POST',
       body: JSON.stringify({ username, email }),
     });
-    const { users } = yield call(request, '/users/list_detailed');
+    const { users, message } = yield call(request, '/users/list_detailed');
+    if (message) throw makeError(message);
     const addedMember = { email, ...normalizeMember([username, users[username]]) };
     yield put(added(addedMember));
     if (resolve) yield call(resolve, addedMember);
@@ -46,6 +48,7 @@ export function* add({ payload: { username, email }, meta: { resolve, reject } }
 export function* get() {
   try {
     const response = yield call(request, '/users/list_detailed');
+    if (response.message) throw makeError(response.message);
     const entries = Object.entries(response.users).map(normalizeMember);
     yield put(getSuccess(entries));
   } catch (err) {
@@ -59,6 +62,7 @@ export function* disable({ payload: { name }, meta: { resolve, reject } }) {
       method: 'POST',
       body: JSON.stringify({ username: name }),
     });
+    if (response.message) throw makeError(response.message);
     yield put(disableSuccess(name, response));
     if (resolve) yield call(resolve, response);
   } catch (err) {
@@ -73,6 +77,7 @@ export function* enable({ payload: { name }, meta: { resolve, reject } }) {
       method: 'POST',
       body: JSON.stringify({ username: name }),
     });
+    if (response.message) throw makeError(response.message);
     yield put(enableSuccess(name, response));
     if (resolve) yield call(resolve, response);
   } catch (err) {
@@ -87,6 +92,7 @@ export function* resetPassword({ payload: { name }, meta: { resolve, reject } })
       method: 'POST',
       body: JSON.stringify({ username: name }),
     });
+    if (response.message) throw makeError(response.message);
     yield put(resetPasswordSuccess(name, response));
     if (resolve) yield call(resolve, response);
   } catch (err) {
