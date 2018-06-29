@@ -243,6 +243,7 @@
       "<rootDir>/internals/testing/enzyme-setup.js"
     ],
     "testRegex": ".*\\.(test|spec)\\.js$",
+    "testURL": "https://quilt-test",
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ]
