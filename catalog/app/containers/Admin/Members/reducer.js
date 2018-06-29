@@ -1,6 +1,6 @@
 import { fromJS } from 'immutable';
 import id from 'lodash/identity';
-import { withInitialState, handleActions } from 'utils/reduxTools';
+import { withInitialState, handleActions, combine } from 'utils/reduxTools';
 
 import api from 'constants/api';
 import { push } from 'utils/immutableTools';
@@ -21,27 +21,27 @@ const updateMember = (name, k, v) => (members) => {
 };
 
 export default withInitialState(fromJS(initial), handleActions({
-  [actions.ADDED]: {
+  [actions.ADDED]: combine({
     response: (p) => push(fromJS(p)),
-  },
+  }),
 
-  [actions.GET]: {
+  [actions.GET]: combine({
     status: api.WAITING,
     response: null,
-  },
+  }),
 
-  [actions.GET_RESPONSE]: {
+  [actions.GET_RESPONSE]: combine({
     status: (p) => p.status,
     response: (p) => fromJS(p.response),
-  },
+  }),
 
-  [actions.DISABLE_RESPONSE]: {
+  [actions.DISABLE_RESPONSE]: combine({
     response: (p) =>
       p.status === api.ERROR ? id : updateMember(p.name, 'status', 'disabled'),
-  },
+  }),
 
-  [actions.ENABLE_RESPONSE]: {
+  [actions.ENABLE_RESPONSE]: combine({
     response: (p) =>
       p.status === api.ERROR ? id : updateMember(p.name, 'status', 'active'),
-  },
+  }),
 }));
