@@ -2,7 +2,7 @@ import initial from 'lodash/initial';
 import last from 'lodash/last';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import { createElement } from 'react';
+import React, { createElement } from 'react';
 import {
   compose,
   mapProps,
@@ -173,3 +173,52 @@ export const restoreProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) 
 export const withStyle = (...args) =>
   composeHOC('withStyle',
     (C) => styled(C)(...args));
+
+/**
+ * Shorthand for creating context providers.
+ *
+ * @param {Object} context
+ * @param {react.ContextProvider} context.Provider
+ *
+ * @param {string|function} getValue
+ *   When string, use it as a prop name to get the value from.
+ *   When function, call it with the props to get the value.
+ */
+export const provide = ({ Provider }, getValue) =>
+  mapProps((props) => ({
+    children: props.children,
+    value: typeof getValue === 'string' ? props[getValue] : getValue(props),
+  }))(Provider);
+
+/**
+ * Create a HOC that consumes a given context and injects it into props.
+ *
+ * @param {Object} context
+ * @param {react.ContextConsumer} context.Consumer
+ *
+ * @param {string|function} propMapper
+ *   When string, use it as a prop name to inject the context value to.
+ *   When function, call it with the context value and props passed to the
+ *   resulting component, and use the result as props passed to the decorated
+ *   component.
+ *
+ * @returns {HOC}
+ *
+ * @example
+ * const ctx = createContext({ thing: 'value' });
+ *
+ * // the following calls are equivalent:
+ * const withStuff = consume(ctx, 'stuff');
+ * const withStuff2 = consume(ctx, (stuff, props) => ({ ...props, stuff });
+ *
+ * const Component = composeComponent('Component',
+ *   withStuff,
+ *   ({ stuff }) => <h1>{stuff.thing}</h1>);
+ */
+export const consume = ({ Consumer }, propMapper) => {
+  const mkProps = typeof propMapper === 'string'
+    ? (value, props) => ({ ...props, [propMapper]: value })
+    : propMapper;
+  return (Component) => (props) =>
+    <Consumer>{(value) => <Component {...mkProps(value, props)} />}</Consumer>;
+};
