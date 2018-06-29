@@ -74,11 +74,11 @@ install:
 script:
   - |
     if [[ "$TEST_COMPILER" = true ]]; then
-      pytest compiler
+      pytest --cov=./ compiler
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
-      pytest ./registry
+      pytest --cov=./ ./registry
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
