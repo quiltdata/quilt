@@ -16,6 +16,10 @@ module.exports = require('./webpack.base.babel')({
   },
 
   plugins: [
+    new webpack.optimize.UglifyJsPlugin({
+      sourceMap: true,
+    }),
+
     new webpack.optimize.ModuleConcatenationPlugin(),
     new webpack.optimize.CommonsChunkPlugin({
       name: 'vendor',
@@ -42,6 +46,8 @@ module.exports = require('./webpack.base.babel')({
       inject: true,
     }),
   ],
+
+  devtool: 'source-map',
 
   performance: {
     assetFilter: (assetFilename) => !(/(\.map$)|(^(main\.|favicon\.))/.test(assetFilename)),
