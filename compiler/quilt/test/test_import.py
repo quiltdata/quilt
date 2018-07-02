@@ -5,11 +5,15 @@ Tests for magic imports.
 import os
 import time
 
+# this import must happen first
+import matplotlib as mpl
+ # specify a backend so renderer doesn't barf
+mpl.use('Agg')
+import numpy as np
 import pandas as pd
+from PIL import Image
 from six import string_types
 
-import matplotlib as mpl
-mpl.use('Agg') # so headless renderer doesn't barf; used in quilt.asa.img
 from quilt.asa.img import plot
 from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
@@ -17,6 +21,7 @@ from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
+
 
 class ImportTest(QuiltTestCase):
     def test_imports(self):
@@ -485,7 +490,7 @@ class ImportTest(QuiltTestCase):
         assert pkg.dataframes(asa=test_lambda) is testdata
         assert pkg(asa=test_lambda) is testdata
 
-    def test_asa_img(self):
+    def test_asa_plot(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_img.yml')
         command.build('foo/imgtest', build_path)
@@ -497,10 +502,51 @@ class ImportTest(QuiltTestCase):
         # expect no exceptions on GroupNode with mixed children
         pkg.mixed(asa=plot())
         # expect no exceptions on dir of images
-        pkg.mixed.img(asa=plot())
+        images = pkg.mixed.img(asa=plot())
+        filtered = pkg.mixed.img(asa=plot(formats=['jpg', 'png']))
+        # assert images != filtered, 'Expected only .jpg and .png images'
         # expect no exceptions on single images
         pkg.mixed.img.sf(asa=plot())
         pkg.mixed.img.portal(asa=plot())
+
+    def _are_similar(self, ima, imb, error=0.01):
+        """predicate to see if images differ by less than
+        the given error; uses mean squared error; inspred by
+        https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
+
+        ima, imb: PIL.Image instances
+        """
+        ima_ = np.array(ima)
+        imb_ = np.array(imb)
+
+        error_ = np.sum((ima_.astype('float') - imb_.astype('float')) ** 2)
+        error_ /= float(ima_.shape[0] * imb_.shape[1])
+
+        print(error_, ima_.shape, imb_.shape)
+        print(ima_)
+        print(imb_)
+
+        return error_ < error
+    
+    def test_asa_plot_output(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_img.yml')
+        command.build('foo/imgtest', build_path)
+        pkg = command.load('foo/imgtest')
+        pkg.mixed.img(asa=plot())
+
+        outfile = 'temp-out.png'
+        # mpl.pyplot.savefig(f'/Users/karve/Desktop/{outfile}')
+        mpl.pyplot.savefig(outfile)
+
+        ref_path = os.path.join(mydir, 'data/plotrefall.png')
+        tst_path = f'./{outfile}'
+
+        ref_img = Image.open(ref_path)
+        tst_img = Image.open(tst_path).resize(ref_img.size)
+
+        assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
+            'of data/plotrefall.png')
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

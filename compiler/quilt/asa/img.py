@@ -21,9 +21,8 @@ Or, in development:
 from math import ceil, floor, sqrt
 from six import string_types
 
-#from PIL import Image
-import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
 
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.build import splitext_no_dot
@@ -55,7 +54,7 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
                 print('Displaying {} of {} images...'.format(limit, len(display)))
                 display = display[:limit]
         # display can be empty e.g. if no DataNode children
-        if not len(display):
+        if not display:
             return
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
@@ -65,20 +64,20 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         plt.tight_layout()
         plt.subplots(rows, cols, figsize=figsize, **kwargs)
 
-        for i, (name, file, meta) in enumerate(display):
+        for i, (name, frag, meta) in enumerate(display):
             filepath = meta.get('_system', {}).get('filepath', None)
             # don't try to read DataFrames as images
-            if isinstance(file, string_types) and filepath:
-                path, ext = splitext_no_dot(filepath) # pylint: disable=unused-variable
-                if formats and ext.lower() not in [x.lower() for x in formats]:
+            if isinstance(frag, string_types) and filepath:
+                _, ext = splitext_no_dot(filepath)
+                if formats != None and ext.lower() not in (x.lower() for x in formats):
                     continue
                 axes = plt.subplot(rows, cols, i + 1) # shift to 1-index
                 axes.axis('off')
                 plt.title(name[:titlelen] + '...' if len(name) > titlelen else name)
                 try:
-                    bits = mpimg.imread(file, format=ext)
+                    bits = mpimg.imread(frag, format=ext)
                     plt.imshow(bits)
-                # Mac throws OSError, Linux OSError if file not recognizable
+                # Mac throws OSError, Linux IOError if file not recognizable
                 except (IOError, OSError) as err:
                     print('{}: {}'.format(name, str(err)))
                     continue 
