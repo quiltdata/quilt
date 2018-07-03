@@ -525,8 +525,8 @@ class ImportTest(QuiltTestCase):
         for shape in (ima_.shape, imb_.shape):
             x, y, _ = shape
             assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
-        # sum of differences, squared
-        error_ = np.sum((ima_.astype('float') - imb_.astype('float')) ** 2)
+        # pixel channel difference, normalized, summed, squared
+        error_ = np.sum(((ima_.astype('float') - imb_.astype('float'))/255) ** 2)
         # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
 
@@ -539,20 +539,19 @@ class ImportTest(QuiltTestCase):
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
 
-        outfile = os.path.join(mydir, 'temp-plot.png')
+        outfile = os.path.join('.', 'temp-plot.png')
         plt.figure(figsize=(10, 10))
         pkg.mixed.img(asa=plot())
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
-        return
 
-        ref_path = os.path.join(mydir, 'data', 'plotrefall.png')
+        ref_path = os.path.join(mydir, 'data', 'ref-asa-plot.png')
 
         ref_img = Image.open(ref_path)
         tst_img = Image.open(outfile)
 
-        assert self._are_similar(ref_img, tst_img), ('unexpected render '
-            'of data/plotrefall.png')
+        assert self._are_similar(ref_img, tst_img), \
+            'render differs from reference: {}'.format(ref_img)
 
     # pylint: disable=no-member
     def test_asa_plot_formats_output(self):
@@ -561,20 +560,19 @@ class ImportTest(QuiltTestCase):
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
 
-        outfile = os.path.join(mydir, 'temp-formats-plot.png')
+        outfile = os.path.join('.', 'temp-formats-plot.png')
         plt.figure(figsize=(10, 10))
         pkg.mixed.img(asa=plot(formats=['png']))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
-        return
 
-        ref_path = os.path.join(mydir, 'data', 'plotrefformats.png')
+        ref_path = os.path.join(mydir, 'data', 'ref-asa-formats.png')
 
         ref_img = Image.open(ref_path)
         tst_img = Image.open(outfile)
 
-        assert self._are_similar(ref_img, tst_img), ('unexpected render '
-            'of data/plotrefformats.png')
+        assert self._are_similar(ref_img, tst_img), \
+            'render differs from reference: {}'.format(ref_img)
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"
