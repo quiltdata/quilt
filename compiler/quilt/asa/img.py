@@ -46,7 +46,7 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
     # pylint: disable=protected-access
     def _plot(node, paths):
         lower_formats = set((x.lower() for x in formats)) if formats !=None else None
-        def node_filter(name, frag, meta):
+        def node_filter(_, frag, meta):
             filepath = meta.get('_system', {}).get('filepath', None)
             # don't try to read DataFrames as images
             if isinstance(frag, string_types) and filepath:

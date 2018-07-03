@@ -7,7 +7,9 @@ import time
 
 # matplotlib import must happen first
 import matplotlib as mpl
+# specify a backend so renderer doesn't barf; must happen immediately after import
 mpl.use('Agg')
+# pylint: disable=wrong-import-position
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -20,8 +22,8 @@ from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
-# specify a backend so renderer doesn't barf
 
+ # pylint: disable=protected-access
 class ImportTest(QuiltTestCase):
     def test_imports(self):
         mydir = os.path.dirname(__file__)
@@ -489,6 +491,7 @@ class ImportTest(QuiltTestCase):
         assert pkg.dataframes(asa=test_lambda) is testdata
         assert pkg(asa=test_lambda) is testdata
 
+    # pylint: disable=no-member
     def test_asa_plot(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_img.yml')
@@ -501,8 +504,8 @@ class ImportTest(QuiltTestCase):
         # expect no exceptions on GroupNode with mixed children
         pkg.mixed(asa=plot())
         # expect no exceptions on dir of images
-        images = pkg.mixed.img(asa=plot())
-        filtered = pkg.mixed.img(asa=plot(formats=['jpg', 'png']))
+        pkg.mixed.img(asa=plot())
+        pkg.mixed.img(asa=plot(formats=['jpg', 'png']))
         # assert images != filtered, 'Expected only .jpg and .png images'
         # expect no exceptions on single images
         pkg.mixed.img.sf(asa=plot())
@@ -524,6 +527,7 @@ class ImportTest(QuiltTestCase):
 
         return error_ < error
     
+    # pylint: disable=no-member
     def test_asa_plot_output(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_img.yml')
@@ -543,6 +547,7 @@ class ImportTest(QuiltTestCase):
         assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
             'of data/plotrefall.png')
 
+    # pylint: disable=no-member
     def test_asa_plot_formats_output(self):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build_img.yml')
