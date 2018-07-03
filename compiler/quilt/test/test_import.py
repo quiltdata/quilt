@@ -544,6 +544,7 @@ class ImportTest(QuiltTestCase):
         pkg.mixed.img(asa=plot())
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
+        return
 
         ref_path = os.path.join(mydir, 'data', 'plotrefall.png')
 
@@ -565,6 +566,7 @@ class ImportTest(QuiltTestCase):
         pkg.mixed.img(asa=plot(formats=['png']))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
+        return
 
         ref_path = os.path.join(mydir, 'data', 'plotrefformats.png')
 
