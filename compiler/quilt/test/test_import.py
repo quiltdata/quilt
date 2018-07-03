@@ -539,7 +539,7 @@ class ImportTest(QuiltTestCase):
         mpl.pyplot.savefig(outfile)
 
         ref_path = os.path.join(mydir, 'data/plotrefall.png')
-        tst_path = f'./{outfile}'
+        tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
         tst_img = Image.open(tst_path).resize(ref_img.size)
@@ -559,7 +559,7 @@ class ImportTest(QuiltTestCase):
         mpl.pyplot.savefig(outfile)
 
         ref_path = os.path.join(mydir, 'data/plotrefformats.png')
-        tst_path = f'./{outfile}'
+        tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
         tst_img = Image.open(tst_path).resize(ref_img.size)

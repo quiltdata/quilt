@@ -64,7 +64,7 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
                 # *x to destructure the tuple into individual params
                 display = [x for x in display if node_filter(*x)]
             if len(display) > limit:
-                print(f'Displaying {limit} of {len(display)} images{ELLIPSIS}')
+                print('Displaying {} of {len(display)} images{}'.format(limit, ELLIPSIS))
                 display = display[:limit]
         # display can be empty e.g. if no DataNode children
         if not display:
