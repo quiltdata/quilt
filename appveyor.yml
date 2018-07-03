@@ -36,6 +36,11 @@ init:
   - "ECHO %PYTHON_VERSION% %APPVEYOR_BUILD_NUMBER%"
   #- "ECHO %APPVEYOR_BUILD_NUMBER%
 
+artifacts:
+  - path: compiler\quilt\test\*.png
+    name: output
+    type: zip
+
 install:
   - echo $(python --version)
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"

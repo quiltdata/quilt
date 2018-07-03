@@ -60,6 +60,8 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         if isinstance(node, GroupNode):
             datanodes = [(x, y) for (x, y) in node._items() if isinstance(y, DataNode)]
             display = [(x, y._data(), y._meta) for (x, y) in datanodes]
+            # sort by name so iteration is reproducible (and unit tests pass)
+            display = sorted(display, key=lambda rec: rec[0])
             if filter != None:
                 # *x to destructure the tuple into individual params
                 display = [x for x in display if node_filter(*x)]
@@ -70,8 +72,6 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         if not display:
             print('No images to display.')
             return
-        # sort by name so iteration is reproducible (and unit tests pass)
-        display = sorted(display, key=lambda rec: rec[0])
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
         floatlen = float(len(display)) # so we can ceil

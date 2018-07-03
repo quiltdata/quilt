@@ -523,7 +523,6 @@ class ImportTest(QuiltTestCase):
         imb_ = np.array(imb)
         assert ima_.shape == imb_.shape, 'ima and imb must have same shape'
         for shape in (ima_.shape, imb_.shape):
-            print(shape)
             x, y, _ = shape
             assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
         # sum of differences, squared
@@ -536,21 +535,20 @@ class ImportTest(QuiltTestCase):
     # pylint: disable=no-member
     def test_asa_plot_output(self):
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_img.yml')
+        build_path = os.path.join(mydir, 'build_img.yml')
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
 
-        outfile = 'temp-plot.png'
+        outfile = os.path.join('.', 'temp-plot.png')
         plt.figure(figsize=(10, 10))
         pkg.mixed.img(asa=plot())
         # size * dpi = 1000 x 1000 pixels
-        plt.savefig(outfile, dpi=100)
+        plt.savefig(outfile, dpi=100, format='png', transparent=False)
 
         ref_path = os.path.join(mydir, 'data', 'plotrefall.png')
-        tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
-        tst_img = Image.open(tst_path)
+        tst_img = Image.open(outfile)
 
         assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefall.png')
@@ -558,21 +556,20 @@ class ImportTest(QuiltTestCase):
     # pylint: disable=no-member
     def test_asa_plot_formats_output(self):
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_img.yml')
+        build_path = os.path.join(mydir, 'build_img.yml')
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
 
-        outfile = 'temp-formats-plot.png'
+        outfile = os.path.join('.', 'temp-formats-plot.png')
         plt.figure(figsize=(10, 10))
         pkg.mixed.img(asa=plot(formats=['png']))
         # size * dpi = 1000 x 1000 pixels
-        plt.savefig(outfile, dpi=100)
+        plt.savefig(outfile, dpi=100, format='png', transparent=False)
 
         ref_path = os.path.join(mydir, 'data', 'plotrefformats.png')
-        tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
-        tst_img = Image.open(tst_path)
+        tst_img = Image.open(outfile)
 
         assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefformats.png')
