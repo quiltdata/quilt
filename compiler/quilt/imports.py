@@ -63,7 +63,7 @@ def _from_core_node(package, core_node):
 
         for name, core_child in iteritems(core_node.children):
             child = _from_core_node(package, core_child)
-            setattr(node, name, child)
+            node[name] = child
 
     return node
 

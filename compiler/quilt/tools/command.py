@@ -12,7 +12,7 @@ import json
 import os
 import platform
 import re
-from shutil import rmtree, copy
+from shutil import rmtree, copyfile
 import socket
 import stat
 import subprocess
@@ -1279,20 +1279,31 @@ def reset_password(team, username):
             ), data=json.dumps({'username':username})
     )
 
-def _load(package):
+def _load(package, hash=None):
     info = parse_package_extended(package)
-    team, user, name = info.team, info.user, info.name
+    # TODO: support tags & versions.
+    if info.tag:
+        raise CommandException("Loading packages by tag is not supported.")
+    elif info.version:
+        raise CommandException("Loading packages by version is not supported.")
+    elif info.hash:
+        raise CommandException("Use hash=HASH to specify package hash.")
 
-    pkgobj = PackageStore.find_package(team, user, name)
+    pkgobj = PackageStore.find_package(info.team,
+                                       info.user,
+                                       info.name,
+                                       pkghash=hash)
     if pkgobj is None:
         raise CommandException("Package {package} not found.".format(package=package))
     node = _from_core_node(pkgobj, pkgobj.get_contents())
+
     return node, pkgobj, info
 
-def load(pkginfo):
-    """functional interface to "from quilt.data.USER import PKG"""
-    # TODO: support hashes/versions/etc.
-    return _load(pkginfo)[0]
+def load(pkginfo, hash=None):
+    """
+    functional interface to "from quilt.data.USER import PKG"
+    """
+    return _load(pkginfo, hash)[0]
 
 def export(package, output_path='.', force=False, symlinks=False):
     """Export package file data.
@@ -1401,7 +1412,7 @@ def export(package, output_path='.', force=False, symlinks=False):
             if use_symlinks is True:
                 fs_link(node(), dest)
             else:
-                copy(node(), str(dest))
+                copyfile(node(), str(dest))
         elif isinstance(node._node, TableNode):
             ext = node._node.metadata['q_ext']
             df = node()
@@ -1511,9 +1522,8 @@ def export(package, output_path='.', force=False, symlinks=False):
 
     if info.subpath:
         subpath = pathlib.PureWindowsPath(*info.subpath)
-        # TODO: Change this over to `node['item/subitem']` notation once implemented
         for name in info.subpath:
-            node = getattr(node, name)
+            node = node._get(name)
     else:
         subpath = pathlib.PureWindowsPath()
 

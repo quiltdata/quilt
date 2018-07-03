@@ -37,9 +37,23 @@ class ImportTest(QuiltTestCase):
         assert package.dataframes == dataframes
         assert package.README == README
 
+        assert package['dataframes'] == dataframes
+        assert package['README'] == README
+
         assert set(dataframes._keys()) == {'csv', 'nulls'}
         assert set(dataframes._group_keys()) == set()
         assert set(dataframes._data_keys()) == {'csv', 'nulls'}
+
+        assert len(package) == 2
+        assert len(list(package)) == 2
+
+        assert 'dataframes' in dir(package)
+
+        for item in package:
+            assert isinstance(item, (GroupNode, DataNode))
+
+        for node in dataframes:
+            assert isinstance(node, DataNode)
 
         assert isinstance(README(), string_types)
         assert isinstance(README._data(), string_types)
@@ -49,6 +63,11 @@ class ImportTest(QuiltTestCase):
         str(package)
         str(dataframes)
         str(README)
+
+        # Store data is read-only
+        with self.assertRaises(IOError):
+            with open(README(), 'w'):
+                pass
 
         # Bad attributes of imported packages
 
@@ -349,7 +368,7 @@ class ImportTest(QuiltTestCase):
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             package4.newdf = df
 
     def test_load_update(self):
@@ -372,7 +391,7 @@ class ImportTest(QuiltTestCase):
         command.build(newpkgname, module)
 
         # current spec requires that build() *not* update the in-memory module tree.
-        newpath1 = getattr(module, newfilename)()
+        newpath1 = module[newfilename]()
         assert newpath1 == newfilename
 
         # current spec requires that load() reload from disk, i.e. gets a reference
@@ -380,7 +399,7 @@ class ImportTest(QuiltTestCase):
         # this is important because of potential changes to myfile
         reloaded_module = command.load(newpkgname)
         assert reloaded_module is not module
-        newpath2 = getattr(reloaded_module, newfilename)()
+        newpath2 = reloaded_module[newfilename]()
         assert 'myfile' not in newpath2
 
     def test_multiple_updates(self):
@@ -401,7 +420,7 @@ class ImportTest(QuiltTestCase):
 
         package6._set([newfilename1], newfilename2)
 
-        assert getattr(package6, newfilename1)() == newfilename2
+        assert package6[newfilename1]() == newfilename2
 
     def test_team_non_team_imports(self):
         mydir = os.path.dirname(__file__)
@@ -428,7 +447,7 @@ class ImportTest(QuiltTestCase):
         # Assign a DataFrame as a node
         # (should throw exception)
         df = pd.DataFrame(dict(a=[1, 2, 3]))
-        with self.assertRaises(AttributeError):
+        with self.assertRaises(TypeError):
             package4.newdf = df
 
     def test_datanode_asa(self):
@@ -475,6 +494,38 @@ class ImportTest(QuiltTestCase):
         pkg._set(['dataframes', 'memory'], pd.DataFrame())
         with self.assertRaises(ValueError):
             assert pkg.dataframes.memory(asa=test_lambda) is testdata
-
-
         
+    def test_load_by_hash(self):
+        """
+        Tests loading two different versions of the same
+        package using command.load and specifying the package
+        hash.
+        """
+        # Old Version
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build.yml')
+        command.build('foo/package', build_path)
+        package = command.load('foo/package')
+        pkghash = package._package.get_hash()
+
+        # New Version
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_simple.yml')
+        command.build('foo/package', build_path)
+        command.ls()
+
+        load_pkg_new = command.load('foo/package')
+        load_pkg_old = command.load('foo/package', hash=pkghash)    
+        assert load_pkg_old._package.get_hash() == pkghash
+
+        assert load_pkg_new.foo
+        with self.assertRaises(AttributeError):
+            load_pkg_new.dataframes
+        # Known failure cases
+        # At present load does not support extended package syntax
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:h:%s' % pkghash)
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:t:latest')
+        with self.assertRaises(command.CommandException):
+            command.load('foo/package:v:1.0.0')

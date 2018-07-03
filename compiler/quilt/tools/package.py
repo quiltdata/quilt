@@ -38,6 +38,8 @@ class Package(object):
             contents = self._load_contents(pkghash)
 
         self._contents = contents
+        if pkghash is not None:
+            assert self.get_hash() == pkghash
 
     def __getitem__(self, item):
         """Get a (core) node from this package.
