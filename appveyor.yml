@@ -37,7 +37,7 @@ init:
   #- "ECHO %APPVEYOR_BUILD_NUMBER%
 
 artifacts:
-  - path: compiler\quilt\test\*.png
+  - path: compiler\quilt\test\**\*.png
     name: output
     type: zip
 
