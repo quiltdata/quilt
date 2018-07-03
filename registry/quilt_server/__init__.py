@@ -23,16 +23,6 @@ app.wsgi_app = middleware.RequestEncodingMiddleware(app.wsgi_app)
 app.config.from_object('quilt_server.config')
 app.config.from_envvar('QUILT_SERVER_CONFIG')
 
-class ApiException(Exception):
-    """
-    Base class for API exceptions.
-    """
-    def __init__(self, status_code, message):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
-
-
 class QuiltSQLAlchemy(SQLAlchemy):
     def apply_driver_hacks(self, app, info, options):
         """
@@ -46,6 +36,7 @@ class QuiltSQLAlchemy(SQLAlchemy):
             pool_pre_ping=True,
         ))
         super(QuiltSQLAlchemy, self).apply_driver_hacks(app, info, options)
+
 
 db = QuiltSQLAlchemy(app, session_options=dict(expire_on_commit=False))
 

@@ -4,14 +4,12 @@ import json
 import uuid
 
 from flask import redirect, request
-from flask_json import as_json, jsonify
 import itsdangerous
 import jwt
 from passlib.context import CryptContext
 from sqlalchemy import func
-from sqlalchemy.exc import IntegrityError
 
-from . import ApiException, app, db
+from . import app, db
 from .const import VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
@@ -25,6 +23,47 @@ pwd_context = CryptContext(
     )
 # Each round should take about half a second,
 # 500000 rounds experimentally determined
+
+class AuthException(Exception):
+    """
+    Base class for Auth exceptions.
+    """
+    def __init__(self, msg):
+        super().__init__()
+        self.message = msg
+
+
+class ValidationException(AuthException):
+    """
+    Represents a failure to deserialize a signed link,
+    a password that is too short, etc.
+    """
+    pass
+
+
+class ConflictException(AuthException):
+    """
+    Represents an exception involving an attempt to register a
+    username that already exists, etc.
+    """
+    pass
+
+
+class NotFoundException(AuthException):
+    """
+    Represents an exception involving an attempted operation on an entity
+    that could not be located.
+    """
+    pass
+
+
+class CredentialException(AuthException):
+    """
+    Represents an exception involving things like an incorrect token,
+    an incorrect password, etc.
+    """
+    pass
+
 
 def generate_uuid():
     return str(uuid.uuid4())
@@ -46,8 +85,7 @@ def activate_response(link):
 
 def validate_password(password):
     if len(password) < 8:
-        raise ApiException(400, "Password must be at least 8 characters long.")
-    return True
+        raise ValidationException("Password must be at least 8 characters long.")
 
 def reset_password_response():
     data = request.get_json()
@@ -64,11 +102,11 @@ def reset_password_response():
     link = data['link']
     payload = verify_reset_link(link)
     if not payload:
-        return {'error': 'Reset token invalid.'}, 401
+        raise CredentialException("Reset token invalid")
     user_id = payload['id']
     user = User.get_by_id(user_id)
     if not user:
-        return {'error': 'User not found.'}, 404
+        raise NotFoundException("User not found")
     user.password = hash_password(raw_password)
     db.session.add(user)
     db.session.commit()
@@ -79,17 +117,17 @@ def _create_user(username, password='', email=None, is_admin=False,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
-            raise ApiException(400, "Unacceptable username.")
+            raise ValidationException("Unacceptable username.")
         if blacklisted_name(username):
-            raise ApiException(400, "Unacceptable username.")
+            raise ValidationException("Unacceptable username.")
         if email is None:
-            raise ApiException(400, "Must provide email.")
+            raise ValidationException("Must provide email.")
         if not VALID_EMAIL_RE.match(email):
-            raise ApiException(400, "Unacceptable email.")
+            raise ValidationException("Unacceptable email.")
         if User.get_by_name(username):
-            raise ApiException(409, "Username already taken.")
+            raise ConflictException("Username already taken.")
         if User.get_by_email(email):
-            raise ApiException(409, "Email already taken.")
+            raise ConflictException("Email already taken.")
 
     check_conflicts(username, email)
     validate_password(password)
@@ -125,7 +163,7 @@ def _create_user(username, password='', email=None, is_admin=False,
 def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
     existing_user = User.get_by_name(username)
     if not existing_user:
-        raise ApiException(404, "User to update not found")
+        raise NotFoundException("User to update not found")
     if password is not None:
         new_password = hash_password(password)
         existing_user.password = new_password
@@ -140,7 +178,7 @@ def _update_user(username, password=None, email=None, is_admin=None, is_active=N
 
 def _activate_user(user):
     if user is None:
-        raise ApiException(404, "User not found")
+        raise NotFoundException("User not found")
     user.is_active = True
     db.session.add(user)
     admins = get_admins()
@@ -155,7 +193,7 @@ def _delete_user(user):
     if user:
         db.session.delete(user)
     else:
-        raise ApiException(404, "User to delete not found")
+        raise NotFoundException("User to delete not found")
     revoke_user_code_tokens(user.id)
     return user
 
@@ -164,7 +202,7 @@ def _enable_user(user):
         user.is_active = True
         db.session.add(user)
     else:
-        raise ApiException(404, "User to enable not found")
+        raise NotFoundException("User to enable not found")
 
 def _disable_user(user):
     if user:
@@ -172,7 +210,7 @@ def _disable_user(user):
         db.session.add(user)
         revoke_user_code_tokens(user.id)
     else:
-        raise ApiException(404, "User to disable not found")
+        raise NotFoundException("User to disable not found")
 
 def issue_code(user):
     user_id = user.id
@@ -201,7 +239,10 @@ def try_as_code(code_str):
     return User.get_by_id(code['id'])
 
 def decode_token(token_str):
-    return jwt.decode(token_str, app.secret_key, algorithm='HS256')
+    try:
+        return jwt.decode(token_str, app.secret_key, algorithm='HS256')
+    except jwt.exceptions.InvalidTokenError:
+        raise ValidationException("Token could not be deserialized")
 
 def check_token(user_id, token):
     return Token.get(user_id, token) is not None
@@ -211,19 +252,16 @@ def _verify(payload):
     uuid = payload['uuid']
     user = User.get_by_id(user_id)
     if user is None:
-        raise ApiException(400, 'User ID invalid')
+        raise CredentialException('User ID invalid')
 
     if not check_token(user_id, uuid):
-        raise ApiException(400, 'Token invalid')
+        raise CredentialException('Token invalid')
     return user
 
 def verify_token_string(token_string):
-    try:
-        token = decode_token(token_string)
-        user = _verify(token)
-        return user
-    except (jwt.exceptions.InvalidTokenError, ApiException):
-        return None
+    token = decode_token(token_string)
+    user = _verify(token)
+    return user
 
 def exp_from_token(token):
     token = decode_token(token)
@@ -284,12 +322,12 @@ def consume_code(user_id, code):
 def verify_hash(password, pw_hash):
     try:
         if not pwd_context.verify(password, pw_hash):
-            raise ApiException(401, 'Password verification failed')
+            raise CredentialException('Password verification failed')
     except ValueError:
-        raise ApiException(401, 'Password verification failed')
+        raise CredentialException('Password verification failed')
 
 def try_login(username, password):
-    user = User.get_by_name(username)
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
     if not user:
         return False
 
@@ -298,7 +336,7 @@ def try_login(username, password):
 
     try:
         verify_hash(password, user.password)
-    except ApiException:
+    except CredentialException:
         return False
     update_last_login(user)
     return True

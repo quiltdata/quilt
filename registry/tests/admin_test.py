@@ -5,11 +5,9 @@ Admin feature tests
 """
 
 import json
-import requests
-import responses
 import time
+import requests
 
-import quilt_server
 from quilt_server.core import GroupNode, RootNode
 from .utils import QuiltTestCase
 
@@ -24,6 +22,7 @@ class AdminTestCase(QuiltTestCase):
         self.admin = "admin"
         self.user = "test_user"
         self.pkg = "pkg"
+        self.nonexistent_user = "idonotexist"
         self.contents_list = [
             RootNode(dict(
                 foo=GroupNode(dict())
@@ -222,6 +221,18 @@ class AdminTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+    def testDisableNonexistentUser(self):
+        resp = self.app.post(
+            '/api/users/disable',
+            data=json.dumps({"username":self.nonexistent_user}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.admin
+            }
+            )
+
+        assert resp.status_code == requests.codes.not_found
+
     def testDisableUserNonAdmin(self):
         resp = self.app.post(
             '/api/users/disable',
@@ -257,6 +268,18 @@ class AdminTestCase(QuiltTestCase):
             )
 
         assert resp.status_code == requests.codes.ok
+
+    def testEnableNonexistentUser(self):
+        resp = self.app.post(
+            '/api/users/enable',
+            data=json.dumps({"username":self.nonexistent_user}),
+            content_type='application/json',
+            headers={
+                'Authorization':self.admin
+            }
+            )
+
+        assert resp.status_code == requests.codes.not_found
 
     def testEnableUserNonAdmin(self):
         resp = self.app.post(
@@ -301,10 +324,10 @@ class AdminTestCase(QuiltTestCase):
         )
         assert resp.status_code == 200
         data = json.loads(resp.data.decode('utf8'))
-        assert data['is_staff'] == True
+        assert data['is_staff'] is True
         assert data['current_user'] == 'admin'
         assert data['email'] == 'admin@example.com'
-        assert data['is_active'] == True
+        assert data['is_active'] is True
 
         auth_headers = {
             'Authorization': 'test_user',
@@ -316,10 +339,10 @@ class AdminTestCase(QuiltTestCase):
         )
         assert resp.status_code == 200
         data = json.loads(resp.data.decode('utf8'))
-        assert data['is_staff'] == False
+        assert data['is_staff'] is False
         assert data['current_user'] == 'test_user'
         assert data['email'] == 'test_user@example.com'
-        assert data['is_active'] == True
+        assert data['is_active'] is True
 
         auth_headers = {
             'Authorization': 'nonexistent_user',

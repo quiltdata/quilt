@@ -34,13 +34,15 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
 
-from . import ApiException, app, db
+from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_as_code,
                    issue_token, issue_token_by_id, try_login, verify_token_string,
                    reset_password, exp_from_token, _create_user,
                    _enable_user, _disable_user, revoke_token_string,
-                   reset_password_response, activate_response)
+                   reset_password_response, activate_response,
+                   AuthException, ValidationException, ConflictException,
+                   NotFoundException, CredentialException)
 from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
                     VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
@@ -114,6 +116,15 @@ class PythonPlatform(httpagentparser.DetectorBase):
 
 for python_name in ['CPython', 'Jython', 'PyPy']:
     httpagentparser.detectorshub.register(PythonPlatform(python_name))
+
+class ApiException(Exception):
+    """
+    Base class for API exceptions.
+    """
+    def __init__(self, status_code, message):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
 
 
 ### Web routes ###
@@ -228,11 +239,14 @@ def token():
     if user:
         return token_success(user)
 
-    user = verify_token_string(refresh_token)
-    if not user:
-        return {'error': 'Token invalid'}, 401
+    try:
+        user = verify_token_string(refresh_token)
+        if not user:
+            return {'error': 'Token invalid'}, 401
 
-    return token_success(user)
+        return token_success(user)
+    except AuthException as ex:
+        return {'error': ex.message}, 401
 
 
 class Auth:
@@ -326,8 +340,9 @@ def api(require_login=True, schema=None, enabled=True,
                 if token.startswith("Bearer "):
                     token = token[7:]
 
-                user = verify_token_string(token)
-                if not user:
+                try:
+                    user = verify_token_string(token)
+                except AuthException:
                     raise ApiException(requests.codes.unauthorized, "Token invalid.")
 
                 g.user = user
@@ -364,8 +379,8 @@ def login_post():
         token = issue_token(username)
         db.session.commit()
         return {'token': token}
-    else:
-        return {'error': 'Login attempt failed'}, 401
+
+    return {'error': 'Login attempt failed'}, 401
 
 CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
 
@@ -379,7 +394,12 @@ CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1
 @api(require_anonymous=True, require_login=False, schema=PASSWORD_RESET_SCHEMA)
 @as_json
 def reset_password_endpoint():
-    return reset_password_response()
+    try:
+        return reset_password_response()
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except CredentialException as ex:
+        raise ApiException(requests.codes.unauthorized, ex.message)
 
 CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
 
@@ -398,7 +418,7 @@ CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}
 def register_endpoint():
     data = request.get_json()
     if app.config['DISABLE_SIGNUP']:
-        raise ApiException(400, "Signup is disabled.")
+        raise ApiException(requests.codes.not_implemented, "Signup is disabled.")
     username = data['username']
     password = data['password']
     email = data['email']
@@ -2131,50 +2151,64 @@ def list_users_detailed():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_EMAIL_SCHEMA)
 @as_json
 def create_user():
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-    email = data['email']
-    _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
-    db.session.commit()
-    return {}
+    try:
+        data = request.get_json()
+        username = data['username']
+        _validate_username(username)
+        email = data['email']
+        _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
+        db.session.commit()
+        return {}
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except ConflictException as ex:
+        raise ApiException(requests.codes.conflict, ex.message)
 
 @app.route('/api/users/disable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def disable_user():
-    data = request.get_json()
-    username = data['username']
-    if g.auth.user == username:
-        raise ApiException(requests.codes.forbidden, "Can't disable yourself")
+    try:
+        data = request.get_json()
+        username = data['username']
+        if g.auth.user == username:
+            raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
-    user = User.query.filter_by(name=username).with_for_update().one_or_none()
-    _disable_user(user)
-    db.session.commit()
-    return {}
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _disable_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 @app.route('/api/users/enable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def enable_user():
-    data = request.get_json()
-    username = data['username']
-    user = User.query.filter_by(name=username).with_for_update().one_or_none()
-    _enable_user(user)
-    db.session.commit()
-    return {}
+    try:
+        data = request.get_json()
+        username = data['username']
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _enable_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
 @api(enabled=False, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def delete_user():
-    data = request.get_json()
-    username = data['username']
-    user = User.query.filter_by(name=username).with_for_update().one_or_none()
-    _delete_user(user)
-    db.session.commit()
-    return {}
+    try:
+        data = request.get_json()
+        username = data['username']
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _delete_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)
