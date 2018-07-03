@@ -70,6 +70,8 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         if not display:
             print('No images to display.')
             return
+        # sort by name so iteration is reproducible (and unit tests pass)
+        display = sorted(display, key=lambda rec: rec[0])
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
         floatlen = float(len(display)) # so we can ceil
