@@ -10,9 +10,10 @@ import matplotlib as mpl
 # specify a backend so renderer doesn't barf; must happen immediately after import
 mpl.use('Agg')
 # pylint: disable=wrong-import-position
+from PIL import Image
 import numpy as np
 import pandas as pd
-from PIL import Image
+from matplotlib import pyplot as plt
 from six import string_types
 
 from quilt.asa.img import plot
@@ -511,7 +512,7 @@ class ImportTest(QuiltTestCase):
         pkg.mixed.img.sf(asa=plot())
         pkg.mixed.img.portal(asa=plot())
 
-    def _are_similar(self, ima, imb, error=0.1):
+    def _are_similar(self, ima, imb, error=0.01):
         """predicate to see if images differ by less than
         the given error; uses mean squared error; see also
         https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
@@ -530,9 +531,6 @@ class ImportTest(QuiltTestCase):
         # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
 
-        # TODO delete this line it's for DEBUG
-        print('diff error='.format(error_))
-
         return error_ < error
     
     # pylint: disable=no-member
@@ -541,16 +539,18 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build_img.yml')
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
-        pkg.mixed.img(asa=plot())
 
         outfile = 'temp-plot.png'
-        mpl.pyplot.savefig(outfile)
+        plt.figure(figsize=(10, 10))
+        pkg.mixed.img(asa=plot())
+        # size * dpi = 1000 x 1000 pixels
+        plt.savefig(outfile, dpi=100)
 
-        ref_path = os.path.join(mydir, 'data/plotrefall.png')
+        ref_path = os.path.join(mydir, 'data', 'plotrefall.png')
         tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
-        tst_img = Image.open(tst_path).resize(ref_img.size)
+        tst_img = Image.open(tst_path)
 
         assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefall.png')
@@ -561,16 +561,18 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build_img.yml')
         command.build('foo/imgtest', build_path)
         pkg = command.load('foo/imgtest')
-        pkg.mixed.img(asa=plot(formats=['png']))
 
         outfile = 'temp-formats-plot.png'
-        mpl.pyplot.savefig(outfile)
+        plt.figure(figsize=(10, 10))
+        pkg.mixed.img(asa=plot(formats=['png']))
+        # size * dpi = 1000 x 1000 pixels
+        plt.savefig(outfile, dpi=100)
 
-        ref_path = os.path.join(mydir, 'data/plotrefformats.png')
+        ref_path = os.path.join(mydir, 'data', 'plotrefformats.png')
         tst_path = './{}'.format(outfile)
 
         ref_img = Image.open(ref_path)
-        tst_img = Image.open(tst_path).resize(ref_img.size)
+        tst_img = Image.open(tst_path)
 
         assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefformats.png')
