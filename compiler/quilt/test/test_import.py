@@ -5,9 +5,8 @@ Tests for magic imports.
 import os
 import time
 
-# this import must happen first
+# matplotlib import must happen first
 import matplotlib as mpl
- # specify a backend so renderer doesn't barf
 mpl.use('Agg')
 import numpy as np
 import pandas as pd
@@ -21,7 +20,7 @@ from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
-
+# specify a backend so renderer doesn't barf
 
 class ImportTest(QuiltTestCase):
     def test_imports(self):
@@ -511,20 +510,17 @@ class ImportTest(QuiltTestCase):
 
     def _are_similar(self, ima, imb, error=0.01):
         """predicate to see if images differ by less than
-        the given error; uses mean squared error; inspred by
+        the given error; uses mean squared error; see also
         https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
 
         ima, imb: PIL.Image instances
         """
         ima_ = np.array(ima)
         imb_ = np.array(imb)
-
+        # sum of differences, squared
         error_ = np.sum((ima_.astype('float') - imb_.astype('float')) ** 2)
+        # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
-
-        print(error_, ima_.shape, imb_.shape)
-        print(ima_)
-        print(imb_)
 
         return error_ < error
     
@@ -535,8 +531,7 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/imgtest')
         pkg.mixed.img(asa=plot())
 
-        outfile = 'temp-out.png'
-        # mpl.pyplot.savefig(f'/Users/karve/Desktop/{outfile}')
+        outfile = 'temp-plot.png'
         mpl.pyplot.savefig(outfile)
 
         ref_path = os.path.join(mydir, 'data/plotrefall.png')
@@ -547,6 +542,25 @@ class ImportTest(QuiltTestCase):
 
         assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
             'of data/plotrefall.png')
+
+    def test_asa_plot_formats_output(self):
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, './build_img.yml')
+        command.build('foo/imgtest', build_path)
+        pkg = command.load('foo/imgtest')
+        pkg.mixed.img(asa=plot(formats=['png']))
+
+        outfile = 'temp-formats-plot.png'
+        mpl.pyplot.savefig(outfile)
+
+        ref_path = os.path.join(mydir, 'data/plotrefformats.png')
+        tst_path = f'./{outfile}'
+
+        ref_img = Image.open(ref_path)
+        tst_img = Image.open(tst_path).resize(ref_img.size)
+
+        assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
+            'of data/plotrefformats.png')
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

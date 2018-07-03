@@ -18,6 +18,7 @@ PACKAGE_DIR_NAME = 'quilt_packages'
 DEFAULT_BUILDFILE = 'build.yml'
 DEFAULT_QUILT_YML = 'quilt.yml'
 DEFAULT_TEAM = 'Quilt'
+ELLIPSIS = u'\u2026'
 
 # reserved words in build.yml
 RESERVED = {

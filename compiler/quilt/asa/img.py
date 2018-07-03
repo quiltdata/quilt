@@ -24,6 +24,7 @@ from six import string_types
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 
+from quilt.tools.const import ELLIPSIS
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.build import splitext_no_dot
 
@@ -44,17 +45,30 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
     """
     # pylint: disable=protected-access
     def _plot(node, paths):
-        # assume DataNode with one path; doesn't work with multi-fragment images
+        lower_formats = set((x.lower() for x in formats)) if formats !=None else None
+        def node_filter(name, frag, meta):
+            filepath = meta.get('_system', {}).get('filepath', None)
+            # don't try to read DataFrames as images
+            if isinstance(frag, string_types) and filepath:
+                _, ext = splitext_no_dot(filepath)
+                if formats is None or ext.lower() in lower_formats:
+                    return True
+            return False
+        # assume DataNode has one path; doesn't work with multi-fragment images
         display = [('', paths[0], node._meta)]
-        # for GroupNodes display all DataNode children
+        # for GroupNodes, display all DataNode children
         if isinstance(node, GroupNode):
             datanodes = [(x, y) for (x, y) in node._items() if isinstance(y, DataNode)]
             display = [(x, y._data(), y._meta) for (x, y) in datanodes]
+            if filter != None:
+                # *x to destructure the tuple into individual params
+                display = [x for x in display if node_filter(*x)]
             if len(display) > limit:
-                print('Displaying {} of {} images...'.format(limit, len(display)))
+                print(f'Displaying {limit} of {len(display)} images{ELLIPSIS}')
                 display = display[:limit]
         # display can be empty e.g. if no DataNode children
         if not display:
+            print('No images to display.')
             return
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
@@ -64,16 +78,14 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         plt.tight_layout()
         plt.subplots(rows, cols, figsize=figsize, **kwargs)
 
-        for i, (name, frag, meta) in enumerate(display):
-            filepath = meta.get('_system', {}).get('filepath', None)
-            # don't try to read DataFrames as images
-            if isinstance(frag, string_types) and filepath:
+        for i in range(rows*cols):
+            axes = plt.subplot(rows, cols, i + 1) # subplots start at 1, not 0
+            axes.axis('off')
+            if i < len(display):
+                (name, frag, meta) = display[i]
+                plt.title(name[:titlelen] + ELLIPSIS if len(name) > titlelen else name)
+                filepath = meta.get('_system', {}).get('filepath', None)
                 _, ext = splitext_no_dot(filepath)
-                if formats != None and ext.lower() not in (x.lower() for x in formats):
-                    continue
-                axes = plt.subplot(rows, cols, i + 1) # shift to 1-index
-                axes.axis('off')
-                plt.title(name[:titlelen] + '...' if len(name) > titlelen else name)
                 try:
                     bits = mpimg.imread(frag, format=ext)
                     plt.imshow(bits)
