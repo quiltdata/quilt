@@ -511,7 +511,7 @@ class ImportTest(QuiltTestCase):
         pkg.mixed.img.sf(asa=plot())
         pkg.mixed.img.portal(asa=plot())
 
-    def _are_similar(self, ima, imb, error=0.01):
+    def _are_similar(self, ima, imb, error=0.1):
         """predicate to see if images differ by less than
         the given error; uses mean squared error; see also
         https://www.pyimagesearch.com/2014/09/15/python-compare-two-images/
@@ -520,10 +520,18 @@ class ImportTest(QuiltTestCase):
         """
         ima_ = np.array(ima)
         imb_ = np.array(imb)
+        assert ima_.shape == imb_.shape, 'ima and imb must have same shape'
+        for shape in (ima_.shape, imb_.shape):
+            print(shape)
+            x, y, _ = shape
+            assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
         # sum of differences, squared
         error_ = np.sum((ima_.astype('float') - imb_.astype('float')) ** 2)
         # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
+
+        # TODO delete this line it's for DEBUG
+        print('diff error='.format(error_))
 
         return error_ < error
     
@@ -544,7 +552,7 @@ class ImportTest(QuiltTestCase):
         ref_img = Image.open(ref_path)
         tst_img = Image.open(tst_path).resize(ref_img.size)
 
-        assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
+        assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefall.png')
 
     # pylint: disable=no-member
@@ -564,7 +572,7 @@ class ImportTest(QuiltTestCase):
         ref_img = Image.open(ref_path)
         tst_img = Image.open(tst_path).resize(ref_img.size)
 
-        assert self._are_similar(ref_img, tst_img), ( 'unexpected render '
+        assert self._are_similar(ref_img, tst_img), ('unexpected render '
             'of data/plotrefformats.png')
 
     def test_memory_only_datanode_asa(self):
