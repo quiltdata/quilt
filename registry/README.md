@@ -1,13 +1,13 @@
 ![python 3.5,_3.6](https://img.shields.io/badge/python-3.5,_3.6-blue.svg)
 
-# Quilt registry
+# Quilt Registry
 The registry stores package data, meta-data, and controls permissions.
 
 This is the reference implementation of the Quilt server and package registry.
 
 The instructions below are **for testing purposes only**, as `docker-compose` does not instantiate a persistent database, and does not communicate with blob storage.
 
-# Running with Docker
+# Quickstart with Docker and docker-compose
 
 We recommend using `docker-compose` to run a local Quilt registry for testing and development. This starts a collection of Docker containers to run the various services needed to run the registry: database, storage, and Flask web/API server.  The advantage of Docker is that it isolates you from the details of installing each component correctly, including version, configuration, etc. -- with docker, everything is pre-configured for you.
 
@@ -117,6 +117,65 @@ Note: ```quilt login``` is its own test that the server is working.  You can now
 ### Browse the Quilt catalog in a web browser
 
 To browse the catalog using a web browser, enter this location into your web browser: http://localhost:3000
+
+# Run a Private Registry in AWS
+
+## AWS Resources
+Running a Quilt Registry in AWS requires the following services:
+* a Postgres database. You can find instructions for setting up Postgres in RDS here: [Create a Postres Database in RDS](https://aws.amazon.com/rds/postgresql/)
+* an S3 bucket
+* an EC2 instance to run the registry, authentication service and catalog
+* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry and catalog
+
+Once the resources have been created, ssh into the EC2 instance and configure the environment and run the services via Docker. You can make it easier to connect to your registry by creating a new DNS record to point to the EC2 instance's external IP address (e.g., quilt.yourdomain.com).
+
+```bash
+ssh ec2-user@quilt.yourdomain.com
+mkdir env
+sudo yum install docker
+sudo service docker start
+```
+
+## Run the catalog
+Edit the file env/catalog and enter the following lines:
+```
+REGISTRY_URL=http://$REGISTRY_HOST:5000
+USER_API=http://$REGISTRY_HOST:5002/accounts/api-root
+SIGN_OUT_URL=http://$REGISTRY_HOST:5002/accounts/logout?next=%2F
+```
+
+```bash
+sudo docker run -d --name catalog --env-file ~/env/catalog -p 80:80 quiltdata/catalog
+```
+
+## Run the registry
+Edit the file env/registry and enter the following lines:
+```
+AWS_ACCESS_KEY_ID=<YOUR_CREDENTIALS_HERE>
+AWS_SECRET_ACCESS_KEY=<YOUR_CREDENTIALS_HERE>
+QUILT_SERVER_CONFIG=dev_config.py
+OAUTH_CLIENT_ID=packages
+OAUTH_CLIENT_SECRET=TESTING
+OAUTHLIB_INSECURE_TRANSPORT=1
+AUTH_PROVIDER=quilt
+QUILT_AUTH_URL=http://$REGISTRY_HOST:5002
+SQLALCHEMY_DATABASE_URI=postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST/$DB_DATABASE
+S3_HOST=s3
+REGISTRY_HOST=quilt.yourdomain.com
+```
+
+Once the database is running, initialize the database tables by running migrations.
+```bash
+docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgrade
+```
+
+After the migrations are complete, run the registry as follows:
+```bash 
+docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
+docker run -d --name registry-nginx --network container:registry --cmd "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"" nginx
+```
+
+# Advanced Use
 
 ### Advanced: Headless installation including AWS
 
