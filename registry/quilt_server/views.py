@@ -210,6 +210,8 @@ def oauth_callback():
         return render_template('oauth_success.html', code=token, **common_tmpl_args)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
+    except AuthException as ex:
+        return render_template('oauth_fail.html', error=ex.message, **common_tmpl_args)
 
 ### API routes ###
 
@@ -376,8 +378,11 @@ def login_post():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    if try_login(username, password):
-        user = User.query.filter_by(name=username).one_or_none()
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    if not user:
+        return {'error': 'Login attempt failed'}, 401
+
+    if try_login(user, password):
         token = issue_token(user)
         db.session.commit()
         return {'token': token}

@@ -194,7 +194,7 @@ def _delete_user(user):
         db.session.delete(user)
     else:
         raise NotFoundException("User to delete not found")
-    revoke_user_code_tokens(user.id)
+    revoke_user_code_tokens(user)
     return user
 
 def _enable_user(user):
@@ -208,7 +208,7 @@ def _disable_user(user):
     if user:
         user.is_active = False
         db.session.add(user)
-        revoke_user_code_tokens(user.id)
+        revoke_user_code_tokens(user)
     else:
         raise NotFoundException("User to disable not found")
 
@@ -280,16 +280,16 @@ def revoke_token(user_id, token):
     db.session.delete(found)
     return True
 
-def revoke_tokens(user_id):
-    tokens = Token.query.filter_by(user_id=user_id).with_for_update().all()
+def revoke_tokens(user):
+    tokens = Token.query.filter_by(user_id=user.id).with_for_update().all()
     for token in tokens:
         db.session.delete(token)
 
-def revoke_user_code_tokens(user_id):
-    code = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
+def revoke_user_code_tokens(user):
+    code = Code.query.filter_by(user_id=user.id).with_for_update().one_or_none()
     if code:
         db.session.delete(code)
-    revoke_tokens(user_id)
+    revoke_tokens(user)
 
 def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
@@ -322,11 +322,7 @@ def verify_hash(password, pw_hash):
     except ValueError:
         raise CredentialException('Password verification failed')
 
-def try_login(username, password):
-    user = User.query.filter_by(name=username).with_for_update().one_or_none()
-    if not user:
-        return False
-
+def try_login(user, password):
     if not user.is_active:
         return False
 
