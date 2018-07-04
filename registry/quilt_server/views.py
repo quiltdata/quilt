@@ -2087,7 +2087,10 @@ def client_log():
 
     return dict()
 
-def list_users_helper():
+@app.route('/api/users/list', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_users():
     users = User.query.all()
     results = [{
         'username': user.name,
@@ -2103,12 +2106,6 @@ def list_users_helper():
         'count': len(users),
         'results': results,
     }
-
-@app.route('/api/users/list', methods=['GET'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
-@as_json
-def list_users():
-    return list_users_helper()
 
 @app.route('/api/users/list_detailed', methods=['GET'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
@@ -2129,20 +2126,20 @@ def list_users_detailed():
     for event_user, event_type, event_count in events:
         event_results[(event_user, event_type)] = event_count
 
-    users = list_users_helper()
+    users = User.query.all()
 
     results = {
-        user['username'] : {
-            'packages' : package_counts.get(user['username'], 0),
-            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
-            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
-            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
-            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
-            'status' : 'active' if user['is_active'] else 'disabled',
-            'last_seen' : user['last_login'],
-            'is_admin' : user['is_superuser']
+        user.name : {
+            'packages' : package_counts.get(user.name, 0),
+            'installs' : event_results[(user.name, Event.Type.INSTALL)],
+            'previews' : event_results[(user.name, Event.Type.PREVIEW)],
+            'pushes' : event_results[(user.name, Event.Type.PUSH)],
+            'deletes' : event_results[(user.name, Event.Type.DELETE)],
+            'status' : 'active' if user.is_active else 'disabled',
+            'last_seen' : user.last_login,
+            'is_admin' : user.is_admin
             }
-        for user in users['results']
+        for user in users
     }
 
     return {'users' : results}
