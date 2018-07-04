@@ -18,3 +18,64 @@ Or, in development:
 `pip install -e ./[torch]`
 """
 
+import copy
+
+from torch.utils.data import Dataset
+
+from quilt.nodes import GroupNode
+
+def dataset(
+    include=lambda x: True,
+    input_transform=None,
+    target_transform=None,
+    **kwargs):
+    """Convert immediate children of a GroupNode into a torch.data.Dataset
+
+    Keyword arguments
+    * include=lambda x: True
+      lambda(quilt.nodes.GroupNode) => {True, False};
+      intended to filter nodes based on metadata
+
+    * input_transform: applied on, and returned, from __getitem__
+    * output_transform: applied to copy(item) and returned, from __getitem__
+    """
+    def _dataset(node, paths):
+        return DatasetFromGroupNode(
+            node,
+            input_transform=input_transform,
+            target_transform=target_transform)
+
+    return _dataset
+
+class DatasetFromGroupNode(Dataset):
+    def __init__(
+        self,
+        group,
+        include=lambda x: True,
+        input_transform=None,
+        target_transform=None):
+
+        super(DatasetFromGroupNode, self).__init__()
+
+        if not isinstance(group, GroupNode):
+            raise TypeError('Expected GroupNode, got {}, {}', type(group), group)
+        if not callable(include):
+            raise TypeError('Expected include=callable, got {}, {}', type(include), include)
+
+        self.image_nodes = [x for x in group if include(x)]
+        self.input_transform = input_transform
+        self.target_transform = target_transform
+
+    def __getitem__(self, index):
+        item = self.image_nodes[index]
+        # TODO: does this even make sense for GroupNodes?
+        target = copy.copy(item)
+        if self.input_transform:
+            item = self.input_transform(input)
+        if self.target_transform:
+            target = self.target_transform(target)
+
+        return item, target
+
+    def __len__(self):
+        return len(self.image_nodes)
