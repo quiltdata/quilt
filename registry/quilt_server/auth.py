@@ -77,7 +77,7 @@ def get_admins():
 def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
-        _activate_user(User.get_by_id(payload['id']))
+        _activate_user(User.query.filter_by(id=payload['id']).with_for_update().one_or_none())
         db.session.commit()
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
 
@@ -90,7 +90,7 @@ def validate_password(password):
 def reset_password_response():
     data = request.get_json()
     if 'email' in data:
-        user = User.get_by_email(data['email'])
+        user = User.query.filter_by(email=data['email']).with_for_update().one_or_none()
         if not user:
             return {}
         reset_password(user)
@@ -104,7 +104,7 @@ def reset_password_response():
     if not payload:
         raise CredentialException("Reset token invalid")
     user_id = payload['id']
-    user = User.get_by_id(user_id)
+    user = User.query.filter_by(id=user_id).with_for_update().one_or_none()
     if not user:
         raise NotFoundException("User not found")
     user.password = hash_password(raw_password)
@@ -124,9 +124,9 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ValidationException("Must provide email.")
         if not VALID_EMAIL_RE.match(email):
             raise ValidationException("Unacceptable email.")
-        if User.get_by_name(username):
+        if User.query.filter_by(name=username).one_or_none():
             raise ConflictException("Username already taken.")
-        if User.get_by_email(email):
+        if User.query.filter_by(email=email).one_or_none():
             raise ConflictException("Email already taken.")
 
     check_conflicts(username, email)
@@ -161,7 +161,7 @@ def _create_user(username, password='', email=None, is_admin=False,
         send_welcome_email(user, user.email, generate_reset_link(user.id))
 
 def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
-    existing_user = User.get_by_name(username)
+    existing_user = User.query.filter_by(name=username).with_for_update().one_or_none()
     if not existing_user:
         raise NotFoundException("User to update not found")
     if password is not None:
@@ -214,7 +214,7 @@ def _disable_user(user):
 
 def issue_code(user):
     user_id = user.id
-    code = Code.get(user_id)
+    code = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
     if code:
         code.code = generate_uuid()
     else:
@@ -233,10 +233,10 @@ def try_as_code(code_str):
         code = decode_code(code_str)
     except (TypeError, ValueError):
         return None
-    found = Code.get(code['id'])
-    if not found or found.code != code['code']:
+    found = Code.query.filter_by(user_id=code['id'], code=code['code']).one_or_none()
+    if not found:
         return None
-    return User.get_by_id(code['id'])
+    return User.query.filter_by(id=code['id']).one_or_none()
 
 def decode_token(token_str):
     try:
@@ -245,12 +245,12 @@ def decode_token(token_str):
         raise ValidationException("Token could not be deserialized")
 
 def check_token(user_id, token):
-    return Token.get(user_id, token) is not None
+    return Token.query.filter_by(user_id=user_id, token=token).one_or_none() is not None
 
 def _verify(payload):
     user_id = payload['id']
     uuid = payload['uuid']
-    user = User.get_by_id(user_id)
+    user = User.query.filter_by(id=user_id).one_or_none()
     if user is None:
         raise CredentialException('User ID invalid')
 
@@ -294,17 +294,13 @@ def revoke_user_code_tokens(user_id):
 def get_exp(mins=30):
     return datetime.utcnow() + timedelta(minutes=mins)
 
-def issue_token(username, exp=None):
-    user_id = User.get_by_name(username).id
-    return issue_token_by_id(user_id, exp)
-
-def issue_token_by_id(user_id, exp=None):
+def issue_token(user, exp=None):
     uuid = generate_uuid()
-    token = Token(user_id=user_id, token=uuid)
+    token = Token(user_id=user.id, token=uuid)
     db.session.add(token)
 
     exp = exp or get_exp()
-    payload = {'id': user_id, 'uuid': uuid, 'exp': exp}
+    payload = {'id': user.id, 'uuid': uuid, 'exp': exp}
     token = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return token.decode('utf-8')
 
@@ -364,10 +360,13 @@ def generate_activation_token(user_id):
     return new_token.token
 
 def consume_activation_token(user_id, token):
-    found = ActivationToken.get(user_id)
+    found = (
+        ActivationToken.query
+        .filter_by(user_id=user_id, token=token)
+        .with_for_update()
+        .one_or_none()
+    )
     if not found:
-        return False
-    if found.token != token:
         return False
     db.session.delete(found)
     return True
@@ -378,10 +377,14 @@ def generate_reset_token(user_id):
     return reset_token
 
 def consume_reset_token(user_id, token):
-    found = PasswordResetToken.get(user_id)
+    found = (
+        PasswordResetToken
+        .query
+        .filter_by(user_id=user_id, token=token)
+        .with_for_update()
+        .one_or_none()
+    )
     if not found:
-        return False
-    if found.token != token:
         return False
     db.session.delete(found)
     return True

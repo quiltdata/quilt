@@ -203,57 +203,28 @@ class User(db.Model):
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
 
-    @classmethod
-    def get_by_id(cls, user_id):
-        return cls.query.filter_by(id=user_id).one_or_none()
-
-    @classmethod
-    def get_by_name(cls, username):
-        return cls.query.filter_by(name=username).one_or_none()
-
-    @classmethod
-    def get_by_email(cls, email):
-        return cls.query.filter_by(email=email).one_or_none()
-
 
 class Code(db.Model):
     # each user can have only one code, so only user_id is primary key
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     code = db.Column(postgresql.UUID, nullable=False)
 
-    @classmethod
-    def get(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).one_or_none()
 
 class Token(db.Model):
-    # each user can have an arbitrary number of tokens, so 
+    # each user can have an arbitrary number of tokens, so
     #   both user_id and token are primary keys
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, primary_key=True)
 
-    @classmethod
-    def get(cls, user_id, token):
-        return cls.query.filter_by(user_id=user_id).filter_by(token=token).one_or_none()
-
-    @classmethod
-    def get_all(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).all()
 
 class ActivationToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, nullable=False)
 
-    @classmethod
-    def get(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).one_or_none()
 
 class PasswordResetToken(db.Model):
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
     token = db.Column(postgresql.UUID, nullable=False)
-
-    @classmethod
-    def get(cls, user_id):
-        return cls.query.filter_by(user_id=user_id).one_or_none()
 
     @classmethod
     def upsert(cls, user_id, token):

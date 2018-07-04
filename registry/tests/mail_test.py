@@ -17,7 +17,7 @@ class MailTestCase(QuiltTestCase):
     @patch('quilt_server.mail.send_email')
     def testTemplates(self, send_email):
         # just make sure all templates work
-        test_user = User.get_by_name(self.TEST_USER)
+        test_user = User.query.filter_by(name=self.TEST_USER).one_or_none()
         with app.app_context():
             send_new_user_email(self.TEST_USER, self.TEST_USER_EMAIL,
                     ['admin@example.com', 'admin2@example.com'])
@@ -27,7 +27,7 @@ class MailTestCase(QuiltTestCase):
 
     @patch('quilt_server.mail.send_email')
     def testLinkWorksCorrectly(self, send_email):
-        test_user = User.get_by_name(self.TEST_USER)
+        test_user = User.query.filter_by(name=self.TEST_USER).one_or_none()
         test_link = '123456789'
         expected_test_link = 'http://localhost:5000/activate/123456789'
         with app.app_context():

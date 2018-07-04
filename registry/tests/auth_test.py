@@ -23,7 +23,7 @@ class AuthTestCase(QuiltTestCase):
     """
     def setUp(self):
         super(AuthTestCase, self).setUp()
-        self.TEST_USER_ID = User.get_by_name(self.TEST_USER).id
+        self.TEST_USER_ID = User.query.filter_by(name=self.TEST_USER).one_or_none().id
         self.token_verify_mock.stop() # disable auth mock
 
     def getToken(self, username=None, password=None):
@@ -48,16 +48,16 @@ class AuthTestCase(QuiltTestCase):
         assert code == decode_code(encode_code(code))
 
     def testIssueToken(self):
-        assert issue_token(self.TEST_USER)
+        assert issue_token(User.query.filter_by(name=self.TEST_USER).one_or_none())
 
     def testDeleteUser(self):
-        assert User.get_by_name(self.OTHER_USER)
-        _delete_user(User.get_by_name(self.OTHER_USER))
+        assert User.query.filter_by(name=self.OTHER_USER).one_or_none()
+        _delete_user(User.query.filter_by(name=self.OTHER_USER).one_or_none())
         db.session.commit()
-        assert not User.get_by_name(self.OTHER_USER)
+        assert not User.query.filter_by(name=self.OTHER_USER).one_or_none()
 
     def testUserExists(self):
-        assert User.get_by_name(self.TEST_USER)
+        assert User.query.filter_by(name=self.TEST_USER).one_or_none()
 
     def testDuplicateUserFails(self):
         try:

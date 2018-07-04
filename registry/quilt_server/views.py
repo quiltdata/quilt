@@ -37,7 +37,7 @@ import stripe
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_as_code,
-                   issue_token, issue_token_by_id, try_login, verify_token_string,
+                   issue_token, try_login, verify_token_string,
                    reset_password, exp_from_token, _create_user,
                    _enable_user, _disable_user, revoke_token_string,
                    reset_password_response, activate_response,
@@ -194,7 +194,8 @@ def oauth_callback():
         try_code = consume_code_string(code) # try as one-time code
         if try_code:
             exp = get_exp()
-            token = issue_token_by_id(try_code.user_id, exp)
+            user = User.query.filter_by(id=try_code.user_id).one_or_none()
+            token = issue_token(user, exp)
         else:
             verify_token_string(code)
             exp = exp_from_token(code)
@@ -221,7 +222,7 @@ CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 @as_json
 def token():
     def token_success(user):
-        new_token = issue_token_by_id(user.id)
+        new_token = issue_token(user)
         exp = exp_from_token(new_token)
         db.session.commit()
         return dict(
@@ -376,7 +377,8 @@ def login_post():
     username = data.get('username')
     password = data.get('password')
     if try_login(username, password):
-        token = issue_token(username)
+        user = User.query.filter_by(name=username).one_or_none()
+        token = issue_token(user)
         db.session.commit()
         return {'token': token}
 
@@ -434,7 +436,7 @@ CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}
 def refresh():
     token_str = request.headers.get(AUTHORIZATION_HEADER)
     revoke_token_string(token_str)
-    token = issue_token(g.auth.user)
+    token = issue_token(g.user)
     db.session.commit()
     return {'token': token}
 
@@ -456,7 +458,7 @@ CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 @api()
 @as_json
 def get_code():
-    user = User.get_by_name(g.user.name)
+    user = User.query.filter_by(name=g.user.name).one_or_none()
     code = issue_code(user)
     db.session.commit()
     return {'code': code}
@@ -1665,7 +1667,7 @@ def access_put(owner, package_name, user):
         elif user == TEAM:
             if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
-        elif not User.get_by_name(user):
+        elif not User.query.filter_by(name=user).one_or_none():
             raise ApiException(
                 requests.codes.not_found,
                 "User %s does not exist" % user
@@ -2280,7 +2282,7 @@ def package_summary():
 def admin_reset_password():
     data = request.get_json()
     username = data['username']
-    user = User.get_by_name(username)
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
     if not user:
         raise ApiException(requests.codes.not_found, "User not found.")
 

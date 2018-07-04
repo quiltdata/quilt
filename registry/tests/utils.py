@@ -62,7 +62,7 @@ class QuiltTestCase(TestCase):
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
         def mock_verify(username_or_token):
-            user = User.get_by_name(username_or_token)
+            user = User.query.filter_by(name=username_or_token).one_or_none()
             if user:
                 return user
             else:
