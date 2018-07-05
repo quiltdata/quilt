@@ -30,14 +30,14 @@ def dataset(
     target_transform=None,
     **kwargs):
     """Convert immediate children of a GroupNode into a torch.data.Dataset
-
     Keyword arguments
     * include=lambda x: True
       lambda(quilt.nodes.GroupNode) => {True, False};
       intended to filter nodes based on metadata
-
-    * input_transform: applied on, and returned, from __getitem__
-    * output_transform: applied to copy(item) and returned, from __getitem__
+    * input_transform=None - applied to child nodes before returning them from
+      Dataset.__getitem__
+    * output_transform=None - applied to copy(input_transform(node));
+      returned from Dataset.__getitem__
     """
     def _dataset(node, paths):
         return DatasetFromGroupNode(
@@ -52,8 +52,8 @@ class DatasetFromGroupNode(Dataset):
         self,
         group,
         include=lambda x: True,
-        input_transform=None,
-        target_transform=None):
+        input_transform,
+        target_transform):
 
         super(DatasetFromGroupNode, self).__init__()
 
