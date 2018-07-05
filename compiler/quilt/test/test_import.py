@@ -541,8 +541,7 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/imgtest')
 
         outfile = os.path.join('.', 'temp-plot.png')
-        plt.figure(figsize=(10, 10))
-        pkg.mixed.img(asa=plot())
+        pkg.mixed.img(asa=plot(figsize=(10, 10)))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
 
@@ -562,8 +561,7 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/imgtest')
 
         outfile = os.path.join('.', 'temp-formats-plot.png')
-        plt.figure(figsize=(10, 10))
-        pkg.mixed.img(asa=plot(formats=['png']))
+        pkg.mixed.img(asa=plot(figsize=(10, 10), formats=['png']))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
 

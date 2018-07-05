@@ -28,7 +28,7 @@ from quilt.tools.const import ELLIPSIS
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.build import splitext_no_dot
 
-def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
+def plot(figsize=None, formats=None, limit=100, titlelen=10, **kwargs):
     """Display an image [in a Jupyter Notebook] from a Quilt fragment path.
     Intended for use with `%matplotlib inline`.
 
@@ -36,7 +36,7 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
     `plt.imshow(image.imread(FRAG_PATH))`.
 
     Keyword arguments
-    * figsize=(10, 10) # (HEIGHT_INCHES, WIDTH_INCHES)
+    * figsize=None # None means auto, else provide (HEIGHT_INCHES, WIDTH_INCHES)
     * formats=None # List of extensions as strings ['jpg', 'png', ...]
     * limit=100 # maximum number of images to display
     * titlelen=10 # max number of characters in subplot title
@@ -75,10 +75,15 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
         floatlen = float(len(display)) # so we can ceil
-        cols = int(floor(sqrt(floatlen)))
+        cols = min(int(floor(sqrt(floatlen))), 8)
         rows = int(ceil(floatlen/cols))
+
         plt.tight_layout()
-        plt.subplots(rows, cols, figsize=figsize, **kwargs)
+        plt.subplots(
+            rows,
+            cols,
+            figsize=(cols*2, rows*2) if not figsize else figsize,
+            **kwargs)
 
         for i in range(rows*cols):
             axes = plt.subplot(rows, cols, i + 1) # subplots start at 1, not 0
