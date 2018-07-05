@@ -68,7 +68,7 @@ install:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      cd catalog && npm ci
+      cd catalog && (npm ci; cd ..)
     fi
 
 script:
@@ -82,7 +82,7 @@ script:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      npm test
+      cd catalog && (npm test; cd ..)
     fi
 
 after_success:
