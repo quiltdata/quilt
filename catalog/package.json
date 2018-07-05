@@ -21,7 +21,7 @@
     "preinstall": "npm run npmcheckversion",
     "postinstall": "npm run build:dll",
     "prebuild": "npm run build:clean",
-    "build": "cross-env NODE_ENV=production webpack --config internals/webpack/webpack.prod.babel.js --color -p --progress --hide-modules --display-optimization-bailout",
+    "build": "cross-env NODE_ENV=production webpack --config internals/webpack/webpack.prod.babel.js --color --progress --hide-modules --display-optimization-bailout",
     "build:clean": "rimraf ./build",
     "build:dll": "node ./internals/scripts/dependencies.js",
     "start": "cross-env NODE_ENV=development node server",
@@ -213,17 +213,18 @@
   "jest": {
     "collectCoverageFrom": [
       "app/**/*.{js,jsx}",
-      "!app/**/*.test.{js,jsx}",
+      "!app/**/tests/**/*.{js,jsx}",
+      "!app/**/{test,spec}.js",
       "!app/*/RbGenerated*/*.{js,jsx}",
       "!app/app.js",
       "!app/*/*/Loadable.js"
     ],
     "coverageThreshold": {
       "global": {
-        "statements": 98,
-        "branches": 91,
-        "functions": 98,
-        "lines": 98
+        "statements": 1,
+        "branches": 1,
+        "functions": 1,
+        "lines": 1
       }
     },
     "moduleDirectories": [
@@ -240,7 +241,7 @@
       "jest-localstorage-mock",
       "<rootDir>/internals/testing/enzyme-setup.js"
     ],
-    "testRegex": "tests/.*\\.test\\.js$",
+    "testRegex": ".*\\.(test|spec)\\.js$",
     "snapshotSerializers": [
       "enzyme-to-json/serializer"
     ]
@@ -311,7 +312,6 @@
     "babel-preset-stage-0": "^6.24.1",
     "circular-dependency-plugin": "^4.4.0",
     "copy-webpack-plugin": "^4.0.1",
-    "coveralls": "^3.0.0",
     "css-loader": "^0.28.9",
     "enzyme": "^3.3.0",
     "enzyme-adapter-react-16": "^1.1.1",
@@ -333,7 +333,7 @@
     "imports-loader": "^0.7.1",
     "jest-cli": "^22.1.4",
     "jest-localstorage-mock": "^2.2.0",
-    "lint-staged": "^7.1.0",
+    "lint-staged": "^7.2.0",
     "ngrok": "^2.2.25",
     "node-plop": "^0.9.0",
     "null-loader": "^0.1.1",

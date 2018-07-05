@@ -213,6 +213,7 @@ def download_fragments(store, obj_urls, obj_sizes):
 
     return len(downloaded) == total
 
+
 def upload_fragments(store, obj_urls, obj_sizes, reupload=False):
     assert len(obj_urls) == len(obj_sizes)
 
@@ -224,11 +225,7 @@ def upload_fragments(store, obj_urls, obj_sizes, reupload=False):
     uploaded = []
     lock = Lock()
 
-    headers = {
-        'Content-Encoding': 'gzip'
-    }
-
-    print("Uploading %d fragments (%d bytes before compression)..." % (total, total_bytes))
+    print("Uploading %d fragments (%d bytes)..." % (total, total_bytes))
 
     with tqdm(total=total_bytes, unit='B', unit_scale=True) as progress:
         def _worker_thread():
@@ -242,31 +239,13 @@ def upload_fragments(store, obj_urls, obj_sizes, reupload=False):
 
                     try:
                         if reupload or not s3_session.head(obj_urls['head']).ok:
-                            # Create a temporary gzip'ed file.
-                            with tempfile.TemporaryFile() as temp_file:
-                                with open(store.object_path(obj_hash), 'rb') as input_file:
-                                    with gzip.GzipFile(fileobj=temp_file, mode='wb',
-                                                       compresslevel=ZLIB_LEVEL) as gzip_file:
-                                        copyfileobj(input_file, gzip_file, CHUNK_SIZE)
-                                compressed_size = temp_file.tell()
-                                temp_file.seek(0)
-
-                                # Workaround for non-local variables in Python 2.7
-                                class Context:
-                                    compressed_read = 0
-                                    original_last_update = 0
-
-                                def _progress_cb(count):
-                                    Context.compressed_read += count
-                                    original_read = Context.compressed_read * original_size // compressed_size
-                                    with lock:
-                                        progress.update(original_read - Context.original_last_update)
-                                    Context.original_last_update = original_read
-
-                                with FileWithReadProgress(temp_file, _progress_cb) as fd:
-                                    url = obj_urls['put']
-                                    response = s3_session.put(url, data=fd, headers=headers)
-                                    response.raise_for_status()
+                            with FileWithReadProgress(store.object_path(obj_hash), progress.update) as fd:
+                                url = obj_urls['put']
+                                # Work around a `requests` bug: it treats size 0 as "unknown" and
+                                # uses chunked encoding - which S3 doesn't support.
+                                data = fd if original_size > 0 else b''
+                                response = s3_session.put(url, data=data)
+                                response.raise_for_status()
                         else:
                             with lock:
                                 tqdm.write("Fragment %s already uploaded; skipping." % obj_hash)

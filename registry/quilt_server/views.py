@@ -535,19 +535,6 @@ def _private_packages_allowed():
     plan = _get_customer_plan(customer)
     return plan != PaymentPlan.FREE
 
-@app.route('/api/blob/<owner>/<blob_hash>', methods=['GET'])
-@api()
-@as_json
-def blob_get(owner, blob_hash):
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the owner can upload objects.")
-    return dict(
-        head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-        get=_generate_presigned_url(S3_GET_OBJECT, owner, blob_hash),
-        put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash),
-    )
-
 @app.route('/api/get_objects', methods=['POST'])
 @api(require_login=False, schema=GET_OBJECTS_SCHEMA)
 @as_json
@@ -581,8 +568,15 @@ def download_object_preview_impl(owner, obj_hash):
     )
 
     body = resp['Body']
-    with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-        data = fd.read(MAX_PREVIEW_SIZE)
+    encoding = resp.get('ContentEncoding')
+    if encoding == 'gzip':
+        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+            data = fd.read(MAX_PREVIEW_SIZE)
+    elif encoding is None:
+        data = body.read(MAX_PREVIEW_SIZE)
+    else:
+        # GzipFile raises an OSError if ungzipping fails, so do the same here.
+        raise OSError("Unexpected encoding: %r" % encoding)
 
     return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
 
