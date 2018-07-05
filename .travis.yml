@@ -6,6 +6,8 @@ os:
 
 env:
   global:
+    # Compiler and stuff
+    - TEST_COMPILER=false
     # Registry supports only a subset of the matrix
     - TEST_REGISTRY=false
     # Registry configs
@@ -13,6 +15,8 @@ env:
     - FLASK_DEBUG=1
     - QUILT_SERVER_CONFIG=dev_config.py
     - QUILT_SECRET_KEY=testing
+    # Catalog
+    - TEST_CATALOG=false
 
 addons:
   postgresql: "9.6"
@@ -23,10 +27,13 @@ matrix:
     - os: linux
       language: python
       python: "2.7"
+      env:
+        TEST_COMPILER=true
     - os: linux
       language: python
       python: "3.5"
       env:
+        TEST_COMPILER=true
         TEST_REGISTRY=true
       services:
         - postgresql
@@ -34,22 +41,50 @@ matrix:
       language: python
       python: "3.6"
       env:
+        TEST_COMPILER=true
         TEST_REGISTRY=true
       services:
         - postgresql
+    - os: linux
+      language: node_js
+      cache:
+        directories:
+          - $HOME/.npm
+      node_js:
+        - node
+        - lts
+      env:
+        TEST_CATALOG=true
 
 install:
-  # install quilt from setup.py
-  - travis_retry pip install ./compiler['tests']
+  - |
+    # install quilt from setup.py
+    if [[ "$TEST_COMPILER" = true ]]; then
+      travis_retry pip install ./compiler['tests']
+    fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
       travis_retry pip install -r registry/requirements.txt
       pip install registry
     fi
+  - |
+    if [[ "$TEST_CATALOG" = true ]]; then
+      cd catalog && npm ci
+    fi
 
 script:
-  - pytest compiler
+  - |
+    if [[ "$TEST_COMPILER" = true ]]; then
+      pytest --cov=./ compiler
+    fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
-      pytest ./registry
+      pytest --cov=./ ./registry
     fi
+  - |
+    if [[ "$TEST_CATALOG" = true ]]; then
+      npm test
+    fi
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
