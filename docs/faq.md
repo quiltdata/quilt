@@ -164,4 +164,4 @@ Symbolic links on Windows have a few quirks to be aware of.
  Seen on Ubuntu 18.04, Google Cloud Platform.
  
  ### Solution
- `sudo pip install quilt` # ¯\_(ツ)_/¯
+ `sudo pip install quilt # ¯\_(ツ)_/¯`

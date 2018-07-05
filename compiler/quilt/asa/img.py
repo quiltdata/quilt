@@ -32,12 +32,12 @@ def plot(figsize=(10, 10), formats=None, limit=100, titlelen=10, **kwargs):
     """Display an image [in a Jupyter Notebook] from a Quilt fragment path.
     Intended for use with `%matplotlib inline`.
 
-    Convenience method for looping over supblots that call
-    `plt.imshow(image.imread(FILE_PATH))`.
+    Convenience method that loops over supblots that call
+    `plt.imshow(image.imread(FRAG_PATH))`.
 
     Keyword arguments
     * figsize=(10, 10) # (HEIGHT_INCHES, WIDTH_INCHES)
-    * formats=None # only display images with these extensions
+    * formats=None # List of extensions as strings ['jpg', 'png', ...]
     * limit=100 # maximum number of images to display
     * titlelen=10 # max number of characters in subplot title
     * **kwargs - all remaining kwargs are passed to plt.subplots;
