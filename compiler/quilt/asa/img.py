@@ -72,7 +72,7 @@ def plot(figsize=None, formats=None, limit=100, titlelen=10, **kwargs):
             return
         # cast to int to avoid downstream complaints of
         # 'float' object cannot be interpreted as an index
-        floatlen = float(len(display)) # so we can ceil
+        floatlen = float(len(display)) # prevent integer division in 2.7
         cols = min(int(floor(sqrt(floatlen))), 8)
         rows = int(ceil(floatlen/cols))
 
