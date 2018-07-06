@@ -519,6 +519,7 @@ class ImportTest(QuiltTestCase):
 
         ima, imb: PIL.Image instances
         """
+<<<<<<< HEAD
         # normalize pixels to 0-1 range
         ima_ = np.array(ima).astype('float')/255.
         imb_ = np.array(imb).astype('float')/255.
@@ -528,6 +529,15 @@ class ImportTest(QuiltTestCase):
             assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
         # sum of normalized channel differences squared
         error_ = np.sum((ima_ - imb_) ** 2)
+=======
+        ima_ = np.array(ima).astype('float')
+        imb_ = np.array(imb).astype('float')
+        assert ima_.shape == imb_.shape, 'ima and imb must have same shape'
+        for x, y, _ in (ima_.shape, imb_.shape):
+            assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
+        # sum of normalized channel differences squared
+        error_ = np.sum(((ima_ - imb_)/255) ** 2)
+>>>>>>> master
         # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
 
