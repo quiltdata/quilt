@@ -22,10 +22,10 @@ from torch.utils.data import Dataset
 from quilt.nodes import GroupNode
 
 def dataset(
-    node_parser,
-    include=lambda x: True,
-    input_transform=None,
-    target_transform=None):
+        node_parser,
+        include=lambda x: True,
+        input_transform=None,
+        target_transform=None):
     """Convert immediate children of a GroupNode into a torch.data.Dataset
     Keyword arguments
     * node_parser=callable that converts a DataNode to a Dataset item
@@ -52,14 +52,17 @@ def dataset(
 
     return _dataset
 
+# pylint: disable=too-few-public-methods
+# reason: this interface is baked by torch
 class DatasetFromGroupNode(Dataset):
+    """Present immediate children of a GroupNode as a torch.dataset"""
     def __init__(
-        self,
-        group,
-        include,
-        node_parser,
-        input_transform,
-        target_transform):
+            self,
+            group,
+            include,
+            node_parser,
+            input_transform,
+            target_transform):
 
         super(DatasetFromGroupNode, self).__init__()
 

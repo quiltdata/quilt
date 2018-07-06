@@ -1,28 +1,30 @@
 """
 Tests for magic imports.
 """
-
 import os
 import time
 
-# matplotlib import must happen first
+# the following two lines must happen first
 import matplotlib as mpl
-# specify a backend so renderer doesn't barf; must happen immediately after import
-mpl.use('Agg')
+mpl.use('Agg') # specify a backend so renderer doesn't barf
 # pylint: disable=wrong-import-position
+from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize
+from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from six import string_types
+from torch import Tensor
 
-from quilt.asa.img import plot
-from quilt.nodes import GroupNode, DataNode
 from quilt.tools import command
+from quilt.nodes import DataNode, GroupNode
 from quilt.tools.const import PACKAGE_DIR_NAME
 from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
+from quilt.asa.img import plot
 from .utils import patch, QuiltTestCase
+from quilt.asa.torch import dataset
 
  # pylint: disable=protected-access
 class ImportTest(QuiltTestCase):
@@ -519,17 +521,6 @@ class ImportTest(QuiltTestCase):
 
         ima, imb: PIL.Image instances
         """
-<<<<<<< HEAD
-        # normalize pixels to 0-1 range
-        ima_ = np.array(ima).astype('float')/255.
-        imb_ = np.array(imb).astype('float')/255.
-        assert ima_.shape == imb_.shape, 'ima and imb must have same shape'
-        for shape in (ima_.shape, imb_.shape):
-            x, y, _ = shape
-            assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
-        # sum of normalized channel differences squared
-        error_ = np.sum((ima_ - imb_) ** 2)
-=======
         ima_ = np.array(ima).astype('float')
         imb_ = np.array(imb).astype('float')
         assert ima_.shape == imb_.shape, 'ima and imb must have same shape'
@@ -537,7 +528,6 @@ class ImportTest(QuiltTestCase):
             assert x > 0 and y > 0, 'unexpected image dimension: {}'.format(shape)
         # sum of normalized channel differences squared
         error_ = np.sum(((ima_ - imb_)/255) ** 2)
->>>>>>> master
         # normalize by total number of samples
         error_ /= float(ima_.shape[0] * imb_.shape[1])
 
@@ -582,6 +572,72 @@ class ImportTest(QuiltTestCase):
 
         assert self._are_similar(ref_img, tst_img), \
             'render differs from reference: {}'.format(ref_img)
+
+    def test_asa_torch(self):
+        """test asa.torch interface by converting a GroupNode with asa="""
+        # pylint: disable=missing-docstring
+        # helper functions to simulate real pytorch dataset usage
+        def calculate_valid_crop_size(crop_size, upscale_factor):
+            return crop_size - (crop_size % upscale_factor)
+
+        def node_parser(node):
+            path = node()
+            if isinstance(path, string_types):
+                img = Image.open(path).convert('YCbCr')
+                chan, _, _ = img.split()
+                return chan
+            else:
+                raise TypeError('Expected string path to an image fragment')
+
+        def input_transform(crop_size, upscale_factor):
+            return Compose([
+                CenterCrop(crop_size),
+                Resize(crop_size // upscale_factor),
+                ToTensor(),
+            ])
+
+        def target_transform(crop_size):
+            def _inner(img):
+                img_ = img.copy()
+                return Compose([
+                    CenterCrop(crop_size),
+                    ToTensor(),
+                ])(img_)
+            return _inner
+
+        def is_image(node):
+            """file extension introspection on Quilt nodes"""
+            if isinstance(node, DataNode):
+                filepath = node._meta.get('_system', {}).get('filepath')
+                if filepath:
+                    return any(
+                        filepath.endswith(extension)
+                        for extension in [".png", ".jpg", ".jpeg"])
+        # end helper functions
+
+        mydir = os.path.dirname(__file__)
+        build_path = os.path.join(mydir, 'build_img.yml')
+        command.build('foo/torchtest', build_path)
+        pkg = command.load('foo/torchtest')
+
+        upscale_factor = 3
+        crop_size = calculate_valid_crop_size(256, upscale_factor)
+        my_dataset = pkg.mixed.img(asa=dataset(
+            include=is_image,
+            node_parser=node_parser,
+            input_transform=input_transform(crop_size, upscale_factor),
+            target_transform=target_transform(crop_size)
+        ))
+        assert isinstance(my_dataset, Dataset), \
+            'expected type {}, got {}'.format(type(Dataset), type(my_dataset))
+
+        assert my_dataset.__len__() == 2, \
+            'expected two images in mixed.img, got {}'.format()
+
+        for i in range(my_dataset.__len__()):
+            tens = my_dataset.__getitem__(i);
+            assert all((isinstance(x, Tensor) for x in tens)), \
+                'Expected all torch.Tensors in tuple, got {}'.format(tens)
 
     def test_memory_only_datanode_asa(self):
         testdata = "justatest"

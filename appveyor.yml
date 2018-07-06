@@ -12,19 +12,15 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
-
     - PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
 
-
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
-
-
 
     # Enable this if want to use conda
     #- PYTHON: "C:\\Miniconda3"
@@ -54,7 +50,7 @@ install:
       }
 
   - ECHO "Install quilt compiler"
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests,torch]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {

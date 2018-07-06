@@ -63,10 +63,11 @@ setup(
             'pytest',
             'pytest-cov',
             'responses>=0.7.0',
+            'torchvision>=0.2.1'
         ],
         # See quilt.asa.torch module
         'torch': [
-            'torch>=0.4.0',
+            'torch>=0.4.0'
         ]
     },
     include_package_data=True,
