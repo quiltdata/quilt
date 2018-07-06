@@ -45,13 +45,13 @@ def plot(figsize=None, formats=None, limit=100, titlelen=10, **kwargs):
     """
     # pylint: disable=protected-access
     def _plot(node, paths):
-        lower_formats = set((x.lower() for x in formats)) if formats !=None else None
-        def node_filter(_, frag, meta):
+        lower_formats = set((x.lower() for x in formats)) if formats is not None else None
+        def node_filter(frag, meta):
             filepath = meta.get('_system', {}).get('filepath', None)
             # don't try to read DataFrames as images
             if isinstance(frag, string_types) and filepath:
                 _, ext = splitext_no_dot(filepath)
-                if formats is None or ext.lower() in lower_formats:
+                if lower_formats is None or ext.lower() in lower_formats:
                     return True
             return False
         # assume DataNode has one path; doesn't work with multi-fragment images
@@ -62,9 +62,7 @@ def plot(figsize=None, formats=None, limit=100, titlelen=10, **kwargs):
             display = [(x, y._data(), y._meta) for (x, y) in datanodes]
             # sort by name so iteration is reproducible (and unit tests pass)
             display = sorted(display, key=lambda rec: rec[0])
-            if filter != None:
-                # *x to destructure the tuple into individual params
-                display = [x for x in display if node_filter(*x)]
+            display = [x for x in display if node_filter(x[1], x[2])]
             if len(display) > limit:
                 print('Displaying {} of {} images{}'.format(limit, len(display), ELLIPSIS))
                 display = display[:limit]
