@@ -14,6 +14,7 @@ environment:
 
   matrix:
     - PYTHON_VERSION: "3.5"
+      CONDA: 
     - PYTHON_VERSION: "3.6"
 
 init:
@@ -21,7 +22,7 @@ init:
 
 install:
   - echo $(python --version)
-  - set "CONDA_ROOT=%CONDA%"
+  - set "CONDA_ROOT=C:\Miniconda%BASE_PYTHON_VERSION%%ARCH_LABEL%"
   - set "PATH=%CONDA_ROOT%;%CONDA_ROOT%\Scripts;%CONDA_ROOT%\Library\bin;%PATH%"
   - set PATH
   - conda config --set always_yes yes
