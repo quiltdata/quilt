@@ -37,12 +37,13 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
+        'Cython',                           # Windows pyarrow fails without this
         'enum34; python_version<"3.0"',     # stdlib backport
         'future>=0.16.0',                   # stdlib backport: 'from builtins import xxx', plus others.
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.6"',   # stdlib backport
-        'pyarrow',            # TODO(dima): Make unit tests work with 0.8.*.
+        'pyarrow',                          # TODO(dima): Make unit tests work with 0.8.*.
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'six>=1.10.0',
