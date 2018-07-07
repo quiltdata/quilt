@@ -17,7 +17,7 @@ environment:
     - PYTHON_VERSION: "3.6"
 
 init:
-  - "Init: Python=%PYTHON_VERSION% Build=%APPVEYOR_BUILD_NUMBER%"
+  - "echo Init: Python=%PYTHON_VERSION% Build=%APPVEYOR_BUILD_NUMBER%"
 
 install:
   - echo $(python --version)
