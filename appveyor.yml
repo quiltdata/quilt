@@ -38,6 +38,7 @@ install:
   - echo $(python --version)
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "SET PATH=%TEST_REGISTRY%;%TEST_REGISTRY%\\Scripts;%PATH%"
+  - "SET PATH=%CONDA%;%CONDA%\Scripts;%PATH%"
   - ps: |
       if($env:PYTHON -match "conda")
       {
@@ -53,7 +54,7 @@ install:
 
   - ECHO "Install quilt compiler"
 
-  - ps: $env:CONDA install pytorch-cpu torchvision-cpu -c pytorch
+  - ps: conda install pytorch-cpu torchvision-cpu -c pytorch
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
