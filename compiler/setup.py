@@ -59,8 +59,7 @@ setup(
         # See quilt.asa.pytorch module
         'pytorch': [
             # May not work on Linux, Windows; See https://pytorch.org/
-            'torch',
-            'torchvision'
+            'torch'
         ],
         # For dev testing
         'tests': [
@@ -70,6 +69,10 @@ setup(
             'pytest-cov',
             'responses>=0.7.0',
         ],
+        'torchvision': [
+            # May not work on Linux, Windows; See https://pytorch.org/
+            'torchvision'
+        ]
     },
     include_package_data=True,
     entry_points={

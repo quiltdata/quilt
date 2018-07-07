@@ -53,8 +53,7 @@ install:
 
   - ECHO "Install quilt compiler"
   - ps: pip3 install "$env:TORCH"
-  - ps: pip3 install torchvision
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests,torchvision]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {

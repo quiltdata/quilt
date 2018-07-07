@@ -185,8 +185,7 @@ bsd.images.test(asa=plot(figsize=(20, 20)))
 
 ##### Install `pytorch` extras, `torchvision`
 ```sh
-pip install quilt[pytorch]
-pip install torchvision
+pip install quilt[pytorch,torchvision]
 ```
 
 ##### Usage
@@ -203,7 +202,7 @@ my_dataset = pkg.mixed.img(asa=dataset(
 ```
 
 See [quiltdata/pytorch-examples](https://github.com/quiltdata/pytorch-examples/blob/master/super_resolution/data.py#L85)
-for futher details.
+for a full code sample.
 
 ### Enumerate package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
