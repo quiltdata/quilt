@@ -12,14 +12,12 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
-    - CONDA: "C:\\Miniconda35-x64"
-      PYTHON: "C:\\Python35-x64"
+    - PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
 
-    - CONDA: "C:\\Miniconda36-x64"
-      PYTHON: "C:\\Python36-x64"
+    - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
@@ -38,7 +36,15 @@ install:
   - echo $(python --version)
   - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
   - "SET PATH=%TEST_REGISTRY%;%TEST_REGISTRY%\\Scripts;%PATH%"
-  - "SET PATH=%CONDA%;%CONDA%\Scripts;%PATH%"
+  - if "%PYTHON_VERSION%" == "3.5" set "BASE_PYTHON_VERSION=35"
+  - if "%PYTHON_VERSION%" == "3.6" set "BASE_PYTHON_VERSION=3"
+  - if "%PYTHON_ARCH%" == "64" set "ARCH_LABEL=-x64"
+  # These are already installed on appveyor.  Update them.
+  - set "CONDA_ROOT=C:\Miniconda%BASE_PYTHON_VERSION%%ARCH_LABEL%"
+  - set "PATH=%CONDA_ROOT%;%CONDA_ROOT%\Scripts;%CONDA_ROOT%\Library\bin;%PATH%"
+  - echo CONDA_PREFIX %CONDA_PREFIX%
+  - conda config --set always_yes yes
+
   - ps: |
       if($env:PYTHON -match "conda")
       {
