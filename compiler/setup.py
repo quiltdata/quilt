@@ -37,7 +37,6 @@ setup(
     keywords='quilt quiltdata shareable data dataframe package platform pandas',
     install_requires=[
         'appdirs>=1.4.0',
-        'Cython',                           # Windows pyarrow fails without this
         'enum34; python_version<"3.0"',     # stdlib backport
         'future>=0.16.0',                   # stdlib backport: 'from builtins import xxx', plus others.
         'packaging>=16.8',
