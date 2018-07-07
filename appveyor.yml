@@ -36,7 +36,7 @@ install:
   - echo PATH %PATH%
   - echo "Install quilt compiler"
   - conda install -c conda-forge pyarrow 
-  - pip3 install torchvision --no-deps
+  - pip install torchvision --no-deps
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
   - conda install pytorch-cpu -c pytorch
