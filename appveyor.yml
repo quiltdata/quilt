@@ -53,7 +53,7 @@ install:
 
   - ECHO "Install quilt compiler"
 
-  - ps: "$env:CONDA" install pytorch-cpu torchvision-cpu -c pytorch
+  - ps: $env:CONDA install pytorch-cpu torchvision-cpu -c pytorch
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
