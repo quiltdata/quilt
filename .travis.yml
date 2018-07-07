@@ -27,12 +27,14 @@ matrix:
       language: python
       python: "2.7"
       env:
+        PIP=pip
         TEST_COMPILER=true
         TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp27-cp27mu-linux_x86_64.whl"
     - os: linux
       language: python
       python: "3.5"
       env:
+        PIP=pip3
         TEST_COMPILER=true
         TEST_REGISTRY=true
         TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl"
@@ -42,6 +44,7 @@ matrix:
       language: python
       python: "3.6"
       env:
+        PIP=pip3
         TEST_COMPILER=true
         TEST_REGISTRY=true
         TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-linux_x86_64.whl"
@@ -63,7 +66,7 @@ install:
     # install quilt from setup.py
     if [[ "$TEST_COMPILER" = true ]]; then
       # pytorch doesn't fully support pip; see https://pytorch.org/
-      travis_retry pip install $TORCH
+      travis_retry $PIP install $TORCH
       travis_retry pip install "./compiler[img,tests]"
     fi
   - |
