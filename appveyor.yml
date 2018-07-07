@@ -35,6 +35,7 @@ install:
   - echo CONDA_PREFIX %CONDA_PREFIX%
   - echo PATH %PATH%
   - echo "Install quilt compiler"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
   - conda install pytorch-cpu -c pytorch
   # must install torchvision after pytorch
