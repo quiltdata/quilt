@@ -35,11 +35,12 @@ install:
   - echo CONDA_PREFIX %CONDA_PREFIX%
   - echo PATH %PATH%
   - echo "Install quilt compiler"
-  - conda install -c conda-forge pyarrow 
-  - pip install torchvision --no-deps
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
+  - conda install -c conda-forge pyarrow 
   - conda install pytorch-cpu -c pytorch
+  - pip install torchvision --no-deps
+
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
