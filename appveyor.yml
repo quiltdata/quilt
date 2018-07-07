@@ -12,12 +12,14 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
-    - PYTHON: "C:\\Python35-x64"
+    - CONDA: "C:\Miniconda35-x64"
+      PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
 
-    - PYTHON: "C:\\Python36-x64"
+    - CONDA: "C:\Miniconda36-x64"
+      PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
@@ -51,7 +53,7 @@ install:
 
   - ECHO "Install quilt compiler"
 
-  - ps: conda install pytorch-cpu torchvision-cpu -c pytorch
+  - ps: $env:CONDA install pytorch-cpu torchvision-cpu -c pytorch
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
@@ -72,4 +74,3 @@ test_script:
         Write-Host "Test registry"
         pytest "$env:APPVEYOR_BUILD_FOLDER\\registry"
       }
-
