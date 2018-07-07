@@ -13,8 +13,6 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
-    fast_finish: true
-
     - PYTHON_VERSION: "3.5"
     - PYTHON_VERSION: "3.6"
 
