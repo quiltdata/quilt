@@ -16,11 +16,13 @@ environment:
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
+      TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-win_amd64.whl"
 
     - PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
+      TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
 
     # Enable this if want to use conda
     #- PYTHON: "C:\\Miniconda3"
@@ -50,7 +52,7 @@ install:
       }
 
   - ECHO "Install quilt compiler"
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,pytorch,tests]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
