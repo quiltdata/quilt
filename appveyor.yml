@@ -14,11 +14,10 @@ environment:
 
   matrix:
     - PYTHON_VERSION: "3.5"
-      CONDA: 
     - PYTHON_VERSION: "3.6"
 
 init:
-  - "echo Init: Python=%PYTHON_VERSION% Build=%APPVEYOR_BUILD_NUMBER%"
+  - echo "Python=%PYTHON_VERSION% Build=%APPVEYOR_BUILD_NUMBER%"
 
 install:
   - echo $(python --version)
@@ -36,11 +35,11 @@ install:
   - echo CONDA_PREFIX %CONDA_PREFIX%
   - echo PATH %PATH%
   - echo "Install quilt compiler"
-  - pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
   - conda install pytorch-cpu -c pytorch
   # must install torchvision after pytorch
-  - pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision]"
-  - |
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision]"
+  - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
         Write-Host "Install quilt registry"
@@ -52,8 +51,8 @@ build: off
 
 test_script:
   - ECHO "Test quilt compiler"
-  - pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
-  - |
+  - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
+  - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
         Write-Host "Test registry"
