@@ -58,7 +58,7 @@ setup(
         ],
         # See quilt.asa.pytorch module
         'pytorch': [
-            'pytorch>=0.1.2'
+            'torch>=0.4.0'
         ],
         # For dev testing
         'tests': [
