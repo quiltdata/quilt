@@ -12,13 +12,13 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
-    - CONDA: "C:\Miniconda35-x64"
+    - CONDA: "C:\\Miniconda35-x64"
       PYTHON: "C:\\Python35-x64"
       PYTHON_VERSION: "3.5.0"
       PYTHON_ARCH: "64"
       TEST_REGISTRY: false
 
-    - CONDA: "C:\Miniconda36-x64"
+    - CONDA: "C:\\Miniconda36-x64"
       PYTHON: "C:\\Python36-x64"
       PYTHON_VERSION: "3.6.0"
       PYTHON_ARCH: "64"
