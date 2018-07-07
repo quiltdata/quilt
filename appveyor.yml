@@ -50,7 +50,7 @@ install:
       }
 
   - ECHO "Install quilt compiler"
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,tests,torch]"
+  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\compiler[img,pytorch,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {

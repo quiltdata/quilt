@@ -12,10 +12,10 @@
 
 """Present Quilt packages as PyTorch Datasets
 
-`pip install quilt[torch]`
+`pip install quilt[pytorch]`
 
 Or, in development:
-`pip install -e ./[torch]`
+`pip install -e ./[pytorch]`
 """
 from torch.utils.data import Dataset
 

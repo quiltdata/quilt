@@ -24,7 +24,7 @@ from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from quilt.asa.img import plot
 from .utils import patch, QuiltTestCase
-from quilt.asa.torch import dataset
+from quilt.asa.pytorch import dataset
 
  # pylint: disable=protected-access
 class ImportTest(QuiltTestCase):
@@ -573,7 +573,7 @@ class ImportTest(QuiltTestCase):
         assert self._are_similar(ref_img, tst_img), \
             'render differs from reference: {}'.format(ref_img)
 
-    def test_asa_torch(self):
+    def test_asa_pytorch(self):
         """test asa.torch interface by converting a GroupNode with asa="""
         # pylint: disable=missing-docstring
         # helper functions to simulate real pytorch dataset usage

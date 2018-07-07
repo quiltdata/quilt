@@ -59,7 +59,7 @@ install:
   - |
     # install quilt from setup.py
     if [[ "$TEST_COMPILER" = true ]]; then
-      travis_retry pip install "./compiler[img,tests,torch]"
+      travis_retry pip install "./compiler[img,pytorch,tests]"
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then

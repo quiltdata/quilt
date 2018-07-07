@@ -49,12 +49,16 @@ setup(
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
     ],
-    # Use pip install -e ./[img,tests]
+    # Install with: pip install -e ./[img,tests,...]
     extras_require={
         # See quilt.asa.img module
         'img': [
             'matplotlib>=2.2.2',
             'Pillow>=5.1.0'
+        ],
+        # See quilt.asa.pytorch module
+        'pytorch': [
+            'torch>=0.4'
         ],
         # For dev testing
         'tests': [
@@ -65,10 +69,6 @@ setup(
             'responses>=0.7.0',
             'torchvision>=0.2.1'
         ],
-        # See quilt.asa.torch module
-        'torch': [
-            'torch>=0.4.0'
-        ]
     },
     include_package_data=True,
     entry_points={
