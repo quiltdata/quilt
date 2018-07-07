@@ -19,12 +19,10 @@ environment:
     - PYTHON_VERSION: "3.6"
 
 init:
-  - "ECHO %PYTHON_VERSION% %APPVEYOR_BUILD_NUMBER%"
+  - "Init: Python=%PYTHON_VERSION% Build=%APPVEYOR_BUILD_NUMBER%"
 
 install:
   - echo $(python --version)
-  - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-  - "SET PATH=%TEST_REGISTRY%;%TEST_REGISTRY%\\Scripts;%PATH%"
   - set "CONDA_ROOT=%CONDA%"
   - set "PATH=%CONDA_ROOT%;%CONDA_ROOT%\Scripts;%CONDA_ROOT%\Library\bin;%PATH%"
   - set PATH
