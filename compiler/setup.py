@@ -42,7 +42,7 @@ setup(
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.6"',   # stdlib backport
-        # 'pyarrow',                          # TODO(dima): Make unit tests work with 0.8.*.
+        'pyarrow>=0.4.0,<0.8.0',            # TODO(dima): Make unit tests work with 0.8+
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'six>=1.10.0',
@@ -58,8 +58,9 @@ setup(
         ],
         # See quilt.asa.pytorch module
         'pytorch': [
-            # May not work on Linux, Windows; See https://pytorch.org/
-            'torch>=0.4.0'
+            # May not install on Linux, Windows; See https://pytorch.org/
+            'torch>=0.4.0',
+            'torchvision>=0.2.1'
         ],
         # For dev testing
         'tests': [
@@ -69,10 +70,6 @@ setup(
             'pytest-cov',
             'responses>=0.7.0',
         ],
-        'torchvision': [
-            # May not work on Linux, Windows; See https://pytorch.org/
-            'torchvision>=0.2.1'
-        ]
     },
     include_package_data=True,
     entry_points={

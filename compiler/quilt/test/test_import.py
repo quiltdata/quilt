@@ -2,20 +2,18 @@
 Tests for magic imports.
 """
 import os
+from platform import system
 import time
 
 # the following two lines must happen first
 import matplotlib as mpl
 mpl.use('Agg') # specify a backend so renderer doesn't barf
 # pylint: disable=wrong-import-position
-from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize
-from torch.utils.data import Dataset
 from PIL import Image
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from six import string_types
-from torch import Tensor
 
 from quilt.tools import command
 from quilt.nodes import DataNode, GroupNode
@@ -573,8 +571,16 @@ class ImportTest(QuiltTestCase):
         assert self._are_similar(ref_img, tst_img), \
             'render differs from reference: {}'.format(ref_img)
 
+
+    @pytest.mark.xfail(system() in ['Windows'], reason=(
+      "infeasible to install pytorch on appveyor (even with conda)"
+    ))
     def test_asa_pytorch(self):
         """test asa.torch interface by converting a GroupNode with asa="""
+        from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize
+        from torch.utils.data import Dataset
+
+        from torch import Tensor
         # pylint: disable=missing-docstring
         # helper functions to simulate real pytorch dataset usage
         def calculate_valid_crop_size(crop_size, upscale_factor):

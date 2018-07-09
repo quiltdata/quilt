@@ -17,13 +17,14 @@ environment:
       # see https://www.appveyor.com/docs/build-environment/#python
     - PYTHON_PATH: "C:\\Python35-x64"
       # pytorch for 3.5, no cuda see https://pytorch.org/
-      TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-win_amd64.whl"
+      # deprecated until pytorch is easier to install
+      # TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-win_amd64.whl"
     - PYTHON_PATH: "C:\\Python36-x64"
       # pytorch for 3.5, no cuda see https://pytorch.org/
-      TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
+      # TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
 
-#matrix:
-#  fast_finish: true
+matrix:
+  fast_finish: true
 
 # why use python -m everywhere? to prevent ambiguity of multiple python versions
 # see https://stackoverflow.com/questions/2812520/pip-dealing-with-multiple-python-versions
@@ -35,9 +36,9 @@ install:
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
   - python -m pip install --upgrade pip setuptools
   # must precede torchvision install so torchvision install doesn't fail
-  - ps: python -m pip install "$env:TORCH"
-  - python -m pip install mkl_fft
-  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests,torchvision]"
+  # deprecated until pytorch is easier to install
+  # - ps: python -m pip install "$env:TORCH"
+  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
