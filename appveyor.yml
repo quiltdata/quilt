@@ -13,18 +13,17 @@ environment:
     QUILT_SERVER_CONFIG: dev_config.py
 
   matrix:
+    - fast_finish: true
       # see https://www.appveyor.com/docs/build-environment/#python
     - PYTHON_PATH: "C:\\Python35-x64"
       # pytorch for 3.5, no cuda see https://pytorch.org/
       TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-win_amd64.whl"
-      fast_finish: true
     - PYTHON_PATH: "C:\\Python36-x64"
       # pytorch for 3.5, no cuda see https://pytorch.org/
       TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
-      fast_finish: true
 
 install:
-  - echo $(python --version)
+  - ps: echo $(python --version)
   - set "PATH=%PYTHON_PATH%;%PATH%"
   - set PATH
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
