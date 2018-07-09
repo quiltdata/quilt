@@ -23,7 +23,7 @@ environment:
       TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
 
 matrix:
-  - fast_finish: true
+  fast_finish: true
 
 install:
   - set "PATH=%PYTHON_PATH%;%PATH%"
