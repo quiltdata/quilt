@@ -22,13 +22,14 @@ environment:
       # pytorch for 3.5, no cuda see https://pytorch.org/
       TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
 
-matrix:
-  fast_finish: true
+#matrix:
+#  fast_finish: true
 
 install:
   - set "PATH=%PYTHON_PATH%;%PATH%"
   - set PATH
   - ps: echo $(python --version)
+  - ps: echo $(python -c "import platform; print platform.uname()")
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
   - python -m pip install --upgrade pip setuptools
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
