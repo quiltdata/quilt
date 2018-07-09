@@ -36,7 +36,7 @@ install:
   - python -m pip install --upgrade pip setuptools
   - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
   - ps: python -m pip install "$env:TORCH"
-  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision] --no-deps"
+  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision]" --no-deps
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
