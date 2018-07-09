@@ -49,7 +49,7 @@ build: off
 
 test_script:
   - ECHO "Testing compiler..."
-  - ps: python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
+  - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
