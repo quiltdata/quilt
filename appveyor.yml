@@ -25,6 +25,8 @@ environment:
 #matrix:
 #  fast_finish: true
 
+# why use python -m everywhere? to prevent ambiguity of multiple python versions
+# see https://stackoverflow.com/questions/2812520/pip-dealing-with-multiple-python-versions
 install:
   - set "PATH=%PYTHON_PATH%;%PATH%"
   - set PATH
@@ -32,25 +34,25 @@ install:
   - ps: echo $(python -c "import platform; print(platform.uname())")
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
   - python -m pip install --upgrade pip setuptools
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
-  - ps: pip install "$env:TORCH"
-  - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision] --no-deps"
+  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
+  - ps: python -m pip install "$env:TORCH"
+  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[torchvision] --no-deps"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
         Write-Host "Install quilt registry"
-        pip install -r "$env:APPVEYOR_BUILD_FOLDER\\registry\\requirements.txt"
-        pip install "$env:APPVEYOR_BUILD_FOLDER\\registry"
+        python -m pip install -r "$env:APPVEYOR_BUILD_FOLDER\\registry\\requirements.txt"
+        python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\registry"
       }
 
 build: off
 
 test_script:
   - ECHO "Testing compiler..."
-  - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
+  - ps: python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
         ECHO "Testing registry..."
-        pytest "$env:APPVEYOR_BUILD_FOLDER\\registry"
+        python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\registry"
       }
