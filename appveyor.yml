@@ -1,7 +1,11 @@
-image: Visual Studio 2017
+image: 
+  - Visual Studio 2017
 
 platform:
   - x64
+
+matrix:
+  fast_finish: true
 
 environment:
   global:
@@ -23,9 +27,9 @@ environment:
       TORCH: "http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-win_amd64.whl"
 
 install:
-  - ps: echo $(python --version)
   - set "PATH=%PYTHON_PATH%;%PATH%"
   - set PATH
+  - ps: echo $(python --version)
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
   - python -m pip install --upgrade pip setuptools
   - ps: pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
