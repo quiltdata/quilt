@@ -34,6 +34,7 @@ install:
   - ps: echo $(python -c "import platform; print(platform.uname())")
   # Upgrade pip, setuptools since latest are Visual Studio C++ compiler aware
   - python -m pip install --upgrade pip setuptools
+  - python -m pip install numpy-mkl
   # must precede torchvision install so torchvision install doesn't fail
   - ps: python -m pip install "$env:TORCH"
   - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests,torchvision]"
@@ -49,7 +50,7 @@ build: off
 
 test_script:
   - ECHO "Testing compiler..."
-  - ps: pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
+  - ps: python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
