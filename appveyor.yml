@@ -28,7 +28,7 @@ environment:
 # why use python -m everywhere? to prevent ambiguity of multiple python versions
 # see https://stackoverflow.com/questions/2812520/pip-dealing-with-multiple-python-versions
 install:
-  - set "PATH=%PYTHON_PATH%;%PYTHON_PATH%\\Scripts;%PATH%"
+  - set "PATH=%PYTHON_PATH%;%PYTHON_PATH%\Scripts;%PATH%"
   - set PATH
   - ps: echo $(python --version)
   - ps: echo $(python -c "import platform; print(platform.uname())")
