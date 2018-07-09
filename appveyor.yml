@@ -36,7 +36,7 @@ install:
   - python -m pip install --upgrade pip setuptools
   # must precede torchvision install so torchvision install doesn't fail
   - ps: python -m pip install "$env:TORCH"
-  - python -m pip isntall mkl_fft
+  - python -m pip install mkl_fft
   - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests,torchvision]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
