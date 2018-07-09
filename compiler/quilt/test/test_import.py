@@ -22,7 +22,6 @@ from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from quilt.asa.img import plot
 from .utils import patch, QuiltTestCase
-from quilt.asa.pytorch import dataset
 
  # pylint: disable=protected-access
 class ImportTest(QuiltTestCase):
@@ -579,8 +578,9 @@ class ImportTest(QuiltTestCase):
         """test asa.torch interface by converting a GroupNode with asa="""
         from torchvision.transforms import Compose, CenterCrop, ToTensor, Resize
         from torch.utils.data import Dataset
-
         from torch import Tensor
+
+        from quilt.asa.pytorch import dataset
         # pylint: disable=missing-docstring
         # helper functions to simulate real pytorch dataset usage
         def calculate_valid_crop_size(crop_size, upscale_factor):
