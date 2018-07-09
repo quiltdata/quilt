@@ -20,7 +20,6 @@ PACKAGE = 'groot'
 
 class BuildTest(QuiltTestCase):
 
-    @pytest.mark.xfail(reason="broken in pyarrow >=0.8")
     def test_build_parquet_default(self):
         """
         Test compilation to Parquet via the default library
@@ -37,7 +36,6 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(README())
 
 
-    @pytest.mark.xfail(reason="broken in pyarrow >=0.8")
     def test_build_from_cache(self):
         """
         Build the same package twice and verify that the cache is used and
@@ -300,7 +298,6 @@ class BuildTest(QuiltTestCase):
         with pytest.raises(command.CommandException, match="Naming conflict:"):
             command.build('test/globdata', str(buildfile))
 
-    @pytest.mark.xfail(reason="broken in pyarrow >=0.8")
     def test_build_via_glob(self):
         # TODO: flesh out this test
         # TODO: remove any unused files from globbing

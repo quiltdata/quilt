@@ -2,7 +2,7 @@
 Tests for magic imports.
 """
 import os
-from platform import system
+import platform
 import time
 
 # the following two lines must happen first
@@ -12,6 +12,7 @@ mpl.use('Agg') # specify a backend so renderer doesn't barf
 from PIL import Image
 import numpy as np
 import pandas as pd
+import pytest
 from matplotlib import pyplot as plt
 from six import string_types
 
@@ -571,7 +572,7 @@ class ImportTest(QuiltTestCase):
             'render differs from reference: {}'.format(ref_img)
 
 
-    @pytest.mark.xfail(system() in ['Windows'], reason=(
+    @pytest.mark.xfail(platform.system() in ['Windows'], reason=(
       "infeasible to install pytorch on appveyor (even with conda)"
     ))
     def test_asa_pytorch(self):
