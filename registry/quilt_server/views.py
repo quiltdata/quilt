@@ -36,7 +36,7 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import (_delete_user, consume_code_string, get_exp, issue_code, try_as_code,
+from .auth import (_delete_user, consume_code_string, issue_code,
                    issue_token, try_login, verify_token_string,
                    reset_password, exp_from_token, _create_user,
                    _enable_user, _disable_user, revoke_token_string,
@@ -191,23 +191,25 @@ def oauth_callback():
 
     try:
         # if JWT, don't do anything
-        try_code = consume_code_string(code) # try as one-time code
-        if try_code:
-            exp = get_exp()
-            user = User.query.filter_by(id=try_code.user_id).one_or_none()
-            token = issue_token(user, exp)
+        try:
+            user = consume_code_string(code) # try as one-time code
+        except CredentialException:
+            pass
+
+        if user:
+            code = issue_token(user)
         else:
             verify_token_string(code)
-            exp = exp_from_token(code)
+
+        exp = exp_from_token(code)
         resp = {'refresh_token': code, 'access_token': code, 'expires_at': exp}
 
         if next:
             db.session.commit()
             return redirect('%s#%s' % (next, urlencode(resp)))
 
-        token = resp['refresh_token']
         db.session.commit()
-        return render_template('oauth_success.html', code=token, **common_tmpl_args)
+        return render_template('oauth_success.html', code=code, **common_tmpl_args)
     except OAuth2Error as ex:
         return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
     except AuthException as ex:
@@ -238,9 +240,11 @@ def token():
         abort(requests.codes.bad_request)
 
     # check if one-time code, then if token
-    user = try_as_code(refresh_token)
-    if user:
+    try:
+        user = consume_code_string(refresh_token)
         return token_success(user)
+    except CredentialException:
+        pass
 
     try:
         user = verify_token_string(refresh_token)

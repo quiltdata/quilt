@@ -31,3 +31,8 @@ BAD_NAMES = set([
 
 def blacklisted_name(username):
     return username in BAD_NAMES
+
+ACTIVATE_SALT = 'activate'
+PASSWORD_RESET_SALT = 'reset'
+MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
+CODE_EXP_MINUTES = 10

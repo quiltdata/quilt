@@ -296,6 +296,14 @@ class AuthTestCase(QuiltTestCase):
             data={'refresh_token': code}
         )
         assert token_request.status_code == 200
+
+        # check code doesn't work twice
+        token_request2 = self.app.post(
+            '/api/token',
+            data={'refresh_token': code}
+        )
+        assert token_request2.status_code == 401
+
         payload = json.loads(token_request.data.decode('utf8'))
         assert payload['access_token'] == payload['refresh_token']
         assert 'expires_at' in payload
@@ -392,12 +400,65 @@ class AuthTestCase(QuiltTestCase):
                 )
         assert response.status_code == 400
 
-    # password reset emails
-    # account creation flow
-    # one-time codes
-    # compiler login flow
+    def testMultipleCodes(self):
+        token = self.getToken()
+        def code_request():
+            code_request = self.app.get(
+                '/api/code',
+                headers={
+                    'Authorization': token,
+                    'content-type': 'application/json'
+                }
+            )
+            return code_request
+
+        def exchange_code_for_token(code):
+            token_request = self.app.post(
+                '/api/token',
+                data={'refresh_token': code}
+            )
+            return token_request
+
+        def api_root(token_request):
+            token = json.loads(token_request.data.decode('utf8')).get('access_token')
+            request = self.app.get(
+                '/api-root',
+                headers={
+                    'content-type': 'application/json',
+                    'Authorization': token
+                }
+            )
+            return request
+
+        code1 = code_request()
+        code1unpacked = json.loads(code1.data.decode('utf8')).get('code')
+        code2 = code_request()
+        code2unpacked = json.loads(code2.data.decode('utf8')).get('code')
+        token1 = exchange_code_for_token(code1unpacked)
+        assert token1.status_code == 200
+        token2 = exchange_code_for_token(code2unpacked)
+        assert token2.status_code == 200
+        assert api_root(token1).status_code == 200
+        assert api_root(token2).status_code == 200
+
+    def testCodeExpires(self):
+        self.code_immediate_expire_mock = mock.patch('quilt_server.auth.CODE_EXP_MINUTES', 0)
+        self.code_immediate_expire_mock.start()
+        token = self.getToken()
+        code_request = self.app.get(
+            '/api/code',
+            headers={
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+        )
+        assert code_request.status_code == 200
+        time.sleep(1)
+        code = json.loads(code_request.data.decode('utf8')).get('code')
+        token_request = self.app.post(
+            '/api/token',
+            data={'refresh_token': code}
+        )
+        assert token_request.status_code == 401
+
     # compiler refresh
-    # anti-forgery, expiration, etc
-    # test disabling a user revokes code + tokens
-    # test deleting a user revokes code + tokens
-    # migrate models to id-based instead of name-based primary keys

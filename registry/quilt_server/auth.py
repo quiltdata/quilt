@@ -10,7 +10,9 @@ from passlib.context import CryptContext
 from sqlalchemy import func
 
 from . import app, db
-from .const import VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name
+from .const import (VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name,
+                    ACTIVATE_SALT, PASSWORD_RESET_SALT, MAX_LINK_AGE,
+                    CODE_EXP_MINUTES)
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
@@ -214,11 +216,8 @@ def _disable_user(user):
 
 def issue_code(user):
     user_id = user.id
-    code = Code.query.filter_by(user_id=user_id).with_for_update().one_or_none()
-    if code:
-        code.code = generate_uuid()
-    else:
-        code = Code(user_id=user_id, code=generate_uuid())
+    expires = datetime.utcnow() + timedelta(minutes=CODE_EXP_MINUTES)
+    code = Code(user_id=user_id, code=generate_uuid(), expires=expires)
     db.session.add(code)
     return encode_code({'id': user_id, 'code': code.code})
 
@@ -226,17 +225,10 @@ def encode_code(code_dict):
     return base64.b64encode(bytes(json.dumps(code_dict), 'utf-8')).decode('utf8')
 
 def decode_code(code_str):
-    return json.loads(base64.b64decode(code_str).decode('utf8'))
-
-def try_as_code(code_str):
     try:
-        code = decode_code(code_str)
-    except (TypeError, ValueError):
-        return None
-    found = Code.query.filter_by(user_id=code['id'], code=code['code']).one_or_none()
-    if not found:
-        return None
-    return User.query.filter_by(id=code['id']).one_or_none()
+        return json.loads(base64.b64decode(code_str).decode('utf8'))
+    except Exception:
+        raise CredentialException("Decoding code failed")
 
 def decode_token(token_str):
     try:
@@ -286,8 +278,8 @@ def revoke_tokens(user):
         db.session.delete(token)
 
 def revoke_user_code_tokens(user):
-    code = Code.query.filter_by(user_id=user.id).with_for_update().one_or_none()
-    if code:
+    codes = Code.query.filter_by(user_id=user.id).with_for_update().all()
+    for code in codes:
         db.session.delete(code)
     revoke_tokens(user)
 
@@ -311,9 +303,12 @@ def consume_code_string(code_str):
 def consume_code(user_id, code):
     found = Code.query.filter_by(user_id=user_id, code=code).with_for_update().one_or_none()
     if found is None:
-        return None
-    db.session.delete(code)
-    return user_id
+        raise CredentialException("Code not found")
+    if found.expires.timetuple() < datetime.utcnow().timetuple():
+        db.session.delete(found)
+        raise CredentialException("Code expired")
+    db.session.delete(found)
+    return User.query.filter_by(id=user_id).one_or_none()
 
 def verify_hash(password, pw_hash):
     try:
@@ -345,10 +340,6 @@ def dump_link(payload, salt=None):
 def load_link(link, max_age, salt=None):
     payload = link.replace('~', '.')
     return linkgenerator.loads(payload, max_age=max_age, salt=salt)
-
-ACTIVATE_SALT = 'activate'
-PASSWORD_RESET_SALT = 'reset'
-MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 
 def generate_activation_token(user_id):
     new_token = ActivationToken(user_id=user_id, token=generate_uuid())

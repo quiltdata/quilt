@@ -205,9 +205,9 @@ class User(db.Model):
 
 
 class Code(db.Model):
-    # each user can have only one code, so only user_id is primary key
     user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
-    code = db.Column(postgresql.UUID, nullable=False)
+    code = db.Column(postgresql.UUID, primary_key=True)
+    expires = db.Column(postgresql.TIMESTAMP(True), nullable=False)
 
 
 class Token(db.Model):
