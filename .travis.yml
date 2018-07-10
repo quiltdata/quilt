@@ -82,8 +82,12 @@ script:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      (cd catalog && npm test)
+      (cd catalog && npm test && npm run build)
     fi
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - |
+    if [[ "$TEST_CATALOG" = true ]]; then
+      (cd catalog && npm run bundlesize)
+    fi
