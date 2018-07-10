@@ -38,6 +38,16 @@ def quilt_dev_mode(func):
             quilt._DEV_MODE = dev_mode
     return decorated
 
+def try_require(string):
+    """return true iff specified require string resolves properly;
+    for use with @pytest.mark.skipif"""
+    try:
+        pkg_resources.require(string)
+    # pylint: disable=broad-except
+    except Exception as ex:
+        print(ex)
+        return False
+    return True
 
 class BasicQuiltTestCase(unittest.TestCase):
     """
