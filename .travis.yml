@@ -29,12 +29,14 @@ matrix:
       python: "2.7"
       env:
         TEST_COMPILER=true
+        TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp27-cp27mu-linux_x86_64.whl"
     - os: linux
       language: python
       python: "3.5"
       env:
         TEST_COMPILER=true
         TEST_REGISTRY=true
+        TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl"
       services:
         - postgresql
     - os: linux
@@ -43,6 +45,7 @@ matrix:
       env:
         TEST_COMPILER=true
         TEST_REGISTRY=true
+        TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-linux_x86_64.whl"
       services:
         - postgresql
     - os: linux
@@ -60,7 +63,9 @@ install:
   - |
     # install quilt from setup.py
     if [[ "$TEST_COMPILER" = true ]]; then
-      travis_retry pip install ./compiler['tests']
+      # pytorch doesn't fully support pip; see https://pytorch.org/
+      travis_retry pip install $TORCH
+      travis_retry pip install "./compiler[img,tests,torchvision]"
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
@@ -69,7 +74,7 @@ install:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      cd catalog && npm ci
+      (cd catalog && npm ci)
     fi
 
 script:
@@ -83,8 +88,12 @@ script:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      npm test
+      (cd catalog && npm test && npm run build)
     fi
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+  - |
+    if [[ "$TEST_CATALOG" = true ]]; then
+      (cd catalog && npm run bundlesize)
+    fi

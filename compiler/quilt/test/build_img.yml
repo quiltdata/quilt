@@ -1,0 +1,18 @@
+---
+contents:
+  mixed:
+    img:
+      sf:
+        file: data/sf_logo.png
+      portal:
+        file: data/portal_gun.jpg
+    tsv: 
+      file: data/group3.tsv
+
+  dataframes:
+    csv: 
+      file: data/foo.csv
+    nulls:
+      file: data/nulls.csv
+  README:
+    file: data/README.md

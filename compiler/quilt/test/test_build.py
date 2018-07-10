@@ -35,6 +35,7 @@ class BuildTest(QuiltTestCase):
         self._test_dataframes(dataframes)
         assert os.path.exists(README())
 
+
     def test_build_from_cache(self):
         """
         Build the same package twice and verify that the cache is used and

@@ -1,0 +1,296 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`components/Markdown images should be rendered if enabled (default) 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <p>
+    <img
+      alt="the image"
+      src="http://test"
+      title="the image title"
+    />
+  </p>
+  
+
+</div>
+`;
+
+exports[`components/Markdown images should not be rendered if disabled 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <p>
+    <span>
+      ![the image](http://test "the image title")
+    </span>
+  </p>
+  
+
+</div>
+`;
+
+exports[`components/Markdown images should not be rendered if disabled 2`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <p>
+    <span>
+      ![](http://test)
+    </span>
+  </p>
+  
+
+</div>
+`;
+
+exports[`components/Markdown links should be rendered with rel="nofollow" attribute 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <p>
+    <a
+      href="/url"
+      rel="nofollow"
+    >
+      sup
+    </a>
+  </p>
+  
+
+</div>
+`;
+
+exports[`components/Markdown links should be rendered with rel="nofollow" attribute 2`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <p>
+    <a
+      href="/url"
+      rel="nofollow"
+      title="link title"
+    >
+      sup
+    </a>
+  </p>
+  
+
+</div>
+`;
+
+exports[`components/Markdown syntax highlighting should auto-highlight when syntax is not specified or not recognized 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <pre>
+    <code>
+      <span
+        class="hljs-keyword"
+      >
+        const
+      </span>
+       v = 
+      <span
+        class="hljs-number"
+      >
+        1
+      </span>
+      
+
+    </code>
+  </pre>
+  
+
+</div>
+`;
+
+exports[`components/Markdown syntax highlighting should auto-highlight when syntax is not specified or not recognized 2`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <pre>
+    <code
+      class="language-javascrip"
+    >
+      <span
+        class="hljs-keyword"
+      >
+        const
+      </span>
+       v = 
+      <span
+        class="hljs-number"
+      >
+        1
+      </span>
+      
+
+    </code>
+  </pre>
+  
+
+</div>
+`;
+
+exports[`components/Markdown syntax highlighting should highlight the recognized syntax properly 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <pre>
+    <code
+      class="language-javascript"
+    >
+      <span
+        class="hljs-keyword"
+      >
+        const
+      </span>
+       v = 
+      <span
+        class="hljs-number"
+      >
+        1
+      </span>
+      
+
+    </code>
+  </pre>
+  
+
+</div>
+`;
+
+exports[`components/Markdown syntax highlighting should not highlight if syntax set to "none" 1`] = `
+.c0 {
+  display: block;
+  overflow: auto;
+}
+
+.c0 h1 code {
+  background-color: inherit;
+}
+
+.c0 img {
+  max-width: 100%;
+}
+
+<div
+  class="markdown  c0"
+>
+  <pre>
+    <code
+      class="language-none"
+    >
+      const v = 1
+
+    </code>
+  </pre>
+  
+
+</div>
+`;
