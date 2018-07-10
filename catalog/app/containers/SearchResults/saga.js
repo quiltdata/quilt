@@ -1,8 +1,8 @@
 /* sagas for SearchResults */
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import { makeHeaders } from 'utils/auth';
 import config from 'constants/config';
+import { makeHeaders } from 'containers/Auth/saga';
 import makeError from 'utils/error';
 import request from 'utils/request';
 
