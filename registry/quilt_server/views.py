@@ -2052,8 +2052,7 @@ def list_users():
         'is_active': user.is_active
     } for user in users]
     return {
-        'count': len(users),
-        'results': results,
+        'results': results
     }
 
 @app.route('/api/users/list_detailed', methods=['GET'])
