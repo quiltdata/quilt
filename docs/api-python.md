@@ -181,6 +181,29 @@ bsd.images.test(asa=plot(figsize=(20, 20)))
 ```
 <img src="https://raw.githubusercontent.com/quiltdata/resources/master/img/quilt-asa-plot.png" />
 
+#### Convert package nodes into Pytorch Datasets
+
+##### Install `pytorch` extras, `torchvision`
+```sh
+pip install quilt[pytorch,torchvision]
+```
+
+##### Usage
+```python
+from quilt.data.akarve import BSDS300 as bsd
+from quilt.asa.pytorch import dataset
+
+my_dataset = pkg.mixed.img(asa=dataset(
+    include=is_image,
+    node_parser=node_parser,
+    input_transform=input_transform(crop_size, upscale_factor),
+    target_transform=target_transform(crop_size)
+))
+```
+
+See [quiltdata/pytorch-examples](https://github.com/quiltdata/pytorch-examples/blob/master/super_resolution/data.py#L85)
+for a full code sample.
+
 ### Enumerate package contents
 * `quilt.inspect("USER/PACKAGE")` shows package columns, types, and shape
 * `NODE._keys()` returns a list of all children

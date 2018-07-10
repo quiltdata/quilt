@@ -42,15 +42,26 @@ setup(
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.6"',   # stdlib backport
-        'pyarrow>=0.4.0,<0.8.0',            # TODO(dima): Make unit tests work with 0.8.*.
+        'pyarrow>=0.4.0,<0.8.0',            # TODO(dima): Make unit tests work with 0.8+
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'six>=1.10.0',
         'tqdm>=4.11.2',
         'xlrd>=1.0.0',
     ],
+    # Install with: pip install -e ./[img,tests,...]
     extras_require={
-        # Use: pip install --editable ./[tests]
+        # See quilt.asa.img module
+        'img': [
+            'matplotlib>=2.2.2',
+            'Pillow>=5.1.0'
+        ],
+        # See quilt.asa.pytorch module
+        'pytorch': [
+            # May not install on Linux, Windows; See https://pytorch.org/
+            'torch>=0.4.0',
+        ],
+        # For dev testing
         'tests': [
             'funcsigs; python_version<"3.4"',   # stdlib backport
             'mock; python_version<"3.3"',
@@ -58,10 +69,8 @@ setup(
             'pytest-cov',
             'responses>=0.7.0',
         ],
-        # See quilt.asa.img module
-        'img': [
-            'matplotlib>=2.2.2',
-            'Pillow>=5.1.0'
+        'torchvision': [
+            'torchvision>=0.2.1'
         ]
     },
     include_package_data=True,
