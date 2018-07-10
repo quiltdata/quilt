@@ -1,10 +1,9 @@
 /* Profile sagas */
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import config from 'constants/config';
-import { makeHeaders } from 'containers/Auth/saga';
-import makeError from 'utils/error';
-import { requestJSON } from 'utils/request';
+import { apiRequest } from 'utils/APIConnector';
+import { ErrorDisplay } from 'utils/error';
+import { captureError } from 'utils/errorReporting';
 
 import {
   getProfileError,
@@ -20,55 +19,56 @@ import {
   UPDATE_PLAN,
 } from './constants';
 
+
+const mkFormData = (data) => {
+  const fd = new FormData();
+  Object.entries(data).forEach(([k, v]) => {
+    if (v) fd.append(k, v);
+  });
+  return fd;
+};
+
 export function* doGetPackages() {
   try {
-    const { api: server } = config;
-    const headers = yield call(makeHeaders);
-    const endpoint = `${server}/api/profile`;
-    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
-    if (response.message) {
-      throw makeError('Profile hiccup', response.message);
-    }
+    const response = yield call(apiRequest, '/profile');
     yield put(getProfileSuccess(response));
-  } catch (err) {
-    yield put(getProfileError(err));
+  } catch (e) {
+    yield put(getProfileError(new ErrorDisplay(
+      'Profile hiccup', `doGetPackages: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
-export function* doUpdatePayment(action) {
+export function* doUpdatePayment({ token }) {
   try {
-    const { api: server } = config;
-    const headers = yield call(makeHeaders);
-    const endpoint = `${server}/api/payments/update_payment`;
-    const data = new FormData();
-    data.append('token', action.token);
-    const response = yield call(requestJSON, endpoint, { method: 'POST', headers, body: data });
-    if (response.message) {
-      throw makeError('Payment update hiccup', response.message);
-    }
+    const response = yield call(apiRequest, {
+      endpoint: '/payments/update_payment',
+      method: 'POST',
+      body: mkFormData({ token }),
+    });
     yield put(updatePaymentSuccess(response));
-  } catch (err) {
-    yield put(updatePaymentError(err));
+  } catch (e) {
+    yield put(updatePaymentError(new ErrorDisplay(
+      'Payment update hiccup', `doUpdatePayment: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
-export function* doUpdatePlan(action) {
+export function* doUpdatePlan({ plan, token }) {
   try {
-    const { api: server } = config;
-    const headers = yield call(makeHeaders);
-    const endpoint = `${server}/api/payments/update_plan`;
-    const data = new FormData();
-    data.append('plan', action.plan);
-    if (action.token) {
-      data.append('token', action.token);
-    }
-    const response = yield call(requestJSON, endpoint, { method: 'POST', headers, body: data });
-    if (response.message) {
-      throw makeError('Payment update hiccup', response.message);
-    }
+    const response = yield call(apiRequest, {
+      endpoint: '/payments/update_plan',
+      method: 'POST',
+      body: mkFormData({ plan, token }),
+    });
     yield put(updatePlanSuccess(response));
-  } catch (err) {
-    yield put(updatePlanError(err));
+  } catch (e) {
+    yield put(updatePlanError(new ErrorDisplay(
+      'Payment update hiccup', `doUpdatePlan: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 

@@ -13,15 +13,15 @@ import {
 } from 'utils/reduxTools';
 
 import { actions } from './constants';
-import { NotAuthenticated } from './errors';
+import { InvalidToken } from './errors';
 
 
 const initial = {
   state: 'SIGNED_OUT',
 };
 
-const handleAuthLost = (lost, error) => (e) =>
-  e instanceof NotAuthenticated ? lost : error;
+const handleInvalidToken = (lost, error) => (e) =>
+  e instanceof InvalidToken ? lost : error;
 
 export default withInitialState(fromJS(initial), handleTransitions(get('state'), {
   SIGNED_OUT: handleActions({
@@ -67,12 +67,12 @@ export default withInitialState(fromJS(initial), handleTransitions(get('state'),
         user: ({ user }) => user ? fromJS(user) : noop,
       }),
       reject: combine({
-        // if auth lost, sign out and destroy auth data,
+        // if token is invalid, sign out and destroy auth data,
         // otherwise (backend malfunction or smth) just register error
-        state: handleAuthLost('SIGNED_OUT', 'SIGNED_IN'),
+        state: handleInvalidToken('SIGNED_OUT', 'SIGNED_IN'),
         error: id,
-        tokens: handleAuthLost(unset, noop),
-        user: handleAuthLost(unset, noop),
+        tokens: handleInvalidToken(unset, noop),
+        user: handleInvalidToken(unset, noop),
       }),
     }),
   }),
