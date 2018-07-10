@@ -5,6 +5,7 @@ import last from 'lodash/last';
 import mapValues from 'lodash/mapValues';
 import memoize from 'lodash/memoize';
 import takeWhile from 'lodash/takeWhile';
+import reduce from 'lodash/fp/reduce';
 
 const scope = 'testing/feature';
 const When = Symbol(`${scope}/When`);
@@ -12,6 +13,9 @@ const Given = Symbol(`${scope}/Given`);
 const Then = Symbol(`${scope}/Then`);
 const And = Symbol(`${scope}/And`);
 const But = Symbol(`${scope}/But`);
+const Branch = Symbol(`${scope}/Branch`);
+const Back = Symbol(`${scope}/Back`);
+const After = Symbol(`${scope}/After`);
 
 const UNION_DISPLAY = {
   [When]: 'When',
@@ -41,6 +45,8 @@ const opts = {
         { type: Then, text: 'location should match the post-signout url' },
         { type: And, text: 'selected state should match the snapshot' },
         { type: And, text: 'rendered html should match the snapshot' },
+        { type: Back, steps: 1 },
+        { type: Branch, steps: [{ ... }, { ... }] },
       ],
     },
   ],
@@ -51,6 +57,10 @@ const opts = {
 */
 
 const mkStep = (type) => (text, ...args) => ({ type, text, args });
+
+const mkStepBack = (steps = 1) => ({ type: Back, steps });
+
+const mkBranch = (steps) => ({ type: Branch, steps });
 
 const addBackgroundStep = ({ background = [], ...opts }) => (step) => ({
   ...opts,
@@ -75,6 +85,35 @@ const addStep = (type) => (opts, cons) =>
     cons,
   );
 
+const addStepBack = (opts, cons) =>
+  pipe(
+    mkStepBack,
+    hasScenarios(opts) ? addScenarioStep(opts) : addBackgroundStep(opts),
+    cons,
+  );
+
+const computeBranches = reduce((acc, step) => {
+  if (step.type === Back) {
+    let { steps: stepsBack } = step;
+    if (stepsBack <= 0) throw new Error('steps must be >= 1');
+    let idx;
+    for (let i = acc.length - 1; i >= 0; i -= 1) {
+      if (acc[i].type === When) {
+        stepsBack -= 1;
+        if (stepsBack === 0) {
+          idx = i;
+          break;
+        }
+      }
+    }
+    if (idx == null) throw new Error('too many steps back');
+    const trunkSteps = acc.slice(0, idx);
+    const branchSteps = acc.slice(idx);
+    return [...trunkSteps, mkBranch(branchSteps)];
+  }
+  return [...acc, step];
+}, []);
+
 const addScenario = ({ scenarios = [], ...opts }, cons) => (name) =>
   cons({
     ...opts,
@@ -87,7 +126,7 @@ const addStepDefs = ({ stepDefs = [], ...opts }, cons) => (addedStepDefs) =>
     stepDefs: stepDefs.concat(addedStepDefs),
   });
 
-const mkStepDef = (re, fn) => ({ re, fn });
+const mkStepDef = (re, fn, after) => ({ re, fn, after });
 
 export { mkStepDef as step };
 
@@ -99,15 +138,23 @@ const renderSteps = (steps, getCtx, next) => {
     return;
   }
 
+  if (steps[0].type === Branch) {
+    const [branch, ...rest] = steps;
+    renderSteps(branch.steps, getCtx);
+    renderSteps(rest, getCtx, next);
+    return;
+  }
+
   if (steps[0].type === Then) {
-    const isNotWhen = ({ type }) => type !== When;
-    const thens = takeWhile(steps, isNotWhen);
-    const rest = dropWhile(steps, isNotWhen);
+    const isThen = ({ type }) => type !== When && type !== Branch;
+    const thens = takeWhile(steps, isThen);
+    const rest = dropWhile(steps, isThen);
 
     thens.forEach(({ type, text, args = [] }) => {
       it(`${displayUnion(type)} ${text}`, async () => {
         const ctx = getCtx();
-        await ctx.step(ctx, text, ...args);
+        const afterCtx = await ctx.step(ctx, text, ...args);
+        await afterCtx[After]();
       });
     });
 
@@ -120,10 +167,14 @@ const renderSteps = (steps, getCtx, next) => {
 
   describe(`${displayUnion(type)} ${text}`, () => {
     let nextCtx;
-    const getNextCtx = () => nextCtx || getCtx();
+    const getNextCtx = () => nextCtx;
     beforeEach(async () => {
       const ctx = getCtx();
       nextCtx = await ctx.step(ctx, text, ...args);
+    });
+
+    afterEach(async () => {
+      await getNextCtx()[After]();
     });
 
     renderSteps(rest, getNextCtx, next);
@@ -137,12 +188,12 @@ const renderBackground = (steps, getCtx, next) => {
   }
 
   describe('Background:', () => {
-    renderSteps(steps, getCtx, next);
+    renderSteps(computeBranches(steps), getCtx, next);
   });
 };
 
 const renderScenario = ({ name, steps }, getCtx) => {
-  describe(`Scenario: ${name}`, () => renderSteps(steps, getCtx));
+  describe(`Scenario: ${name}`, () => renderSteps(computeBranches(steps), getCtx));
 };
 
 const renderFeature = ({ name, background = [], scenarios = [] }, getCtx) => {
@@ -157,14 +208,21 @@ const run = ({ stepDefs = [], ...opts }) => (ctx = {}) => {
   const getStep = memoize((text) => {
     const stepDef = stepDefs.find(({ re }) => re.test(text));
     if (!stepDef) throw new Error(`Step "${text}" could not be matched!`);
-    const { re, fn } = stepDef;
+    const { re, fn, after } = stepDef;
     const args = text.match(re).slice(1);
-    return { fn, args };
+    return { fn, after, args };
   });
 
-  const runStep = (stepCtx, text, ...runArgs) => {
-    const { fn, args } = getStep(text);
-    return fn(stepCtx, ...args, ...runArgs);
+  const runStep = async (stepCtx, text, ...runArgs) => {
+    const { fn, after, args } = getStep(text);
+    const newCtx = await fn(stepCtx, ...args, ...runArgs);
+    const afterCtx = newCtx || stepCtx;
+    return {
+      ...afterCtx,
+      [After]: after
+        ? () => after(afterCtx, ...args, ...runArgs)
+        : () => {},
+    };
   };
 
   const getCtx = () => ({
@@ -182,6 +240,7 @@ const methods = {
   then: addStep(Then),
   and: addStep(And),
   but: addStep(But),
+  back: addStepBack,
   step: addStepDef,
   steps: addStepDefs,
   run,
@@ -190,5 +249,11 @@ const methods = {
 const construct = (opts) =>
   mapValues(methods, (m) => m(opts, construct));
 
-// entry point
+/**
+ * @name feature
+ *
+ * @param name Feature name.
+ *
+ * @param {Object} options
+ */
 export default (name, opts) => construct({ name, ...opts });
