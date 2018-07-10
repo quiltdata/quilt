@@ -18,16 +18,14 @@ import gzip
 import json
 import pathlib
 import time
-from urllib.parse import urlencode
 
 import boto3
 from botocore.exceptions import ClientError
-from flask import abort, g, redirect, render_template, request, Response
+from flask import abort, g, redirect, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
-from oauthlib.oauth2 import OAuth2Error
 import requests
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
@@ -159,61 +157,6 @@ def _validate_username(username):
 @app.route('/login')
 def login():
     return redirect('{CATALOG_URL}/code'.format(CATALOG_URL=CATALOG_URL), code=302)
-
-@app.route('/oauth_callback')
-def oauth_callback():
-    # TODO: Check `state`? Do we need CSRF protection here?
-
-    try:
-        state = json.loads(request.args.get('state', '{}'))
-    except ValueError:
-        abort(requests.codes.bad_request)
-
-    if not isinstance(state, dict):
-        abort(requests.codes.bad_request)
-
-    next = state.get('next')
-    if not _valid_catalog_redirect(next):
-        abort(requests.codes.bad_request)
-
-    common_tmpl_args = dict(
-        QUILT_CDN=QUILT_CDN,
-        CATALOG_URL=CATALOG_URL,
-    )
-
-    error = request.args.get('error')
-    if error is not None:
-        return render_template('oauth_fail.html', error=error, **common_tmpl_args)
-
-    code = request.args.get('code')
-    if code is None:
-        abort(requests.codes.bad_request)
-
-    try:
-        # if JWT, don't do anything
-        try:
-            user = consume_code_string(code) # try as one-time code
-        except CredentialException:
-            pass
-
-        if user:
-            code = issue_token(user)
-        else:
-            verify_token_string(code)
-
-        exp = exp_from_token(code)
-        resp = {'refresh_token': code, 'access_token': code, 'expires_at': exp}
-
-        if next:
-            db.session.commit()
-            return redirect('%s#%s' % (next, urlencode(resp)))
-
-        db.session.commit()
-        return render_template('oauth_success.html', code=code, **common_tmpl_args)
-    except OAuth2Error as ex:
-        return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
-    except AuthException as ex:
-        return render_template('oauth_fail.html', error=ex.message, **common_tmpl_args)
 
 ### API routes ###
 
