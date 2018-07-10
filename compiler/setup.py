@@ -60,7 +60,6 @@ setup(
         'pytorch': [
             # May not install on Linux, Windows; See https://pytorch.org/
             'torch>=0.4.0',
-            'torchvision>=0.2.1'
         ],
         # For dev testing
         'tests': [
@@ -70,6 +69,9 @@ setup(
             'pytest-cov',
             'responses>=0.7.0',
         ],
+        'torchvision': [
+            'torchvision>=0.2.1'
+        ]
     },
     include_package_data=True,
     entry_points={
