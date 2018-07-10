@@ -228,7 +228,7 @@ def decode_code(code_str):
     try:
         return json.loads(base64.b64decode(code_str).decode('utf8'))
     except Exception:
-        raise CredentialException("Decoding code failed")
+        raise ValidationException("Decoding code failed")
 
 def decode_token(token_str):
     try:
@@ -303,7 +303,7 @@ def consume_code_string(code_str):
 def consume_code(user_id, code):
     found = Code.query.filter_by(user_id=user_id, code=code).with_for_update().one_or_none()
     if found is None:
-        raise CredentialException("Code not found")
+        raise ValidationException("Code not found")
     if found.expires.timetuple() < datetime.utcnow().timetuple():
         db.session.delete(found)
         raise CredentialException("Code expired")

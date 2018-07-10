@@ -186,8 +186,10 @@ def token():
     try:
         user = consume_code_string(refresh_token)
         return token_success(user)
-    except CredentialException:
+    except ValidationException:
         pass
+    except AuthException:
+        return {'error': 'Code invalid'}, 401
 
     try:
         user = verify_token_string(refresh_token)
