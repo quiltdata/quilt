@@ -1,9 +1,8 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import config from 'constants/config';
-import { makeHeaders } from 'containers/Auth/saga';
-import { requestJSON } from 'utils/request';
-import makeError from 'utils/error';
+import { apiRequest } from 'utils/APIConnector';
+import { ErrorDisplay } from 'utils/error';
+import { captureError } from 'utils/errorReporting';
 
 import {
   getPackagesError,
@@ -16,16 +15,13 @@ import {
 
 export function* doGetPackages({ username }) {
   try {
-    const headers = yield call(makeHeaders);
-    const response = yield call(requestJSON,
-      `${config.api}/api/package/${username}/`,
-      { headers });
-    if (response.status !== 200 || response.message) {
-      throw makeError('Server hiccup', response.message, response);
-    }
+    const response = yield call(apiRequest, `/package/${username}/`);
     yield put(getPackagesSuccess(response));
   } catch (err) {
-    yield put(getPackagesError(err));
+    yield put(getPackagesError(new ErrorDisplay(
+      'Server hiccup', err.message
+    )));
+    captureError(err);
   }
 }
 
