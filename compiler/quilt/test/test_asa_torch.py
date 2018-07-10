@@ -11,7 +11,8 @@ from .utils import QuiltTestCase, try_require
 
 @pytest.mark.skipif(
     try_require('quilt[pytorch,torchvision]'),
-    reason="only test if quilt[img,pytorch,torchvision] dependencies installed")
+    reason="only test if quilt[img,pytorch,torchvision] dependencies installed",
+    allow_module_level=True)
 # pylint: disable=no-self-use
 class ImportTest(QuiltTestCase):
     def test_asa_pytorch(self):
