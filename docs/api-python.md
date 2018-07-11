@@ -184,9 +184,12 @@ bsd.images.test(asa=plot(figsize=(20, 20)))
 #### Convert package nodes into Pytorch Datasets
 
 ##### Install `pytorch` extras, `torchvision`
+###### Mac
 ```sh
 pip install quilt[pytorch,torchvision]
 ```
+###### Linux, Windows
+See [pytorch.org](https://pytorch.org/).
 
 ##### Usage
 ```python
