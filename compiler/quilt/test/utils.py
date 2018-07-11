@@ -41,10 +41,11 @@ def quilt_dev_mode(func):
 def try_require(string):
     """return true iff specified require string resolves properly;
     for use with @pytest.mark.skipif"""
+    import pkg_resources
     try:
         pkg_resources.require(string)
     # pylint: disable=broad-except
-    except Exception as ex:
+    except pkg_resources.ResolutionError as ex:
         print(ex)
         return False
     return True
