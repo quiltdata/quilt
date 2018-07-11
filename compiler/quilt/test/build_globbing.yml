@@ -10,7 +10,7 @@ contents:
   excel:
     "data/100*.xlsx":
       kwargs:
-        skiprows: [0,10,17,90,95]
+        skiprows: [1,10,17,90,95]
   # acceptable collision, data/csv.txt and data/subdir/csv.txt -- results in rename of second file
   collision:
     "data/**/csv.txt":
