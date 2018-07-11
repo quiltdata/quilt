@@ -62,7 +62,6 @@ class ImportTest(QuiltTestCase):
 
         return error_ < error
     
-    # pylint: disable=no-member
     def test_asa_plot_output(self):
         from PIL import Image
         from matplotlib import pyplot as plt
@@ -75,6 +74,7 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/imgtest')
 
         outfile = os.path.join('.', 'temp-plot.png')
+        # pylint: disable=no-member
         pkg.mixed.img(asa=plot(figsize=(10, 10)))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
@@ -87,7 +87,6 @@ class ImportTest(QuiltTestCase):
         assert self._are_similar(ref_img, tst_img), \
             'render differs from reference: {}'.format(ref_img)
 
-    # pylint: disable=no-member
     def test_asa_plot_formats_output(self):
         from PIL import Image
         from matplotlib import pyplot as plt
@@ -100,6 +99,8 @@ class ImportTest(QuiltTestCase):
         pkg = command.load('foo/imgtest')
 
         outfile = os.path.join('.', 'temp-formats-plot.png')
+
+        # pylint: disable=no-member
         pkg.mixed.img(asa=plot(figsize=(10, 10), formats=['png']))
         # size * dpi = 1000 x 1000 pixels
         plt.savefig(outfile, dpi=100, format='png', transparent=False)
