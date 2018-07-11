@@ -167,12 +167,9 @@ Packages contain three types of nodes:
   * Provide a custom deserialzer by passing a function to `data(asa=FUNCTION)` with the signature `function(NODE, LIST_OF_FILE_PATHS)`. A single node can contain data in multiple files (e.g., a DataFrame stored as a set of Parquet files). Calling `data(asa=FUNCTION)` on a GroupNode calls FUNCTION with the GroupNode object and a list of the paths to all of the objects in all of the child nodes.
 
 #### Display package images in Jupyter notebooks
-##### Install `img` extras
-```sh
-pip install quilt[img]
-```
 
-##### Display
+[Install [img] extras](./installation.md#[img]).
+
 ```python
 from quilt.data.akarve import BSDS300 as bsd
 from quilt.asa.img import plot
@@ -183,15 +180,8 @@ bsd.images.test(asa=plot(figsize=(20, 20)))
 
 #### Convert package nodes into Pytorch Datasets
 
-##### Install `pytorch` extras, `torchvision`
-###### Mac
-```sh
-pip install quilt[pytorch,torchvision]
-```
-###### Linux, Windows
-See [pytorch.org](https://pytorch.org/).
+[Install [pytorch,torchvision] extras](./installation.md#[pytorch,torchvision]).
 
-##### Usage
 ```python
 from quilt.data.akarve import BSDS300 as bsd
 from quilt.asa.pytorch import dataset
