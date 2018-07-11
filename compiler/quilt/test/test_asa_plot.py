@@ -17,8 +17,7 @@ if not try_require('quilt[img]'):
 class ImportTest(QuiltTestCase):
     # the following two lines must happen first
     import matplotlib as mpl
-    mpl.use('Agg') # specify a backend so renderer doesn't barf
-    from PIL import Image
+    mpl.use('Agg') # specify a backend so headless unit tests don't barf
 
     def test_asa_plot(self):
         from quilt.asa.img import plot
