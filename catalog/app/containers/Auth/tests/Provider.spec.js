@@ -123,7 +123,7 @@ const requests = {
     success: () => user,
   },
   signOut: {
-    setup: () => ['postOnce', '/logout'],
+    setup: () => ['postOnce', '/api/logout'],
     expect: () =>
       expect.objectContaining({
         body: JSON.stringify({ token: tokens.token }),

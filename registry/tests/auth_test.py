@@ -333,7 +333,7 @@ class AuthTestCase(QuiltTestCase):
 
         def disable_user(username):
             request = self.app.post(
-                'api/users/disable',
+                '/api/users/disable',
                 data=json.dumps({'username': username}),
                 headers={
                     'content-type': 'application/json',
@@ -344,7 +344,7 @@ class AuthTestCase(QuiltTestCase):
 
         def enable_user(username):
             request = self.app.post(
-                'api/users/enable',
+                '/api/users/enable',
                 data=json.dumps({'username': username}),
                 headers={
                     'content-type': 'application/json',
@@ -365,7 +365,7 @@ class AuthTestCase(QuiltTestCase):
 
         def logout(token):
             request = self.app.post(
-                '/logout',
+                '/api/logout',
                 headers={
                     'content-type': 'application/json',
                     'Authorization': token

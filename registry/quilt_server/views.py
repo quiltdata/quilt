@@ -387,18 +387,19 @@ CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}
 @as_json
 def refresh():
     token_str = request.headers.get(AUTHORIZATION_HEADER)
-    revoke_token_string(token_str)
-    token = issue_token(g.user)
-    db.session.commit()
-    return {'token': token}
+    if revoke_token_string(token_str):
+        token = issue_token(g.user)
+        db.session.commit()
+        return {'token': token}
+    # token is valid from @api so should always succeed
+    return {'error': 'Internal server error'}, 500
 
-@app.route('/logout', methods=['POST'])
+@app.route('/api/logout', methods=['POST'])
 @api()
 @as_json
 def logout():
-    data = request.get_json()
-    token = data['token']
-    if revoke_token_string(token):
+    token_str = request.headers.get(AUTHORIZATION_HEADER)
+    if revoke_token_string(token_str):
         db.session.commit()
         return {}
 
