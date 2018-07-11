@@ -112,7 +112,7 @@ const requests = {
     success: () => tokensRaw,
   },
   fetchUser: {
-    setup: () => ['getOnce', '/api-root'],
+    setup: () => ['getOnce', '/api/me'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({

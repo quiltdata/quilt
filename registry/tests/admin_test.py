@@ -319,7 +319,7 @@ class AdminTestCase(QuiltTestCase):
             'content_type': 'application/json'
         }
         resp = self.app.get(
-            '/api-root',
+            '/api/me',
             headers=auth_headers
         )
         assert resp.status_code == 200
@@ -334,7 +334,7 @@ class AdminTestCase(QuiltTestCase):
             'content_type': 'application/json'
         }
         resp = self.app.get(
-            '/api-root',
+            '/api/me',
             headers=auth_headers
         )
         assert resp.status_code == 200
@@ -349,7 +349,7 @@ class AdminTestCase(QuiltTestCase):
             'content_type': 'application/json'
         }
         resp = self.app.get(
-            '/api-root',
+            '/api/me',
             headers=auth_headers
         )
         assert resp.status_code == 401

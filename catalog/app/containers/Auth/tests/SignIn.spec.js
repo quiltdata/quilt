@@ -71,7 +71,7 @@ const requests = {
     success: () => tokensRaw,
   },
   fetchUser: {
-    setup: () => ['getOnce', '/api-root'],
+    setup: () => ['getOnce', '/api/me'],
     success: () => user,
   },
 };

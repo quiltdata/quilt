@@ -86,7 +86,7 @@ class AuthTestCase(QuiltTestCase):
             'content-type': 'application/json'
         }
         api_root_request = self.app.get(
-            '/api-root',
+            '/api/me',
             headers=auth_headers
         )
         assert api_root_request.status_code == 200
@@ -118,7 +118,7 @@ class AuthTestCase(QuiltTestCase):
             'content-type': 'application/json'
         }
         api_root_request = self.app.get(
-            '/api-root',
+            '/api/me',
             headers=auth_headers
         )
         assert api_root_request.status_code == 200
@@ -355,7 +355,7 @@ class AuthTestCase(QuiltTestCase):
 
         def api_root(token):
             request = self.app.get(
-                '/api-root',
+                '/api/me',
                 headers={
                     'content-type': 'application/json',
                     'Authorization': token
@@ -422,7 +422,7 @@ class AuthTestCase(QuiltTestCase):
         def api_root(token_request):
             token = json.loads(token_request.data.decode('utf8')).get('access_token')
             request = self.app.get(
-                '/api-root',
+                '/api/me',
                 headers={
                     'content-type': 'application/json',
                     'Authorization': token

@@ -359,14 +359,12 @@ def reset_password_endpoint():
 
 CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
 
-@app.route('/api-root')
+@app.route('/api/me')
 @api()
 @as_json
 def apiroot():
     return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
             'email': g.auth.email, 'current_user': g.auth.user}
-
-CORS(app, resources={"/api-root": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/register', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_EMAIL_SCHEMA)

@@ -177,7 +177,7 @@ const signIn = async (api, credentials) => {
  */
 const fetchUser = async (api, tokens) => {
   try {
-    const auth = await requestJSON(`${api}/api-root`, {
+    const auth = await requestJSON(`${api}/api/me`, {
       headers: {
         ...makeHeadersFromTokens(tokens),
         ...headerJson,
