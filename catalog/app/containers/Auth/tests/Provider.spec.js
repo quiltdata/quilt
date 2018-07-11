@@ -57,7 +57,7 @@ const headerAuthStale = {
 
 const requests = {
   signUp: {
-    setup: () => ['postOnce', '/register'],
+    setup: () => ['postOnce', '/api/register'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),

@@ -72,7 +72,7 @@ export const adjustTokensForLatency = (tokens, latency) => ({
  */
 const signUp = async (api, credentials) => {
   try {
-    await requestJSON(`${api}/register`, {
+    await requestJSON(`${api}/api/register`, {
       method: 'POST',
       body: JSON.stringify(credentials),
       headers: headerJson,

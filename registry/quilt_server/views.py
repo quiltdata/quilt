@@ -366,7 +366,7 @@ def apiroot():
     return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
             'email': g.auth.email, 'current_user': g.auth.user}
 
-@app.route('/register', methods=['POST'])
+@app.route('/api/register', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_EMAIL_SCHEMA)
 @as_json
 def register_endpoint():

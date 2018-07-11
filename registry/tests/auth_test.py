@@ -152,7 +152,7 @@ class AuthTestCase(QuiltTestCase):
         email = 'new_user@example.com'
         password = 'example_password'
         response = self.app.post(
-            '/register',
+            '/api/register',
             headers={'content-type': 'application/json'},
             data=json.dumps(
                 {'username': user,
@@ -244,7 +244,7 @@ class AuthTestCase(QuiltTestCase):
         }
 
         new_user_request = self.app.post(
-            '/register',
+            '/api/register',
             headers={'content-type': 'application/json'},
             data=json.dumps(payload)
         )
