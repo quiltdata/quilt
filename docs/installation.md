@@ -27,7 +27,7 @@ $ pip install quilt[img]
 ```
 
 ### [pytorch,torchvision]
-Used in conjunction with `quilt.asa.torch` to generate PyTorch datasets.
+Used in conjunction with `quilt.asa.pytorch` to generate PyTorch datasets.
 
 #### Mac
 ```
