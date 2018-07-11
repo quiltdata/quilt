@@ -7,9 +7,12 @@ import pytest
 from quilt.tools import command
 from .utils import QuiltTestCase, try_require
 
-@pytest.mark.skipif(
-    try_require('quilt[img]'),
-    reason="only test if quilt[img] dependencies installed")
+if not try_require('quilt[img]'):
+    # pylint: disable=unexpected-keyword-arg
+    pytest.skip(
+        "only test if [img] extras installed",
+        allow_module_level=True)
+
 # pylint: disable=no-self-use
 class ImportTest(QuiltTestCase):
     # the following two lines must happen first

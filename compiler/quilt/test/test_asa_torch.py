@@ -1,7 +1,6 @@
 """test class against quilt.asa.torch"""
 import os
 
-import numpy as np
 import pytest
 from six import string_types
 
@@ -9,10 +8,11 @@ from quilt.tools import command
 from quilt.nodes import DataNode
 from .utils import QuiltTestCase, try_require
 
-@pytest.mark.skipif(
-    try_require('quilt[pytorch,torchvision]'),
-    reason="only test if quilt[img,pytorch,torchvision] dependencies installed",
-    allow_module_level=True)
+if not try_require('quilt[img,pytorch,torchvision]'):
+    # pylint: disable=unexpected-keyword-arg
+    pytest.skip("only test if [img,pytorch,torchvision] extras installed",
+        allow_module_level=True)
+
 # pylint: disable=no-self-use
 class ImportTest(QuiltTestCase):
     def test_asa_pytorch(self):
@@ -52,7 +52,7 @@ class ImportTest(QuiltTestCase):
                     ToTensor(),
                 ])(img_)
             return _inner
-
+        # pylint: disable=protected-access
         def is_image(node):
             """file extension introspection on Quilt nodes"""
             if isinstance(node, DataNode):
@@ -70,6 +70,7 @@ class ImportTest(QuiltTestCase):
 
         upscale_factor = 3
         crop_size = calculate_valid_crop_size(256, upscale_factor)
+        # pylint: disable=no-member
         my_dataset = pkg.mixed.img(asa=dataset(
             include=is_image,
             node_parser=node_parser,
@@ -80,9 +81,9 @@ class ImportTest(QuiltTestCase):
             'expected type {}, got {}'.format(type(Dataset), type(my_dataset))
 
         assert my_dataset.__len__() == 2, \
-            'expected two images in mixed.img, got {}'.format()
+            'expected two images in mixed.img, got {}'.format(my_dataset.__len__())
 
         for i in range(my_dataset.__len__()):
-            tens = my_dataset.__getitem__(i);
+            tens = my_dataset.__getitem__(i)
             assert all((isinstance(x, Tensor) for x in tens)), \
                 'Expected all torch.Tensors in tuple, got {}'.format(tens)
