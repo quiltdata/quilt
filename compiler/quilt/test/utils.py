@@ -44,7 +44,6 @@ def try_require(string):
     import pkg_resources
     try:
         pkg_resources.require(string)
-    # pylint: disable=broad-except
     except pkg_resources.ResolutionError as ex:
         print(ex)
         return False
