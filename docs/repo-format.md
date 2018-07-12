@@ -16,13 +16,13 @@ Quilt stores local copies of packages in a single directory, `quilt_packages`. T
 
 Using files in the file system to store quilt metadata is perhaps slower than in a database or single-file lookup, but individual files are more human-readable, require fewer dependencies to manipulate, and are easier to repair if they get corrupted. Concurrent access to quilt metadata is also easier to manage.
 
-### Objects
+### Fragments
 
 ```bash
 quilt_packages/objs/
 ```
 
-Stores binary data objects (a.k.a. "fragments") identified by hash. These objects include compressed raw files and Parquet files. Object hashes are verified and objects are stored only once (de-duplication).
+Stores binary data fragments (a.k.a. "objects") identified by hash. These fragments include compressed raw files and Parquet files. Fragment hashes are verified and fragments are stored only once (de-duplication).
 
 ### Contents
 
@@ -48,7 +48,7 @@ High-level outlines of how basic Quilt commands interact with local storage.
 
 ### build
 - parse build.yml and iterate through package tree:
-    - create binary objects and save to objs directory
+    - create binary fragments and save to objs directory
     - build in-memory package tree
 - calculate package instance hash
 - save package manifest (identified by hash)
@@ -61,7 +61,7 @@ High-level outlines of how basic Quilt commands interact with local storage.
     - by pkg/version
             - lookup hash in pkgname/versions/version->hash in contents
     - by hash (direct lookup)
-- upload binary objects
+- upload binary fragments
 - post compressed package manifest to registry
 
 ### install
@@ -71,7 +71,7 @@ High-level outlines of how basic Quilt commands interact with local storage.
 - download package manifest
 - verify package hash against contents
 - save by package manifest (by package hash)
-- download and save binary objects (if not present)
+- download and save binary fragments (if not present)
 
 ### ls
 - read all local package instances and build map of metadata:
