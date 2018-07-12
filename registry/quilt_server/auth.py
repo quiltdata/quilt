@@ -107,7 +107,6 @@ def change_password(raw_password, link):
     db.session.add(user)
 
 def _create_user(username, password='', email=None, is_admin=False,
-                 first_name=None, last_name=None,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
@@ -138,8 +137,6 @@ def _create_user(username, password='', email=None, is_admin=False,
         name=username,
         password=new_password,
         email=email,
-        first_name=first_name,
-        last_name=last_name,
         is_active=is_active,
         is_admin=is_admin
         )
