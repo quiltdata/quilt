@@ -103,7 +103,7 @@ const requests = {
     success: () => tokensRaw,
   },
   signIn: {
-    setup: () => ['postOnce', '/login'],
+    setup: () => ['postOnce', '/api/login'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),

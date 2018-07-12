@@ -144,7 +144,7 @@ const signOut = async (api, tokens) => {
  */
 const signIn = async (api, credentials) => {
   try {
-    return await requestJSON(`${api}/login`, {
+    return await requestJSON(`${api}/api/login`, {
       method: 'POST',
       body: JSON.stringify(credentials),
       headers: headerJson,

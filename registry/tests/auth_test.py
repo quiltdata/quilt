@@ -30,7 +30,7 @@ class AuthTestCase(QuiltTestCase):
         username = username or self.TEST_USER
         password = password or self.TEST_USER_PASSWORD
         response = self.app.post(
-                '/login',
+                '/api/login',
                 headers={'content-type': 'application/json'},
                 data=json.dumps({'username': username, 'password': password})
                 )
@@ -218,7 +218,7 @@ class AuthTestCase(QuiltTestCase):
         assert not self.getToken()
 
         new_password_request = self.app.post(
-                '/login',
+                '/api/login',
                 headers={'content-type': 'application/json'},
                 data=json.dumps({'username': self.TEST_USER, 'password': new_password})
                 )
@@ -322,7 +322,7 @@ class AuthTestCase(QuiltTestCase):
 
     def testDisabledandDeletedUsersCodesAndTokensAreRevoked(self):
         admin_token_request = self.app.post(
-            '/login',
+            '/api/login',
             data=json.dumps(
                 {'username': self.TEST_ADMIN,
                  'password': self.TEST_ADMIN_PASSWORD}),
@@ -394,7 +394,7 @@ class AuthTestCase(QuiltTestCase):
         username = 'asdf'
         password = 'jkl;asdf'
         response = self.app.post(
-                '/login',
+                '/api/login',
                 # headers={'content-type': 'application/json'},
                 data=json.dumps({'username': username, 'password': password})
                 )

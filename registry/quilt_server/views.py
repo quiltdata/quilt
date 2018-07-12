@@ -320,7 +320,7 @@ def api(require_login=True, schema=None, enabled=True,
         return wrapper
     return innerdec
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_SCHEMA)
 @as_json
 def login_post():
@@ -337,8 +337,6 @@ def login_post():
         return {'token': token}
 
     return {'error': 'Login attempt failed'}, 401
-
-CORS(app, resources={"/login": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/activate/<link>')
 def activate_endpoint(link):
