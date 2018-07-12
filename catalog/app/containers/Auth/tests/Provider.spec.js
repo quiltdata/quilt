@@ -65,7 +65,7 @@ const requests = {
       }),
   },
   resetPassword: {
-    setup: () => ['postOnce', '/reset_password'],
+    setup: () => ['postOnce', '/api/reset_password'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify({ email: ctx.action.payload }),
@@ -73,7 +73,7 @@ const requests = {
       }),
   },
   changePassword: {
-    setup: () => ['postOnce', '/reset_password'],
+    setup: () => ['postOnce', '/api/change_password'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),

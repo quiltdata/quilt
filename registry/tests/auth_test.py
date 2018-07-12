@@ -185,7 +185,7 @@ class AuthTestCase(QuiltTestCase):
         new_password = 'new_password'
         bad_password = 'bad'
         response = self.app.post(
-            '/reset_password',
+            '/api/reset_password',
             headers={'content-type': 'application/json'},
             data=json.dumps({'email': 'user-that-definitely-does-not-exist{suf}'
                 .format(suf=self.email_suffix)})
@@ -195,7 +195,7 @@ class AuthTestCase(QuiltTestCase):
         assert self.getToken()
 
         response = self.app.post(
-            '/reset_password',
+            '/api/reset_password',
             headers={'content-type': 'application/json'},
             data=json.dumps({'email': email})
         )
@@ -210,7 +210,7 @@ class AuthTestCase(QuiltTestCase):
         reset_link = send_reset_email.call_args[0][1]
 
         reset_response = self.app.post(
-            '/reset_password',
+            '/api/change_password',
             headers={'content-type': 'application/json'},
             data=json.dumps({'link': reset_link, 'password': new_password})
         )
@@ -227,7 +227,7 @@ class AuthTestCase(QuiltTestCase):
 
         # test link doesn't work twice
         new_reset_response = self.app.post(
-            '/reset_password',
+            '/api/change_password',
             headers={'content-type': 'application/json'},
             data=json.dumps({'link': reset_link, 'password': bad_password})
         )

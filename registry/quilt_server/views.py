@@ -38,7 +38,7 @@ from .auth import (_delete_user, consume_code_string, issue_code,
                    issue_token, try_login, verify_token_string,
                    reset_password, exp_from_token, _create_user,
                    _enable_user, _disable_user, revoke_token_string,
-                   reset_password_response, activate_response,
+                   reset_password_from_email, change_password, activate_response,
                    AuthException, ValidationException, ConflictException,
                    NotFoundException, CredentialException)
 from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
@@ -49,7 +49,7 @@ from .mail import send_invitation_email
 from .models import (Access, Comment, Customer, Event, Instance,
                      InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
-                      PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA,
+                      PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
                       USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
@@ -342,18 +342,33 @@ def login_post():
 def activate_endpoint(link):
     return activate_response(link)
 
-@app.route('/reset_password', methods=['POST'])
+@app.route('/api/reset_password', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=EMAIL_SCHEMA)
+@as_json
+def reset_password_start():
+    data = request.get_json()
+    email = data['email']
+    reset_password_from_email(email)
+    db.session.commit()
+    return {}
+
+@app.route('/api/change_password', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=PASSWORD_RESET_SCHEMA)
 @as_json
-def reset_password_endpoint():
+def change_password_endpoint():
+    data = request.get_json()
+    raw_password = data['password']
+    link = data['link']
     try:
-        return reset_password_response()
+        change_password(raw_password, link)
+        db.session.commit()
+        return {}
     except ValidationException as ex:
         raise ApiException(requests.codes.bad, ex.message)
     except CredentialException as ex:
         raise ApiException(requests.codes.unauthorized, ex.message)
-
-CORS(app, resources={"/reset_password": {"origins": "*", "max_age": timedelta(days=1)}})
+    except AuthException as ex:
+        raise ApiException(requests.codes.internal_server_error, ex.message)
 
 @app.route('/api/me')
 @api()

@@ -89,6 +89,7 @@ def validate_password(password):
     if len(password) < 8:
         raise ValidationException("Password must be at least 8 characters long.")
 
+"""
 def reset_password_response():
     data = request.get_json()
     if 'email' in data:
@@ -113,6 +114,24 @@ def reset_password_response():
     db.session.add(user)
     db.session.commit()
     return {}
+"""
+
+def reset_password_from_email(email):
+    user = User.query.filter_by(email=email).with_for_update().one_or_none()
+    if user:
+        reset_password(user)
+
+def change_password(raw_password, link):
+    validate_password(raw_password)
+    payload = verify_reset_link(link)
+    if not payload:
+        raise CredentialException("Reset token invalid")
+    user_id = payload['id']
+    user = User.query.filter_by(id=user_id).with_for_update().one_or_none()
+    if not user:
+        raise NotFoundException("User not found")
+    user.password = hash_password(raw_password)
+    db.session.add(user)
 
 def _create_user(username, password='', email=None, is_admin=False,
                  first_name=None, last_name=None,

@@ -237,12 +237,8 @@ PASSWORD_RESET_SCHEMA = {
         },
         'link': {
             'type': 'string'
-        },
-        'email': {
-            'type': 'string'
         }
     },
+    'required': ['password', 'link'],
     'additionalProperties': False
-    # no required properties because correct usage of the endpoint
-    #   provides either email or (password, link)
 }

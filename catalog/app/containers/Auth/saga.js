@@ -207,7 +207,7 @@ const fetchUser = async (api, tokens) => {
  */
 const resetPassword = async (api, email) => {
   try {
-    await requestJSON(`${api}/reset_password`, {
+    await requestJSON(`${api}/api/reset_password`, {
       method: 'POST',
       body: JSON.stringify({ email }),
       headers: headerJson,
@@ -234,7 +234,7 @@ const resetPassword = async (api, email) => {
  */
 const changePassword = async (api, link, password) => {
   try {
-    await requestJSON(`${api}/reset_password`, {
+    await requestJSON(`${api}/api/change_password`, {
       method: 'POST',
       body: JSON.stringify({ link, password }),
       headers: headerJson,
