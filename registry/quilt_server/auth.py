@@ -185,10 +185,10 @@ def update_last_login(user):
 
 def _delete_user(user):
     if user:
+        revoke_user_code_tokens(user)
         db.session.delete(user)
     else:
         raise NotFoundException("User to delete not found")
-    revoke_user_code_tokens(user)
     return user
 
 def _enable_user(user):
@@ -200,9 +200,9 @@ def _enable_user(user):
 
 def _disable_user(user):
     if user:
+        revoke_user_code_tokens(user)
         user.is_active = False
         db.session.add(user)
-        revoke_user_code_tokens(user)
     else:
         raise NotFoundException("User to disable not found")
 
