@@ -40,4 +40,4 @@
 
 ## Developer
 * [Contributing](CONTRIBUTING.md)
-* [Object store](repo-format.md)
+* [Fragment store](repo-format.md)
