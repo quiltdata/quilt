@@ -173,3 +173,17 @@ export const restoreProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) 
 export const withStyle = (...args) =>
   composeHOC('withStyle',
     (C) => styled(C)(...args));
+
+/**
+ * Render nested components.
+ *
+ * @param {...(react.Component|[react.Component, Object])} components
+ *   React components or tuples of component and props.
+ *
+ * @returns {react.Element} The rendered nested components.
+ */
+export const nest = (...components) =>
+  components.reduceRight((children, comp) => {
+    const [Component, props = {}] = [].concat(comp);
+    return <Component {...props}>{children}</Component>;
+  }, undefined);
