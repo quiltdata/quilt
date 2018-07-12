@@ -342,8 +342,6 @@ def login_post():
 def activate_endpoint(link):
     return activate_response(link)
 
-CORS(app, resources={"/activate/*": {"origins": "*", "max_age": timedelta(days=1)}})
-
 @app.route('/reset_password', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=PASSWORD_RESET_SCHEMA)
 @as_json
@@ -378,8 +376,6 @@ def register_endpoint():
     db.session.commit()
     return {}
 
-CORS(app, resources={"/register": {"origins": "*", "max_age": timedelta(days=1)}})
-
 @app.route('/api/refresh', methods=['POST'])
 @api()
 @as_json
@@ -402,8 +398,6 @@ def logout():
         return {}
 
     return {'error': 'Logout failed.'}, 400
-
-CORS(app, resources={"/logout": {"origins": "*", "max_age": timedelta(days=1)}})
 
 @app.route('/api/code')
 @api()
