@@ -6,7 +6,6 @@ import 'babel-polyfill';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { LOCATION_CHANGE } from 'react-router-redux';
-import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
@@ -19,6 +18,7 @@ import App from 'containers/App';
 import LanguageProvider from 'containers/LanguageProvider';
 import { Provider as AuthProvider, selectors } from 'containers/Auth';
 import config from 'constants/config';
+import fontLoader from 'utils/fontLoader';
 import FormProvider from 'utils/ReduxFormProvider';
 import RouterProvider from 'utils/router';
 import * as storage from 'utils/storage';
@@ -37,12 +37,10 @@ import { translationMessages } from './i18n';
 // Import CSS reset and Global Styles
 import './global-styles';
 
-// TODO: factor-out font loading logic
+
 // listen for Roboto fonts
-const robo = new FontFaceObserver('Roboto', {});
-const roboMono = new FontFaceObserver('Roboto Mono', {});
-// reload doc when we have all custom fonts
-Promise.all([robo.load(), roboMono.load()]).then(() => {
+fontLoader('Roboto', 'Roboto Mono').then(() => {
+  // reload doc when we have all custom fonts
   document.body.classList.add('fontLoaded');
 });
 
