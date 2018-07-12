@@ -197,8 +197,6 @@ class User(db.Model):
     password = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, nullable=False, default=False)
     last_login = db.Column(postgresql.TIMESTAMP(True), nullable=False, server_default=db.func.now())
-    first_name = db.Column(db.String(64))
-    last_name = db.Column(db.String(64))
     is_active = db.Column(db.Boolean, default=False, nullable=False)
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around

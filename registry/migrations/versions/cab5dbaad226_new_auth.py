@@ -1,8 +1,8 @@
 """New auth
 
-Revision ID: 9c27363df1e6
+Revision ID: cab5dbaad226
 Revises: 96922536e019
-Create Date: 2018-06-07 17:06:26.041939
+Create Date: 2018-07-12 15:53:53.726532
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = '9c27363df1e6'
+revision = 'cab5dbaad226'
 down_revision = '96922536e019'
 branch_labels = None
 depends_on = None
@@ -21,12 +21,10 @@ def upgrade():
     op.create_table('user',
     sa.Column('id', postgresql.UUID(), nullable=False),
     sa.Column('name', sa.String(length=64), nullable=False),
-    sa.Column('email', sa.String(length=64), nullable=False),
+    sa.Column('email', sa.String(length=320), nullable=False),
     sa.Column('password', sa.String(length=200), nullable=False),
     sa.Column('is_admin', sa.Boolean(), nullable=False),
     sa.Column('last_login', postgresql.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.Column('first_name', sa.String(length=64), nullable=True),
-    sa.Column('last_name', sa.String(length=64), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('date_joined', postgresql.TIMESTAMP(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('old_id', sa.BigInteger(), nullable=True),
@@ -38,19 +36,20 @@ def upgrade():
     sa.Column('user_id', postgresql.UUID(), nullable=False),
     sa.Column('token', postgresql.UUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'token')
+    sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('code',
     sa.Column('user_id', postgresql.UUID(), nullable=False),
     sa.Column('code', postgresql.UUID(), nullable=False),
+    sa.Column('expires', postgresql.TIMESTAMP(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('user_id')
+    sa.PrimaryKeyConstraint('user_id', 'code')
     )
     op.create_table('password_reset_token',
     sa.Column('user_id', postgresql.UUID(), nullable=False),
     sa.Column('token', postgresql.UUID(), nullable=False),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'token')
+    sa.PrimaryKeyConstraint('user_id')
     )
     op.create_table('token',
     sa.Column('user_id', postgresql.UUID(), nullable=False),
