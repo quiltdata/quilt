@@ -38,3 +38,5 @@ MAIL_PASSWORD = os.getenv('SMTP_PASSWORD')
 MAIL_USE_TLS = to_bool(os.getenv('SMTP_USE_TLS', 'true'))
 
 SECRET_KEY = os.environ['QUILT_SECRET_KEY']
+
+DEFAULT_SENDER = os.environ['QUILT_DEFAULT_SENDER']
