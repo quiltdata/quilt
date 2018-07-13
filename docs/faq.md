@@ -165,3 +165,14 @@ Symbolic links on Windows have a few quirks to be aware of.
  
  ### Solution
  `sudo pip install quilt # ¯\_(ツ)_/¯`
+
+## `TypeError: data type "mixed-integer" not understood` when reading a DataFrame from a package
+This error occurs when trying to round-trip Pandas DataFrames that have a column name that is a number to Parquet using Arrow 0.9. This can occur during `quilt build` for package nodes built using the Pandas "skiprows" parameter in read_csv or read_excel to skip a source file's header row (usually row 0). For example, this build.yml file, skips the header row in source.xlsx:
+```yaml
+    foo:
+        file: source.xlsx
+        kwargs:
+            skiprows: [0,...]
+            names: ['column0',...]
+```
+

@@ -42,7 +42,7 @@ setup(
         'packaging>=16.8',
         'pandas>=0.19.2',
         'pathlib2; python_version<"3.6"',   # stdlib backport
-        'pyarrow>=0.4.0,<0.8.0',            # TODO(dima): Make unit tests work with 0.8+
+        'pyarrow>=0.9.0',
         'pyyaml>=3.12',
         'requests>=2.12.4',
         'six>=1.10.0',
