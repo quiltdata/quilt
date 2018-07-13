@@ -1,4 +1,4 @@
-# Frequently asked questions and troubleshooting
+# Frequently asked questions
 
 ## How much data can I put into Quilt?
 
