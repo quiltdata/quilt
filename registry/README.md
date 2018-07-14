@@ -164,15 +164,15 @@ S3_HOST=s3
 REGISTRY_HOST=quilt.yourdomain.com
 ```
 
-Once the database is running, initialize the database tables by running migrations.
+Initialize the database tables by running migrations.
 ```bash
-docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgrade
+sudo docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgrade
 ```
 
 After the migrations are complete, run the registry as follows:
 ```bash 
-docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
-docker run -d --name registry-nginx --network container:registry --cmd "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"" nginx
+sudo docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
+sudo docker run -d --name registry-nginx --network container:registry --cmd "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"" nginx
 ```
 
 # Advanced Use
