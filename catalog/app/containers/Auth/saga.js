@@ -1,6 +1,6 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
 
-import { apiRequest, HttpError } from 'utils/APIConnector';
+import { apiRequest, HTTPError } from 'utils/APIConnector';
 import defer from 'utils/defer';
 import { waitTil } from 'utils/sagaTools';
 import { timestamp } from 'utils/time';
@@ -57,7 +57,7 @@ function* signUp(credentials) {
     });
   } catch (e) {
     /* istanbul ignore else */
-    if (e instanceof HttpError) {
+    if (e instanceof HTTPError) {
       if (e.status === 400 && e.json && e.json.message === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
       }
@@ -121,7 +121,7 @@ function* signIn(credentials) {
     });
     return { token };
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
+    if (e instanceof HTTPError && e.status === 401) {
       throw new errors.InvalidCredentials();
     }
 
@@ -152,7 +152,7 @@ function* fetchUser(tokens) {
     });
     return auth;
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
+    if (e instanceof HTTPError && e.status === 401) {
       throw new errors.InvalidToken({ originalError: e });
     }
 
@@ -206,7 +206,7 @@ function* changePassword(link, password) {
     });
   } catch (e) {
     /* istanbul ignore else */
-    if (e instanceof HttpError) {
+    if (e instanceof HTTPError) {
       if (e.status === 404 && e.json && e.json.error === 'User not found.') {
         throw new errors.InvalidResetLink({ originalError: e });
       }
@@ -265,7 +265,7 @@ function* refreshTokens(latency, tokens) {
     });
     return adjustTokensForLatency(newTokens, latency);
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
+    if (e instanceof HTTPError && e.status === 401) {
       throw new errors.InvalidToken({ originalError: e });
     }
     throw new errors.AuthError({
