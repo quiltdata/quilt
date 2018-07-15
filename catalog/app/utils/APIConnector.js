@@ -78,8 +78,8 @@ const response = actionCreator(actions.API_RESPONSE, (payload, requestOpts) => (
   meta: { ...requestOpts },
 }));
 
-export class HttpError extends BaseError {
-  static displayName = 'HttpError';
+export class HTTPError extends BaseError {
+  static displayName = 'HTTPError';
 
   constructor(resp, text) {
     let json;
@@ -136,13 +136,13 @@ const composeMiddleware = (handler, ...rest) =>
  *
  * @type {Middleware}
  *
- * @throws {HttpError}
+ * @throws {HTTPError}
  */
 function* errorMiddleware(opts, next) {
   const resp = yield call(next, opts);
   if (!resp.ok) {
     const text = yield resp.text();
-    throw new HttpError(resp, text);
+    throw new HTTPError(resp, text);
   }
   return resp;
 }
