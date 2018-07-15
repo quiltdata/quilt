@@ -87,7 +87,7 @@ script:
     fi
   - |
     if [[ "$TEST_CATALOG" = true ]]; then
-      (cd catalog && npm test && npm run build)
+      (cd catalog && npm test && npm run build -- --output-filename='[name].js' --output-chunk-filename='[name].chunk.js')
     fi
 
 after_success:
