@@ -1,6 +1,6 @@
 import { call, put } from 'redux-saga/effects';
 
-import { HttpError } from 'utils/APIConnector';
+import { HTTPError } from 'utils/APIConnector';
 
 import { authLost } from './actions';
 import { InvalidToken } from './errors';
@@ -57,7 +57,7 @@ export default function* authMiddleware({ auth = true, ...opts }, next) {
   } catch (e) {
     if (
       handleInvalidToken
-      && e instanceof HttpError
+      && e instanceof HTTPError
       && e.status === 401
       && e.json && e.json.message === 'Token invalid.'
     ) {
