@@ -34,7 +34,7 @@ jest.mock('utils/time');
 
 const requests = {
   changePassword: {
-    setup: () => ['post', '/reset_password'],
+    setup: () => ['post', '/api/change_password'],
     expect: ({ link, password }) =>
       expect.objectContaining({
         body: JSON.stringify({ link, password }),

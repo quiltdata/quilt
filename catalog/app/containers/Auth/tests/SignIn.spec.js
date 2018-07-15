@@ -63,7 +63,7 @@ const onSubmit = (ctx) => {
 
 const requests = {
   signIn: {
-    setup: () => ['post', '/login'],
+    setup: () => ['post', '/api/login'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.credentials),
