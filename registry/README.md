@@ -124,7 +124,7 @@ To browse the catalog using a web browser, enter this location into your web bro
 Running a Quilt Registry in AWS requires the following services:
 * a Postgres database. You can find instructions for setting up Postgres in RDS here: [Create a Postres Database in RDS](https://aws.amazon.com/rds/postgresql/)
 * an S3 bucket
-* an EC2 instance to run the registry, authentication service and catalog
+* an EC2 instance to run the registry, authentication service and catalog. Add the following policies to the security group: Postgres, HTTP/HTTPS, SSH and a custom TCP rule to enable port 5000.
 * an Elastic Load Balancer (ELB) to terminate SSL connections to the registry and catalog
 
 Once the resources have been created, ssh into the EC2 instance and configure the environment and run the services via Docker. You can make it easier to connect to your registry by creating a new DNS record to point to the EC2 instance's external IP address (e.g., quilt.yourdomain.com).
@@ -136,34 +136,30 @@ sudo yum install docker
 sudo service docker start
 ```
 
-## Run the catalog
-Edit the file env/catalog and enter the following lines:
-```
-REGISTRY_URL=http://$REGISTRY_HOST:5000
-USER_API=http://$REGISTRY_HOST:5002/accounts/api-root
-SIGN_OUT_URL=http://$REGISTRY_HOST:5002/accounts/logout?next=%2F
-```
-
-```bash
-sudo docker run -d --name catalog --env-file ~/env/catalog -p 80:80 quiltdata/catalog
-```
-
-## Run the registry
+## Configure your environment
 Edit the file env/registry and enter the following lines:
 ```
 AWS_ACCESS_KEY_ID=<YOUR_CREDENTIALS_HERE>
 AWS_SECRET_ACCESS_KEY=<YOUR_CREDENTIALS_HERE>
 QUILT_SERVER_CONFIG=dev_config.py
-OAUTH_CLIENT_ID=packages
-OAUTH_CLIENT_SECRET=TESTING
 OAUTHLIB_INSECURE_TRANSPORT=1
 AUTH_PROVIDER=quilt
-QUILT_AUTH_URL=http://$REGISTRY_HOST:5002
 SQLALCHEMY_DATABASE_URI=postgresql://$DB_USER:$DB_PASSWORD@$DB_HOST/$DB_DATABASE
 S3_HOST=s3
 REGISTRY_HOST=quilt.yourdomain.com
+REGISTRY_URL=http://${REGISTRY_HOST}:5000
+STRIPE_KEY=NOSTRIPE
+UWSGI_HOST=localhost
+UWSGI_PORT=9000
+NGINX_PORT=80
 ```
 
+## Run the catalog
+```bash
+sudo docker run -d --name catalog --env-file ~/env/catalog -p 80:80 quiltdata/catalog
+```
+
+## Run the registry
 Initialize the database tables by running migrations.
 ```bash
 sudo docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgrade
@@ -172,7 +168,7 @@ sudo docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgra
 After the migrations are complete, run the registry as follows:
 ```bash 
 sudo docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
-sudo docker run -d --name registry-nginx --network container:registry registry "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\""
+sudo docker run -d -e UWSGI_HOST=localhost -e UWSGI_PORT=9000 -e NGINX_PORT=80 -v /home/ec2-user/nginx-quilt.conf:/etc/nginx/nginx-quilt.template --name registry-nginx --network container:registry nginx /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 ```
 
 # Advanced Use
