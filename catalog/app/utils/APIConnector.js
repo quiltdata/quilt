@@ -147,19 +147,21 @@ function* errorMiddleware(opts, next) {
   return resp;
 }
 
+const isInstance = (cls) => (b) => cls ? b instanceof cls : false;
+
 const validBodyTests = [
   isNil,
   isArrayBuffer,
   isBuffer,
   isTypedArray,
   isString,
-  (b) => b instanceof Blob,
-  (b) => b instanceof FormData,
-  (b) => b instanceof URLSearchParams,
-  (b) => b instanceof ReadableStream,
+  isInstance(global.Blob),
+  isInstance(global.FormData),
+  isInstance(global.URLSearchParams),
+  isInstance(global.ReadableStream),
 ];
 
-const isValidBody = (b) => validBodyTests.some((t) => t(b));
+const isValidBody = (b) => validBodyTests.some((t) => t && t(b));
 
 /**
  * Valid body type for fetch / Request. One of:
