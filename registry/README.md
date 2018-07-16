@@ -172,7 +172,7 @@ sudo docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgra
 After the migrations are complete, run the registry as follows:
 ```bash 
 sudo docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
-sudo docker run -d --name registry-nginx --network container:registry --cmd "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\"" nginx
+sudo docker run -d --name registry-nginx --network container:registry registry "/bin/bash -c \"envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'\""
 ```
 
 # Advanced Use
