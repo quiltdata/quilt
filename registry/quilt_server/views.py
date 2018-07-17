@@ -45,7 +45,7 @@ from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
                     VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .mail import send_invitation_email
+from .mail import send_invitation_email, send_comment_email
 from .models import (Access, Comment, Customer, Event, Instance,
                      InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
@@ -2278,6 +2278,11 @@ def comments_post(owner, package_name):
 
     # We disable automatic object expiration on commit, so refresh it manually.
     db.session.refresh(comment)
+
+    owner_email = User.query.filter_by(name=owner).one_or_none().email
+    link = "{REGISTRY_URL}/{owner}/{pkg}/#comments".format(
+            REGISTRY_URL=REGISTRY_URL, owner=owner, pkg=package_name)
+    send_comment_email(owner_email, owner, package_name, g.auth.user, link)
 
     return dict(comment=_comment_dict(comment))
 

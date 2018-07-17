@@ -67,3 +67,11 @@ def send_welcome_email(username, email, link=None):
                            frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
     send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)
+
+def send_comment_email(email, package_owner, package_name, commenter, link):
+    subject = "New comment on {package_owner}/{package_name}".format(
+                               package_owner=package_owner, package_name=package_name)
+    html = render_template('comment_email.html', commenter=commenter, link=link)
+    body = render_template('comment_email.txt', commenter=commenter, link=link)
+    send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,
+               html=html, body=body)
