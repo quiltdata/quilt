@@ -6,6 +6,7 @@
 * [Quilt - a data package manager](https://qxf2.com/blog/quilt-data-package-manager/)
 
 ## Machine learning
+* [Reproducible machine learning with PyTorch and Quilt](https://blog.paperspace.com/reproducible-data-with-pytorch-and-quilt/)
 * [Reproducible machine learning with Jupyter and Quilt](https://blog.dominodatalab.com/reproducible-machine-learning-with-jupyter-and-quilt/)
 * [Identifying Buildings in Satellite Images with Machine Learning and Quilt](https://medium.com/@xander80/identifying-buildings-in-satellite-images-with-machine-learning-and-quilt-5a5579670885)
 
