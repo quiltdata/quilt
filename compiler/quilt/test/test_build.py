@@ -225,8 +225,8 @@ class BuildTest(QuiltTestCase):
             'a': {},
             # Directories don't actually have extensions, so include them even with no conficts
             'dir_ext': {},
-            # Weird characters replaced with a single "_"
-            'a_b_c': {'file': 'a%%b___c'},
+            # Weird characters replaced with "_"
+            'a__b___c': {'file': 'a%%b___c'},
             # Prepend "n" to files that start with a number
             'n1': {'file': '1'},
             # ... even if there used to be an underscore there
