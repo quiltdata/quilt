@@ -43,11 +43,6 @@ def send_reset_email(user, reset_link):
                subject='Reset your Quilt password', html=html, body=body)
 
 def send_invitation_email(email, owner, package_name):
-    body = (
-        "{owner} shared data with you on Quilt.\n"
-        "{owner}/{pkg}\n"
-        "Sign up to access the data.\n"
-    ).format(owner=owner, pkg=package_name)
     subject = "{owner} shared data with you on Quilt".format(owner=owner)
     html = render_template('invitation_email.html', owner=owner, pkg=package_name)
     body = render_template('invitation_email.txt', owner=owner, pkg=package_name)
