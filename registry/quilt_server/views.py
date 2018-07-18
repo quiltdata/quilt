@@ -165,41 +165,6 @@ def login():
 # Cache the settings for a day to avoid pre-flight requests.
 CORS(app, resources={"/api/*": {"origins": "*", "max_age": timedelta(days=1)}})
 
-@app.route('/api/token', methods=['POST'])
-@as_json
-def token():
-    def token_success(user):
-        new_token = issue_token(user)
-        exp = exp_from_token(new_token)
-        db.session.commit()
-        return dict(
-            refresh_token=new_token,
-            access_token=new_token,
-            expires_at=exp
-        )
-
-    refresh_token = request.values.get('refresh_token')
-    if refresh_token is None:
-        abort(requests.codes.bad_request)
-
-    # check if one-time code, then if token
-    try:
-        user = consume_code_string(refresh_token)
-        return token_success(user)
-    except ValidationException:
-        pass
-    except AuthException:
-        return {'error': 'Code invalid'}, 401
-
-    try:
-        user = verify_token_string(refresh_token)
-        if not user:
-            return {'error': 'Token invalid'}, 401
-
-        return token_success(user)
-    except AuthException as ex:
-        return {'error': ex.message}, 401
-
 
 class Auth:
     """
@@ -320,6 +285,42 @@ def api(require_login=True, schema=None, enabled=True,
         return wrapper
     return innerdec
 
+@app.route('/api/token', methods=['POST'])
+@api(require_login=False, require_anonymous=True)
+@as_json
+def token():
+    def token_success(user):
+        new_token = issue_token(user)
+        exp = exp_from_token(new_token)
+        db.session.commit()
+        return dict(
+            refresh_token=new_token,
+            access_token=new_token,
+            expires_at=exp
+        )
+
+    refresh_token = request.values.get('refresh_token')
+    if refresh_token is None:
+        abort(requests.codes.bad_request)
+
+    # check if one-time code, then if token
+    try:
+        user = consume_code_string(refresh_token)
+        return token_success(user)
+    except ValidationException:
+        pass
+    except AuthException:
+        raise ApiException(requests.codes.unauthorized, 'Code invalid')
+
+    try:
+        user = verify_token_string(refresh_token)
+        if not user:
+            raise ApiException(requests.codes.unauthorized, 'Token invalid')
+
+        return token_success(user)
+    except AuthException as ex:
+        raise ApiException(requests.codes.unauthorized, ex.message)
+
 @app.route('/api/login', methods=['POST'])
 @api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_SCHEMA)
 @as_json
@@ -329,14 +330,14 @@ def login_post():
     password = data.get('password')
     user = User.query.filter_by(name=username).with_for_update().one_or_none()
     if not user:
-        return {'error': 'Login attempt failed'}, 401
+        raise ApiException(requests.codes.unauthorized, 'Login attempt failed')
 
     if try_login(user, password):
         token = issue_token(user)
         db.session.commit()
         return {'token': token}
 
-    return {'error': 'Login attempt failed'}, 401
+    raise ApiException(requests.codes.unauthorized, 'Login attempt failed')
 
 @app.route('/activate/<link>')
 def activate_endpoint(link):
@@ -401,7 +402,7 @@ def refresh():
         db.session.commit()
         return {'token': token}
     # token is valid from @api so should always succeed
-    return {'error': 'Internal server error'}, 500
+    raise ApiException(requests.codes.internal_server_error, 'Internal server error')
 
 @app.route('/api/logout', methods=['POST'])
 @api()
@@ -411,8 +412,8 @@ def logout():
     if revoke_token_string(token_str):
         db.session.commit()
         return {}
-
-    return {'error': 'Logout failed.'}, 400
+    # token is valid from @api so should always succeed
+    raise ApiException(requests.codes.internal_server_error, 'Logout failed')
 
 @app.route('/api/code')
 @api()
