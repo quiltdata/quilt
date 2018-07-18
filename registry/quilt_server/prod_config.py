@@ -7,7 +7,6 @@ import os
 
 SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
 
-REGISTRY_HOST = os.environ['REGISTRY_HOST']
 REGISTRY_URL = os.environ['REGISTRY_URL']
 CATALOG_HOST = os.environ['CATALOG_HOST']
 

@@ -31,7 +31,6 @@ services:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=docker_config.py
-      - REGISTRY_HOST=localhost:5000
       - REGISTRY_URL=http://localhost:5000
       - AUTH_PROVIDER=quilt
       - DEPLOYMENT_ID=dev

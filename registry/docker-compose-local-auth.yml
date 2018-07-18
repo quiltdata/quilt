@@ -36,7 +36,6 @@ services:
       - QUILT_SERVER_CONFIG=docker_config.py
       - AUTH_PROVIDER=quilt
       - DEPLOYMENT_ID=dev
-      - REGISTRY_HOST=localhost:5000
       - REGISTRY_URL=http://localhost:5000
     depends_on:
       db:

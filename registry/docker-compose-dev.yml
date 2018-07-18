@@ -20,7 +20,6 @@ services:
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=docker_config.py
       - STRIPE_SECRET_KEY=STRIPETEST
-      - REGISTRY_HOST=localhost:5000
       - REGISTRY_URL=http://localhost:5000
       - QUILT_DEFAULT_SENDER=support@quiltdata.io
       - MAIL_DEV=1
