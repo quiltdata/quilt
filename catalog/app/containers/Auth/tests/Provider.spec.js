@@ -126,7 +126,6 @@ const requests = {
     setup: () => ['postOnce', '/api/logout'],
     expect: () =>
       expect.objectContaining({
-        body: JSON.stringify({ token: tokens.token }),
         headers: expect.objectContaining({
           ...headerAuth,
           ...headerJson,

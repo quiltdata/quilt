@@ -21,7 +21,7 @@ import {
   errors,
 } from '..';
 
-import { api, date, tokens, datasets } from './fixtures';
+import { api, date, datasets } from './fixtures';
 
 jest.mock('react-router-dom');
 jest.mock('components/Working');
@@ -33,11 +33,7 @@ const signOutRedirect = '/after-signout';
 
 const requests = {
   signOut: {
-    setup: () => ['postOnce', '/logout'],
-    expect: () =>
-      expect.objectContaining({
-        body: JSON.stringify({ token: tokens.token }),
-      }),
+    setup: () => ['postOnce', '/api/logout'],
   },
 };
 

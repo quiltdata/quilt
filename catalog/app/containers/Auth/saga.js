@@ -116,7 +116,6 @@ const signOut = async (api, tokens) => {
   try {
     await requestJSON(`${api}/api/logout`, {
       method: 'POST',
-      body: JSON.stringify({ token: tokens.token }),
       headers: {
         ...makeHeadersFromTokens(tokens),
         ...headerJson,
