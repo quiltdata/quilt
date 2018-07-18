@@ -15,13 +15,14 @@ services:
 
   flaskmigration:
     build: .
-    image: quiltdata/flask
+    image: quiltdata/registry
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=docker_config.py
+      - QUILT_SERVER_CONFIG=dev_config.py
       - OAUTH_CLIENT_SECRET=TESTING
       - STRIPE_SECRET_KEY=STRIPETEST
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
     depends_on:
       db:
         condition: service_healthy
@@ -30,16 +31,20 @@ services:
 
   flask:
     build: .
-    image: quiltdata/flask
+    image: quiltdata/registry
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=docker_config.py
+      - QUILT_SERVER_CONFIG=dev_config.py
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
       - OAUTHLIB_INSECURE_TRANSPORT=1
       - AUTH_PROVIDER=quilt
       - DEPLOYMENT_ID=dev
+      - QUILT_AUTH_URL=http://auth:5002
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
+      - S3_HOST=s3
+      - REGISTRY_HOST=flask
     depends_on:
       db:
         condition: service_healthy
@@ -86,9 +91,9 @@ services:
       - DATABASE_URL=postgresql://postgres:testing@db/packages
       - FRONTEND_URL=http://localhost:3000
       - ALLOW_HTTP=1
-      - AUTH_URL=http://auth:5002
+      - AUTH_URL=http://localhost:5002
       - OAUTH_WEB_APPLICATION=Quilt
-      - QUILT_PKG_URL=http://flask:5000
+      - QUILT_PKG_URL=http://localhost:5000
       - DISABLE_SIGNUP    
     depends_on:
       db:
@@ -98,7 +103,7 @@ services:
     image: quiltdata/django
     environment:
       - DATABASE_URL=postgresql://postgres:testing@db/packages
-      - OAUTH_REDIRECT_URI=http://flask:5000/oauth_callback
+      - OAUTH_REDIRECT_URI=http://localhost:5000/oauth_callback
       - OAUTH_CLIENT_ID=packages
       - OAUTH_CLIENT_SECRET=TESTING
       - AUTH_ADMIN_PASSWORD=quilt
@@ -111,9 +116,9 @@ services:
     build: ../catalog
     image: quiltdata/catalog
     environment:
-      - REGISTRY_URL=http://flask:5000
-      - USER_API=http://auth:5002/accounts/api-root
-      - SIGN_OUT_URL=http://auth:5002/accounts/logout?next=%2F
+      - REGISTRY_URL=http://localhost:5000
+      - USER_API=http://localhost:5002/accounts/api-root
+      - SIGN_OUT_URL=http://localhost:5002/accounts/logout?next=%2F
       - STRIPE_KEY=NOSTRIPE
     ports:
       - "3000:80"

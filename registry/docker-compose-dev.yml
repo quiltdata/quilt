@@ -14,7 +14,7 @@ services:
 
   flaskmigration:
     build: .
-    image: quiltdata/flask
+    image: quiltdata/registry
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
