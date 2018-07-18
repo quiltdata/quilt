@@ -256,8 +256,8 @@ def api(require_login=True, schema=None, enabled=True,
     else:
         validator = None
 
-    if require_login and require_anonymous:
-        raise Exception("Can't both require login and require anonymous access.")
+    assert not (require_login and require_anonymous), (
+            "Can't both require login and require anonymous access.")
 
     def innerdec(f):
         @wraps(f)
