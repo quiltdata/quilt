@@ -12,25 +12,21 @@ major performance implications. See `expire_on_commit=False` in `__init__.py`.
 
 import calendar
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import wraps
 import gzip
 import json
 import pathlib
 import time
-from urllib.parse import urlencode
 
 import boto3
 from botocore.exceptions import ClientError
-from flask import abort, g, redirect, render_template, request, Response
+from flask import abort, g, redirect, request, Response
 from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
-from oauthlib.oauth2 import OAuth2Error
-import re
 import requests
-from requests_oauthlib import OAuth2Session
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
@@ -38,37 +34,33 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .const import FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE, VALID_EMAIL_RE
+from .auth import (_delete_user, consume_code_string, issue_code,
+                   issue_token, try_login, verify_token_string,
+                   reset_password, exp_from_token, _create_user,
+                   _enable_user, _disable_user, revoke_token_string,
+                   reset_password_from_email, change_password, activate_response,
+                   AuthException, ValidationException, ConflictException,
+                   NotFoundException, CredentialException)
+from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
+                    VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .models import (Access, Comment, Customer, Event, Instance, InstanceBlobAssoc, Invitation,
-                     Log, Package, S3Blob, Tag, Version)
-from .schemas import (COMMENT_SCHEMA, GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
-                      USERNAME_EMAIL_SCHEMA, USERNAME_SCHEMA)
+from .mail import send_invitation_email
+from .models import (Access, Comment, Customer, Event, Instance,
+                     InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
+from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
+                      PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
 
 DEPLOYMENT_ID = app.config['DEPLOYMENT_ID']
 
-OAUTH_ACCESS_TOKEN_URL = app.config['OAUTH']['access_token_url']
-OAUTH_AUTHORIZE_URL = app.config['OAUTH']['authorize_url']
-OAUTH_CLIENT_ID = app.config['OAUTH']['client_id']
-OAUTH_CLIENT_SECRET = app.config['OAUTH']['client_secret']
-OAUTH_REDIRECT_URL = app.config['OAUTH']['redirect_url']
-
-OAUTH_USER_API = app.config['OAUTH']['user_api']
-OAUTH_PROFILE_API = app.config['OAUTH']['profile_api']
-OAUTH_HAVE_REFRESH_TOKEN = app.config['OAUTH']['have_refresh_token']
-
 CATALOG_URL = app.config['CATALOG_URL']
 CATALOG_REDIRECT_URL = '%s/oauth_callback' % CATALOG_URL
 
-QUILT_AUTH_URL = app.config['QUILT_AUTH_URL']
-
 AUTHORIZATION_HEADER = 'Authorization'
-
-INVITE_SEND_URL = app.config['INVITE_SEND_URL']
 
 PACKAGE_BUCKET_NAME = app.config['PACKAGE_BUCKET_NAME']
 PACKAGE_URL_EXPIRATION = app.config['PACKAGE_URL_EXPIRATION']
@@ -101,8 +93,6 @@ s3_client = boto3.client(
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
 
-auth_session = requests.Session()
-
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
 
@@ -125,15 +115,17 @@ class PythonPlatform(httpagentparser.DetectorBase):
 for python_name in ['CPython', 'Jython', 'PyPy']:
     httpagentparser.detectorshub.register(PythonPlatform(python_name))
 
+class ApiException(Exception):
+    """
+    Base class for API exceptions.
+    """
+    def __init__(self, status_code, message):
+        super().__init__()
+        self.status_code = status_code
+        self.message = message
+
 
 ### Web routes ###
-
-def _create_session(next=''):
-    return OAuth2Session(
-        client_id=OAUTH_CLIENT_ID,
-        redirect_uri=OAUTH_REDIRECT_URL,
-        state=json.dumps(dict(next=next))
-    )
 
 @app.route('/healthcheck')
 def healthcheck():
@@ -154,7 +146,7 @@ def _valid_catalog_redirect(next):
     return next is None or next.startswith(CATALOG_REDIRECT_URL)
 
 def _validate_username(username):
-    if not VALID_NAME_RE.fullmatch(username):
+    if not VALID_USERNAME_RE.fullmatch(username):
         raise ApiException(
             requests.codes.bad,
             """
@@ -164,92 +156,7 @@ def _validate_username(username):
 
 @app.route('/login')
 def login():
-    next = request.args.get('next')
-
-    if not _valid_catalog_redirect(next):
-        return render_template('oauth_fail.html', error="Invalid redirect", QUILT_CDN=QUILT_CDN)
-
-    session = _create_session(next=next)
-    url, state = session.authorization_url(url=OAUTH_AUTHORIZE_URL)
-
-    return redirect(url)
-
-@app.route('/oauth_callback')
-def oauth_callback():
-    # TODO: Check `state`? Do we need CSRF protection here?
-
-    try:
-        state = json.loads(request.args.get('state', '{}'))
-    except ValueError:
-        abort(requests.codes.bad_request)
-
-    if not isinstance(state, dict):
-        abort(requests.codes.bad_request)
-
-    next = state.get('next')
-    if not _valid_catalog_redirect(next):
-        abort(requests.codes.bad_request)
-
-    common_tmpl_args = dict(
-        QUILT_CDN=QUILT_CDN,
-        CATALOG_URL=CATALOG_URL,
-    )
-
-    error = request.args.get('error')
-    if error is not None:
-        return render_template('oauth_fail.html', error=error, **common_tmpl_args)
-
-    code = request.args.get('code')
-    if code is None:
-        abort(requests.codes.bad_request)
-
-    session = _create_session()
-    try:
-        resp = session.fetch_token(
-            token_url=OAUTH_ACCESS_TOKEN_URL,
-            code=code,
-            client_secret=OAUTH_CLIENT_SECRET
-        )
-        if next:
-            return redirect('%s#%s' % (next, urlencode(resp)))
-        else:
-            token = resp['refresh_token' if OAUTH_HAVE_REFRESH_TOKEN else 'access_token']
-            return render_template('oauth_success.html', code=token, **common_tmpl_args)
-    except OAuth2Error as ex:
-        return render_template('oauth_fail.html', error=ex.error, **common_tmpl_args)
-
-@app.route('/api/token', methods=['POST'])
-@as_json
-def token():
-    refresh_token = request.values.get('refresh_token')
-    if refresh_token is None:
-        abort(requests.codes.bad_request)
-
-    if not OAUTH_HAVE_REFRESH_TOKEN:
-        return dict(
-            refresh_token='',
-            access_token=refresh_token,
-            expires_at=float('inf')
-        )
-
-    session = _create_session()
-
-    try:
-        resp = session.refresh_token(
-            token_url=OAUTH_ACCESS_TOKEN_URL,
-            client_id=OAUTH_CLIENT_ID,  # Why??? The session object already has it!
-            client_secret=OAUTH_CLIENT_SECRET,
-            refresh_token=refresh_token
-        )
-    except OAuth2Error as ex:
-        return dict(error=ex.error)
-
-    return dict(
-        refresh_token=resp['refresh_token'],
-        access_token=resp['access_token'],
-        expires_at=resp['expires_at']
-    )
-
+    return redirect('{CATALOG_URL}/code'.format(CATALOG_URL=CATALOG_URL), code=302)
 
 ### API routes ###
 
@@ -263,21 +170,12 @@ class Auth:
     """
     Info about the user making the API request.
     """
-    def __init__(self, user, email, is_logged_in, is_admin):
+    def __init__(self, user, email, is_logged_in, is_admin, is_active=True):
         self.user = user
         self.email = email
         self.is_logged_in = is_logged_in
         self.is_admin = is_admin
-
-
-class ApiException(Exception):
-    """
-    Base class for API exceptions.
-    """
-    def __init__(self, status_code, message):
-        super().__init__()
-        self.status_code = status_code
-        self.message = message
+        self.is_active = is_active
 
 
 class PackageNotFoundException(ApiException):
@@ -308,13 +206,14 @@ def handle_api_exception(error):
     response.status_code = error.status_code
     return response
 
-def api(require_login=True, schema=None, enabled=True, require_admin=False):
+def api(require_login=True, schema=None, enabled=True,
+        require_admin=False, require_anonymous=False):
     """
     Decorator for API requests.
     Handles auth and adds the username as the first argument.
     """
     if require_admin:
-        require_login=True
+        require_login = True
 
     if schema is not None:
         Draft4Validator.check_schema(schema)
@@ -322,17 +221,22 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
     else:
         validator = None
 
+    assert not (require_login and require_anonymous), (
+            "Can't both require login and require anonymous access.")
+
     def innerdec(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False)
+            g.auth = Auth(user=None, email=None, is_logged_in=False, is_admin=False, is_active=True)
 
             user_agent_str = request.headers.get('user-agent', '')
             g.user_agent = httpagentparser.detect(user_agent_str, fill_none=True)
 
             if not enabled:
-                raise ApiException(requests.codes.bad_request,
-                        "This endpoint is not enabled.")
+                raise ApiException(
+                    requests.codes.bad_request,
+                    "This endpoint is not enabled."
+                    )
 
             if validator is not None:
                 try:
@@ -343,34 +247,33 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             auth = request.headers.get(AUTHORIZATION_HEADER)
             g.auth_header = auth
             if auth is None:
-                if require_login or not ALLOW_ANONYMOUS_ACCESS:
-                    raise ApiException(requests.codes.unauthorized, "Not logged in")
+                if not require_anonymous:
+                    if require_login or not ALLOW_ANONYMOUS_ACCESS:
+                        raise ApiException(requests.codes.unauthorized, "Not logged in")
             else:
-                headers = {
-                    AUTHORIZATION_HEADER: auth
-                }
+                # try to validate new auth
+                token = auth
+                # for compatibility with old clients
+                if token.startswith("Bearer "):
+                    token = token[7:]
+
                 try:
-                    resp = auth_session.get(OAUTH_USER_API, headers=headers)
-                    resp.raise_for_status()
+                    user = verify_token_string(token)
+                except AuthException:
+                    raise ApiException(requests.codes.unauthorized, "Token invalid.")
 
-                    data = resp.json()
-                    # TODO(dima): Generalize this.
-                    user = data.get('current_user', data.get('login'))
-                    assert user
-                    email = data['email']
-                    is_admin = data.get('is_staff', False)
+                g.user = user
+                g.auth = Auth(user=user.name,
+                              email=user.email,
+                              is_logged_in=True,
+                              is_admin=user.is_admin,
+                              is_active=user.is_active)
 
-                    g.auth = Auth(user=user, email=email, is_logged_in=True, is_admin=is_admin)
-                except requests.HTTPError as ex:
-                    if resp.status_code == requests.codes.unauthorized:
-                        raise ApiException(
-                            requests.codes.unauthorized,
-                            "Invalid credentials"
+                if not g.auth.is_active:
+                    raise ApiException(
+                        requests.codes.forbidden,
+                        "Account is inactive. Must have an active account."
                         )
-                    else:
-                        raise ApiException(requests.codes.server_error, "Server error")
-                except (ConnectionError, requests.RequestException) as ex:
-                    raise ApiException(requests.codes.server_error, "Server error")
 
             if require_admin and not g.auth.is_admin:
                 raise ApiException(
@@ -381,6 +284,145 @@ def api(require_login=True, schema=None, enabled=True, require_admin=False):
             return f(*args, **kwargs)
         return wrapper
     return innerdec
+
+@app.route('/api/token', methods=['POST'])
+@api(require_login=False, require_anonymous=True)
+@as_json
+def token():
+    def token_success(user):
+        new_token = issue_token(user)
+        exp = exp_from_token(new_token)
+        db.session.commit()
+        return dict(
+            refresh_token=new_token,
+            access_token=new_token,
+            expires_at=exp
+        )
+
+    refresh_token = request.values.get('refresh_token')
+    if refresh_token is None:
+        abort(requests.codes.bad_request)
+
+    # check if one-time code, then if token
+    try:
+        user = consume_code_string(refresh_token)
+        return token_success(user)
+    except ValidationException:
+        pass
+    except AuthException:
+        raise ApiException(requests.codes.unauthorized, 'Code invalid')
+
+    try:
+        user = verify_token_string(refresh_token)
+        if not user:
+            raise ApiException(requests.codes.unauthorized, 'Token invalid')
+
+        return token_success(user)
+    except AuthException as ex:
+        raise ApiException(requests.codes.unauthorized, ex.message)
+
+@app.route('/api/login', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_SCHEMA)
+@as_json
+def login_post():
+    data = request.get_json()
+    username = data.get('username')
+    password = data.get('password')
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    if not user:
+        raise ApiException(requests.codes.unauthorized, 'Login attempt failed')
+
+    if try_login(user, password):
+        token = issue_token(user)
+        db.session.commit()
+        return {'token': token}
+
+    raise ApiException(requests.codes.unauthorized, 'Login attempt failed')
+
+@app.route('/activate/<link>')
+def activate_endpoint(link):
+    return activate_response(link)
+
+@app.route('/api/reset_password', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=EMAIL_SCHEMA)
+@as_json
+def reset_password_start():
+    data = request.get_json()
+    email = data['email']
+    reset_password_from_email(email)
+    db.session.commit()
+    return {}
+
+@app.route('/api/change_password', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=PASSWORD_RESET_SCHEMA)
+@as_json
+def change_password_endpoint():
+    data = request.get_json()
+    raw_password = data['password']
+    link = data['link']
+    try:
+        change_password(raw_password, link)
+        db.session.commit()
+        return {}
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except CredentialException as ex:
+        raise ApiException(requests.codes.unauthorized, ex.message)
+    except AuthException as ex:
+        raise ApiException(requests.codes.internal_server_error, ex.message)
+
+@app.route('/api/me')
+@api()
+@as_json
+def apiroot():
+    return {'is_staff': g.auth.is_admin, 'is_active': g.auth.is_active,
+            'email': g.auth.email, 'current_user': g.auth.user}
+
+@app.route('/api/register', methods=['POST'])
+@api(require_anonymous=True, require_login=False, schema=USERNAME_PASSWORD_EMAIL_SCHEMA)
+@as_json
+def register_endpoint():
+    data = request.get_json()
+    if app.config['DISABLE_SIGNUP']:
+        raise ApiException(requests.codes.not_implemented, "Signup is disabled.")
+    username = data['username']
+    password = data['password']
+    email = data['email']
+    _create_user(username, password=password, email=email)
+    db.session.commit()
+    return {}
+
+@app.route('/api/refresh', methods=['POST'])
+@api()
+@as_json
+def refresh():
+    token_str = request.headers.get(AUTHORIZATION_HEADER)
+    if revoke_token_string(token_str):
+        token = issue_token(g.user)
+        db.session.commit()
+        return {'token': token}
+    # token is valid from @api so should always succeed
+    raise ApiException(requests.codes.internal_server_error, 'Internal server error')
+
+@app.route('/api/logout', methods=['POST'])
+@api()
+@as_json
+def logout():
+    token_str = request.headers.get(AUTHORIZATION_HEADER)
+    if revoke_token_string(token_str):
+        db.session.commit()
+        return {}
+    # token is valid from @api so should always succeed
+    raise ApiException(requests.codes.internal_server_error, 'Logout failed')
+
+@app.route('/api/code')
+@api()
+@as_json
+def get_code():
+    user = User.query.filter_by(name=g.user.name).one_or_none()
+    code = issue_code(user)
+    db.session.commit()
+    return {'code': code}
 
 def _access_filter(auth):
     query = []
@@ -678,10 +720,11 @@ def package_put(owner, package_name, package_hash):
         if not public and not _private_packages_allowed():
             raise ApiException(
                 requests.codes.payment_required,
-                ("Insufficient permissions. Run `quilt push --public %s/%s` to make " +
+                (
+                    "Insufficient permissions. Run `quilt push --public %s/%s` to make " +
                     "this package public, or upgrade your service plan to create " +
-                    "private packages: https://quiltdata.com/profile.") %
-                (owner, package_name)
+                    "private packages: https://quiltdata.com/profile."
+                ) % (owner, package_name)
             )
 
         package = Package(owner=owner, name=package_name)
@@ -727,7 +770,7 @@ def package_put(owner, package_name, package_hash):
                 raise ApiException(
                     requests.codes.forbidden,
                     ("%(team)s:%(user)s/%(pkg)s is private. To share it with the team, " +
-                        "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
+                     "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
 
@@ -805,7 +848,7 @@ def package_put(owner, package_name, package_hash):
             keywords_tsv=keywords_tsv,
         )
 
-        blob_by_hash = { blob.hash: blob for blob in blobs }
+        blob_by_hash = {blob.hash: blob for blob in blobs}
 
         for blob_hash in all_hashes:
             blob_size = sizes.get(blob_hash)
@@ -1005,13 +1048,13 @@ def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
     }
 
 @app.route('/api/package_timeseries/<owner>/<package_name>/<event_type>',
-        methods=['GET'])
+           methods=['GET'])
 @api(require_login=False)
 @as_json
 def package_timeseries(owner, package_name, event_type):
     try:
         event_enum = Event.Type[event_type.upper()]
-    except:
+    except KeyError:
         raise ApiException(requests.codes.bad_request, "Event type incorrectly specified.")
 
     result = (
@@ -1240,19 +1283,28 @@ def logs_list(owner, package_name):
     package = _get_package(g.auth, owner, package_name)
 
     tags = (
-        db.session.query(Tag.instance_id,
-            sa.func.array_agg(Tag.tag).label('tag_list'))
+        db.session.query(
+            Tag.instance_id,
+            sa.func.array_agg(Tag.tag).label('tag_list')
+        )
         .group_by(Tag.instance_id)
         .subquery('tags')
     )
     versions = (
-        db.session.query(Version.instance_id,
-            sa.func.array_agg(Version.version).label('version_list'))
+        db.session.query(
+            Version.instance_id,
+            sa.func.array_agg(Version.version).label('version_list')
+        )
         .group_by(Version.instance_id)
         .subquery('versions')
     )
     logs = (
-        db.session.query(Log, Instance, tags.c.tag_list, versions.c.version_list)
+        db.session.query(
+            Log,
+            Instance,
+            tags.c.tag_list,
+            versions.c.version_list
+        )
         .filter_by(package=package)
         .join(Log.instance)
         .outerjoin(tags, Log.instance_id == tags.c.instance_id)
@@ -1270,7 +1322,7 @@ def logs_list(owner, package_name):
     ) for log, instance, tag_list, version_list in logs]
 
 
-    return { 'logs' : results }
+    return {'logs' : results}
 
 VERSION_SCHEMA = {
     'type': 'object',
@@ -1551,10 +1603,6 @@ def access_put(owner, package_name, user):
             "Only the package owner can grant access"
         )
 
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
-        }
-
     package = (
         Package.query
         .with_for_update()
@@ -1569,29 +1617,8 @@ def access_put(owner, package_name, user):
         invitation = Invitation(package=package, email=email)
         db.session.add(invitation)
         db.session.commit()
-
-        # Call to Auth to send invitation email
-        resp = auth_session.post(
-            INVITE_SEND_URL,
-            headers=auth_headers,
-            data=dict(
-                email=email,
-                owner=g.auth.user,
-                package=package.name,
-                client_id=OAUTH_CLIENT_ID,
-                client_secret=OAUTH_CLIENT_SECRET,
-                callback_url=OAUTH_REDIRECT_URL
-            )
-        )
-
-        if resp.status_code == requests.codes.unauthorized:
-            raise ApiException(
-                requests.codes.unauthorized,
-                "Invalid credentials"
-                )
-        elif resp.status_code != requests.codes.ok:
-            raise ApiException(requests.codes.server_error, "Server error")
-        return dict()
+        send_invitation_email(email, owner, package_name)
+        return {}
 
     else:
         _validate_username(user)
@@ -1601,19 +1628,11 @@ def access_put(owner, package_name, user):
         elif user == TEAM:
             if not ALLOW_TEAM_ACCESS:
                 raise ApiException(requests.codes.forbidden, "Team access not allowed")
-        else:
-            resp = auth_session.get(OAUTH_PROFILE_API % user,
-                                    headers=auth_headers)
-            if resp.status_code == requests.codes.not_found:
-                raise ApiException(
-                    requests.codes.not_found,
-                    "User %s does not exist" % user
-                    )
-            elif resp.status_code != requests.codes.ok:
-                raise ApiException(
-                    requests.codes.server_error,
-                    "Unknown error"
-                    )
+        elif not User.query.filter_by(name=user).one_or_none():
+            raise ApiException(
+                requests.codes.not_found,
+                "User %s does not exist" % user
+                )
 
         try:
             access = Access(package=package, user=user)
@@ -2028,26 +2047,20 @@ def client_log():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_users():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
+    users = User.query.all()
+    results = [{
+        'username': user.name,
+        'email': user.email,
+        'first_name': user.first_name,
+        'last_name': user.last_name,
+        'date_joined': user.date_joined,
+        'last_login': user.last_login,
+        'is_superuser': user.is_admin,
+        'is_active': user.is_active
+    } for user in users]
+    return {
+        'results': results
     }
-
-    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-
-    resp = auth_session.get(user_list_api, headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            requests.codes.not_found,
-            "Cannot list users"
-            )
-    elif resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
 
 @app.route('/api/users/list_detailed', methods=['GET'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
@@ -2068,27 +2081,20 @@ def list_users_detailed():
     for event_user, event_type, event_count in events:
         event_results[(event_user, event_type)] = event_count
 
-    # replicate code from list_users since endpoints aren't callable from each other
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header
-    }
-
-    user_list_api = "%s/accounts/users" % QUILT_AUTH_URL
-
-    users = auth_session.get(user_list_api, headers=auth_headers).json()
+    users = User.query.all()
 
     results = {
-        user['username'] : {
-            'packages' : package_counts.get(user['username'], 0),
-            'installs' : event_results[(user['username'], Event.Type.INSTALL)],
-            'previews' : event_results[(user['username'], Event.Type.PREVIEW)],
-            'pushes' : event_results[(user['username'], Event.Type.PUSH)],
-            'deletes' : event_results[(user['username'], Event.Type.DELETE)],
-            'status' : 'active' if user['is_active'] else 'disabled',
-            'last_seen' : user['last_login'],
-            'is_admin' : user['is_staff']
+        user.name : {
+            'packages' : package_counts.get(user.name, 0),
+            'installs' : event_results[(user.name, Event.Type.INSTALL)],
+            'previews' : event_results[(user.name, Event.Type.PREVIEW)],
+            'pushes' : event_results[(user.name, Event.Type.PUSH)],
+            'deletes' : event_results[(user.name, Event.Type.DELETE)],
+            'status' : 'active' if user.is_active else 'disabled',
+            'last_seen' : user.last_login,
+            'is_admin' : user.is_admin
             }
-        for user in users['results']
+        for user in users
     }
 
     return {'users' : results}
@@ -2098,163 +2104,64 @@ def list_users_detailed():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_EMAIL_SCHEMA)
 @as_json
 def create_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    user_create_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.post(user_create_api, headers=auth_headers,
-        data=json.dumps({
-            "username": username,
-            "first_name": "",
-            "last_name": "",
-            "email": data['email'],
-            "is_superuser": False,
-            "is_staff": False,
-            "is_active": True,
-            "last_login": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S")
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            requests.codes.not_found,
-            "Cannot create user"
-            )
-
-    if resp.status_code == requests.codes.bad:
-        if resp.text == '{"email":["Enter a valid email address."]}':
-            raise ApiException(
-                requests.codes.bad,
-                "Please enter a valid email address."
-                )
-
-        raise ApiException(
-            requests.codes.bad,
-            "Bad request. Maybe there's already a user with the username you provided?"
-            )
-
-    elif resp.status_code != requests.codes.created:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    try:
+        data = request.get_json()
+        username = data['username']
+        _validate_username(username)
+        email = data['email']
+        _create_user(username=username, email=email, requires_reset=True, requires_activation=False)
+        db.session.commit()
+        return {}
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except ConflictException as ex:
+        raise ApiException(requests.codes.conflict, ex.message)
 
 @app.route('/api/users/disable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def disable_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
+    try:
+        data = request.get_json()
+        username = data['username']
+        if g.auth.user == username:
+            raise ApiException(requests.codes.forbidden, "Can't disable yourself")
 
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-
-    if g.auth.user == username:
-        raise ApiException(
-            requests.codes.forbidden,
-            "Can't disable your own account."
-            )
-
-    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
-        data=json.dumps({
-            'is_active' : False
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to disable not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _disable_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 @app.route('/api/users/enable', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def enable_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.patch("%s%s/" % (user_modify_api, username) , headers=auth_headers,
-        data=json.dumps({
-            'is_active' : True
-        }))
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to enable not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    try:
+        data = request.get_json()
+        username = data['username']
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _enable_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 # This endpoint is disabled pending a rework of authentication
 @app.route('/api/users/delete', methods=['POST'])
 @api(enabled=False, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
 def delete_user():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-    user_modify_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
-    data = request.get_json()
-    username = data['username']
-    _validate_username(username)
-
-    resp = auth_session.delete("%s%s/" % (user_modify_api, username), headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User to delete not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            resp.status_code,
-            "Unknown error"
-            )
-
-    return resp.json()
+    try:
+        data = request.get_json()
+        username = data['username']
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _delete_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
 
 @app.route('/api/audit/<owner>/<package_name>/')
 @api(require_admin=True)
@@ -2303,7 +2210,7 @@ def audit_user(user):
 @as_json
 def package_summary():
     events = (
-        db.session.query(Event.package_owner, Event.package_name, Event.type, 
+        db.session.query(Event.package_owner, Event.package_name, Event.type,
                          sa.func.count(Event.type), sa.func.max(Event.created))
         .group_by(Event.package_owner, Event.package_name, Event.type)
         )
@@ -2329,34 +2236,16 @@ def package_summary():
 @app.route('/api/users/reset_password', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
 @as_json
-def reset_password():
-    auth_headers = {
-        AUTHORIZATION_HEADER: g.auth_header,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    }
-
-    password_reset_api = '%s/accounts/users/' % QUILT_AUTH_URL
-
+def admin_reset_password():
     data = request.get_json()
     username = data['username']
-    _validate_username(username)
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    if not user:
+        raise ApiException(requests.codes.not_found, "User not found.")
 
-    resp = auth_session.post("%s%s/reset_pass/" % (password_reset_api, username), headers=auth_headers)
-
-    if resp.status_code == requests.codes.not_found:
-        raise ApiException(
-            resp.status_code,
-            "User not found."
-            )
-
-    if resp.status_code != requests.codes.ok:
-        raise ApiException(
-            requests.codes.server_error,
-            "Unknown error"
-            )
-
-    return resp.json()
+    reset_password(user, set_unusable=True)
+    db.session.commit()
+    return {}
 
 def _comment_dict(comment):
     # JSON/JavaScript is not very good with large integers, so let's use strings to be safe.

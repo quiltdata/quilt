@@ -37,6 +37,7 @@ class QuiltSQLAlchemy(SQLAlchemy):
         ))
         super(QuiltSQLAlchemy, self).apply_driver_hacks(app, info, options)
 
+
 db = QuiltSQLAlchemy(app, session_options=dict(expire_on_commit=False))
 
 FlaskJSON(app)

@@ -311,7 +311,7 @@ class PushInstallTestCase(QuiltTestCase):
             ), default=encode_node),
             content_type='application/json',
             headers={
-                'Authorization': 'blah'
+                'Authorization': 'bad_user'
             }
         )
         assert resp.status_code == requests.codes.forbidden
@@ -944,6 +944,7 @@ class PushInstallTestCase(QuiltTestCase):
         assert len(instance_blobs) == 4
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', False)
     def testTeamAccessFails(self):
         # Verify that --team fails in the public cloud.
         resp = self.app.put(

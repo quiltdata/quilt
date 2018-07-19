@@ -21,8 +21,8 @@ class TeamPaymentsTestCase(QuiltTestCase):
     @mock.patch('stripe.Subscription.create')
     @mock.patch('stripe.Customer.create')
     def testNewTeam(self, customer_create, subscription_create, customer_retrieve):
-        user1 = 'user1'
-        user2 = 'user2'
+        user1 = 'test_user'
+        user2 = 'share_with'
 
         # Access the profile as the first user.
         customer_create.return_value.id = 'cus_1'
@@ -125,7 +125,7 @@ class TeamPaymentsTestCase(QuiltTestCase):
 
     @mock_customer(plan=PaymentPlan.TEAM_UNPAID, have_credit_card=True)
     def testUpdatePlanNonAdmin(self, customer):
-        user = 'user'
+        user = 'test_user'
         subscription = customer.subscriptions.data[0]
         subscription.save.return_value = None
 
@@ -181,7 +181,7 @@ class TeamPaymentsTestCase(QuiltTestCase):
 
     @mock_customer(plan=PaymentPlan.TEAM, have_credit_card=False)
     def testUpdatePaymentNonAdmin(self, customer):
-        user = 'user'
+        user = 'test_user'
         customer.save.return_value = None
         token = '12345'
 

@@ -14,6 +14,7 @@ env:
     - FLASK_APP=quilt_server
     - FLASK_DEBUG=1
     - QUILT_SERVER_CONFIG=dev_config.py
+    - QUILT_SECRET_KEY=testing
     # Catalog
     - TEST_CATALOG=false
 

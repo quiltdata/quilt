@@ -1,0 +1,348 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Feature: containers/Auth/PassReset Background: Scenario: Resetting the password Given resetPassword request is expected When the component tree is mounted When I submit the form Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Reset Password
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value=""
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+      <prop-error-text>
+        <span>
+          Enter your email
+        </span>
+      </prop-error-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Reset
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Don't have an account? 
+        <component-link
+          to="/signup"
+        >
+          <span>
+            Sign up
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/PassReset Background: Scenario: Resetting the password Given resetPassword request is expected When the component tree is mounted When I submit the form When I enter email into email field When I submit the form Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c3 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c3 + .c3 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Reset Password
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="true"
+      fullwidth="true"
+      name="email"
+      value="bob@example.com"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <div
+      class="c2"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Reset
+          </span>
+        </prop-label>
+        <prop-children>
+          <component-spinner
+            style="font-size: 1.5em; opacity: 0.5; position: absolute; right: -1.5em;"
+          />
+        </prop-children>
+      </component-raised-button>
+    </div>
+    <p
+      class="c3"
+    >
+      <span>
+        Don't have an account? 
+        <component-link
+          to="/signup"
+        >
+          <span>
+            Sign up
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/PassReset Background: Scenario: Resetting the password Given resetPassword request is expected When the component tree is mounted When I submit the form When I enter email into email field When I submit the form When resetPassword request fails with 500 Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  color: #f44336;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.c2 a {
+  color: inherit !important;
+  text-decoration: underline;
+}
+
+.c3 {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: center;
+  -webkit-justify-content: center;
+  -ms-flex-pack: center;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.c4 {
+  font-size: 12px;
+  line-height: 16px;
+  margin-bottom: 12px;
+  margin-top: 32px;
+  text-align: center;
+}
+
+.c4 + .c4 {
+  margin-top: 12px;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Reset Password
+    </span>
+  </h1>
+  <form>
+    <component-text-field
+      disabled="false"
+      fullwidth="true"
+      name="email"
+      value="bob@example.com"
+    >
+      <prop-floating-label-text>
+        <span>
+          Email
+        </span>
+      </prop-floating-label-text>
+    </component-text-field>
+    <p
+      class="c2"
+    >
+      <span>
+        Something went wrong. Try again later.
+      </span>
+    </p>
+    <div
+      class="c3"
+    >
+      <component-raised-button
+        disabled="true"
+        primary="true"
+        type="submit"
+      >
+        <prop-label>
+          <span>
+            Reset
+          </span>
+        </prop-label>
+      </component-raised-button>
+    </div>
+    <p
+      class="c4"
+    >
+      <span>
+        Don't have an account? 
+        <component-link
+          to="/signup"
+        >
+          <span>
+            Sign up
+          </span>
+        </component-link>
+        .
+      </span>
+    </p>
+  </form>
+</div>
+`;
+
+exports[`Feature: containers/Auth/PassReset Background: Scenario: Resetting the password Given resetPassword request is expected When the component tree is mounted When I submit the form When I enter email into email field When I submit the form When resetPassword request succeeds Then the rendered markup should match the snapshot 1`] = `
+.c0 {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 280px;
+  min-height: calc(100vh - 300px);
+  width: 100%;
+}
+
+.c1 {
+  text-align: center;
+}
+
+.c2 {
+  text-align: center;
+}
+
+<div
+  class="c0"
+>
+  <h1
+    class="c1"
+  >
+    <span>
+      Reset Password
+    </span>
+  </h1>
+  <p
+    class="c2"
+  >
+    <span>
+      You have requested a password reset. Check your email for further instructions.
+    </span>
+  </p>
+</div>
+`;

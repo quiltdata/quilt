@@ -154,6 +154,17 @@ USERNAME_SCHEMA = {
     'additionalProperties': False
 }
 
+EMAIL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'email': {
+            'type': 'string'
+        }
+    },
+    'required': ['email'],
+    'additionalProperties': False
+}
+
 USERNAME_EMAIL_SCHEMA = {
     'type': 'object',
     'properties': {
@@ -184,5 +195,50 @@ COMMENT_SCHEMA = {
         }
     },
     'required': ['contents'],
+    'additionalProperties': False
+}
+
+USERNAME_PASSWORD_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'password': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'password'],
+    'additionalProperties': False
+}
+
+USERNAME_PASSWORD_EMAIL_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'password': {
+            'type': 'string'
+        },
+        'email': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'password', 'email'],
+    'additionalProperties': False
+}
+
+PASSWORD_RESET_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'password': {
+            'type': 'string'
+        },
+        'link': {
+            'type': 'string'
+        }
+    },
+    'required': ['password', 'link'],
     'additionalProperties': False
 }

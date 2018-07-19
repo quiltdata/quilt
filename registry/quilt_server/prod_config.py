@@ -7,32 +7,23 @@ import os
 
 SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
 
-REGISTRY_HOST = os.environ['REGISTRY_HOST']
-OAUTH_HOST = os.environ['OAUTH_HOST']
-OAUTH_API_HOST = os.environ['OAUTH_API_HOST']
+REGISTRY_URL = os.environ['REGISTRY_URL']
 CATALOG_HOST = os.environ['CATALOG_HOST']
 
 CATALOG_URL = 'https://%s' % CATALOG_HOST
 
-QUILT_AUTH_URL = 'https://%s' % OAUTH_API_HOST  # TODO: Disable it for GitHub?
-
-OAUTH = dict(
-    access_token_url='https://%s/o/token/' % OAUTH_HOST,
-    authorize_url='https://%s/o/authorize/' % OAUTH_HOST,
-    client_id=os.environ['OAUTH_CLIENT_ID'],
-    client_secret=os.environ['OAUTH_CLIENT_SECRET'],
-    redirect_url='https://%s/oauth_callback' % REGISTRY_HOST,
-    user_api='https://%s/accounts/api-root' % OAUTH_API_HOST,
-    profile_api='https://%s/accounts/profile?user=%%s' % OAUTH_API_HOST,
-    have_refresh_token=True
-)
-
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
 
-INVITE_SEND_URL = 'https://%s/pkginvite/send/' % OAUTH_API_HOST
+MAIL_SERVER = os.environ['SMTP_HOST']
+MAIL_USERNAME = os.environ['SMTP_USERNAME']
+MAIL_PASSWORD = os.environ['SMTP_PASSWORD']
 
 # Optional
 MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN')
 DEPLOYMENT_ID = os.getenv('DEPLOYMENT_ID')
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 ENABLE_USER_ENDPOINTS = bool(os.getenv('ENABLE_USER_ENDPOINTS', ''))
+
+SECRET_KEY = os.environ['QUILT_SECRET_KEY']
+
+DEFAULT_SENDER = os.environ['QUILT_DEFAULT_SENDER']

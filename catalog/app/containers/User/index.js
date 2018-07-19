@@ -11,7 +11,7 @@ import apiStatus from 'constants/api';
 import Error from 'components/Error';
 import PackageList from 'components/PackageList';
 import Working from 'components/Working';
-import { makeSelectUserName } from 'containers/App/selectors';
+import { username as selectUsername } from 'containers/Auth/selectors';
 import { composeComponent } from 'utils/reactTools';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
@@ -39,7 +39,7 @@ export default composeComponent('User',
   connect(
     createStructuredSelector({
       packages: makeSelectPackages(),
-      user: makeSelectUserName(),
+      user: selectUsername,
     }),
     { getPackages, push }
   ),

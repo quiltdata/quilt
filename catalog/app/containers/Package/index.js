@@ -19,11 +19,8 @@ import Error from 'components/Error';
 import { Pad } from 'components/LayoutHelpers';
 import Markdown from 'components/Markdown';
 import PackageHandle from 'components/PackageHandle';
-import {
-  makeSelectPackage,
-  makeSelectUserName,
-  selectPackageTraffic,
-} from 'containers/App/selectors';
+import { selectPackage, selectPackageTraffic } from 'containers/App/selectors';
+import { username } from 'containers/Auth/selectors';
 import Working from 'components/Working';
 import { injectReducer } from 'utils/ReducerInjector';
 import { injectSaga } from 'utils/SagaInjector';
@@ -118,6 +115,7 @@ export class Package extends React.PureComponent {
       boundAddComment,
       boundGetComments,
       match: { params },
+      location: { pathname, search },
     } = this.props;
     const { status, error = {}, response = {} } = pkg;
     switch (status) {
@@ -190,6 +188,7 @@ export class Package extends React.PureComponent {
                 getComments={boundGetComments}
                 user={user}
                 owner={owner}
+                location={pathname + search}
               />
             </Tab>
           </Tabs>
@@ -231,6 +230,10 @@ Package.propTypes = {
       owner: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
+  location: PropTypes.shape({
+    pathname: PropTypes.string.isRequired,
+    search: PropTypes.string.isRequired,
+  }).isRequired,
   user: PropTypes.string,
   traffic: PropTypes.object,
   comments: PropTypes.object.isRequired,
@@ -242,9 +245,9 @@ export default composeComponent('Package',
   injectReducer(REDUX_KEY, reducer),
   injectSaga(REDUX_KEY, saga),
   connect(createStructuredSelector({
-    pkg: makeSelectPackage(),
-    user: makeSelectUserName(),
+    pkg: selectPackage,
     traffic: selectPackageTraffic,
+    user: username,
     comments: selectors.comments,
   })),
   withHandlers({

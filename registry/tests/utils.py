@@ -20,8 +20,11 @@ import responses
 import sqlalchemy_utils
 
 import quilt_server
+from quilt_server import db
+from quilt_server.auth import verify_token_string, _create_user, _disable_user, _update_user
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
+from quilt_server.models import User
 from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
 
 class MockMixpanelConsumer(object):
@@ -44,8 +47,6 @@ class QuiltTestCase(TestCase):
     def setUp(self):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
-        self._mock_user()
-        self._mock_email()
 
         mock_mp = Mixpanel('dummy_token', MockMixpanelConsumer())
         self.mp_patcher = mock.patch('quilt_server.views.mp', mock_mp)
@@ -60,6 +61,22 @@ class QuiltTestCase(TestCase):
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
         self.db_url = 'postgresql://postgres@localhost/test_%s' % random_name
 
+        def mock_verify(username_or_token):
+            user = User.query.filter_by(name=username_or_token).one_or_none()
+            if user:
+                return user
+            else:
+                return verify_token_string(username_or_token)
+
+        # instead of checking token, just use username
+        self.token_verify_mock = mock.patch('quilt_server.views.verify_token_string', mock_verify)
+        self.token_verify_mock.start()
+
+        # disable 8 character restriction for passwords
+        self.validate_password_mock = mock.patch('quilt_server.auth.validate_password',
+                lambda x: True)
+        self.validate_password_mock.start()
+
         self.app = quilt_server.app.test_client()
         quilt_server.app.config['TESTING'] = True
         quilt_server.app.config['SQLALCHEMY_ECHO'] = False
@@ -67,6 +84,28 @@ class QuiltTestCase(TestCase):
 
         sqlalchemy_utils.create_database(self.db_url)
         quilt_server.db.create_all()
+
+        self.email_suffix = '@example.com'
+
+        self.TEST_USER = 'test_user'
+        self.TEST_USER_EMAIL = 'test_user@example.com'
+        self.TEST_USER_PASSWORD = 'beans'
+        self.OTHER_USER = 'share_with'
+        self.OTHER_USER_EMAIL = 'share_with@example.com'
+        self.OTHER_USER_PASSWORD = 'test'
+        self.TEST_ADMIN = 'admin'
+        self.TEST_ADMIN_EMAIL = 'admin@example.com'
+        self.TEST_ADMIN_PASSWORD = 'quilt'
+        _create_user(self.TEST_USER, email=self.TEST_USER_EMAIL,
+                     password=self.TEST_USER_PASSWORD, requires_activation=False)
+        _create_user(self.TEST_ADMIN, email=self.TEST_ADMIN_EMAIL,
+                     password=self.TEST_ADMIN_PASSWORD, is_admin=True, requires_activation=False)
+        _create_user('bad_user', email='bad_user@example.com', requires_activation=False)
+        _create_user(self.OTHER_USER, email=self.OTHER_USER_EMAIL,
+                     password=self.OTHER_USER_PASSWORD, requires_activation=False)
+        _create_user('user1', email='user1@example.com', password='user1', requires_activation=False)
+        _create_user('user2', email='user2@example.com', password='user2', requires_activation=False)
+        db.session.commit()
 
     def tearDown(self):
         quilt_server.db.session.remove()
@@ -83,31 +122,6 @@ class QuiltTestCase(TestCase):
         """Mocks the auth API call and just returns the value of the Authorization header"""
         invite_url = quilt_server.app.config['INVITE_SEND_URL']
         self.requests_mock.add(responses.POST, invite_url, json.dumps(dict()))
-
-    def _mock_user(self):
-        """Mocks the auth API call and just returns the value of the Authorization header"""
-        user_url = quilt_server.app.config['OAUTH']['user_api']
-
-        def cb(request):
-            auth = request.headers.get('Authorization')
-            if auth is None:
-                return (401, {}, "Not logged in")
-            else:
-                # Hack to make it easy to simulate admin users:
-                # if the username is "admin", it's an "admin".
-                is_staff = auth == 'admin'
-                return (200, {}, json.dumps(dict(
-                    current_user=auth,
-                    email='%s@example.com' % auth,
-                    is_staff=is_staff
-                )))
-
-        self.requests_mock.add_callback(responses.GET, user_url, callback=cb)
-
-    def _mock_check_user(self, user):
-        """Mocks the username check call and returns just the username"""
-        user_url = quilt_server.app.config['OAUTH']['profile_api'] % user
-        self.requests_mock.add(responses.GET, user_url, json.dumps(dict(username=user)))
 
     def put_package(self, owner, package, contents, is_public=False, is_team=False, tag_latest=False):
         contents_hash = hash_contents(contents)
@@ -152,8 +166,6 @@ class QuiltTestCase(TestCase):
         return pkgurl
 
     def _share_package(self, owner, pkg, other_user):
-        self._mock_check_user(other_user)
-
         return self.app.put(
             '/api/access/{owner}/{pkg}/{usr}'.format(
                 owner=owner, usr=other_user, pkg=pkg

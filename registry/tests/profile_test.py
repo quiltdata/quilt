@@ -49,7 +49,7 @@ class ProfileTestCase(QuiltTestCase):
 
 
         # Other users can't see anything.
-        sharewith = "anotheruser"
+        sharewith = "share_with"
 
         resp = self.app.get(
             '/api/profile',
@@ -131,7 +131,7 @@ class ProfileTestCase(QuiltTestCase):
 
 
         # Other users can't see anything.
-        sharewith = "anotheruser"
+        sharewith = "share_with"
 
         resp = self.app.get(
             '/api/profile',
@@ -214,7 +214,7 @@ class ProfileTestCase(QuiltTestCase):
 
 
         # Other users can't see anything.
-        sharewith = "anotheruser"
+        sharewith = "share_with"
 
         resp = self.app.get(
             '/api/profile',

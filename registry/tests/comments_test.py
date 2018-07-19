@@ -42,7 +42,7 @@ class CommentsTestCase(QuiltTestCase):
         return json.loads(resp.data.decode('utf-8'))
 
     def testPrivateComments(self):
-        owner = 'owner'
+        owner = 'test_user'
         pkg1 = 'pkg1'
         pkg2 = 'pkg2'
 
@@ -95,7 +95,7 @@ class CommentsTestCase(QuiltTestCase):
         self._get_comments(owner, pkg1, None, status=requests.codes.not_found)
 
     def testPublicComments(self):
-        owner = 'owner'
+        owner = 'test_user'
         pkg1 = 'pkg1'
         user1 = 'user1'
         comment1 = 'comment1'

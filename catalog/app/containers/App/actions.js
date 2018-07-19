@@ -1,9 +1,6 @@
 /* App actions */
 
 import {
-  GET_AUTH,
-  GET_AUTH_ERROR,
-  GET_AUTH_SUCCESS,
   GET_LOG,
   GET_LOG_ERROR,
   GET_LOG_SUCCESS,
@@ -13,38 +10,12 @@ import {
   GET_PACKAGE,
   GET_PACKAGE_ERROR,
   GET_PACKAGE_SUCCESS,
-  LATENCY_SECONDS,
-  NO_OP,
-  REFRESH_AUTH,
-  ROUTER_START,
-  SET_SEARCH_TEXT,
-  SIGN_OUT,
-  STORE_TOKENS,
   GET_TRAFFIC,
   GET_TRAFFIC_RESPONSE,
+  SET_SEARCH_TEXT,
+  START,
 } from './constants';
 
-export function getAuth(tokens) {
-  return {
-    type: GET_AUTH,
-    tokens,
-  };
-}
-
-export function getAuthError(error) {
-  return {
-    type: GET_AUTH_ERROR,
-    error,
-  };
-}
-
-/* PRE: response is a JS object (parsed JSON) */
-export function getAuthSuccess(response) {
-  return {
-    type: GET_AUTH_SUCCESS,
-    response,
-  };
-}
 
 export function getLog(owner, name) {
   return {
@@ -113,25 +84,6 @@ export function getPackageSuccess(response) {
   };
 }
 
-export function noOp() {
-  return {
-    type: NO_OP,
-  };
-}
-
-export function refreshAuth() {
-  return {
-    type: REFRESH_AUTH,
-  };
-}
-
-export function routerStart(payload) {
-  return {
-    type: ROUTER_START,
-    payload,
-  };
-}
-
 export function setSearchText(text) {
   return {
     type: SET_SEARCH_TEXT,
@@ -139,21 +91,9 @@ export function setSearchText(text) {
   };
 }
 
-export function signOut() {
+export function start() {
   return {
-    type: SIGN_OUT,
-  };
-}
-
-export function storeTokens(response) {
-  const modified = Object.assign({}, response);
-  // HACK; ideally we would do this with the reducer but then
-  // localStorage wouldn't get this update since it also
-  // listens for STORE_TOKENS
-  modified.expires_at -= LATENCY_SECONDS;
-  return {
-    type: STORE_TOKENS,
-    response: modified,
+    type: START,
   };
 }
 

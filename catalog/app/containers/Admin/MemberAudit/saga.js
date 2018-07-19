@@ -1,5 +1,6 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
+import makeError from 'utils/error';
 import request from 'utils/sagaRequest';
 
 import {
@@ -19,6 +20,7 @@ export function* get({ payload: { name } }) {
       handle: `${package_owner}/${package_name}`,
       event: type.toLowerCase(),
     }));
+    if (response.message) throw makeError(response.message);
     yield put(getSuccess(events));
   } catch (err) {
     yield put(getError(err));

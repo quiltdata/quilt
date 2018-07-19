@@ -30,3 +30,5 @@ compiler/.pytest_cache/*
 
 # Pycharm
 .idea
+
+registry/dpmd

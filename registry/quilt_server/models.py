@@ -190,6 +190,49 @@ class Event(db.Model):
 
 db.Index('idx_package', Event.package_owner, Event.package_name)
 
+class User(db.Model):
+    id = db.Column(postgresql.UUID, primary_key=True)
+    name = db.Column(db.String(64), nullable=False, unique=True)
+    email = db.Column(db.String(320), nullable=False, unique=True)
+    password = db.Column(db.String(200), nullable=False)
+    is_admin = db.Column(db.Boolean, nullable=False, default=False)
+    last_login = db.Column(postgresql.TIMESTAMP(True), nullable=False, server_default=db.func.now())
+    is_active = db.Column(db.Boolean, default=False, nullable=False)
+    date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
+    old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
+
+
+class Code(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    code = db.Column(postgresql.UUID, primary_key=True)
+    expires = db.Column(postgresql.TIMESTAMP(True), nullable=False)
+
+
+class Token(db.Model):
+    # each user can have an arbitrary number of tokens, so
+    #   both user_id and token are primary keys
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, primary_key=True)
+
+
+class ActivationToken(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, nullable=False)
+
+
+class PasswordResetToken(db.Model):
+    user_id = db.Column(postgresql.UUID, db.ForeignKey('user.id'), primary_key=True)
+    token = db.Column(postgresql.UUID, nullable=False)
+
+    @classmethod
+    def upsert(cls, user_id, token):
+        stmt = postgresql.insert(cls.__table__).values([user_id, token])
+        on_conflict_stmt = stmt.on_conflict_do_update(
+            index_elements=[cls.__table__.c.user_id],
+            set_={'token': token}
+            )
+
+        db.session.execute(on_conflict_stmt)
 
 MAX_COMMENT_LENGTH = 10 * 1024
 

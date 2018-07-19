@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 import requests
 
-from quilt_server.const import PaymentPlan, PUBLIC
+from quilt_server.const import PaymentPlan, PUBLIC, TEAM
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode, FileNode
 
 from .utils import mock_customer, QuiltTestCase
@@ -38,7 +38,7 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it and test that the
         recipient can read it.
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
@@ -57,8 +57,8 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it and test that the
         invitation was created.
         """
-        sharewithuser = "Anotheruser"
-        sharewithemail = "anotherUser@example.com"  # Different case
+        sharewithuser = "share_with"
+        sharewithemail = "share_With@example.com"  # Different case
         resp = self._share_package(self.user, self.pkg, sharewithemail)
         assert resp.status_code == requests.codes.ok
 
@@ -132,7 +132,7 @@ class AccessTestCase(QuiltTestCase):
         and test that the revoked recipient can't
         access it.
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
@@ -170,7 +170,7 @@ class AccessTestCase(QuiltTestCase):
         Push a package and test that non-sharing users
         can't access it.
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
@@ -178,7 +178,7 @@ class AccessTestCase(QuiltTestCase):
         resp = self.app.get(
             self.pkgurl,
             headers={
-                'Authorization': "not" + sharewith
+                'Authorization': "bad_user"
             }
         )
 
@@ -192,7 +192,7 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it and test that the
         recipient can't add a new version.
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
@@ -230,7 +230,7 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it publicly, and test that other users
         can't push new versions.
         """
-        otheruser = "anotheruser"
+        otheruser = "share_with"
         resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
@@ -268,7 +268,7 @@ class AccessTestCase(QuiltTestCase):
         both the owner and recipient are included
         in the access list
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
         resp = self._share_package(self.user, self.pkg, sharewith)
         assert resp.status_code == requests.codes.ok
 
@@ -294,7 +294,7 @@ class AccessTestCase(QuiltTestCase):
         Push a package, share it publicly, and test that other users
         can list the access.
         """
-        otheruser = "anotheruser"
+        otheruser = "share_with"
         resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.ok
 
@@ -320,7 +320,7 @@ class AccessTestCase(QuiltTestCase):
         """
         List private, privately-shared, and public packages.
         """
-        sharewith = "anotheruser"
+        sharewith = "share_with"
 
         # Other users can't see private packages.
         resp = self.app.get(
@@ -464,14 +464,15 @@ class AccessTestCase(QuiltTestCase):
         assert can_access == [self.user]
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    @patch('quilt_server.views.ALLOW_TEAM_ACCESS', False)
     def testShareTeamFails(self):
-        resp = self._share_package(self.user, self.pkg, 'team')
+        resp = self._share_package(self.user, self.pkg, TEAM)
         assert resp.status_code == requests.codes.forbidden
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', False)
     @patch('quilt_server.views.ALLOW_TEAM_ACCESS', True)
     def testSharePublicFails(self):
-        resp = self._share_package(self.user, self.pkg, 'public')
+        resp = self._share_package(self.user, self.pkg, PUBLIC)
         assert resp.status_code == requests.codes.forbidden
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
@@ -519,9 +520,9 @@ class AccessTestCase(QuiltTestCase):
         bad_hash = 'f' * 64
 
         # hash1 is private; hash2 is both private and public, owned by different users.
-        self.put_package('usr1', 'pkg1', RootNode(children=dict(foo=FileNode([hash1], dict()))))
-        self.put_package('usr1', 'pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))))
-        self.put_package('usr2', 'public_pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))), is_public=True)
+        self.put_package('test_user', 'pkg1', RootNode(children=dict(foo=FileNode([hash1], dict()))))
+        self.put_package('share_with', 'pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))))
+        self.put_package('share_with', 'public_pkg2', RootNode(children=dict(foo=FileNode([hash2], dict()))), is_public=True)
 
         def _get_hashes(user, hashes):
             headers = {
@@ -546,10 +547,10 @@ class AccessTestCase(QuiltTestCase):
         assert _get_hashes(None, [hash1, hash2]) == {hash2}
 
         # usr1 can see both.
-        assert _get_hashes('usr1', [hash1, hash2]) == {hash1, hash2}
+        assert _get_hashes('test_user', [hash1, hash2]) == {hash1, hash2}
 
         # usr2 can only see hash2; doesn't matter which user it comes from.
-        assert _get_hashes('usr2', [hash1, hash2]) == {hash2}
+        assert _get_hashes('share_with', [hash1, hash2]) == {hash2}
 
         # Bogus hashes have no effect.
-        assert _get_hashes('usr2', [hash2, bad_hash]) == {hash2}
+        assert _get_hashes('share_with', [hash2, bad_hash]) == {hash2}
