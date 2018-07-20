@@ -59,7 +59,7 @@ const Message = styled.p`
 const defaultSection = 'readme';
 
 const makeSectionUrl = (owner, name) => (section) =>
-  `/package/${name}/${owner}${section === defaultSection ? '' : `/${section}`}`;
+  `/package/${owner}/${name}${section === defaultSection ? '' : `/${section}`}`;
 
 export class Package extends React.PureComponent {
   componentDidMount() {
