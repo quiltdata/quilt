@@ -113,13 +113,13 @@ function* signOut() {
  */
 function* signIn(credentials) {
   try {
-    const { token } = yield call(apiRequest, {
+    const { token, exp } = yield call(apiRequest, {
       auth: false,
       endpoint: '/login',
       method: 'POST',
       body: credentials,
     });
-    return { token };
+    return { token, exp };
   } catch (e) {
     if (e instanceof HTTPError && e.status === 401) {
       throw new errors.InvalidCredentials();
@@ -260,7 +260,7 @@ function* refreshTokens(latency, tokens) {
   try {
     const newTokens = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
-      endpoint: '/api/refresh',
+      endpoint: '/refresh',
       method: 'POST',
     });
     return adjustTokensForLatency(newTokens, latency);
@@ -336,7 +336,11 @@ function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject 
 
 const isExpired = (tokens, time) => {
   // some backwards compatibility
-  const exp = tokens.exp || tokens.expires_at || tokens.expires_on;
+  const exp = tokens.exp
+    // istanbul ignore next
+    || tokens.expires_at
+    // istanbul ignore next
+    || tokens.expires_on;
   return exp && exp < time;
 };
 
@@ -410,10 +414,9 @@ function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: er
 /**
  * Handle SIGN_UP action.
  *
- * @param {Object} options
  * @param {Action} action
  */
-function* handleSignUp(opts, { payload: credentials, meta: { resolve, reject } }) {
+function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
   try {
     yield call(signUp, credentials);
     yield call(resolve);
