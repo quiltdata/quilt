@@ -60,7 +60,7 @@ export default composeComponent('App',
       <Pad top left right bottom>
         <Switch>
           <Route path="/" exact component={ProtectedHome} />
-          <Route path="/package/:owner/:name" exact component={ProtectedPackage} />
+          <Route path="/package/:owner/:name/:section(revisions|comments)?" exact component={ProtectedPackage} />
           <Route path="/package/:username" exact component={ProtectedUser} />
           <Route path="/user/:username" exact component={ProtectedUser} />
           <Route path="/grna-search" exact render={() => <ExternalRedirect url={grnaUrl} />} />
