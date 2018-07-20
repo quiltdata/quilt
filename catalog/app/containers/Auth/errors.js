@@ -11,19 +11,19 @@ export class AuthError extends BaseError {
   }
 }
 
+export class InvalidToken extends AuthError {
+  static displayName = 'InvalidToken';
+
+  constructor(props) {
+    super(withDefaultMessage('invalid token', props));
+  }
+}
+
 export class InvalidCredentials extends AuthError {
   static displayName = 'InvalidCredentials';
 
   constructor(props) {
     super(withDefaultMessage('invalid credentials', props));
-  }
-}
-
-export class NotAuthenticated extends AuthError {
-  static displayName = 'NotAuthenticated';
-
-  constructor(props) {
-    super(withDefaultMessage('not authenticated', props));
   }
 }
 

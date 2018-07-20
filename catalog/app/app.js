@@ -1,12 +1,11 @@
 /* app.js - application entry point */
 // Needed for redux-saga es6 generator support
 import 'babel-polyfill';
+import 'whatwg-fetch';
 
 // Import all the third party stuff
-import React from 'react';
 import ReactDOM from 'react-dom';
 import { LOCATION_CHANGE } from 'react-router-redux';
-import FontFaceObserver from 'fontfaceobserver';
 import createHistory from 'history/createBrowserHistory';
 import 'sanitize.css/sanitize.css';
 //  Need to bypass CSS modules used by standard loader
@@ -17,8 +16,16 @@ import '!!style-loader!css-loader!css/bootstrap-grid.css';
 import App from 'containers/App';
 // Import Language Provider
 import LanguageProvider from 'containers/LanguageProvider';
-import { Provider as AuthProvider, selectors } from 'containers/Auth';
+import {
+  Provider as AuthProvider,
+  selectors,
+  apiMiddleware as authMiddleware,
+} from 'containers/Auth';
+import { Provider as NotificationsProvider } from 'containers/Notifications';
 import config from 'constants/config';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import fontLoader from 'utils/fontLoader';
+import { nest } from 'utils/reactTools';
 import FormProvider from 'utils/ReduxFormProvider';
 import RouterProvider from 'utils/router';
 import * as storage from 'utils/storage';
@@ -37,12 +44,10 @@ import { translationMessages } from './i18n';
 // Import CSS reset and Global Styles
 import './global-styles';
 
-// TODO: factor-out font loading logic
+
 // listen for Roboto fonts
-const robo = new FontFaceObserver('Roboto', {});
-const roboMono = new FontFaceObserver('Roboto Mono', {});
-// reload doc when we have all custom fonts
-Promise.all([robo.load(), roboMono.load()]).then(() => {
+fontLoader('Roboto', 'Roboto Mono').then(() => {
+  // reload doc when we have all custom fonts
   document.body.classList.add('fontLoaded');
 });
 
@@ -57,22 +62,16 @@ const checkAuthOn = LOCATION_CHANGE;
 
 const render = (messages) => {
   ReactDOM.render(
-    <StoreProvider store={store}>
-      <FormProvider>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            checkOn={checkAuthOn}
-            storage={storage}
-            api={config.api}
-            signInRedirect="/profile"
-          >
-            <RouterProvider history={history}>
-              <App />
-            </RouterProvider>
-          </AuthProvider>
-        </LanguageProvider>
-      </FormProvider>
-    </StoreProvider>,
+    nest(
+      [StoreProvider, { store }],
+      FormProvider,
+      [LanguageProvider, { messages }],
+      NotificationsProvider,
+      [APIProvider, { fetch, base: `${config.api}/api`, middleware: [authMiddleware] }],
+      [AuthProvider, { checkOn: checkAuthOn, storage, signInRedirect: '/profile' }],
+      [RouterProvider, { history }],
+      App,
+    ),
     MOUNT_NODE
   );
 };

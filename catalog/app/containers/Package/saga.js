@@ -1,7 +1,7 @@
 import { call, put, takeLatest, takeEvery } from 'redux-saga/effects';
 
+import { apiRequest } from 'utils/APIConnector';
 import { captureError } from 'utils/errorReporting';
-import request from 'utils/sagaRequest';
 
 import {
   commentAdded,
@@ -12,7 +12,7 @@ import { actions } from './constants';
 
 function* getComments({ payload: { owner, name } }) {
   try {
-    const { comments } = yield call(request, `/comments/${owner}/${name}/`);
+    const { comments } = yield call(apiRequest, `/comments/${owner}/${name}/`);
     yield put(getCommentsSuccess(comments));
   } catch (err) {
     yield put(getCommentsError(err));
@@ -25,9 +25,10 @@ function* addComment({
   meta: { resolve, reject },
 }) {
   try {
-    const { comment } = yield call(request, `/comments/${owner}/${name}/`, {
+    const { comment } = yield call(apiRequest, {
+      endpoint: `/comments/${owner}/${name}/`,
       method: 'POST',
-      body: JSON.stringify({ contents }),
+      body: { contents },
     });
     yield put(commentAdded(comment));
     yield call(resolve, comment);

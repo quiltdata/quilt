@@ -1,7 +1,7 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import makeError from 'utils/error';
-import request from 'utils/sagaRequest';
+import { apiRequest } from 'utils/APIConnector';
+import { captureError } from 'utils/errorReporting';
 
 import {
   getSuccess,
@@ -9,10 +9,11 @@ import {
 } from './actions';
 import { actions } from './constants';
 
+
 export function* get({ payload: { name } }) {
   if (!name) return;
   try {
-    const response = yield call(request, `/audit/${name}/`);
+    const response = yield call(apiRequest, `/audit/${name}/`);
     // eslint-disable-next-line object-curly-newline, camelcase
     const events = response.events.map(({ created, package_owner, package_name, type }) => ({
       time: created * 1000,
@@ -20,10 +21,10 @@ export function* get({ payload: { name } }) {
       handle: `${package_owner}/${package_name}`,
       event: type.toLowerCase(),
     }));
-    if (response.message) throw makeError(response.message);
     yield put(getSuccess(events));
-  } catch (err) {
-    yield put(getError(err));
+  } catch (e) {
+    yield put(getError(e));
+    captureError(e);
   }
 }
 
