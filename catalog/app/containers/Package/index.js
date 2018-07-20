@@ -76,6 +76,7 @@ export class Package extends React.PureComponent {
     dispatch(getPackage(owner, name));
     dispatch(getLog(owner, name));
     dispatch(getTraffic(owner, name));
+    dispatch(getComments(owner, name));
   }
   printManifest(buffer, nodes, indent = '') {
     for (let i = 0; i < nodes.length; i += 1) {
