@@ -1,3 +1,4 @@
+import defaultTo from 'lodash/defaultTo';
 import { call, put } from 'redux-saga/effects';
 
 import { HTTPError } from 'utils/APIConnector';
@@ -41,8 +42,15 @@ const makeHeadersFromTokens = ({ token }) => ({
  * @param {boolean|AuthOptions} options.auth
  */
 export default function* authMiddleware({ auth = true, ...opts }, next) {
-  const tokens = typeof auth === 'boolean' ? auth : (auth.tokens || true);
-  const handleInvalidToken = typeof auth === 'boolean' ? auth : (auth.handleInvalidToken || true);
+  const tokens =
+    typeof auth === 'boolean'
+      ? auth
+      : defaultTo(auth.tokens, true);
+
+  const handleInvalidToken =
+    typeof auth === 'boolean'
+      ? auth
+      : defaultTo(auth.handleInvalidToken, true);
 
   const actualTokens = tokens === true
     ? yield call(getTokens)
