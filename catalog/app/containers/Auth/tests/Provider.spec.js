@@ -7,6 +7,8 @@ import { createStructuredSelector } from 'reselect';
 import LanguageProvider from 'containers/LanguageProvider';
 import { PUSH } from 'containers/Notifications/constants';
 import { translationMessages as messages } from 'i18n';
+import { Provider as APIProvider, apiRequest } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import StoreProvider from 'utils/StoreProvider';
 import { timestamp } from 'utils/time';
 import configureStore from 'store';
@@ -22,8 +24,9 @@ import {
   Provider as AuthProvider,
   actions,
   errors,
-  makeHeaders,
   selectors,
+  apiMiddleware,
+  getTokens,
 } from '..';
 
 import {
@@ -46,6 +49,7 @@ jest.mock('utils/time');
 
 
 const headerJson = {
+  Accepts: 'application/json',
   'Content-Type': 'application/json',
 };
 const headerAuth = {
@@ -57,7 +61,7 @@ const headerAuthStale = {
 
 const requests = {
   signUp: {
-    setup: () => ['postOnce', '/api/register'],
+    setup: () => ['postOnce', '/register'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),
@@ -65,7 +69,7 @@ const requests = {
       }),
   },
   resetPassword: {
-    setup: () => ['postOnce', '/api/reset_password'],
+    setup: () => ['postOnce', '/reset_password'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify({ email: ctx.action.payload }),
@@ -73,7 +77,7 @@ const requests = {
       }),
   },
   changePassword: {
-    setup: () => ['postOnce', '/api/change_password'],
+    setup: () => ['postOnce', '/change_password'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),
@@ -81,7 +85,7 @@ const requests = {
       }),
   },
   getCode: {
-    setup: () => ['getOnce', '/api/code'],
+    setup: () => ['getOnce', '/code'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -92,7 +96,7 @@ const requests = {
     success: () => ({ code: 'the code' }),
   },
   refreshTokens: {
-    setup: () => ['postOnce', '/api/refresh'],
+    setup: () => ['postOnce', '/refresh'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -103,7 +107,7 @@ const requests = {
     success: () => tokensRaw,
   },
   signIn: {
-    setup: () => ['postOnce', '/api/login'],
+    setup: () => ['postOnce', '/login'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.action.payload),
@@ -112,7 +116,7 @@ const requests = {
     success: () => tokensRaw,
   },
   fetchUser: {
-    setup: () => ['getOnce', '/api/me'],
+    setup: () => ['getOnce', '/me'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -123,7 +127,7 @@ const requests = {
     success: () => user,
   },
   signOut: {
-    setup: () => ['postOnce', '/api/logout'],
+    setup: () => ['postOnce', '/logout'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -131,6 +135,9 @@ const requests = {
           ...headerJson,
         }),
       }),
+  },
+  getData: {
+    setup: () => ['get', '/data'],
   },
 };
 
@@ -188,7 +195,7 @@ const states = {
     username: undefined,
     authenticated: false,
     email: undefined,
-    tokens: {},
+    tokens: undefined,
     signInRedirect,
     signOutRedirect,
   },
@@ -248,7 +255,7 @@ const states = {
     username: undefined,
     authenticated: false,
     email: undefined,
-    tokens: {},
+    tokens: undefined,
     signInRedirect,
     signOutRedirect,
   },
@@ -260,7 +267,7 @@ const states = {
     username: undefined,
     authenticated: false,
     email: undefined,
-    tokens: {},
+    tokens: undefined,
     signInRedirect,
     signOutRedirect,
   },
@@ -277,34 +284,32 @@ const argumentsMap = {
   'EmailTaken error': () => [expect.any(errors.EmailTaken)],
   'InvalidResetLink error': () => [expect.any(errors.InvalidResetLink)],
   'InvalidCredentials error': () => [expect.any(errors.InvalidCredentials)],
-  'NotAuthenticated error': () => [expect.any(errors.NotAuthenticated)],
+  'InvalidToken error': () => [expect.any(errors.InvalidToken)],
   AuthError: () => [expect.any(errors.AuthError)],
 };
 
-const setup = (ctx) => {
+const mockStorage = () => ({
+  load: () => ({}),
+  set: () => {},
+  remove: () => {},
+});
+
+const setup = ({ storage, fetch = () => {} }) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
   jest.spyOn(store, 'dispatch');
-  const storage = ctx.storage || {
-    load: () => ({}),
-    set: () => {},
-    remove: () => {},
-  };
-  const tree = (
-    <StoreProvider store={store}>
-      <LanguageProvider messages={messages}>
-        <AuthProvider
-          storage={storage}
-          api={api}
-          latency={latency}
-          signInRedirect={signInRedirect}
-          signOutRedirect={signOutRedirect}
-          checkOn={checkOn}
-        >
-          <h1>test</h1>
-        </AuthProvider>
-      </LanguageProvider>
-    </StoreProvider>
+  const tree = nest(
+    [StoreProvider, { store }],
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch, middleware: [apiMiddleware] }],
+    [AuthProvider, {
+      storage: storage || mockStorage(),
+      latency,
+      signInRedirect,
+      signOutRedirect,
+      checkOn,
+    }],
+    () => <h1>test</h1>,
   );
   timestamp.mockReturnValue(date);
   return { store, tree };
@@ -454,9 +459,9 @@ feature('containers/Auth/Provider')
 
 feature('containers/Auth/Provider: signing in')
   .given('storage has empty auth data')
-  .given('the component tree is mounted')
   .given('signIn request is expected')
   .given('fetchUser request is expected')
+  .given('the component tree is mounted')
 
 
   .scenario('Signing in successfully')
@@ -517,8 +522,8 @@ feature('containers/Auth/Provider: signing in')
 
 feature('containers/Auth/Provider: signing out')
   .given('storage has current auth data')
-  .given('the component tree is mounted')
   .given('signOut request is expected')
+  .given('the component tree is mounted')
 
 
   .scenario('Signing out successfully')
@@ -617,7 +622,7 @@ feature('containers/Auth/Provider: check')
   .then('"authentication lost" notification should be shown')
   .then('store should be in signed-out state with error')
   .then('action.meta.resolve should not be called')
-  .then('action.meta.reject should be called with NotAuthenticated error')
+  .then('action.meta.reject should be called with InvalidToken error')
 
 
   .scenario('Dispatching check without refetch when tokens are stale, refreshTokens request fails with 401')
@@ -630,7 +635,7 @@ feature('containers/Auth/Provider: check')
   .then('"authentication lost" notification should be shown')
   .then('store should be in signed-out state with error')
   .then('action.meta.resolve should not be called')
-  .then('action.meta.reject should be called with NotAuthenticated error')
+  .then('action.meta.reject should be called with InvalidToken error')
 
   .scenario('Dispatching check without refetch when tokens are stale, refreshTokens request fails with 500')
 
@@ -670,15 +675,103 @@ feature('containers/Auth/Provider: check')
   .run();
 
 
-feature('containers/Auth/Provider: authLost')
-  .scenario('Dispatching authLost')
+feature('containers/Auth/saga: getTokens()')
+  .given('refreshTokens request is expected')
+
+  .scenario('Requesting auth tokens when auth data is absent')
+
+  .given('storage has empty auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('result should be undefined')
+
+
+  .scenario('Requesting auth tokens when auth data is current')
 
   .given('storage has current auth data')
   .given('the component tree is mounted')
 
-  .when('authLost action is dispatched')
+  .when('the saga is run')
+  .then('result should be an object containing the proper auth tokens')
+
+  .scenario('Requesting auth tokens when auth data is stale and then gets refreshed successfully')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request succeeds')
+  .then('result should be an object containing the proper auth tokens')
+
+
+  .scenario('Requesting auth tokens when auth data is stale, refreshTokens request fails with 401')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request fails with 401')
+  .then('result should be undefined')
+
+
+  .scenario('Requesting auth tokens when auth data is stale, refreshTokens request fails with 500')
+
+  .given('storage has stale auth data')
+  .given('the component tree is mounted')
+
+  .when('the saga is run')
+  .then('refreshTokens request should be made')
+
+  .when('refreshTokens request fails with 500')
+  .then('result should be an object containing the stale auth tokens')
+
+
+  .step(/the saga is run/, (ctx) => ({
+    ...ctx,
+    result: ctx.store.runSaga(getTokens).done,
+  }))
+
+  .step(/result should be undefined/, async ({ result }) => {
+    expect(await result).toBeUndefined();
+  })
+
+  .step(/result should be an object containing the proper auth tokens/, async ({ result }) => {
+    expect(await result).toEqual(tokens);
+  })
+
+  .step(/result should be an object containing the stale auth tokens/, async ({ result }) => {
+    expect(await result).toEqual(tokensStale);
+  })
+
+  .steps([
+    ...treeSteps,
+    ...storageSteps(datasets, storageObjects),
+    ...requestsSteps(api, requests),
+  ])
+
+  .run();
+
+
+feature('containers/Auth: authenticated request')
+  .scenario('Making an authenticated request')
+
+  .given('storage has current auth data')
+  .given('getData request is expected')
+  .given('the component tree is mounted')
+
+  .when('getData request is made')
+  .when('getData request fails with 401, message: "Token invalid."')
   .then('store should be in signed-out state with error')
   .then('"authentication lost" notification should be shown')
+
+  .step(/getData request is made/, (ctx) => {
+    ctx.store.runSaga(apiRequest, '/data');
+  })
 
   .step(/"authentication lost" notification should be shown/, (ctx) => {
     expect(ctx.store.dispatch).toBeCalledWith(expect.objectContaining({
@@ -693,91 +786,6 @@ feature('containers/Auth/Provider: authLost')
     ...treeSteps,
     ...storageSteps(datasets, storageObjects),
     ...reduxSteps({ dispatches, states, selector }),
-  ])
-
-  .run();
-
-
-feature('containers/Auth/saga: makeHeaders()')
-  .given('refreshTokens request is expected')
-
-  .scenario('Requesting auth headers when auth data is absent')
-
-  .given('storage has empty auth data')
-  .given('the component tree is mounted')
-
-  .when('the saga is run')
-  .then('result should be an empty object')
-
-
-  .scenario('Requesting auth headers when auth data is current')
-
-  .given('storage has current auth data')
-  .given('the component tree is mounted')
-
-  .when('the saga is run')
-  .then('result should be an object containing the proper auth header')
-
-  .scenario('Requesting auth headers when auth data is stale and then gets refreshed successfully')
-
-  .given('storage has stale auth data')
-  .given('the component tree is mounted')
-
-  .when('the saga is run')
-  .then('refreshTokens request should be made')
-
-  .when('refreshTokens request succeeds')
-  .then('result should be an object containing the proper auth header')
-
-
-  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with 401')
-
-  .given('storage has stale auth data')
-  .given('the component tree is mounted')
-
-  .when('the saga is run')
-  .then('refreshTokens request should be made')
-
-  .when('refreshTokens request fails with 401')
-  .then('result should be an empty object')
-
-
-  .scenario('Requesting auth headers when auth data is stale, refreshTokens request fails with 500')
-
-  .given('storage has stale auth data')
-  .given('the component tree is mounted')
-
-  .when('the saga is run')
-  .then('refreshTokens request should be made')
-
-  .when('refreshTokens request fails with 500')
-  .then('result should be an object containing the stale auth header')
-
-
-  .step(/the saga is run/, (ctx) => ({
-    ...ctx,
-    result: ctx.store.runSaga(makeHeaders).done,
-  }))
-
-  .step(/result should be an empty object/, async ({ result }) => {
-    expect(await result).toEqual({});
-  })
-
-  .step(/result should be an object containing the proper auth header/, async ({ result }) => {
-    expect(await result).toEqual({
-      Authorization: `Bearer ${tokens.token}`,
-    });
-  })
-
-  .step(/result should be an object containing the stale auth header/, async ({ result }) => {
-    expect(await result).toEqual({
-      Authorization: `Bearer ${tokensStale.token}`,
-    });
-  })
-
-  .steps([
-    ...treeSteps,
-    ...storageSteps(datasets, storageObjects),
     ...requestsSteps(api, requests),
   ])
 

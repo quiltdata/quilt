@@ -1,10 +1,11 @@
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
-import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
 import copyToClipboard from 'utils/clipboard';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
 
@@ -35,7 +36,7 @@ jest.mock('utils/time');
 
 const requests = {
   getCode: {
-    setup: () => ['getOnce', '/api/code'],
+    setup: () => ['getOnce', '/code'],
     expect: () =>
       expect.objectContaining({
         headers: expect.objectContaining({
@@ -66,21 +67,15 @@ const setup = (ctx) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
   jest.spyOn(store, 'dispatch');
-  const tree = (
+  const tree = nest(
     // we must wrap the tree into div, because enzyme doesn't support fragments
     // https://github.com/airbnb/enzyme/issues/1213
-    <div>
-      <StoreProvider store={store}>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={ctx.storage}
-            api={api}
-          >
-            <Code />
-          </AuthProvider>
-        </LanguageProvider>
-      </StoreProvider>
-    </div>
+    'div',
+    [StoreProvider, { store }],
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch: ctx.fetch }],
+    [AuthProvider, { storage: ctx.storage }],
+    Code,
   );
   return { tree, store };
 };

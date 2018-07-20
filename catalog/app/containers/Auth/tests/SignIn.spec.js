@@ -1,11 +1,12 @@
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
-import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
+import { Provider as APIProvider } from 'utils/APIConnector';
 import { translationMessages as messages } from 'i18n';
 import FormProvider from 'utils/ReduxFormProvider';
 import StoreProvider from 'utils/StoreProvider';
+import { nest } from 'utils/reactTools';
 import configureStore from 'store';
 
 import feature from 'testing/feature';
@@ -63,7 +64,7 @@ const onSubmit = (ctx) => {
 
 const requests = {
   signIn: {
-    setup: () => ['post', '/api/login'],
+    setup: () => ['post', '/login'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.credentials),
@@ -71,29 +72,22 @@ const requests = {
     success: () => tokensRaw,
   },
   fetchUser: {
-    setup: () => ['getOnce', '/api/me'],
+    setup: () => ['getOnce', '/me'],
     success: () => user,
   },
 };
 
-const setup = (ctx) => {
+const setup = ({ storage, fetch = () => {}, next }) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
-  const search = ctx.next ? `?next=${encodeURIComponent(ctx.next)}` : '';
-  const tree = (
-    <StoreProvider store={store}>
-      <FormProvider>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={ctx.storage}
-            api={api}
-            signInRedirect={signInRedirect}
-          >
-            <SignIn location={{ search }} />
-          </AuthProvider>
-        </LanguageProvider>
-      </FormProvider>
-    </StoreProvider>
+  const search = next ? `?next=${encodeURIComponent(next)}` : '';
+  const tree = nest(
+    [StoreProvider, { store }],
+    FormProvider,
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch }],
+    [AuthProvider, { storage, signInRedirect }],
+    [SignIn, { location: { search } }],
   );
   return { tree };
 };
