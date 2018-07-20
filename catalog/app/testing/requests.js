@@ -17,6 +17,7 @@ const defaultSuccess = () => ({ sendAsJson: false });
  */
 export default (api, requests) => [
   step(/(.+) request is expected/, (ctx, name) => {
+    const fetch = ctx.fetch || fetchMock.sandbox();
     const results = [];
     const resolve = (res) =>
       results[results.length - 1].resolver.resolve(res);
@@ -27,10 +28,11 @@ export default (api, requests) => [
     };
 
     const [method, endpoint, opts] = requests[name].setup(ctx);
-    fetchMock[method](`${api}${endpoint}`, respond, { name, ...opts });
+    fetch[method](`${api}${endpoint}`, respond, { name, ...opts });
 
     return {
       ...ctx,
+      fetch,
       requestResolvers: {
         ...ctx.requestResolvers,
         [name]: resolve,
@@ -38,15 +40,15 @@ export default (api, requests) => [
       requests: (ctx.requests || 0) + 1,
     };
   }, (ctx) => {
-    if (ctx.requests === 1) fetchMock.restore();
+    if (ctx.requests === 1) ctx.fetch.reset();
   }),
 
   step(/(.+) request should( not)? be made/, (ctx, name, not) => {
-    expect(fetchMock.called(name)).toBe(!not);
+    expect(ctx.fetch.called(name)).toBe(!not);
     if (!not) {
       const expectation = requests[name].expect;
       if (expectation) {
-        expect(fetchMock.lastOptions(name)).toEqual(expectation(ctx));
+        expect(ctx.fetch.lastOptions(name)).toEqual(expectation(ctx));
       }
     }
   }),
