@@ -272,8 +272,9 @@ def revoke_user_code_tokens(user):
         db.session.delete(code)
     revoke_tokens(user)
 
-def get_exp(mins=30):
-    return datetime.utcnow() + timedelta(minutes=mins)
+def get_exp(mins=None):
+    delta = timedelta(minutes=mins) if mins is not None else timedelta(days=90)
+    return datetime.utcnow() + delta
 
 def issue_token(user, exp=None):
     uuid = generate_uuid()
