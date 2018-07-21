@@ -1,5 +1,10 @@
 const feed = [
   {
+    name: 'vision_dot_2018',
+    owner: 'evanvin',
+    description: '2018 Department of Transportation Challenge Datasets',
+  },
+  {
     name: 'aics_24',
     owner: 'aics',
     description: 'This package contains many of the cells seen, imaged, measured, and cataloged by the Allen Institute for Cell Science.',
