@@ -94,7 +94,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -241,7 +241,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
       <prop-error-text>
@@ -378,7 +378,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -520,7 +520,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -665,7 +665,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -802,7 +802,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -947,7 +947,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -1084,7 +1084,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>
@@ -1227,7 +1227,7 @@ exports[`Feature: containers/Auth/SignUp Background: Scenario: Signing up Given 
     >
       <prop-floating-label-text>
         <span>
-          Password check
+          Verify password
         </span>
       </prop-floating-label-text>
     </component-text-field>

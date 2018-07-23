@@ -31,7 +31,7 @@ const setup = () => {
 const screens = {
   error: (html) => {
     expect(html.find('h1').text()).toBe('Activation Error');
-    expect(html.find('p').text()).toMatch(/Oops.+activating[^]+support@quiltdata\.io/m);
+    expect(html.find('p').text()).toMatch(/Something.+activation[^]+support@quiltdata\.io/m);
   },
 };
 

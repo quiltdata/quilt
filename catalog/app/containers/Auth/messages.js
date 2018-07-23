@@ -86,7 +86,7 @@ export default defineMessages({
   },
   signUpPassCheckLabel: {
     id: `${scope}.SignUp.passCheckLabel`,
-    defaultMessage: 'Password check',
+    defaultMessage: 'Verify password',
   },
   signUpPassCheckRequired: {
     id: `${scope}.SignUp.passCheckRequired`,
@@ -291,7 +291,7 @@ export default defineMessages({
   activationErrorMessage: {
     id: `${scope}.ActivationError.message`,
     defaultMessage:
-      `Oops! Something went wrong with activating your account.
-      Please email us at {email} and we'll help you out.`,
+      `Something went wrong during account activation.
+      We're here to help. Email us at {email}.`,
   },
 });

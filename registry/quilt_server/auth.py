@@ -110,13 +110,13 @@ def _create_user(username, password='', email=None, is_admin=False,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
-            raise ValidationException("Unacceptable username.")
+            raise ValidationException("Invalid username.")
         if blacklisted_name(username):
-            raise ValidationException("Unacceptable username.")
+            raise ValidationException("Invalid username.")
         if email is None:
             raise ValidationException("Must provide email.")
         if not VALID_EMAIL_RE.match(email):
-            raise ValidationException("Unacceptable email.")
+            raise ValidationException("Invalid email.")
         if User.query.filter_by(name=username).one_or_none():
             raise ConflictException("Username already taken.")
         if User.query.filter_by(email=email).one_or_none():
