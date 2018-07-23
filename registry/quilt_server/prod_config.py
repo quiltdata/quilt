@@ -13,6 +13,7 @@ CATALOG_HOST = os.environ['CATALOG_HOST']
 CATALOG_URL = os.environ.get('CATALOG_URL', 'https://%s' % CATALOG_HOST)
 if not CATALOG_URL.startswith("https"):
     print("WARNING: INSECURE CONNECTION TO CATALOG")
+    # require verbose environment variable to be defined
     ALLOW_INSECURE_CATALOG_ACCESS = os.environ['ALLOW_INSECURE_CATALOG_ACCESS']
 
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
