@@ -72,14 +72,13 @@ export default composeComponent('SearchResults',
       response = { packages: [] },
     },
   }) => {
+    // eslint-disable-next-line default-case
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
         return <Working><FormattedMessage {...messages.header} /></Working>;
       case apiStatus.ERROR:
         return <Error {...error} />;
-      default:
-        break;
     }
     return (
       <div>

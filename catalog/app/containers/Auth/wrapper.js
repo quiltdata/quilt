@@ -18,7 +18,7 @@ import { saveProps, restoreProps, composeHOC } from 'utils/reactTools';
 import { selectLocation } from 'utils/router';
 
 import { check } from './actions';
-import { NotAuthenticated } from './errors';
+import { InvalidToken } from './errors';
 import msg from './messages';
 import * as selectors from './selectors';
 
@@ -35,7 +35,7 @@ export default memoize(composeHOC('Auth.Wrapper',
       dispatch(check());
     },
   }),
-  branch((p) => p.error && !(p.error instanceof NotAuthenticated),
+  branch((p) => p.error && !(p.error instanceof InvalidToken),
     renderComponent(({ retry }) => (
       <Error
         headline={<FM {...msg.wrapperFailureHeading} />}

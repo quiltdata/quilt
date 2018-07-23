@@ -67,7 +67,7 @@ export const Field = composeComponent('Auth.Field',
   mapProps(({ input, meta, errors, ...rest }) => ({
     errorText:
       meta.submitFailed && meta.error
-        ? errors[meta.error] || meta.error
+        ? errors[meta.error] || /* istanbul ignore next */ meta.error
         : undefined,
     fullWidth: true,
     ...input,
@@ -92,7 +92,10 @@ export const Error = composeComponent('Auth.Error',
     }
   `,
   mapProps(({ submitFailed, error, errors, ...rest }) => ({
-    error: submitFailed && error ? errors[error] || error : undefined,
+    error:
+      submitFailed && error
+        ? errors[error] /* istanbul ignore next */ || error
+        : undefined,
     ...rest,
   })),
   ({ error, ...rest }) =>

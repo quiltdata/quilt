@@ -1,15 +1,15 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import makeError from 'utils/error';
-import request from 'utils/sagaRequest';
+import { apiRequest } from 'utils/APIConnector';
+import { captureError } from 'utils/errorReporting';
 
 import { getSuccess, getError } from './actions';
 import { actions } from './constants';
 
+
 export function* get() {
   try {
-    const response = yield call(request, '/admin/package_summary');
-    if (response.message) throw makeError(response.message);
+    const response = yield call(apiRequest, '/admin/package_summary');
     const entries = Object.entries(response.packages)
       .map(([handle, pkg]) => ({
         handle,
@@ -20,8 +20,9 @@ export function* get() {
         pushes: pkg.pushes.count,
       }));
     yield put(getSuccess(entries));
-  } catch (err) {
-    yield put(getError(err));
+  } catch (e) {
+    yield put(getError(e));
+    captureError(e);
   }
 }
 

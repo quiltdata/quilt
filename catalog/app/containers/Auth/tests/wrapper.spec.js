@@ -5,6 +5,8 @@ import { LOCATION_CHANGE } from 'react-router-redux';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import RouterProvider from 'utils/router';
 import StoreProvider from 'utils/StoreProvider';
 import { timestamp } from 'utils/time';
@@ -21,6 +23,7 @@ import {
   Provider as AuthProvider,
   requireAuth,
   errors,
+  apiMiddleware,
 } from '..';
 
 import { api, date, tokensRaw, datasets } from './fixtures';
@@ -40,7 +43,7 @@ const homePath = '/home?q=sup';
 
 const requests = {
   refreshTokens: {
-    setup: () => ['post', '/api/refresh'],
+    setup: () => ['post', '/refresh'],
     success: () => tokensRaw,
   },
 };
@@ -64,27 +67,20 @@ const screens = {
   },
 };
 
-const setup = (ctx) => {
+const setup = ({ storage, fetch = () => {} }) => {
   const history = createHistory({ initialEntries: [homePath] });
   const store = configureStore(fromJS({}), history);
   const props = {
     prop1: 'test',
   };
 
-  const tree = (
-    <StoreProvider store={store}>
-      <LanguageProvider messages={messages}>
-        <AuthProvider
-          storage={ctx.storage}
-          api={api}
-          checkOn={LOCATION_CHANGE}
-        >
-          <RouterProvider history={history}>
-            <ProtectedHome {...props} />
-          </RouterProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </StoreProvider>
+  const tree = nest(
+    [StoreProvider, { store }],
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch, middleware: [apiMiddleware] }],
+    [AuthProvider, { storage, checkOn: LOCATION_CHANGE }],
+    [RouterProvider, { history }],
+    [ProtectedHome, props],
   );
   timestamp.mockReturnValue(date);
   return { tree, props };

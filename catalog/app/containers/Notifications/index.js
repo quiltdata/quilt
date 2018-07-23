@@ -1,10 +1,10 @@
 import PT from 'prop-types';
 import React from 'react';
 import { connect } from 'react-redux';
-import { defaultProps, setPropTypes } from 'recompose';
+import { defaultProps, setPropTypes, withProps } from 'recompose';
 
 import { composeComponent } from 'utils/reactTools';
-import { injectReducer } from 'utils/ReducerInjector';
+import { InjectReducer } from 'utils/ReducerInjector';
 
 import * as actions from './actions';
 import { REDUX_KEY } from './constants';
@@ -13,8 +13,11 @@ import selector from './selectors';
 import Notification from './Notification';
 
 
+export const Provider = composeComponent('Notifications.Provider',
+  withProps({ mount: REDUX_KEY, reducer }),
+  InjectReducer);
+
 export default composeComponent('Notifications',
-  injectReducer(REDUX_KEY, reducer),
   connect(selector, actions),
   setPropTypes({
     notifications: PT.arrayOf( // eslint-disable-line function-paren-newline

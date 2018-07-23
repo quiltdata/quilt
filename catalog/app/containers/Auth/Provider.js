@@ -37,10 +37,6 @@ export default composeComponent('Auth.Provider',
       load: PT.func.isRequired,
     }),
     /**
-     * The API URL.
-     */
-    api: PT.string.isRequired,
-    /**
      * Expected API latency in seconds.
      */
     latency: PT.number,

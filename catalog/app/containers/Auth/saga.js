@@ -1,7 +1,7 @@
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
 
+import { apiRequest, HTTPError } from 'utils/APIConnector';
 import defer from 'utils/defer';
-import { requestJSON, HttpError } from 'utils/request';
 import { waitTil } from 'utils/sagaTools';
 import { timestamp } from 'utils/time';
 
@@ -9,43 +9,6 @@ import * as actions from './actions';
 import * as errors from './errors';
 import * as selectors from './selectors';
 
-const headerJson = {
-  'Content-Type': 'application/json',
-};
-
-/**
- * Make auth headers from given auth token.
- *
- * @param {Object} tokens
- * @param {string} tokens.token
- *
- * @returns {Object} Auth headers.
- */
-const makeHeadersFromTokens = ({ token }) => ({
-  Authorization: `Bearer ${token}`,
-});
-
-/**
- * Make auth headers from stored auth data,
- * checking if auth token is up-to-date and
- * waiting until any pending auth requests are settled.
- *
- * @returns {Object}
- *   Object containing the auth headers, empty if not authenticated.
- */
-export function* makeHeaders() {
-  const checked = defer();
-  yield put(actions.check({ refetch: false }, checked.resolver));
-  // eslint-disable-next-line no-empty
-  try { yield checked.promise; } catch (e) {}
-  yield call(waitTil, selectors.waiting, (w) => !w);
-
-  const authenticated = yield select(selectors.authenticated);
-  if (!authenticated) return {};
-
-  const tokens = yield select(selectors.tokens);
-  return makeHeadersFromTokens(tokens);
-}
 
 export const adjustTokensForLatency = (tokens, latency) => ({
   ...tokens,
@@ -57,9 +20,23 @@ export const adjustTokensForLatency = (tokens, latency) => ({
 });
 
 /**
- * Make a sign-up request.
+ * Get auth tokens from stored auth data, checking if auth token is up-to-date
+ * and waiting until any pending auth requests are settled.
  *
- * @param {string} api The API URL.
+ * @returns {Object}
+ *   Object containing the auth tokens, undefined if not authenticated.
+ */
+export function* getTokens() {
+  const checked = defer();
+  yield put(actions.check({ refetch: false }, checked.resolver));
+  // eslint-disable-next-line no-empty
+  try { yield checked.promise; } catch (e) {}
+  yield call(waitTil, selectors.waiting, (w) => !w);
+  return yield select(selectors.tokens);
+}
+
+/**
+ * Make a sign-up request.
  *
  * @param {Object} credentials
  *
@@ -70,16 +47,17 @@ export const adjustTokensForLatency = (tokens, latency) => ({
  * @throws {EmailTaken}
  * @throws {AuthError}
  */
-const signUp = async (api, credentials) => {
+function* signUp(credentials) {
   try {
-    await requestJSON(`${api}/api/register`, {
+    yield call(apiRequest, {
+      auth: false,
+      endpoint: '/register',
       method: 'POST',
-      body: JSON.stringify(credentials),
-      headers: headerJson,
+      body: credentials,
     });
   } catch (e) {
     /* istanbul ignore else */
-    if (e instanceof HttpError) {
+    if (e instanceof HTTPError) {
       if (e.status === 400 && e.json && e.json.message === 'Unacceptable username.') {
         throw new errors.InvalidUsername({ originalError: e });
       }
@@ -101,25 +79,19 @@ const signUp = async (api, credentials) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Make a sign-out request (revoke the token).
  *
- * @param {string} api The API URL.
- *
- * @param {string} token
- *
  * @throws {AuthError}
  */
-const signOut = async (api, tokens) => {
+function* signOut() {
   try {
-    await requestJSON(`${api}/api/logout`, {
+    yield call(apiRequest, {
+      auth: { handleInvalidToken: false },
+      endpoint: '/logout',
       method: 'POST',
-      headers: {
-        ...makeHeadersFromTokens(tokens),
-        ...headerJson,
-      },
     });
   } catch (e) {
     throw new errors.AuthError({
@@ -127,12 +99,10 @@ const signOut = async (api, tokens) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Make a sign-in request.
- *
- * @param {string} api The API URL.
  *
  * @param {Object} credentials
  * @param {string} credentials.username
@@ -141,15 +111,17 @@ const signOut = async (api, tokens) => {
  * @throws {InvalidCredentials}
  * @throws {AuthError}
  */
-const signIn = async (api, credentials) => {
+function* signIn(credentials) {
   try {
-    return await requestJSON(`${api}/api/login`, {
+    const { token, exp } = yield call(apiRequest, {
+      auth: false,
+      endpoint: '/login',
       method: 'POST',
-      body: JSON.stringify(credentials),
-      headers: headerJson,
+      body: credentials,
     });
+    return { token, exp };
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
+    if (e instanceof HTTPError && e.status === 401) {
       throw new errors.InvalidCredentials();
     }
 
@@ -158,34 +130,30 @@ const signIn = async (api, credentials) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Fetch user data.
- *
- * @param {string} api The API URL.
  *
  * @param {Object} tokens
  *
  * @returns {Object} User data.
  *
- * @throws {NotAuthenticated} The API responds w/ 401.
+ * @throws {InvalidToken} The auth token is invalid.
  * @throws {AuthError}
  *   Wrap any caught error into AuthError,
  *   with original error attached as `originalError` property.
  */
-const fetchUser = async (api, tokens) => {
+function* fetchUser(tokens) {
   try {
-    const auth = await requestJSON(`${api}/api/me`, {
-      headers: {
-        ...makeHeadersFromTokens(tokens),
-        ...headerJson,
-      },
+    const auth = yield call(apiRequest, {
+      auth: { tokens, handleInvalidToken: false },
+      endpoint: '/me',
     });
     return auth;
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
-      throw new errors.NotAuthenticated({ originalError: e });
+    if (e instanceof HTTPError && e.status === 401) {
+      throw new errors.InvalidToken({ originalError: e });
     }
 
     throw new errors.AuthError({
@@ -193,23 +161,22 @@ const fetchUser = async (api, tokens) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Make a password reset request.
- *
- * @param {string} api The API URL.
  *
  * @param {string} email
  *
  * @throws {AuthError}
  */
-const resetPassword = async (api, email) => {
+function* resetPassword(email) {
   try {
-    await requestJSON(`${api}/api/reset_password`, {
+    yield call(apiRequest, {
+      auth: false,
+      endpoint: '/reset_password',
       method: 'POST',
-      body: JSON.stringify({ email }),
-      headers: headerJson,
+      body: { email },
     });
   } catch (e) {
     throw new errors.AuthError({
@@ -217,12 +184,10 @@ const resetPassword = async (api, email) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Make a password change request.
- *
- * @param {string} api The API URL.
  *
  * @param {string} link
  * @param {string} password
@@ -231,16 +196,17 @@ const resetPassword = async (api, email) => {
  * @throws {InvalidResetLink}
  * @throws {InvalidPassword}
  */
-const changePassword = async (api, link, password) => {
+function* changePassword(link, password) {
   try {
-    await requestJSON(`${api}/api/change_password`, {
+    yield call(apiRequest, {
+      auth: false,
+      endpoint: '/change_password',
       method: 'POST',
-      body: JSON.stringify({ link, password }),
-      headers: headerJson,
+      body: { link, password },
     });
   } catch (e) {
     /* istanbul ignore else */
-    if (e instanceof HttpError) {
+    if (e instanceof HTTPError) {
       if (e.status === 404 && e.json && e.json.error === 'User not found.') {
         throw new errors.InvalidResetLink({ originalError: e });
       }
@@ -257,27 +223,18 @@ const changePassword = async (api, link, password) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Get the code from the API.
- *
- * @param {string} api The API URL.
- *
- * @param {Object} tokens
  *
  * @returns {string} The code.
  *
  * @throws {AuthError}
  */
-const getCode = async (api, tokens) => {
+function* getCode() {
   try {
-    const { code } = await requestJSON(`${api}/api/code`, {
-      headers: {
-        ...makeHeadersFromTokens(tokens),
-        ...headerJson,
-      },
-    });
+    const { code } = yield call(apiRequest, '/code');
     return code;
   } catch (e) {
     throw new errors.AuthError({
@@ -285,12 +242,10 @@ const getCode = async (api, tokens) => {
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Refresh auth tokens.
- *
- * @param {string} api The API URL.
  *
  * @param {number} latency
  *
@@ -298,29 +253,27 @@ const getCode = async (api, tokens) => {
  *
  * @returns {Object} Refreshed tokens adjusted for latency.
  *
- * @throws {NotAuthenticated}
+ * @throws {InvalidToken}
  * @throws {AuthError}
  */
-const refreshTokens = async (api, latency, tokens) => {
+function* refreshTokens(latency, tokens) {
   try {
-    const newTokens = await requestJSON(`${api}/api/refresh`, {
+    const newTokens = yield call(apiRequest, {
+      auth: { tokens, handleInvalidToken: false },
+      endpoint: '/refresh',
       method: 'POST',
-      headers: {
-        ...makeHeadersFromTokens(tokens),
-        ...headerJson,
-      },
     });
     return adjustTokensForLatency(newTokens, latency);
   } catch (e) {
-    if (e instanceof HttpError && e.status === 401) {
-      throw new errors.NotAuthenticated({ originalError: e });
+    if (e instanceof HTTPError && e.status === 401) {
+      throw new errors.InvalidToken({ originalError: e });
     }
     throw new errors.AuthError({
       message: 'unable to refresh tokens',
       originalError: e,
     });
   }
-};
+}
 
 /**
  * Handle SIGN_IN action.
@@ -330,7 +283,6 @@ const refreshTokens = async (api, latency, tokens) => {
  * Call resolve or reject callback.
  *
  * @param {Object} options
- * @param {string} options.api
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
@@ -338,13 +290,13 @@ const refreshTokens = async (api, latency, tokens) => {
  * @param {Action} action
  */
 function* handleSignIn(
-  { api, latency, storeTokens, storeUser },
+  { latency, storeTokens, storeUser },
   { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    const tokensRaw = yield call(signIn, api, credentials);
+    const tokensRaw = yield call(signIn, credentials);
     const tokens = adjustTokensForLatency(tokensRaw, latency);
-    const user = yield call(fetchUser, api, tokens);
+    const user = yield call(fetchUser, tokens);
     yield fork(storeTokens, tokens);
     yield fork(storeUser, user);
     yield put(actions.signIn.resolve({ tokens, user }));
@@ -361,16 +313,14 @@ function* handleSignIn(
  * Handle SIGN_OUT action.
  *
  * @param {Object} options
- * @param {string} options.api
  * @param {function} options.forgetTokens
  * @param {function} options.forgetUser
  *
  * @param {Action} action
  */
-function* handleSignOut({ api, forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
+function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
-    const tokens = yield select(selectors.tokens);
-    yield call(signOut, api, tokens);
+    yield call(signOut);
     yield put(actions.signOut.resolve());
     /* istanbul ignore else */
     if (resolve) yield call(resolve);
@@ -386,7 +336,11 @@ function* handleSignOut({ api, forgetTokens, forgetUser }, { meta: { resolve, re
 
 const isExpired = (tokens, time) => {
   // some backwards compatibility
-  const exp = tokens.exp || tokens.expires_at || tokens.expires_on;
+  const exp = tokens.exp
+    // istanbul ignore next
+    || tokens.expires_at
+    // istanbul ignore next
+    || tokens.expires_on;
   return exp && exp < time;
 };
 
@@ -397,7 +351,6 @@ const isExpired = (tokens, time) => {
  * Then refetch and store user data if requested.
  *
  * @param {Object} options
- * @param {string} options.api
  * @param {number} options.latency
  * @param {function} options.storeTokens
  * @param {function} options.storeUser
@@ -409,25 +362,24 @@ const isExpired = (tokens, time) => {
  * @param {Action} action
  */
 function* handleCheck(
-  // eslint-disable-next-line object-curly-newline
-  { api, latency, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError },
+  { latency, storeTokens, storeUser, onAuthError },
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
     const tokens = yield select(selectors.tokens);
     const time = yield call(timestamp);
-    if (!isExpired(tokens, time)) {
+    if (!tokens || !isExpired(tokens, time)) {
       /* istanbul ignore else */
       if (resolve) yield call(resolve);
       return;
     }
 
     yield put(actions.refresh());
-    const newTokens = yield call(refreshTokens, api, latency, tokens);
+    const newTokens = yield call(refreshTokens, latency, tokens);
     yield fork(storeTokens, newTokens);
     let user;
     if (refetch) {
-      user = yield call(fetchUser, api, newTokens);
+      user = yield call(fetchUser, newTokens);
       yield fork(storeUser, user);
     }
     const payload = { tokens: newTokens, user };
@@ -436,10 +388,8 @@ function* handleCheck(
     if (resolve) yield call(resolve, payload);
   } catch (e) {
     yield put(actions.refresh.resolve(e));
-    if (e instanceof errors.NotAuthenticated) {
-      yield fork(forgetTokens);
-      yield fork(forgetUser);
-      yield call(onAuthLost, e);
+    if (e instanceof errors.InvalidToken) {
+      yield put(actions.authLost(e));
     } else {
       yield call(onAuthError, e);
     }
@@ -455,20 +405,20 @@ function* handleCheck(
  * @param {function} options.onAuthLost
  * @param {Action} action
  */
-function* handleAuthLost({ onAuthLost }, { payload: err }) {
+function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
+  yield fork(forgetTokens);
+  yield fork(forgetUser);
   yield call(onAuthLost, err);
 }
 
 /**
  * Handle SIGN_UP action.
  *
- * @param {Object} options
- * @param {string} optiosn.api
  * @param {Action} action
  */
-function* handleSignUp({ api }, { payload: credentials, meta: { resolve, reject } }) {
+function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
   try {
-    yield call(signUp, api, credentials);
+    yield call(signUp, credentials);
     yield call(resolve);
   } catch (e) {
     yield call(reject, e);
@@ -478,13 +428,11 @@ function* handleSignUp({ api }, { payload: credentials, meta: { resolve, reject 
 /**
  * Handle RESET_PASSWORD action.
  *
- * @param {Object} options
- * @param {string} options.api
  * @param {Action} action
  */
-function* handleResetPassword({ api }, { payload: email, meta: { resolve, reject } }) {
+function* handleResetPassword({ payload: email, meta: { resolve, reject } }) {
   try {
-    yield call(resetPassword, api, email);
+    yield call(resetPassword, email);
     yield call(resolve);
   } catch (e) {
     yield call(reject, e);
@@ -494,13 +442,11 @@ function* handleResetPassword({ api }, { payload: email, meta: { resolve, reject
 /**
  * Handle CHANGE_PASSWORD action.
  *
- * @param {Object} options
- * @param {string} options.api
  * @param {Action} action
  */
-function* handleChangePassword({ api }, { payload: { link, password }, meta: { resolve, reject } }) {
+function* handleChangePassword({ payload: { link, password }, meta: { resolve, reject } }) {
   try {
-    yield call(changePassword, api, link, password);
+    yield call(changePassword, link, password);
     yield call(resolve);
   } catch (e) {
     yield call(reject, e);
@@ -510,14 +456,11 @@ function* handleChangePassword({ api }, { payload: { link, password }, meta: { r
 /**
  * Handle GET_CODE action.
  *
- * @param {Object} options
- * @param {string} options.api
  * @param {Action} action
  */
-function* handleGetCode({ api }, { meta: { resolve, reject } }) {
+function* handleGetCode({ meta: { resolve, reject } }) {
   try {
-    const tokens = yield select(selectors.tokens);
-    const code = yield call(getCode, api, tokens);
+    const code = yield call(getCode);
     yield call(resolve, code);
   } catch (e) {
     yield call(reject, e);
@@ -529,7 +472,6 @@ function* handleGetCode({ api }, { meta: { resolve, reject } }) {
  * Handles auth actions and fires CHECK action on specified condition.
  *
  * @param {Object} options
- * @param {string} options.api
  * @param {function} options.checkOn
  * @param {function} options.storeTokens
  * @param {function} options.forgetTokens
@@ -539,7 +481,6 @@ function* handleGetCode({ api }, { meta: { resolve, reject } }) {
  * @param {function} options.onAuthError
  */
 export default function* ({
-  api,
   latency,
   checkOn,
   storeTokens,
@@ -550,16 +491,17 @@ export default function* ({
   onAuthError,
 }) {
   yield takeEvery(actions.signIn.type, handleSignIn,
-    { api, latency, storeTokens, storeUser, forgetTokens });
-  yield takeEvery(actions.signOut.type, handleSignOut, { api, forgetTokens, forgetUser });
+    { latency, storeTokens, storeUser });
+  yield takeEvery(actions.signOut.type, handleSignOut,
+    { forgetTokens, forgetUser });
   yield takeEvery(actions.check.type, handleCheck,
-    // eslint-disable-next-line object-curly-newline
-    { api, latency, storeTokens, storeUser, forgetTokens, forgetUser, onAuthLost, onAuthError });
-  yield takeEvery(actions.authLost.type, handleAuthLost, { onAuthLost });
-  yield takeEvery(actions.signUp.type, handleSignUp, { api });
-  yield takeEvery(actions.resetPassword.type, handleResetPassword, { api });
-  yield takeEvery(actions.changePassword.type, handleChangePassword, { api });
-  yield takeEvery(actions.getCode.type, handleGetCode, { api });
+    { latency, storeTokens, storeUser, onAuthError });
+  yield takeEvery(actions.authLost.type, handleAuthLost,
+    { forgetTokens, forgetUser, onAuthLost });
+  yield takeEvery(actions.signUp.type, handleSignUp);
+  yield takeEvery(actions.resetPassword.type, handleResetPassword);
+  yield takeEvery(actions.changePassword.type, handleChangePassword);
+  yield takeEvery(actions.getCode.type, handleGetCode);
 
   if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
 }

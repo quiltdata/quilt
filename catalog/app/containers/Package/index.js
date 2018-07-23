@@ -57,23 +57,26 @@ const Message = styled.p`
 
 export class Package extends React.PureComponent {
   componentDidMount() {
-    const { dispatch, match: { params: { name, owner } } } = this.props;
-    dispatch(getPackage(owner, name));
-    dispatch(getLog(owner, name));
-    dispatch(getTraffic(owner, name));
-    dispatch(getComments(owner, name));
+    const { match: { params: { name, owner } } } = this.props;
+    this.getData(owner, name);
   }
   componentWillReceiveProps(nextProps) {
-    const { dispatch, match: { params: { name, owner } }, user } = this.props;
-    const { match: { params: { name: oldName, owner: oldOwner } }, user: oldUser } = nextProps;
+    const { match: { params: { name: oldName, owner: oldOwner } }, user: oldUser } = this.props;
+    const { match: { params: { name, owner } }, user } = nextProps;
     // if package has changed or user has changed
     // HACK we are using user as a poor proxy for signedIn state (also available)
     // but that does not cover all cases as a page could 404 for one user id
     // but be available for another
     if (name !== oldName || owner !== oldOwner || user !== oldUser) {
-      dispatch(getPackage(owner, name));
-      dispatch(getComments(owner, name));
+      this.getData(owner, name);
     }
+  }
+  getData(owner, name) {
+    const { dispatch } = this.props;
+    dispatch(getPackage(owner, name));
+    dispatch(getLog(owner, name));
+    dispatch(getTraffic(owner, name));
+    dispatch(getComments(owner, name));
   }
   printManifest(buffer, nodes, indent = '') {
     for (let i = 0; i < nodes.length; i += 1) {
@@ -89,22 +92,19 @@ export class Package extends React.PureComponent {
   }
   renderReadme(manifest) {
     const { status, error = {}, response = {} } = manifest;
+    // eslint-disable-next-line default-case
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
         return <Working />;
       case apiStatus.ERROR:
         return <Error {...error} />;
-      default:
-        break;
     }
 
     if (response.readme_preview) {
       return <Markdown data={response.readme_preview} />;
-    // eslint-disable-next-line no-else-return
-    } else {
-      return <Message><FormattedMessage {...strings.noReadme} /></Message>;
     }
+    return <Message><FormattedMessage {...strings.noReadme} /></Message>;
   }
   render() {
     const {
@@ -118,14 +118,13 @@ export class Package extends React.PureComponent {
       location: { pathname, search },
     } = this.props;
     const { status, error = {}, response = {} } = pkg;
+    // eslint-disable-next-line default-case
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
         return <Working />;
       case apiStatus.ERROR:
         return <Error {...error} />;
-      default:
-        break;
     }
     const { updated_at: ts, updated_by: author, hash } = response;
     const { name, owner } = params;
