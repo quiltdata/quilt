@@ -45,6 +45,11 @@ const renderItem = (to, msg) => (
   </MenuItem>
 );
 
+class ExtendedFlatButton extends FlatButton {
+  // called by IconMenu
+  setKeyboardFocus() {}
+}
+
 const AuthMenu = composeComponent('UserMenu.AuthMenu',
   setStatic('muiName', 'IconMenu'),
   setPropTypes({
@@ -53,7 +58,7 @@ const AuthMenu = composeComponent('UserMenu.AuthMenu',
   ({ name }) => (
     <IconMenu
       iconButtonElement={
-        <FlatButton
+        <ExtendedFlatButton
           label={
             <span>
               { name } <MIcon color={authButtonStyle.color} drop="6px">expand_more</MIcon>
