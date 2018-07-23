@@ -269,6 +269,8 @@ def api(require_login=True, schema=None, enabled=True,
                               is_admin=user.is_admin,
                               is_active=user.is_active)
 
+                g.token_str = token
+
                 if not g.auth.is_active:
                     raise ApiException(
                         requests.codes.forbidden,
@@ -396,8 +398,7 @@ def register_endpoint():
 @api()
 @as_json
 def refresh():
-    token_str = request.headers.get(AUTHORIZATION_HEADER)
-    if revoke_token_string(token_str):
+    if revoke_token_string(g.token_str):
         token = issue_token(g.user)
         db.session.commit()
         return {'token': token}
@@ -408,8 +409,7 @@ def refresh():
 @api()
 @as_json
 def logout():
-    token_str = request.headers.get(AUTHORIZATION_HEADER)
-    if revoke_token_string(token_str):
+    if revoke_token_string(g.token_str):
         db.session.commit()
         return {}
     # token is valid from @api so should always succeed
