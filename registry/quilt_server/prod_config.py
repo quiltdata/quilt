@@ -9,7 +9,7 @@ SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
 
 REGISTRY_URL = os.environ['REGISTRY_URL']
 
-CATALOG_URL = os.environ.get('CATALOG_URL')
+CATALOG_URL = os.environ['CATALOG_URL']
 if not CATALOG_URL.startswith("https"):
     print("WARNING: INSECURE CONNECTION TO CATALOG")
     # require verbose environment variable to be defined
