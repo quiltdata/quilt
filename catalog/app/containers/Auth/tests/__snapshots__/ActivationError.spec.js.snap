@@ -31,14 +31,14 @@ exports[`Feature: containers/Auth/ActivationError Background: Scenario: Mounting
     class="c2"
   >
     <span>
-      Oops! Something went wrong with activating your account.
-      Please email us at 
+      Something went wrong during account activation.
+      We're here to help. Email us at 
       <a
         href="mailto:support@quiltdata.io"
       >
         support@quiltdata.io
       </a>
-       and we'll help you out.
+      .
     </span>
   </p>
 </div>

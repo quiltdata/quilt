@@ -291,7 +291,7 @@ export default defineMessages({
   activationErrorMessage: {
     id: `${scope}.ActivationError.message`,
     defaultMessage:
-      `Oops, something went wrong while activating your account.
-      Email us at {email}.`,
+      `Something went wrong during account activation.
+      We're here to help. Email us at {email}.`,
   },
 });
