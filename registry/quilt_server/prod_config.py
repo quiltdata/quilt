@@ -8,13 +8,12 @@ import os
 SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
 
 REGISTRY_URL = os.environ['REGISTRY_URL']
-CATALOG_HOST = os.environ['CATALOG_HOST']
 
-CATALOG_URL = os.environ.get('CATALOG_URL', 'https://%s' % CATALOG_HOST)
+CATALOG_URL = os.environ.get('CATALOG_URL')
 if not CATALOG_URL.startswith("https"):
     print("WARNING: INSECURE CONNECTION TO CATALOG")
     # require verbose environment variable to be defined
-    ALLOW_INSECURE_CATALOG_ACCESS = os.environ['ALLOW_INSECURE_CATALOG_ACCESS']
+    assert os.environ['ALLOW_INSECURE_CATALOG_ACCESS']
 
 PACKAGE_BUCKET_NAME = os.environ['PACKAGE_BUCKET_NAME']
 
