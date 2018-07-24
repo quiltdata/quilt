@@ -104,6 +104,7 @@ def change_password(raw_password, link):
     if not user:
         raise NotFoundException("User not found")
     user.password = hash_password(raw_password)
+    revoke_user_code_tokens(user)
     db.session.add(user)
 
 def _create_user(username, password='', email=None, is_admin=False,
