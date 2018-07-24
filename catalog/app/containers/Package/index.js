@@ -9,7 +9,8 @@ import {
 } from 'react-intl';
 import { Helmet } from 'react-helmet';
 import { connect } from 'react-redux';
-import { withHandlers } from 'recompose';
+import { push } from 'react-router-redux';
+import { compose, withHandlers } from 'recompose';
 import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
@@ -54,6 +55,11 @@ const Tree = styled.pre`
 const Message = styled.p`
   opacity: 0.5;
 `;
+
+const defaultSection = 'readme';
+
+const makeSectionUrl = (owner, name) => (section) =>
+  `/package/${owner}/${name}${section === defaultSection ? '' : `/${section}`}`;
 
 export class Package extends React.PureComponent {
   componentDidMount() {
@@ -116,6 +122,7 @@ export class Package extends React.PureComponent {
       boundGetComments,
       match: { params },
       location: { pathname, search },
+      dispatch,
     } = this.props;
     const { status, error = {}, response = {} } = pkg;
     // eslint-disable-next-line default-case
@@ -127,7 +134,7 @@ export class Package extends React.PureComponent {
         return <Error {...error} />;
     }
     const { updated_at: ts, updated_by: author, hash } = response;
-    const { name, owner } = params;
+    const { name, owner, section = defaultSection } = params;
     const time = ts * 1000;
     const { manifest = {}, log = {} } = pkg;
     manifest.response = manifest.response || {};
@@ -160,13 +167,17 @@ export class Package extends React.PureComponent {
               />
             </h1>
           </Header>
-          <Tabs>
-            <Tab label="Readme">
+          <Tabs
+            value={section}
+            onChange={compose(dispatch, push, makeSectionUrl(owner, name))}
+          >
+            <Tab value="readme" label="Readme">
               <Pad top right left bottom pad="1em">
                 { this.renderReadme(manifest || {}) }
               </Pad>
             </Tab>
             <Tab
+              value="revisions"
               label={
                 <span>
                   {logLength}&nbsp;
@@ -180,7 +191,7 @@ export class Package extends React.PureComponent {
             >
               <Log entries={log.response.logs} />
             </Tab>
-            <Tab label="Comments">
+            <Tab value="comments" label="Comments">
               <Comments
                 comments={comments}
                 addComment={boundAddComment}
@@ -227,6 +238,7 @@ Package.propTypes = {
     params: PropTypes.shape({
       name: PropTypes.string.isRequired,
       owner: PropTypes.string.isRequired,
+      section: PropTypes.string,
     }).isRequired,
   }).isRequired,
   location: PropTypes.shape({
