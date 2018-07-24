@@ -195,8 +195,8 @@ def to_identifier(string):
     from the change in all cases, so it must be stored separately.
 
     Examples:
-    >>> to_identifier('#if') -> '_if'
-    >>> to_identifier('global') -> 'global_'
+    >>> to_identifier('Alice\'s Restaurant') -> 'Alice_s_Restaurant'
+    >>> to_identifier('#if') -> 'if' -> QuiltException
     >>> to_identifier('9foo') -> 'n9foo'
 
     :param string: string to convert
@@ -204,7 +204,7 @@ def to_identifier(string):
     :rtype: string
     """
     # Not really useful to expose as a CONSTANT, and python will compile and cache
-    result = re.sub(r'[^0-9a-zA-Z]+', '_', string)
+    result = re.sub(r'[^0-9a-zA-Z_]', '_', string)
 
     # compatibility with older behavior and tests, doesn't hurt anyways -- "_" is a
     # pretty useless name to translate to.  With this, it'll raise an exception.
