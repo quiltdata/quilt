@@ -58,10 +58,10 @@ function* signUp(credentials) {
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
-      if (e.status === 400 && e.json && e.json.message === 'Unacceptable username.') {
+      if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
         throw new errors.InvalidUsername({ originalError: e });
       }
-      if (e.status === 400 && e.json && e.json.message === 'Unacceptable email.') {
+      if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
         throw new errors.InvalidEmail({ originalError: e });
       }
       if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {

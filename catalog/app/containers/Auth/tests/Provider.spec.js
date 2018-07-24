@@ -357,11 +357,11 @@ feature('containers/Auth/Provider')
   .then('action.meta.reject should not be called')
 
   .back()
-  .when('signUp request fails with 400, message: "Unacceptable username."')
+  .when('signUp request fails with 400, message: "Invalid username."')
   .then('action.meta.reject should be called with InvalidUsername error')
 
   .back()
-  .when('signUp request fails with 400, message: "Unacceptable email."')
+  .when('signUp request fails with 400, message: "Invalid email."')
   .then('action.meta.reject should be called with InvalidEmail error')
 
   .back()
