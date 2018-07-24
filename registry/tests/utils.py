@@ -112,6 +112,9 @@ class QuiltTestCase(TestCase):
         db.session.commit()
 
     def tearDown(self):
+        # restore PW hash rounds
+        pwd_context.update(pbkdf2_sha512__default_rounds=500000)
+
         quilt_server.db.session.remove()
         quilt_server.db.drop_all()
         sqlalchemy_utils.drop_database(self.db_url)
