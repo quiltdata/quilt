@@ -368,9 +368,8 @@ class AuthTestCase(QuiltTestCase):
                 '/api/logout',
                 headers={
                     'content-type': 'application/json',
-                    'Authorization': token
-                },
-                data=json.dumps({'token': token})
+                    'Authorization': 'Bearer ' + token
+                }
             )
             return request
 
