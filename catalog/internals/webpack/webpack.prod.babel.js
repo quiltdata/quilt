@@ -2,6 +2,7 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const Flow = require('flow-webpack-plugin');
 
 module.exports = require('./webpack.base.babel')({
   // In production, we skip all hot-reloading stuff
@@ -16,6 +17,8 @@ module.exports = require('./webpack.base.babel')({
   },
 
   plugins: [
+    new Flow({ failOnError: true }),
+
     new webpack.optimize.UglifyJsPlugin({
       sourceMap: true,
     }),

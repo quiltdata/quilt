@@ -9,10 +9,12 @@ const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
 const CircularDependencyPlugin = require('circular-dependency-plugin');
+const Flow = require('flow-webpack-plugin');
 const logger = require('../../server/logger');
 const { dllPlugin } = require(path.resolve(process.cwd(), 'package.json'));
 
 const plugins = [
+  new Flow({ reportingSeverity: 'warning' }),
   new webpack.HotModuleReplacementPlugin(), // Tell webpack we want hot reloading
   new webpack.NoEmitOnErrorsPlugin(),
   new HtmlWebpackPlugin({
