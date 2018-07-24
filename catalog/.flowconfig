@@ -1,0 +1,21 @@
+[ignore]
+.*/node_modules/immutable/.*
+
+[include]
+
+[libs]
+
+[lints]
+
+[options]
+experimental.const_params=true
+module.name_mapper='components' -> '<PROJECT_ROOT>/app/components'
+module.name_mapper='constants' -> '<PROJECT_ROOT>/app/constants'
+module.name_mapper='containers' -> '<PROJECT_ROOT>/app/containers'
+module.name_mapper='utils' -> '<PROJECT_ROOT>/app/utils'
+module.name_mapper='app' -> '<PROJECT_ROOT>/app/app'
+module.name_mapper='global-styles' -> '<PROJECT_ROOT>/app/global-styles'
+module.name_mapper='i18n' -> '<PROJECT_ROOT>/app/i18n'
+module.name_mapper='store' -> '<PROJECT_ROOT>/app/store'
+
+[strict]
