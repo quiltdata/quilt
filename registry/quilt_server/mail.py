@@ -29,8 +29,10 @@ def send_email(recipients, sender, subject, html, body=None, dry_run=False):
 def send_activation_email(user, activation_link):
     base = REGISTRY_URL
     link = '{base}/activate/{link}'.format(base=base, link=activation_link)
-    html = render_template('activation_email.html', link=link, team=TEAM_ID, name=user.name)
-    body = render_template('activation_email.txt', link=link, team=TEAM_ID, name=user.name)
+    html = render_template('activation_email.html', link=link,
+                           team=TEAM_ID, name=user.name, CATALOG_URL=CATALOG_URL)
+    body = render_template('activation_email.txt', link=link,
+                           team=TEAM_ID, name=user.name, CATALOG_URL=CATALOG_URL)
     send_email(recipients=[user.email], sender=DEFAULT_SENDER,
                subject='Activate your Quilt account', html=html, body=body)
 
