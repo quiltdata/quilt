@@ -55,6 +55,7 @@
   },
   "babel": {
     "plugins": [
+      "transform-flow-comments",
       "styled-components"
     ],
     "presets": [
@@ -98,7 +99,8 @@
     "plugins": [
       "redux-saga",
       "react",
-      "jsx-a11y"
+      "jsx-a11y",
+      "flowtype"
     ],
     "parserOptions": {
       "ecmaVersion": 6,
@@ -305,6 +307,7 @@
     "babel-plugin-react-intl": "^2.4.0",
     "babel-plugin-styled-components": "^1.1.4",
     "babel-plugin-transform-es2015-modules-commonjs": "^6.26.0",
+    "babel-plugin-transform-flow-comments": "^6.22.0",
     "babel-plugin-transform-react-constant-elements": "^6.23.0",
     "babel-plugin-transform-react-inline-elements": "^6.22.0",
     "babel-plugin-transform-react-remove-prop-types": "^0.4.12",
@@ -321,6 +324,7 @@
     "eslint": "^4.17.0",
     "eslint-config-airbnb": "^16.1.0",
     "eslint-import-resolver-webpack": "^0.8.4",
+    "eslint-plugin-flowtype": "^2.50.0",
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-jsx-a11y": "^6.0.3",
     "eslint-plugin-react": "^7.6.1",
@@ -329,6 +333,9 @@
     "exports-loader": "^0.7.0",
     "fetch-mock": "^6.4.4",
     "file-loader": "^1.1.6",
+    "flow-bin": "^0.77.0",
+    "flow-typed": "^2.5.1",
+    "flow-webpack-plugin": "^1.2.0",
     "html-loader": "^0.5.5",
     "html-webpack-plugin": "^2.30.1",
     "husky": "^1.0.0-rc.6",
