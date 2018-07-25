@@ -123,9 +123,12 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ConflictException("Email already taken.")
 
     check_conflicts(username, email)
-    validate_password(password)
 
-    new_password = "" if requires_reset else hash_password(password)
+    if requires_reset:
+        new_password = ""
+    else:
+        validate_password(password)
+        new_password = hash_password(password)
 
     if requires_activation:
         is_active = False
