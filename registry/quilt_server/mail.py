@@ -69,10 +69,11 @@ def send_welcome_email(username, email, link=None):
                html=html, body=body)
 
 def send_comment_email(email, package_owner, package_name, commenter):
+    """Send email to owner of package regarding new comment"""
     link = '{REGISTRY_URL}/{owner}/{pkg}/comments'.format(
-            REGISTRY_URL=REGISTRY_URL, owner=package_owner, pkg=package_name)
+        REGISTRY_URL=REGISTRY_URL, owner=package_owner, pkg=package_name)
     subject = "New comment on {package_owner}/{package_name}".format(
-                               package_owner=package_owner, package_name=package_name)
+        package_owner=package_owner, package_name=package_name)
     html = render_template('comment_email.html', commenter=commenter, link=link)
     body = render_template('comment_email.txt', commenter=commenter, link=link)
     send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,

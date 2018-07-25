@@ -6,8 +6,8 @@ from .utils import QuiltTestCase
 
 from quilt_server import app
 from quilt_server.models import User
-from quilt_server.mail import (send_new_user_email, send_invitation_email,
-    send_activation_email, send_reset_email, send_comment_email)
+from quilt_server.mail import (send_comment_email, send_new_user_email,
+    send_invitation_email, send_activation_email, send_reset_email)
 
 class MailTestCase(QuiltTestCase):
 
