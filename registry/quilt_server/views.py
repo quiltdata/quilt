@@ -2280,9 +2280,7 @@ def comments_post(owner, package_name):
     db.session.refresh(comment)
 
     owner_email = User.query.filter_by(name=owner).one_or_none().email
-    link = "{REGISTRY_URL}/{owner}/{pkg}/#comments".format(
-            REGISTRY_URL=REGISTRY_URL, owner=owner, pkg=package_name)
-    send_comment_email(owner_email, owner, package_name, g.auth.user, link)
+    send_comment_email(owner_email, owner, package_name, g.auth.user)
 
     return dict(comment=_comment_dict(comment))
 

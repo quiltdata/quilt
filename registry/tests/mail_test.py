@@ -24,8 +24,7 @@ class MailTestCase(QuiltTestCase):
             send_invitation_email(self.TEST_USER_EMAIL, self.OTHER_USER, 'test')
             send_reset_email(test_user, 'test')
             send_activation_email(test_user, 'test')
-            send_comment_email(self.TEST_USER_EMAIL, 'test', 'pkg', 'commenting_user',
-                    'http://localhost:3000/test/pkg/#comments')
+            send_comment_email(self.TEST_USER_EMAIL, 'test', 'pkg', 'commenting_user')
 
     @patch('quilt_server.mail.send_email')
     def testLinkWorksCorrectly(self, send_email):
