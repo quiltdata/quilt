@@ -34,13 +34,12 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import (_delete_user, consume_code_string, issue_code,
-                   issue_token, try_login, verify_token_string,
-                   reset_password, exp_from_token, _create_user,
-                   _enable_user, _disable_user, revoke_token_string,
-                   reset_password_from_email, change_password, activate_response,
-                   AuthException, ValidationException, ConflictException,
-                   NotFoundException, CredentialException)
+from .auth import (AuthException, ConflictException, CredentialException,
+    NotFoundException, ValidationException, _create_user, _delete_user,
+    _disable_user, _enable_user, activate_response, change_password,
+    consume_code_string, exp_from_token, issue_code, issue_token,
+    reset_password, reset_password_from_email, revoke_token_string,
+    try_login, verify_token_string)
 from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
                     VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
