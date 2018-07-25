@@ -63,6 +63,7 @@ export default composeComponent('AuthBar',
     searchText: PropTypes.string,
     signedIn: PropTypes.bool.isRequired,
     name: PropTypes.string,
+    showUserMenu: PropTypes.bool,
   }),
   withHandlers({
     handleSearch: ({ dispatch }) => (query) => {
@@ -81,6 +82,7 @@ export default composeComponent('AuthBar',
     signedIn,
     handleChange,
     handleSearch,
+    showUserMenu = true,
   }) => (
     <Bar>
       <NavRow>
@@ -102,14 +104,16 @@ export default composeComponent('AuthBar',
         </Right>
       </NavRow>
       <ColNoPad xs={12} sm={6} smPush={6}>
-        <Right>
-          <UserMenu
-            error={error}
-            signedIn={signedIn}
-            name={name}
-            waiting={waiting}
-          />
-        </Right>
+        {showUserMenu && (
+          <Right>
+            <UserMenu
+              error={error}
+              signedIn={signedIn}
+              name={name}
+              waiting={waiting}
+            />
+          </Right>
+        )}
       </ColNoPad>
       <ColNoPad xs={12} sm={6} smPull={6}>
         <LeftGroup {...{ handleChange, handleSearch, searchText }} />
