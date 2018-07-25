@@ -30,8 +30,10 @@ import reducer from './reducer';
 import { makeSelectProfile } from './selectors';
 import saga from './saga';
 
+const defaultSection = 'packages';
+
 const makeSectionUrl = (section) =>
-  `/profile${section === 'packages' ? '' : `/${section}`}`;
+  `/profile${section === defaultSection ? '' : `/${section}`}`;
 
 export class Profile extends React.PureComponent { // eslint-disable-line react/prefer-stateless-function
   state = {
@@ -144,7 +146,7 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
       : <FormattedMessage {...paymentMessages.unrecognized} />;
 
     const { is_admin: isAdmin } = response;
-    const { section = 'packages' } = this.props.match.params;
+    const { section = defaultSection } = this.props.match.params;
 
     return (
       <div>

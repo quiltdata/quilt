@@ -4,8 +4,9 @@ import { fork, call, put, select, takeLatest } from 'redux-saga/effects';
 
 import { actions as auth } from 'containers/Auth/constants';
 import * as authSelectors from 'containers/Auth/selectors';
-import makeError from 'utils/error';
-import request from 'utils/sagaRequest';
+import { apiRequest } from 'utils/APIConnector';
+import { ErrorDisplay } from 'utils/error';
+import { captureError } from 'utils/errorReporting';
 
 import {
   getLogError,
@@ -48,12 +49,13 @@ function* intercom({
 
 function* getLog({ name, owner }) {
   try {
-    const response = yield call(request, `/log/${owner}/${name}/`);
+    const response = yield call(apiRequest, `/log/${owner}/${name}/`);
     yield put(getLogSuccess(response));
-  } catch (error) {
-    error.headline = 'Log hiccup';
-    error.detail = `doGetLog: ${error.message}`;
-    yield put(getLogError(error));
+  } catch (e) {
+    yield put(getLogError(new ErrorDisplay(
+      'Log hiccup', `getLog: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
@@ -62,27 +64,25 @@ function* getLog({ name, owner }) {
 function* getManifest() {
   try {
     const { name, owner, hash } = yield select(selectPackageSummary);
-    const response = yield call(request, `/package_preview/${owner}/${name}/${hash}`);
-    if (response.message) throw makeError('Manifest hiccup', response.message);
+    const response = yield call(apiRequest, `/package_preview/${owner}/${name}/${hash}`);
     yield put(getManifestSuccess(response));
-  } catch (error) {
-    error.headline = 'Manifest hiccup';
-    error.detail = `getManifest: ${error.message}`;
-    yield put(getManifestError(error));
+  } catch (e) {
+    yield put(getManifestError(new ErrorDisplay(
+      'Manifest hiccup', `getManifest: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
 function* getPackage({ owner, name }) {
   try {
-    const response = yield call(request, `/tag/${owner}/${name}/latest`);
-    if (response.message) throw makeError('Package hiccup', response.message);
+    const response = yield call(apiRequest, `/tag/${owner}/${name}/latest`);
     yield put(getPackageSuccess(response));
-  } catch (err) {
-    if (!err.headline) {
-      err.headline = 'Package hiccup';
-      err.detail = `getPackage: ${err.message}`;
-    }
-    yield put(getPackageError(err));
+  } catch (e) {
+    yield put(getPackageError(new ErrorDisplay(
+      'Package hiccup', `getPackage: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
@@ -92,10 +92,13 @@ function* getTraffic({ payload: { name, owner } }) {
 
   try {
     const [installs, views] = yield events.map((event) =>
-      call(request, endpoint(event)));
+      call(apiRequest, endpoint(event)));
     yield put(getTrafficResponse({ installs, views }));
-  } catch (err) {
-    yield put(getTrafficResponse(err));
+  } catch (e) {
+    yield put(getTrafficResponse(new ErrorDisplay(
+      'Traffic hiccup', `getTraffic: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 

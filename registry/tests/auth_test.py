@@ -40,6 +40,15 @@ class AuthTestCase(QuiltTestCase):
             raise Exception(response.data.decode('utf8'))
         return token
 
+    def useToken(self, token):
+        return self.app.get(
+            '/api/me',
+            headers={
+                'content-type': 'application/json',
+                'Authorization': token
+            }
+            )
+
     def decodeToken(self, token):
         return jwt.decode(token, verify=False)
 
@@ -192,7 +201,9 @@ class AuthTestCase(QuiltTestCase):
         )
         assert response.status_code == 200
         assert not send_reset_email.called
-        assert self.getToken()
+        token = self.getToken()
+        assert token
+        assert self.useToken(token).status_code == 200
 
         response = self.app.post(
             '/api/reset_password',
@@ -216,6 +227,7 @@ class AuthTestCase(QuiltTestCase):
         )
         assert reset_response.status_code == 200
         assert not self.getToken()
+        assert self.useToken(token).status_code == 401
 
         new_password_request = self.app.post(
                 '/api/login',
@@ -368,9 +380,8 @@ class AuthTestCase(QuiltTestCase):
                 '/api/logout',
                 headers={
                     'content-type': 'application/json',
-                    'Authorization': token
-                },
-                data=json.dumps({'token': token})
+                    'Authorization': 'Bearer ' + token
+                }
             )
             return request
 

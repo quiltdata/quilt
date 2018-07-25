@@ -1,9 +1,10 @@
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
-import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import StoreProvider from 'utils/StoreProvider';
 import { timestamp } from 'utils/time';
 import configureStore from 'store';
@@ -33,7 +34,7 @@ const signOutRedirect = '/after-signout';
 
 const requests = {
   signOut: {
-    setup: () => ['postOnce', '/api/logout'],
+    setup: () => ['postOnce', '/logout'],
   },
 };
 
@@ -44,21 +45,15 @@ const screens = {
   },
 };
 
-const setup = (ctx) => {
+const setup = ({ storage, fetch }) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
-  const tree = (
-    <StoreProvider store={store}>
-      <LanguageProvider messages={messages}>
-        <AuthProvider
-          storage={ctx.storage}
-          api={api}
-          signOutRedirect={signOutRedirect}
-        >
-          <SignOut />
-        </AuthProvider>
-      </LanguageProvider>
-    </StoreProvider>
+  const tree = nest(
+    [StoreProvider, { store }],
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch }],
+    [AuthProvider, { storage, signOutRedirect }],
+    SignOut,
   );
   timestamp.mockReturnValue(date);
   return { tree };
@@ -95,6 +90,7 @@ feature('containers/Auth/SignOut')
   .scenario('Redirecting when user is authenticated')
 
   .given('storage has empty auth data')
+  .given('signOut request is expected')
 
   .when('the component tree is mounted')
   .then('signOut request should not be made')

@@ -104,28 +104,32 @@ def change_password(raw_password, link):
     if not user:
         raise NotFoundException("User not found")
     user.password = hash_password(raw_password)
+    revoke_user_code_tokens(user)
     db.session.add(user)
 
 def _create_user(username, password='', email=None, is_admin=False,
                  requires_activation=True, requires_reset=False):
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
-            raise ValidationException("Unacceptable username.")
+            raise ValidationException("Invalid username.")
         if username in BAD_NAMES:
-            raise ValidationException("Unacceptable username.")
+            raise ValidationException("Invalid username.")
         if email is None:
             raise ValidationException("Must provide email.")
         if not VALID_EMAIL_RE.match(email):
-            raise ValidationException("Unacceptable email.")
+            raise ValidationException("Invalid email.")
         if User.query.filter_by(name=username).one_or_none():
             raise ConflictException("Username already taken.")
         if User.query.filter_by(email=email).one_or_none():
             raise ConflictException("Email already taken.")
 
     check_conflicts(username, email)
-    validate_password(password)
 
-    new_password = "" if requires_reset else hash_password(password)
+    if requires_reset:
+        new_password = ""
+    else:
+        validate_password(password)
+        new_password = hash_password(password)
 
     if requires_activation:
         is_active = False
@@ -262,14 +266,10 @@ def revoke_token(user_id, token):
     return True
 
 def revoke_tokens(user):
-    tokens = Token.query.filter_by(user_id=user.id).with_for_update().all()
-    for token in tokens:
-        db.session.delete(token)
+    Token.query.filter_by(user_id=user.id).delete()
 
 def revoke_user_code_tokens(user):
-    codes = Code.query.filter_by(user_id=user.id).with_for_update().all()
-    for code in codes:
-        db.session.delete(code)
+    Code.query.filter_by(user_id=user.id).delete()
     revoke_tokens(user)
 
 def get_exp(**kwargs):
@@ -400,6 +400,7 @@ def verify_reset_link(link, max_age=None):
 def reset_password(user, set_unusable=False):
     if set_unusable:
         user.password = ''
+        revoke_user_code_tokens(user)
         db.session.add(user)
 
     link = generate_reset_link(user.id)

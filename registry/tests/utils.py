@@ -21,7 +21,8 @@ import sqlalchemy_utils
 
 import quilt_server
 from quilt_server import db
-from quilt_server.auth import verify_token_string, _create_user, _disable_user, _update_user
+from quilt_server.auth import (verify_token_string, _create_user,
+                               _disable_user, _update_user, pwd_context)
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
@@ -45,6 +46,9 @@ class QuiltTestCase(TestCase):
     - Mocks requests
     """
     def setUp(self):
+        # avoid using a ton of CPU for hashing passwords in testing
+        pwd_context.update(pbkdf2_sha512__default_rounds=1)
+
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
         self.requests_mock.start()
 
@@ -108,6 +112,9 @@ class QuiltTestCase(TestCase):
         db.session.commit()
 
     def tearDown(self):
+        # restore PW hash rounds
+        pwd_context.update(pbkdf2_sha512__default_rounds=500000)
+
         quilt_server.db.session.remove()
         quilt_server.db.drop_all()
         sqlalchemy_utils.drop_database(self.db_url)

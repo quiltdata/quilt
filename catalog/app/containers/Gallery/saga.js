@@ -1,9 +1,8 @@
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import config from 'constants/config';
-import { makeHeaders } from 'containers/Auth/saga';
-import makeError from 'utils/error';
-import { requestJSON } from 'utils/request';
+import { apiRequest } from 'utils/APIConnector';
+import { ErrorDisplay } from 'utils/error';
+import { captureError } from 'utils/errorReporting';
 
 import {
   getLatestError,
@@ -12,23 +11,16 @@ import {
 
 import { GET_LATEST } from './constants';
 
+
 function* doGetLatest() {
   try {
-    const { api: server } = config;
-    const endpoint = `${server}/api/recent_packages/`;
-    const headers = yield call(makeHeaders);
-    const response = yield call(requestJSON, endpoint, { method: 'GET', headers });
-
-    if (response.message) {
-      throw makeError('Package hiccup', response.message);
-    }
+    const response = yield call(apiRequest, '/recent_packages/');
     yield put(getLatestSuccess(response));
-  } catch (err) {
-    if (!err.headline) {
-      err.headline = 'Package hiccup';
-      err.detail = `doGetPackage: ${err.message}`;
-    }
-    yield put(getLatestError(err));
+  } catch (e) {
+    yield put(getLatestError(new ErrorDisplay(
+      'Package hiccup', `doGetLatest: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 

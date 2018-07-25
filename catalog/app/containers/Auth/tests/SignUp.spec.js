@@ -1,9 +1,10 @@
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
-import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import FormProvider from 'utils/ReduxFormProvider';
 import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
@@ -56,7 +57,7 @@ const onSubmit = (ctx) => {
 
 const requests = {
   signUp: {
-    setup: () => ['post', '/api/register'],
+    setup: () => ['post', '/register'],
     expect: (ctx) =>
       expect.objectContaining({
         body: JSON.stringify(ctx.credentials),
@@ -70,7 +71,7 @@ const screens = {
   },
 };
 
-const setup = () => {
+const setup = ({ fetch }) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
   const storage = {
@@ -78,19 +79,13 @@ const setup = () => {
     set: () => {},
     remove: () => {},
   };
-  const tree = (
-    <StoreProvider store={store}>
-      <FormProvider>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={storage}
-            api={api}
-          >
-            <SignUp />
-          </AuthProvider>
-        </LanguageProvider>
-      </FormProvider>
-    </StoreProvider>
+  const tree = nest(
+    [StoreProvider, { store }],
+    FormProvider,
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch }],
+    [AuthProvider, { storage }],
+    SignUp,
   );
   return { tree };
 };
@@ -140,7 +135,7 @@ feature('containers/Auth/SignUp')
   .then('the rendered markup should match the snapshot')
   .then('signUp request should be made')
 
-  .when('signUp request fails with 400, message: "Unacceptable username."')
+  .when('signUp request fails with 400, message: "Invalid username."')
   .then('I should see the form in invalid state')
   .then('I should see error on username field: "Username invalid"')
   .then('the rendered markup should match the snapshot')
@@ -158,7 +153,7 @@ feature('containers/Auth/SignUp')
   .then('I should see the form in valid state')
 
   .when('I submit the form')
-  .when('signUp request fails with 400, message: "Unacceptable email."')
+  .when('signUp request fails with 400, message: "Invalid email."')
   .then('I should see the form in invalid state')
   .then('I should see error on email field: "Enter a valid email"')
   .then('the rendered markup should match the snapshot')

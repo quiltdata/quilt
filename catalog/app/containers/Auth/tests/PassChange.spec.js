@@ -1,9 +1,10 @@
 import createHistory from 'history/createMemoryHistory';
 import { fromJS } from 'immutable';
-import React from 'react';
 
 import LanguageProvider from 'containers/LanguageProvider';
 import { translationMessages as messages } from 'i18n';
+import { Provider as APIProvider } from 'utils/APIConnector';
+import { nest } from 'utils/reactTools';
 import FormProvider from 'utils/ReduxFormProvider';
 import StoreProvider from 'utils/StoreProvider';
 import configureStore from 'store';
@@ -34,7 +35,7 @@ jest.mock('utils/time');
 
 const requests = {
   changePassword: {
-    setup: () => ['post', '/api/change_password'],
+    setup: () => ['post', '/change_password'],
     expect: ({ link, password }) =>
       expect.objectContaining({
         body: JSON.stringify({ link, password }),
@@ -66,7 +67,7 @@ const screens = {
   },
 };
 
-const setup = () => {
+const setup = ({ fetch }) => {
   const history = createHistory({ initialEntries: ['/'] });
   const store = configureStore(fromJS({}), history);
   const storage = {
@@ -75,19 +76,13 @@ const setup = () => {
     remove: () => {},
   };
   const link = 'test-link';
-  const tree = (
-    <StoreProvider store={store}>
-      <FormProvider>
-        <LanguageProvider messages={messages}>
-          <AuthProvider
-            storage={storage}
-            api={api}
-          >
-            <PassChange match={{ params: { link } }} />
-          </AuthProvider>
-        </LanguageProvider>
-      </FormProvider>
-    </StoreProvider>
+  const tree = nest(
+    [StoreProvider, { store }],
+    FormProvider,
+    [LanguageProvider, { messages }],
+    [APIProvider, { base: api, fetch }],
+    [AuthProvider, { storage }],
+    [PassChange, { match: { params: { link } } }],
   );
   return { tree, link };
 };

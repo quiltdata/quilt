@@ -1,36 +1,27 @@
 /* sagas for SearchResults */
 import { call, put, takeLatest } from 'redux-saga/effects';
 
-import config from 'constants/config';
-import { makeHeaders } from 'containers/Auth/saga';
-import makeError from 'utils/error';
-import request from 'utils/request';
+import { apiRequest } from 'utils/APIConnector';
+import { ErrorDisplay } from 'utils/error';
+import { captureError } from 'utils/errorReporting';
 
 import { getSearchError, getSearchSuccess } from './actions';
 import { GET_SEARCH } from './constants';
 
-export function* doGetSearch(action) {
-  const { query } = action;
-  const { api: server } = config;
-  const headers = yield call(makeHeaders);
-  const endpoint = `${server}/api/search/?q=${encodeURIComponent(query)}`;
+
+export function* getSearch({ query }) {
   try {
-    const response = yield call(request, endpoint, { method: 'GET', headers });
-    const data = yield response.json();
-    if (response.ok && response.status === 200 && data) {
-      yield put(getSearchSuccess(data));
-    } else {
-      throw makeError('Search hiccup', data.message, response);
-    }
-  } catch (error) {
-    if (!error.headline) {
-      error.headline = 'Search hiccup';
-      error.detail = `doGetSearch: ${error.message}`;
-    }
-    yield put(getSearchError(error));
+    const data = yield call(apiRequest,
+      `/search/?q=${encodeURIComponent(query)}`);
+    yield put(getSearchSuccess(data));
+  } catch (e) {
+    yield put(getSearchError(new ErrorDisplay(
+      'Search hiccup', `getSearch: ${e.message}`
+    )));
+    captureError(e);
   }
 }
 
 export default function* () {
-  yield takeLatest(GET_SEARCH, doGetSearch);
+  yield takeLatest(GET_SEARCH, getSearch);
 }

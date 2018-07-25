@@ -2,7 +2,7 @@ import initial from 'lodash/initial';
 import last from 'lodash/last';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import { createElement } from 'react';
+import React, { createElement, Fragment } from 'react';
 import {
   compose,
   mapProps,
@@ -173,3 +173,23 @@ export const restoreProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) 
 export const withStyle = (...args) =>
   composeHOC('withStyle',
     (C) => styled(C)(...args));
+
+/**
+ * Component that simply renders its children.
+ */
+export const RenderChildren = composeComponent('RenderChildren',
+  ({ children }) => <Fragment>{children}</Fragment>);
+
+/**
+ * Render nested components.
+ *
+ * @param {...(react.Component|[react.Component, Object])} components
+ *   React components or tuples of component and props.
+ *
+ * @returns {react.Element} The rendered nested components.
+ */
+export const nest = (...components) =>
+  components.reduceRight((children, comp) => {
+    const [Component, props = {}] = [].concat(comp);
+    return <Component {...props}>{children}</Component>;
+  }, undefined);
