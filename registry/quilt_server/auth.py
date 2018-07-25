@@ -262,14 +262,10 @@ def revoke_token(user_id, token):
     return True
 
 def revoke_tokens(user):
-    tokens = Token.query.filter_by(user_id=user.id).with_for_update().all()
-    for token in tokens:
-        db.session.delete(token)
+    Token.query.filter_by(user_id=user.id).delete()
 
 def revoke_user_code_tokens(user):
-    codes = Code.query.filter_by(user_id=user.id).with_for_update().all()
-    for code in codes:
-        db.session.delete(code)
+    Code.query.filter_by(user_id=user.id).delete()
     revoke_tokens(user)
 
 def get_exp(mins=30):
@@ -398,6 +394,7 @@ def verify_reset_link(link, max_age=None):
 def reset_password(user, set_unusable=False):
     if set_unusable:
         user.password = ''
+        revoke_user_code_tokens(user)
         db.session.add(user)
 
     link = generate_reset_link(user.id)
