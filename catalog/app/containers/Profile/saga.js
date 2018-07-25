@@ -43,11 +43,13 @@ export function* doGetPackages() {
 export function* doUpdatePayment({ token }) {
   try {
     const response = yield call(apiRequest, {
+      json: false,
       endpoint: '/payments/update_payment',
       method: 'POST',
       body: mkFormData({ token }),
     });
-    yield put(updatePaymentSuccess(response));
+    const json = yield response.json();
+    yield put(updatePaymentSuccess(json));
   } catch (e) {
     yield put(updatePaymentError(new ErrorDisplay(
       'Payment update hiccup', `doUpdatePayment: ${e.message}`
@@ -59,11 +61,13 @@ export function* doUpdatePayment({ token }) {
 export function* doUpdatePlan({ plan, token }) {
   try {
     const response = yield call(apiRequest, {
+      json: false,
       endpoint: '/payments/update_plan',
       method: 'POST',
       body: mkFormData({ plan, token }),
     });
-    yield put(updatePlanSuccess(response));
+    const json = yield response.json();
+    yield put(updatePlanSuccess(json));
   } catch (e) {
     yield put(updatePlanError(new ErrorDisplay(
       'Payment update hiccup', `doUpdatePlan: ${e.message}`
