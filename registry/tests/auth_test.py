@@ -472,3 +472,4 @@ class AuthTestCase(QuiltTestCase):
             data={'refresh_token': code}
         )
         assert token_request.status_code == 401
+        self.code_immediate_expire_mock.stop()

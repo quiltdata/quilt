@@ -209,7 +209,7 @@ def _disable_user(user):
 
 def issue_code(user):
     user_id = user.id
-    expires = datetime.utcnow() + timedelta(CODE_TTL_DEFAULT)
+    expires = datetime.utcnow() + timedelta(**CODE_TTL_DEFAULT)
     code = Code(user_id=user_id, code=generate_uuid(), expires=expires)
     db.session.add(code)
     return encode_code({'id': user_id, 'code': code.code})
@@ -272,7 +272,7 @@ def revoke_user_code_tokens(user):
     Code.query.filter_by(user_id=user.id).delete()
     revoke_tokens(user)
 
-def get_exp(**kwargs):
+def calculate_exp(**kwargs):
     kw = kwargs or TOKEN_TTL_DEFAULT
     delta = timedelta(**kw)
     return datetime.utcnow() + delta
@@ -282,7 +282,7 @@ def issue_token(user):
     token = Token(user_id=user.id, token=uuid)
     db.session.add(token)
 
-    exp = get_exp()
+    exp = calculate_exp()
     payload = {'id': user.id, 'uuid': uuid, 'exp': exp}
     token = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return token.decode('utf-8')
