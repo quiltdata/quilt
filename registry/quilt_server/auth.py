@@ -10,9 +10,9 @@ from passlib.context import CryptContext
 from sqlalchemy import func
 
 from . import app, db
-from .const import (VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name,
-                    ACTIVATE_SALT, PASSWORD_RESET_SALT, MAX_LINK_AGE,
-                    CODE_EXP_MINUTES, TOKEN_EXP_DEFAULT)
+from .const import (ACTIVATE_SALT, BAD_NAMES, CODE_TTL_DEFAULT,
+                    MAX_LINK_AGE, PASSWORD_RESET_SALT, TOKEN_TTL_DEFAULT,
+                    VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
@@ -111,7 +111,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
             raise ValidationException("Unacceptable username.")
-        if blacklisted_name(username):
+        if username in BAD_NAMES:
             raise ValidationException("Unacceptable username.")
         if email is None:
             raise ValidationException("Must provide email.")
@@ -205,7 +205,7 @@ def _disable_user(user):
 
 def issue_code(user):
     user_id = user.id
-    expires = datetime.utcnow() + timedelta(minutes=CODE_EXP_MINUTES)
+    expires = datetime.utcnow() + timedelta(CODE_TTL_DEFAULT)
     code = Code(user_id=user_id, code=generate_uuid(), expires=expires)
     db.session.add(code)
     return encode_code({'id': user_id, 'code': code.code})
@@ -273,7 +273,7 @@ def revoke_user_code_tokens(user):
     revoke_tokens(user)
 
 def get_exp(**kwargs):
-    kw = kwargs or TOKEN_EXP_DEFAULT
+    kw = kwargs or TOKEN_TTL_DEFAULT
     delta = timedelta(**kw)
     return datetime.utcnow() + delta
 
