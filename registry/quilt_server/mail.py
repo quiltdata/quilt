@@ -59,11 +59,13 @@ def send_new_user_email(username, email, admins):
     send_email(recipients=admins, sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)
 
-def send_welcome_email(username, email, link=None):
-    subject = "Welcome to Quilt, {username}".format(username=username)
+def send_welcome_email(user, email, link=None):
+    subject = "Welcome to Quilt, {username}".format(username=user.name)
+    needsreset = link is not None
+    reseturl = '{base}/reset_password/{link}'.format(base=CATALOG_URL, link=link)
     html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
     body = render_template('welcome_email.txt', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
     send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)
