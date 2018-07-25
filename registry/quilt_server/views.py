@@ -390,9 +390,14 @@ def register_endpoint():
     username = data['username']
     password = data['password']
     email = data['email']
-    _create_user(username, password=password, email=email)
-    db.session.commit()
-    return {}
+    try:
+        _create_user(username, password=password, email=email)
+        db.session.commit()
+        return {}
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except ConflictException as ex:
+        raise ApiException(requests.codes.conflict, ex.message)
 
 @app.route('/api/refresh', methods=['POST'])
 @api()
