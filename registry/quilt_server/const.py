@@ -36,3 +36,4 @@ ACTIVATE_SALT = 'activate'
 PASSWORD_RESET_SALT = 'reset'
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 CODE_EXP_MINUTES = 10
+TOKEN_EXP_DEFAULT = {'days': 90}

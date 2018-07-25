@@ -12,7 +12,7 @@ from sqlalchemy import func
 from . import app, db
 from .const import (VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name,
                     ACTIVATE_SALT, PASSWORD_RESET_SALT, MAX_LINK_AGE,
-                    CODE_EXP_MINUTES)
+                    CODE_EXP_MINUTES, TOKEN_EXP_DEFAULT)
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
@@ -272,16 +272,17 @@ def revoke_user_code_tokens(user):
         db.session.delete(code)
     revoke_tokens(user)
 
-def get_exp(mins=None):
-    delta = timedelta(minutes=mins) if mins is not None else timedelta(days=90)
+def get_exp(**kwargs):
+    kw = kwargs or TOKEN_EXP_DEFAULT
+    delta = timedelta(**kw)
     return datetime.utcnow() + delta
 
-def issue_token(user, exp=None):
+def issue_token(user):
     uuid = generate_uuid()
     token = Token(user_id=user.id, token=uuid)
     db.session.add(token)
 
-    exp = exp or get_exp()
+    exp = get_exp()
     payload = {'id': user.id, 'uuid': uuid, 'exp': exp}
     token = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return token.decode('utf-8')

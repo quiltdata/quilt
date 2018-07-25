@@ -460,5 +460,3 @@ class AuthTestCase(QuiltTestCase):
             data={'refresh_token': code}
         )
         assert token_request.status_code == 401
-
-    # compiler refresh
