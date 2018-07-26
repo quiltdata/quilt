@@ -22,7 +22,7 @@ class PaymentPlan(Enum):
 
 FTS_LANGUAGE = 'english'
 
-BAD_NAMES = frozenset([
+INVALID_USERNAMES = frozenset([
     TEAM,
     PUBLIC,
     'anonymous',

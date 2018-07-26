@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from sqlalchemy import func
 
 from . import app, db
-from .const import (ACTIVATE_SALT, BAD_NAMES, CODE_TTL_DEFAULT,
+from .const import (ACTIVATE_SALT, CODE_TTL_DEFAULT, INVALID_USERNAMES,
                     MAX_LINK_AGE, PASSWORD_RESET_SALT, TOKEN_TTL_DEFAULT,
                     VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
@@ -112,7 +112,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
             raise ValidationException("Invalid username.")
-        if username in BAD_NAMES:
+        if username in INVALID_USERNAMES:
             raise ValidationException("Invalid username.")
         if email is None:
             raise ValidationException("Must provide email.")
