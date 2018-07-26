@@ -967,18 +967,10 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         public=public,
     )
 
-    retval = dict(
-        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+    return dict(
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name),
+        package_hash=package_hash
     )
-
-    if package_path is not None:
-        # Return the new hash and contents
-        retval.update(
-            package_hash=package_hash,
-            contents=contents
-        )
-
-    return retval
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
 @api(require_login=False)

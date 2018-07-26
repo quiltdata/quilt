@@ -1143,9 +1143,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
-        package_hash = data['package_hash']
-        contents = data['contents']
+        package_hash = json.loads(resp.data.decode('utf-8'))['package_hash']
 
         # Can't push a non-existent subpath.
         resp = self.app.post(
@@ -1177,6 +1175,16 @@ class PushInstallTestCase(QuiltTestCase):
 
         # Verify that the "latest" tag points to the last hash we got from a subpackage push.
         assert data['hash'] == package_hash
+
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % package_hash,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
 
         # Verify that the contents is everything we've pushed so far.
         assert contents == RootNode(dict(
