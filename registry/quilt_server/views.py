@@ -660,9 +660,14 @@ def download_object_preview(owner, obj_hash):
         )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
+@app.route('/api/package_update/<owner>/<package_name>/<path:package_path>', methods=['POST'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
-def package_put(owner, package_name, package_hash):
+def package_put(owner, package_name, package_hash=None, package_path=None):
+    # This function handles two endpoints: a normal push and subpackage push.
+    # Make sure exactly one of these arguments is set.
+    assert (package_hash is None) != (package_path is None)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
@@ -684,7 +689,7 @@ def package_put(owner, package_name, package_hash):
     if team and not ALLOW_TEAM_ACCESS:
         raise ApiException(requests.codes.forbidden, "Team access not allowed")
 
-    if hash_contents(contents) != package_hash:
+    if package_hash is not None and hash_contents(contents) != package_hash:
         raise ApiException(requests.codes.bad_request, "Wrong contents hash")
 
     all_hashes = set(find_object_hashes(contents))
@@ -703,6 +708,10 @@ def package_put(owner, package_name, package_hash):
     )
 
     if package is None:
+        if package_path is not None:
+            # Sub-package push requires an existing package.
+            raise PackageNotFoundException(owner, package_name)
+
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -777,6 +786,47 @@ def package_put(owner, package_name, package_hash):
                      "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
+
+    if package_path is not None:
+        # We're doing a subpackage push - so look up the existing contents.
+        result = (
+            db.session.query(Instance, Tag)
+            .filter_by(package=package)
+            .options(undefer('contents'))  # Contents is deferred by default.
+            .join(Instance.tags)
+            .filter_by(tag=LATEST_TAG)
+            .with_for_update()
+            .one_or_none()
+        )
+        if result is None:
+            raise ApiException(
+                requests.codes.not_found,
+                "Tag %r does not exist" % LATEST_TAG
+            )
+        base_instance, tag = result
+
+        subnode = contents
+        base_subnode = base_instance.contents
+        component = None
+        for component in package_path.split('/'):
+            try:
+                subnode = subnode.children[component]
+            except (AttributeError, KeyError):
+                raise ApiException(requests.codes.not_found, "Invalid source subpath: %r" % component)
+            base_subnode_parent = base_subnode
+            try:
+                base_subnode = base_subnode.children.get(component)
+            except AttributeError:
+                raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
+            if base_subnode is None:
+                break
+        try:
+            base_subnode_parent.children[component] = subnode
+        except AttributeError:
+            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
+
+        contents = base_instance.contents
+        package_hash = hash_contents(contents)
 
     # Insert an instance if it doesn't already exist.
     instance = (
@@ -872,6 +922,9 @@ def package_put(owner, package_name, package_hash):
                 instance.readme_blob = blob
                 instance.blobs_tsv = sa.func.to_tsvector(FTS_LANGUAGE, blob_preview_expr)
             instance.blobs.append(blob)
+
+        db.session.add(instance)
+
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
@@ -880,7 +933,9 @@ def package_put(owner, package_name, package_hash):
         instance.updated_by = g.auth.user
         instance.keywords_tsv = keywords_tsv
 
-    db.session.add(instance)
+    # Pushing a subpackage automatically updates the "latest" tag.
+    if package_path is not None:
+        tag.instance = instance
 
     # Insert a log.
     log = Log(
@@ -913,7 +968,8 @@ def package_put(owner, package_name, package_hash):
     )
 
     return dict(
-        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name),
+        package_hash=package_hash
     )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
