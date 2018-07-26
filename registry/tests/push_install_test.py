@@ -1040,11 +1040,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=RootNode(dict(
-                    group1=GroupNode(dict(
-                        group2=GroupNode(dict())
-                    ))
-                )),
+                contents=GroupNode(dict()),
                 sizes={}
             ), default=encode_node),
             content_type='application/json',
@@ -1076,11 +1072,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=RootNode(dict(
-                    group1=GroupNode(dict(
-                        group2=GroupNode(dict())
-                    ))
-                )),
+                contents=GroupNode(dict()),
                 sizes={}
             ), default=encode_node),
             content_type='application/json',
@@ -1109,11 +1101,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=RootNode(dict(
-                    group1=GroupNode(dict(
-                        group2=GroupNode(dict())
-                    ))
-                )),
+                contents=GroupNode(dict()),
                 sizes={}
             ), default=encode_node),
             content_type='application/json',
@@ -1131,9 +1119,7 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=RootNode(dict(
-                    README=FileNode([self.HASH1])
-                )),
+                contents=FileNode([self.HASH1]),
                 sizes={self.HASH1: 1}
             ), default=encode_node),
             content_type='application/json',
@@ -1144,24 +1130,6 @@ class PushInstallTestCase(QuiltTestCase):
         assert resp.status_code == requests.codes.ok
 
         package_hash = json.loads(resp.data.decode('utf-8'))['package_hash']
-
-        # Can't push a non-existent subpath.
-        resp = self.app.post(
-            '/api/package_update/test_user/foo/group3',
-            data=json.dumps(dict(
-                is_public=True,
-                description="",
-                contents=RootNode(dict(
-                    group1=GroupNode(dict())
-                )),
-                sizes={}
-            ), default=encode_node),
-            content_type='application/json',
-            headers={
-                'Authorization': 'test_user'
-            }
-        )
-        assert resp.status_code == requests.codes.not_found
 
         # Install the package and verify that it has everything.
         resp = self.app.get(

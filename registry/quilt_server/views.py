@@ -684,6 +684,9 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     contents = data['contents']
     sizes = data.get('sizes', {})
 
+    if (package_path is None) != isinstance(contents, RootNode):
+        raise ApiException(requests.codes.bad_request, "Unexpected node type")
+
     if public and not ALLOW_ANONYMOUS_ACCESS:
         raise ApiException(requests.codes.forbidden, "Public access not allowed")
     if team and not ALLOW_TEAM_ACCESS:
@@ -805,28 +808,23 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             )
         base_instance, tag = result
 
-        subnode = contents
         base_subnode = base_instance.contents
-        component = None
-        for component in package_path.split('/'):
+        package_path_list = package_path.split('/')
+        for component in package_path_list[:-1]:
             try:
-                subnode = subnode.children[component]
-            except (AttributeError, KeyError):
-                raise ApiException(requests.codes.not_found, "Invalid source subpath: %r" % component)
-            base_subnode_parent = base_subnode
-            try:
-                base_subnode = base_subnode.children.get(component)
+                base_subnode = base_subnode.children.setdefault(component, GroupNode(dict()))
             except AttributeError:
                 raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
-            if base_subnode is None:
-                break
         try:
-            base_subnode_parent.children[component] = subnode
+            base_subnode.children[package_path_list[-1]] = contents
         except AttributeError:
-            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
+            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % package_path_list[-1])
 
         contents = base_instance.contents
         package_hash = hash_contents(contents)
+
+        # Make sure we don't commit any changes to the original instance!
+        db.session.expunge(base_instance)
 
     # Insert an instance if it doesn't already exist.
     instance = (
