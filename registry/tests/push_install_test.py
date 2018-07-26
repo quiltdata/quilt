@@ -1032,6 +1032,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'))
         assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]
 
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPushSubpackage(self):
         # Pushing a subpackage fails until the package is created the normal way.
         resp = self.app.post(
