@@ -6,8 +6,8 @@ from .utils import QuiltTestCase
 
 from quilt_server import app
 from quilt_server.models import User
-from quilt_server.mail import (send_new_user_email, send_invitation_email,
-    send_activation_email, send_reset_email)
+from quilt_server.mail import (send_comment_email, send_new_user_email,
+    send_invitation_email, send_activation_email, send_reset_email)
 
 class MailTestCase(QuiltTestCase):
 
@@ -24,6 +24,7 @@ class MailTestCase(QuiltTestCase):
             send_invitation_email(self.TEST_USER_EMAIL, self.OTHER_USER, 'test')
             send_reset_email(test_user, 'test')
             send_activation_email(test_user, 'test')
+            send_comment_email(self.TEST_USER_EMAIL, 'test', 'pkg', 'commenting_user')
 
     @patch('quilt_server.mail.send_email')
     def testLinkWorksCorrectly(self, send_email):
