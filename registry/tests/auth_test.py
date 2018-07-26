@@ -453,19 +453,16 @@ class AuthTestCase(QuiltTestCase):
         assert api_root(token2).status_code == 200
 
     def testCodeExpires(self):
-        self.code_immediate_expire_mock = mock.patch('quilt_server.auth.CODE_TTL_DEFAULT',
-                                                     {'minutes': 0})
-        token = self.getToken()
-        self.code_immediate_expire_mock.start()
-        code_request = self.app.get(
-            '/api/code',
-            headers={
-                'Authorization': token,
-                'content-type': 'application/json'
-            }
-        )
-        self.code_immediate_expire_mock.stop()
-        assert code_request.status_code == 200
+        with mock.patch('quilt_server.auth.CODE_TTL_DEFAULT', {'minutes': 0}):
+            token = self.getToken()
+            code_request = self.app.get(
+                '/api/code',
+                headers={
+                    'Authorization': token,
+                    'content-type': 'application/json'
+                }
+            )
+            assert code_request.status_code == 200
         time.sleep(1)
         code = json.loads(code_request.data.decode('utf8')).get('code')
         token_request = self.app.post(
