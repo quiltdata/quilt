@@ -10,9 +10,9 @@ import re
 PUBLIC = 'public' # This username is blocked by Quilt signup
 TEAM = 'team'
 
+VALID_EMAIL_RE = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 VALID_NAME_RE = re.compile(r'^[a-zA-Z]\w*$')
 VALID_USERNAME_RE = re.compile(r'^[a-z][a-z0-9_]*$')
-VALID_EMAIL_RE = re.compile(r'^([^\s@]+)@([^\s@]+)$')
 
 class PaymentPlan(Enum):
     FREE = 'free'
@@ -22,17 +22,15 @@ class PaymentPlan(Enum):
 
 FTS_LANGUAGE = 'english'
 
-BAD_NAMES = set([
+INVALID_USERNAMES = frozenset([
     TEAM,
     PUBLIC,
     'anonymous',
     'quilt'
 ])
 
-def blacklisted_name(username):
-    return username in BAD_NAMES
-
 ACTIVATE_SALT = 'activate'
-PASSWORD_RESET_SALT = 'reset'
+CODE_TTL_DEFAULT = {'minutes': 10}
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
-CODE_EXP_MINUTES = 10
+PASSWORD_RESET_SALT = 'reset'
+TOKEN_TTL_DEFAULT = {'days': 90}
