@@ -660,21 +660,11 @@ def push(package, is_public=False, is_team=False, reupload=False):
     pkghash = pkgobj.get_hash()
     contents = pkgobj.get_contents()
 
-    if subpath:
-        # Create a subset of the contents matching the path.
-        trimmed_contents = RootNode(dict())
-        orig_subnode = contents
-        trimmed_subnode = trimmed_contents
-        component = None
-        for component in subpath:
-            try:
-                orig_subnode = orig_subnode.children[component]
-            except (AttributeError, KeyError):
-                raise CommandException("Invalid subpath: %r" % component)
-            trimmed_subnode_parent = trimmed_subnode
-            trimmed_subnode = trimmed_subnode.children[component] = GroupNode(dict())
-        trimmed_subnode_parent.children[component] = orig_subnode
-        contents = trimmed_contents
+    for component in subpath:
+        try:
+            contents = contents.children[component]
+        except (AttributeError, KeyError):
+            raise CommandException("Invalid subpath: %r" % component)
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
