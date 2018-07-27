@@ -11,6 +11,7 @@ import struct
 
 from six import iteritems, itervalues, string_types
 
+from .const import TargetType
 
 LATEST_TAG = 'latest'
 README = 'README'
@@ -80,6 +81,51 @@ class RootNode(GroupNode):
     __slots__ = ()
 
     json_type = 'ROOT'
+
+    def add(self, node_path, hashes, target, source_path, transform, user_meta_hash):
+        """
+        Adds an object (name-hash mapping) or group to package contents.
+        """
+        assert isinstance(node_path, list)
+        assert user_meta_hash is None or isinstance(user_meta_hash, str)
+        
+        contents = self
+        
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata_hash = user_meta_hash
+            return
+
+        ptr = contents
+        for node in node_path[:-1]:
+            ptr = ptr.children[node]
+
+        metadata = dict(
+            q_ext=transform,
+            q_path=source_path,
+            q_target=target.value
+        )
+
+        if target is TargetType.GROUP:
+            node = GroupNode(dict())
+        elif target is TargetType.PANDAS:
+            node = TableNode(
+                hashes=hashes,
+                format=PackageFormat.default.value,
+                metadata=metadata,
+                metadata_hash=user_meta_hash
+            )
+        elif target is TargetType.FILE:
+            node = FileNode(
+                hashes=hashes,
+                metadata=metadata,
+                metadata_hash=user_meta_hash
+            )
+        else:
+            assert False, "Unhandled TargetType {tt}".format(tt=target)
+
+        ptr.children[node_path[-1]] = node
 
 
 class TableNode(Node):

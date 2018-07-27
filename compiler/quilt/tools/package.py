@@ -22,10 +22,8 @@ class Package(object):
     VERSIONS_DIR = 'versions'
     LATEST = 'latest'
 
-    def __init__(self, store, user, package, path, contents=None, pkghash=None):
+    def __init__(self, store, path, contents=None, pkghash=None):
         self._store = store
-        self._user = user
-        self._package = package
         self._path = path
 
         if not os.path.isdir(self._path):
@@ -93,16 +91,16 @@ class Package(object):
         if instance_hash is None:
             latest_tag = os.path.join(self._path, self.TAGS_DIR, self.LATEST)
             if not os.path.exists(latest_tag):
-                msg = "Could not find latest tag for package {0}/{1}"
-                raise PackageException(msg.format(self._user, self._package))
+                msg = "Could not find latest tag for package at {0}"
+                raise PackageException(msg.format(self._path))
 
             with open (latest_tag, 'r') as tagfile:
                 instance_hash = tagfile.read()
 
         contents_path = os.path.join(self._path, self.CONTENTS_DIR, instance_hash)
         if not os.path.isfile(contents_path):
-            msg = "Invalid hash for package {owner}/{pkg}: {hash}"
-            raise PackageException(msg.format(hash=instance_hash, owner=self._user, pkg=self._package))
+            msg = "Invalid hash for package at {path}: {hash}"
+            raise PackageException(msg.format(hash=instance_hash, path=self._path))
 
         with open(contents_path, 'r') as contents_file:
             return json.load(contents_file, object_hook=decode_node)
@@ -134,25 +132,31 @@ class Package(object):
         """
         Save a DataFrame to the store.
         """
-        hashes = self._store.save_dataframe(dataframe)
-        metahash = self._store.save_metadata(custom_meta)
-        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
-        return hashes
+        return self._store.add_to_package_df(self.get_contents(),
+                                             dataframe,
+                                             node_path,
+                                             target,
+                                             source_path,
+                                             transform,
+                                             custom_meta)
 
     def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
         """
         Save a (raw) file to the store.
         """
-        filehash = self._store.save_file(srcfile)
-        metahash = self._store.save_metadata(custom_meta)
-        self._add_to_contents(node_path, [filehash], target, source_path, transform, metahash)
-
+        self._store.add_to_package_file(self.get_contents(),
+                                        srcfile,
+                                        node_path,
+                                        target,
+                                        source_path,
+                                        transform,
+                                        custom_meta)
+        
     def save_group(self, node_path, custom_meta):
         """
         Save a group to the store.
         """
-        metahash = self._store.save_metadata(custom_meta)
-        self._add_to_contents(node_path, None, TargetType.GROUP, None, None, metahash)
+        self._store.add_to_package_group(self.get_contents(), node_path, custom_meta)
 
     def get_contents(self):
         """
@@ -209,40 +213,5 @@ class Package(object):
         assert isinstance(node_path, list)
         assert user_meta_hash is None or isinstance(user_meta_hash, str)
 
-        contents = self.get_contents()
-
-        if not node_path:
-            # Allow setting metadata on the root node, but that's it.
-            assert target is TargetType.GROUP
-            contents.metadata_hash = user_meta_hash
-            return
-
-        ptr = contents
-        for node in node_path[:-1]:
-            ptr = ptr.children[node]
-
-        metadata = dict(
-            q_ext=transform,
-            q_path=source_path,
-            q_target=target.value
-        )
-
-        if target is TargetType.GROUP:
-            node = GroupNode(dict())
-        elif target is TargetType.PANDAS:
-            node = TableNode(
-                hashes=hashes,
-                format=PackageFormat.default.value,
-                metadata=metadata,
-                metadata_hash=user_meta_hash
-            )
-        elif target is TargetType.FILE:
-            node = FileNode(
-                hashes=hashes,
-                metadata=metadata,
-                metadata_hash=user_meta_hash
-            )
-        else:
-            assert False, "Unhandled TargetType {tt}".format(tt=target)
-
-        ptr.children[node_path[-1]] = node
+        root = self.get_contents()
+        root.add(node_path, hashes, target, source_path, transform, user_meta_hash)

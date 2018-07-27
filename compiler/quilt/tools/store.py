@@ -10,7 +10,7 @@ import uuid
 from enum import Enum
 import pandas as pd
 
-from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA
+from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
 from .core import FileNode, RootNode, TableNode, find_object_hashes
 from .hashing import digest_file
 from .package import Package, PackageException
@@ -173,8 +173,6 @@ class PackageStore(object):
             try:
                 return Package(
                     store=self,
-                    user=user,
-                    package=package,
                     path=path,
                     pkghash=pkghash,
                     )
@@ -202,8 +200,6 @@ class PackageStore(object):
 
         return Package(
             store=self,
-            user=user,
-            package=package,
             path=path,
             contents=contents
         )
@@ -213,7 +209,7 @@ class PackageStore(object):
         Creates a new package and initializes its contents. See `install_package`.
         """
         if dry_run:
-            return Package(self, user, package, '.', RootNode(dict()))
+            return Package(self, '.', RootNode(dict()))
         contents = RootNode(dict())
         return self.install_package(team, user, package, contents)
 
@@ -230,7 +226,7 @@ class PackageStore(object):
             # Collect objects from all instances for potential cleanup
             contents_path = os.path.join(path, Package.CONTENTS_DIR)
             for instance in os.listdir(contents_path):
-                pkg = Package(self, user, package, path, pkghash=instance)
+                pkg = Package(self, path, pkghash=instance)
                 remove_objs.update(find_object_hashes(pkg.get_contents()))
             # Remove package manifests
             rmtree(path)
@@ -249,7 +245,7 @@ class PackageStore(object):
                 for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
                     for hsh in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR)):
-                        yield Package(self, user, pkg, pkgpath, pkghash=hsh)
+                        yield Package(self, pkgpath, pkghash=hsh)
 
     def ls_packages(self):
         """
@@ -479,3 +475,18 @@ class PackageStore(object):
             os.remove(destpath)
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
+
+    def add_to_package_df(self, root, dataframe, node_path, target, source_path, transform, custom_meta):
+        hashes = self.save_dataframe(dataframe)
+        metahash = self.save_metadata(custom_meta)
+        root.add(node_path, hashes, target, source_path, transform, metahash)
+        return hashes
+
+    def add_to_package_group(self, root, node_path, custom_meta):
+        metahash = self.save_metadata(custom_meta)
+        root.add(node_path, None, TargetType.GROUP, None, None, metahash)
+
+    def add_to_package_file(self, root, srcfile, node_path, target, source_path, transform, custom_meta):
+        filehash = self.save_file(srcfile)
+        metahash = self.save_metadata(custom_meta)
+        root.add(node_path, [filehash], target, source_path, transform, metahash)
