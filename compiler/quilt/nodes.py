@@ -259,6 +259,7 @@ class PackageNode(GroupNode):
     def __init__(self, package, meta):
         super(PackageNode, self).__init__(meta)
         self._package = package
+        self._node = package.get_contents() if package is not None else None
 
     def _class_repr(self):
         finfo = self._package.get_path() if self._package is not None else ''

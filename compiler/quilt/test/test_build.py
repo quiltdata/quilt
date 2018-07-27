@@ -332,34 +332,34 @@ class BuildTest(QuiltTestCase):
         command.build('test/package_getitem', str(buildfile))
 
         from quilt.data.test import package_getitem as node
-        package = node._package
+        package_root = node._node
 
         ## Positive tests
         # simple checks to ensure matching contents for item notation
-        assert package['foo']
-        assert package['subnode/nuts']
+        assert package_root['foo']
+        assert package_root['subnode/nuts']
 
         ## Negative tests
         # Valid key, but item not present (KeyError)
         with pytest.raises(KeyError) as error_info:
-            package['subnode/blah']
+            package_root['subnode/blah']
         assert error_info.value.args == ('subnode', 'blah')
 
         # blank node names aren't valid
         with pytest.raises(TypeError, match="Invalid node reference"):
-            package['']
+            package_root['']
 
         # no absolute paths
         with pytest.raises(TypeError, match="Invalid node reference"):
-            package['/foo']
+            package_root['/foo']
 
         # Only valid node names permitted..
         with pytest.raises(TypeError, match="Invalid node name"):
-            package['subnode/9blah']
+            package_root['subnode/9blah']
 
         # No subreferencing a non-GroupNode
         with pytest.raises(TypeError, match="Not a GroupNode"):
-            package['foo/blah']
+            package_root['foo/blah']
 
     def test_package_contains(self):
         # TODO: flesh out this test
@@ -370,7 +370,7 @@ class BuildTest(QuiltTestCase):
         command.build('test/package_contains', str(buildfile))
 
         from quilt.data.test import package_contains as node
-        package = node._package
+        package = node._node
 
         ## Positive tests
         # simple checks to ensure checkeng contents works

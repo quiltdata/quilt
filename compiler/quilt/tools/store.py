@@ -496,6 +496,7 @@ class PackageStore(object):
         Saves the in-memory contents to a file in the local
         package repository.
         """
+        assert isinstance(root, RootNode)
         instance_hash = hash_contents(root)
         pkg_path = self.package_path(team, owner, pkgname)
         if not os.path.isdir(pkg_path):

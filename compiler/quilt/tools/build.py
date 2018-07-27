@@ -18,7 +18,7 @@ from tqdm import tqdm
 from .compat import pathlib
 from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
                     SYSTEM_METADATA, QuiltException, TargetType)
-from .core import GroupNode
+from .core import GroupNode, RootNode
 from .hashing import digest_file, digest_string
 from .store import PackageStore, ParquetLib, StoreException
 from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
@@ -121,7 +121,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, node_path, node, checks_contents=None,
+def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -134,8 +134,8 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
       and overriding of ancestor or peer values.
       Child transform or kwargs override ancestor k:v pairs.
     """
-    pkg_store = package.get_store()
-    pkg_root = package.get_contents()
+    assert isinstance(pkg_store, PackageStore)
+    assert isinstance(pkg_root, RootNode)
     if _is_internal_node(node):
         if not dry_run:
             pkg_store.add_to_package_group(pkg_root, node_path, None)
@@ -166,16 +166,30 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
                 for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
-                    _build_node(build_dir, package, node_path + [gchild_name], gchild_table,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                    _build_node(build_dir,
+                                pkg_store,
+                                pkg_root,
+                                node_path + [gchild_name],
+                                gchild_table,
+                                checks_contents=checks_contents,
+                                dry_run=dry_run,
+                                env=env,
+                                ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
-                _build_node(build_dir, package, node_path + [child_name], child_table,
-                    checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                _build_node(build_dir,
+                            pkg_store,
+                            pkg_root,
+                            node_path + [child_name],
+                            child_table,
+                            checks_contents=checks_contents,
+                            dry_run=dry_run,
+                            env=env,
+                            ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if '/'.join(node_path) in package:
+        if '/'.join(node_path) in pkg_root:
             raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
@@ -195,7 +209,7 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
 
             if subpath:
                 try:
-                    node = existing_pkg["/".join(subpath)]
+                    node = existing_pkg.get_contents()["/".join(subpath)]
                 except KeyError:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
@@ -327,16 +341,13 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        # TODO: clean this up
-                        store = package.get_store()
-                        pkg_root = package.get_contents()
-                        obj_hashes = store.add_to_package_df(pkg_root,
-                                                             dataframe,
-                                                             node_path,
-                                                             target,
-                                                             rel_path,
-                                                             transform,
-                                                             metadata)
+                        obj_hashes = pkg_store.add_to_package_df(pkg_root,
+                                                                 dataframe,
+                                                                 node_path,
+                                                                 target,
+                                                                 rel_path,
+                                                                 transform,
+                                                                 metadata)
 
                         # Add to cache
                         cache_entry = dict(
@@ -480,7 +491,7 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
 
     store = PackageStore()
     newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, [], contents,
+    _build_node(build_dir, newpackage.get_store(), newpackage.get_contents(), [], contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
