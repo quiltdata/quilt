@@ -37,7 +37,7 @@
   }
   .line {
     height: 1px;
-    border-top: 2px solid #EEEEEE;
+    border-top: 1px solid #EEEEEE;
   }
   #copyright {
     margin-top: 20px;
@@ -50,13 +50,13 @@
 <body>
   <div id="outer">
     <div id="inner">
-      <p>Hi, user {{ commenter }} commented on your data package.</p>
+      <p><span class="code">{{ commenter }}</span> commented on your data package.</p>
       <p>View the comment <a href="{{ link }}">here.</a></p>
     </div>
 
     <div class="line"></div>
 
-    <div id="copyright"><em>Copyright &copy; 2018 Quilt Data, Inc. All rights reserved.</em></div>
+    <div id="copyright">Copyright &copy; 2018 Quilt Data, Inc. All rights reserved.</div>
   </div>
 </body>
 </html>
