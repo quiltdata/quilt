@@ -4,6 +4,7 @@ Nodes that represent the data in a Quilt package.
 import copy
 import os
 
+import numpy as np
 import pandas as pd
 from six import iteritems, itervalues, string_types
 
@@ -73,6 +74,8 @@ class DataNode(Node):
                 store = self._package.get_store()
                 if self._target() == TargetType.PANDAS:
                     self.__cached_data = store.load_dataframe(self._hashes)
+                elif self._target() == TargetType.NUMPY:
+                    self.__cached_data = store.load_numpy(self._hashes)
                 else:
                     self.__cached_data = store.get_file(self._hashes)
             return self.__cached_data
@@ -288,6 +291,8 @@ class PackageNode(GroupNode):
 
         if isinstance(value, pd.DataFrame):
             metadata = {SYSTEM_METADATA: {'target': TargetType.PANDAS.value}}
+        elif isinstance(value, np.ndarray):
+            metadata = {SYSTEM_METADATA: {'target': TargetType.NUMPY.value}}
         elif isinstance(value, string_types + (bytes,)):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value
@@ -298,7 +303,7 @@ class PackageNode(GroupNode):
             if build_dir:
                 value = os.path.join(build_dir, value)
         else:
-            accepted_types = tuple(set((pd.DataFrame, bytes) + string_types))
+            accepted_types = tuple(set((pd.DataFrame, np.ndarray, bytes) + string_types))
             raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
                             .format(accepted_types, type(value)), repr(value)[0:100])
 

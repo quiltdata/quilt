@@ -8,6 +8,7 @@ from stat import S_IRUSR, S_IRGRP, S_IROTH, S_IWUSR
 import uuid
 
 from enum import Enum
+import numpy as np
 import pandas as pd
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA
@@ -414,6 +415,25 @@ class PackageStore(object):
             hashes = [filehash]
 
         return hashes
+
+    def load_numpy(self, hash_list):
+        """
+        Loads a numpy array.
+        """
+        assert len(hash_list) == 1
+        self._check_hashes(hash_list)
+        with open(self.object_path(hash_list[0]), 'rb') as fd:
+            return np.load(fd, allow_pickle=False)
+
+    def save_numpy(self, nparray):
+        storepath = self.temporary_object_path(str(uuid.uuid4()))
+        with open(storepath, 'wb') as fd:
+            np.save(fd, nparray, allow_pickle=False)
+
+        filehash = digest_file(storepath)
+        self._move_to_store(storepath, filehash)
+
+        return filehash
 
     def get_file(self, hash_list):
         """
