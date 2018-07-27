@@ -11,7 +11,7 @@ from enum import Enum
 import pandas as pd
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
-from .core import FileNode, RootNode, find_object_hashes
+from .core import FileNode, RootNode, decode_node, encode_node, find_object_hashes, hash_contents
 from .hashing import digest_file
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
@@ -23,9 +23,11 @@ def default_store_location():
     package_dir = os.path.join(BASE_DIR, PACKAGE_DIR_NAME)
     return os.getenv('QUILT_PRIMARY_PACKAGE_DIR', package_dir)
 
+
 class ParquetLib(Enum):
     SPARK = 'pyspark'
     ARROW = 'pyarrow'
+
 
 class StoreException(QuiltException):
     """
@@ -46,6 +48,10 @@ class PackageStore(object):
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
     VERSION = '1.3'
+    CONTENTS_DIR = 'contents'
+    TAGS_DIR = 'tags'
+    VERSIONS_DIR = 'versions'
+    LATEST = 'latest'
 
     __parquet_lib = None
 
@@ -212,6 +218,27 @@ class PackageStore(object):
             return Package(self, '.', RootNode(dict()))
         contents = RootNode(dict())
         return self.install_package(team, user, package, contents)
+
+    def create_package_node(self, team, user, package, dry_run=False):
+        """
+        Creates a new package and initializes its contents. See `install_package`.
+        """
+        contents = RootNode(dict())
+        if dry_run:
+            return contents
+
+        self.check_name(team, user, package)
+        assert contents is not None
+        self.create_dirs()
+
+        # Delete any existing data.
+        path = self.package_path(team, user, package)
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+        return contents
 
     def remove_package(self, team, user, package):
         """
@@ -464,6 +491,31 @@ class PackageStore(object):
         self._move_to_store(path, metahash)
         return metahash
 
+    def save_package_contents(self, root, team, owner, pkgname):
+        """
+        Saves the in-memory contents to a file in the local
+        package repository.
+        """
+        instance_hash = hash_contents(root)
+        pkg_path = self.package_path(team, owner, pkgname)
+        if not os.path.isdir(pkg_path):
+            os.makedirs(pkg_path)
+            os.mkdir(os.path.join(pkg_path, self.CONTENTS_DIR))
+            os.mkdir(os.path.join(pkg_path, self.TAGS_DIR))
+            os.mkdir(os.path.join(pkg_path, self.VERSIONS_DIR))
+            
+        dest = os.path.join(pkg_path, self.CONTENTS_DIR, instance_hash)
+        with open(dest, 'w') as contents_file:
+            json.dump(root, contents_file, default=encode_node, indent=2, sort_keys=True)
+
+        tag_dir = os.path.join(pkg_path, self.TAGS_DIR)
+        if not os.path.isdir(tag_dir):
+            os.mkdir(tag_dir)
+
+        latest_tag = os.path.join(pkg_path, self.TAGS_DIR, self.LATEST)
+        with open (latest_tag, 'w') as tagfile:
+            tagfile.write("{hsh}".format(hsh=instance_hash))
+
     def _move_to_store(self, srcpath, objhash):
         """
         Make the object read-only and move it to the store.
@@ -476,17 +528,44 @@ class PackageStore(object):
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
 
+########################################
+# Methods ported from save_<xyz>
+# in Package class
+########################################
+
     def add_to_package_df(self, root, dataframe, node_path, target, source_path, transform, custom_meta):
         hashes = self.save_dataframe(dataframe)
         metahash = self.save_metadata(custom_meta)
         root.add(node_path, hashes, target, source_path, transform, metahash)
         return hashes
 
+    def add_to_package_cached_df(self, root, hashes, node_path, target, source_path, transform, custom_meta):
+        metahash = self.save_metadata(custom_meta)
+        root.add(node_path, hashes, target, source_path, transform, metahash)
+
     def add_to_package_group(self, root, node_path, custom_meta):
         metahash = self.save_metadata(custom_meta)
         root.add(node_path, None, TargetType.GROUP, None, None, metahash)
 
     def add_to_package_file(self, root, srcfile, node_path, target, source_path, transform, custom_meta):
+        """
+        Save a (raw) file to the store.
+        """
         filehash = self.save_file(srcfile)
         metahash = self.save_metadata(custom_meta)
         root.add(node_path, [filehash], target, source_path, transform, metahash)
+
+    def add_to_package_package_tree(self, root, node_path, pkgnode):
+        """
+        Adds a package or sub-package tree from an existing package to this package's
+        contents.
+        """
+        if node_path:
+            ptr = root
+            for node in node_path[:-1]:
+                ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr.children[node_path[-1]] = pkgnode
+        else:
+            if root.children:
+                raise PackageException("Attempting to overwrite root node of a non-empty package.")
+            root.children = pkgnode.children.copy()   

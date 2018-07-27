@@ -103,60 +103,7 @@ class Package(object):
 
         with open(contents_path, 'r') as contents_file:
             return json.load(contents_file, object_hook=decode_node)
-
-    def save_package_tree(self, node_path, pkgnode):
-        """
-        Adds a package or sub-package tree from an existing package to this package's
-        contents.
-        """
-        contents = self.get_contents()
-        if node_path:
-            ptr = contents
-            for node in node_path[:-1]:
-                ptr = ptr.children.setdefault(node, GroupNode(dict()))
-            ptr.children[node_path[-1]] = pkgnode
-        else:
-            if contents.children:
-                raise PackageException("Attempting to overwrite root node of a non-empty package.")
-            contents.children = pkgnode.children.copy()
-
-    def save_cached_df(self, hashes, node_path, target, source_path, transform, custom_meta):
-        """
-        Save a DataFrame to the store.
-        """
-        metahash = self._store.save_metadata(custom_meta)
-        self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
-
-    def save_df(self, dataframe, node_path, target, source_path, transform, custom_meta):
-        """
-        Save a DataFrame to the store.
-        """
-        return self._store.add_to_package_df(self.get_contents(),
-                                             dataframe,
-                                             node_path,
-                                             target,
-                                             source_path,
-                                             transform,
-                                             custom_meta)
-
-    def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
-        """
-        Save a (raw) file to the store.
-        """
-        self._store.add_to_package_file(self.get_contents(),
-                                        srcfile,
-                                        node_path,
-                                        target,
-                                        source_path,
-                                        transform,
-                                        custom_meta)
         
-    def save_group(self, node_path, custom_meta):
-        """
-        Save a group to the store.
-        """
-        self._store.add_to_package_group(self.get_contents(), node_path, custom_meta)
-
     def get_contents(self):
         """
         Returns a dictionary with the contents of the package.

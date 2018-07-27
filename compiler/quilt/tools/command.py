@@ -552,7 +552,8 @@ def build_from_node(package, node):
     team, owner, pkg = parse_package(package)
     _check_team_id(team)
     store = PackageStore()
-    package_obj = store.create_package(team, owner, pkg)
+    #package_obj = store.create_package(team, owner, pkg)
+    pkg_root = store.create_package_node(team, owner, pkg)
 
     def _process_node(node, path=[]):
         if not isinstance(node._meta, dict):
@@ -567,7 +568,7 @@ def build_from_node(package, node):
                 ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
             )
         if isinstance(node, nodes.GroupNode):
-            package_obj.save_group(path, meta)
+            store.add_to_package_group(pkg_root, path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
@@ -576,9 +577,9 @@ def build_from_node(package, node):
             filepath = system_meta.get('filepath')
             transform = system_meta.get('transform')
             if isinstance(data, pd.DataFrame):
-                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+                store.add_to_package_df(pkg_root, data, path, TargetType.PANDAS, filepath, transform, meta)
             elif isinstance(data, string_types):
-                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
+                store.add_to_package_file(pkg_root, data, path, TargetType.FILE, filepath, transform, meta)
             else:
                 assert False, "Unexpected data type: %r" % data
         else:
@@ -589,7 +590,7 @@ def build_from_node(package, node):
     except StoreException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-    package_obj.save_contents()
+    store.save_package_contents(pkg_root, team, owner, pkg)
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
     """
