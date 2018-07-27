@@ -13,7 +13,6 @@ import pandas as pd
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
 from .core import FileNode, RootNode, decode_node, encode_node, find_object_hashes, hash_contents
 from .hashing import digest_file
-from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
 CHUNK_SIZE = 4096
@@ -27,6 +26,12 @@ def default_store_location():
 class ParquetLib(Enum):
     SPARK = 'pyspark'
     ARROW = 'pyarrow'
+
+class PackageException(QuiltException):
+    """
+    Exception class for Package handling
+    """
+    pass
 
 
 class StoreException(QuiltException):
@@ -189,7 +194,7 @@ class PackageStore(object):
             with open (latest_tag, 'r') as tagfile:
                 pkghash = tagfile.read()
 
-        assert pkghash is not None
+        assert pkghash is not None  
         contents_path = os.path.join(path, self.CONTENTS_DIR, pkghash)
         if not os.path.isfile(contents_path):
             return None
@@ -206,7 +211,6 @@ class PackageStore(object):
         assert contents is not None
 
         self.create_dirs()
-
         path = self.package_path(team, user, package)
 
         # Delete any existing data.
@@ -214,12 +218,6 @@ class PackageStore(object):
             os.remove(path)
         except OSError:
             pass
-
-        return Package(
-            store=self,
-            path=path,
-            contents=contents
-        )
     
     def create_package_node(self, team, user, package, dry_run=False):
         """
@@ -253,10 +251,10 @@ class PackageStore(object):
         # TODO: do we really want to delete invisible dirs?
         if os.path.isdir(path):
             # Collect objects from all instances for potential cleanup
-            contents_path = os.path.join(path, Package.CONTENTS_DIR)
+            contents_path = os.path.join(path, PackageStore.CONTENTS_DIR)
             for instance in os.listdir(contents_path):
-                pkg = Package(self, path, pkghash=instance)
-                remove_objs.update(find_object_hashes(pkg.get_contents()))
+                pkg = self.get_package(team, user, package, pkghash=instance)
+                remove_objs.update(find_object_hashes(pkg))
             # Remove package manifests
             rmtree(path)
 
@@ -273,8 +271,8 @@ class PackageStore(object):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    for hsh in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR)):
-                        yield Package(self, pkgpath, pkghash=hsh)
+                    for hsh in sub_files(os.path.join(pkgpath, PackageStore.CONTENTS_DIR)):
+                        yield self.get_package(team, user, pkg, pkghash=hsh)
 
     def ls_packages(self):
         """
@@ -288,9 +286,9 @@ class PackageStore(object):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    pkgmap = {h : [] for h in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR))}
-                    for tag in sub_files(os.path.join(pkgpath, Package.TAGS_DIR)):
-                        with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
+                    pkgmap = {h : [] for h in sub_files(os.path.join(pkgpath, PackageStore.CONTENTS_DIR))}
+                    for tag in sub_files(os.path.join(pkgpath, PackageStore.TAGS_DIR)):
+                        with open(os.path.join(pkgpath, PackageStore.TAGS_DIR, tag), 'r') as tagfile:
                             pkghash = tagfile.read()
                             pkgmap[pkghash].append(tag)
                     for pkghash, tags in pkgmap.items():
@@ -354,7 +352,7 @@ class PackageStore(object):
         remove_objs = set(objs)
 
         for pkg in self.iterpackages():
-            remove_objs.difference_update(find_object_hashes(pkg.get_contents()))
+            remove_objs.difference_update(find_object_hashes(pkg))
 
         for obj in remove_objs:
             path = self.object_path(obj)

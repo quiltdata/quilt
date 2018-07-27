@@ -85,8 +85,6 @@ class GroupNode(Node):
     """
     def __init__(self, meta):
         super(GroupNode, self).__init__(meta)
-        # FIXME: won't work with multiple PackageStores
-        self._store = PackageStore()
         self._children = {}
 
     def __getattr__(self, name):
@@ -187,6 +185,7 @@ class GroupNode(Node):
         hash_list = []
         stack = [self]
         alldfs = True
+        store = None
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
@@ -198,7 +197,9 @@ class GroupNode(Node):
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
                 node_store = node._store
-                if node_store != self._store:
+                if store is None:
+                    store = node_store
+                if node_store != store:
                     raise NotImplementedError("Can only merge dataframes from the same store")
                 hash_list += node._hashes
 
@@ -207,11 +208,11 @@ class GroupNode(Node):
                 return None
             if not alldfs:
                 raise ValueError("Group contains non-dataframe nodes")
-            return self._store.load_dataframe(hash_list)
+            return store.load_dataframe(hash_list)
         else:
             if hash_list:
-                assert self._store is not None
-                return asa(self, [self._store.object_path(obj) for obj in hash_list])
+                assert store is not None
+                return asa(self, [store.object_path(obj) for obj in hash_list])
             else:
                 return asa(self, [])
 

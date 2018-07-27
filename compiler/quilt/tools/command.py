@@ -944,7 +944,8 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, contents)
+    # TODO: Shouldn't need this? At least don't need the contents
+    store.install_package(team, owner, pkg, contents)
 
     obj_urls = dataset['urls']
     obj_sizes = dataset['sizes']
@@ -962,7 +963,7 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     else:
         print("Fragments already downloaded")
 
-    pkgobj.save_contents()
+    store.save_package_contents(contents, team, owner, pkg)
 
 def _materialize(node):
     store = PackageStore()

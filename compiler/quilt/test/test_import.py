@@ -13,7 +13,6 @@ from six import string_types
 from quilt.tools import command
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import Package
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
 
@@ -229,10 +228,10 @@ class ImportTest(QuiltTestCase):
         from quilt.data.foo import package2
         teststore = PackageStore(self._store_dir)
         contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
-                                      Package.CONTENTS_DIR,
+                                      PackageStore.CONTENTS_DIR,
                                       package1._node.get_hash())).read()
         contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
-                                      Package.CONTENTS_DIR,
+                                      PackageStore.CONTENTS_DIR,
                                       package2._node.get_hash())).read()
         assert contents1 == contents2
 
