@@ -1406,18 +1406,20 @@ def export(package, output_path='.', force=False, symlinks=False):
     def export_node(node, dest, use_symlinks=False):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
-        if node._target() != TargetType.PANDAS:
+        if node._target() == TargetType.FILE:
             if use_symlinks is True:
                 fs_link(node(), dest)
             else:
                 copyfile(node(), str(dest))
-        else:
+        elif node._target() == TargetType.PANDAS:
             df = node()
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
             # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
             df.to_csv(str(dest), index=False, float_format='%r')
+        else:
+            assert False
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
@@ -1481,7 +1483,7 @@ def export(package, output_path='.', force=False, symlinks=False):
             if dest not in results:
                 results[dest] = src
                 continue    # not a conflict..
-            if src._target() != TargetType.PANDAS and src() == results[dest]():
+            if src._target() == TargetType.FILE and src() == results[dest]():
                 continue    # not a conflict (same src filename, same dest)..
             # ..add other conditions that prevent this from being a conflict here..
 
