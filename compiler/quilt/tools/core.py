@@ -59,6 +59,8 @@ class Node(object):
     def get_children(self):
         return {}
 
+    def get_hash(self):
+        return hash_contents(self)
 
 class GroupNode(Node):
     __slots__ = ('children',)

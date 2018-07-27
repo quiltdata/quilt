@@ -101,6 +101,9 @@ class PackageStore(object):
             )
             raise StoreException(msg.format(self._path))
 
+    def __eq__(self, rhs):
+        return isinstance(rhs, PackageStore) and self._path == rhs._path
+
     def create_dirs(self):
         """
         Creates the store directory and its subdirectories.
@@ -136,8 +139,8 @@ class PackageStore(object):
             store = PackageStore(store_dir)
             pkg = store.get_package(team, user, package, pkghash=pkghash)
             if pkg is not None:
-                return pkg
-        return None
+                return store, pkg
+        return None, None
 
     @classmethod
     def check_name(cls, team, user, package, subpath=None):
@@ -181,7 +184,7 @@ class PackageStore(object):
                     store=self,
                     path=path,
                     pkghash=pkghash,
-                    )
+                    ).get_contents()
             except PackageException:
                 pass
         return None
@@ -209,16 +212,7 @@ class PackageStore(object):
             path=path,
             contents=contents
         )
-
-    def create_package(self, team, user, package, dry_run=False):
-        """
-        Creates a new package and initializes its contents. See `install_package`.
-        """
-        if dry_run:
-            return Package(self, '.', RootNode(dict()))
-        contents = RootNode(dict())
-        return self.install_package(team, user, package, contents)
-
+    
     def create_package_node(self, team, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.

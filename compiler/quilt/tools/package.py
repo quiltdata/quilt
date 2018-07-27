@@ -104,12 +104,4 @@ class Package(object):
         """
         return self._store
 
-    def _add_to_contents(self, node_path, hashes, target, source_path, transform, user_meta_hash):
-        """
-        Adds an object (name-hash mapping) or group to package contents.
-        """
-        assert isinstance(node_path, list)
-        assert user_meta_hash is None or isinstance(user_meta_hash, str)
-
-        root = self.get_contents()
-        root.add(node_path, hashes, target, source_path, transform, user_meta_hash)
+    

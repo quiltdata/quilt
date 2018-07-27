@@ -8,6 +8,7 @@ import pandas as pd
 from six import iteritems, itervalues, string_types
 
 from .tools.const import SYSTEM_METADATA, TargetType
+from .tools.store import PackageStore
 from .tools.util import is_nodename
 
 
@@ -39,10 +40,10 @@ class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
-    def __init__(self, package, hashes, data, meta):
+    def __init__(self, store, hashes, data, meta):
         super(DataNode, self).__init__(meta)
 
-        self._package = package
+        self._store = store
         self._hashes = hashes
         self.__cached_data = data
 
@@ -59,22 +60,20 @@ class DataNode(Node):
         the node and its contents to a callable.
         """
         if asa is not None:
-            if self._package is None or self._hashes is None:
+            if self._store is None or self._hashes is None:
                 msg = (
                     "Can only use asa functions with built dataframes."
                     " Build this package and try again."
                 )
                 raise ValueError(msg)
-            store = self._package.get_store()
-            return asa(self, [store.object_path(obj) for obj in self._hashes])
+            return asa(self, [self._store.object_path(obj) for obj in self._hashes])
         else:
             if self.__cached_data is None:
                 # TODO(dima): Temporary code.
-                store = self._package.get_store()
                 if self._target() == TargetType.PANDAS:
-                    self.__cached_data = store.load_dataframe(self._hashes)
+                    self.__cached_data = self._store.load_dataframe(self._hashes)
                 else:
-                    self.__cached_data = store.get_file(self._hashes)
+                    self.__cached_data = self._store.get_file(self._hashes)
             return self.__cached_data
 
 
@@ -86,7 +85,8 @@ class GroupNode(Node):
     """
     def __init__(self, meta):
         super(GroupNode, self).__init__(meta)
-
+        # FIXME: won't work with multiple PackageStores
+        self._store = PackageStore()
         self._children = {}
 
     def __getattr__(self, name):
@@ -184,7 +184,6 @@ class GroupNode(Node):
         """
         Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
         """
-        store = None
         hash_list = []
         stack = [self]
         alldfs = True
@@ -195,13 +194,11 @@ class GroupNode(Node):
             else:
                 if node._target() != TargetType.PANDAS:
                     alldfs = False
-                if node._package is None or node._hashes is None:
+                if node._store is None or node._hashes is None:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
-                node_store = node._package.get_store()
-                if store is None:
-                    store = node_store
-                elif node_store is not store:
+                node_store = node._store
+                if node_store != self._store:
                     raise NotImplementedError("Can only merge dataframes from the same store")
                 hash_list += node._hashes
 
@@ -210,11 +207,11 @@ class GroupNode(Node):
                 return None
             if not alldfs:
                 raise ValueError("Group contains non-dataframe nodes")
-            return store.load_dataframe(hash_list)
+            return self._store.load_dataframe(hash_list)
         else:
             if hash_list:
-                assert store is not None
-                return asa(self, [store.object_path(obj) for obj in hash_list])
+                assert self._store is not None
+                return asa(self, [self._store.object_path(obj) for obj in hash_list])
             else:
                 return asa(self, [])
 
@@ -258,12 +255,12 @@ class PackageNode(GroupNode):
     """
     def __init__(self, package, meta):
         super(PackageNode, self).__init__(meta)
-        self._package = package
-        self._node = package.get_contents() if package is not None else None
+        self._package = None
+        self._node = package if package is not None else None
 
     def _class_repr(self):
-        finfo = self._package.get_path() if self._package is not None else ''
-        return "<%s %r>" % (self.__class__.__name__, finfo)
+        #finfo = self._package.get_path() if self._package is not None else ''
+        return "<%s>" % (self.__class__.__name__)
 
     def _set(self, path, value, build_dir=''):
         """Create and set a node by path

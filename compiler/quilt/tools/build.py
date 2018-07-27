@@ -203,13 +203,13 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
             raise BuildException("A node must define only one of {0} or {1}".format(RESERVED['file'], RESERVED['package']))
         elif include_package: # package composition
             team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
-            existing_pkg = PackageStore.find_package(team, user, pkgname)
+            store, existing_pkg = PackageStore.find_package(team, user, pkgname)
             if existing_pkg is None:
                 raise BuildException("Package not found: %s" % include_package)
 
             if subpath:
                 try:
-                    node = existing_pkg.get_contents()["/".join(subpath)]
+                    node = existing_pkg["/".join(subpath)]
                 except KeyError:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
@@ -217,7 +217,7 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                                                     pkg=pkgname,
                                                     subpath=subpath))
             else:
-                node = GroupNode(existing_pkg.get_contents().children)
+                node = GroupNode(existing_pkg.children)
             pkg_store.add_to_package_package_tree(pkg_root, node_path, node)
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
@@ -490,12 +490,12 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
     checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage.get_store(), newpackage.get_contents(), [], contents,
+    newpackage = store.create_package_node(team, username, package, dry_run=dry_run)
+    _build_node(build_dir, store, newpackage, [], contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
-        newpackage.save_contents()
+        store.save_package_contents(newpackage, team, username, package)
 
 def splitext_no_dot(filename):
     """

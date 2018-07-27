@@ -230,10 +230,10 @@ class ImportTest(QuiltTestCase):
         teststore = PackageStore(self._store_dir)
         contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
                                       Package.CONTENTS_DIR,
-                                      package1._package.get_hash())).read()
+                                      package1._node.get_hash())).read()
         contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
                                       Package.CONTENTS_DIR,
-                                      package2._package.get_hash())).read()
+                                      package2._node.get_hash())).read()
         assert contents1 == contents2
 
         # Rename an attribute
@@ -509,7 +509,7 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
         package = command.load('foo/package')
-        pkghash = package._package.get_hash()
+        pkghash = package._node.get_hash()
 
         # New Version
         mydir = os.path.dirname(__file__)
@@ -519,7 +519,7 @@ class ImportTest(QuiltTestCase):
 
         load_pkg_new = command.load('foo/package')
         load_pkg_old = command.load('foo/package', hash=pkghash)    
-        assert load_pkg_old._package.get_hash() == pkghash
+        assert load_pkg_old._node.get_hash() == pkghash
 
         assert load_pkg_new.foo
         with self.assertRaises(AttributeError):

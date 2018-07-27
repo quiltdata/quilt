@@ -651,18 +651,18 @@ def push(package, is_public=False, is_team=False, reupload=False):
     _check_team_id(team)
     session = _get_session(team)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
-    pkghash = pkgobj.get_hash()
+    pkghash = pkgroot.get_hash()
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             is_public=is_public,
             is_team=is_team,
-            contents=pkgobj.get_contents(),
+            contents=pkgroot,
             description="",  # TODO
             sizes=sizes
         ), default=encode_node)
@@ -686,9 +686,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(dry_run=True)
     obj_urls = resp.json()['upload_urls']
 
-    assert set(obj_urls) == set(find_object_hashes(pkgobj.get_contents()))
-
-    store = pkgobj.get_store()
+    assert set(obj_urls) == set(find_object_hashes(pkgroot))
 
     obj_sizes = {
         obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
@@ -1108,11 +1106,9 @@ def inspect(package):
     """
     team, owner, pkg = parse_package(package)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-
-    store = pkgobj.get_store()
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1140,8 +1136,8 @@ def inspect(package):
         else:
             print(prefix + name_prefix + name)
 
-    print(pkgobj.get_path())
-    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
+    print(store.package_path(team, owner, pkg))
+    _print_children(children=pkgroot.children.items(), prefix='', path='')
 
 def rm(package, force=False):
     """
@@ -1288,15 +1284,15 @@ def _load(package, hash=None):
     elif info.hash:
         raise CommandException("Use hash=HASH to specify package hash.")
 
-    pkgobj = PackageStore.find_package(info.team,
-                                       info.user,
-                                       info.name,
-                                       pkghash=hash)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(info.team,
+                                               info.user,
+                                               info.name,
+                                               pkghash=hash)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    node = _from_core_node(store, pkgroot)
 
-    return node, pkgobj, info
+    return node, pkgroot, info
 
 def load(pkginfo, hash=None):
     """
