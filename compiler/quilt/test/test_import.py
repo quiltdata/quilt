@@ -249,6 +249,14 @@ class ImportTest(QuiltTestCase):
         package1._set(['new', 'df'], df)
         assert package1.new.df._data() is df
 
+        # Add a new ndarray
+        arr = np.array([
+            [[1], [2], [3]],
+            [[4], [5], [6]]
+        ])
+        package1._set(['new', 'array'], arr)
+        assert package1.new.array._data() is arr
+
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
         package1._set(['new', 'file'], 'data/foo.csv', build_dir=mydir)
@@ -286,6 +294,9 @@ class ImportTest(QuiltTestCase):
 
         new_df = package3.new.df._data()
         assert new_df.xs(2)['a'] == 3
+
+        new_arr = package3.new.array._data()
+        assert new_arr[1][2][0] == 6
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)

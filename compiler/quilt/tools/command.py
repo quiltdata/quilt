@@ -21,6 +21,7 @@ import tempfile
 import time
 import yaml
 
+import numpy as np
 from packaging.version import Version
 import pandas as pd
 import pkg_resources
@@ -577,6 +578,8 @@ def build_from_node(package, node):
             transform = system_meta.get('transform')
             if isinstance(data, pd.DataFrame):
                 package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, np.ndarray):
+                package_obj.save_numpy(data, path, TargetType.NUMPY, filepath, transform, meta)
             elif isinstance(data, string_types):
                 package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
             else:

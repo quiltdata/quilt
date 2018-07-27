@@ -138,6 +138,14 @@ class Package(object):
         self._add_to_contents(node_path, hashes, target, source_path, transform, metahash)
         return hashes
 
+    def save_numpy(self, ndarray, node_path, target, source_path, transform, custom_meta):
+        """
+        Save a Numpy array to the store.
+        """
+        filehash = self._store.save_numpy(ndarray)
+        metahash = self._store.save_metadata(custom_meta)
+        self._add_to_contents(node_path, [filehash], target, source_path, transform, metahash)
+
     def save_file(self, srcfile, node_path, target, source_path, transform, custom_meta):
         """
         Save a (raw) file to the store.
