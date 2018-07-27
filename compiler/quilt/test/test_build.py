@@ -336,8 +336,8 @@ class BuildTest(QuiltTestCase):
 
         ## Positive tests
         # simple checks to ensure matching contents for item notation
-        assert node.foo._node == package['foo']
-        assert node.subnode.nuts._node == package['subnode/nuts']
+        assert package['foo']
+        assert package['subnode/nuts']
 
         ## Negative tests
         # Valid key, but item not present (KeyError)

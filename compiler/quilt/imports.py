@@ -17,7 +17,7 @@ from six import iteritems
 
 from .nodes import DataNode, GroupNode, PackageNode
 from .tools import core
-from .tools.const import SYSTEM_METADATA
+from .tools.const import SYSTEM_METADATA, TargetType
 from .tools.store import PackageStore
 
 
@@ -51,8 +51,12 @@ def _from_core_node(package, core_node):
         metadata[SYSTEM_METADATA] = {
             'filepath': core_node.metadata.get('q_path'),
             'transform': core_node.metadata.get('q_ext'),
+            'target':
+                TargetType.PANDAS.value
+                if isinstance(core_node, core.TableNode)
+                else core_node.metadata.get('q_target', TargetType.FILE.value),
         }
-        node = DataNode(package, core_node, None, metadata)
+        node = DataNode(package, core_node.hashes, None, metadata)
     else:
         if isinstance(core_node, core.RootNode):
             node = PackageNode(package, metadata)
