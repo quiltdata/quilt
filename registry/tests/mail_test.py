@@ -34,6 +34,8 @@ class MailTestCase(QuiltTestCase):
         with app.app_context():
             send_activation_email(test_user, test_link)
             send_reset_email(test_user, test_link)
+            send_comment_email(self.TEST_USER_EMAIL, 'test_user', 'pkg', 'commenting_user')
+
         assert send_email.called
         call = send_email.call_args_list[0][1]
         html = call['html']
@@ -43,6 +45,13 @@ class MailTestCase(QuiltTestCase):
 
         expected_test_link = 'http://localhost:3000/reset_password/123456789'
         call = send_email.call_args_list[1][1]
+        html = call['html']
+        body = call['body']
+        assert html.find(expected_test_link) != -1
+        assert body.find(expected_test_link) != -1
+
+        expected_test_link = 'http://localhost:3000/test_user/pkg/comments'
+        call = send_email.call_args_list[2][1]
         html = call['html']
         body = call['body']
         assert html.find(expected_test_link) != -1
