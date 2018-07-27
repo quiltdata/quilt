@@ -659,6 +659,21 @@ def download_object_preview(owner, obj_hash):
             "Failed to ungzip the README; make sure it has been uploaded correctly."
         )
 
+def _merge_contents(base_contents, package_path, contents):
+    base_subnode = base_contents
+    package_path_list = package_path.split('/')
+    for component in package_path_list[:-1]:
+        try:
+            base_subnode = base_subnode.children.setdefault(component, GroupNode(dict()))
+        except AttributeError:
+            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
+    try:
+        base_subnode.children[package_path_list[-1]] = contents
+    except AttributeError:
+        raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % package_path_list[-1])
+
+    return base_contents
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
 @app.route('/api/package_update/<owner>/<package_name>/<path:package_path>', methods=['POST'])
 @api(schema=PACKAGE_SCHEMA)
@@ -808,19 +823,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             )
         base_instance, tag = result
 
-        base_subnode = base_instance.contents
-        package_path_list = package_path.split('/')
-        for component in package_path_list[:-1]:
-            try:
-                base_subnode = base_subnode.children.setdefault(component, GroupNode(dict()))
-            except AttributeError:
-                raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
-        try:
-            base_subnode.children[package_path_list[-1]] = contents
-        except AttributeError:
-            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % package_path_list[-1])
-
-        contents = base_instance.contents
+        contents = _merge_contents(base_instance.contents, package_path, contents)
         package_hash = hash_contents(contents)
 
         # Make sure we don't commit any changes to the original instance!
