@@ -11,7 +11,7 @@ from enum import Enum
 import pandas as pd
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
-from .core import FileNode, RootNode, TableNode, find_object_hashes
+from .core import FileNode, RootNode, find_object_hashes
 from .hashing import digest_file
 from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename

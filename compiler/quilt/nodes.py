@@ -7,8 +7,7 @@ import os
 import pandas as pd
 from six import iteritems, itervalues, string_types
 
-from .tools import core
-from .tools.const import SYSTEM_METADATA
+from .tools.const import SYSTEM_METADATA, TargetType
 from .tools.util import is_nodename
 
 
@@ -40,16 +39,19 @@ class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
-    def __init__(self, package, node, data, meta):
+    def __init__(self, package, hashes, data, meta):
         super(DataNode, self).__init__(meta)
 
         self._package = package
-        self._node = node
+        self._hashes = hashes
         self.__cached_data = data
 
     def __iter__(self):
         # return an empty iterator (not None, not [], which are non-empty)
         return iter(())
+
+    def _target(self):
+        return TargetType(self._meta[SYSTEM_METADATA]['target'])
 
     def _data(self, asa=None):
         """
@@ -57,24 +59,22 @@ class DataNode(Node):
         the node and its contents to a callable.
         """
         if asa is not None:
-            if self._package is None or not self._node.hashes:
+            if self._package is None or self._hashes is None:
                 msg = (
                     "Can only use asa functions with built dataframes."
                     " Build this package and try again."
                 )
                 raise ValueError(msg)
             store = self._package.get_store()
-            return asa(self, [store.object_path(obj) for obj in self._node.hashes])
+            return asa(self, [store.object_path(obj) for obj in self._hashes])
         else:
             if self.__cached_data is None:
                 # TODO(dima): Temporary code.
                 store = self._package.get_store()
-                if isinstance(self._node, core.TableNode):
-                    self.__cached_data = store.load_dataframe(self._node.hashes)
-                elif isinstance(self._node, core.FileNode):
-                    self.__cached_data = store.get_file(self._node.hashes)
+                if self._target() == TargetType.PANDAS:
+                    self.__cached_data = store.load_dataframe(self._hashes)
                 else:
-                    assert False
+                    self.__cached_data = store.get_file(self._hashes)
             return self.__cached_data
 
 
@@ -91,7 +91,7 @@ class GroupNode(Node):
 
     def __getattr__(self, name):
         if name.startswith('_'):
-            return super(GroupNode, self).__getattr__(name)
+            raise AttributeError
         else:
             try:
                 return self[name]
@@ -193,9 +193,9 @@ class GroupNode(Node):
             if isinstance(node, GroupNode):
                 stack.extend(child for _, child in sorted(node._items(), reverse=True))
             else:
-                if not isinstance(node._node, core.TableNode):
+                if node._target() != TargetType.PANDAS:
                     alldfs = False
-                if node._node is None or not node._node.hashes:
+                if node._package is None or node._hashes is None:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
                 node_store = node._package.get_store()
@@ -203,7 +203,7 @@ class GroupNode(Node):
                     store = node_store
                 elif node_store is not store:
                     raise NotImplementedError("Can only merge dataframes from the same store")
-                hash_list += node._node.hashes
+                hash_list += node._hashes
 
         if asa is None:
             if not hash_list:
@@ -287,8 +287,7 @@ class PackageNode(GroupNode):
         assert isinstance(path, list) and len(path) > 0
 
         if isinstance(value, pd.DataFrame):
-            metadata = {}
-            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value)
+            metadata = {SYSTEM_METADATA: {'target': TargetType.PANDAS.value}}
         elif isinstance(value, string_types + (bytes,)):
             # bytes -> string for consistency when retrieving metadata
             value = value.decode() if isinstance(value, bytes) else value
@@ -296,7 +295,6 @@ class PackageNode(GroupNode):
                 raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
             # Security: filepath does not and should not retain the build_dir's location!
             metadata = {SYSTEM_METADATA: {'filepath': value, 'transform': 'id'}}
-            core_node = core.FileNode(hashes=[])
             if build_dir:
                 value = os.path.join(build_dir, value)
         else:
@@ -318,7 +316,7 @@ class PackageNode(GroupNode):
             node = child
 
         key = path[-1]
-        data_node = DataNode(self._package, core_node, value, metadata)
+        data_node = DataNode(self._package, None, value, metadata)
         node[key] = data_node
 
     def _filter(self, lambda_or_dict):

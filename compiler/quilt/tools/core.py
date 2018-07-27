@@ -109,21 +109,16 @@ class RootNode(GroupNode):
 
         if target is TargetType.GROUP:
             node = GroupNode(dict())
-        elif target is TargetType.PANDAS:
-            node = TableNode(
-                hashes=hashes,
-                format=PackageFormat.default.value,
-                metadata=metadata,
-                metadata_hash=user_meta_hash
-            )
-        elif target is TargetType.FILE:
+        else:
             node = FileNode(
                 hashes=hashes,
-                metadata=metadata,
+                metadata=dict(
+                    q_ext=transform,
+                    q_path=source_path,
+                    q_target=target.value
+                ),
                 metadata_hash=user_meta_hash
             )
-        else:
-            assert False, "Unhandled TargetType {tt}".format(tt=target)
 
         ptr.children[node_path[-1]] = node
 

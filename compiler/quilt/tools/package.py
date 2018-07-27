@@ -4,8 +4,7 @@ import os
 from .compat import pathlib
 from .const import TargetType, QuiltException
 from .core import (decode_node, encode_node, hash_contents,
-                   FileNode, GroupNode, TableNode,
-                   PackageFormat)
+                   FileNode, GroupNode)
 from .util import is_nodename
 
 
