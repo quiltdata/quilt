@@ -33,7 +33,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
+from .core import (hash_contents, find_object_hashes, GroupNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -976,7 +976,7 @@ def _materialize(node):
         if isinstance(obj, nodes.GroupNode):
             stack.extend(child for name, child in obj._items())
         else:
-            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+            hashes.update(obj._hashes or [])  # May be empty for nodes created locally
 
     missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
 
@@ -1131,15 +1131,13 @@ def inspect(package):
                 name_prefix = u"┬ "
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
-        elif isinstance(node, TableNode):
+        elif node.metadata['q_target'] == TargetType.PANDAS.value:
             df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
-        elif isinstance(node, FileNode):
-            print(prefix + name_prefix + name)
         else:
-            assert False, "node=%s type=%s" % (node, type(node))
+            print(prefix + name_prefix + name)
 
     print(pkgobj.get_path())
     _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
@@ -1358,7 +1356,7 @@ def export(package, output_path='.', force=False, symlinks=False):
     # Perhaps better as Node.export_path
     def get_export_path(node, node_path):
         # If filepath is not present, generate fake path based on node parentage.
-        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        filepath = node._meta[SYSTEM_METADATA]['filepath']
         if filepath:
             dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
         else:
@@ -1368,9 +1366,9 @@ def export(package, output_path='.', force=False, symlinks=False):
                   .format('/'.join(node_path.parts)))
             dest = node_path
 
-        # When exporting TableNodes, excel files are to be converted to csv.
+        # When exporting dataframes, excel files are to be converted to csv.
         # check also occurs in export_node(), but done here prevents filename conflicts
-        if isinstance(node._node, TableNode):
+        if node._target() == TargetType.PANDAS:
             if dest.suffix != '.csv':
                 # avoid name collisions from files with same name but different source,
                 # as we shift all to being csv for export.
@@ -1408,13 +1406,12 @@ def export(package, output_path='.', force=False, symlinks=False):
     def export_node(node, dest, use_symlinks=False):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(node._node, FileNode):
+        if node._target() != TargetType.PANDAS:
             if use_symlinks is True:
                 fs_link(node(), dest)
             else:
                 copyfile(node(), str(dest))
-        elif isinstance(node._node, TableNode):
-            ext = node._node.metadata['q_ext']
+        else:
             df = node()
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
@@ -1466,7 +1463,7 @@ def export(package, output_path='.', force=False, symlinks=False):
 
         Export conflicts can be introduced in various ways -- for example:
             * export-time mapping -- user maps two files to the same name
-            * coded builds -- user creates two FileNodes with the same path
+            * coded builds -- user creates two files with the same path
             * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
             * build-time duplication -- user enters the same file path twice under different nodes
 
@@ -1484,7 +1481,7 @@ def export(package, output_path='.', force=False, symlinks=False):
             if dest not in results:
                 results[dest] = src
                 continue    # not a conflict..
-            if isinstance(src._node, FileNode) and src() == results[dest]():
+            if src._target() != TargetType.PANDAS and src() == results[dest]():
                 continue    # not a conflict (same src filename, same dest)..
             # ..add other conditions that prevent this from being a conflict here..
 
