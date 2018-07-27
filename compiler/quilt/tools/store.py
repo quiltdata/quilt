@@ -178,16 +178,24 @@ class PackageStore(object):
         """
         self.check_name(team, user, package)
         path = self.package_path(team, user, package)
-        if os.path.isdir(path):
-            try:
-                return Package(
-                    store=self,
-                    path=path,
-                    pkghash=pkghash,
-                    ).get_contents()
-            except PackageException:
-                pass
-        return None
+        if not os.path.isdir(path):
+            return None
+
+        if pkghash is None:
+            latest_tag = os.path.join(path, self.TAGS_DIR, self.LATEST)
+            if not os.path.exists(latest_tag):
+                return None
+
+            with open (latest_tag, 'r') as tagfile:
+                pkghash = tagfile.read()
+
+        assert pkghash is not None
+        contents_path = os.path.join(path, self.CONTENTS_DIR, pkghash)
+        if not os.path.isfile(contents_path):
+            return None
+
+        with open(contents_path, 'r') as contents_file:
+            return json.load(contents_file, object_hook=decode_node)
 
     def install_package(self, team, user, package, contents):
         """
