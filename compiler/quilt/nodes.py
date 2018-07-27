@@ -91,7 +91,7 @@ class GroupNode(Node):
 
     def __getattr__(self, name):
         if name.startswith('_'):
-            return super(GroupNode, self).__getattr__(name)
+            raise AttributeError
         else:
             try:
                 return self[name]
