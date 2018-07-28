@@ -7,8 +7,6 @@ import os
 
 SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:testing@db/packages'
 
-AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
-
 CATALOG_URL = 'http://localhost:3000'
 
 REGISTRY_URL = os.environ['REGISTRY_URL']
@@ -25,10 +23,9 @@ MIXPANEL_PROJECT_TOKEN = os.getenv('MIXPANEL_PROJECT_TOKEN', '')
 DEPLOYMENT_ID = ''
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
 
-print('*** AUTH_PROVIDER=%s' % AUTH_PROVIDER)
-
 ENABLE_USER_ENDPOINTS = True
 
+MAIL_DEV = os.getenv('MAIL_DEV')
 MAIL_SERVER = os.getenv('SMTP_HOST')
 MAIL_USERNAME = os.getenv('SMTP_USERNAME')
 MAIL_PASSWORD = os.getenv('SMTP_PASSWORD')
