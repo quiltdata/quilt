@@ -34,7 +34,7 @@ services:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - DEPLOYMENT_ID=dev
-      - MAIL_DEV=1
+      - MAIL_DEV=True
       - REGISTRY_URL=http://localhost:5000
       - STRIPE_SECRET_KEY=
       - QUILT_DEFAULT_SENDER=support@quiltdata.io
