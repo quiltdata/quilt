@@ -17,11 +17,11 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=docker_config.py
-      - STRIPE_SECRET_KEY=
-      - REGISTRY_URL=http://localhost:5000
       - QUILT_DEFAULT_SENDER=support@quiltdata.io
       - QUILT_SECRET_KEY=testing
+      - QUILT_SERVER_CONFIG=docker_config.py
+      - REGISTRY_URL=http://localhost:5000
+      - STRIPE_SECRET_KEY=
     depends_on:
       db:
         condition: service_healthy
@@ -34,12 +34,12 @@ services:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
       - DEPLOYMENT_ID=dev
-      - QUILT_SERVER_CONFIG=docker_config.py
-      - STRIPE_SECRET_KEY=
-      - REGISTRY_URL=http://localhost:5000
-      - QUILT_DEFAULT_SENDER=support@quiltdata.io
       - MAIL_DEV=1
+      - REGISTRY_URL=http://localhost:5000
+      - STRIPE_SECRET_KEY=
+      - QUILT_DEFAULT_SENDER=support@quiltdata.io
       - QUILT_SECRET_KEY=testing
+      - QUILT_SERVER_CONFIG=docker_config.py
     depends_on:
       db:
         condition: service_healthy
