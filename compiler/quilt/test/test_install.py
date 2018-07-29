@@ -438,7 +438,7 @@ packages:
         contents, contents_hash = self.make_contents(table=table_hash)
 
         s3_url = 'https://example.com/%s' % table_hash
-        error = requests.exceptions.ConnectionError("Timeout")
+        error = ConnectionError("Timeout")
 
         # Fail to install after 3 timeouts.
         self._mock_tag('foo/bar', 'latest', contents_hash)

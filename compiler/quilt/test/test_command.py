@@ -1617,4 +1617,3 @@ def is_close(a, b):
     # Compare two floats, and let us know if they're within relative tolerance
     tolerance = 1e-15
     return abs(a - b) <= tolerance * max(abs(a), abs(b))
-

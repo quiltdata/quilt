@@ -243,11 +243,11 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
             if transform:
                 transform = transform.lower()
                 if transform in PANDAS_PARSERS:
-                    target = TargetType.PANDAS
+                    target = TargetType.PANDAS # pylint:disable=R0204
                 elif transform == PARQUET:
-                    target = TargetType.PANDAS
+                    target = TargetType.PANDAS # pylint:disable=R0204
                 elif transform == ID:
-                    target = TargetType.FILE
+                    target = TargetType.FILE # pylint:disable=R0204
                 else:
                     raise BuildException("Unknown transform '%s' for %s" %
                                          (transform, rel_path))
@@ -321,10 +321,17 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
 
                 # TODO: check for changes in checks else use cache
                 # below is a heavy-handed fix but it's OK for check builds to be slow
-                if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
+                if (not checks and
+                    cachedobjs and
+                    all(os.path.exists(store.object_path(obj)) for obj in cachedobjs)):
                     # Use existing objects instead of rebuilding
-                    # TODO: cleanup below
-                    pkg_store.add_to_package_cached_df(pkg_root, cachedobjs, node_path, target, rel_path, transform, metadata)
+                    pkg_store.add_to_package_cached_df(pkg_root,
+                                                       cachedobjs,
+                                                       node_path,
+                                                       target,
+                                                       rel_path,
+                                                       transform,
+                                                       metadata)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)

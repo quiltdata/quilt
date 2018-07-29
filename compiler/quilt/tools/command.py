@@ -543,8 +543,8 @@ def _build_empty(package):
     team, owner, pkg = parse_package(package)
 
     store = PackageStore()
-    new = store.create_package(team, owner, pkg)
-    new.save_contents()
+    new = store.create_package_node(team, owner, pkg)
+    store.save_package_contents(new, team, owner, pkg)
 
 def build_from_node(package, node):
     """

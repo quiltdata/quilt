@@ -11,8 +11,10 @@ from enum import Enum
 import numpy as np
 import pandas as pd
 
-from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
-from .core import FileNode, RootNode, decode_node, encode_node, find_object_hashes, hash_contents
+from .const import (DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA,
+                    TargetType)
+from .core import (GroupNode, RootNode, decode_node, encode_node,
+                   find_object_hashes, hash_contents)
 from .hashing import digest_file
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
@@ -108,7 +110,7 @@ class PackageStore(object):
             raise StoreException(msg.format(self._path))
 
     def __eq__(self, rhs):
-        return isinstance(rhs, PackageStore) and self._path == rhs._path
+        return isinstance(rhs, PackageStore) and self._path == rhs._path # pylint:disable=W0212
 
     def create_dirs(self):
         """
