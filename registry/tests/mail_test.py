@@ -31,9 +31,12 @@ class MailTestCase(QuiltTestCase):
         test_user = User.query.filter_by(name=self.TEST_USER).one_or_none()
         test_link = '123456789'
         expected_test_link = 'http://localhost:5000/activate/123456789'
+        commenting_user = 'commenting_user'
         with app.app_context():
             send_activation_email(test_user, test_link)
             send_reset_email(test_user, test_link)
+            send_comment_email(self.TEST_USER_EMAIL, 'test_user', 'pkg', commenting_user)
+
         assert send_email.called
         call = send_email.call_args_list[0][1]
         html = call['html']
@@ -47,3 +50,12 @@ class MailTestCase(QuiltTestCase):
         body = call['body']
         assert html.find(expected_test_link) != -1
         assert body.find(expected_test_link) != -1
+
+        expected_test_link = 'http://localhost:3000/test_user/pkg/comments'
+        call = send_email.call_args_list[2][1]
+        html = call['html']
+        body = call['body']
+        assert html.find(expected_test_link) != -1
+        assert body.find(expected_test_link) != -1
+        assert html.find(commenting_user) != -1
+        assert body.find(commenting_user) != -1

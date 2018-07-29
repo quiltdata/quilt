@@ -8,6 +8,7 @@ from stat import S_IRUSR, S_IRGRP, S_IROTH, S_IWUSR
 import uuid
 
 from enum import Enum
+import numpy as np
 import pandas as pd
 
 from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA, TargetType
@@ -438,6 +439,25 @@ class PackageStore(object):
 
         return hashes
 
+    def load_numpy(self, hash_list):
+        """
+        Loads a numpy array.
+        """
+        assert len(hash_list) == 1
+        self._check_hashes(hash_list)
+        with open(self.object_path(hash_list[0]), 'rb') as fd:
+            return np.load(fd, allow_pickle=False)
+
+    def save_numpy(self, nparray):
+        storepath = self.temporary_object_path(str(uuid.uuid4()))
+        with open(storepath, 'wb') as fd:
+            np.save(fd, nparray, allow_pickle=False)
+
+        filehash = digest_file(storepath)
+        self._move_to_store(storepath, filehash)
+
+        return filehash
+
     def get_file(self, hash_list):
         """
         Returns the path of the file - but verifies that the hash is actually present.
@@ -543,6 +563,14 @@ class PackageStore(object):
     def add_to_package_cached_df(self, root, hashes, node_path, target, source_path, transform, custom_meta):
         metahash = self.save_metadata(custom_meta)
         root.add(node_path, hashes, target, source_path, transform, metahash)
+
+    def add_to_package_numpy(self, root, ndarray, node_path, target, source_path, transform, custom_meta):
+        """
+        Save a Numpy array to the store.
+        """
+        filehash = self.save_numpy(ndarray)
+        metahash = self.save_metadata(custom_meta)
+        root.add(node_path, [filehash], target, source_path, transform, metahash)
 
     def add_to_package_group(self, root, node_path, custom_meta):
         metahash = self.save_metadata(custom_meta)

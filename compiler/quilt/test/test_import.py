@@ -248,6 +248,17 @@ class ImportTest(QuiltTestCase):
         package1._set(['new', 'df'], df)
         assert package1.new.df._data() is df
 
+        # Add some ndarrays
+        arr1 = np.array([
+            [[1], [2], [3]],
+            [[4], [5], [6]]
+        ])
+        arr2 = np.random.rand(30, 40, 50)
+        package1._set(['new', 'array1'], arr1)
+        package1._set(['new', 'array2'], arr2)
+        assert package1.new.array1._data() is arr1
+        assert package1.new.array2._data() is arr2
+
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
         package1._set(['new', 'file'], 'data/foo.csv', build_dir=mydir)
@@ -285,6 +296,11 @@ class ImportTest(QuiltTestCase):
 
         new_df = package3.new.df._data()
         assert new_df.xs(2)['a'] == 3
+
+        new_arr1 = package3.new.array1._data()
+        new_arr2 = package3.new.array2._data()
+        assert new_arr1[1][2][0] == 6
+        assert new_arr2.shape == (30, 40, 50)
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
