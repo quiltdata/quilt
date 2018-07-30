@@ -72,7 +72,7 @@ def send_welcome_email(user, email, link=None):
 
 def send_comment_email(email, package_owner, package_name, commenter):
     """Send email to owner of package regarding new comment"""
-    link = '{CATALOG_URL}/{owner}/{pkg}/comments'.format(
+    link = '{CATALOG_URL}/package/{owner}/{pkg}/comments'.format(
         CATALOG_URL=CATALOG_URL, owner=package_owner, pkg=package_name)
     subject = "New comment on {package_owner}/{package_name}".format(
         package_owner=package_owner, package_name=package_name)

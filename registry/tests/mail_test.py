@@ -51,7 +51,7 @@ class MailTestCase(QuiltTestCase):
         assert html.find(expected_test_link) != -1
         assert body.find(expected_test_link) != -1
 
-        expected_test_link = 'http://localhost:3000/test_user/pkg/comments'
+        expected_test_link = 'http://localhost:3000/package/test_user/pkg/comments'
         call = send_email.call_args_list[2][1]
         html = call['html']
         body = call['body']
