@@ -112,6 +112,12 @@ class PackageStore(object):
     def __eq__(self, rhs):
         return isinstance(rhs, PackageStore) and self._path == rhs._path # pylint:disable=W0212
 
+    def __ne__(self, rhs):
+        return not (self == rhs)
+
+    def __hash__(self):
+        return hash(self._path)
+
     def create_dirs(self):
         """
         Creates the store directory and its subdirectories.
