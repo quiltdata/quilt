@@ -35,7 +35,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
 from .core import (hash_contents, find_object_hashes, GroupNode,
-                   decode_node, encode_node, LATEST_TAG)
+                   decode_node, encode_node, hash_contents, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
 from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
@@ -658,7 +658,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
-    pkghash = pkgroot.get_hash()
+    pkghash = hash_contents(pkgroot)
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(

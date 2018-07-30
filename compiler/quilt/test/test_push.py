@@ -8,7 +8,7 @@ import os
 import responses
 
 from quilt.tools import command, store
-from quilt.tools.core import find_object_hashes
+from quilt.tools.core import find_object_hashes, hash_contents
 
 from .utils import QuiltTestCase
 
@@ -23,7 +23,7 @@ class PushTest(QuiltTestCase):
         command.build('foo/bar', build_path)
 
         _, pkgroot = store.PackageStore.find_package(None, 'foo', 'bar')
-        pkg_hash = pkgroot.get_hash()
+        pkg_hash = hash_contents(pkgroot)
         assert pkg_hash
         contents = pkgroot
 

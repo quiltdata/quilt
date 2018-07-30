@@ -11,9 +11,6 @@ import struct
 
 from six import iteritems, itervalues, string_types
 
-from .const import TargetType
-from .util import is_nodename, find_in_package
-
 LATEST_TAG = 'latest'
 README = 'README'
 
@@ -57,9 +54,7 @@ class Node(object):
 
     def get_children(self):
         return {}
-
-    def get_hash(self):
-        return hash_contents(self)
+   
 
 class GroupNode(Node):
     __slots__ = ('children',)
@@ -83,7 +78,7 @@ class GroupNode(Node):
 class RootNode(GroupNode):
     __slots__ = ()
 
-    json_type = 'ROOT'   
+    json_type = 'ROOT'
 
 
 class TableNode(Node):
