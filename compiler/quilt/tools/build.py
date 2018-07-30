@@ -21,7 +21,8 @@ from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAG
 from .core import GroupNode, RootNode
 from .hashing import digest_file, digest_string
 from .store import PackageStore, ParquetLib, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
+from .util import (FileWithReadProgress, find_in_package, is_nodename, to_nodename, to_identifier,
+                   parse_package)
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -209,7 +210,7 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
 
             if subpath:
                 try:
-                    node = existing_pkg["/".join(subpath)]
+                    node = find_in_package(existing_pkg, "/".join(subpath))
                 except KeyError:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,

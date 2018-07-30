@@ -13,6 +13,7 @@ import yaml
 from ..nodes import DataNode, GroupNode, PackageNode
 from ..tools.store import ParquetLib, PackageStore
 from ..tools.compat import pathlib
+from ..tools.util import find_in_package
 from ..tools import build, command, store
 from .utils import QuiltTestCase, patch
 
@@ -322,68 +323,6 @@ class BuildTest(QuiltTestCase):
         # naming collision -- acceptable during a single glob specification, should result in a rename
         globdata.collision.csv
         globdata.collision.csv_2
-
-    def test_package_getitem(self):
-        # TODO: flesh out this test
-        # TODO: remove any unused files from globbing
-        mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'build_simple_nest.yml'
-
-        command.build('test/package_getitem', str(buildfile))
-
-        from quilt.data.test import package_getitem as node
-        package_root = node._node
-
-        ## Positive tests
-        # simple checks to ensure matching contents for item notation
-        assert package_root['foo']
-        assert package_root['subnode/nuts']
-
-        ## Negative tests
-        # Valid key, but item not present (KeyError)
-        with pytest.raises(KeyError) as error_info:
-            package_root['subnode/blah']
-        assert error_info.value.args == ('subnode', 'blah')
-
-        # blank node names aren't valid
-        with pytest.raises(TypeError, match="Invalid node reference"):
-            package_root['']
-
-        # no absolute paths
-        with pytest.raises(TypeError, match="Invalid node reference"):
-            package_root['/foo']
-
-        # Only valid node names permitted..
-        with pytest.raises(TypeError, match="Invalid node name"):
-            package_root['subnode/9blah']
-
-        # No subreferencing a non-GroupNode
-        with pytest.raises(TypeError, match="Not a GroupNode"):
-            package_root['foo/blah']
-
-    def test_package_contains(self):
-        # TODO: flesh out this test
-        # TODO: remove any unused files from globbing
-        mydir = pathlib.Path(os.path.dirname(__file__))
-        buildfile = mydir / 'build_simple_nest.yml'
-
-        command.build('test/package_contains', str(buildfile))
-
-        from quilt.data.test import package_contains as node
-        package = node._node
-
-        ## Positive tests
-        # simple checks to ensure checkeng contents works
-        assert 'foo' in package
-        assert 'subnode/nuts' in package
-
-        ## Negative tests
-        # These should all return False, but raise no exceptions.
-        assert not 'subnode/blah' in package
-        assert not '' in package
-        assert not '/foo' in package
-        assert not 'subnode/9blah' in package
-        assert not 'foo/blah' in package
 
     def test_package_compose(self):
         mydir = pathlib.Path(os.path.dirname(__file__))

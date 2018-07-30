@@ -15,7 +15,7 @@ from six import BytesIO, string_types, Iterator
 
 from .const import QuiltException
 from .compat import pathlib
-
+from . import core
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -350,3 +350,35 @@ def fs_link(path, linkpath, linktype='soft'):
                 os.link(str(path), str(linkpath))
         except OSError as error:
             raise QuiltException("Linking failed: " + str(error), original_error=error)
+
+def find_in_package(corenode, item):
+    """Find a (core) node in a package tree.
+    :param item: Node name or path, as in "node" or "node/subnode".
+    """
+    if not isinstance(corenode, core.Node):
+        raise QuiltException("Corenode must be a valid Quilt package node. %r" % corenode)
+
+    node = corenode
+    path = pathlib.PurePosixPath(item)
+
+    # checks
+    if not item:    # No blank node names.
+        raise TypeError("Invalid node reference: Blank node names not permitted.")
+    if path.anchor:
+        raise TypeError("Invalid node reference: Absolute path.  Remove prefix {!r}".format(path.anchor))
+
+    try:
+        count = 0
+        for part in path.parts:
+            if not is_nodename(part):
+                raise TypeError("Invalid node name: {!r}".format(part))
+            node = node.children[part]
+            count += 1
+        return node
+    except KeyError:
+        traversed = '/'.join(path.parts[:count])
+        raise KeyError(traversed, path.parts[count])
+    except AttributeError:
+        traversed = '/'.join(path.parts[:count])
+        raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
+
