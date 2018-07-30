@@ -351,24 +351,21 @@ def fs_link(path, linkpath, linktype='soft'):
         except OSError as error:
             raise QuiltException("Linking failed: " + str(error), original_error=error)
 
-def find_in_package(corenode, item):
+def find_in_package(corenode, path):
     """Find a (core) node in a package tree.
     :param item: Node name or path, as in "node" or "node/subnode".
     """
     if not isinstance(corenode, core.Node):
         raise QuiltException("Corenode must be a valid Quilt package node. %r" % corenode)
 
-    node = corenode
-    path = pathlib.PurePosixPath(item)
-
-    # checks
-    # No blank node names.
-    if not item or path.anchor:
+    # Check for empty path
+    if not path:
         return None
 
     try:
+        node = corenode
         count = 0
-        for part in path.parts:
+        for part in path:
             if not is_nodename(part):
                 raise TypeError("Invalid node name: {!r}".format(part))
             node = node.children[part]
@@ -377,6 +374,6 @@ def find_in_package(corenode, item):
     except KeyError:
         return None
     except AttributeError:
-        traversed = '/'.join(path.parts[:count])
+        traversed = '/'.join(path[:count])
         raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
 

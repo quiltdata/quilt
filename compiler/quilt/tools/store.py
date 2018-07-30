@@ -557,7 +557,8 @@ class PackageStore(object):
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
 
-    def _add_to_package_contents(self, pkgroot, node_path, hashes, target, source_path, transform, user_meta_hash):
+    def _add_to_package_contents(self, pkgroot, node_path, hashes, target,
+                                 source_path, transform, user_meta_hash):
         """
         Adds an object (name-hash mapping) or group to package contents.
         """
@@ -576,16 +577,10 @@ class PackageStore(object):
         for node in node_path[:-1]:
             ptr = ptr.children[node]
 
-        metadata = dict(
-            q_ext=transform,
-            q_path=source_path,
-            q_target=target.value
-        )
-
         if target is TargetType.GROUP:
             node = GroupNode(dict())
         else:
-            node = FileNode(
+            node = FileNode( # pylint:disable=R0204
                 hashes=hashes,
                 metadata=dict(
                     q_ext=transform,

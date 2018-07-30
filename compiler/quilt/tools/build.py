@@ -190,8 +190,9 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                             ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if find_in_package(pkg_root, '/'.join(node_path)):
-            raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
+        if find_in_package(pkg_root, node_path):
+            message = "Naming conflict: {!r} added to package more than once"
+            raise BuildException(message.format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
@@ -201,7 +202,8 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
         include_package = node.get(RESERVED['package'])
         rel_path = node.get(RESERVED['file'])
         if rel_path and include_package:
-            raise BuildException("A node must define only one of {0} or {1}".format(RESERVED['file'], RESERVED['package']))
+            message = "A node must define only one of {0} or {1}"
+            raise BuildException(message.format(RESERVED['file'], RESERVED['package']))
         elif include_package: # package composition
             team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
             store, existing_pkg = PackageStore.find_package(team, user, pkgname)
@@ -209,7 +211,7 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                 raise BuildException("Package not found: %s" % include_package)
 
             if subpath:
-                node = find_in_package(existing_pkg, "/".join(subpath))
+                node = find_in_package(existing_pkg, subpath)
                 if node is None:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
@@ -364,8 +366,8 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                         with open(store.cache_path(path_hash), 'w') as entry:
                             json.dump(cache_entry, entry)
         else: # rel_path and package are both None
-            raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
-
+            message = "Leaf nodes must define either a %s or %s key"
+            raise BuildException(message % (RESERVED['file'], RESERVED['package']))
 
 def _remove_keywords(d):
     """
@@ -449,7 +451,8 @@ def _file_to_data_frame(ext, path, handler_args):
 
     return dataframe
 
-def build_package(team, username, package, subpath, yaml_path, checks_path=None, dry_run=False, env='default'):
+def build_package(team, username, package, subpath, yaml_path,
+                  checks_path=None, dry_run=False, env='default'):
     """
     Builds a package from a given Yaml file and installs it locally.
 
@@ -559,9 +562,10 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
                 if existing_name is not None:
+                    message = "Duplicate node names in directory %r."
+                    message += " %r was renamed to %r, which overlaps with %r"
                     raise BuildException(
-                        "Duplicate node names in directory %r. %r was renamed to %r, which overlaps with %r" % (
-                        dir_path, name, new_safename, existing_name)
+                        message % (dir_path, name, new_safename, existing_name)
                     )
                 safename_to_name[new_safename] = name
 
