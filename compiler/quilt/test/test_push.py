@@ -8,7 +8,7 @@ import os
 import responses
 
 from quilt.tools import command, store
-from quilt.tools.core import find_object_hashes
+from quilt.tools.core import find_object_hashes, hash_contents
 
 from .utils import QuiltTestCase
 
@@ -22,10 +22,10 @@ class PushTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build_simple.yml')
         command.build('foo/bar', build_path)
 
-        pkg_obj = store.PackageStore.find_package(None, 'foo', 'bar')
-        pkg_hash = pkg_obj.get_hash()
+        _, pkgroot = store.PackageStore.find_package(None, 'foo', 'bar')
+        pkg_hash = hash_contents(pkgroot)
         assert pkg_hash
-        contents = pkg_obj.get_contents()
+        contents = pkgroot
 
         all_hashes = set(find_object_hashes(contents))
         upload_urls = {

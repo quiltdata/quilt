@@ -34,8 +34,8 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (hash_contents, find_object_hashes, GroupNode, RootNode,
-                   decode_node, encode_node, LATEST_TAG)
+from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
+                   find_object_hashes, hash_contents)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
 from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
@@ -545,6 +545,7 @@ def _build_internal(package, path, dry_run, env, build_file):
     else:
         raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
+
 def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
@@ -552,12 +553,13 @@ def build_from_node(package, node):
     team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     store = PackageStore()
+
     if subpath:
-        package_obj = store.get_package(team, owner, pkg)
-        if not package_obj:
+        pkg_root = store.get_package(team, owner, pkg)
+        if not pkg_root:
             raise CommandException("Package does not exist")
     else:
-        package_obj = store.create_package(team, owner, pkg)
+        pkg_root = store.create_package_node(team, owner, pkg)
         if not isinstance(node, nodes.GroupNode):
             raise CommandException("Top-level node must be a group")
 
@@ -574,7 +576,7 @@ def build_from_node(package, node):
                 ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
             )
         if isinstance(node, nodes.GroupNode):
-            package_obj.save_group(path, meta)
+            store.add_to_package_group(pkg_root, path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
@@ -583,11 +585,11 @@ def build_from_node(package, node):
             filepath = system_meta.get('filepath')
             transform = system_meta.get('transform')
             if isinstance(data, pd.DataFrame):
-                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+                store.add_to_package_df(pkg_root, data, path, TargetType.PANDAS, filepath, transform, meta)
             elif isinstance(data, np.ndarray):
-                package_obj.save_numpy(data, path, TargetType.NUMPY, filepath, transform, meta)
+                store.add_to_package_numpy(pkg_root, data, path, TargetType.NUMPY, filepath, transform, meta)
             elif isinstance(data, string_types):
-                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
+                store.add_to_package_file(pkg_root, data, path, TargetType.FILE, filepath, transform, meta)
             else:
                 assert False, "Unexpected data type: %r" % data
         else:
@@ -598,7 +600,7 @@ def build_from_node(package, node):
     except StoreException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-    package_obj.save_contents()
+    store.save_package_contents(pkg_root, team, owner, pkg)
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
     """
@@ -659,12 +661,12 @@ def push(package, is_public=False, is_team=False, reupload=False):
     _check_team_id(team)
     session = _get_session(team)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
-    pkghash = pkgobj.get_hash()
-    contents = pkgobj.get_contents()
+    pkghash = hash_contents(pkgroot)
+    contents = pkgroot
 
     for component in subpath:
         try:
@@ -677,7 +679,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
             dry_run=dry_run,
             is_public=is_public,
             is_team=is_team,
-            contents=contents,
+            contents=pkgroot,
             description="",  # TODO
             sizes=sizes
         ), default=encode_node)
@@ -715,9 +717,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(dry_run=True)
     obj_urls = resp.json()['upload_urls']
 
-    assert set(obj_urls) == set(find_object_hashes(contents))
-
-    store = pkgobj.get_store()
+    assert set(obj_urls) == set(find_object_hashes(pkgroot))
 
     obj_sizes = {
         obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
@@ -977,7 +977,8 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, contents)
+    # TODO: Shouldn't need this? At least don't need the contents
+    store.install_package(team, owner, pkg, contents)
 
     obj_urls = dataset['urls']
     obj_sizes = dataset['sizes']
@@ -995,7 +996,7 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     else:
         print("Fragments already downloaded")
 
-    pkgobj.save_contents()
+    store.save_package_contents(contents, team, owner, pkg)
 
 def _materialize(node):
     store = PackageStore()
@@ -1139,11 +1140,9 @@ def inspect(package):
     """
     team, owner, pkg = parse_package(package)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-
-    store = pkgobj.get_store()
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1171,8 +1170,8 @@ def inspect(package):
         else:
             print(prefix + name_prefix + name)
 
-    print(pkgobj.get_path())
-    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
+    print(store.package_path(team, owner, pkg))
+    _print_children(children=pkgroot.children.items(), prefix='', path='')
 
 def rm(package, force=False):
     """
@@ -1319,15 +1318,15 @@ def _load(package, hash=None):
     elif info.hash:
         raise CommandException("Use hash=HASH to specify package hash.")
 
-    pkgobj = PackageStore.find_package(info.team,
-                                       info.user,
-                                       info.name,
-                                       pkghash=hash)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(info.team,
+                                               info.user,
+                                               info.name,
+                                               pkghash=hash)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    node = _from_core_node(store, pkgroot)
 
-    return node, pkgobj, info
+    return node, pkgroot, info
 
 def load(pkginfo, hash=None):
     """

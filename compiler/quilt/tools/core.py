@@ -53,7 +53,7 @@ class Node(object):
             val['metadata_hash'] = self.metadata_hash
         return val
 
-    def get_children(self):
+    def get_children(self): # pylint:disable=R0201
         return {}
 
 

@@ -8,7 +8,6 @@ from six import assertRaisesRegex
 import yaml
 import pytest
 
-from ..tools.package import Package
 from ..tools import build, command
 from .utils import QuiltTestCase
 

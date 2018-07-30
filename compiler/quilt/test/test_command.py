@@ -84,6 +84,7 @@ from .utils import QuiltTestCase, patch, quilt_dev_mode
 from ..tools import command, store
 from ..tools.compat import pathlib
 from ..tools.const import TEAM_ID_ERROR
+from ..tools.core import hash_contents
 
 
 class CommandTest(QuiltTestCase):
@@ -901,8 +902,8 @@ class CommandTest(QuiltTestCase):
         package = 'bar'
         command.build('%s/%s' % (owner, package), build_path)
 
-        pkg_obj = store.PackageStore.find_package(None, owner, package)
-        self._mock_logs_list(owner, package, pkg_obj.get_hash())
+        pkgstore, pkgroot = store.PackageStore.find_package(None, owner, package)
+        self._mock_logs_list(owner, package, hash_contents(pkgroot))
 
         command.log("{owner}/{pkg}".format(owner=owner, pkg=package))
 
@@ -1614,4 +1615,3 @@ def is_close(a, b):
     # Compare two floats, and let us know if they're within relative tolerance
     tolerance = 1e-15
     return abs(a - b) <= tolerance * max(abs(a), abs(b))
-

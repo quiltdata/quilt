@@ -13,7 +13,7 @@ from six import string_types
 from quilt.tools import command
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import Package
+from quilt.tools.core import hash_contents
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
 
@@ -229,11 +229,11 @@ class ImportTest(QuiltTestCase):
         from quilt.data.foo import package2
         teststore = PackageStore(self._store_dir)
         contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
-                                      Package.CONTENTS_DIR,
-                                      package1._package.get_hash())).read()
+                                      PackageStore.CONTENTS_DIR,
+                                      hash_contents(package1._node))).read()
         contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
-                                      Package.CONTENTS_DIR,
-                                      package2._package.get_hash())).read()
+                                      PackageStore.CONTENTS_DIR,
+                                      hash_contents(package2._node))).read()
         assert contents1 == contents2
 
         # Rename an attribute
@@ -525,7 +525,7 @@ class ImportTest(QuiltTestCase):
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
         package = command.load('foo/package')
-        pkghash = package._package.get_hash()
+        pkghash = hash_contents(package._node)
 
         # New Version
         mydir = os.path.dirname(__file__)
@@ -535,7 +535,7 @@ class ImportTest(QuiltTestCase):
 
         load_pkg_new = command.load('foo/package')
         load_pkg_old = command.load('foo/package', hash=pkghash)    
-        assert load_pkg_old._package.get_hash() == pkghash
+        assert hash_contents(load_pkg_old._node) == pkghash
 
         assert load_pkg_new.foo
         with self.assertRaises(AttributeError):
