@@ -726,10 +726,6 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     )
 
     if package is None:
-        if package_path is not None:
-            # Sub-package push requires an existing package.
-            raise PackageNotFoundException(owner, package_name)
-
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -816,18 +812,17 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             .with_for_update()
             .one_or_none()
         )
-        if result is None:
-            raise ApiException(
-                requests.codes.not_found,
-                "Tag %r does not exist" % LATEST_TAG
-            )
-        base_instance, tag = result
+        if result is not None:
+            base_instance, tag = result
+            base_contents = base_instance.contents
+            # Make sure we don't commit any changes to the original instance!
+            db.session.expunge(base_instance)
+        else:
+            base_contents = RootNode({})
+            tag = None
 
-        contents = _merge_contents(base_instance.contents, package_path, contents)
+        contents = _merge_contents(base_contents, package_path, contents)
         package_hash = hash_contents(contents)
-
-        # Make sure we don't commit any changes to the original instance!
-        db.session.expunge(base_instance)
 
     # Insert an instance if it doesn't already exist.
     instance = (
@@ -936,6 +931,8 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
 
     # Pushing a subpackage automatically updates the "latest" tag.
     if package_path is not None:
+        if tag is None:
+            tag = Tag(package=package, tag=LATEST_TAG)
         tag.instance = instance
 
     # Insert a log.
