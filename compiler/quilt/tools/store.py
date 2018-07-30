@@ -13,7 +13,7 @@ import pandas as pd
 
 from .const import (DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA,
                     TargetType)
-from .core import (GroupNode, RootNode, decode_node, encode_node,
+from .core import (GroupNode, RootNode, FileNode, decode_node, encode_node,
                    find_object_hashes, hash_contents)
 from .hashing import digest_file
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
@@ -551,6 +551,47 @@ class PackageStore(object):
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
 
+    def _add_to_package_contents(self, pkgroot, node_path, hashes, target, source_path, transform, user_meta_hash):
+        """
+        Adds an object (name-hash mapping) or group to package contents.
+        """
+        assert isinstance(node_path, list)
+        assert user_meta_hash is None or isinstance(user_meta_hash, str)
+        
+        contents = pkgroot
+        
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata_hash = user_meta_hash
+            return
+
+        ptr = contents
+        for node in node_path[:-1]:
+            ptr = ptr.children[node]
+
+        metadata = dict(
+            q_ext=transform,
+            q_path=source_path,
+            q_target=target.value
+        )
+
+        if target is TargetType.GROUP:
+            node = GroupNode(dict())
+        else:
+            node = FileNode(
+                hashes=hashes,
+                metadata=dict(
+                    q_ext=transform,
+                    q_path=source_path,
+                    q_target=target.value
+                ),
+                metadata_hash=user_meta_hash
+            )
+
+        ptr.children[node_path[-1]] = node
+        
+
 ########################################
 # Methods ported from save_<xyz>
 # in Package class
@@ -559,12 +600,12 @@ class PackageStore(object):
     def add_to_package_df(self, root, dataframe, node_path, target, source_path, transform, custom_meta):
         hashes = self.save_dataframe(dataframe)
         metahash = self.save_metadata(custom_meta)
-        root.add(node_path, hashes, target, source_path, transform, metahash)
+        self._add_to_package_contents(root, node_path, hashes, target, source_path, transform, metahash)
         return hashes
 
     def add_to_package_cached_df(self, root, hashes, node_path, target, source_path, transform, custom_meta):
         metahash = self.save_metadata(custom_meta)
-        root.add(node_path, hashes, target, source_path, transform, metahash)
+        self._add_to_package_contents(root, node_path, hashes, target, source_path, transform, metahash)
 
     def add_to_package_numpy(self, root, ndarray, node_path, target, source_path, transform, custom_meta):
         """
@@ -572,11 +613,11 @@ class PackageStore(object):
         """
         filehash = self.save_numpy(ndarray)
         metahash = self.save_metadata(custom_meta)
-        root.add(node_path, [filehash], target, source_path, transform, metahash)
+        self._add_to_package_contents(root, node_path, [filehash], target, source_path, transform, metahash)
 
     def add_to_package_group(self, root, node_path, custom_meta):
         metahash = self.save_metadata(custom_meta)
-        root.add(node_path, None, TargetType.GROUP, None, None, metahash)
+        self._add_to_package_contents(root, node_path, None, TargetType.GROUP, None, None, metahash)
 
     def add_to_package_file(self, root, srcfile, node_path, target, source_path, transform, custom_meta):
         """
@@ -584,7 +625,7 @@ class PackageStore(object):
         """
         filehash = self.save_file(srcfile)
         metahash = self.save_metadata(custom_meta)
-        root.add(node_path, [filehash], target, source_path, transform, metahash)
+        self._add_to_package_contents(root, node_path, [filehash], target, source_path, transform, metahash)
 
     def add_to_package_package_tree(self, root, node_path, pkgnode):
         """
