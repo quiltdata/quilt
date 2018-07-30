@@ -11,6 +11,7 @@ import struct
 
 from six import iteritems, itervalues, string_types
 
+
 LATEST_TAG = 'latest'
 README = 'README'
 
@@ -54,7 +55,7 @@ class Node(object):
 
     def get_children(self):
         return {}
-   
+
 
 class GroupNode(Node):
     __slots__ = ('children',)
