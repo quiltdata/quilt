@@ -34,7 +34,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (hash_contents, find_object_hashes, GroupNode,
+from .core import (hash_contents, find_object_hashes, GroupNode, RootNode,
                    decode_node, encode_node, LATEST_TAG)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -649,7 +649,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     session = _get_session(team)
 
@@ -658,37 +658,58 @@ def push(package, is_public=False, is_team=False, reupload=False):
         raise CommandException("Package {package} not found.".format(package=package))
 
     pkghash = pkgobj.get_hash()
+    contents = pkgobj.get_contents()
+
+    for component in subpath:
+        try:
+            contents = contents.children[component]
+        except (AttributeError, KeyError):
+            raise CommandException("Invalid subpath: %r" % component)
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             is_public=is_public,
             is_team=is_team,
-            contents=pkgobj.get_contents(),
+            contents=contents,
             description="",  # TODO
             sizes=sizes
         ), default=encode_node)
 
         compressed_data = gzip_compress(data.encode('utf-8'))
 
-        return session.put(
-            "{url}/api/package/{owner}/{pkg}/{hash}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                hash=pkghash
-            ),
-            data=compressed_data,
-            headers={
-                'Content-Encoding': 'gzip'
-            }
-        )
+        if subpath:
+            return session.post(
+                "{url}/api/package_update/{owner}/{pkg}/{subpath}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    subpath='/'.join(subpath)
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
+        else:
+            return session.put(
+                "{url}/api/package/{owner}/{pkg}/{hash}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    hash=pkghash
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
 
     print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
     obj_urls = resp.json()['upload_urls']
 
-    assert set(obj_urls) == set(find_object_hashes(pkgobj.get_contents()))
+    assert set(obj_urls) == set(find_object_hashes(contents))
 
     store = pkgobj.get_store()
 
@@ -704,18 +725,20 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(sizes=obj_sizes)
     package_url = resp.json()['package_url']
 
-    print("Updating the 'latest' tag...")
-    session.put(
-        "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(team),
-            owner=owner,
-            pkg=pkg,
-            tag=LATEST_TAG
-        ),
-        data=json.dumps(dict(
-            hash=pkghash
-        ))
-    )
+    if not subpath:
+        # Update the latest tag.
+        print("Updating the 'latest' tag...")
+        session.put(
+            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                url=get_registry_url(team),
+                owner=owner,
+                pkg=pkg,
+                tag=LATEST_TAG
+            ),
+            data=json.dumps(dict(
+                hash=pkghash
+            ))
+        )
 
     print("Push complete. %s is live:\n%s" % (package, package_url))
 
