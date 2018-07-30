@@ -1139,7 +1139,7 @@ class CommandTest(QuiltTestCase):
             command.export("export_nonexistent_user/package")
 
         # Ensure export raises correct error when user does exist
-        command.build_package_from_contents(None, 'existent_user', 'testpackage', '', {'contents': {}})
+        command.build_package_from_contents(None, 'existent_user', 'testpackage', [], '', {'contents': {}})
 
         from quilt.data.existent_user import testpackage
 

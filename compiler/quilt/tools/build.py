@@ -407,7 +407,7 @@ def _file_to_data_frame(ext, path, handler_args):
 
     return dataframe
 
-def build_package(team, username, package, yaml_path, checks_path=None, dry_run=False, env='default'):
+def build_package(team, username, package, subpath, yaml_path, checks_path=None, dry_run=False, env='default'):
     """
     Builds a package from a given Yaml file and installs it locally.
 
@@ -441,10 +441,10 @@ def build_package(team, username, package, yaml_path, checks_path=None, dry_run=
         checks_contents = load_yaml(checks_path)
     else:
         checks_contents = None
-    build_package_from_contents(team, username, package, os.path.dirname(yaml_path), build_data,
+    build_package_from_contents(team, username, package, subpath, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
-def build_package_from_contents(team, username, package, build_dir, build_data,
+def build_package_from_contents(team, username, package, subpath, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
@@ -455,8 +455,13 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
     checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, [], contents,
+    if subpath:
+        newpackage = store.get_package(team, username, package)
+        if not newpackage:
+            raise BuildException("Package does not exist")
+    else:
+        newpackage = store.create_package(team, username, package, dry_run=dry_run)
+    _build_node(build_dir, newpackage, subpath, contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
