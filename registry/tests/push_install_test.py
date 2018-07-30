@@ -1031,3 +1031,134 @@ class PushInstallTestCase(QuiltTestCase):
 
         data = json.loads(resp.data.decode('utf8'))
         assert data['packages'] == [dict(name='foo', is_public=True, is_team=False)]
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testPushSubpackage(self):
+        # Pushing a subpackage fails until the package is created the normal way.
+        resp = self.app.post(
+            '/api/package_update/test_user/foo/group1/group2',
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=GroupNode(dict()),
+                sizes={}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
+
+        # Do a normal push.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_2_HASH,
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=self.CONTENTS_2,
+                sizes={self.HASH3: 3}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Subpackage push _still_ fails cause there's no "latest" tag.
+        resp = self.app.post(
+            '/api/package_update/test_user/foo/group1/group2',
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=GroupNode(dict()),
+                sizes={}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.not_found
+
+        # Set the "latest" tag.
+        resp = self.app.put(
+            '/api/tag/test_user/foo/latest',
+            data=json.dumps(dict(
+                hash=self.CONTENTS_2_HASH
+            )),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Now we can push a subpackage.
+        resp = self.app.post(
+            '/api/package_update/test_user/foo/group1/group2',
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=GroupNode(dict()),
+                sizes={}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # READMEs get downloaded as usual, too.
+        readme_contents = 'Blah'
+        self._mock_object('test_user', self.HASH1, readme_contents.encode())
+        resp = self.app.post(
+            '/api/package_update/test_user/foo/README',
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=FileNode([self.HASH1]),
+                sizes={self.HASH1: 1}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        package_hash = json.loads(resp.data.decode('utf-8'))['package_hash']
+
+        # Install the package and verify that it has everything.
+        resp = self.app.get(
+            '/api/tag/test_user/foo/latest',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+
+        # Verify that the "latest" tag points to the last hash we got from a subpackage push.
+        assert data['hash'] == package_hash
+
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % package_hash,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
+
+        # Verify that the contents is everything we've pushed so far.
+        assert contents == RootNode(dict(
+            file=FileNode([self.HASH3]),
+            README=FileNode([self.HASH1]),
+            group1=GroupNode(dict(
+                group2=GroupNode(dict())
+            ))
+        ))

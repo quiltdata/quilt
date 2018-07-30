@@ -28,91 +28,98 @@ PACKAGE_SCHEMA = {
             'type': 'string'
         },
         'contents': {
-            'type': 'object',
-            'properties': {
-                'type': {
-                    'enum': [RootNode.json_type]
-                },
-                'children': {
+            'oneOf': [
+                {
                     'type': 'object',
-                    'additionalProperties': {
-                        'oneOf': [
-                            {
-                                'type': 'object',
-                                'properties': {
-                                    'type': {
-                                        'enum': [FileNode.json_type]
+                    'properties': {
+                        'type': {
+                            'enum': [RootNode.json_type]
+                        },
+                        'children': {
+                            'type': 'object',
+                            'additionalProperties': {
+                                'oneOf': [
+                                    {
+                                        'type': 'object',
+                                        'properties': {
+                                            'type': {
+                                                'enum': [FileNode.json_type]
+                                            },
+                                            'metadata': {
+                                                'type': 'object'
+                                            },
+                                            'hashes': {
+                                                'type': 'array',
+                                                'items': {
+                                                    'type': 'string',
+                                                    'pattern': SHA256_PATTERN
+                                                }
+                                            },
+                                            'metadata_hash': {
+                                                'type': 'string',
+                                                'pattern': SHA256_PATTERN
+                                            }
+                                        },
+                                        'required': ['type', 'hashes'],
+                                        'additionalProperties': False,
                                     },
-                                    'metadata': {
-                                        'type': 'object'
+                                    {
+                                        'type': 'object',
+                                        'properties': {
+                                            'type': {
+                                                'enum': [TableNode.json_type]
+                                            },
+                                            'format' : {
+                                                'enum': [fmt.value for fmt in PackageFormat]
+                                            },
+                                            'metadata': {
+                                                'type': 'object'
+                                            },
+                                            'hashes': {
+                                                'type': 'array',
+                                                'items': {
+                                                    'type': 'string',
+                                                    'pattern': SHA256_PATTERN
+                                                }
+                                            },
+                                            'metadata_hash': {
+                                                'type': 'string',
+                                                'pattern': SHA256_PATTERN
+                                            }
+                                        },
+                                        'required': ['type', 'hashes'],
+                                        'additionalProperties': False,
                                     },
-                                    'hashes': {
-                                        'type': 'array',
-                                        'items': {
-                                            'type': 'string',
-                                            'pattern': SHA256_PATTERN
+                                    {
+                                        'type': 'object',
+                                        'properties': {
+                                            'type': {
+                                                'enum': [GroupNode.json_type]
+                                            },
+                                            'children': {
+                                                '$ref': '#/properties/contents/oneOf/0/properties/children'
+                                            },
+                                            'metadata_hash': {
+                                                'type': 'string',
+                                                'pattern': SHA256_PATTERN
+                                            }
                                         }
-                                    },
-                                    'metadata_hash': {
-                                        'type': 'string',
-                                        'pattern': SHA256_PATTERN
                                     }
-                                },
-                                'required': ['type', 'hashes'],
-                                'additionalProperties': False,
-                            },
-                            {
-                                'type': 'object',
-                                'properties': {
-                                    'type': {
-                                        'enum': [TableNode.json_type]
-                                    },
-                                    'format' : {
-                                        'enum': [fmt.value for fmt in PackageFormat]
-                                    },
-                                    'metadata': {
-                                        'type': 'object'
-                                    },
-                                    'hashes': {
-                                        'type': 'array',
-                                        'items': {
-                                            'type': 'string',
-                                            'pattern': SHA256_PATTERN
-                                        }
-                                    },
-                                    'metadata_hash': {
-                                        'type': 'string',
-                                        'pattern': SHA256_PATTERN
-                                    }
-                                },
-                                'required': ['type', 'hashes'],
-                                'additionalProperties': False,
-                            },
-                            {
-                                'type': 'object',
-                                'properties': {
-                                    'type': {
-                                        'enum': [GroupNode.json_type]
-                                    },
-                                    'children': {
-                                        '$ref': '#/properties/contents/properties/children'
-                                    },
-                                    'metadata_hash': {
-                                        'type': 'string',
-                                        'pattern': SHA256_PATTERN
-                                    }
-                                }
+                                ]
                             }
-                        ]
-                    }
+                        },
+                        'metadata_hash': {
+                            'type': 'string',
+                            'pattern': SHA256_PATTERN
+                        }
+                    },
+                    'required': ['type', 'children'],
+                    'additionalProperties': False
                 },
-                'metadata_hash': {
-                    'type': 'string',
-                    'pattern': SHA256_PATTERN
+                {
+                    '$ref': '#/properties/contents/oneOf/0/properties/children/additionalProperties'
                 }
-            },
-            'required': ['type', 'children'],
-            'additionalProperties': False
+            ]
         },
         'sizes': {
             'type': 'object',
