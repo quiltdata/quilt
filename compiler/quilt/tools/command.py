@@ -34,8 +34,8 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (hash_contents, find_object_hashes, GroupNode,
-                   decode_node, encode_node, hash_contents, LATEST_TAG)
+from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
+                   find_object_hashes, hash_contents)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
 from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
@@ -480,7 +480,7 @@ def _log(team, **kwargs):
         if session:
             session.hooks['response'] = orig_response_hooks
 
-def build(package, path=None, dry_run=False, env='default', force=False):
+def build(package, path=None, dry_run=False, env='default', force=False, build_file=False):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
 
@@ -488,7 +488,7 @@ def build(package, path=None, dry_run=False, env='default', force=False):
     :param path: file path, git url, or existing package node
     """
     # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
-    team, _, _ = parse_package(package)
+    team, _, _, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
@@ -499,17 +499,23 @@ def build(package, path=None, dry_run=False, env='default', force=False):
                                 team=logged_in_team, package=package))
         if answer.lower() != 'y':
             return
+
+    # Backward compatibility: if there's no subpath, we're building a top-level package,
+    # so treat `path` as a build file, not as a data node.
+    if not subpath:
+        build_file = True
+
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
-        _build_internal(package, path, dry_run, env)
+        _build_internal(package, path, dry_run, env, build_file)
     except Exception as ex:
         _log(team, type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
         raise
     _log(team, type='build', package=package_hash, dry_run=dry_run, env=env)
 
-def _build_internal(package, path, dry_run, env):
+def _build_internal(package, path, dry_run, env, build_file):
     # we may have a path, git URL, PackageNode, or None
-    if isinstance(path, string_types):
+    if build_file and isinstance(path, string_types):
         # is this a git url?
         is_git_url = GIT_URL_RE.match(path)
         if is_git_url:
@@ -530,33 +536,34 @@ def _build_internal(package, path, dry_run, env):
     elif isinstance(path, nodes.PackageNode):
         assert not dry_run  # TODO?
         build_from_node(package, path)
+    elif isinstance(path, string_types + (pd.DataFrame, np.ndarray)):
+        assert not dry_run  # TODO?
+        build_from_node(package, nodes.DataNode(None, None, path, {}))
     elif path is None:
         assert not dry_run  # TODO?
-        _build_empty(package)
+        build_from_node(package, nodes.GroupNode({}))
     else:
         raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
 
-def _build_empty(package):
-    """
-    Create an empty package for convenient editing of de novo packages
-    """
-    team, owner, pkg = parse_package(package)
-
-    store = PackageStore()
-    new = store.create_package_node(team, owner, pkg)
-    store.save_package_contents(new, team, owner, pkg)
 
 def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     store = PackageStore()
-    #package_obj = store.create_package(team, owner, pkg)
-    pkg_root = store.create_package_node(team, owner, pkg)
 
-    def _process_node(node, path=[]):
+    if subpath:
+        pkg_root = store.get_package(team, owner, pkg)
+        if not pkg_root:
+            raise CommandException("Package does not exist")
+    else:
+        pkg_root = store.create_package_node(team, owner, pkg)
+        if not isinstance(node, nodes.GroupNode):
+            raise CommandException("Top-level node must be a group")
+
+    def _process_node(node, path):
         if not isinstance(node._meta, dict):
             raise CommandException(
                 "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
@@ -589,7 +596,7 @@ def build_from_node(package, node):
             assert False, "Unexpected node type: %r" % node
 
     try:
-        _process_node(node)
+        _process_node(node, subpath)
     except StoreException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -600,7 +607,7 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
 
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
@@ -614,12 +621,12 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
                 )
 
             contents = generate_contents(path, outfilename)
-            build_package_from_contents(team, owner, pkg, path, contents, dry_run=dry_run, env=env)
+            build_package_from_contents(team, owner, pkg, subpath, path, contents, dry_run=dry_run, env=env)
         else:
-            build_package(team, owner, pkg, path, dry_run=dry_run, env=env)
+            build_package(team, owner, pkg, subpath, path, dry_run=dry_run, env=env)
 
         if not dry_run:
-            print("Built %s%s/%s successfully." % (team + ':' if team else '', owner, pkg))
+            print("Built %s successfully." % package)
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -650,7 +657,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     session = _get_session(team)
 
@@ -659,6 +666,13 @@ def push(package, is_public=False, is_team=False, reupload=False):
         raise CommandException("Package {package} not found.".format(package=package))
 
     pkghash = hash_contents(pkgroot)
+    contents = pkgroot
+
+    for component in subpath:
+        try:
+            contents = contents.children[component]
+        except (AttributeError, KeyError):
+            raise CommandException("Invalid subpath: %r" % component)
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
@@ -672,18 +686,32 @@ def push(package, is_public=False, is_team=False, reupload=False):
 
         compressed_data = gzip_compress(data.encode('utf-8'))
 
-        return session.put(
-            "{url}/api/package/{owner}/{pkg}/{hash}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                hash=pkghash
-            ),
-            data=compressed_data,
-            headers={
-                'Content-Encoding': 'gzip'
-            }
-        )
+        if subpath:
+            return session.post(
+                "{url}/api/package_update/{owner}/{pkg}/{subpath}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    subpath='/'.join(subpath)
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
+        else:
+            return session.put(
+                "{url}/api/package/{owner}/{pkg}/{hash}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    hash=pkghash
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
 
     print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
@@ -703,18 +731,20 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(sizes=obj_sizes)
     package_url = resp.json()['package_url']
 
-    print("Updating the 'latest' tag...")
-    session.put(
-        "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(team),
-            owner=owner,
-            pkg=pkg,
-            tag=LATEST_TAG
-        ),
-        data=json.dumps(dict(
-            hash=pkghash
-        ))
-    )
+    if not subpath:
+        # Update the latest tag.
+        print("Updating the 'latest' tag...")
+        session.put(
+            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                url=get_registry_url(team),
+                owner=owner,
+                pkg=pkg,
+                tag=LATEST_TAG
+            ),
+            data=json.dumps(dict(
+                hash=pkghash
+            ))
+        )
 
     print("Push complete. %s is live:\n%s" % (package, package_url))
 

@@ -4,7 +4,7 @@ Test the build process
 import os
 
 import pytest
-from numpy import dtype
+import numpy as np
 import pandas.api.types as ptypes
 from pandas.core.frame import DataFrame
 from six import assertRaisesRegex, string_types
@@ -27,7 +27,7 @@ class BuildTest(QuiltTestCase):
         PackageStore.reset_parquet_lib()
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_large.yml')
-        build.build_package(None, 'test_parquet', PACKAGE, path)
+        build.build_package(None, 'test_parquet', PACKAGE, [], path)
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
         # names, probably using __module__)
@@ -46,7 +46,7 @@ class BuildTest(QuiltTestCase):
         teststore = store.PackageStore()
 
         # Build once to populate cache
-        build.build_package(None, 'test_cache', PACKAGE, path)
+        build.build_package(None, 'test_cache', PACKAGE, [], path)
 
         # Verify cache contents
         srcpath = os.path.join(mydir, 'data/10KRows13Cols.csv')
@@ -54,7 +54,7 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(teststore.cache_path(path_hash))
 
         # Build again using the cache
-        build.build_package(None, 'test_cache', PACKAGE, path)
+        build.build_package(None, 'test_cache', PACKAGE, [], path)
 
         # TODO load DFs based on contents of .yml file at PATH
         # not hardcoded vals (this will require loading modules from variable
@@ -109,14 +109,14 @@ class BuildTest(QuiltTestCase):
         path = pathlib.Path(__file__).parent / 'build_bad_transform.yml'
 
         with pytest.raises(build.BuildException):
-            build.build_package(None, 'test_bad_transform', PACKAGE, str(path))
+            build.build_package(None, 'test_bad_transform', PACKAGE, [], str(path))
 
     def test_build_bad_file(self):
         # Ensure we generate an error on bad build files
         path = pathlib.Path(__file__).parent / 'build_bad_file.yml'
 
         with pytest.raises(build.BuildException):
-            build.build_package(None, 'test_bad_file', PACKAGE, str(path))
+            build.build_package(None, 'test_bad_file', PACKAGE, [], str(path))
 
     def test_build_empty(self):
         """
@@ -124,7 +124,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_empty.yml')
-        build.build_package(None, 'empty', 'pkg', path)
+        build.build_package(None, 'empty', 'pkg', [], path)
 
         from quilt.data.empty import pkg
         assert not pkg._keys(), 'Expected package to be empty'
@@ -132,7 +132,7 @@ class BuildTest(QuiltTestCase):
     def test_build_reserved(self):
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_reserved.yml')
-        build.build_package(None, 'reserved', 'pkg', path)
+        build.build_package(None, 'reserved', 'pkg', [], path)
         from quilt.data.reserved import pkg
         assert pkg.file, 'Expected package'
         assert pkg.checks, 'Expected package'
@@ -146,7 +146,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_group_args.yml')
-        build.build_package(None, 'groups', 'pkg', path)
+        build.build_package(None, 'groups', 'pkg', [], path)
 
         from quilt.data.groups import pkg
 
@@ -163,7 +163,7 @@ class BuildTest(QuiltTestCase):
         # ENDTODO
         assert isinstance(pkg.group_b.tsv(), DataFrame), \
             'Expected `transform: tsv` to be inferred from file extension'
-        assert pkg.group_b.tsv()['Date0'].dtype == dtype('<M8[ns]'), \
+        assert pkg.group_b.tsv()['Date0'].dtype == np.dtype('<M8[ns]'), \
             'Expected Date0 column to parse as date'
         assert pkg.group_b.subgroup.tsv().shape == (1, 3), \
             'Expected `transform: tsv` and one skipped row from group args'
@@ -188,7 +188,7 @@ class BuildTest(QuiltTestCase):
         assert not os.path.exists(buildfilepath), "%s already exists" % buildfilepath
         build.generate_build_file(path)
         assert os.path.exists(buildfilepath)
-        build.build_package(None, 'test_generated', 'generated', buildfilepath)
+        build.build_package(None, 'test_generated', 'generated', [], buildfilepath)
         os.remove(buildfilepath)
         from quilt.data.test_generated.generated import bad, foo, nuts, README # pylint:disable=W0612
 
@@ -198,7 +198,7 @@ class BuildTest(QuiltTestCase):
         """
         mydir = os.path.dirname(__file__)
         path = os.path.join(mydir, './build_failover.yml')
-        build.build_package(None, 'test_failover', PACKAGE, path)
+        build.build_package(None, 'test_failover', PACKAGE, [], path)
         from quilt.data.test_failover.groot import bad
 
     def test_duplicates(self):
@@ -268,7 +268,7 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_bad_syntax.yml')
 
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*build_bad_syntax\.yml'):
-            build.build_package(None, 'test_syntax_error', PACKAGE, path)
+            build.build_package(None, 'test_syntax_error', PACKAGE, [], path)
 
     def test_build_no_contents_node(self):
         """
@@ -278,7 +278,7 @@ class BuildTest(QuiltTestCase):
         path = os.path.join(mydir, './build_no_contents_node.yml')
 
         with assertRaisesRegex(self, build.BuildException, r'Error in build_no_contents_node.yml'):
-            build.build_package(None, 'no_contents', PACKAGE, path)
+            build.build_package(None, 'no_contents', PACKAGE, [], path)
 
     def test_build_checks_yaml_syntax_error(self):    # pylint: disable=C0103
         """
@@ -289,7 +289,7 @@ class BuildTest(QuiltTestCase):
         checks_path = os.path.join(mydir, './checks_bad_syntax.yml')
 
         with assertRaisesRegex(self, build.BuildException, r'Bad yaml syntax.*checks_bad_syntax\.yml'):
-            build.build_package(None, 'test_syntax_error', PACKAGE, path, checks_path=checks_path)
+            build.build_package(None, 'test_syntax_error', PACKAGE, [], path, checks_path=checks_path)
 
     def test_build_glob_naming_conflict(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -351,7 +351,7 @@ class BuildTest(QuiltTestCase):
             }
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*not found'):
-            build.build_package_from_contents(None, 'test', 'compose2', str(mydir), missing_dep_build)
+            build.build_package_from_contents(None, 'test', 'compose2', [], str(mydir), missing_dep_build)
 
     def test_compose_subpackage_not_found(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -368,7 +368,7 @@ class BuildTest(QuiltTestCase):
             }
 
         with assertRaisesRegex(self, build.BuildException, r'Package.*has no subpackage.*'):
-            build.build_package_from_contents(None, 'test', 'compose', str(mydir), missing_dep_build)
+            build.build_package_from_contents(None, 'test', 'compose', [], str(mydir), missing_dep_build)
 
     def test_included_package_is_group_node(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
@@ -382,7 +382,7 @@ class BuildTest(QuiltTestCase):
                     }
                 }
             }
-        build.build_package_from_contents(None, 'test', 'compose3', str(mydir), build_compose_contents)
+        build.build_package_from_contents(None, 'test', 'compose3', [], str(mydir), build_compose_contents)
         from quilt.data.test import compose3
 
         assert type(compose3.from_simple_foo) is GroupNode
@@ -397,7 +397,7 @@ class BuildTest(QuiltTestCase):
                 'package': 'test/simple'
                 }
             }
-        build.build_package_from_contents(None, 'test', 'compose_root', str(mydir), build_compose_contents)
+        build.build_package_from_contents(None, 'test', 'compose_root', [], str(mydir), build_compose_contents)
         from quilt.data.test import compose_root, simple
 
         assert type(compose_root) is PackageNode
@@ -422,7 +422,7 @@ class BuildTest(QuiltTestCase):
             }
         }
 
-        build.build_package_from_contents(None, 'test', 'pkg_node', str(mydir), build_compose_contents)
+        build.build_package_from_contents(None, 'test', 'pkg_node', [], str(mydir), build_compose_contents)
 
         from quilt.data.test import pkg_node
 
@@ -449,7 +449,7 @@ class BuildTest(QuiltTestCase):
                 }
             }
         with self.assertRaises(build.BuildException):
-            build.build_package_from_contents(None, 'test', 'shouldfail', str(mydir), bad_build_contents)
+            build.build_package_from_contents(None, 'test', 'shouldfail', [], str(mydir), bad_build_contents)
 
     def test_parquet_source_file(self):
         df = DataFrame(dict(a=[1, 2, 3])) # pylint:disable=C0103
@@ -465,8 +465,42 @@ class BuildTest(QuiltTestCase):
                     }
                 }
             }
-        build.build_package_from_contents(None, 'test', 'fromparquet', '.', build_contents)
+        build.build_package_from_contents(None, 'test', 'fromparquet', [], '.', build_contents)
         pkg = command.load('test/fromparquet')
         assert df.equals(pkg.df()) # pylint:disable=E1101
 
     #TODO: Add test for checks on a parquet-sourced dataframe
+
+    def test_subpackage(self):
+        mydir = pathlib.Path(os.path.dirname(__file__))
+
+        command.build('test/foo')
+
+        df = DataFrame(dict(a=[1, 2, 3]))
+        arr = np.array([4, 5, 6])
+        path = str(mydir / 'build_simple.yml')
+
+        command.build('test/foo/empty')
+        command.build('test/foo/df', df)
+        command.build('test/foo/arr', arr)
+        command.build('test/foo/file', path)  # Adds as a plain file
+        command.build('test/foo/stuff', path, build_file=True)  # Builds a subpackage
+
+        pkg = command.load('test/foo')
+        assert len(pkg.empty) == 0
+        assert pkg.df().equals(df)
+        assert np.array_equal(pkg.arr(), arr)
+        assert pkg.file
+        assert pkg.stuff.foo
+
+        # Cannot build a package out of a data node.
+        with self.assertRaises(command.CommandException):
+            command.build('test/foo', df)
+        with self.assertRaises(command.CommandException):
+            command.build('test/foo', arr)
+
+        # Cannot build a subpackage if the package does not exist.
+        with self.assertRaises(command.CommandException):
+            command.build('test/non_existant/blah')
+        with self.assertRaises(command.CommandException):
+            command.build('test/non_existant/foo', df)
