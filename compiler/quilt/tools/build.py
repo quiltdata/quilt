@@ -190,7 +190,7 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                             ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if '/'.join(node_path) in pkg_root:
+        if find_in_package(pkg_root, '/'.join(node_path)):
             raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
@@ -209,9 +209,8 @@ def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents
                 raise BuildException("Package not found: %s" % include_package)
 
             if subpath:
-                try:
-                    node = find_in_package(existing_pkg, "/".join(subpath))
-                except KeyError:
+                node = find_in_package(existing_pkg, "/".join(subpath))
+                if node is None:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
                                                     owner=user,

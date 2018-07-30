@@ -362,10 +362,9 @@ def find_in_package(corenode, item):
     path = pathlib.PurePosixPath(item)
 
     # checks
-    if not item:    # No blank node names.
-        raise TypeError("Invalid node reference: Blank node names not permitted.")
-    if path.anchor:
-        raise TypeError("Invalid node reference: Absolute path.  Remove prefix {!r}".format(path.anchor))
+    # No blank node names.
+    if not item or path.anchor:
+        return None
 
     try:
         count = 0
@@ -376,8 +375,7 @@ def find_in_package(corenode, item):
             count += 1
         return node
     except KeyError:
-        traversed = '/'.join(path.parts[:count])
-        raise KeyError(traversed, path.parts[count])
+        return None
     except AttributeError:
         traversed = '/'.join(path.parts[:count])
         raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))

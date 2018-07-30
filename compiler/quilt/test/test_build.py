@@ -13,7 +13,6 @@ import yaml
 from ..nodes import DataNode, GroupNode, PackageNode
 from ..tools.store import ParquetLib, PackageStore
 from ..tools.compat import pathlib
-from ..tools.util import find_in_package
 from ..tools import build, command, store
 from .utils import QuiltTestCase, patch
 

@@ -83,23 +83,8 @@ class GroupNode(Node):
 class RootNode(GroupNode):
     __slots__ = ()
 
-    json_type = 'ROOT'
-
-    def __contains__(self, item):
-        """Check package contains a specific node name or node path.
+    json_type = 'ROOT'   
         
-        Usage:
-            'item' in p
-            'path/item' in p
-
-        :param item: Node name or path, as in "node" or "node/subnode".
-        """
-        try:
-            find_in_package(self, item)  #pylint: disable=W0104
-            return True
-        except (KeyError, TypeError):
-            return False
-
     def add(self, node_path, hashes, target, source_path, transform, user_meta_hash):
         """
         Adds an object (name-hash mapping) or group to package contents.
