@@ -31,7 +31,7 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException, load_yaml)
+                    generate_contents, get_or_create_package, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
 from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
@@ -554,14 +554,10 @@ def build_from_node(package, node):
     _check_team_id(team)
     store = PackageStore()
 
-    if subpath:
-        pkg_root = store.get_package(team, owner, pkg)
-        if not pkg_root:
-            raise CommandException("Package does not exist")
-    else:
-        pkg_root = store.create_package_node(team, owner, pkg)
-        if not isinstance(node, nodes.GroupNode):
-            raise CommandException("Top-level node must be a group")
+    pkg_root = get_or_create_package(store, team, owner, pkg, subpath)
+
+    if not subpath and not isinstance(node, nodes.GroupNode):
+        raise CommandException("Top-level node must be a group")
 
     def _process_node(node, path):
         if not isinstance(node._meta, dict):

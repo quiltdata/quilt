@@ -489,6 +489,19 @@ def build_package(team, username, package, subpath, yaml_path,
     build_package_from_contents(team, username, package, subpath, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
+def get_or_create_package(store, team, owner, pkg, subpath, dry_run=False):
+    if subpath:
+        root = store.get_package(team, owner, pkg)
+        if not root:
+            root = store.create_package_node(team, owner, pkg, dry_run=dry_run)
+        node = root
+        for component in subpath[:-1]:
+            node = node.children.setdefault(component, GroupNode({}))
+    else:
+        root = store.create_package_node(team, owner, pkg, dry_run=dry_run)
+
+    return root
+
 def build_package_from_contents(team, username, package, subpath, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
@@ -500,12 +513,8 @@ def build_package_from_contents(team, username, package, subpath, build_dir, bui
     checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    if subpath:
-        newpackage = store.get_package(team, username, package)
-        if not newpackage:
-            raise BuildException("Package does not exist")
-    else:
-        newpackage = store.create_package_node(team, username, package, dry_run=dry_run)
+    newpackage = get_or_create_package(store, team, username, package, subpath, dry_run=dry_run)
+
     _build_node(build_dir, store, newpackage, subpath, contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
