@@ -1034,22 +1034,6 @@ class PushInstallTestCase(QuiltTestCase):
 
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testPushSubpackage(self):
-        # Pushing a subpackage fails until the package is created the normal way.
-        resp = self.app.post(
-            '/api/package_update/test_user/foo/group1/group2',
-            data=json.dumps(dict(
-                is_public=True,
-                description="",
-                contents=GroupNode(dict()),
-                sizes={}
-            ), default=encode_node),
-            content_type='application/json',
-            headers={
-                'Authorization': 'test_user'
-            }
-        )
-        assert resp.status_code == requests.codes.not_found
-
         # Do a normal push.
         resp = self.app.put(
             '/api/package/test_user/foo/%s' % self.CONTENTS_2_HASH,
@@ -1066,22 +1050,6 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        # Subpackage push _still_ fails cause there's no "latest" tag.
-        resp = self.app.post(
-            '/api/package_update/test_user/foo/group1/group2',
-            data=json.dumps(dict(
-                is_public=True,
-                description="",
-                contents=GroupNode(dict()),
-                sizes={}
-            ), default=encode_node),
-            content_type='application/json',
-            headers={
-                'Authorization': 'test_user'
-            }
-        )
-        assert resp.status_code == requests.codes.not_found
-
         # Set the "latest" tag.
         resp = self.app.put(
             '/api/tag/test_user/foo/latest',
@@ -1095,7 +1063,7 @@ class PushInstallTestCase(QuiltTestCase):
         )
         assert resp.status_code == requests.codes.ok
 
-        # Now we can push a subpackage.
+        # Now push a subpackage.
         resp = self.app.post(
             '/api/package_update/test_user/foo/group1/group2',
             data=json.dumps(dict(
@@ -1158,6 +1126,52 @@ class PushInstallTestCase(QuiltTestCase):
         assert contents == RootNode(dict(
             file=FileNode([self.HASH3]),
             README=FileNode([self.HASH1]),
+            group1=GroupNode(dict(
+                group2=GroupNode(dict())
+            ))
+        ))
+
+    @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
+    def testPushSubpackageCreatePackage(self):
+        # If the package doesn't exist, pushing a subpackage causes it to be created.
+        resp = self.app.post(
+            '/api/package_update/test_user/foo/group1/group2',
+            data=json.dumps(dict(
+                is_public=True,
+                description="",
+                contents=GroupNode(dict()),
+                sizes={}
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+
+        # Install the package and verify that it has everything.
+        resp = self.app.get(
+            '/api/tag/test_user/foo/latest',
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'))
+        package_hash = data['hash']
+
+        resp = self.app.get(
+            '/api/package/test_user/foo/%s' % package_hash,
+            headers={
+                'Authorization': 'test_user'
+            }
+        )
+        assert resp.status_code == requests.codes.ok
+        data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
+        contents = data['contents']
+
+        # Verify that the contents is the subpackage
+        assert contents == RootNode(dict(
             group1=GroupNode(dict(
                 group2=GroupNode(dict())
             ))
