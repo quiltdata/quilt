@@ -675,7 +675,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
             dry_run=dry_run,
             is_public=is_public,
             is_team=is_team,
-            contents=pkgroot,
+            contents=contents,
             description="",  # TODO
             sizes=sizes
         ), default=encode_node)
