@@ -487,7 +487,7 @@ def build(package, path=None, dry_run=False, env='default', force=False, build_f
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
+    # TODO: rename 'path' param to 'target'?
     team, _, _, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
@@ -514,7 +514,6 @@ def build(package, path=None, dry_run=False, env='default', force=False, build_f
     _log(team, type='build', package=package_hash, dry_run=dry_run, env=env)
 
 def _build_internal(package, path, dry_run, env, build_file):
-    # we may have a path, git URL, PackageNode, or None
     if build_file and isinstance(path, string_types):
         # is this a git url?
         is_git_url = GIT_URL_RE.match(path)
@@ -533,7 +532,7 @@ def _build_internal(package, path, dry_run, env, build_file):
                     rmtree(tmpdir)
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
-    elif isinstance(path, nodes.PackageNode):
+    elif isinstance(path, nodes.GroupNode):
         assert not dry_run  # TODO?
         build_from_node(package, path)
     elif isinstance(path, string_types + (pd.DataFrame, np.ndarray)):
@@ -543,7 +542,7 @@ def _build_internal(package, path, dry_run, env, build_file):
         assert not dry_run  # TODO?
         build_from_node(package, nodes.GroupNode({}))
     else:
-        raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
+        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, but got %r" % path)
 
 
 def build_from_node(package, node):

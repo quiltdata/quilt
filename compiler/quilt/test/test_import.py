@@ -228,12 +228,8 @@ class ImportTest(QuiltTestCase):
 
         from quilt.data.foo import package2
         teststore = PackageStore(self._store_dir)
-        contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
-                                      PackageStore.CONTENTS_DIR,
-                                      hash_contents(package1._node))).read()
-        contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
-                                      PackageStore.CONTENTS_DIR,
-                                      hash_contents(package2._node))).read()
+        contents1 = teststore.get_package(None, 'foo', 'package1')
+        contents2 = teststore.get_package(None, 'foo', 'package2')
         assert contents1 == contents2
 
         # Rename an attribute
@@ -524,8 +520,8 @@ class ImportTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
-        package = command.load('foo/package')
-        pkghash = hash_contents(package._node)
+        _, contents = PackageStore.find_package(None, 'foo', 'package')
+        pkghash = hash_contents(contents)
 
         # New Version
         mydir = os.path.dirname(__file__)
@@ -535,11 +531,14 @@ class ImportTest(QuiltTestCase):
 
         load_pkg_new = command.load('foo/package')
         load_pkg_old = command.load('foo/package', hash=pkghash)    
-        assert hash_contents(load_pkg_old._node) == pkghash
 
         assert load_pkg_new.foo
         with self.assertRaises(AttributeError):
             load_pkg_new.dataframes
+
+        assert load_pkg_old.dataframes
+        assert load_pkg_old.README
+
         # Known failure cases
         # At present load does not support extended package syntax
         with self.assertRaises(command.CommandException):

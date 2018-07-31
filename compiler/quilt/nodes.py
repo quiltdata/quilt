@@ -219,53 +219,6 @@ class GroupNode(Node):
             else:
                 return asa(self, [])
 
-
-def _create_filter_func(filter_dict):
-    filter_name = filter_dict.pop('name', None)
-    if filter_name is not None and not isinstance(filter_name, string_types):
-        raise ValueError("Invalid 'name': %r" % filter_name)
-
-    filter_meta = filter_dict.pop('meta', None)
-    if filter_meta is not None and not isinstance(filter_meta, dict):
-        raise ValueError("Invalid 'meta': %r" % filter_meta)
-
-    if filter_dict:
-        raise ValueError("Unexpected data in the filter: %r; only 'name' and 'meta' are supported" % filter_dict)
-
-    def helper(value, expected):
-        if isinstance(expected, dict):
-            if isinstance(value, dict):
-                for expected_key, expected_value in iteritems(expected):
-                    if not helper(value.get(expected_key), expected_value):
-                        return False
-                return True
-            else:
-                return False
-        else:
-            return value == expected
-
-    def func(node, name):
-        if filter_name is not None and filter_name != name:
-            return False
-        if filter_meta is not None and not helper(node._meta, filter_meta):
-            return False
-        return True
-
-    return func
-
-class PackageNode(GroupNode):
-    """
-    Represents a package.
-    """
-    def __init__(self, package, meta):
-        super(PackageNode, self).__init__(meta)
-        self._package = None
-        self._node = package
-
-    def _class_repr(self):
-        #finfo = self._package.get_path() if self._package is not None else ''
-        return "<%s>" % (self.__class__.__name__)
-
     def _set(self, path, value, build_dir=''):
         """Create and set a node by path
 
@@ -320,8 +273,7 @@ class PackageNode(GroupNode):
             node = child
 
         key = path[-1]
-        data_node = DataNode(self._package, None, value, metadata)
-        node[key] = data_node
+        node[key] = DataNode(None, None, value, metadata)
 
     def _filter(self, lambda_or_dict):
         if isinstance(lambda_or_dict, dict):
@@ -334,10 +286,7 @@ class PackageNode(GroupNode):
         def _filter_node(name, node, func):
             matched = func(node, name)
             if isinstance(node, GroupNode):
-                if isinstance(node, PackageNode):
-                    filtered = PackageNode(None, copy.deepcopy(node._meta))
-                else:
-                    filtered = GroupNode(copy.deepcopy(node._meta))
+                filtered = GroupNode(copy.deepcopy(node._meta))
                 for child_name, child_node in node._items():
                     # If the group itself matched, then match all children by using a True filter.
                     child_func = (lambda *args: True) if matched else func
@@ -348,7 +297,7 @@ class PackageNode(GroupNode):
                 # Return the group if:
                 # 1) It has children, or
                 # 2) Group itself matched the filter, or
-                # 3) It's the package itself.
+                # 3) It's the top-level group.
                 if matched or len(filtered) or node == self:
                     return filtered
             else:
@@ -357,3 +306,37 @@ class PackageNode(GroupNode):
             return None
 
         return _filter_node('', self, func)
+
+
+def _create_filter_func(filter_dict):
+    filter_name = filter_dict.pop('name', None)
+    if filter_name is not None and not isinstance(filter_name, string_types):
+        raise ValueError("Invalid 'name': %r" % filter_name)
+
+    filter_meta = filter_dict.pop('meta', None)
+    if filter_meta is not None and not isinstance(filter_meta, dict):
+        raise ValueError("Invalid 'meta': %r" % filter_meta)
+
+    if filter_dict:
+        raise ValueError("Unexpected data in the filter: %r; only 'name' and 'meta' are supported" % filter_dict)
+
+    def helper(value, expected):
+        if isinstance(expected, dict):
+            if isinstance(value, dict):
+                for expected_key, expected_value in iteritems(expected):
+                    if not helper(value.get(expected_key), expected_value):
+                        return False
+                return True
+            else:
+                return False
+        else:
+            return value == expected
+
+    def func(node, name):
+        if filter_name is not None and filter_name != name:
+            return False
+        if filter_meta is not None and not helper(node._meta, filter_meta):
+            return False
+        return True
+
+    return func
