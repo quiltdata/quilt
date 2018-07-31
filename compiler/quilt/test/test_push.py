@@ -18,7 +18,7 @@ from .utils import QuiltTestCase
 def _decode_body(body):
     with gzip.GzipFile(fileobj=BytesIO(body)) as fd:
         ungzipped_body = fd.read()
-    return json.loads(ungzipped_body, object_hook=decode_node)
+    return json.loads(ungzipped_body.decode('utf-8'), object_hook=decode_node)
 
 
 class PushTest(QuiltTestCase):
