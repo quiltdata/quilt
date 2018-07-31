@@ -474,33 +474,29 @@ class BuildTest(QuiltTestCase):
     def test_subpackage(self):
         mydir = pathlib.Path(os.path.dirname(__file__))
 
-        command.build('test/foo')
-
         df = DataFrame(dict(a=[1, 2, 3]))
         arr = np.array([4, 5, 6])
         path = str(mydir / 'build_simple.yml')
 
-        command.build('test/foo/empty')
+        command.build('test/foo/a/b/c/empty')
         command.build('test/foo/df', df)
         command.build('test/foo/arr', arr)
         command.build('test/foo/file', path)  # Adds as a plain file
         command.build('test/foo/stuff', path, build_file=True)  # Builds a subpackage
 
         pkg = command.load('test/foo')
-        assert len(pkg.empty) == 0
+        assert len(pkg.a.b.c.empty) == 0
         assert pkg.df().equals(df)
         assert np.array_equal(pkg.arr(), arr)
         assert pkg.file
         assert pkg.stuff.foo
+
+    def test_invalid_node(self):
+        df = DataFrame(dict(a=[1, 2, 3]))
+        arr = np.array([4, 5, 6])
 
         # Cannot build a package out of a data node.
         with self.assertRaises(command.CommandException):
             command.build('test/foo', df)
         with self.assertRaises(command.CommandException):
             command.build('test/foo', arr)
-
-        # Cannot build a subpackage if the package does not exist.
-        with self.assertRaises(command.CommandException):
-            command.build('test/non_existant/blah')
-        with self.assertRaises(command.CommandException):
-            command.build('test/non_existant/foo', df)
