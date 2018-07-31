@@ -2,6 +2,10 @@
 Makes functions in .tools.command accessible directly from quilt.
 """
 
+# Suppress numpy warnings for Python 2.7
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+
 # True: Force dev mode
 # False: Force normal mode
 # None: CLI params have not yet been parsed to determine mode.
