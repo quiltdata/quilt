@@ -1,5 +1,8 @@
 # Frequently asked questions
 
+## Does Quilt support numpy arrays?
+As of version 2.9.9, [numpy arrays are first-class objects in Quilt](https://github.com/quiltdata/examples/blob/master/Numpy%2C%20easy%20package%20edit.ipynb).
+
 ## How much data can I put into Quilt?
 
 There no limit on public data, as shown in our [Pricing grid](https://quiltdata.com/#pricing).
