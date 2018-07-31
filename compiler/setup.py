@@ -16,7 +16,7 @@ def readme():
 
 setup(
     name="quilt",
-    version="2.10-dev",
+    version="2.9.9",
     packages=find_packages(),
     description='Quilt is a data package manager',
     long_description=readme(),
