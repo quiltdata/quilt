@@ -15,7 +15,7 @@ import sys
 
 from six import iteritems
 
-from .nodes import DataNode, GroupNode, PackageNode
+from .nodes import DataNode, GroupNode
 from .tools import core
 from .tools.const import SYSTEM_METADATA, TargetType
 from .tools.store import PackageStore
@@ -58,9 +58,7 @@ def _from_core_node(store, core_node):
         }
         node = DataNode(store, core_node.hashes, None, metadata)
     else:
-        if isinstance(core_node, core.RootNode):
-            node = PackageNode(core_node, metadata)
-        elif isinstance(core_node, core.GroupNode):
+        if isinstance(core_node, (core.RootNode, core.GroupNode)):
             node = GroupNode(metadata)
         else:
             assert "Unexpected node: %r" % core_node
