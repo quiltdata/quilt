@@ -76,10 +76,6 @@ S3_PUT_OBJECT = 'put_object'
 
 OBJ_DIR = 'objs'
 
-# Limit the JSON metadata to 100MB.
-# This is mostly a sanity check; it's already limited by app.config['MAX_CONTENT_LENGTH'].
-MAX_METADATA_SIZE = 100 * 1024 * 1024
-
 PREVIEW_MAX_CHILDREN = 10
 PREVIEW_MAX_DEPTH = 4
 
