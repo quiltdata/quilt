@@ -69,11 +69,11 @@ class PushTest(QuiltTestCase):
 
     def test_push_subpackage(self):
         mydir = os.path.dirname(__file__)
-        build_path = os.path.join(mydir, './build_simple.yml')
+        build_path = os.path.join(mydir, './build.yml')
         command.build('foo/bar', build_path)
 
         _, pkgroot = store.PackageStore.find_package(None, 'foo', 'bar')
-        contents = pkgroot.children['foo']
+        contents = pkgroot.children['dataframes']
 
         all_hashes = set(find_object_hashes(contents))
         upload_urls = {
@@ -89,10 +89,10 @@ class PushTest(QuiltTestCase):
             self.requests_mock.add(responses.HEAD, urls['head'], status=404)
             self.requests_mock.add(responses.PUT, urls['put'])
 
-        self._mock_update_package('foo/bar', 'foo', contents, upload_urls)
+        self._mock_update_package('foo/bar', 'dataframes', contents, upload_urls)
 
         # Push a subpackage.
-        command.push('foo/bar/foo')
+        command.push('foo/bar/dataframes')
 
     def _mock_put_package(self, package, pkg_hash, contents, upload_urls):
         pkg_url = '%s/api/package/%s/%s' % (command.get_registry_url(None), package, pkg_hash)

@@ -713,7 +713,7 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(dry_run=True)
     obj_urls = resp.json()['upload_urls']
 
-    assert set(obj_urls) == set(find_object_hashes(pkgroot))
+    assert set(obj_urls) == set(find_object_hashes(contents))
 
     obj_sizes = {
         obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
