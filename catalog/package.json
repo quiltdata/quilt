@@ -44,6 +44,7 @@
     "test:watch": "cross-env NODE_ENV=test jest --watchAll",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
     "config": "sh -c 'set -a; . \"$0\"; set +a; envsubst < config.js.tmpl > static/config.js'",
+    "flow": "flow --color always",
     "flow-coverage": "flow-coverage-report"
   },
   "lint-staged": {
@@ -104,10 +105,20 @@
       "flowtype"
     ],
     "parserOptions": {
-      "ecmaVersion": 6,
+      "ecmaVersion": 2018,
       "sourceType": "module",
       "ecmaFeatures": {
         "jsx": true
+      }
+    },
+    "settings": {
+      "import/resolver": {
+        "webpack": {
+          "config": "./internals/webpack/webpack.prod.babel.js"
+        }
+      },
+      "flowtype": {
+        "onlyFilesWithFlowAnnotation": true
       }
     },
     "rules": {
@@ -123,6 +134,74 @@
       "comma-dangle": [
         2,
         "always-multiline"
+      ],
+      "flowtype/array-style-complex-type": [
+        "error",
+        "shorthand"
+      ],
+      "flowtype/array-style-simple-type": [
+        "error",
+        "shorthand"
+      ],
+      "flowtype/boolean-style": [
+        "error",
+        "bool"
+      ],
+      "flowtype/define-flow-type": [
+        "warn"
+      ],
+      "flowtype/delimiter-dangle": [
+        "error",
+        "always-multiline"
+      ],
+      "flowtype/generic-spacing": [
+        "error"
+      ],
+      "flowtype/newline-after-flow-annotation": [
+        "error"
+      ],
+      "flowtype/no-dupe-keys": [
+        "error"
+      ],
+      "flowtype/no-primitive-constructor-types": [
+        "error"
+      ],
+      "flowtype/no-types-missing-file-annotation": [
+        "error"
+      ],
+      "flowtype/no-unused-expressions": [
+        "error"
+      ],
+      "flowtype/no-weak-types": [
+        "error",
+        {
+          "any": false
+        }
+      ],
+      "flowtype/object-type-delimiter": [
+        "error"
+      ],
+      "flowtype/semi": [
+        "error"
+      ],
+      "flowtype/space-after-type-colon": [
+        "error"
+      ],
+      "flowtype/space-before-generic-bracket": [
+        "error"
+      ],
+      "flowtype/space-before-type-colon": [
+        "error"
+      ],
+      "flowtype/type-id-match": [
+        "error",
+        "^([A-Z][a-z0-9]*)+$"
+      ],
+      "flowtype/union-intersection-spacing": [
+        "error"
+      ],
+      "flowtype/use-flow-type": [
+        "warn"
       ],
       "function-paren-newline": [
         "error",
@@ -164,6 +243,14 @@
       "newline-per-chained-call": 0,
       "no-confusing-arrow": 0,
       "no-console": 1,
+      "no-unused-vars": [
+        "error",
+        {
+          "args": "after-used",
+          "argsIgnorePattern": "^_",
+          "ignoreRestSiblings": true
+        }
+      ],
       "no-use-before-define": 0,
       "object-curly-newline": [
         "error",
@@ -187,13 +274,6 @@
       "redux-saga/no-yield-in-race": 2,
       "redux-saga/yield-effects": 2,
       "require-yield": 0
-    },
-    "settings": {
-      "import/resolver": {
-        "webpack": {
-          "config": "./internals/webpack/webpack.prod.babel.js"
-        }
-      }
     }
   },
   "dllPlugin": {
