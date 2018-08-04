@@ -1,24 +1,29 @@
+// @flow
 /**
  * An object containing the handles to a Promise.
- * @typedef {{resolve: function, reject: function}} Resolver
  */
+export type Resolver<T> = {
+  resolve: (v: T) => any,
+  reject: (e: Error) => any,
+};
 
 /**
  * An object containing a Promise and a Resolver for that Promise.
- * @typedef {{promise: Promise, resolver: Resolver}} Deferred
  */
+export type Deferred<T> = {
+  promise: Promise<T>,
+  resolver: Resolver<T>,
+};
 
 /**
  * Create a Deferred.
  *
  * @name defer
- *
- * @returns {Deferred}
  */
-export default () => {
+export default <T>(): Deferred<T> => {
   let resolver;
   const promise = new Promise((resolve, reject) => {
     resolver = { resolve, reject };
   });
-  return { resolver, promise };
+  return { resolver: (resolver: any), promise };
 };
