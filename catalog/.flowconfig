@@ -1,5 +1,6 @@
 [ignore]
 .*/node_modules/immutable/.*
+.*/node_modules/flow-coverage-report/.*
 
 [include]
 
@@ -9,6 +10,7 @@
 
 [options]
 experimental.const_params=true
+esproposal.export_star_as=enable
 module.name_mapper='components' -> '<PROJECT_ROOT>/app/components'
 module.name_mapper='constants' -> '<PROJECT_ROOT>/app/constants'
 module.name_mapper='containers' -> '<PROJECT_ROOT>/app/containers'
