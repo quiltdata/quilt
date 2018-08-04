@@ -207,6 +207,7 @@
         "error",
         "consistent"
       ],
+      "implicit-arrow-linebreak": 0,
       "import/imports-first": 0,
       "import/newline-after-import": 0,
       "import/no-dynamic-require": 0,
@@ -239,6 +240,13 @@
       "jsx-a11y/mouse-events-have-key-events": 2,
       "jsx-a11y/role-has-required-aria-props": 2,
       "jsx-a11y/role-supports-aria-props": 2,
+      "lines-between-class-members": [
+        "error",
+        "always",
+        {
+          "exceptAfterSingleLine": true
+        }
+      ],
       "max-len": 0,
       "newline-per-chained-call": 0,
       "no-confusing-arrow": 0,
@@ -256,18 +264,44 @@
         "error",
         {
           "consistent": true,
-          "minProperties": 6,
+          "minProperties": 7,
           "multiline": true
         }
       ],
+      "operator-linebreak": [
+        "error",
+        "before",
+        {
+          "overrides": {
+            "=": "after"
+          }
+        }
+      ],
       "prefer-template": 2,
+      "react/destructuring-assignment": 0,
       "react/forbid-prop-types": 0,
+      "react/jsx-curly-spacing": [
+        "error"
+      ],
       "react/jsx-first-prop-new-line": [
         2,
         "multiline"
       ],
       "react/jsx-filename-extension": 0,
       "react/jsx-no-target-blank": 0,
+      "react/jsx-one-expression-per-line": 0,
+      "react/jsx-wrap-multilines": [
+        "error",
+        {
+          "declaration": "parens-new-line",
+          "assignment": "parens-new-line",
+          "return": "parens-new-line",
+          "arrow": "parens-new-line",
+          "condition": "parens-new-line",
+          "logical": "parens-new-line",
+          "prop": "ignore"
+        }
+      ],
       "react/require-default-props": 0,
       "react/require-extension": 0,
       "react/self-closing-comp": 0,
