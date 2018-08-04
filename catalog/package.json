@@ -43,7 +43,8 @@
     "test": "cross-env NODE_ENV=test jest --coverage",
     "test:watch": "cross-env NODE_ENV=test jest --watchAll",
     "coveralls": "cat ./coverage/lcov.info | coveralls",
-    "config": "sh -c 'set -a; . \"$0\"; set +a; envsubst < config.js.tmpl > static/config.js'"
+    "config": "sh -c 'set -a; . \"$0\"; set +a; envsubst < config.js.tmpl > static/config.js'",
+    "flow-coverage": "flow-coverage-report"
   },
   "lint-staged": {
     "*.js": "npm run lint:eslint --"
@@ -250,6 +251,22 @@
       "enzyme-to-json/serializer"
     ]
   },
+  "flow-coverage-report": {
+    "includeGlob": [
+      "app/**/*.js"
+    ],
+    "excludeGlob": [
+      "**/tests/*",
+      "**/__mocks__/*",
+      "**/*.spec.js"
+    ],
+    "type": [
+      "text",
+      "html"
+    ],
+    "threshold": 60,
+    "flowCommandPath": "node_modules/.bin/flow"
+  },
   "dependencies": {
     "assert": "^1.4.1",
     "babel-polyfill": "^6.26.0",
@@ -334,6 +351,7 @@
     "fetch-mock": "^6.4.4",
     "file-loader": "^1.1.6",
     "flow-bin": "^0.77.0",
+    "flow-coverage-report": "^0.5.0",
     "flow-typed": "^2.5.1",
     "flow-webpack-plugin": "^1.2.0",
     "html-loader": "^0.5.5",
