@@ -1,5 +1,6 @@
 # Don't check auto-generated stuff into git
 coverage
+flow-coverage
 build
 quilt_packages
 stats.json
