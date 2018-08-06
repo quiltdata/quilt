@@ -4,11 +4,12 @@ Nodes that represent the data in a Quilt package.
 import copy
 import os
 
+import numpy as np
 import pandas as pd
 from six import iteritems, itervalues, string_types
 
-from .tools import core
-from .tools.const import SYSTEM_METADATA
+from .tools.const import SYSTEM_METADATA, TargetType
+from .tools.store import PackageStore
 from .tools.util import is_nodename
 
 
@@ -40,16 +41,19 @@ class DataNode(Node):
     """
     Represents a dataframe or a file. Allows accessing the contents using `()`.
     """
-    def __init__(self, package, node, data, meta):
+    def __init__(self, store, hashes, data, meta):
         super(DataNode, self).__init__(meta)
 
-        self._package = package
-        self._node = node
+        self._store = store
+        self._hashes = hashes
         self.__cached_data = data
 
     def __iter__(self):
         # return an empty iterator (not None, not [], which are non-empty)
         return iter(())
+
+    def _target(self):
+        return TargetType(self._meta[SYSTEM_METADATA]['target'])
 
     def _data(self, asa=None):
         """
@@ -57,24 +61,22 @@ class DataNode(Node):
         the node and its contents to a callable.
         """
         if asa is not None:
-            if self._package is None or not self._node.hashes:
+            if self._store is None or self._hashes is None:
                 msg = (
                     "Can only use asa functions with built dataframes."
                     " Build this package and try again."
                 )
                 raise ValueError(msg)
-            store = self._package.get_store()
-            return asa(self, [store.object_path(obj) for obj in self._node.hashes])
+            return asa(self, [self._store.object_path(obj) for obj in self._hashes])
         else:
             if self.__cached_data is None:
                 # TODO(dima): Temporary code.
-                store = self._package.get_store()
-                if isinstance(self._node, core.TableNode):
-                    self.__cached_data = store.load_dataframe(self._node.hashes)
-                elif isinstance(self._node, core.FileNode):
-                    self.__cached_data = store.get_file(self._node.hashes)
+                if self._target() == TargetType.PANDAS:
+                    self.__cached_data = self._store.load_dataframe(self._hashes)
+                elif self._target() == TargetType.NUMPY:
+                    self.__cached_data = self._store.load_numpy(self._hashes)
                 else:
-                    assert False
+                    self.__cached_data = self._store.get_file(self._hashes)
             return self.__cached_data
 
 
@@ -86,12 +88,11 @@ class GroupNode(Node):
     """
     def __init__(self, meta):
         super(GroupNode, self).__init__(meta)
-
         self._children = {}
 
     def __getattr__(self, name):
         if name.startswith('_'):
-            return super(GroupNode, self).__getattr__(name)
+            raise AttributeError
         else:
             try:
                 return self[name]
@@ -184,26 +185,26 @@ class GroupNode(Node):
         """
         Merges all child dataframes. Only works for dataframes stored on disk - not in memory.
         """
-        store = None
         hash_list = []
         stack = [self]
         alldfs = True
+        store = None
         while stack:
             node = stack.pop()
             if isinstance(node, GroupNode):
                 stack.extend(child for _, child in sorted(node._items(), reverse=True))
             else:
-                if not isinstance(node._node, core.TableNode):
+                if node._target() != TargetType.PANDAS:
                     alldfs = False
-                if node._node is None or not node._node.hashes:
+                if node._store is None or node._hashes is None:
                     msg = "Can only merge built dataframes. Build this package and try again."
                     raise NotImplementedError(msg)
-                node_store = node._package.get_store()
+                node_store = node._store
                 if store is None:
                     store = node_store
-                elif node_store is not store:
+                if node_store != store:
                     raise NotImplementedError("Can only merge dataframes from the same store")
-                hash_list += node._node.hashes
+                hash_list += node._hashes
 
         if asa is None:
             if not hash_list:
@@ -217,6 +218,94 @@ class GroupNode(Node):
                 return asa(self, [store.object_path(obj) for obj in hash_list])
             else:
                 return asa(self, [])
+
+    def _set(self, path, value, build_dir=''):
+        """Create and set a node by path
+
+        This creates a node from a filename or pandas DataFrame.
+
+        If `value` is a filename, it must be relative to `build_dir`.
+            `value` is stored as the export path.
+
+        `build_dir` defaults to the current directory, but may be any
+            arbitrary directory path, including an absolute path.
+
+        Example:
+            # Set `pkg.graph_image` to the data in '/home/user/bin/graph.png'.
+            # If exported, it would export to '<export_dir>/bin/graph.png'
+            `pkg._set(['graph_image'], 'bin/fizz.bin', '/home/user')`
+
+        :param path:  Path list -- I.e. ['examples', 'new_node']
+        :param value:  Pandas dataframe, or a filename relative to build_dir
+        :param build_dir:  Directory containing `value` if value is a filename.
+        """
+        assert isinstance(path, list) and len(path) > 0
+
+        if isinstance(value, pd.DataFrame):
+            metadata = {SYSTEM_METADATA: {'target': TargetType.PANDAS.value}}
+        elif isinstance(value, np.ndarray):
+            metadata = {SYSTEM_METADATA: {'target': TargetType.NUMPY.value}}
+        elif isinstance(value, string_types + (bytes,)):
+            # bytes -> string for consistency when retrieving metadata
+            value = value.decode() if isinstance(value, bytes) else value
+            if os.path.isabs(value):
+                raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
+            # Security: filepath does not and should not retain the build_dir's location!
+            metadata = {SYSTEM_METADATA: {'filepath': value, 'transform': 'id'}}
+            if build_dir:
+                value = os.path.join(build_dir, value)
+        else:
+            accepted_types = tuple(set((pd.DataFrame, np.ndarray, bytes) + string_types))
+            raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
+                            .format(accepted_types, type(value)), repr(value)[0:100])
+
+        for key in path:
+            if not is_nodename(key):
+                raise ValueError("Invalid name for node: {}".format(key))
+
+        node = self
+        for key in path[:-1]:
+            child = node._get(key)
+            if not isinstance(child, GroupNode):
+                child = GroupNode({})
+                node[key] = child
+
+            node = child
+
+        key = path[-1]
+        node[key] = DataNode(None, None, value, metadata)
+
+    def _filter(self, lambda_or_dict):
+        if isinstance(lambda_or_dict, dict):
+            func = _create_filter_func(lambda_or_dict)
+        elif callable(lambda_or_dict):
+            func = lambda_or_dict
+        else:
+            raise ValueError
+
+        def _filter_node(name, node, func):
+            matched = func(node, name)
+            if isinstance(node, GroupNode):
+                filtered = GroupNode(copy.deepcopy(node._meta))
+                for child_name, child_node in node._items():
+                    # If the group itself matched, then match all children by using a True filter.
+                    child_func = (lambda *args: True) if matched else func
+                    filtered_child = _filter_node(child_name, child_node, child_func)
+                    if filtered_child is not None:
+                        filtered[child_name] = filtered_child
+
+                # Return the group if:
+                # 1) It has children, or
+                # 2) Group itself matched the filter, or
+                # 3) It's the top-level group.
+                if matched or len(filtered) or node == self:
+                    return filtered
+            else:
+                if matched:
+                    return node
+            return None
+
+        return _filter_node('', self, func)
 
 
 def _create_filter_func(filter_dict):
@@ -251,107 +340,3 @@ def _create_filter_func(filter_dict):
         return True
 
     return func
-
-class PackageNode(GroupNode):
-    """
-    Represents a package.
-    """
-    def __init__(self, package, meta):
-        super(PackageNode, self).__init__(meta)
-        self._package = package
-
-    def _class_repr(self):
-        finfo = self._package.get_path() if self._package is not None else ''
-        return "<%s %r>" % (self.__class__.__name__, finfo)
-
-    def _set(self, path, value, build_dir=''):
-        """Create and set a node by path
-
-        This creates a node from a filename or pandas DataFrame.
-
-        If `value` is a filename, it must be relative to `build_dir`.
-            `value` is stored as the export path.
-
-        `build_dir` defaults to the current directory, but may be any
-            arbitrary directory path, including an absolute path.
-
-        Example:
-            # Set `pkg.graph_image` to the data in '/home/user/bin/graph.png'.
-            # If exported, it would export to '<export_dir>/bin/graph.png'
-            `pkg._set(['graph_image'], 'bin/fizz.bin', '/home/user')`
-
-        :param path:  Path list -- I.e. ['examples', 'new_node']
-        :param value:  Pandas dataframe, or a filename relative to build_dir
-        :param build_dir:  Directory containing `value` if value is a filename.
-        """
-        assert isinstance(path, list) and len(path) > 0
-
-        if isinstance(value, pd.DataFrame):
-            metadata = {}
-            core_node = core.TableNode(hashes=[], format=core.PackageFormat.default.value)
-        elif isinstance(value, string_types + (bytes,)):
-            # bytes -> string for consistency when retrieving metadata
-            value = value.decode() if isinstance(value, bytes) else value
-            if os.path.isabs(value):
-                raise ValueError("Invalid path: expected a relative path, but received {!r}".format(value))
-            # Security: filepath does not and should not retain the build_dir's location!
-            metadata = {SYSTEM_METADATA: {'filepath': value, 'transform': 'id'}}
-            core_node = core.FileNode(hashes=[])
-            if build_dir:
-                value = os.path.join(build_dir, value)
-        else:
-            accepted_types = tuple(set((pd.DataFrame, bytes) + string_types))
-            raise TypeError("Bad value type: Expected instance of any type {!r}, but received type {!r}"
-                            .format(accepted_types, type(value)), repr(value)[0:100])
-
-        for key in path:
-            if not is_nodename(key):
-                raise ValueError("Invalid name for node: {}".format(key))
-
-        node = self
-        for key in path[:-1]:
-            child = node._get(key)
-            if not isinstance(child, GroupNode):
-                child = GroupNode({})
-                node[key] = child
-
-            node = child
-
-        key = path[-1]
-        data_node = DataNode(self._package, core_node, value, metadata)
-        node[key] = data_node
-
-    def _filter(self, lambda_or_dict):
-        if isinstance(lambda_or_dict, dict):
-            func = _create_filter_func(lambda_or_dict)
-        elif callable(lambda_or_dict):
-            func = lambda_or_dict
-        else:
-            raise ValueError
-
-        def _filter_node(name, node, func):
-            matched = func(node, name)
-            if isinstance(node, GroupNode):
-                if isinstance(node, PackageNode):
-                    filtered = PackageNode(None, copy.deepcopy(node._meta))
-                else:
-                    filtered = GroupNode(copy.deepcopy(node._meta))
-                for child_name, child_node in node._items():
-                    # If the group itself matched, then match all children by using a True filter.
-                    child_func = (lambda *args: True) if matched else func
-                    filtered_child = _filter_node(child_name, child_node, child_func)
-                    if filtered_child is not None:
-                        filtered[child_name] = filtered_child
-
-                # Return the group if:
-                # 1) It has children, or
-                # 2) Group itself matched the filter, or
-                # 3) It's the package itself.
-                if matched or len(filtered) or node == self:
-                    return filtered
-            else:
-                if matched:
-                    return node
-            return None
-
-        return _filter_node('', self, func)

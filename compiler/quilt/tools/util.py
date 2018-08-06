@@ -15,7 +15,7 @@ from six import BytesIO, string_types, Iterator
 
 from .const import QuiltException
 from .compat import pathlib
-
+from . import core
 
 APP_NAME = "QuiltCli"
 APP_AUTHOR = "QuiltData"
@@ -350,3 +350,30 @@ def fs_link(path, linkpath, linktype='soft'):
                 os.link(str(path), str(linkpath))
         except OSError as error:
             raise QuiltException("Linking failed: " + str(error), original_error=error)
+
+def find_in_package(corenode, path):
+    """Find a (core) node in a package tree.
+    :param item: Node name or path, as in "node" or "node/subnode".
+    """
+    if not isinstance(corenode, core.Node):
+        raise QuiltException("Corenode must be a valid Quilt package node. %r" % corenode)
+
+    # Check for empty path
+    if not path:
+        return None
+
+    try:
+        node = corenode
+        count = 0
+        for part in path:
+            if not is_nodename(part):
+                raise TypeError("Invalid node name: {!r}".format(part))
+            node = node.children[part]
+            count += 1
+        return node
+    except KeyError:
+        return None
+    except AttributeError:
+        traversed = '/'.join(path[:count])
+        raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
+

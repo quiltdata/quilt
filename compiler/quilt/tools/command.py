@@ -21,6 +21,7 @@ import tempfile
 import time
 import yaml
 
+import numpy as np
 from packaging.version import Version
 import pandas as pd
 import pkg_resources
@@ -30,11 +31,11 @@ from six.moves.urllib.parse import urlparse, urlunparse
 from tqdm import tqdm
 
 from .build import (build_package, build_package_from_contents, generate_build_file,
-                    generate_contents, BuildException, load_yaml)
+                    generate_contents, get_or_create_package, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (hash_contents, find_object_hashes, TableNode, FileNode, GroupNode,
-                   decode_node, encode_node, LATEST_TAG)
+from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
+                   find_object_hashes, hash_contents)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
 from .util import (BASE_DIR, gzip_compress, is_nodename, fs_link, parse_package as parse_package_util,
@@ -479,15 +480,15 @@ def _log(team, **kwargs):
         if session:
             session.hooks['response'] = orig_response_hooks
 
-def build(package, path=None, dry_run=False, env='default', force=False):
+def build(package, path=None, dry_run=False, env='default', force=False, build_file=False):
     """
     Compile a Quilt data package, either from a build file or an existing package node.
 
     :param package: short package specifier, i.e. 'team:user/pkg'
     :param path: file path, git url, or existing package node
     """
-    # TODO: rename 'path' param to 'target'?  It can be a PackageNode as well.
-    team, _, _ = parse_package(package)
+    # TODO: rename 'path' param to 'target'?
+    team, _, _, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     logged_in_team = _find_logged_in_team()
     if logged_in_team is not None and team is None and force is False:
@@ -498,17 +499,22 @@ def build(package, path=None, dry_run=False, env='default', force=False):
                                 team=logged_in_team, package=package))
         if answer.lower() != 'y':
             return
+
+    # Backward compatibility: if there's no subpath, we're building a top-level package,
+    # so treat `path` as a build file, not as a data node.
+    if not subpath:
+        build_file = True
+
     package_hash = hashlib.md5(package.encode('utf-8')).hexdigest()
     try:
-        _build_internal(package, path, dry_run, env)
+        _build_internal(package, path, dry_run, env, build_file)
     except Exception as ex:
         _log(team, type='build', package=package_hash, dry_run=dry_run, env=env, error=str(ex))
         raise
     _log(team, type='build', package=package_hash, dry_run=dry_run, env=env)
 
-def _build_internal(package, path, dry_run, env):
-    # we may have a path, git URL, PackageNode, or None
-    if isinstance(path, string_types):
+def _build_internal(package, path, dry_run, env, build_file):
+    if build_file and isinstance(path, string_types):
         # is this a git url?
         is_git_url = GIT_URL_RE.match(path)
         if is_git_url:
@@ -526,35 +532,33 @@ def _build_internal(package, path, dry_run, env):
                     rmtree(tmpdir)
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
-    elif isinstance(path, nodes.PackageNode):
+    elif isinstance(path, nodes.GroupNode):
         assert not dry_run  # TODO?
         build_from_node(package, path)
+    elif isinstance(path, string_types + (pd.DataFrame, np.ndarray)):
+        assert not dry_run  # TODO?
+        build_from_node(package, nodes.DataNode(None, None, path, {}))
     elif path is None:
         assert not dry_run  # TODO?
-        _build_empty(package)
+        build_from_node(package, nodes.GroupNode({}))
     else:
-        raise ValueError("Expected a PackageNode, path or git URL, but got %r" % path)
+        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, but got %r" % path)
 
-def _build_empty(package):
-    """
-    Create an empty package for convenient editing of de novo packages
-    """
-    team, owner, pkg = parse_package(package)
-
-    store = PackageStore()
-    new = store.create_package(team, owner, pkg)
-    new.save_contents()
 
 def build_from_node(package, node):
     """
     Compile a Quilt data package from an existing package node.
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     store = PackageStore()
-    package_obj = store.create_package(team, owner, pkg)
 
-    def _process_node(node, path=[]):
+    pkg_root = get_or_create_package(store, team, owner, pkg, subpath)
+
+    if not subpath and not isinstance(node, nodes.GroupNode):
+        raise CommandException("Top-level node must be a group")
+
+    def _process_node(node, path):
         if not isinstance(node._meta, dict):
             raise CommandException(
                 "Error in %s: value must be a dictionary" % '.'.join(path + ['_meta'])
@@ -567,7 +571,7 @@ def build_from_node(package, node):
                 ('.'.join(path + ['_meta']), SYSTEM_METADATA, SYSTEM_METADATA)
             )
         if isinstance(node, nodes.GroupNode):
-            package_obj.save_group(path, meta)
+            store.add_to_package_group(pkg_root, path, meta)
             for key, child in node._items():
                 _process_node(child, path + [key])
         elif isinstance(node, nodes.DataNode):
@@ -576,27 +580,29 @@ def build_from_node(package, node):
             filepath = system_meta.get('filepath')
             transform = system_meta.get('transform')
             if isinstance(data, pd.DataFrame):
-                package_obj.save_df(data, path, TargetType.PANDAS, filepath, transform, meta)
+                store.add_to_package_df(pkg_root, data, path, TargetType.PANDAS, filepath, transform, meta)
+            elif isinstance(data, np.ndarray):
+                store.add_to_package_numpy(pkg_root, data, path, TargetType.NUMPY, filepath, transform, meta)
             elif isinstance(data, string_types):
-                package_obj.save_file(data, path, TargetType.FILE, filepath, transform, meta)
+                store.add_to_package_file(pkg_root, data, path, TargetType.FILE, filepath, transform, meta)
             else:
                 assert False, "Unexpected data type: %r" % data
         else:
             assert False, "Unexpected node type: %r" % node
 
     try:
-        _process_node(node)
+        _process_node(node, subpath)
     except StoreException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
-    package_obj.save_contents()
+    store.save_package_contents(pkg_root, team, owner, pkg)
 
 def build_from_path(package, path, dry_run=False, env='default', outfilename=DEFAULT_BUILDFILE):
     """
     Compile a Quilt data package from a build file.
     Path can be a directory, in which case the build file will be generated automatically.
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
 
     if not os.path.exists(path):
         raise CommandException("%s does not exist." % path)
@@ -610,12 +616,12 @@ def build_from_path(package, path, dry_run=False, env='default', outfilename=DEF
                 )
 
             contents = generate_contents(path, outfilename)
-            build_package_from_contents(team, owner, pkg, path, contents, dry_run=dry_run, env=env)
+            build_package_from_contents(team, owner, pkg, subpath, path, contents, dry_run=dry_run, env=env)
         else:
-            build_package(team, owner, pkg, path, dry_run=dry_run, env=env)
+            build_package(team, owner, pkg, subpath, path, dry_run=dry_run, env=env)
 
         if not dry_run:
-            print("Built %s%s/%s successfully." % (team + ':' if team else '', owner, pkg))
+            print("Built %s successfully." % package)
     except BuildException as ex:
         raise CommandException("Failed to build the package: %s" % ex)
 
@@ -646,48 +652,67 @@ def push(package, is_public=False, is_team=False, reupload=False):
     """
     Push a Quilt data package to the server
     """
-    team, owner, pkg = parse_package(package)
+    team, owner, pkg, subpath = parse_package(package, allow_subpath=True)
     _check_team_id(team)
     session = _get_session(team)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
-    pkghash = pkgobj.get_hash()
+    pkghash = hash_contents(pkgroot)
+    contents = pkgroot
+
+    for component in subpath:
+        try:
+            contents = contents.children[component]
+        except (AttributeError, KeyError):
+            raise CommandException("Invalid subpath: %r" % component)
 
     def _push_package(dry_run=False, sizes=dict()):
         data = json.dumps(dict(
             dry_run=dry_run,
             is_public=is_public,
             is_team=is_team,
-            contents=pkgobj.get_contents(),
+            contents=contents,
             description="",  # TODO
             sizes=sizes
         ), default=encode_node)
 
         compressed_data = gzip_compress(data.encode('utf-8'))
 
-        return session.put(
-            "{url}/api/package/{owner}/{pkg}/{hash}".format(
-                url=get_registry_url(team),
-                owner=owner,
-                pkg=pkg,
-                hash=pkghash
-            ),
-            data=compressed_data,
-            headers={
-                'Content-Encoding': 'gzip'
-            }
-        )
+        if subpath:
+            return session.post(
+                "{url}/api/package_update/{owner}/{pkg}/{subpath}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    subpath='/'.join(subpath)
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
+        else:
+            return session.put(
+                "{url}/api/package/{owner}/{pkg}/{hash}".format(
+                    url=get_registry_url(team),
+                    owner=owner,
+                    pkg=pkg,
+                    hash=pkghash
+                ),
+                data=compressed_data,
+                headers={
+                    'Content-Encoding': 'gzip'
+                }
+            )
 
     print("Fetching upload URLs from the registry...")
     resp = _push_package(dry_run=True)
     obj_urls = resp.json()['upload_urls']
 
-    assert set(obj_urls) == set(find_object_hashes(pkgobj.get_contents()))
-
-    store = pkgobj.get_store()
+    assert set(obj_urls) == set(find_object_hashes(contents))
 
     obj_sizes = {
         obj_hash: os.path.getsize(store.object_path(obj_hash)) for obj_hash in obj_urls
@@ -701,18 +726,20 @@ def push(package, is_public=False, is_team=False, reupload=False):
     resp = _push_package(sizes=obj_sizes)
     package_url = resp.json()['package_url']
 
-    print("Updating the 'latest' tag...")
-    session.put(
-        "{url}/api/tag/{owner}/{pkg}/{tag}".format(
-            url=get_registry_url(team),
-            owner=owner,
-            pkg=pkg,
-            tag=LATEST_TAG
-        ),
-        data=json.dumps(dict(
-            hash=pkghash
-        ))
-    )
+    if not subpath:
+        # Update the latest tag.
+        print("Updating the 'latest' tag...")
+        session.put(
+            "{url}/api/tag/{owner}/{pkg}/{tag}".format(
+                url=get_registry_url(team),
+                owner=owner,
+                pkg=pkg,
+                tag=LATEST_TAG
+            ),
+            data=json.dumps(dict(
+                hash=pkghash
+            ))
+        )
 
     print("Push complete. %s is live:\n%s" % (package, package_url))
 
@@ -945,7 +972,8 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     if pkghash != hash_contents(contents):
         raise CommandException("Mismatched hash. Try again.")
 
-    pkgobj = store.install_package(team, owner, pkg, contents)
+    # TODO: Shouldn't need this? At least don't need the contents
+    store.install_package(team, owner, pkg, contents)
 
     obj_urls = dataset['urls']
     obj_sizes = dataset['sizes']
@@ -963,7 +991,7 @@ def install(package, hash=None, version=None, tag=None, force=False, meta_only=F
     else:
         print("Fragments already downloaded")
 
-    pkgobj.save_contents()
+    store.save_package_contents(contents, team, owner, pkg)
 
 def _materialize(node):
     store = PackageStore()
@@ -976,7 +1004,7 @@ def _materialize(node):
         if isinstance(obj, nodes.GroupNode):
             stack.extend(child for name, child in obj._items())
         else:
-            hashes.update(obj._node.hashes)  # May be empty for nodes created locally
+            hashes.update(obj._hashes or [])  # May be empty for nodes created locally
 
     missing_hashes = {obj_hash for obj_hash in hashes if not os.path.exists(store.object_path(obj_hash))}
 
@@ -1107,11 +1135,9 @@ def inspect(package):
     """
     team, owner, pkg = parse_package(package)
 
-    pkgobj = PackageStore.find_package(team, owner, pkg)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-
-    store = pkgobj.get_store()
 
     def _print_children(children, prefix, path):
         for idx, (name, child) in enumerate(children):
@@ -1131,18 +1157,16 @@ def inspect(package):
                 name_prefix = u"┬ "
             print(prefix + name_prefix + name)
             _print_children(children, child_prefix, path + name)
-        elif isinstance(node, TableNode):
+        elif node.metadata['q_target'] == TargetType.PANDAS.value:
             df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
             info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
             print(prefix + name_prefix + ": " + info)
-        elif isinstance(node, FileNode):
-            print(prefix + name_prefix + name)
         else:
-            assert False, "node=%s type=%s" % (node, type(node))
+            print(prefix + name_prefix + name)
 
-    print(pkgobj.get_path())
-    _print_children(children=pkgobj.get_contents().children.items(), prefix='', path='')
+    print(store.package_path(team, owner, pkg))
+    _print_children(children=pkgroot.children.items(), prefix='', path='')
 
 def rm(package, force=False):
     """
@@ -1289,15 +1313,15 @@ def _load(package, hash=None):
     elif info.hash:
         raise CommandException("Use hash=HASH to specify package hash.")
 
-    pkgobj = PackageStore.find_package(info.team,
-                                       info.user,
-                                       info.name,
-                                       pkghash=hash)
-    if pkgobj is None:
+    store, pkgroot = PackageStore.find_package(info.team,
+                                               info.user,
+                                               info.name,
+                                               pkghash=hash)
+    if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
-    node = _from_core_node(pkgobj, pkgobj.get_contents())
+    node = _from_core_node(store, pkgroot)
 
-    return node, pkgobj, info
+    return node, pkgroot, info
 
 def load(pkginfo, hash=None):
     """
@@ -1358,7 +1382,7 @@ def export(package, output_path='.', force=False, symlinks=False):
     # Perhaps better as Node.export_path
     def get_export_path(node, node_path):
         # If filepath is not present, generate fake path based on node parentage.
-        filepath = node._meta.get(SYSTEM_METADATA, {}).get('filepath')
+        filepath = node._meta[SYSTEM_METADATA]['filepath']
         if filepath:
             dest = pathlib.PureWindowsPath(filepath)  # PureWindowsPath handles all win/lin/osx separators
         else:
@@ -1368,9 +1392,9 @@ def export(package, output_path='.', force=False, symlinks=False):
                   .format('/'.join(node_path.parts)))
             dest = node_path
 
-        # When exporting TableNodes, excel files are to be converted to csv.
+        # When exporting dataframes, excel files are to be converted to csv.
         # check also occurs in export_node(), but done here prevents filename conflicts
-        if isinstance(node._node, TableNode):
+        if node._target() == TargetType.PANDAS:
             if dest.suffix != '.csv':
                 # avoid name collisions from files with same name but different source,
                 # as we shift all to being csv for export.
@@ -1408,19 +1432,20 @@ def export(package, output_path='.', force=False, symlinks=False):
     def export_node(node, dest, use_symlinks=False):
         if not dest.parent.exists():
             dest.parent.mkdir(parents=True, exist_ok=True)
-        if isinstance(node._node, FileNode):
+        if node._target() == TargetType.FILE:
             if use_symlinks is True:
                 fs_link(node(), dest)
             else:
                 copyfile(node(), str(dest))
-        elif isinstance(node._node, TableNode):
-            ext = node._node.metadata['q_ext']
+        elif node._target() == TargetType.PANDAS:
             df = node()
             # 100 decimal places of pi will allow you to draw a circle the size of the known
             # universe, and only vary by approximately the width of a proton.
             # ..so, hopefully 78 decimal places (256 bits) is ok for float precision in CSV exports.
             # If not, and someone complains, we can up it or add a parameter.
             df.to_csv(str(dest), index=False, float_format='%r')
+        else:
+            assert False
 
     def resolve_dirpath(dirpath):
         """Checks the dirpath and ensures it exists and is writable
@@ -1466,7 +1491,7 @@ def export(package, output_path='.', force=False, symlinks=False):
 
         Export conflicts can be introduced in various ways -- for example:
             * export-time mapping -- user maps two files to the same name
-            * coded builds -- user creates two FileNodes with the same path
+            * coded builds -- user creates two files with the same path
             * re-rooting absolute paths -- user entered absolute paths, which are re-rooted to the export dir
             * build-time duplication -- user enters the same file path twice under different nodes
 
@@ -1484,7 +1509,7 @@ def export(package, output_path='.', force=False, symlinks=False):
             if dest not in results:
                 results[dest] = src
                 continue    # not a conflict..
-            if isinstance(src._node, FileNode) and src() == results[dest]():
+            if src._target() == TargetType.FILE and src() == results[dest]():
                 continue    # not a conflict (same src filename, same dest)..
             # ..add other conditions that prevent this from being a conflict here..
 

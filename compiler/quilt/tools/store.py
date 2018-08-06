@@ -8,12 +8,14 @@ from stat import S_IRUSR, S_IRGRP, S_IROTH, S_IWUSR
 import uuid
 
 from enum import Enum
+import numpy as np
 import pandas as pd
 
-from .const import DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA
-from .core import FileNode, RootNode, TableNode, find_object_hashes
+from .const import (DEFAULT_TEAM, PACKAGE_DIR_NAME, QuiltException, SYSTEM_METADATA,
+                    TargetType)
+from .core import (GroupNode, RootNode, FileNode, decode_node, encode_node,
+                   find_object_hashes, hash_contents)
 from .hashing import digest_file
-from .package import Package, PackageException
 from .util import BASE_DIR, sub_dirs, sub_files, is_nodename
 
 CHUNK_SIZE = 4096
@@ -23,9 +25,17 @@ def default_store_location():
     package_dir = os.path.join(BASE_DIR, PACKAGE_DIR_NAME)
     return os.getenv('QUILT_PRIMARY_PACKAGE_DIR', package_dir)
 
+
 class ParquetLib(Enum):
     SPARK = 'pyspark'
     ARROW = 'pyarrow'
+
+class PackageException(QuiltException):
+    """
+    Exception class for Package handling
+    """
+    pass
+
 
 class StoreException(QuiltException):
     """
@@ -46,6 +56,10 @@ class PackageStore(object):
     PKG_DIR = 'pkgs'
     CACHE_DIR = 'cache'
     VERSION = '1.3'
+    CONTENTS_DIR = 'contents'
+    TAGS_DIR = 'tags'
+    VERSIONS_DIR = 'versions'
+    LATEST = 'latest'
 
     __parquet_lib = None
 
@@ -95,6 +109,15 @@ class PackageStore(object):
             )
             raise StoreException(msg.format(self._path))
 
+    def __eq__(self, rhs):
+        return isinstance(rhs, PackageStore) and self._path == rhs._path # pylint:disable=W0212
+
+    def __ne__(self, rhs):
+        return not (self == rhs)
+
+    def __hash__(self):
+        return hash(self._path)
+
     def create_dirs(self):
         """
         Creates the store directory and its subdirectories.
@@ -130,8 +153,8 @@ class PackageStore(object):
             store = PackageStore(store_dir)
             pkg = store.get_package(team, user, package, pkghash=pkghash)
             if pkg is not None:
-                return pkg
-        return None
+                return store, pkg
+        return None, None
 
     @classmethod
     def check_name(cls, team, user, package, subpath=None):
@@ -169,18 +192,24 @@ class PackageStore(object):
         """
         self.check_name(team, user, package)
         path = self.package_path(team, user, package)
-        if os.path.isdir(path):
-            try:
-                return Package(
-                    store=self,
-                    user=user,
-                    package=package,
-                    path=path,
-                    pkghash=pkghash,
-                    )
-            except PackageException:
-                pass
-        return None
+        if not os.path.isdir(path):
+            return None
+
+        if pkghash is None:
+            latest_tag = os.path.join(path, self.TAGS_DIR, self.LATEST)
+            if not os.path.exists(latest_tag):
+                return None
+
+            with open (latest_tag, 'r') as tagfile:
+                pkghash = tagfile.read()
+
+        assert pkghash is not None  
+        contents_path = os.path.join(path, self.CONTENTS_DIR, pkghash)
+        if not os.path.isfile(contents_path):
+            return None
+
+        with open(contents_path, 'r') as contents_file:
+            return json.load(contents_file, object_hook=decode_node)
 
     def install_package(self, team, user, package, contents):
         """
@@ -191,7 +220,6 @@ class PackageStore(object):
         assert contents is not None
 
         self.create_dirs()
-
         path = self.package_path(team, user, package)
 
         # Delete any existing data.
@@ -199,23 +227,27 @@ class PackageStore(object):
             os.remove(path)
         except OSError:
             pass
-
-        return Package(
-            store=self,
-            user=user,
-            package=package,
-            path=path,
-            contents=contents
-        )
-
-    def create_package(self, team, user, package, dry_run=False):
+    
+    def create_package_node(self, team, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.
         """
-        if dry_run:
-            return Package(self, user, package, '.', RootNode(dict()))
         contents = RootNode(dict())
-        return self.install_package(team, user, package, contents)
+        if dry_run:
+            return contents
+
+        self.check_name(team, user, package)
+        assert contents is not None
+        self.create_dirs()
+
+        # Delete any existing data.
+        path = self.package_path(team, user, package)
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+        return contents
 
     def remove_package(self, team, user, package):
         """
@@ -228,10 +260,10 @@ class PackageStore(object):
         # TODO: do we really want to delete invisible dirs?
         if os.path.isdir(path):
             # Collect objects from all instances for potential cleanup
-            contents_path = os.path.join(path, Package.CONTENTS_DIR)
+            contents_path = os.path.join(path, PackageStore.CONTENTS_DIR)
             for instance in os.listdir(contents_path):
-                pkg = Package(self, user, package, path, pkghash=instance)
-                remove_objs.update(find_object_hashes(pkg.get_contents()))
+                pkg = self.get_package(team, user, package, pkghash=instance)
+                remove_objs.update(find_object_hashes(pkg))
             # Remove package manifests
             rmtree(path)
 
@@ -248,8 +280,8 @@ class PackageStore(object):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    for hsh in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR)):
-                        yield Package(self, user, pkg, pkgpath, pkghash=hsh)
+                    for hsh in sub_files(os.path.join(pkgpath, PackageStore.CONTENTS_DIR)):
+                        yield self.get_package(team, user, pkg, pkghash=hsh)
 
     def ls_packages(self):
         """
@@ -263,9 +295,9 @@ class PackageStore(object):
             for user in sub_dirs(self.team_path(team)):
                 for pkg in sub_dirs(self.user_path(team, user)):
                     pkgpath = self.package_path(team, user, pkg)
-                    pkgmap = {h : [] for h in sub_files(os.path.join(pkgpath, Package.CONTENTS_DIR))}
-                    for tag in sub_files(os.path.join(pkgpath, Package.TAGS_DIR)):
-                        with open(os.path.join(pkgpath, Package.TAGS_DIR, tag), 'r') as tagfile:
+                    pkgmap = {h : [] for h in sub_files(os.path.join(pkgpath, PackageStore.CONTENTS_DIR))}
+                    for tag in sub_files(os.path.join(pkgpath, PackageStore.TAGS_DIR)):
+                        with open(os.path.join(pkgpath, PackageStore.TAGS_DIR, tag), 'r') as tagfile:
                             pkghash = tagfile.read()
                             pkgmap[pkghash].append(tag)
                     for pkghash, tags in pkgmap.items():
@@ -329,7 +361,7 @@ class PackageStore(object):
         remove_objs = set(objs)
 
         for pkg in self.iterpackages():
-            remove_objs.difference_update(find_object_hashes(pkg.get_contents()))
+            remove_objs.difference_update(find_object_hashes(pkg))
 
         for obj in remove_objs:
             path = self.object_path(obj)
@@ -415,6 +447,25 @@ class PackageStore(object):
 
         return hashes
 
+    def load_numpy(self, hash_list):
+        """
+        Loads a numpy array.
+        """
+        assert len(hash_list) == 1
+        self._check_hashes(hash_list)
+        with open(self.object_path(hash_list[0]), 'rb') as fd:
+            return np.load(fd, allow_pickle=False)
+
+    def save_numpy(self, nparray):
+        storepath = self.temporary_object_path(str(uuid.uuid4()))
+        with open(storepath, 'wb') as fd:
+            np.save(fd, nparray, allow_pickle=False)
+
+        filehash = digest_file(storepath)
+        self._move_to_store(storepath, filehash)
+
+        return filehash
+
     def get_file(self, hash_list):
         """
         Returns the path of the file - but verifies that the hash is actually present.
@@ -468,6 +519,32 @@ class PackageStore(object):
         self._move_to_store(path, metahash)
         return metahash
 
+    def save_package_contents(self, root, team, owner, pkgname):
+        """
+        Saves the in-memory contents to a file in the local
+        package repository.
+        """
+        assert isinstance(root, RootNode)
+        instance_hash = hash_contents(root)
+        pkg_path = self.package_path(team, owner, pkgname)
+        if not os.path.isdir(pkg_path):
+            os.makedirs(pkg_path)
+            os.mkdir(os.path.join(pkg_path, self.CONTENTS_DIR))
+            os.mkdir(os.path.join(pkg_path, self.TAGS_DIR))
+            os.mkdir(os.path.join(pkg_path, self.VERSIONS_DIR))
+            
+        dest = os.path.join(pkg_path, self.CONTENTS_DIR, instance_hash)
+        with open(dest, 'w') as contents_file:
+            json.dump(root, contents_file, default=encode_node, indent=2, sort_keys=True)
+
+        tag_dir = os.path.join(pkg_path, self.TAGS_DIR)
+        if not os.path.isdir(tag_dir):
+            os.mkdir(tag_dir)
+
+        latest_tag = os.path.join(pkg_path, self.TAGS_DIR, self.LATEST)
+        with open (latest_tag, 'w') as tagfile:
+            tagfile.write("{hsh}".format(hsh=instance_hash))
+
     def _move_to_store(self, srcpath, objhash):
         """
         Make the object read-only and move it to the store.
@@ -479,3 +556,89 @@ class PackageStore(object):
             os.remove(destpath)
         os.chmod(srcpath, S_IRUSR | S_IRGRP | S_IROTH)  # Make read-only
         move(srcpath, destpath)
+
+    def _add_to_package_contents(self, pkgroot, node_path, hashes, target,
+                                 source_path, transform, user_meta_hash):
+        """
+        Adds an object (name-hash mapping) or group to package contents.
+        """
+        assert isinstance(node_path, list)
+        assert user_meta_hash is None or isinstance(user_meta_hash, str)
+        
+        contents = pkgroot
+        
+        if not node_path:
+            # Allow setting metadata on the root node, but that's it.
+            assert target is TargetType.GROUP
+            contents.metadata_hash = user_meta_hash
+            return
+
+        ptr = contents
+        for node in node_path[:-1]:
+            ptr = ptr.children[node]
+
+        if target is TargetType.GROUP:
+            node = GroupNode(dict())
+        else:
+            node = FileNode( # pylint:disable=R0204
+                hashes=hashes,
+                metadata=dict(
+                    q_ext=transform,
+                    q_path=source_path,
+                    q_target=target.value
+                ),
+                metadata_hash=user_meta_hash
+            )
+
+        ptr.children[node_path[-1]] = node
+        
+
+########################################
+# Methods ported from save_<xyz>
+# in Package class
+########################################
+
+    def add_to_package_df(self, root, dataframe, node_path, target, source_path, transform, custom_meta):
+        hashes = self.save_dataframe(dataframe)
+        metahash = self.save_metadata(custom_meta)
+        self._add_to_package_contents(root, node_path, hashes, target, source_path, transform, metahash)
+        return hashes
+
+    def add_to_package_cached_df(self, root, hashes, node_path, target, source_path, transform, custom_meta):
+        metahash = self.save_metadata(custom_meta)
+        self._add_to_package_contents(root, node_path, hashes, target, source_path, transform, metahash)
+
+    def add_to_package_numpy(self, root, ndarray, node_path, target, source_path, transform, custom_meta):
+        """
+        Save a Numpy array to the store.
+        """
+        filehash = self.save_numpy(ndarray)
+        metahash = self.save_metadata(custom_meta)
+        self._add_to_package_contents(root, node_path, [filehash], target, source_path, transform, metahash)
+
+    def add_to_package_group(self, root, node_path, custom_meta):
+        metahash = self.save_metadata(custom_meta)
+        self._add_to_package_contents(root, node_path, None, TargetType.GROUP, None, None, metahash)
+
+    def add_to_package_file(self, root, srcfile, node_path, target, source_path, transform, custom_meta):
+        """
+        Save a (raw) file to the store.
+        """
+        filehash = self.save_file(srcfile)
+        metahash = self.save_metadata(custom_meta)
+        self._add_to_package_contents(root, node_path, [filehash], target, source_path, transform, metahash)
+
+    def add_to_package_package_tree(self, root, node_path, pkgnode):
+        """
+        Adds a package or sub-package tree from an existing package to this package's
+        contents.
+        """
+        if node_path:
+            ptr = root
+            for node in node_path[:-1]:
+                ptr = ptr.children.setdefault(node, GroupNode(dict()))
+            ptr.children[node_path[-1]] = pkgnode
+        else:
+            if root.children:
+                raise PackageException("Attempting to overwrite root node of a non-empty package.")
+            root.children = pkgnode.children.copy()   

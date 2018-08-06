@@ -13,7 +13,7 @@ from six import string_types
 from quilt.tools import command
 from quilt.nodes import DataNode, GroupNode
 from quilt.tools.const import PACKAGE_DIR_NAME
-from quilt.tools.package import Package
+from quilt.tools.core import hash_contents
 from quilt.tools.store import PackageStore, StoreException
 from .utils import patch, QuiltTestCase
 
@@ -228,12 +228,8 @@ class ImportTest(QuiltTestCase):
 
         from quilt.data.foo import package2
         teststore = PackageStore(self._store_dir)
-        contents1 = open(os.path.join(teststore.package_path(None, 'foo', 'package1'),
-                                      Package.CONTENTS_DIR,
-                                      package1._package.get_hash())).read()
-        contents2 = open(os.path.join(teststore.package_path(None, 'foo', 'package2'),
-                                      Package.CONTENTS_DIR,
-                                      package2._package.get_hash())).read()
+        contents1 = teststore.get_package(None, 'foo', 'package1')
+        contents2 = teststore.get_package(None, 'foo', 'package2')
         assert contents1 == contents2
 
         # Rename an attribute
@@ -248,6 +244,17 @@ class ImportTest(QuiltTestCase):
         df = pd.DataFrame(dict(a=[1, 2, 3]))
         package1._set(['new', 'df'], df)
         assert package1.new.df._data() is df
+
+        # Add some ndarrays
+        arr1 = np.array([
+            [[1], [2], [3]],
+            [[4], [5], [6]]
+        ])
+        arr2 = np.random.rand(30, 40, 50)
+        package1._set(['new', 'array1'], arr1)
+        package1._set(['new', 'array2'], arr2)
+        assert package1.new.array1._data() is arr1
+        assert package1.new.array2._data() is arr2
 
         # Add a new file
         file_path = os.path.join(mydir, 'data/foo.csv')
@@ -286,6 +293,11 @@ class ImportTest(QuiltTestCase):
 
         new_df = package3.new.df._data()
         assert new_df.xs(2)['a'] == 3
+
+        new_arr1 = package3.new.array1._data()
+        new_arr2 = package3.new.array2._data()
+        assert new_arr1[1][2][0] == 6
+        assert new_arr2.shape == (30, 40, 50)
 
         new_file = package3.new.file._data()
         assert isinstance(new_file, string_types)
@@ -508,8 +520,8 @@ class ImportTest(QuiltTestCase):
         mydir = os.path.dirname(__file__)
         build_path = os.path.join(mydir, './build.yml')
         command.build('foo/package', build_path)
-        package = command.load('foo/package')
-        pkghash = package._package.get_hash()
+        _, contents = PackageStore.find_package(None, 'foo', 'package')
+        pkghash = hash_contents(contents)
 
         # New Version
         mydir = os.path.dirname(__file__)
@@ -519,11 +531,14 @@ class ImportTest(QuiltTestCase):
 
         load_pkg_new = command.load('foo/package')
         load_pkg_old = command.load('foo/package', hash=pkghash)    
-        assert load_pkg_old._package.get_hash() == pkghash
 
         assert load_pkg_new.foo
         with self.assertRaises(AttributeError):
             load_pkg_new.dataframes
+
+        assert load_pkg_old.dataframes
+        assert load_pkg_old.README
+
         # Known failure cases
         # At present load does not support extended package syntax
         with self.assertRaises(command.CommandException):

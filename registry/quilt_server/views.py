@@ -34,18 +34,17 @@ import stripe
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
-from .auth import (_delete_user, consume_code_string, issue_code,
-                   issue_token, try_login, verify_token_string,
-                   reset_password, exp_from_token, _create_user,
-                   _enable_user, _disable_user, revoke_token_string,
-                   reset_password_from_email, change_password, activate_response,
-                   AuthException, ValidationException, ConflictException,
-                   NotFoundException, CredentialException)
+from .auth import (AuthException, ConflictException, CredentialException,
+    NotFoundException, ValidationException, _create_user, _delete_user,
+    _disable_user, _enable_user, activate_response, change_password,
+    consume_code_string, exp_from_token, issue_code, issue_token,
+    reset_password, reset_password_from_email, revoke_token_string,
+    try_login, verify_token_string)
 from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
                     VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
-from .mail import send_invitation_email
+from .mail import send_comment_email, send_invitation_email
 from .models import (Access, Comment, Customer, Event, Instance,
                      InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
@@ -76,10 +75,6 @@ S3_GET_OBJECT = 'get_object'
 S3_PUT_OBJECT = 'put_object'
 
 OBJ_DIR = 'objs'
-
-# Limit the JSON metadata to 100MB.
-# This is mostly a sanity check; it's already limited by app.config['MAX_CONTENT_LENGTH'].
-MAX_METADATA_SIZE = 100 * 1024 * 1024
 
 PREVIEW_MAX_CHILDREN = 10
 PREVIEW_MAX_DEPTH = 4
@@ -390,9 +385,14 @@ def register_endpoint():
     username = data['username']
     password = data['password']
     email = data['email']
-    _create_user(username, password=password, email=email)
-    db.session.commit()
-    return {}
+    try:
+        _create_user(username, password=password, email=email)
+        db.session.commit()
+        return {}
+    except ValidationException as ex:
+        raise ApiException(requests.codes.bad, ex.message)
+    except ConflictException as ex:
+        raise ApiException(requests.codes.conflict, ex.message)
 
 @app.route('/api/refresh', methods=['POST'])
 @api()
@@ -655,10 +655,30 @@ def download_object_preview(owner, obj_hash):
             "Failed to ungzip the README; make sure it has been uploaded correctly."
         )
 
+def _merge_contents(base_contents, package_path, contents):
+    base_subnode = base_contents
+    package_path_list = package_path.split('/')
+    for component in package_path_list[:-1]:
+        try:
+            base_subnode = base_subnode.children.setdefault(component, GroupNode(dict()))
+        except AttributeError:
+            raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % component)
+    try:
+        base_subnode.children[package_path_list[-1]] = contents
+    except AttributeError:
+        raise ApiException(requests.codes.not_found, "Target subpath is not a group node: %r" % package_path_list[-1])
+
+    return base_contents
+
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['PUT'])
+@app.route('/api/package_update/<owner>/<package_name>/<path:package_path>', methods=['POST'])
 @api(schema=PACKAGE_SCHEMA)
 @as_json
-def package_put(owner, package_name, package_hash):
+def package_put(owner, package_name, package_hash=None, package_path=None):
+    # This function handles two endpoints: a normal push and subpackage push.
+    # Make sure exactly one of these arguments is set.
+    assert (package_hash is None) != (package_path is None)
+
     # TODO: Write access for collaborators.
     if g.auth.user != owner:
         raise ApiException(requests.codes.forbidden,
@@ -675,12 +695,15 @@ def package_put(owner, package_name, package_hash):
     contents = data['contents']
     sizes = data.get('sizes', {})
 
+    if (package_path is None) != isinstance(contents, RootNode):
+        raise ApiException(requests.codes.bad_request, "Unexpected node type")
+
     if public and not ALLOW_ANONYMOUS_ACCESS:
         raise ApiException(requests.codes.forbidden, "Public access not allowed")
     if team and not ALLOW_TEAM_ACCESS:
         raise ApiException(requests.codes.forbidden, "Team access not allowed")
 
-    if hash_contents(contents) != package_hash:
+    if package_hash is not None and hash_contents(contents) != package_hash:
         raise ApiException(requests.codes.bad_request, "Wrong contents hash")
 
     all_hashes = set(find_object_hashes(contents))
@@ -773,6 +796,29 @@ def package_put(owner, package_name, package_hash):
                      "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
+
+    if package_path is not None:
+        # We're doing a subpackage push - so look up the existing contents.
+        result = (
+            db.session.query(Instance, Tag)
+            .filter_by(package=package)
+            .options(undefer('contents'))  # Contents is deferred by default.
+            .join(Instance.tags)
+            .filter_by(tag=LATEST_TAG)
+            .with_for_update()
+            .one_or_none()
+        )
+        if result is not None:
+            base_instance, tag = result
+            base_contents = base_instance.contents
+            # Make sure we don't commit any changes to the original instance!
+            db.session.expunge(base_instance)
+        else:
+            base_contents = RootNode({})
+            tag = None
+
+        contents = _merge_contents(base_contents, package_path, contents)
+        package_hash = hash_contents(contents)
 
     # Insert an instance if it doesn't already exist.
     instance = (
@@ -868,6 +914,9 @@ def package_put(owner, package_name, package_hash):
                 instance.readme_blob = blob
                 instance.blobs_tsv = sa.func.to_tsvector(FTS_LANGUAGE, blob_preview_expr)
             instance.blobs.append(blob)
+
+        db.session.add(instance)
+
     else:
         # Just update the contents dictionary.
         # Nothing else could've changed without invalidating the hash.
@@ -876,7 +925,11 @@ def package_put(owner, package_name, package_hash):
         instance.updated_by = g.auth.user
         instance.keywords_tsv = keywords_tsv
 
-    db.session.add(instance)
+    # Pushing a subpackage automatically updates the "latest" tag.
+    if package_path is not None:
+        if tag is None:
+            tag = Tag(package=package, tag=LATEST_TAG)
+        tag.instance = instance
 
     # Insert a log.
     log = Log(
@@ -909,7 +962,8 @@ def package_put(owner, package_name, package_hash):
     )
 
     return dict(
-        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name)
+        package_url='%s/package/%s/%s' % (CATALOG_URL, owner, package_name),
+        package_hash=package_hash
     )
 
 @app.route('/api/package/<owner>/<package_name>/<package_hash>', methods=['GET'])
@@ -2273,6 +2327,9 @@ def comments_post(owner, package_name):
 
     # We disable automatic object expiration on commit, so refresh it manually.
     db.session.refresh(comment)
+
+    owner_email = User.query.filter_by(name=owner).one_or_none().email
+    send_comment_email(owner_email, owner, package_name, g.auth.user)
 
     return dict(comment=_comment_dict(comment))
 

@@ -40,6 +40,15 @@ class AuthTestCase(QuiltTestCase):
             raise Exception(response.data.decode('utf8'))
         return token
 
+    def useToken(self, token):
+        return self.app.get(
+            '/api/me',
+            headers={
+                'content-type': 'application/json',
+                'Authorization': token
+            }
+            )
+
     def decodeToken(self, token):
         return jwt.decode(token, verify=False)
 
@@ -192,7 +201,9 @@ class AuthTestCase(QuiltTestCase):
         )
         assert response.status_code == 200
         assert not send_reset_email.called
-        assert self.getToken()
+        token = self.getToken()
+        assert token
+        assert self.useToken(token).status_code == 200
 
         response = self.app.post(
             '/api/reset_password',
@@ -216,6 +227,7 @@ class AuthTestCase(QuiltTestCase):
         )
         assert reset_response.status_code == 200
         assert not self.getToken()
+        assert self.useToken(token).status_code == 401
 
         new_password_request = self.app.post(
                 '/api/login',
@@ -441,17 +453,16 @@ class AuthTestCase(QuiltTestCase):
         assert api_root(token2).status_code == 200
 
     def testCodeExpires(self):
-        self.code_immediate_expire_mock = mock.patch('quilt_server.auth.CODE_EXP_MINUTES', 0)
-        self.code_immediate_expire_mock.start()
-        token = self.getToken()
-        code_request = self.app.get(
-            '/api/code',
-            headers={
-                'Authorization': token,
-                'content-type': 'application/json'
-            }
-        )
-        assert code_request.status_code == 200
+        with mock.patch('quilt_server.auth.CODE_TTL_DEFAULT', {'minutes': 0}):
+            token = self.getToken()
+            code_request = self.app.get(
+                '/api/code',
+                headers={
+                    'Authorization': token,
+                    'content-type': 'application/json'
+                }
+            )
+            assert code_request.status_code == 200
         time.sleep(1)
         code = json.loads(code_request.data.decode('utf8')).get('code')
         token_request = self.app.post(
@@ -459,5 +470,3 @@ class AuthTestCase(QuiltTestCase):
             data={'refresh_token': code}
         )
         assert token_request.status_code == 401
-
-    # compiler refresh

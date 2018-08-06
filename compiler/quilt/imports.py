@@ -15,9 +15,9 @@ import sys
 
 from six import iteritems
 
-from .nodes import DataNode, GroupNode, PackageNode
+from .nodes import DataNode, GroupNode
 from .tools import core
-from .tools.const import SYSTEM_METADATA
+from .tools.const import SYSTEM_METADATA, TargetType
 from .tools.store import PackageStore
 
 
@@ -40,9 +40,9 @@ class FakeLoader(object):
         return mod
 
 
-def _from_core_node(package, core_node):
+def _from_core_node(store, core_node):
     if core_node.metadata_hash is not None:
-        metadata = package.get_store().load_metadata(core_node.metadata_hash)
+        metadata = store.load_metadata(core_node.metadata_hash)
         assert SYSTEM_METADATA not in metadata
     else:
         metadata = {}
@@ -51,18 +51,20 @@ def _from_core_node(package, core_node):
         metadata[SYSTEM_METADATA] = {
             'filepath': core_node.metadata.get('q_path'),
             'transform': core_node.metadata.get('q_ext'),
+            'target':
+                TargetType.PANDAS.value
+                if isinstance(core_node, core.TableNode)
+                else core_node.metadata.get('q_target', TargetType.FILE.value),
         }
-        node = DataNode(package, core_node, None, metadata)
+        node = DataNode(store, core_node.hashes, None, metadata)
     else:
-        if isinstance(core_node, core.RootNode):
-            node = PackageNode(package, metadata)
-        elif isinstance(core_node, core.GroupNode):
+        if isinstance(core_node, (core.RootNode, core.GroupNode)):
             node = GroupNode(metadata)
         else:
             assert "Unexpected node: %r" % core_node
 
         for name, core_child in iteritems(core_node.children):
-            child = _from_core_node(package, core_child)
+            child = _from_core_node(store, core_child)
             node[name] = child
 
     return node
@@ -72,8 +74,9 @@ class PackageLoader(object):
     """
     Module loader for Quilt tables.
     """
-    def __init__(self, package):
-        self._package = package
+    def __init__(self, store, root):
+        self._root = root
+        self._store = store
 
     def load_module(self, fullname):
         """
@@ -86,7 +89,7 @@ class PackageLoader(object):
         # We're creating an object rather than a module. It's a hack, but it's approved by Guido:
         # https://mail.python.org/pipermail/python-ideas/2012-May/014969.html
 
-        mod = _from_core_node(self._package, self._package.get_contents())
+        mod = _from_core_node(self._store, self._root)
         sys.modules[fullname] = mod
         return mod
 
@@ -118,9 +121,9 @@ class ModuleFinder(object):
 
         # Handle full paths first.
         if len(parts) == 2:
-            pkg = PackageStore.find_package(team, parts[0], parts[1])
+            store, pkg = PackageStore.find_package(team, parts[0], parts[1])
             if pkg is not None:
-                return PackageLoader(pkg)
+                return PackageLoader(store, pkg)
             else:
                 return None
 

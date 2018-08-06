@@ -18,10 +18,11 @@ from tqdm import tqdm
 from .compat import pathlib
 from .const import (DEFAULT_BUILDFILE, PANDAS_PARSERS, DEFAULT_QUILT_YML, PACKAGE_DIR_NAME, RESERVED,
                     SYSTEM_METADATA, QuiltException, TargetType)
-from .core import GroupNode
+from .core import GroupNode, RootNode
 from .hashing import digest_file, digest_string
 from .store import PackageStore, ParquetLib, StoreException
-from .util import FileWithReadProgress, is_nodename, to_nodename, to_identifier, parse_package
+from .util import (FileWithReadProgress, find_in_package, is_nodename, to_nodename, to_identifier,
+                   parse_package)
 
 from . import check_functions as qc            # pylint:disable=W0611
 
@@ -121,7 +122,7 @@ def _consume(node, keys):
     for key in keys:
         node.pop(key)
 
-def _build_node(build_dir, package, node_path, node, checks_contents=None,
+def _build_node(build_dir, pkg_store, pkg_root, node_path, node, checks_contents=None,
                 dry_run=False, env='default', ancestor_args={}):
     """
     Parameters
@@ -134,9 +135,11 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
       and overriding of ancestor or peer values.
       Child transform or kwargs override ancestor k:v pairs.
     """
+    assert isinstance(pkg_store, PackageStore)
+    assert isinstance(pkg_root, RootNode)
     if _is_internal_node(node):
         if not dry_run:
-            package.save_group(node_path, None)
+            pkg_store.add_to_package_group(pkg_root, node_path, None)
 
         # Make a consumable copy.  This is to cover a quirk introduced by accepting nodes named
         # like RESERVED keys -- if a RESERVED key is actually matched, it should be removed from
@@ -164,45 +167,60 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
             if glob.has_magic(child_name):
                 # child_name is a glob string, use it to generate multiple child nodes
                 for gchild_name, gchild_table in _gen_glob_data(build_dir, child_name, child_table):
-                    _build_node(build_dir, package, node_path + [gchild_name], gchild_table,
-                        checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                    _build_node(build_dir,
+                                pkg_store,
+                                pkg_root,
+                                node_path + [gchild_name],
+                                gchild_table,
+                                checks_contents=checks_contents,
+                                dry_run=dry_run,
+                                env=env,
+                                ancestor_args=group_args)
             else:
                 if not isinstance(child_name, str) or not is_nodename(child_name):
                     raise StoreException("Invalid node name: %r" % child_name)
-                _build_node(build_dir, package, node_path + [child_name], child_table,
-                    checks_contents=checks_contents, dry_run=dry_run, env=env, ancestor_args=group_args)
+                _build_node(build_dir,
+                            pkg_store,
+                            pkg_root,
+                            node_path + [child_name],
+                            child_table,
+                            checks_contents=checks_contents,
+                            dry_run=dry_run,
+                            env=env,
+                            ancestor_args=group_args)
     else:  # leaf node
         # prevent overwriting existing node names
-        if '/'.join(node_path) in package:
-            raise BuildException("Naming conflict: {!r} added to package more than once".format('/'.join(node_path)))
+        if find_in_package(pkg_root, node_path):
+            message = "Naming conflict: {!r} added to package more than once"
+            raise BuildException(message.format('/'.join(node_path)))
         # handle group leaf nodes (empty groups)
         if not node:
             if not dry_run:
-                package.save_group(node_path, None)
+                pkg_store.add_to_package_group(pkg_root, node_path, None)
             return
 
         include_package = node.get(RESERVED['package'])
         rel_path = node.get(RESERVED['file'])
         if rel_path and include_package:
-            raise BuildException("A node must define only one of {0} or {1}".format(RESERVED['file'], RESERVED['package']))
+            message = "A node must define only one of {0} or {1}"
+            raise BuildException(message.format(RESERVED['file'], RESERVED['package']))
         elif include_package: # package composition
             team, user, pkgname, subpath = parse_package(include_package, allow_subpath=True)
-            existing_pkg = PackageStore.find_package(team, user, pkgname)
+            store, existing_pkg = PackageStore.find_package(team, user, pkgname)
             if existing_pkg is None:
                 raise BuildException("Package not found: %s" % include_package)
 
             if subpath:
-                try:
-                    node = existing_pkg["/".join(subpath)]
-                except KeyError:
+                node = find_in_package(existing_pkg, subpath)
+                if node is None:
                     msg = "Package {team}:{owner}/{pkg} has no subpackage: {subpath}"
                     raise BuildException(msg.format(team=team,
                                                     owner=user,
                                                     pkg=pkgname,
                                                     subpath=subpath))
             else:
-                node = GroupNode(existing_pkg.get_contents().children)
-            package.save_package_tree(node_path, node)
+                node = GroupNode(existing_pkg.children)
+            pkg_store.add_to_package_package_tree(pkg_root, node_path, node)
         elif rel_path: # handle nodes built from input files
             path = os.path.join(build_dir, rel_path)
 
@@ -227,11 +245,11 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
             if transform:
                 transform = transform.lower()
                 if transform in PANDAS_PARSERS:
-                    target = TargetType.PANDAS
+                    target = TargetType.PANDAS # pylint:disable=R0204
                 elif transform == PARQUET:
-                    target = TargetType.PANDAS
+                    target = TargetType.PANDAS # pylint:disable=R0204
                 elif transform == ID:
-                    target = TargetType.FILE
+                    target = TargetType.FILE # pylint:disable=R0204
                 else:
                     raise BuildException("Unknown transform '%s' for %s" %
                                          (transform, rel_path))
@@ -262,7 +280,13 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                         _run_checks(data, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, target, rel_path, transform, metadata)
+                    pkg_store.add_to_package_file(pkg_root,
+                                                  path,
+                                                  node_path,
+                                                  target,
+                                                  rel_path,
+                                                  transform,
+                                                  metadata)
             elif transform == PARQUET:
                 if checks:
                     from pyarrow.parquet import ParquetDataset
@@ -272,7 +296,13 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     _run_checks(dataframe, checks, checks_contents, node_path, rel_path, target, env=env)
                 if not dry_run:
                     print("Registering %s..." % path)
-                    package.save_file(path, node_path, target, rel_path, transform, metadata)
+                    pkg_store.add_to_package_file(pkg_root,
+                                                  path,
+                                                  node_path,
+                                                  target,
+                                                  rel_path,
+                                                  transform,
+                                                  metadata)
             else:
                 # copy so we don't modify shared ancestor_args
                 handler_args = dict(ancestor_args.get(RESERVED['kwargs'], {}))
@@ -293,9 +323,17 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
 
                 # TODO: check for changes in checks else use cache
                 # below is a heavy-handed fix but it's OK for check builds to be slow
-                if not checks and cachedobjs and all(os.path.exists(store.object_path(obj)) for obj in cachedobjs):
+                if (not checks and
+                    cachedobjs and
+                    all(os.path.exists(store.object_path(obj)) for obj in cachedobjs)):
                     # Use existing objects instead of rebuilding
-                    package.save_cached_df(cachedobjs, node_path, target, rel_path, transform, metadata)
+                    pkg_store.add_to_package_cached_df(pkg_root,
+                                                       cachedobjs,
+                                                       node_path,
+                                                       target,
+                                                       rel_path,
+                                                       transform,
+                                                       metadata)
                 else:
                     # read source file into DataFrame
                     print("Serializing %s..." % path)
@@ -312,7 +350,13 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                     # serialize DataFrame to file(s)
                     if not dry_run:
                         print("Saving as binary dataframe...")
-                        obj_hashes = package.save_df(dataframe, node_path, target, rel_path, transform, metadata)
+                        obj_hashes = pkg_store.add_to_package_df(pkg_root,
+                                                                 dataframe,
+                                                                 node_path,
+                                                                 target,
+                                                                 rel_path,
+                                                                 transform,
+                                                                 metadata)
 
                         # Add to cache
                         cache_entry = dict(
@@ -322,8 +366,8 @@ def _build_node(build_dir, package, node_path, node, checks_contents=None,
                         with open(store.cache_path(path_hash), 'w') as entry:
                             json.dump(cache_entry, entry)
         else: # rel_path and package are both None
-            raise BuildException("Leaf nodes must define either a %s or %s key" % (RESERVED['file'], RESERVED['package']))
-
+            message = "Leaf nodes must define either a %s or %s key"
+            raise BuildException(message % (RESERVED['file'], RESERVED['package']))
 
 def _remove_keywords(d):
     """
@@ -407,7 +451,8 @@ def _file_to_data_frame(ext, path, handler_args):
 
     return dataframe
 
-def build_package(team, username, package, yaml_path, checks_path=None, dry_run=False, env='default'):
+def build_package(team, username, package, subpath, yaml_path,
+                  checks_path=None, dry_run=False, env='default'):
     """
     Builds a package from a given Yaml file and installs it locally.
 
@@ -441,10 +486,23 @@ def build_package(team, username, package, yaml_path, checks_path=None, dry_run=
         checks_contents = load_yaml(checks_path)
     else:
         checks_contents = None
-    build_package_from_contents(team, username, package, os.path.dirname(yaml_path), build_data,
+    build_package_from_contents(team, username, package, subpath, os.path.dirname(yaml_path), build_data,
                                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
-def build_package_from_contents(team, username, package, build_dir, build_data,
+def get_or_create_package(store, team, owner, pkg, subpath, dry_run=False):
+    if subpath:
+        root = store.get_package(team, owner, pkg)
+        if not root:
+            root = store.create_package_node(team, owner, pkg, dry_run=dry_run)
+        node = root
+        for component in subpath[:-1]:
+            node = node.children.setdefault(component, GroupNode({}))
+    else:
+        root = store.create_package_node(team, owner, pkg, dry_run=dry_run)
+
+    return root
+
+def build_package_from_contents(team, username, package, subpath, build_dir, build_data,
                                 checks_contents=None, dry_run=False, env='default'):
     contents = build_data.get('contents', {})
     if not isinstance(contents, dict):
@@ -455,12 +513,13 @@ def build_package_from_contents(team, username, package, build_dir, build_data,
     checks_contents.update(build_data.get('checks', {}))
 
     store = PackageStore()
-    newpackage = store.create_package(team, username, package, dry_run=dry_run)
-    _build_node(build_dir, newpackage, [], contents,
+    newpackage = get_or_create_package(store, team, username, package, subpath, dry_run=dry_run)
+
+    _build_node(build_dir, store, newpackage, subpath, contents,
                 checks_contents=checks_contents, dry_run=dry_run, env=env)
 
     if not dry_run:
-        newpackage.save_contents()
+        store.save_package_contents(newpackage, team, username, package)
 
 def splitext_no_dot(filename):
     """
@@ -512,9 +571,10 @@ def generate_contents(startpath, outfilename=DEFAULT_BUILDFILE):
                     new_safename = safename
                 existing_name = safename_to_name.get(new_safename)
                 if existing_name is not None:
+                    message = "Duplicate node names in directory %r."
+                    message += " %r was renamed to %r, which overlaps with %r"
                     raise BuildException(
-                        "Duplicate node names in directory %r. %r was renamed to %r, which overlaps with %r" % (
-                        dir_path, name, new_safename, existing_name)
+                        message % (dir_path, name, new_safename, existing_name)
                     )
                 safename_to_name[new_safename] = name
 

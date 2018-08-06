@@ -56,7 +56,9 @@ export default composeComponent('App',
   injectSaga(REDUX_KEY, saga),
   () => (
     <CoreLF>
-      <AuthBar />
+      <Route path="/signin" exact>
+        {({ match }) => <AuthBar showUserMenu={!match} />}
+      </Route>
       <Pad top left right bottom>
         <Switch>
           <Route path="/" exact component={ProtectedHome} />

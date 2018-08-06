@@ -52,6 +52,8 @@ quilt.build("USER/FOO")
 from quilt.data.USER import FOO
 ```
 
+> **Update**: As of version 2.9.9,  easiest method to edit a package is to use [subpackage build and push](https://github.com/quiltdata/examples/blob/master/Numpy%2C%20easy%20package%20edit.ipynb).
+
 ### Edit dataframe nodes
 Use the Pandas API to edit existing dataframes:
 ``` python

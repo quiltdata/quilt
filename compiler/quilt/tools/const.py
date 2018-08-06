@@ -8,6 +8,7 @@ class TargetType(Enum):
     Enums for target types
     """
     PANDAS = 'pandas'
+    NUMPY = 'numpy'
     FILE = 'file'
     GROUP = 'group'
 

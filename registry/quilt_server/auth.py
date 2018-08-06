@@ -10,9 +10,9 @@ from passlib.context import CryptContext
 from sqlalchemy import func
 
 from . import app, db
-from .const import (VALID_EMAIL_RE, VALID_USERNAME_RE, blacklisted_name,
-                    ACTIVATE_SALT, PASSWORD_RESET_SALT, MAX_LINK_AGE,
-                    CODE_EXP_MINUTES)
+from .const import (ACTIVATE_SALT, CODE_TTL_DEFAULT, INVALID_USERNAMES,
+                    MAX_LINK_AGE, PASSWORD_RESET_SALT, TOKEN_TTL_DEFAULT,
+                    VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .mail import (send_activation_email, send_reset_email, send_new_user_email,
                    send_welcome_email)
 from .models import ActivationToken, Code, PasswordResetToken, Token, User
@@ -104,6 +104,7 @@ def change_password(raw_password, link):
     if not user:
         raise NotFoundException("User not found")
     user.password = hash_password(raw_password)
+    revoke_user_code_tokens(user)
     db.session.add(user)
 
 def _create_user(username, password='', email=None, is_admin=False,
@@ -111,7 +112,7 @@ def _create_user(username, password='', email=None, is_admin=False,
     def check_conflicts(username, email):
         if not VALID_USERNAME_RE.match(username):
             raise ValidationException("Invalid username.")
-        if blacklisted_name(username):
+        if username in INVALID_USERNAMES:
             raise ValidationException("Invalid username.")
         if email is None:
             raise ValidationException("Must provide email.")
@@ -123,9 +124,12 @@ def _create_user(username, password='', email=None, is_admin=False,
             raise ConflictException("Email already taken.")
 
     check_conflicts(username, email)
-    validate_password(password)
 
-    new_password = "" if requires_reset else hash_password(password)
+    if requires_reset:
+        new_password = ""
+    else:
+        validate_password(password)
+        new_password = hash_password(password)
 
     if requires_activation:
         is_active = False
@@ -205,7 +209,7 @@ def _disable_user(user):
 
 def issue_code(user):
     user_id = user.id
-    expires = datetime.utcnow() + timedelta(minutes=CODE_EXP_MINUTES)
+    expires = datetime.utcnow() + timedelta(**CODE_TTL_DEFAULT)
     code = Code(user_id=user_id, code=generate_uuid(), expires=expires)
     db.session.add(code)
     return encode_code({'id': user_id, 'code': code.code})
@@ -262,25 +266,23 @@ def revoke_token(user_id, token):
     return True
 
 def revoke_tokens(user):
-    tokens = Token.query.filter_by(user_id=user.id).with_for_update().all()
-    for token in tokens:
-        db.session.delete(token)
+    Token.query.filter_by(user_id=user.id).delete()
 
 def revoke_user_code_tokens(user):
-    codes = Code.query.filter_by(user_id=user.id).with_for_update().all()
-    for code in codes:
-        db.session.delete(code)
+    Code.query.filter_by(user_id=user.id).delete()
     revoke_tokens(user)
 
-def get_exp(mins=30):
-    return datetime.utcnow() + timedelta(minutes=mins)
+def calculate_exp(**kwargs):
+    kw = kwargs or TOKEN_TTL_DEFAULT
+    delta = timedelta(**kw)
+    return datetime.utcnow() + delta
 
-def issue_token(user, exp=None):
+def issue_token(user):
     uuid = generate_uuid()
     token = Token(user_id=user.id, token=uuid)
     db.session.add(token)
 
-    exp = exp or get_exp()
+    exp = calculate_exp()
     payload = {'id': user.id, 'uuid': uuid, 'exp': exp}
     token = jwt.encode(payload, app.secret_key, algorithm='HS256')
     return token.decode('utf-8')
@@ -398,6 +400,7 @@ def verify_reset_link(link, max_age=None):
 def reset_password(user, set_unusable=False):
     if set_unusable:
         user.password = ''
+        revoke_user_code_tokens(user)
         db.session.add(user)
 
     link = generate_reset_link(user.id)

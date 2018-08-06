@@ -59,11 +59,24 @@ def send_new_user_email(username, email, admins):
     send_email(recipients=admins, sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)
 
-def send_welcome_email(username, email, link=None):
-    subject = "Welcome to Quilt, {username}".format(username=username)
+def send_welcome_email(user, email, link=None):
+    subject = "Welcome to Quilt, {username}".format(username=user.name)
+    needsreset = link is not None
+    reseturl = '{base}/reset_password/{link}'.format(base=CATALOG_URL, link=link)
     html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
     body = render_template('welcome_email.txt', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=link is not None, reseturl=link)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
+    send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,
+               html=html, body=body)
+
+def send_comment_email(email, package_owner, package_name, commenter):
+    """Send email to owner of package regarding new comment"""
+    link = '{CATALOG_URL}/package/{owner}/{pkg}/comments'.format(
+        CATALOG_URL=CATALOG_URL, owner=package_owner, pkg=package_name)
+    subject = "New comment on {package_owner}/{package_name}".format(
+        package_owner=package_owner, package_name=package_name)
+    html = render_template('comment_email.html', commenter=commenter, link=link)
+    body = render_template('comment_email.txt', commenter=commenter, link=link)
     send_email(recipients=[email], sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)

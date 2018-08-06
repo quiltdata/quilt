@@ -115,7 +115,7 @@ def argument_parser():
     build_p = subparsers.add_parser("build", description=shorthelp, help=shorthelp)
     build_p.add_argument("package", type=str, help=HANDLE)
     build_p.add_argument("path", type=str, help="Path to source directory or YAML file")
-    build_p.set_defaults(func=command.build)
+    build_p.set_defaults(func=command.build, build_file=True)
 
     # quilt check
     shorthelp = "Execute checks for a given build"

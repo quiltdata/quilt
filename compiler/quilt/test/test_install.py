@@ -26,7 +26,6 @@ from ..tools.core import (
     TableNode,
     RootNode,
 )
-from ..tools.package import Package
 from ..tools.store import PackageStore, StoreException
 from ..tools.util import gzip_compress
 
@@ -175,7 +174,7 @@ class InstallTest(QuiltTestCase):
     def validate_file(self, user, package, contents_hash, contents, table_hash, table_data, team=None):
         teststore = PackageStore(self._store_dir)
 
-        with open(os.path.join(teststore.package_path(team, user, package), Package.CONTENTS_DIR,
+        with open(os.path.join(teststore.package_path(team, user, package), PackageStore.CONTENTS_DIR,
                                contents_hash), 'r') as fd:
             file_contents = json.load(fd, object_hook=decode_node)
             assert file_contents == contents
@@ -188,7 +187,7 @@ class InstallTest(QuiltTestCase):
         teststore = PackageStore(self._store_dir)
 
         return os.path.getmtime(os.path.join(teststore.package_path(team, user, package),
-                                             Package.CONTENTS_DIR,
+                                             PackageStore.CONTENTS_DIR,
                                              contents_hash))
 
     def test_install_dependencies(self):
@@ -439,7 +438,7 @@ packages:
         contents, contents_hash = self.make_contents(table=table_hash)
 
         s3_url = 'https://example.com/%s' % table_hash
-        error = requests.exceptions.ConnectionError("Timeout")
+        error = ConnectionError("Timeout")
 
         # Fail to install after 3 timeouts.
         self._mock_tag('foo/bar', 'latest', contents_hash)
