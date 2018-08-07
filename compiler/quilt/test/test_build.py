@@ -461,8 +461,11 @@ class BuildTest(QuiltTestCase):
         df = DataFrame(dict(a=[1, 2, 3]))
         arr = np.array([4, 5, 6])
         path = str(mydir / 'build_simple.yml')
+        metadata = {'metadata_key': 'metadata_value'}
 
         command.build('test/foo/a/b/c/empty')
+        command.build('test/foo/gn', GroupNode(dict()))
+        command.build('test/foo/dn', DataNode(None, None, arr, metadata))
         command.build('test/foo/df', df)
         command.build('test/foo/arr', arr)
         command.build('test/foo/file', path)  # Adds as a plain file
@@ -470,6 +473,9 @@ class BuildTest(QuiltTestCase):
 
         pkg = command.load('test/foo')
         assert len(pkg.a.b.c.empty) == 0
+        assert len(pkg.gn) == 0
+        assert np.array_equal(pkg.dn(), arr)
+        assert all(metadata[k] == pkg.dn._meta[k] for k in metadata)
         assert pkg.df().equals(df)
         assert np.array_equal(pkg.arr(), arr)
         assert pkg.file
