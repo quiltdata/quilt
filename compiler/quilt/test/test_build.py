@@ -472,7 +472,6 @@ class BuildTest(QuiltTestCase):
         command.build('test/foo/stuff', path, build_file=True)  # Builds a subpackage
 
         pkg = command.load('test/foo')
-        print(pkg.gn._meta)
         assert len(pkg.a.b.c.empty) == 0
         assert len(pkg.gn) == 0
         assert np.array_equal(pkg.dn(), arr)
