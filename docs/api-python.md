@@ -150,11 +150,11 @@ from quilt.team.TEAM_NAME.USER import PACKAGE
 Returns the specified package. You can use `quilt.load` to simultaneously load
 different versions of the same package.
 ```python
-PACKAGE = quilt.load(TEAM_NAME, USER, PACKAGE)
+PACKAGE = quilt.load("USER/PACKAGE")
 ```
 Specify a specific version to load by passing a package hash value:
 ```python
-PACKAGE = quilt.load(TEAM_NAME, USER, PACKAGE, hash=HASH)
+PACKAGE = quilt.load("USER/PACKAGE", hash=HASH)
 ```
 
 ## Using packages
