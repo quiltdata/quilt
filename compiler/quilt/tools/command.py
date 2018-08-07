@@ -532,7 +532,7 @@ def _build_internal(package, path, dry_run, env, build_file):
                     rmtree(tmpdir)
         else:
             build_from_path(package, path, dry_run=dry_run, env=env)
-    elif isinstance(path, nodes.GroupNode):
+    elif isinstance(path, (nodes.GroupNode, nodes.DataNode)):
         assert not dry_run  # TODO?
         build_from_node(package, path)
     elif isinstance(path, string_types + (pd.DataFrame, np.ndarray)):
