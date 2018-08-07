@@ -376,7 +376,16 @@ class PackageStore(object):
         objfiles = [self.object_path(h) for h in hash_list]
         dataset = ParquetDataset(objfiles)
         table = dataset.read(nthreads=4)
-        dataframe = table.to_pandas()
+        try:
+            dataframe = table.to_pandas()
+        except Exception:
+            # Try again to convert the table after removing
+            # the possibly buggy Pandas-specific metadata.
+            meta = table.schema.metadata.copy()
+            meta.pop(b'pandas')
+            newtable = table.replace_schema_metadata(meta)
+            dataframe = newtable.to_pandas()
+
         return dataframe
 
     def _read_parquet_spark(self, hash_list):
