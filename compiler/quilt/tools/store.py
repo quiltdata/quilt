@@ -587,7 +587,10 @@ class PackageStore(object):
             ptr = ptr.children[node]
 
         if target is TargetType.GROUP:
-            node = GroupNode(dict())
+            node = GroupNode(
+                children=dict(),
+                metadata_hash=user_meta_hash
+            )
         else:
             node = FileNode( # pylint:disable=R0204
                 hashes=hashes,
