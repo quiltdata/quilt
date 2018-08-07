@@ -464,7 +464,7 @@ class BuildTest(QuiltTestCase):
         metadata = {'metadata_key': 'metadata_value'}
 
         command.build('test/foo/a/b/c/empty')
-        command.build('test/foo/gn', GroupNode(metadata))
+        command.build('test/foo/gn', GroupNode(dict()))
         command.build('test/foo/dn', DataNode(None, None, arr, metadata))
         command.build('test/foo/df', df)
         command.build('test/foo/arr', arr)
@@ -475,8 +475,6 @@ class BuildTest(QuiltTestCase):
         print(pkg.gn._meta)
         assert len(pkg.a.b.c.empty) == 0
         assert len(pkg.gn) == 0
-        # Fails due to this (I think): compiler/quilt/tools/store.py#L581
-        # assert all(metadata[k] == pkg.gn._meta[k] for k in metadata)
         assert np.array_equal(pkg.dn(), arr)
         assert all(metadata[k] == pkg.dn._meta[k] for k in metadata)
         assert pkg.df().equals(df)
