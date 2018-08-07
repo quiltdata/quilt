@@ -378,7 +378,7 @@ class PackageStore(object):
         table = dataset.read(nthreads=4)
         try:
             dataframe = table.to_pandas()
-        except:
+        except Exception:
             # Try again to convert the table after removing
             # the possibly buggy Pandas-specific metadata.
             meta = table.schema.metadata.copy()
