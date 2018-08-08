@@ -1160,8 +1160,11 @@ def inspect(package):
         elif node.metadata['q_target'] == TargetType.PANDAS.value:
             df = store.load_dataframe(node.hashes)
             assert isinstance(df, pd.DataFrame)
-            info = "shape %s, type \"%s\"" % (df.shape, df.dtypes)
-            print(prefix + name_prefix + ": " + info)
+            types = ", ".join("%r: %s" % (name, dtype) for name, dtype in df.dtypes.items())
+            if len(types) > 64:
+                types = types[:63] + "…"
+            info = "shape %s, types %s" % (df.shape, types)
+            print(prefix + name_prefix + name + ": " + info)
         else:
             print(prefix + name_prefix + name)
 
