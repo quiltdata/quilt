@@ -142,14 +142,20 @@ For a package in a team registry:
 ```python
 from quilt.team.TEAM_NAME.USER import PACKAGE
 ```
+> Note, since Python module loads are cached by name, importing different versions of
+> the same package using `import` syntax will fail. Use `quilt.load` instead.
 
 ### `quilt.load("USR/PKG", hash=None)`
 
 Returns the specified package. You can use `quilt.load` to simultaneously load
 different versions of the same package.
-
-> Note, since Python module loads are cached by name, importing different versions of
-> the same package using `import` syntax will fail.
+```python
+PACKAGE = quilt.load("USER/PACKAGE")
+```
+Specify a specific version to load by passing a package hash value:
+```python
+PACKAGE = quilt.load("USER/PACKAGE", hash=HASH)
+```
 
 ## Using packages
 
