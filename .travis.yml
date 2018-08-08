@@ -65,7 +65,6 @@ install:
     if [[ "$TEST_COMPILER" = true ]]; then
       # pytorch doesn't fully support pip; see https://pytorch.org/
       travis_retry pip install "$TORCH"
-      travis_retry pip install -U numpy  # Work around "numpy.core.multiarray failed to import"
       travis_retry pip install "./compiler[img,tests,torchvision]"
     fi
   - |
