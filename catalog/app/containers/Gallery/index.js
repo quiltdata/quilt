@@ -33,6 +33,7 @@ export class Gallery extends React.PureComponent {
       dispatch(getLatest());
     }
   }
+
   render() {
     const packages = config.team ? this.props.packages : feed;
     // eslint-disable-next-line object-curly-newline, camelcase
