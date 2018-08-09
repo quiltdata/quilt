@@ -5,7 +5,7 @@
  */
 const fs = require('fs');
 const nodeGlob = require('glob');
-const transform = require('babel-core').transform;
+const transform = require('@babel/core').transform;
 
 const animateProgress = require('./helpers/progress');
 const addCheckmark = require('./helpers/checkmark');
