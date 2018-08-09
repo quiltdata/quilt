@@ -25,8 +25,7 @@ const defaultSubmitIsEnabled = (btn) => !btn.prop('disabled');
 
 const defaultSubmitIsWaiting = (btn) =>
   btn.prop('disabled')
-  &&
-  btn.find(`${getPropName('children')} ${mockComponentSelector('Spinner')}`).length === 1;
+  && btn.find(`${getPropName('children')} ${mockComponentSelector('Spinner')}`).length === 1;
 
 const defaultSubmit = (ctx) =>
   ctx.mounted.find('form').simulate('submit');

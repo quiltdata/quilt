@@ -13,6 +13,7 @@ export default class Redirect extends React.PureComponent {
   componentWillMount() {
     redirect(this.props.url);
   }
+
   render() {
     return (
       <div>

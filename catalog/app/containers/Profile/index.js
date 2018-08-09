@@ -55,18 +55,18 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     this.maybeGetProfile();
   }
 
-  onDowngrade = () => {
+  onDowngrade() {
     const { selectedPlan } = this.state;
     const { dispatch } = this.props;
     dispatch(updatePlan(selectedPlan));
     this.showDialog(false);
   }
 
-  onSelectPlan = (evt, value) => {
+  onSelectPlan(evt, value) {
     this.setState({ selectedPlan: value });
   }
 
-  onToken = (token) => {
+  onToken(token) {
     const { dispatch, profile: { plan = {} } } = this.props;
     const currentPlan = plan.response;
     const { selectedPlan } = this.state;
@@ -102,35 +102,33 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
     return error;
   }
 
-  showDialog = (showDialog) => {
+  updatePayment(token) {
+    const { dispatch } = this.props;
+    dispatch(updatePayment(token.id));
+  }
+
+  showDialog(showDialog) {
     const { profile: { plan = {} } } = this.props;
     if (!showDialog) {
       // when closing dialog forget selection
       this.setState({ selectedPlan: plan.response });
     }
     this.setState({ showDialog });
-  };
-
-  updatePayment = (token) => {
-    const { dispatch } = this.props;
-    dispatch(updatePayment(token.id));
   }
 
   // TODO separate first h1 (user name) from rest of page so that it's not hidden
   // behind the waiting spinner for no reason; better if user sees something right away
   render() {
     const { profile, dispatch } = this.props;
-    // eslint-disable-next-line object-curly-newline
     const { status, error = {}, payment = {}, plan = {}, response = {} } = profile;
     const { response: err } = error;
+    // eslint-disable-next-line default-case
     switch (status) {
       case undefined:
       case apiStatus.WAITING:
         return <Working />;
       case apiStatus.ERROR:
         return <Error {...err} />;
-      default:
-        break;
     }
 
     const shortName = this.props.user.slice(0, 2);

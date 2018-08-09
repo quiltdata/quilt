@@ -109,7 +109,7 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
       </table>
       <Detail>* Sold in packs of 10 users</Detail>
       <p>
-        <a href={`mailto:sales@quiltdata.io?Subject=Quilt%20Teams&body=${emailBody}`} target="_top" >
+        <a href={`mailto:sales@quiltdata.io?Subject=Quilt%20Teams&body=${emailBody}`} target="_top">
           Contact us
         </a>
         &nbsp;to start Team service.

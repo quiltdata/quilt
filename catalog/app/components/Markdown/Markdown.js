@@ -12,9 +12,8 @@ import { composeComponent } from 'utils/reactTools';
 
 
 const highlight = (str, lang) => {
-  if (lang === 'none') {
-    return '';
-  } else if (hljs.getLanguage(lang)) {
+  if (lang === 'none') return '';
+  if (hljs.getLanguage(lang)) {
     try {
       return hljs.highlight(lang, str).value;
     } catch (err) {

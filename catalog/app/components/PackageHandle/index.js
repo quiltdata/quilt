@@ -86,14 +86,14 @@ export default composeComponent('PackageHandle',
       <Text>
         <VisibilityIcon visibility={visibility} />
         &nbsp;
-        {prefix &&
+        {prefix && (
           <Lighter>
             {linkUser
               ? <Link to={`/package/${owner}/`}>{prefix}</Link>
               : prefix
             }
           </Lighter>
-        }
+        )}
         {name}
         {readmePreview && <Preview>{readmePreview}</Preview>}
       </Text>

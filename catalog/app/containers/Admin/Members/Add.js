@@ -95,11 +95,11 @@ export default composeComponent('Admin.Members.Add',
     <Fragment>
       <h3><FM {...msg.addHeading} /></h3>
       <Form onSubmit={handleSubmit}>
-        {error &&
+        {error && (
           <FormError>
             {error in FORM_ERRORS ? formatMessage(FORM_ERRORS[error]) : error}
           </FormError>
-        }
+        )}
         <Field
           name="username"
           validate={[validators.required]}

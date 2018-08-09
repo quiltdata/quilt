@@ -41,8 +41,8 @@ const Install = ({ name, owner }) => (
     <Tabs>
       <Tab label="Python">
         {
-          config.team ?
-            <Code>from quilt.team.{config.team.id}.{owner} import {name}</Code>
+          config.team
+            ? <Code>from quilt.team.{config.team.id}.{owner} import {name}</Code>
             : <Code>from quilt.data.{owner} import {name}</Code>
         }
       </Tab>

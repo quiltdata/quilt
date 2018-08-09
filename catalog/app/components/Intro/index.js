@@ -160,14 +160,9 @@ const ClipCol = styled(Col)`
 function IntroRow({ detail, src, srcFade, textRight, title, typing }) {
   const text = (
     <Col key="text" xs={12} sm={7}>
-      <h1>{ title }</h1>
-      { detail }
-      {
-        typing ?
-          <Terminal className="fixed">
-            { typing }
-          </Terminal> : null
-      }
+      <h1>{title}</h1>
+      {detail}
+      {typing ? <Terminal className="fixed">{typing}</Terminal> : null}
     </Col>
   );
 
@@ -183,7 +178,7 @@ function IntroRow({ detail, src, srcFade, textRight, title, typing }) {
 
   return (
     <Row className="intro-row">
-      { textRight ? [picture, text] : [text, picture] }
+      {textRight ? [picture, text] : [text, picture]}
     </Row>
   );
 }

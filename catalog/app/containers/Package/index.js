@@ -66,6 +66,7 @@ export class Package extends React.PureComponent {
     const { match: { params: { name, owner } } } = this.props;
     this.getData(owner, name);
   }
+
   componentWillReceiveProps(nextProps) {
     const { match: { params: { name: oldName, owner: oldOwner } }, user: oldUser } = this.props;
     const { match: { params: { name, owner } }, user } = nextProps;
@@ -77,6 +78,7 @@ export class Package extends React.PureComponent {
       this.getData(owner, name);
     }
   }
+
   getData(owner, name) {
     const { dispatch } = this.props;
     dispatch(getPackage(owner, name));
@@ -84,6 +86,7 @@ export class Package extends React.PureComponent {
     dispatch(getTraffic(owner, name));
     dispatch(getComments(owner, name));
   }
+
   printManifest(buffer, nodes, indent = '') {
     for (let i = 0; i < nodes.length; i += 1) {
       const [name, children] = nodes[i];
@@ -96,6 +99,7 @@ export class Package extends React.PureComponent {
       }
     }
   }
+
   renderReadme(manifest) {
     const { status, error = {}, response = {} } = manifest;
     // eslint-disable-next-line default-case
@@ -112,6 +116,7 @@ export class Package extends React.PureComponent {
     }
     return <Message><FormattedMessage {...strings.noReadme} /></Message>;
   }
+
   render() {
     const {
       pkg,
@@ -173,7 +178,7 @@ export class Package extends React.PureComponent {
           >
             <Tab value="readme" label="Readme">
               <Pad top right left bottom pad="1em">
-                { this.renderReadme(manifest || {}) }
+                {this.renderReadme(manifest || {})}
               </Pad>
             </Tab>
             <Tab
