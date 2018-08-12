@@ -1,94 +1,110 @@
-import id from 'lodash/identity';
+// @flow
+
+import { type Map } from 'immutable';
 import isFunction from 'lodash/isFunction';
 
-export const unset = Symbol('reduxTools/unset');
-export const noop = Symbol('reduxTools/noop');
+// export const unset = Symbol('reduxTools/unset');
+// export const noop = Symbol('reduxTools/noop');
+export const unset = '@@app/reduxTools/unset';
+export const noop = '@@app/reduxTools/noop';
 
 /**
  * A redux action.
- *
- * @typedef {Object} Action
  */
+export type Action = {
+  type: string,
+  error?: bool,
+};
+
+/**
+ * Immutable Map representing a store state.
+ */
+export type StateMap = Map<string, mixed>;
+
+/**
+ * A redux selector.
+ */
+export type Selector<T> = (state: StateMap) => T;
 
 /**
  * A redux reducer.
- *
- * @typedef {function} Reducer
- *
- * @param {any} state
- * @param {Action} action
- *
- * @returns {any}
  */
+export type Reducer = (state: StateMap, action: Action) => StateMap;
 
 /**
  * Value to use for the current key.
  * If equals `unset` Symbol, unset the current key.
  * If equals `noop` Symbol, keep the value under the current key.
  * Otherwise, set the given value to the current key.
- *
- * @typedef {Symbol|any} Value
  */
+export type ValueUpdate<T> = typeof noop | typeof unset | T;
 
 /**
  * Function used to update the current value.
- *
- * @typedef {function} ValueUpdater
- *
- * @param {any} currentValue
- *
- * @returns {Value}
- *   The updated value.
  */
+export type ValueUpdater<T> = (current: T) => ValueUpdate<T>;
 
 /**
  * Function used to handle an action.
  * Returns the new value or a ValueUpdater function.
- *
- * @typedef {function} ActionHandler
- *
- * @param {any} payload
- * @param {any} meta
- * @param {Action} action
- *
- * @returns {ValueUpdater|Value}
  */
+export type ActionHandler<T> = (
+  payload: *,
+  meta: *,
+  action: Action,
+) => ValueUpdater<T> | ValueUpdate<T>;
+
+/**
+ * Identity reducer, returns unmodified state.
+ */
+const idReducer = (state: StateMap, _action: Action): StateMap => state;
+
+type MkHandler = <T>(value: T) => ActionHandler<T> | ValueUpdate<T>;
+
+// $Rest is needed to make all the keys optional
+type HandlerMap<State> = $ObjMap<$Shape<State>, ?MkHandler>;
 
 /**
  * Combine handlers for given keys (state should be an Immutable Map).
- *
- * @param {Object.<string, ActionHandler|Value>} handlers
- *   Handler map (key -> handler).
- *   If handler is a Value, use it for the current key.
- *   If handler is a function (ActionHandler),
- *   call it with action.payload, action.meta and action.
- *   If result is a Value, use it for the current key.
- *   If result is a function (ValueUpdater),
- *   use it as an updater for the current key.
- *
- * @returns {Reducer}
  */
-export const combine = (handlers) => (state, action) =>
-  Object.entries(handlers).reduce((acc, [key, handler]) => {
-    const updater = isFunction(handler) ? handler(action.payload, action.meta, action) : handler;
-    const updated = isFunction(updater) ? updater(acc.get(key)) : updater;
-    switch (updated) {
-      case noop: return acc;
-      case unset: return acc.remove(key);
-      default: return acc.set(key, updated);
-    }
-  }, state);
+export const combine = <State: {}>(
+  /**
+   * Handler map (key -> handler).
+   * If handler is a Value, use it for the current key.
+   * If handler is a function (ActionHandler),
+   * call it with action.payload, action.meta and action.
+   * If result is a Value, use it for the current key.
+   * If result is a function (ValueUpdater),
+   * use it as an updater for the current key.
+   */
+  handlers: HandlerMap<State>
+): Reducer =>
+    // for some reason eslint believes the function body should be indented this far
+    (state, action: any) =>
+      Object.entries(handlers).reduce((acc, [key, handler]) => {
+        const updater = isFunction(handler)
+          ? handler(action.payload, action.meta, action)
+          : handler;
+        const updated = isFunction(updater)
+          ? updater(acc.get(key))
+          : updater;
+        switch (updated) {
+          case noop: return acc;
+          case unset: return acc.remove(key);
+          default: return acc.set(key, updated);
+        }
+      }, state);
 
 /**
  * Create a reducer that handles actions based on a given reducer map.
- *
- * @param {Object.<string, Reducer>} reducers
- *   Reducer map (action type -> reducer).
- *
- * @returns {Reducer}
  */
-export const handleActions = (reducers) => (state, action) =>
-  (reducers[action.type] || id)(state, action);
+export const handleActions = (
+  /**
+   * Reducer map (action type -> reducer).
+   */
+  reducers: { [type: string]: Reducer }
+): Reducer => (state, action) =>
+  (reducers[action.type] || idReducer)(state, action);
 
 /**
  * Create a reducer that handles transitions.
@@ -99,8 +115,14 @@ export const handleActions = (reducers) => (state, action) =>
  * @param {Object.<string, Reducer>} reducers
  *   Reducer map (FSM state -> Reducer).
  */
-export const handleTransitions = (getState, reducers) => (state, action) =>
-  (reducers[getState(state)] || id)(state, action);
+export const handleTransitions = (
+  getState: Selector<?string>,
+  reducers: { [key: string ]: Reducer },
+): Reducer =>
+  (state, action) => {
+    const st = getState(state);
+    return ((st ? reducers[st] : undefined) || idReducer)(state, action);
+  };
 
 /**
  * Sets the initial state for a reducer.
@@ -111,36 +133,49 @@ export const handleTransitions = (getState, reducers) => (state, action) =>
  * @returns {Reducer}
  *   Reducer with the given initial state.
  */
-export const withInitialState = (initialState, reducer) =>
+export const withInitialState = (initialState: StateMap, reducer: Reducer): Reducer =>
   (state = initialState, action) => reducer(state, action);
 
 /**
  * Create a reducer that uses different handlers for error and non-error actions.
- *
- * @param {Object} handlers
- * @param {Reducer} handlers.resolve
- *   Reducer used to handle non-error actions (with falsy error prop).
- * @param {Reducer} handlers.reject
- *   Reducer used to handle error actions (with truthy error prop).
- *
- *  @returns {Reducer}
  */
-export const handleResult = ({ resolve, reject }) => (state, action) =>
-  ((action.error ? reject : resolve) || id)(state, action);
+export const handleResult = (
+  { resolve, reject }: {
+    /**
+     * Reducer used to handle non-error actions (with falsy error prop).
+     */
+    resolve: ?Reducer,
+    /**
+     * Reducer used to handle error actions (with truthy error prop).
+     */
+    reject: ?Reducer,
+  },
+): Reducer =>
+  (state, action) =>
+    ((action.error ? reject : resolve) || idReducer)(state, action);
 
 /**
  * Create map of actions prefixed with the given scope.
- *
- * @param {string} scope
- * @param {...string} actions
  *
  * @returns {Object.<string, string>}
  *   A map of actions with the original strings as keys
  *   and the prefixed strings as values.
  */
-export const createActions = (scope, ...actions) =>
+export const createActions = (
+  scope: string,
+  ...actions: string[]
+): { [key: string]: string } =>
   actions.reduce((acc, action) => ({ ...acc, [action]: `${scope}/${action}` }), {});
 
+type ActionTypeType<A: Action> = $PropertyType<A, 'type'>;
+
+type ActionContents<A: Action> = $Diff<A, { type: ActionTypeType<A> }>;
+
+type ActionCreator<A> =
+  & ((...args: any) => A)
+  & { type: ActionTypeType<A> };
+
+type CreateAction<A> = (...args: any) => ActionContents<A>;
 
 /**
  * Create an action creator for the given action type.
@@ -155,5 +190,9 @@ export const createActions = (scope, ...actions) =>
  *
  * @returns {function} The action creator.
  */
-export const actionCreator = (type, create = () => {}) =>
-  Object.assign((...args) => ({ type, ...create(...args) }), { type });
+export const actionCreator = <A: Action>(
+  type: string,
+  create: CreateAction<A> = () => ({}: any),
+): ActionCreator<A> =>
+    // for some reason eslint believes the function body should be indented this far
+    Object.assign((...args) => ({ type, ...create(...args) }), { type });
