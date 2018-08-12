@@ -1,7 +1,20 @@
-import { fromJS as iFromJS } from 'immutable';
+// @flow
 
-export const invoke = (method) => (...args) => (obj) =>
-  obj && method in obj ? obj[method](...args) : obj;
+import {
+  fromJS as iFromJS,
+  type KeyedCollection,
+} from 'immutable';
+
+type FnMap = { [method: string]: (...args: any) => any };
+
+export const invoke = (method: string) => (...args: any) =>
+  (obj: ?(KeyedCollection<string, any> & FnMap)): any => {
+    if (obj == null) return undefined;
+    if (obj[method] && typeof obj[method] === 'function') {
+      return obj[method](...args);
+    }
+    return undefined;
+  };
 
 // TODO: more helpers
 export const get = invoke('get');
@@ -14,4 +27,4 @@ export const sortBy = invoke('sortBy');
 export const push = invoke('push');
 export const map = invoke('map');
 export const toJS = invoke('toJS');
-export const fromJS = (...args) => (obj) => iFromJS(obj, ...args);
+export const fromJS = (...args: any) => (obj: mixed) => iFromJS(obj, ...args);
