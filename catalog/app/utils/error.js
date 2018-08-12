@@ -1,15 +1,19 @@
+// @flow
+
 /**
  * Extensible error class.
  */
 export class BaseError {
   static displayName = 'BaseError';
 
+  name: ?string;
+
   /**
    * @param {string} message Message to pass to the Error constructor.
    *
    * @param {Object} props Properties to assign to the created instance.
    */
-  constructor(msg, props) {
+  constructor(msg: string, props: ?{}) {
     const e = new Error(msg);
     Object.setPrototypeOf(e, Object.getPrototypeOf(this));
     if (Error.captureStackTrace) Error.captureStackTrace(e, e.constructor);
@@ -20,10 +24,10 @@ export class BaseError {
 
 Object.setPrototypeOf(BaseError.prototype, Error.prototype);
 
-Object.defineProperty(BaseError.prototype, 'name', {
+Object.defineProperty(BaseError.prototype, 'name', ({
   enumerable: false,
-  get() { return this.constructor.displayName; },
-});
+  get(): string { return this.constructor.displayName; },
+}: PropertyDescriptor<string>));
 
 /**
  * Error class with fields designed to feed <Error /> via object rest spread.
@@ -38,7 +42,7 @@ export class ErrorDisplay extends BaseError {
    *
    * @param {Object} object
    */
-  constructor(headline, detail, object) {
+  constructor(headline: string, detail: ?string, object: ?{}) {
     super(headline, { headline, detail, object });
   }
 }
