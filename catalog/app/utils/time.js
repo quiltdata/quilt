@@ -1,5 +1,8 @@
-/* Time utilities */
-/* unix time in seconds; not necessarily an integer */
+// @flow
+
+/**
+ * Get UNIX time in seconds; not necessarily an integer.
+ */
 export function timestamp() {
   return (Date.now() / 1000);
 }
