@@ -1,4 +1,5 @@
 // @flow
+
 /**
  * An object containing the handles to a Promise.
  */
