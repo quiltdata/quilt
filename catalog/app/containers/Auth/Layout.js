@@ -1,10 +1,11 @@
+// @flow
+
 import { red500 } from 'material-ui/styles/colors';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import PT from 'prop-types';
-import React from 'react';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { mapProps, setPropTypes } from 'recompose';
+import { mapProps } from 'recompose';
 import styled from 'styled-components';
 
 import Spinner from 'components/Spinner';
@@ -59,12 +60,14 @@ const handleAutofilledInput = (el) => {
 
 
 export const Field = composeComponent('Auth.Field',
-  setPropTypes({
-    input: PT.object.isRequired,
-    meta: PT.object.isRequired,
-    errors: PT.objectOf(PT.node),
-  }),
-  mapProps(({ input, meta, errors, ...rest }) => ({
+  mapProps(({ input, meta, errors, ...rest }: {
+    input: {},
+    meta: {
+      error: string,
+      submitFailed: bool,
+    },
+    errors: { [string]: React.Node },
+  }) => ({
     errorText:
       meta.submitFailed && meta.error
         ? errors[meta.error] || /* istanbul ignore next */ meta.error
@@ -124,18 +127,16 @@ export const Message = styled.p`
 `;
 
 // eslint-disable-next-line react/prop-types
-export const mkLayout = (heading) => ({ children }) => (
-  <Container>
-    <Heading>{heading}</Heading>
-    {children}
-  </Container>
-);
+export const mkLayout = (heading: React.Node) =>
+  ({ children }: { children: React.Node }) => (
+    <Container>
+      <Heading>{heading}</Heading>
+      {children}
+    </Container>
+  );
 
 export const Submit = composeComponent('Auth.Submit',
-  setPropTypes({
-    busy: PT.bool,
-  }),
-  ({ busy, ...rest }) => (
+  ({ busy, ...rest }: { busy: bool }) => (
     <RaisedButton
       type="submit"
       primary

@@ -1,15 +1,15 @@
+// @flow
+
 import { createActions } from 'utils/reduxTools';
 
 export const REDUX_KEY = 'app/Auth';
 
-export const states = [
-  'SIGNED_OUT',
-  'SIGNING_IN',
-  'SIGNED_IN',
-  'REFRESHING',
-];
-
-export const waitingStates = [
+export type FSMState =
+  | 'SIGNED_OUT'
+  | 'SIGNING_IN'
+  | 'SIGNED_IN'
+  | 'REFRESHING';
+export const waitingStates: FSMState[] = [
   'SIGNING_IN',
   'REFRESHING',
 ];

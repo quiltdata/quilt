@@ -1,4 +1,7 @@
+// @flow
+
 import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
+import type { Pattern, Saga } from 'redux-saga';
 
 import { apiRequest, HTTPError } from 'utils/APIConnector';
 import defer from 'utils/defer';
@@ -8,12 +11,13 @@ import { timestamp } from 'utils/time';
 import * as actions from './actions';
 import * as errors from './errors';
 import * as selectors from './selectors';
+import type { Tokens, User } from './types';
 
 
-export const adjustTokensForLatency = (tokens, latency) => ({
+export const adjustTokensForLatency = (tokens: Tokens, latency: number) => ({
   ...tokens,
   exp:
-    Number.isFinite(tokens.exp)
+    tokens.exp && Number.isFinite(tokens.exp)
       ? tokens.exp - latency
       /* istanbul ignore next */
       : tokens.exp,
@@ -22,11 +26,9 @@ export const adjustTokensForLatency = (tokens, latency) => ({
 /**
  * Get auth tokens from stored auth data, checking if auth token is up-to-date
  * and waiting until any pending auth requests are settled.
- *
- * @returns {Object}
- *   Object containing the auth tokens, undefined if not authenticated.
+ * Returns an object with the auth tokens, undefined if not authenticated.
  */
-export function* getTokens() {
+export function* getTokens(): Saga<?Tokens> {
   const checked = defer();
   yield put(actions.check({ refetch: false }, checked.resolver));
   // eslint-disable-next-line no-empty
@@ -47,7 +49,7 @@ export function* getTokens() {
  * @throws {EmailTaken}
  * @throws {AuthError}
  */
-function* signUp(credentials) {
+function* signUp(credentials: actions.SignUpCredentials): Saga<void> {
   try {
     yield call(apiRequest, {
       auth: false,
@@ -86,7 +88,7 @@ function* signUp(credentials) {
  *
  * @throws {AuthError}
  */
-function* signOut() {
+function* signOut(): Saga<void> {
   try {
     yield call(apiRequest, {
       auth: { handleInvalidToken: false },
@@ -104,14 +106,10 @@ function* signOut() {
 /**
  * Make a sign-in request.
  *
- * @param {Object} credentials
- * @param {string} credentials.username
- * @param {string} credentials.password
- *
  * @throws {InvalidCredentials}
  * @throws {AuthError}
  */
-function* signIn(credentials) {
+function* signIn(credentials: actions.SignInCredentials): Saga<Tokens> {
   try {
     const { token, exp } = yield call(apiRequest, {
       auth: false,
@@ -135,16 +133,12 @@ function* signIn(credentials) {
 /**
  * Fetch user data.
  *
- * @param {Object} tokens
- *
- * @returns {Object} User data.
- *
  * @throws {InvalidToken} The auth token is invalid.
  * @throws {AuthError}
  *   Wrap any caught error into AuthError,
  *   with original error attached as `originalError` property.
  */
-function* fetchUser(tokens) {
+function* fetchUser(tokens: Tokens): Saga<User> {
   try {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
@@ -166,11 +160,9 @@ function* fetchUser(tokens) {
 /**
  * Make a password reset request.
  *
- * @param {string} email
- *
  * @throws {AuthError}
  */
-function* resetPassword(email) {
+function* resetPassword(email: string): Saga<void> {
   try {
     yield call(apiRequest, {
       auth: false,
@@ -189,14 +181,11 @@ function* resetPassword(email) {
 /**
  * Make a password change request.
  *
- * @param {string} link
- * @param {string} password
- *
  * @throws {AuthError}
  * @throws {InvalidResetLink}
  * @throws {InvalidPassword}
  */
-function* changePassword(link, password) {
+function* changePassword(link: string, password: string): Saga<void> {
   try {
     yield call(apiRequest, {
       auth: false,
@@ -228,11 +217,9 @@ function* changePassword(link, password) {
 /**
  * Get the code from the API.
  *
- * @returns {string} The code.
- *
  * @throws {AuthError}
  */
-function* getCode() {
+function* getCode(): Saga<string> {
   try {
     const { code } = yield call(apiRequest, '/code');
     return code;
@@ -247,16 +234,10 @@ function* getCode() {
 /**
  * Refresh auth tokens.
  *
- * @param {number} latency
- *
- * @param {Object} tokens
- *
- * @returns {Object} Refreshed tokens adjusted for latency.
- *
  * @throws {InvalidToken}
  * @throws {AuthError}
  */
-function* refreshTokens(latency, tokens) {
+function* refreshTokens(latency: number, tokens: Tokens): Saga<Tokens> {
   try {
     const newTokens = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
@@ -281,18 +262,11 @@ function* refreshTokens(latency, tokens) {
  * then request the user data using received tokens.
  * Finally, store the tokens and user data and dispatch a SIGN_IN_RESULT action.
  * Call resolve or reject callback.
- *
- * @param {Object} options
- * @param {number} options.latency
- * @param {function} options.storeTokens
- * @param {function} options.storeUser
- *
- * @param {Action} action
  */
 function* handleSignIn(
   { latency, storeTokens, storeUser },
-  { payload: credentials, meta: { resolve, reject } },
-) {
+  { payload: credentials, meta: { resolve, reject } }: actions.SignInAction,
+): Saga<void> {
   try {
     const tokensRaw = yield call(signIn, credentials);
     const tokens = adjustTokensForLatency(tokensRaw, latency);
@@ -311,14 +285,11 @@ function* handleSignIn(
 
 /**
  * Handle SIGN_OUT action.
- *
- * @param {Object} options
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- *
- * @param {Action} action
  */
-function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
+function* handleSignOut(
+  { forgetTokens, forgetUser },
+  { meta: { resolve, reject } }: actions.SignOutAction,
+): Saga<void> {
   try {
     yield call(signOut);
     yield put(actions.signOut.resolve());
@@ -334,13 +305,13 @@ function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject 
   }
 }
 
-const isExpired = (tokens, time) => {
+const isExpired = (tokens: Tokens, time: number) => {
   // some backwards compatibility
   const exp = tokens.exp
     // istanbul ignore next
-    || tokens.expires_at
+    || (tokens: any).expires_at
     // istanbul ignore next
-    || tokens.expires_on;
+    || (tokens: any).expires_on;
   return exp && exp < time;
 };
 
@@ -349,22 +320,11 @@ const isExpired = (tokens, time) => {
  * Check if the stored tokens are up-to-date.
  * Refresh tokens if stale, store the refreshed ones.
  * Then refetch and store user data if requested.
- *
- * @param {Object} options
- * @param {number} options.latency
- * @param {function} options.storeTokens
- * @param {function} options.storeUser
- * @param {function} options.forgetTokens
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
- * @param {function} options.onAuthError
- *
- * @param {Action} action
  */
 function* handleCheck(
   { latency, storeTokens, storeUser, onAuthError },
-  { payload: { refetch }, meta: { resolve, reject } },
-) {
+  { payload: { refetch }, meta: { resolve, reject } }: actions.CheckAction,
+): Saga<void> {
   try {
     const tokens = yield select(selectors.tokens);
     const time = yield call(timestamp);
@@ -400,12 +360,11 @@ function* handleCheck(
 
 /**
  * Handle AUTH_LOST action.
- *
- * @param {Object} options
- * @param {function} options.onAuthLost
- * @param {Action} action
  */
-function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
+function* handleAuthLost(
+  { forgetTokens, forgetUser, onAuthLost },
+  { payload: err }: actions.AuthLostAction,
+): Saga<void> {
   yield fork(forgetTokens);
   yield fork(forgetUser);
   yield call(onAuthLost, err);
@@ -413,10 +372,10 @@ function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: er
 
 /**
  * Handle SIGN_UP action.
- *
- * @param {Action} action
  */
-function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
+function* handleSignUp(
+  { payload: credentials, meta: { resolve, reject } }: actions.SignUpAction,
+): Saga<void> {
   try {
     yield call(signUp, credentials);
     yield call(resolve);
@@ -427,10 +386,10 @@ function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
 
 /**
  * Handle RESET_PASSWORD action.
- *
- * @param {Action} action
  */
-function* handleResetPassword({ payload: email, meta: { resolve, reject } }) {
+function* handleResetPassword(
+  { payload: email, meta: { resolve, reject } }: actions.ResetPasswordAction,
+): Saga<void> {
   try {
     yield call(resetPassword, email);
     yield call(resolve);
@@ -441,10 +400,10 @@ function* handleResetPassword({ payload: email, meta: { resolve, reject } }) {
 
 /**
  * Handle CHANGE_PASSWORD action.
- *
- * @param {Action} action
  */
-function* handleChangePassword({ payload: { link, password }, meta: { resolve, reject } }) {
+function* handleChangePassword(
+  { payload: { link, password }, meta: { resolve, reject } }: actions.ChangePasswordAction,
+): Saga<void> {
   try {
     yield call(changePassword, link, password);
     yield call(resolve);
@@ -455,10 +414,10 @@ function* handleChangePassword({ payload: { link, password }, meta: { resolve, r
 
 /**
  * Handle GET_CODE action.
- *
- * @param {Action} action
  */
-function* handleGetCode({ meta: { resolve, reject } }) {
+function* handleGetCode(
+  { meta: { resolve, reject } }: actions.GetCodeAction,
+): Saga<void> {
   try {
     const code = yield call(getCode);
     yield call(resolve, code);
@@ -467,18 +426,24 @@ function* handleGetCode({ meta: { resolve, reject } }) {
   }
 }
 
+function* checkAuth(): Saga<void> {
+  yield put(actions.check());
+}
+
+export type AuthSagaOptions = {
+  latency: number,
+  checkOn: Pattern,
+  storeTokens: (t: Tokens) => void,
+  forgetTokens: () => void,
+  storeUser: (u: User) => void,
+  forgetUser: () => void,
+  onAuthLost: () => void,
+  onAuthError: () => void,
+};
+
 /**
  * Main Auth saga.
  * Handles auth actions and fires CHECK action on specified condition.
- *
- * @param {Object} options
- * @param {function} options.checkOn
- * @param {function} options.storeTokens
- * @param {function} options.forgetTokens
- * @param {function} options.storeUser
- * @param {function} options.forgetUser
- * @param {function} options.onAuthLost
- * @param {function} options.onAuthError
  */
 export default function* ({
   latency,
@@ -489,7 +454,7 @@ export default function* ({
   forgetUser,
   onAuthLost,
   onAuthError,
-}) {
+}: AuthSagaOptions): Saga<void> {
   yield takeEvery(actions.signIn.type, handleSignIn,
     { latency, storeTokens, storeUser });
   yield takeEvery(actions.signOut.type, handleSignOut,
@@ -503,5 +468,5 @@ export default function* ({
   yield takeEvery(actions.changePassword.type, handleChangePassword);
   yield takeEvery(actions.getCode.type, handleGetCode);
 
-  if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
+  if (checkOn) yield takeEvery(checkOn, checkAuth);
 }

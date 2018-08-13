@@ -1,3 +1,5 @@
+// @flow
+
 import get from 'lodash/fp/get';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';

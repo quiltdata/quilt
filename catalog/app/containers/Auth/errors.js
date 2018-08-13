@@ -1,11 +1,14 @@
+// @flow
+
 import { BaseError } from 'utils/error';
 
-const withDefaultMessage = (message, props) => ({ message, ...props });
+const withDefaultMessage = (message: string, props: ?{}) =>
+  ({ message, ...props });
 
 export class AuthError extends BaseError {
   static displayName = 'AuthError';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     const { message, ...rest } = withDefaultMessage('auth error', props);
     super(message, rest);
   }
@@ -14,7 +17,7 @@ export class AuthError extends BaseError {
 export class InvalidToken extends AuthError {
   static displayName = 'InvalidToken';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid token', props));
   }
 }
@@ -22,7 +25,7 @@ export class InvalidToken extends AuthError {
 export class InvalidCredentials extends AuthError {
   static displayName = 'InvalidCredentials';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid credentials', props));
   }
 }
@@ -30,7 +33,7 @@ export class InvalidCredentials extends AuthError {
 export class EmailTaken extends AuthError {
   static displayName = 'EmailTaken';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('email taken', props));
   }
 }
@@ -38,7 +41,7 @@ export class EmailTaken extends AuthError {
 export class UsernameTaken extends AuthError {
   static displayName = 'UsernameTaken';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('username taken', props));
   }
 }
@@ -46,7 +49,7 @@ export class UsernameTaken extends AuthError {
 export class InvalidUsername extends AuthError {
   static displayName = 'InvalidUsername';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid username', props));
   }
 }
@@ -54,7 +57,7 @@ export class InvalidUsername extends AuthError {
 export class InvalidEmail extends AuthError {
   static displayName = 'InvalidEmail';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid email', props));
   }
 }
@@ -62,7 +65,7 @@ export class InvalidEmail extends AuthError {
 export class InvalidResetLink extends AuthError {
   static displayName = 'InvalidResetLink';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid reset link', props));
   }
 }
@@ -70,7 +73,7 @@ export class InvalidResetLink extends AuthError {
 export class InvalidPassword extends AuthError {
   static displayName = 'InvalidPassword';
 
-  constructor(props) {
+  constructor(props: ?{}) {
     super(withDefaultMessage('invalid password', props));
   }
 }

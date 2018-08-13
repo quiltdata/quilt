@@ -1,3 +1,5 @@
+// @flow
+
 import React, { Fragment } from 'react';
 import { FormattedMessage as FM } from 'react-intl';
 import { connect } from 'react-redux';

@@ -1,3 +1,5 @@
+// @flow
+
 import { defineMessages } from 'react-intl';
 
 const scope = 'app.containers.Auth';

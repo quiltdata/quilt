@@ -30,6 +30,11 @@ const makeHeadersFromTokens = ({ token }) => ({
  *   Whether to intercept 401 responses with 'Token invalid.' message and
  *   dispatch authentication lost action.
  */
+/*
+type AuthOptions = {
+  tokens
+};
+*/
 
 /**
  * Auth middleware for APIConnector. Adds auth headers to the request and

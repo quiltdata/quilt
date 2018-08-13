@@ -1,3 +1,5 @@
+// @flow
+
 import RaisedButton from 'material-ui/RaisedButton';
 import React from 'react';
 import { FormattedMessage as FM } from 'react-intl';
@@ -9,7 +11,6 @@ import {
   withHandlers,
   withStateHandlers,
 } from 'recompose';
-// import { createStructuredSelector } from 'reselect';
 import styled from 'styled-components';
 
 import Working from 'components/Working';
@@ -20,7 +21,6 @@ import { composeComponent } from 'utils/reactTools';
 
 import { getCode } from './actions';
 import msg from './messages';
-// import * as selectors from './selectors';
 import * as Layout from './Layout';
 
 const Container = Layout.mkLayout(<FM {...msg.codeHeading} />);

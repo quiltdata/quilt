@@ -1,3 +1,5 @@
+// @flow
+
 import memoize from 'lodash/memoize';
 import RaisedButton from 'material-ui/RaisedButton';
 import { stringify } from 'query-string';

@@ -1,156 +1,246 @@
-import { actionCreator } from 'utils/reduxTools';
+// @flow
+
+import {
+  actionCreator,
+  type Action,
+} from 'utils/reduxTools';
+import type { Resolver } from 'utils/defer';
 
 import { actions } from './constants';
+import type { Tokens, User } from './types';
 
+
+// Sign Up
+export type SignUpCredentials = {|
+  username: string,
+  email: string,
+  password: string,
+|};
+
+export type SignUpAction = Action & {
+  type: typeof actions.SIGN_UP,
+  payload: SignUpCredentials,
+  meta: Resolver<void>,
+};
 
 /**
  * Create a SIGN_UP action.
- *
- * @param {{username: string, email: string, password: string}} credentials
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
  */
-export const signUp = actionCreator(actions.SIGN_UP, (credentials, resolver) => ({
+export const signUp = actionCreator<SignUpAction>(actions.SIGN_UP, (
+  credentials: SignUpCredentials,
+  resolver: Resolver<void>,
+) => ({
   payload: credentials,
   meta: { ...resolver },
 }));
 
+
+// Reset Password
+export type ResetPasswordAction = Action & {
+  type: typeof actions.RESET_PASSWORD,
+  payload: string,
+  meta: Resolver<void>,
+};
+
 /**
  * Create a RESET_PASSWORD action.
- *
- * @param {string} email
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
  */
-export const resetPassword = actionCreator(actions.RESET_PASSWORD, (email, resolver) => ({
+export const resetPassword = actionCreator<ResetPasswordAction>(actions.RESET_PASSWORD, (
+  email: string,
+  resolver: Resolver<void>,
+) => ({
   payload: email,
   meta: { ...resolver },
 }));
 
+
+// Change Password
+export type ChangePasswordPayload = {|
+  link: string,
+  password: string,
+|};
+
+export type ChangePasswordAction = Action & {
+  type: typeof actions.CHANGE_PASSWORD,
+  payload: ChangePasswordPayload,
+  meta: Resolver<void>,
+};
+
 /**
  * Create a CHANGE_PASSWORD action.
- *
- * @param {string} link
- * @param {string} password
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
  */
-export const changePassword = actionCreator(actions.CHANGE_PASSWORD, (link, password, resolver) => ({
+export const changePassword = actionCreator<ChangePasswordAction>(actions.CHANGE_PASSWORD, (
+  link: string,
+  password: string,
+  resolver: Resolver<void>,
+) => ({
   payload: { link, password },
   meta: { ...resolver },
 }));
 
+
+// Get Code
+export type GetCodeAction = Action & {
+  type: typeof actions.GET_CODE,
+  meta: Resolver<string>,
+};
+
 /**
  * Create a GET_CODE action.
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
  */
-export const getCode = actionCreator(actions.GET_CODE, (resolver) => ({
+export const getCode = actionCreator<GetCodeAction>(actions.GET_CODE, (
+  resolver: Resolver<string>,
+) => ({
   meta: { ...resolver },
 }));
 
+
+// Sign In
+export type SignInCredentials = {|
+  username: string,
+  password: string,
+|};
+
+export type SignInResult = {|
+  tokens: Tokens,
+  user: User,
+|};
+
+export type SignInAction = Action & {
+  type: typeof actions.SIGN_IN,
+  payload: SignInCredentials,
+  meta: Resolver<SignInResult>,
+};
+
+export type SignInResultAction = Action & {
+  type: typeof actions.SIGN_IN_RESULT,
+  payload: SignInResult | Error,
+};
+
 /**
  * Create a SIGN_IN action.
- *
- * @param {{username: string, password: string}} credentials
- *
- * @param {{resolve: function, reject: function}} resolver
- *
- * @returns {Action}
  */
-export const signIn = actionCreator(actions.SIGN_IN, (credentials, resolver) => ({
+export const signIn = actionCreator<SignInAction>(actions.SIGN_IN, (
+  credentials: SignInCredentials,
+  resolver: Resolver<SignInResult>,
+) => ({
   payload: credentials,
   meta: { ...resolver },
 }));
 
 /**
  * Create a SIGN_IN_RESULT action.
- *
- * @param {{tokens: Object, user: Object}|Error} result
- *   Either an error or an object containing tokens and user data.
- *   If error, action.error is true.
- *
- * @returns {Action}
  */
-signIn.resolve = actionCreator(actions.SIGN_IN_RESULT, (payload) => ({
+signIn.resolve = actionCreator<SignInResultAction>(actions.SIGN_IN_RESULT, (
+  payload: SignInResult | Error,
+) => ({
   error: payload instanceof Error,
   payload,
 }));
 
+
+// Sign Out
+export type SignOutAction = Action & {
+  type: typeof actions.SIGN_OUT,
+  meta: Resolver<void>,
+};
+
+export type SignOutResultAction = Action & {
+  type: typeof actions.SIGN_OUT_RESULT,
+  payload: ?Error,
+};
+
 /**
  * Create a SIGN_OUT action.
- *
- * @param {{ resolve: function, reject: function }} resolver
- *
- * @returns {Action}
  */
-export const signOut = actionCreator(actions.SIGN_OUT, (resolver) => ({
+export const signOut = actionCreator<SignOutAction>(actions.SIGN_OUT, (
+  resolver: Resolver<void>,
+) => ({
   meta: { ...resolver },
 }));
 
 /**
  * Create a SIGN_OUT_RESULT action.
- *
- * @param {?Error} result
- *
- * @returns {Action}
  */
-signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
+signOut.resolve = actionCreator<SignOutResultAction>(actions.SIGN_OUT_RESULT, (
+  result: ?Error,
+) => ({
   error: result instanceof Error,
   payload: result,
 }));
 
+
+// Check
+export type CheckOptions = {|
+  /**
+   * If true, user data will be refetched after token refresh.
+   */
+  refetch: bool,
+|};
+
+export type CheckResult = {|
+  tokens: Tokens,
+  user: ?User,
+|};
+
+export type CheckAction = Action & {
+  type: typeof actions.CHECK,
+  payload: CheckOptions,
+  meta: Resolver<?CheckResult>,
+};
+
 /**
  * Create a CHECK action.
- *
- * @param {Object} options
- * @param {boolean} options.refetch
- *   If true, user data will be refetched after token refresh.
- *
- * @param {{ resolve: function, reject: function }} resolver
- *
- * @returns {Action}
  */
-export const check = actionCreator(actions.CHECK, ({ refetch = true } = {}, resolver) => ({
+export const check = actionCreator<CheckAction>(actions.CHECK, (
+  { refetch = true }: CheckOptions = {},
+  resolver: Resolver<?CheckResult>,
+) => ({
   payload: { refetch },
   meta: { ...resolver },
 }));
 
+
+// Refresh
+export type RefreshAction = Action & {
+  type: typeof actions.REFRESH,
+};
+
+export type RefreshResultAction = Action & {
+  type: typeof actions.REFRESH_RESULT,
+  payload: CheckResult | Error,
+};
+
 /**
  * Create a REFRESH action.
- *
- * @returns {Action}
  */
-export const refresh = actionCreator(actions.REFRESH);
+export const refresh = actionCreator<RefreshAction>(actions.REFRESH);
 
 /**
  * Create a REFRESH_RESULT action.
- *
- * @param {{ tokens: Object, user: Object }|Error} payload
- *
- * @returns {Action}
  */
-refresh.resolve = actionCreator(actions.REFRESH_RESULT, (payload) => ({
+refresh.resolve = actionCreator<RefreshResultAction>(actions.REFRESH_RESULT, (
+  payload: CheckResult | Error,
+) => ({
   error: payload instanceof Error,
   payload,
 }));
 
+
+// Auth Lost
+export type AuthLostAction = Action & {
+  type: typeof actions.AUTH_LOST,
+  payload: Error,
+};
+
 /**
  * Create an AUTH_LOST action.
- *
- * @param {Error} error
- *   Error that caused authentication loss.
- *
- * @returns {Action}
  */
-export const authLost = actionCreator(actions.AUTH_LOST, (payload) => ({
+export const authLost = actionCreator<AuthLostAction>(actions.AUTH_LOST, (
+  /**
+   * Error that caused authentication loss.
+   */
+  payload: Error
+) => ({
   payload,
 }));

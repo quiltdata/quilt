@@ -1,4 +1,6 @@
-import { fromJS } from 'immutable';
+// @flow
+
+import { Map } from 'immutable';
 import pick from 'lodash/fp/pick';
 import PT from 'prop-types';
 import { Fragment } from 'react';
@@ -69,7 +71,7 @@ export default composeComponent('Auth.Provider',
     },
   }),
   injectReducer(REDUX_KEY, reducer, ({ storage, signInRedirect, signOutRedirect }) =>
-    fromJS(storage.load())
+    Map(storage.load())
       .filter(Boolean)
       .update((s) =>
         s.set('state', s.getIn(['user', 'current_user']) ? 'SIGNED_IN' : 'SIGNED_OUT'))
