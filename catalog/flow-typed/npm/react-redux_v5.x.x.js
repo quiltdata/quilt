@@ -1,10 +1,20 @@
-// flow-typed signature: 3d2adf9e3c8823252a60ff4631b486a3
-// flow-typed version: 844b6ca3d3/react-redux_v5.x.x/flow_>=v0.63.0
-
-import type { Dispatch, Store } from "redux";
+// flow-typed signature: ba073ebd4a5e8e27ad3050bfe9f31c88
+// flow-typed version: d51977e735/react-redux_v5.x.x/flow_>=v0.63.0
 
 declare module "react-redux" {
   import type { ComponentType, ElementConfig } from 'react';
+
+  // These types are copied directly from the redux libdef. Importing them in
+  // this libdef causes a loss in type coverage.
+  declare type DispatchAPI<A> = (action: A) => A;
+  declare type Dispatch<A: { type: $Subtype<string> }> = DispatchAPI<A>;
+  declare type Reducer<S, A> = (state: S | void, action: A) => S;
+  declare type Store<S, A, D = Dispatch<A>> = {
+    dispatch: D;
+    getState(): S;
+    subscribe(listener: () => void): () => void;
+    replaceReducer(nextReducer: Reducer<S, A>): void
+  };
 
   declare export class Provider<S, A> extends React$Component<{
     store: Store<S, A>,
@@ -53,7 +63,7 @@ declare module "react-redux" {
     storeKey?: string
   |};
 
-  declare type OmitDispatch<Component> = $Diff<Component, {dispatch: Dispatch<*>}>;
+  declare type OmitDispatch<Component> = $Diff<Component, {dispatch?: Dispatch<*>}>;
 
   declare export function connect<
     Com: ComponentType<*>,
