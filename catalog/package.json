@@ -36,7 +36,7 @@
     "clean:all": "npm run analyze:clean && npm run test:clean && npm run build:clean",
     "generate": "plop --plopfile internals/generators/index.js",
     "lint": "npm run lint:js",
-    "lint:eslint": "eslint --ignore-path .gitignore --ignore-pattern internals/scripts --ignore-pattern flow-typed/",
+    "lint:eslint": "eslint --ignore-path .gitignore --ignore-pattern internals/scripts --ignore-pattern flow-typed/ --ignore-pattern flow-typed-override/",
     "lint:js": "npm run lint:eslint -- '**/*.js' '**/*.js.tmpl'",
     "pretest": "npm run test:clean && npm run lint",
     "test:clean": "rimraf ./coverage",
