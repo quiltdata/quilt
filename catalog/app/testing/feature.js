@@ -1,106 +1,135 @@
+// @flow
+
 import dropWhile from 'lodash/dropWhile';
 import pipe from 'lodash/flow';
 import initial from 'lodash/initial';
 import last from 'lodash/last';
-import mapValues from 'lodash/mapValues';
 import memoize from 'lodash/memoize';
+import startCase from 'lodash/startCase';
 import takeWhile from 'lodash/takeWhile';
+import invoke from 'lodash/fp/invokeArgs';
 import reduce from 'lodash/fp/reduce';
 
+import constructor from './constructor';
+
 const scope = 'testing/feature';
-const When = Symbol(`${scope}/When`);
-const Given = Symbol(`${scope}/Given`);
-const Then = Symbol(`${scope}/Then`);
-const And = Symbol(`${scope}/And`);
-const But = Symbol(`${scope}/But`);
-const Branch = Symbol(`${scope}/Branch`);
-const Back = Symbol(`${scope}/Back`);
-const After = Symbol(`${scope}/After`);
-
-const UNION_DISPLAY = {
-  [When]: 'When',
-  [Given]: 'Given',
-  [Then]: 'Then',
-  [And]: 'And',
-  [But]: 'But',
-};
-
-const displayUnion = (u) => UNION_DISPLAY[u];
+// const After = Symbol(`${scope}/After`);
+const After = `${scope}/After`;
 
 // TODO: invariants
 
-/* example opts object
-const opts = {
-  name: 'SignOut component',
-  background: [
-    { type: Given, text: 'step 1' },
-    { type: And, text: 'step 2', args: ['test'] },
-  ],
-  scenarios: [
-    {
-      name: 'Mounting the component when auth data is absent',
-      steps: [
-        { type: Given, text: 'absent auth data' },
-        { type: When, text: 'the component is mounted' },
-        { type: Then, text: 'location should match the post-signout url' },
-        { type: And, text: 'selected state should match the snapshot' },
-        { type: And, text: 'rendered html should match the snapshot' },
-        { type: Back, steps: 1 },
-        { type: Branch, steps: [{ ... }, { ... }] },
-      ],
-    },
-  ],
-  stepDefs: [
-    { re: /absent auth data/, fn: (ctx) => {} },
-  ],
+type TestStep = {|
+  type: 'setup' | 'assertion',
+  word: 'when' | 'given' | 'then',
+  text: string,
+  args: any[],
+|};
+
+type BackStep = {|
+  type: 'back',
+  back: number,
+|};
+
+type BranchStep = {|
+  type: 'branch',
+  steps: Step[],
+|};
+
+type TapStep = {|
+  type: 'tap',
+  fn: StepFn,
+|};
+
+type Step =
+  | TestStep
+  | BackStep
+  | BranchStep
+  | TapStep;
+
+type Scenario = {|
+  name: string,
+  steps?: Step[],
+|};
+
+type StepFn = (ctx: Context, ...args: any) => ?Context;
+
+type StepDef = {|
+  re: RegExp,
+  fn: StepFn,
+  after?: StepFn,
+|};
+
+type FeatureState = {|
+  name: string,
+  background: Step[],
+  scenarios: Scenario[],
+  stepDefs: StepDef[],
+|};
+
+type RunStep = (ctx: Context, text: string, ...args: any) => Context | Promise<Context>;
+
+type Context = {
+  step: RunStep,
 };
-*/
 
-const mkStep = (type) => (text, ...args) => ({ type, text, args });
+type GetContext = () => Context;
 
-const mkStepBack = (steps = 1) => ({ type: Back, steps });
+type Next = (getCtx: GetContext) => void;
 
-const mkBranch = (steps) => ({ type: Branch, steps });
+const mkTestStepCreator = (word: $PropertyType<TestStep, 'word'>) =>
+  (
+    text: $PropertyType<TestStep, 'text'>,
+    ...args: $PropertyType<TestStep, 'args'>
+  ): TestStep =>
+    ({ type: word === 'then' ? 'assertion' : 'setup', word, text, args });
 
-const addBackgroundStep = ({ background = [], ...opts }) => (step) => ({
-  ...opts,
-  background: [...background, step],
-});
+const mkBackStep = (back: $PropertyType<BackStep, 'back'> = 1): BackStep =>
+  ({ type: 'back', back });
 
-const addScenarioStep = ({ scenarios = [], ...opts }) => (step) => {
-  const { steps = [], ...current } = last(scenarios);
-  const rest = initial(scenarios);
-  return {
-    ...opts,
-    scenarios: [...rest, { ...current, steps: [...steps, step] }],
+const mkBranchStep = (steps: $PropertyType<BranchStep, 'steps'>): BranchStep =>
+  ({ type: 'branch', steps });
+
+const mkTapStep = (fn: $PropertyType<TapStep, 'fn'>): TapStep =>
+  ({ type: 'tap', fn });
+
+const addBackgroundStep = ({ background = [], ...opts }: FeatureState) =>
+  (step: Step): FeatureState =>
+    ({
+      ...opts,
+      background: [...background, step],
+    });
+
+const addScenarioStep = ({ scenarios = [], ...opts }: FeatureState) =>
+  (step: Step): FeatureState => {
+    const { steps = [], ...current } = last(scenarios);
+    const rest = initial(scenarios);
+    return {
+      ...opts,
+      scenarios: [...rest, { ...current, steps: [...steps, step] }],
+    };
   };
-};
 
-const hasScenarios = (opts) => opts.scenarios && opts.scenarios.length;
+const hasScenarios = (opts: FeatureState): bool =>
+  Boolean(opts.scenarios && opts.scenarios.length);
 
-const addStep = (type) => (opts, cons) =>
-  pipe(
-    mkStep(type),
-    hasScenarios(opts) ? addScenarioStep(opts) : addBackgroundStep(opts),
-    cons,
-  );
+// TODO: stricter args type?
+const addStep = (createStep: (...args: any) => Step) =>
+  (opts: FeatureState) =>
+    pipe([
+      createStep,
+      hasScenarios(opts) ? addScenarioStep(opts) : addBackgroundStep(opts),
+      mkFeature,
+    ]);
 
-const addStepBack = (opts, cons) =>
-  pipe(
-    mkStepBack,
-    hasScenarios(opts) ? addScenarioStep(opts) : addBackgroundStep(opts),
-    cons,
-  );
-
-const computeBranches = reduce((acc, step) => {
-  if (step.type === Back) {
-    let { steps: stepsBack } = step;
-    if (stepsBack <= 0) throw new Error('steps must be >= 1');
+const computeBranches = reduce((acc: Step[], step: Step): Step[] => {
+  if (step.type === 'back') {
+    let { back } = step;
+    if (back <= 0) throw new Error('back must be >= 1');
     let idx;
     for (let i = acc.length - 1; i >= 0; i -= 1) {
-      if (acc[i].type === When) {
-        stepsBack -= 1;
-        if (stepsBack === 0) {
+      if (acc[i].type === 'setup') {
+        back -= 1;
+        if (back === 0) {
           idx = i;
           break;
         }
@@ -109,63 +138,87 @@ const computeBranches = reduce((acc, step) => {
     if (idx == null) throw new Error('too many steps back');
     const trunkSteps = acc.slice(0, idx);
     const branchSteps = acc.slice(idx);
-    return [...trunkSteps, mkBranch(branchSteps)];
+    return [...trunkSteps, mkBranchStep(branchSteps)];
   }
   return [...acc, step];
 }, []);
 
-const addScenario = ({ scenarios = [], ...opts }, cons) => (name) =>
-  cons({
-    ...opts,
-    scenarios: [...scenarios, { name }],
-  });
+const addStepDefs = ({ stepDefs = [], ...opts }: FeatureState) =>
+  (addedStepDefs: StepDef | StepDef[]): Feature =>
+    mkFeature({
+      ...opts,
+      stepDefs: stepDefs.concat(addedStepDefs),
+    });
 
-const addStepDefs = ({ stepDefs = [], ...opts }, cons) => (addedStepDefs) =>
-  cons({
-    ...opts,
-    stepDefs: stepDefs.concat(addedStepDefs),
-  });
-
-const mkStepDef = (re, fn, after) => ({ re, fn, after });
+const mkStepDef = (
+  re: $PropertyType<StepDef, 're'>,
+  fn: $PropertyType<StepDef, 'fn'>,
+  after: $PropertyType<StepDef, 'after'>,
+): StepDef =>
+  ({ re, fn, after });
 
 export { mkStepDef as step };
 
-const addStepDef = (opts, cons) => pipe(mkStepDef, addStepDefs(opts, cons));
+const addStepDef = (opts: FeatureState) => pipe([mkStepDef, addStepDefs(opts)]);
 
-const renderSteps = (steps, getCtx, next) => {
-  if (!steps.length) {
-    if (next) next(getCtx);
-    return;
-  }
+const renderBranch = (
+  [branch, ...rest]: Step[],
+  getCtx: GetContext,
+  next: ?Next,
+): void => {
+  // refinement for flow
+  if (branch.type !== 'branch') throw new Error('shouldnt be there');
+  const { steps } = branch;
+  renderSteps(steps, getCtx);
+  renderSteps(rest, getCtx, next);
+};
 
-  if (steps[0].type === Branch) {
-    const [branch, ...rest] = steps;
-    renderSteps(branch.steps, getCtx);
-    renderSteps(rest, getCtx, next);
-    return;
-  }
+const isAssertion = ({ type }) => type === 'assertion';
 
-  if (steps[0].type === Then) {
-    const isThen = ({ type }) => type !== When && type !== Branch;
-    const thens = takeWhile(steps, isThen);
-    const rest = dropWhile(steps, isThen);
+const takeAssertions = (steps: Step[]): [TestStep[], Step[]] => [
+  ((takeWhile(steps, isAssertion): any): TestStep[]),
+  dropWhile(steps, isAssertion),
+];
 
-    thens.forEach(({ type, text, args = [] }) => {
-      it(`${displayUnion(type)} ${text}`, async () => {
-        const ctx = getCtx();
-        const afterCtx = await ctx.step(ctx, text, ...args);
-        await afterCtx[After]();
-      });
+const renderTap = (
+  [step, ...rest]: Step[],
+  getCtx: GetContext,
+  next: ?Next,
+): void => {
+  // refinement for flow
+  if (step.type !== 'tap') throw new Error('shouldnt be there');
+  let nextCtx;
+  const getNextCtx = () => nextCtx || getCtx();
+  beforeEach(async () => {
+    nextCtx = await step.fn(getCtx());
+  });
+
+  renderSteps(rest, getNextCtx, next);
+};
+
+const renderAssertion = (steps: Step[], getCtx: GetContext, next: ?Next): void => {
+  const [assertions, rest] = takeAssertions(steps);
+
+  assertions.forEach(({ word, text, args = [] }) => {
+    it(`${startCase(word)} ${text}`, async () => {
+      const ctx = getCtx();
+      const afterCtx = await ctx.step(ctx, text, ...args);
+      await afterCtx[After]();
     });
+  });
 
-    renderSteps(rest, getCtx, next);
-    return;
-  }
+  renderSteps(rest, getCtx, next);
+};
 
-  const [step, ...rest] = steps;
-  const { type, text, args = [] } = step;
-
-  describe(`${displayUnion(type)} ${text}`, () => {
+const renderSetup = (
+  [step, ...rest]: Step[],
+  getCtx: GetContext,
+  next: ?Next,
+): void => {
+  // refinement for flow
+  if (step.type !== 'setup') throw new Error('shouldnt be there');
+  const { word, text, args = [] } = step;
+  describe(`${startCase(word)} ${text}`, () => {
     let nextCtx;
     const getNextCtx = () => nextCtx;
     beforeEach(async () => {
@@ -181,7 +234,22 @@ const renderSteps = (steps, getCtx, next) => {
   });
 };
 
-const renderBackground = (steps, getCtx, next) => {
+const renderSteps = (steps: Step[], getCtx: GetContext, next: ?Next): void => {
+  if (!steps.length) {
+    if (next) next(getCtx);
+    return;
+  }
+
+  invoke(steps[0].type, [steps, getCtx, next], {
+    setup: renderSetup,
+    assertion: renderAssertion,
+    branch: renderBranch,
+    tap: renderTap,
+    back: () => { throw new Error('back steps should have been removed'); },
+  });
+};
+
+const renderBackground = (steps: Step[], getCtx: GetContext, next: ?Next) => {
   if (!steps) {
     if (next) next(getCtx);
     return;
@@ -192,11 +260,17 @@ const renderBackground = (steps, getCtx, next) => {
   });
 };
 
-const renderScenario = ({ name, steps }, getCtx) => {
-  describe(`Scenario: ${name}`, () => renderSteps(computeBranches(steps), getCtx));
+const renderScenario = ({ name, steps }: Scenario, getCtx: GetContext): void => {
+  describe(`Scenario: ${name}`, () => {
+    if (!steps) return;
+    renderSteps(computeBranches(steps), getCtx);
+  });
 };
 
-const renderFeature = ({ name, background = [], scenarios = [] }, getCtx) => {
+const renderFeature = (
+  { name, background = [], scenarios = [] }: $Rest<FeatureState, {| stepDefs: any |}>,
+  getCtx: GetContext,
+): void => {
   describe(`Feature: ${name}`, () => {
     renderBackground(background, getCtx, (getNextCtx) => {
       scenarios.forEach((s) => renderScenario(s, getNextCtx));
@@ -204,16 +278,18 @@ const renderFeature = ({ name, background = [], scenarios = [] }, getCtx) => {
   });
 };
 
-const run = ({ stepDefs = [], ...opts }) => (ctx = {}) => {
-  const getStep = memoize((text) => {
+const run = ({ stepDefs = [], ...opts }: FeatureState) => (ctx = {}) => {
+  const getStep = memoize((text: string) => {
     const stepDef = stepDefs.find(({ re }) => re.test(text));
     if (!stepDef) throw new Error(`Step "${text}" could not be matched!`);
     const { re, fn, after } = stepDef;
-    const args = text.match(re).slice(1);
-    return { fn, after, args };
+    const match = text.match(re);
+    // refinement for flow
+    if (!match) throw new Error('should not be there');
+    return { fn, after, args: match.slice(1) };
   });
 
-  const runStep = async (stepCtx, text, ...runArgs) => {
+  const runStep = async (stepCtx: Context, text: string, ...runArgs: any) => {
     const { fn, after, args } = getStep(text);
     const newCtx = await fn(stepCtx, ...args, ...runArgs);
     const afterCtx = newCtx || stepCtx;
@@ -225,7 +301,7 @@ const run = ({ stepDefs = [], ...opts }) => (ctx = {}) => {
     };
   };
 
-  const getCtx = () => ({
+  const getCtx = (): Context => ({
     step: runStep,
     ...ctx,
   });
@@ -233,27 +309,34 @@ const run = ({ stepDefs = [], ...opts }) => (ctx = {}) => {
   renderFeature(opts, getCtx);
 };
 
-const methods = {
-  scenario: addScenario,
-  given: addStep(Given),
-  when: addStep(When),
-  then: addStep(Then),
-  and: addStep(And),
-  but: addStep(But),
-  back: addStepBack,
+const mkFeature = constructor({
+  scenario: ({ scenarios = [], ...opts }: FeatureState) => (name: string): Feature =>
+    mkFeature({
+      ...opts,
+      scenarios: [...scenarios, { name }],
+    }),
+
+  given: addStep(mkTestStepCreator('given')),
+  when: addStep(mkTestStepCreator('when')),
+  then: addStep(mkTestStepCreator('then')),
+
+  back: addStep(mkBackStep),
+
+  tap: addStep(mkTapStep),
+
   step: addStepDef,
   steps: addStepDefs,
-  run,
-};
 
-const construct = (opts) =>
-  mapValues(methods, (m) => m(opts, construct));
+  run,
+});
+
+type Feature = $Call<typeof mkFeature, FeatureState>;
 
 /**
  * @name feature
- *
- * @param name Feature name.
- *
- * @param {Object} options
  */
-export default (name, opts) => construct({ name, ...opts });
+export default (
+  name: string,
+  opts: $Rest<FeatureState, {| name: string |}>,
+): Feature =>
+  mkFeature({ name, ...opts });
