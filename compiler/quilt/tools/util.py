@@ -12,7 +12,6 @@ import sys
 from appdirs import user_config_dir, user_data_dir
 from collections import namedtuple
 from six import BytesIO, string_types, Iterator
-from typing import Union
 
 from .const import QuiltException
 from .compat import pathlib
@@ -378,25 +377,3 @@ def find_in_package(corenode, path):
         traversed = '/'.join(path[:count])
         raise TypeError("Not a GroupNode: Node at {!r}".format(traversed))
 
-def save(user: str,
-         package: str,
-         data_node: str,
-         data: Union[np.ndarray, pd.DataFrame],
-         params: dict):
-    """Build and push data to Quilt registry at user/package/data_node,
-    associating params as metadata for the data node.
-    :param user: user name
-    :param package: package name
-    :param data_node: data node name
-    :param data: data to save
-    :param params: metadata
-    """
-    quilt.build(f'{user}/{package}/{data_node}', data)
-    pkg = quilt.load(f'{user}/{package}')
-    for key, value in params.items():
-        if isinstance(value, np.ndarray):
-            value = value.astype(float)
-            params[key] = value.tolist()
-    pkg[data_node]._meta.update(params)
-    quilt.build(f'{user}/{package}', pkg)
-    quilt.push(f'{user}/{package}/{data_node}', is_public=True)
