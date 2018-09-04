@@ -7,7 +7,7 @@ from .utils import QuiltTestCase
 from quilt_server import app
 from quilt_server.models import User
 from quilt_server.mail import (send_comment_email, send_new_user_email,
-    send_invitation_email, send_activation_email, send_reset_email)
+    send_invitation_email, send_activation_email, send_reset_email, send_welcome_email)
 
 class MailTestCase(QuiltTestCase):
 
@@ -36,6 +36,7 @@ class MailTestCase(QuiltTestCase):
             send_activation_email(test_user, test_link)
             send_reset_email(test_user, test_link)
             send_comment_email(self.TEST_USER_EMAIL, 'test_user', 'pkg', commenting_user)
+            send_welcome_email(test_user)
 
         assert send_email.called
         call = send_email.call_args_list[0][1]
@@ -59,3 +60,4 @@ class MailTestCase(QuiltTestCase):
         assert body.find(expected_test_link) != -1
         assert html.find(commenting_user) != -1
         assert body.find(commenting_user) != -1
+
