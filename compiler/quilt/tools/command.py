@@ -1327,7 +1327,11 @@ def load(pkginfo, hash=None):
     """
     functional interface to "from quilt.data.USER import PKG"
     """
-    return _load(pkginfo, hash)[0]
+    node, pkgroot, info = _load(pkginfo, hash)
+    for subnode_name in info.subpath:
+        node = node[subnode_name]
+
+    return node
 
 def export(package, output_path='.', force=False, symlinks=False):
     """Export package file data.
