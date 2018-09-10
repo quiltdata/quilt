@@ -79,7 +79,7 @@ def get_admins():
 def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
-        user = User.query.filter_by(id=payload['id']).with_for_update().one_or_none()
+        user = User.query.filter_by(id=payload['id']).with_for_update().one()
         _activate_user(user)
         send_welcome_email(user)
         db.session.commit()
