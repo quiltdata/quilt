@@ -79,7 +79,9 @@ def get_admins():
 def activate_response(link):
     payload = verify_activation_link(link)
     if payload:
-        _activate_user(User.query.filter_by(id=payload['id']).with_for_update().one_or_none())
+        user = User.query.filter_by(id=payload['id']).with_for_update().one()
+        _activate_user(user)
+        send_welcome_email(user)
         db.session.commit()
         return redirect("{CATALOG_URL}/signin".format(CATALOG_URL=CATALOG_URL), code=302)
 
@@ -153,7 +155,7 @@ def _create_user(username, password='', email=None, is_admin=False,
 
     if requires_reset:
         db.session.flush() # necessary due to link token foreign key relationship with User
-        send_welcome_email(user, user.email, generate_reset_link(user.id))
+        send_welcome_email(user, generate_reset_link(user.id))
 
 def _update_user(username, password=None, email=None, is_admin=None, is_active=None):
     existing_user = User.query.filter_by(name=username).with_for_update().one_or_none()
