@@ -66,6 +66,7 @@ const Detail = styled.p`
 `;
 
 const perUser = <span className="unit">per user / month</span>;
+const perTeam = <span className="unit">per team / month</span>;
 
 function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
   return (
@@ -86,7 +87,7 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
               <h2>$7 { perUser }</h2>
             </td>
             <td>
-              <h2>$49* { perUser }</h2>
+              <h2>$99* { perTeam }</h2>
             </td>
           </tr>
           <tr>
@@ -98,22 +99,16 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
               • Up to 1TB of private packages<br />
             </td>
             <td>
-              • Unlimited public packages<br />
-              • 1TB and up of private packages<br />
-              • Priority support<br />
+              • Unlimited packages<br />
+              • Runs in your AWS account<br />
               • Admin and auditing features<br />
-              • Dedicated registry and web catalog, exclusive to your team<br />
+              • Dedicated registry and web catalog<br />
+              • <a href="https://aws.amazon.com/marketplace/pp/B07GDSGJ3S">Buy now</a> on AWS Marketplace<br />
             </td>
           </tr>
         </tbody>
       </table>
-      <Detail>* Sold in packs of 10 users</Detail>
-      <p>
-        <a href={`mailto:sales@quiltdata.io?Subject=Quilt%20Teams&body=${emailBody}`} target="_top" >
-          Contact us
-        </a>
-        &nbsp;to start Team service.
-      </p>
+      <Detail>* Does not include AWS costs</Detail>
       {takeAction ? <TakeAction signUp={signUp} /> : null}
     </Styler>
   );
