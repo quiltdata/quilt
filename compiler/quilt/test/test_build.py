@@ -505,7 +505,7 @@ class TestOutput(QuiltTestCase):
         testdir = pathlib.Path(__file__).parent
 
         with pytest.raises(yaml.constructor.ConstructorError):
-            command.build('test/exec', str(testdir / 'arbitrary_execution.yml'), build_file=True)
+            command.build('test/exec_flaw', str(testdir / 'arbitrary_execution.yml'), build_file=True)
         out, err = self.capfd.readouterr()
         assert not "arbitrary code execution" in out
         assert not "arbitrary code execution" in err
