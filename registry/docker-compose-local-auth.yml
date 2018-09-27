@@ -21,6 +21,8 @@ services:
       - AWS_SECRET_ACCESS_KEY=abcd
       - QUILT_SERVER_CONFIG=docker_config.py
       - STRIPE_SECRET_KEY=STRIPETEST
+      - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
     depends_on:
       db:
         condition: service_healthy
@@ -37,6 +39,9 @@ services:
       - AUTH_PROVIDER=quilt
       - DEPLOYMENT_ID=dev
       - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
+      - DISABLE_SIGNUP
+      - ENABLE_USER_ENDPOINTS
     depends_on:
       db:
         condition: service_healthy
