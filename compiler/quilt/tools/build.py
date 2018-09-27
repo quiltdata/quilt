@@ -617,7 +617,7 @@ def load_yaml(filename, optional=False):
     with open(filename, 'r') as fd:
         data = fd.read()
     try:
-        res = yaml.load(data)
+        res = yaml.safe_load(data)
         if not filename.endswith(DEFAULT_QUILT_YML):
             if 'contents' not in res.keys():
                 file_name = os.path.basename(filename)

@@ -15,7 +15,7 @@ def read_yml_file(fn):
     mydir = os.path.dirname(__file__)
     filepath = os.path.join(mydir, fn)
     with open(filepath) as fd:
-        return next(yaml.load_all(fd), None)
+        return next(yaml.safe_load_all(fd), None)
 
 class ChecksTest(QuiltTestCase):
 
@@ -48,7 +48,7 @@ class ChecksTest(QuiltTestCase):
             regexp = "Data check failed: %s" % (check)
         with assertRaisesRegex(self, build.BuildException, regexp):
             self.build_success(check, nodename=nodename)
-        
+
     def test_parse_checks_file(self):
         assert str(self.checks_contents['negative']) == 'False'
         assert self.checks_contents['simple_multiline'] == '# comment\nqc.check(True)\n'
@@ -60,12 +60,12 @@ class ChecksTest(QuiltTestCase):
     def test_external_only(self):
         del self.build_data['checks']
         self.build_fail('inline_only', "Unknown check.+inline_only")
-        
+
     def test_inline_only(self):
         self.checks_contents = self.checks_data = None
         self.build_success('inline_only')
         self.build_fail('hasrecs', "Unknown check.+hasrecs")
-        
+
     def test_simple_checks(self):
         self.build_success('simple')
         self.build_success('simple_multiline')
@@ -87,7 +87,7 @@ class ChecksTest(QuiltTestCase):
         self.build_success('inline_only')
         self.build_success('inline_and_external')
         self.build_success('hasrecs')
-        
+
     def test_many_errors(self):
         # TODO: capture details by line number
         self.build_contents['foo'] = { 'checks': 'lots_uid_errors',

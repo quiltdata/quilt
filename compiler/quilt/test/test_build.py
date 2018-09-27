@@ -212,7 +212,7 @@ class BuildTest(QuiltTestCase):
         assert os.path.exists(buildfilepath)
 
         with open(buildfilepath) as fd:
-            docs = yaml.load_all(fd)
+            docs = yaml.safe_load_all(fd)
             data = next(docs, None)
 
         contents = data['contents']
