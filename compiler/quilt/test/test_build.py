@@ -491,3 +491,21 @@ class BuildTest(QuiltTestCase):
             command.build('test/foo', df)
         with self.assertRaises(command.CommandException):
             command.build('test/foo', arr)
+
+class TestOutput(QuiltTestCase):
+    # This is kindof a quirky workaround. 'capsys' and 'capfd' fixtures don't work
+    # with unittest.TestCase objects, but they do work with other fixtures -- including
+    # those defined in this scope.
+    @pytest.fixture(autouse=True)
+    def capfd(self, capfd):
+        self.capfd = capfd
+
+    def test_read_yaml_exec_flaw(self):
+        # We don't execute anything remote, but someone could give a bad build.yml..
+        testdir = pathlib.Path(__file__).parent
+
+        with pytest.raises(yaml.constructor.ConstructorError):
+            command.build('test/exec', str(testdir / 'arbitrary_execution.yml'), build_file=True)
+        out, err = self.capfd.readouterr()
+        assert not "arbitrary code execution" in out
+        assert not "arbitrary code execution" in err
