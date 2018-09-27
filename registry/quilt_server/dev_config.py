@@ -8,7 +8,7 @@ import socket
 
 DEBUG = True
 
-SQLALCHEMY_DATABASE_URI = 'postgresql://postgres@localhost/packages'
+SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres@localhost/packages')
 
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
@@ -23,7 +23,7 @@ REGISTRY_URL = 'http://localhost:5000'
 AWS_ACCESS_KEY_ID = 'fake_id'
 AWS_SECRET_ACCESS_KEY = 'fake_secret'
 
-S3_ENDPOINT = 'http://localhost:5001'
+S3_ENDPOINT = os.getenv('S3_ENDPOINT', 'http://localhost:5001')
 PACKAGE_BUCKET_NAME = 'package'
 
 SQLALCHEMY_ECHO = True
