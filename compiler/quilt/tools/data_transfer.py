@@ -17,7 +17,7 @@ from six import iteritems, itervalues
 from tqdm import tqdm
 
 from .hashing import digest_file
-from .util import FileWithReadProgress, get_free_space
+from .util import FileWithReadProgress, get_free_space, QuiltException
 
 
 PARALLEL_UPLOADS = 20
@@ -84,7 +84,10 @@ def download_fragments(store, obj_urls, obj_sizes):
                         if not obj_queue:
                             break
                         obj_hash, url = obj_queue.pop()
-                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
+                        try:
+                            original_size = obj_sizes[obj_hash]
+                        except KeyError:
+                            raise QuiltException("Malformed package: No size for object " + obj_hash)
 
                     success = False
 
@@ -96,8 +99,8 @@ def download_fragments(store, obj_urls, obj_sizes):
                                 existing_file_size = output_file.tell()
 
                                 # For zero-byte downloads, we don't need to resume, and range download
-                                # must be at least 1 anyways. 
-                                if total_bytes == 0:
+                                # must be at least 1 anyways.
+                                if original_size == 0:
                                     response = s3_session.get(
                                         url,
                                         timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
