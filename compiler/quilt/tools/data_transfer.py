@@ -95,6 +95,33 @@ def download_fragments(store, obj_urls, obj_sizes):
                             try:
                                 existing_file_size = output_file.tell()
 
+                                # For zero-byte downloads, we don't need to resume, and range download
+                                # must be at least 1 anyways. 
+                                if total_bytes == 0:
+                                    response = s3_session.get(
+                                        url,
+                                        timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
+                                    )
+                                    if not response.ok:
+                                        message = (
+                                            "Download failed for {obj_hash}:\n"
+                                            "URL: {response.request.url}\n"
+                                            "Status code: {response.status_code}\n"
+                                            "Response: {response.text!r}\n"
+                                        ).format(**locals())  # Splat **kwargs operators ftw
+                                        with lock:
+                                            tqdm.write(message)
+                                        break
+                                    if len(response.content):
+                                        message = "Expected a zero-byte file, but received content from: "
+                                        with lock:
+                                            tqdm.write(message + response.url)
+                                        break
+                                    encoding = response.headers.get('Content-Encoding', None)
+                                    # Nothing to write to the filesystem, already created by opening.
+                                    success = True
+                                    break
+
                                 # Use the Range header to resume downloads.
                                 # Weird corner case: if the file is already completely downloaded, we will
                                 # get a RANGE_NOT_SATISFIABLE, and not get the Content-Encoding header.
