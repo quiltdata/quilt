@@ -90,7 +90,12 @@ class TableNode(Node):
     def __init__(self, hashes, format, metadata=None, metadata_hash=None):
         super(TableNode, self).__init__(metadata_hash)
 
-        assert PackageFormat(format) == PackageFormat.PARQUET
+        # to report clearly on the cli, we'll raise a TypeError here
+        # instead of asserting -- then reraise that as some kind of QuiltException.
+        # We can't raise QuiltException directly, as this file is identical in
+        # both compiler and registry.
+        if not PackageFormat(format) == PackageFormat.PARQUET:
+            raise TypeError("Bad internal format '{}', this package may be outdated.".format(format))
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
