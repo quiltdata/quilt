@@ -90,12 +90,9 @@ class TableNode(Node):
     def __init__(self, hashes, format, metadata=None, metadata_hash=None):
         super(TableNode, self).__init__(metadata_hash)
 
-        # to report clearly on the cli, we'll raise a TypeError here
-        # instead of asserting -- then reraise that as some kind of QuiltException.
-        # We can't raise QuiltException directly, as this file is identical in
-        # both compiler and registry.
+        # This AssertionError needed with this message to catch later and present clear user information.
         if not PackageFormat(format) == PackageFormat.PARQUET:
-            raise TypeError("Bad package format '{}', this package may be outdated.".format(format))
+            raise AssertionError("Bad package format '{}', this package may be outdated.".format(format))
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format

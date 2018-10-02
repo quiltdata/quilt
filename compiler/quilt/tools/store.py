@@ -211,9 +211,9 @@ class PackageStore(object):
         with open(contents_path, 'r') as contents_file:
             try:
                 return json.load(contents_file, object_hook=decode_node)
-            except TypeError as err:
-                if str(err).startswith("Bad internal format"):
-                    name = "{}{}/{} v {}".format(
+            except AssertionError as err:
+                if str(err).startswith("Bad package format"):
+                    name = "{}{}/{}, {}".format(
                         team + ':' if team else '',
                         user,
                         package,
