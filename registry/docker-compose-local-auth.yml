@@ -19,8 +19,10 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=docker_config.py
-      - STRIPE_SECRET_KEY=STRIPETEST
+      - QUILT_SERVER_CONFIG=dev_config.py
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
+      - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
     depends_on:
       db:
         condition: service_healthy
@@ -33,10 +35,14 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=docker_config.py
-      - AUTH_PROVIDER=quilt
+      - QUILT_SERVER_CONFIG=dev_config.py
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
       - DEPLOYMENT_ID=dev
       - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
+      - S3_ENDPOINT = http://s3:5001
+      - DISABLE_SIGNUP
+      - ENABLE_USER_ENDPOINTS
     depends_on:
       db:
         condition: service_healthy
