@@ -375,7 +375,10 @@ class PackageStore(object):
 
         objfiles = [self.object_path(h) for h in hash_list]
         dataset = ParquetDataset(objfiles)
-        table = dataset.read(nthreads=4)
+        try:
+            table = dataset.read(use_threads=True)  # pyarrow == 0.11
+        except TypeError:
+            table = dataset.read(nthreads=4)  # pyarrow < 0.11
         try:
             dataframe = table.to_pandas()
         except Exception:
