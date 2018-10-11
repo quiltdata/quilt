@@ -1,0 +1,4 @@
+foo: !!python/object/apply:os.system 
+     args: ['echo arbitrary code execution!']
+contents:
+    bar:

@@ -867,7 +867,7 @@ def install_via_requirements(requirements_str, force=False):
         else:
             raise CommandException("Requirements file not found: {filename}".format(filename=path))
     else:
-        yaml_data = yaml.load(requirements_str)
+        yaml_data = yaml.safe_load(requirements_str)
     for pkginfo in yaml_data['packages']:
         info = parse_package_extended(pkginfo)
         install(info.full_name, info.hash, info.version, info.tag, force=force)
