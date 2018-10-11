@@ -90,7 +90,9 @@ class TableNode(Node):
     def __init__(self, hashes, format, metadata=None, metadata_hash=None):
         super(TableNode, self).__init__(metadata_hash)
 
-        assert PackageFormat(format) == PackageFormat.PARQUET
+        # This AssertionError needed with this message to catch later and present clear user information.
+        if not PackageFormat(format) == PackageFormat.PARQUET:
+            raise AssertionError("Bad package format '{}', this package may be outdated.".format(format))
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format
