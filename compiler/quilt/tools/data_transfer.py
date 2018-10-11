@@ -134,7 +134,10 @@ def download_fragments(store, obj_urls, obj_sizes):
                                 response = s3_session.get(
                                     url,
                                     headers={
-                                        'Range': 'bytes=%d-' % range_start
+                                        # The authors of RFC 7233 have not fully grasped the concept of "zero",
+                                        # so request "everything" instead of "bytes 0 and above" in order
+                                        # to support empty files.
+                                        'Range': 'bytes=%s-' % (range_start or '')
                                     },
                                     stream=True,
                                     timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
@@ -150,6 +153,12 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                                 # Prevent requests from processing 'Content-Encoding: gzip' automatically.
                                 encoding = response.raw.headers.pop('Content-Encoding', None)
+
+                                if response.headers.get('Content-Length') == '0':
+                                    # Empty file. Content-Range and progress updates don't work with zero lengths,
+                                    # so get out early.
+                                    success = True
+                                    break
 
                                 # Make sure we're getting the expected range.
                                 content_range = response.headers.get('Content-Range', '')
