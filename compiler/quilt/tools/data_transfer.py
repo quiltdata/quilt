@@ -17,7 +17,7 @@ from six import iteritems, itervalues
 from tqdm import tqdm
 
 from .hashing import digest_file
-from .util import FileWithReadProgress, get_free_space
+from .util import FileWithReadProgress, get_free_space, QuiltException
 
 
 PARALLEL_UPLOADS = 20
@@ -84,7 +84,10 @@ def download_fragments(store, obj_urls, obj_sizes):
                         if not obj_queue:
                             break
                         obj_hash, url = obj_queue.pop()
-                        original_size = obj_sizes[obj_hash] or 0  # If the size is unknown, just treat it as 0.
+                        try:
+                            original_size = obj_sizes[obj_hash]
+                        except KeyError:
+                            raise QuiltException("Malformed package: No size for object " + obj_hash)
 
                     success = False
 
@@ -94,6 +97,33 @@ def download_fragments(store, obj_urls, obj_sizes):
                         for attempt in range(S3_TIMEOUT_RETRIES):
                             try:
                                 existing_file_size = output_file.tell()
+
+                                # For zero-byte downloads, we don't need to resume, and range download
+                                # must be at least 1 anyways.
+                                if original_size == 0:
+                                    response = s3_session.get(
+                                        url,
+                                        timeout=(S3_CONNECT_TIMEOUT, S3_READ_TIMEOUT)
+                                    )
+                                    if not response.ok:
+                                        message = (
+                                            "Download failed for {obj_hash}:\n"
+                                            "URL: {response.request.url}\n"
+                                            "Status code: {response.status_code}\n"
+                                            "Response: {response.text!r}\n"
+                                        ).format(**locals())  # Splat **kwargs operators ftw
+                                        with lock:
+                                            tqdm.write(message)
+                                        break
+                                    if len(response.content):
+                                        message = "Expected a zero-byte file, but received content from: "
+                                        with lock:
+                                            tqdm.write(message + response.url)
+                                        break
+                                    encoding = response.headers.get('Content-Encoding', None)
+                                    # Nothing to write to the filesystem, already created by opening.
+                                    success = True
+                                    break
 
                                 # Use the Range header to resume downloads.
                                 # Weird corner case: if the file is already completely downloaded, we will
