@@ -544,7 +544,7 @@ packages:
             contents = gzip_compress(contents)
             headers['Content-Encoding'] = 'gzip'
         headers['Content-Range'] = 'bytes 0-%d/%d' % (len(contents) - 1, len(contents))
-        self.requests_mock.add(responses.GET, s3_url, contents, headers=headers, stream=True)
+        self.requests_mock.add(responses.GET, s3_url, contents, headers=headers, stream=True, status=206)
 
     def _mock_get_objects(self, hashes, team=None):
         url = '%s/api/get_objects' % command.get_registry_url(team)

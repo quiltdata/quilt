@@ -14,7 +14,7 @@ from threading import Thread, Lock
 import requests
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
-from six import iteritems, itervalues
+from six import iteritems, itervalues, string_types
 from tqdm import tqdm
 
 from .hashing import digest_file
@@ -156,7 +156,13 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                                 # Make sure we're getting the expected range.
                                 if response.status_code == 200:  # server ignored range request
-                                    compressed_size = int(response.headers.get('Content-Length'))
+                                    compressed_size = response.headers.get('Content-Length', '').strip()
+                                    if not compressed_size:
+                                        # HTTP: Content length is specified by 'Content-Length' header, or
+                                        # by closing the connection when done. :-/
+                                        compressed_size = len(response.content)
+                                    else:
+                                        compressed_size = int(compressed_size)
                                 else:
                                     content_range = response.headers.get('Content-Range', '')
                                     match = CONTENT_RANGE_RE.match(content_range)
