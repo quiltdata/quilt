@@ -3,6 +3,7 @@ High-level helper functions for uploading and downloading fragments.
 """
 
 from __future__ import print_function
+from collections import defaultdict
 import gzip
 import os
 import re
@@ -57,6 +58,8 @@ def create_s3_session():
     return sess
 
 def download_fragments(store, obj_urls, obj_sizes):
+    print(obj_urls)
+    obj_urls = retarget_signed_urls(obj_urls)
     assert len(obj_urls) == len(obj_sizes)
 
     obj_queue = sorted(iteritems(obj_urls), reverse=True)
@@ -152,14 +155,17 @@ def download_fragments(store, obj_urls, obj_sizes):
                                 encoding = response.raw.headers.pop('Content-Encoding', None)
 
                                 # Make sure we're getting the expected range.
-                                content_range = response.headers.get('Content-Range', '')
-                                match = CONTENT_RANGE_RE.match(content_range)
-                                if not match or not int(match.group(1)) == range_start:
-                                    with lock:
-                                        tqdm.write("Unexpected Content-Range: %s" % content_range)
-                                    break
+                                if response.status_code == 200:  # server ignored range request
+                                    compressed_size = int(response.headers.get('Content-Length'))
+                                else:
+                                    content_range = response.headers.get('Content-Range', '')
+                                    match = CONTENT_RANGE_RE.match(content_range)
+                                    if not match or not int(match.group(1)) == range_start:
+                                        with lock:
+                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
+                                        break
 
-                                compressed_size = int(match.group(3))
+                                    compressed_size = int(match.group(3))
 
                                 # We may have started with a partially-downloaded file, so update the progress bar.
                                 compressed_read = existing_file_size
@@ -245,6 +251,7 @@ def download_fragments(store, obj_urls, obj_sizes):
 
 
 def upload_fragments(store, obj_urls, obj_sizes, reupload=False):
+    obj_urls = retarget_signed_urls(obj_urls)
     assert len(obj_urls) == len(obj_sizes)
 
     obj_queue = sorted(iteritems(obj_urls), reverse=True)
@@ -306,3 +313,34 @@ def upload_fragments(store, obj_urls, obj_sizes, reupload=False):
             thread.join()
 
     return len(uploaded) == total
+
+
+def retarget_signed_urls(urls):
+    # Really, this should be done on the server, but modifying on the client
+    # is much more compatible.  Compatilbility should *also* be built-in
+    # server-side.
+    # Ensure this code doesn't change properly-structured URLs.
+    if not urls:
+        return urls
+
+    def convert_url(url):
+        # Handle Google Storage urls
+        if url.lower().startswith('https://storage.googleapis.com/'):
+            url = re.sub(r"([?&])AWSAccessKeyId(=)", r"\1GoogleAccessId\2", url)
+        # Handle other urls that need mangling, later, in theory, but not now..
+        return url
+
+    # handle `urls` structure when {hash: url}
+    if isinstance(next(iter(urls.values())), string_types):
+        result = {}
+        for hash, url in urls.items():
+            result[hash] = convert_url(url)
+        return result
+
+    # handle `urls` structure when {hash: {http_action: url}}
+    result = defaultdict(dict)
+    for hash, actions in urls.items():
+        for k, url in actions.items():
+            result[hash][k] = convert_url(url)
+
+    return dict(result)

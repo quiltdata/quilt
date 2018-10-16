@@ -5,9 +5,9 @@ Overrides values in config.py.
 import os
 
 def to_bool(str):
-    if str in ['true', '1']:
+    if str.lower() in ['true', '1']:
         return True
-    if str in ['false', '0']:
+    if str.lower() in ['false', '0']:
         return False
     raise ValueError(("Invalid value '%s' supplied for boolean env var, "
         "should be one of: 'true', '1', 'false', '0'.") % str)
@@ -15,10 +15,14 @@ def to_bool(str):
 DEBUG = to_bool(os.getenv('DEBUG', 'false'))
 
 SQLALCHEMY_DATABASE_URI = os.environ['SQLALCHEMY_DATABASE_URI']
-SQLALCHEMY_ECHO = DEBUG
+SQLALCHEMY_ECHO = os.getenv('SQLALCHEMY_DEBUG', DEBUG)
 
 REGISTRY_URL = os.environ['REGISTRY_URL']
 CATALOG_URL = os.environ['CATALOG_URL']
+if not CATALOG_URL.startswith("https"):
+    print("WARNING: INSECURE CONNECTION TO CATALOG")
+    # require verbose environment variable to be defined
+    assert os.environ['ALLOW_INSECURE_CATALOG_ACCESS']
 
 AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
