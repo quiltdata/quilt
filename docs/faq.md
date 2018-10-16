@@ -182,7 +182,7 @@ This error occurs when trying to round-trip Pandas DataFrames that have a column
 
 # Advanced
 
-## How do I use quilt on a remote machine without having to `quilt.login`?
+## How to access private packages from a remote machine, without `quilt.login`
 
 You can copy your login session to a remote machine. Your session is stored in a file called `auth.json` in your local settings directory. If you copy it to the proper location on your remote machine, it will be as if you had logged in from that machine.
 
