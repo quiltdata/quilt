@@ -124,40 +124,54 @@ To browse the catalog using a web browser, enter this location into your web bro
 Running a Quilt Registry in AWS requires the following services:
 * a Postgres database. You can find instructions for setting up Postgres in RDS here: [Create a Postres Database in RDS](https://aws.amazon.com/rds/postgresql/)
 * an S3 bucket
-* an EC2 instance to run the registry, authentication service and catalog. Add the following policies to the security group: Postgres, HTTP/HTTPS, SSH and a custom TCP rule to enable port 5000.
-* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog
+* an EC2 instance to run the registry, authentication service and catalog.
+* Add policies to the security group to allow internal access to Postgres and ports 80/443 and 5000 
+* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog (80/443)
+* Using HTTPS-only is highly recommended, and straightforward using the AWS certificate manager.
+* Using your own domain name will make it easier to access your Quilt registry.
 
-Once the resources have been created, ssh into the EC2 instance and configure the environment and run the services via Docker. You can make it easier to connect to your registry by creating a new DNS record to point to the EC2 instance's external IP address (e.g., quilt.yourdomain.com).  You can generate and assign certificates for your ELB in the certificate manager.
+Once the resources have been created, ssh into the EC2 instance and add
+add the config files, then run the services via Docker. 
 
+Follow the instructions on [installing docker](#1.-install-docker-and-docker-compose).
 ```bash
+# for Amazon Linux AMI
 ssh ec2-user@quilt.yourdomain.com
 mkdir env
-sudo yum install docker
+sudo yum install docker 
 sudo service docker start
 ```
 
 ## Configure your environment
 Edit the file ~/env/registry and enter the following lines:
 ```
+# AWS Access
 AWS_ACCESS_KEY_ID=<YOUR_CREDENTIALS_HERE>
 AWS_SECRET_ACCESS_KEY=<YOUR_CREDENTIALS_HERE>
-QUILT_SERVER_CONFIG=prod_config.py
-ALLOW_INSECURE_CATALOG_ACCESS=True
-# Find your database credentials in the RDS console
+
+# Database config, credentials available in the Amazon RDS Console
 SQLALCHEMY_DATABASE_URI=postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>/<DB_DATABASE>
-CATALOG_URL=http://quilt.yourdomain.com
+
+# Registry - Used for data access
+REGISTRY_URL=<YOUR DOMAIN FOR REGISTRY, E.G. https://quilt.yourdomain.com:5000>
+UWSGI_HOST=localhost
+UWSGI_PORT=9000
+NGINX_PORT=80
+QUILT_SERVER_CONFIG=prod_config.py
+
+# Catalog info for registry 
+CATALOG_URL=<YOUR DOMAIN, E.G. https://quilt.yourdomain.com>
+ALLOW_INSECURE_CATALOG_ACCESS=True
 QUILT_SECRET_KEY=<PICK_A_SECRET_KEY>
+
 # Email configuration
 QUILT_DEFAULT_SENDER=<DEFAULT_FROM_EMAIL_ADDRESS>
 SMTP_HOST=<SMTP_HOST>
 SMTP_USERNAME=<YOUR_CREDENTIALS_HERE>
 SMTP_PASSWORD=<YOUR_CREDENTIALS_HERE>
-S3_HOST=s3
-REGISTRY_URL=http://${REGISTRY_HOST}:5000
+
+# Stripe
 STRIPE_KEY=NOSTRIPE
-UWSGI_HOST=localhost
-UWSGI_PORT=9000
-NGINX_PORT=80
 ```
 
 Edit the file ~/env/catalog and enter the following lines:
@@ -227,9 +241,9 @@ sudo docker run -d -e UWSGI_HOST=localhost -e UWSGI_PORT=9000 -e NGINX_PORT=80 -
 
 # Advanced Use
 ### Advanced: Use an alternative S3-compatible server
-Using an S3 compatible is fairly easy, and just involves setting a few
-variables in `~/env/registry` -- However, S3 implementations may vary 
-from provider to provider, and Quilt doesn't currently test services 
+Using an S3 compatible service is fairly easy, and just involves setting 
+a few variables in `~/env/registry` -- However, S3 implementations may 
+vary from provider to provider, and Quilt doesn't currently test services 
 other than Amazon.  That said, this is known to work with Google Cloud 
 Platform's Cloud Storage.
 
