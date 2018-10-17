@@ -190,6 +190,6 @@ The local settings directory is different for every system. Please refer to [thi
 
 You can find your local settings directory on any machine that has `quilt` installed by running this Python snippet:
 ```
-import appdirs
-appdirs.user_data_dir('QuiltCli')
+from quilt.tools.util import BASE_DIR
+print(BASE_DIR)
 ```
