@@ -186,10 +186,12 @@ This error occurs when trying to round-trip Pandas DataFrames that have a column
 
 You can copy your login session to a remote machine. Your session is stored in a file called `auth.json` in your local settings directory. If you copy it to the proper location on your remote machine, it will be as if you had logged in from that machine.
 
-The local settings directory is different for every system. Please refer to [this](https://pypi.org/project/appdirs/) documentation for the `appdirs` package to see where it lives on your system. For example, on Linux, the path to `auth.json` should be `~/.local/share/QuiltCli/auth.json`.
-
 You can find your local settings directory on any machine that has `quilt` installed by running this Python snippet:
 ```
 from quilt.tools.util import BASE_DIR
 print(BASE_DIR)
 ```
+
+Please note that this secret token confers full access to your Quilt account, so proceed with caution and keep your secrets safe.
+
+Tokens do expire, so you may have to load a new token on your remote machines from time to time. If you're having authentication issues on your remote machines, please try performing a fresh login on your local machine, and uploading your new token to your remote machines.
