@@ -194,4 +194,4 @@ print(BASE_DIR)
 
 Please note that this secret token confers full access to your Quilt account, so proceed with caution and keep your secrets safe.
 
-Tokens do expire, so you may have to load a new token on your remote machines from time to time. If you're having authentication issues on your remote machines, please try performing a fresh login on your local machine, and uploading your new token to your remote machines.
+Tokens do expire, so you may have to load a new token on your remote machines every 90 days or so. If you're having authentication issues on your remote machines, please try performing a fresh login on your local machine, and uploading your new token to your remote machines.
