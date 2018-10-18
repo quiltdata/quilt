@@ -10,7 +10,6 @@ DEBUG = True
 
 SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres@localhost/packages')
 
-# XXX: Does this actually do anything right now?
 AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
 
 STAGE_AUTH_URL = 'https://stage-auth.quiltdata.com'
