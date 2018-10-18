@@ -3,7 +3,6 @@ High-level helper functions for uploading and downloading fragments.
 """
 
 from __future__ import print_function
-from collections import defaultdict
 import gzip
 import os
 import re
