@@ -118,12 +118,10 @@ Note: ```quilt login``` is its own test that the server is working.  You can now
 
 To browse the catalog using a web browser, enter this location into your web browser: http://localhost:3000
 
-# Run a Private Registry in AWS
-
-## AWS Resources
-Running a Quilt Registry in AWS requires the following services:
-* a Postgres database. You can find instructions for setting up Postgres in RDS here: [Create a Postres Database in RDS](https://aws.amazon.com/rds/postgresql/)
-* an S3 bucket
+## Systems configuration
+Running a Quilt Registry services:
+* a Postgres database. [Create a Postres Database in Amazon RDS](https://aws.amazon.com/rds/postgresql/)
+* an S3 bucket and access keys
 * an EC2 instance to run the registry, authentication service and catalog.
 * Add policies to the security group to allow internal access to Postgres and ports 80/443 and 5000 
 * an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog (80/443)
@@ -131,7 +129,7 @@ Running a Quilt Registry in AWS requires the following services:
 * Using your own domain name will make it easier to access your Quilt registry.
 
 Once the resources have been created, ssh into the EC2 instance and add
-add the config files, then run the services via Docker. 
+add the config file as shown below, then run the services via Docker.
 
 Follow the instructions on [installing docker](#1.-install-docker-and-docker-compose).
 ```bash
@@ -143,101 +141,70 @@ sudo service docker start
 ```
 
 ## Configure your environment
-Edit the file ~/env/registry and enter the following lines:
+The full file of config values is available [here](config/config.env), and may
+help with configuring for specific use cases.  For now, copy this to ~/env/server.env,
+and fill in the relevant values.
 ```
-# AWS Access
-AWS_ACCESS_KEY_ID=<YOUR_CREDENTIALS_HERE>
-AWS_SECRET_ACCESS_KEY=<YOUR_CREDENTIALS_HERE>
+## Quilt Secret Key
+# Choose a unique secret key
+#QUILT_SECRET_KEY=ChangeThisValue
+QUILT_SECRET_KEY=
 
-# Database config, credentials available in the Amazon RDS Console
-SQLALCHEMY_DATABASE_URI=postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>/<DB_DATABASE>
+## Registry URL
+# The registry typically uses port 5000.
+#REGISTRY_URL=https://yourcompany.com:5000
+REGISTRY_URL=
 
-# Registry - Used for data access
-REGISTRY_URL=<YOUR DOMAIN FOR REGISTRY, E.G. https://quilt.yourdomain.com:5000>
-UWSGI_HOST=localhost
-UWSGI_PORT=9000
-NGINX_PORT=80
-QUILT_SERVER_CONFIG=prod_config.py
+## Catalog URL
+# This is the URL for the catalog, which provides web access to your registry and data.
+#CATALOG_URL=https://yourcompany.com
+CATALOG_URL=
 
-# Catalog info for registry 
-CATALOG_URL=<YOUR DOMAIN, E.G. https://quilt.yourdomain.com>
-ALLOW_INSECURE_CATALOG_ACCESS=True
-QUILT_SECRET_KEY=<PICK_A_SECRET_KEY>
+## Database Configuration
+# The database user must have sufficient permissions to modify the database schema.
+# Use this format:  postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>/<DB_DATABASE>
+SQLALCHEMY_DATABASE_URI=
 
-# Email configuration
-QUILT_DEFAULT_SENDER=<DEFAULT_FROM_EMAIL_ADDRESS>
-SMTP_HOST=<SMTP_HOST>
-SMTP_USERNAME=<YOUR_CREDENTIALS_HERE>
-SMTP_PASSWORD=<YOUR_CREDENTIALS_HERE>
+## S3 Settings
+# Data storage -- settings are available via your S3 compatible provider
+# For google, acquire interoperability keys from your cloud storage settings.
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+S3_ENDPOINT=
+PACKAGE_BUCKET_NAME=
 
-# Stripe
-STRIPE_KEY=NOSTRIPE
-```
+## Mail Settings
+# This is required for account registration and similar activities
+# Exact details depend on your mail server, so in some cases
+# not all of these are required.
+QUILT_DEFAULT_SENDER=
+SMTP_HOST=
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_PORT=
+# Defaults to true
+#SMTP_USE_TLS=false
 
-Edit the file ~/env/catalog and enter the following lines:
-```
-# local registry instance
-REGISTRY_URL=http://<YOUR REGISTRY HOST>:5000
-
-# when empty, the instance is non-team
-TEAM_ID=
-TEAM_NAME=
-
-# when set, team features are enabled
-#TEAM_ID=supercorp
-#TEAM_NAME="SuperCorp (TM)"
-
-# when non-empty, auth-protect all the routes
-ALWAYS_REQUIRES_AUTH=
-
-# Stripe key, if needed
-STRIPE_KEY=
-
-# Sentry Data Source Name.
-# If set, errors and stuff are sent to the Sentry servers
-# (see `app/utils/errorReporting.js` for details).
-SENTRY_DSN=
-
-# Mixpanel token. If set, navigation is tracked via Mixpanel.
-MIXPANEL_TOKEN=
-```
-
-Edit the file ~/env/nginx-quilt.conf and enter the following lines:
-```
-server {
-        listen ${NGINX_PORT} default_server;
-    listen [::]:${NGINX_PORT} default_server;
-
-        charset utf-8;
-        client_max_body_size 75M;
-
-        gzip on;
-        gzip_min_length 1024;
-        gzip_types text/plain application/json;
-
-        location / {
-                include uwsgi_params;
-                uwsgi_pass ${UWSGI_HOST}:${UWSGI_PORT};
-        }
-}
 ```
 
 ## Run the catalog
 ```bash
-sudo docker run -d --name catalog --env-file ~/env/catalog -p 80:80 quiltdata/catalog
+sudo docker run -d --name catalog --env-file ~/env/server.env -p 80:80 quiltdata/catalog && \
 ```
 
 ## Run the registry
 Initialize the database tables by running migrations.
 ```bash
-sudo docker run --rm --env-file ~/env/registry quiltdata/registry flask db upgrade
+sudo docker run --rm --env-file ~/env/server.env quiltdata/registry flask db upgrade && \
 ```
 
 After the migrations are complete, run the registry as follows:
 ```bash 
-sudo docker run -d --name registry --env-file ~/env/registry -p 5000:80 quiltdata/registry
-sudo docker run -d -e UWSGI_HOST=localhost -e UWSGI_PORT=9000 -e NGINX_PORT=80 -v /home/ec2-user/nginx-quilt.conf:/etc/nginx/nginx-quilt.template --name registry-nginx --network container:registry nginx /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+sudo docker run -d --name registry --env-file ~/env/server.env -p 5000:80 quiltdata/registry && \
+sudo docker run -d --name registry-nginx --network container:registry quiltdata/nginx
 ```
+
+You should be able to visit your catalog url, and to point clients to your registry url.
 
 # Advanced Use
 ### Advanced: Use an alternative S3-compatible server

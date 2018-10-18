@@ -5,9 +5,9 @@ Overrides values in config.py.
 import os
 
 def to_bool(str):
-    if str.lower() in ['true', '1']:
+    if str.strip().lower() in ['true', '1']:
         return True
-    if str.lower() in ['false', '0']:
+    if str.strip().lower() in ['false', '0']:
         return False
     raise ValueError(("Invalid value '%s' supplied for boolean env var, "
         "should be one of: 'true', '1', 'false', '0'.") % str)
