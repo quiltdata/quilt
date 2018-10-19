@@ -31,7 +31,7 @@ class Node(object):
         raise NotImplementedError
 
     def __init__(self, metadata_hash):
-        assert metadata_hash is None or isinstance(metadata_hash, str)
+        assert metadata_hash is None or isinstance(metadata_hash, string_types)
         self.metadata_hash = metadata_hash
 
     def __eq__(self, other):
@@ -53,7 +53,7 @@ class Node(object):
             val['metadata_hash'] = self.metadata_hash
         return val
 
-    def get_children(self):
+    def get_children(self): # pylint:disable=R0201
         return {}
 
 
@@ -90,7 +90,9 @@ class TableNode(Node):
     def __init__(self, hashes, format, metadata=None, metadata_hash=None):
         super(TableNode, self).__init__(metadata_hash)
 
-        assert PackageFormat(format) == PackageFormat.PARQUET
+        # This AssertionError needed with this message to catch later and present clear user information.
+        if not PackageFormat(format) == PackageFormat.PARQUET:
+            raise AssertionError("Bad package format '{}', this package may be outdated.".format(format))
 
         assert isinstance(hashes, list)
         assert isinstance(format, string_types), '%r' % format

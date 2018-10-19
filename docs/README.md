@@ -85,7 +85,7 @@ fragments are de-duplicated and kept in a local [object store](https://github.co
 hash-tree that specifies the structure of the package.
 
 By default:
-* Unstrcutured and semi-structured data are copied "as is" (e.g. JSON, TXT)
+* Unstructured and semi-structured data are copied "as is" (e.g. JSON, TXT)
 * Tabular file formats (like CSV, TSV, XLS, etc.) are parsed with
 [pandas](http://pandas.pydata.org/) and serialized to Parquet with
 [pyarrow](https://arrow.apache.org/docs/python/).

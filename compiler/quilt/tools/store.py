@@ -203,13 +203,25 @@ class PackageStore(object):
             with open (latest_tag, 'r') as tagfile:
                 pkghash = tagfile.read()
 
-        assert pkghash is not None  
+        assert pkghash is not None
         contents_path = os.path.join(path, self.CONTENTS_DIR, pkghash)
         if not os.path.isfile(contents_path):
             return None
 
         with open(contents_path, 'r') as contents_file:
-            return json.load(contents_file, object_hook=decode_node)
+            try:
+                return json.load(contents_file, object_hook=decode_node)
+            except AssertionError as err:
+                if str(err).startswith("Bad package format"):
+                    name = "{}{}/{}, {}".format(
+                        team + ':' if team else '',
+                        user,
+                        package,
+                        pkghash
+                        )
+                    raise StoreException("Error in {}: {}".format(name, str(err)))
+                else:
+                    raise
 
     def install_package(self, team, user, package, contents):
         """
@@ -227,7 +239,7 @@ class PackageStore(object):
             os.remove(path)
         except OSError:
             pass
-    
+
     def create_package_node(self, team, user, package, dry_run=False):
         """
         Creates a new package and initializes its contents. See `install_package`.
@@ -375,7 +387,10 @@ class PackageStore(object):
 
         objfiles = [self.object_path(h) for h in hash_list]
         dataset = ParquetDataset(objfiles)
-        table = dataset.read(nthreads=4)
+        try:
+            table = dataset.read(use_threads=True)  # pyarrow == 0.11
+        except TypeError:
+            table = dataset.read(nthreads=4)  # pyarrow < 0.11
         try:
             dataframe = table.to_pandas()
         except Exception:
@@ -541,7 +556,7 @@ class PackageStore(object):
             os.mkdir(os.path.join(pkg_path, self.CONTENTS_DIR))
             os.mkdir(os.path.join(pkg_path, self.TAGS_DIR))
             os.mkdir(os.path.join(pkg_path, self.VERSIONS_DIR))
-            
+
         dest = os.path.join(pkg_path, self.CONTENTS_DIR, instance_hash)
         with open(dest, 'w') as contents_file:
             json.dump(root, contents_file, default=encode_node, indent=2, sort_keys=True)
@@ -573,9 +588,9 @@ class PackageStore(object):
         """
         assert isinstance(node_path, list)
         assert user_meta_hash is None or isinstance(user_meta_hash, str)
-        
+
         contents = pkgroot
-        
+
         if not node_path:
             # Allow setting metadata on the root node, but that's it.
             assert target is TargetType.GROUP
@@ -603,7 +618,7 @@ class PackageStore(object):
             )
 
         ptr.children[node_path[-1]] = node
-        
+
 
 ########################################
 # Methods ported from save_<xyz>
@@ -653,4 +668,4 @@ class PackageStore(object):
         else:
             if root.children:
                 raise PackageException("Attempting to overwrite root node of a non-empty package.")
-            root.children = pkgnode.children.copy()   
+            root.children = pkgnode.children.copy()

@@ -31,3 +31,13 @@ class StoreTest(QuiltTestCase):
         # We now have a new version.
         with open(os.path.join(self._store_dir, '.format')) as fd:
             assert fd.read() == '1.3'
+
+    def test_buggy_parquet(self):
+        mydir = os.path.dirname(__file__)
+        shutil.copytree(os.path.join(mydir, 'store_buggy_parquet'), self._store_dir)
+
+        store, pkg = PackageStore.find_package(None, 'test', 'bug')
+        obj_hashes = pkg.children['bug'].hashes
+
+        # Make sure this doesn't crash.
+        store.load_dataframe(obj_hashes)
