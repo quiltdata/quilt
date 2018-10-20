@@ -1,0 +1,33 @@
+version: '2.1'
+services:
+  flaskmigration:
+    build: .
+    image: quiltdata/registry
+    env_file: ${QUILT_CONFIG:?err}
+    command:
+      flask db upgrade
+
+  flask:
+    build: .
+    image: quiltdata/registry
+    depends_on:
+      - flaskmigration
+    ports:
+      - 5000:80
+    env_file: ${QUILT_CONFIG:?err}
+
+  nginx:
+    build: ./nginx
+    image: quiltdata/registry-nginx
+    network_mode: service:flask
+    depends_on:
+      - flask
+    env_file: ${QUILT_CONFIG:?err}
+
+  catalog:
+    build: ../catalog
+    image: quiltdata/catalog
+    env_file: ${QUILT_CONFIG:?err}
+    ports:
+      - "80:80"
+
