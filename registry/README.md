@@ -228,18 +228,31 @@ errors and misconfiguration messages on container startup.
 
 
 # Hosting Quilt via Amazon
-For hosting on Amazon, create:
-* a VPC (or use an existing one)
-* an EC2 instance
-* a Postgres database -- see [Create a Postres Database in Amazon RDS](https://aws.amazon.com/rds/postgresql/)
-* an S3 bucket and access keys (this does not need to be Amazon-based)
-* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog (80)
-  * Setting this up to use HTTPS is highly recommended, and very straightforward with the AWS certificate manager.
-* a domain name like 'quilt.yourmcompany.com' -- not mandatory, but more clear than Amazon hostnames.
+For hosting on Amazon:
+* Create an S3 bucket and access keys (this does not need to be Amazon-based)
+  * You'll need your endpoint for your region, public key, and private key
+* Create a VPC (or use an existing one)
+  * Use this for Database, EC2 instance, and Elastic Load Balancer
+* Create an EC2 instance
+* Create Postgres RDS database
+  * For RDS and VPCs, see [Amazon VPCs and Amazon RDS](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html)
+* Elastic Load Balancer should be configured as follows:
+  * Two target groups, pointed at the EC2 instance:
+    * Catalog - Port 80, http, health check at `/` (default)
+    * Registry - Port 5000, http, health check at `/healthcheck`
+  * Three Listeners:
+    * Listen on HTTP/80, redirect to HTTPS/443
+    * Listen on HTTPS/443, forward to EC2 instance, port 80
+    * Listen on HTTPS/5000, forward to EC2 instance, port 5000
+* Set up a domain name like 'quilt.yourmcompany.com'-- not mandatory, but more clear than Amazon hostnames.
 
 Check to ensure connectivity between the EC2 instance and database. Once 
 the resources have been created and connectivity verified, ssh into the EC2
-instance and follow instructions for [production](#production).
+instance and follow instructions for [production](#production), using the
+load balancer's address (`https://quilt.yourcompany.com` and 
+`https://quilt.yourcompany.com:5000`) for the catalog and registry URLs.
+You can use a separate hostname for the registry to avoid the port number
+suffix, if desired.
 
 
 # Alternate Configurations
