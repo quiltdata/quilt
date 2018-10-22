@@ -84,6 +84,6 @@ MAIL_USE_TLS = to_bool(getenv('SMTP_USE_TLS', True))
 
 # deprecated or inactive (?)
 # Only referenced in configs
-AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
+AUTH_PROVIDER = getenv('AUTH_PROVIDER', 'quilt')
 # This is Only referenced in configs, appears to do nothing, but is a required value..
-SECRET_KEY = getenv('QUILT_SECRET_KEY')
+SECRET_KEY = getenv('QUILT_SECRET_KEY', 'changeme')
