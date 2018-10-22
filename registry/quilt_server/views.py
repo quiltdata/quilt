@@ -512,8 +512,9 @@ def _generate_presigned_url(method, owner, blob_hash):
         ),
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
-    # This may seem hacky, but it's accurate, and it spares a ton of boilerplate,
-    # extra installation of gsutil, etc.
+    # This is similar to what's done in the google documentation for a simple
+    # migration, but for pre-signed URLs (for which no example is given).
+    #    https://cloud.google.com/storage/docs/migrating#keys
     # Modify URLs for Google Storage
     if url.lower().startswith('https://storage.googleapis.com/'):
         url = re.sub(r"([?&])AWSAccessKeyId(=)", r"\1GoogleAccessId\2", url)

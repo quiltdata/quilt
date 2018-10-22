@@ -8,34 +8,37 @@ import socket
 Required = object()
 
 def to_bool(str):
+    if str in [True, False]:
+        return str  # already a boolean
     if str in ['true', '1']:
         return True
     if str in ['false', '0']:
         return False
-    raise EnvironmentError(("Invalid value '%s' supplied for boolean env var, "
+    raise EnvironmentError(2, ("Invalid value '%s' supplied for boolean env var, "
         "should be one of: 'true', '1', 'false', '0'.") % str)
 
 def getenv(name, default):
     value = os.getenv(name)
     if value in [None, '']:
         if default is Required:
-            raise EnvironmentError("Expected variable {!r}, but it wasn't present.".format(name))
+            raise EnvironmentError(2,
+                "Expected environment variable {!r}, but it wasn't present.".format(name))
         else:
             return default
     return value
 
 # Development
-DEBUG = to_bool(getenv('DEBUG', 'false'))
+DEBUG = to_bool(getenv('DEBUG', False))
 
 DEV_USERNAME = getenv('DEV_USERNAME', None)
 DEV_PASSWORD = getenv('DEV_PASSWORD', None)
 DEV_EMAIL = getenv('DEV_EMAIL', 'support@quiltdata.io')
 
-MAIL_DEV = to_bool(getenv('MAIL_DEV', 'false'))
+MAIL_DEV = to_bool(getenv('MAIL_DEV', False))
 
 # DB
-SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI')
-SQLALCHEMY_ECHO = DEBUG
+SQLALCHEMY_DATABASE_URI = getenv('SQLALCHEMY_DATABASE_URI', Required)
+SQLALCHEMY_ECHO = getenv('SQLALCHEMY_ECHO', DEBUG)
 
 # Base URLs
 REGISTRY_URL = getenv('REGISTRY_URL', Required)
@@ -43,7 +46,9 @@ CATALOG_URL = getenv('CATALOG_URL', Required)
 if not CATALOG_URL.startswith("https"):
     print("WARNING: INSECURE CONNECTION TO CATALOG")
     # require verbose environment variable to be defined
-    assert to_bool(getenv('ALLOW_INSECURE_CATALOG_ACCESS', 'false'))
+    if not to_bool(getenv('ALLOW_INSECURE_CATALOG_ACCESS', False)):
+        raise EnvironmentError(2,
+            "Environment variable 'ALLOW_INSECURE_CATALOG_ACCESS' must be 'true' to run without https.")
 
 STAGE_AUTH_URL = getenv('STAGE_AUTH_URL', '')
 QUILT_AUTH_URL = getenv('QUILT_AUTH_URL', STAGE_AUTH_URL)
@@ -64,16 +69,17 @@ DEPLOYMENT_ID = getenv('DEPLOYMENT_ID', socket.gethostname())
 STRIPE_SECRET_KEY = getenv('STRIPE_SECRET_KEY', '')
 
 # Quilt features
-ENABLE_USER_ENDPOINTS = to_bool(os.getenv('ENABLE_USER_ENDPOINTS', 'false'))
+ENABLE_USER_ENDPOINTS = to_bool(os.getenv('ENABLE_USER_ENDPOINTS', False))
 
 
 # Mail
-DEFAULT_SENDER = getenv('QUILT_DEFAULT_SENDER')
+MAIL_DEV = getenv('MAIL_DEV', False)
+DEFAULT_SENDER = getenv('QUILT_DEFAULT_SENDER', Required)
 MAIL_SERVER = getenv('SMTP_HOST', '' if DEBUG else Required)
 MAIL_PORT = getenv('SMTP_PORT', None)
 MAIL_USERNAME = getenv('SMTP_USERNAME', '')
 MAIL_PASSWORD = getenv('SMTP_PASSWORD', '')
-MAIL_USE_TLS = to_bool(getenv('SMTP_USE_TLS', 'true'))
+MAIL_USE_TLS = to_bool(getenv('SMTP_USE_TLS', True))
 
 
 # deprecated or inactive (?)
