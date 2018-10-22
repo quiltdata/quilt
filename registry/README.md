@@ -7,7 +7,7 @@ This is the reference implementation of the Quilt server and package registry.
 
 The instructions below are **for testing purposes only**, as `docker-compose` does not instantiate a persistent database, and does not communicate with blob storage.
 
-# Quickstart with Docker and docker-compose
+# Testing and Development with Docker and docker-compose
 
 We recommend using `docker-compose` to run a local Quilt registry for testing and development. This starts a collection of Docker containers to run the various services needed to run the registry: database, storage, and Flask web/API server.  The advantage of Docker is that it isolates you from the details of installing each component correctly, including version, configuration, etc. -- with docker, everything is pre-configured for you.
 
@@ -118,96 +118,129 @@ Note: ```quilt login``` is its own test that the server is working.  You can now
 
 To browse the catalog using a web browser, enter this location into your web browser: http://localhost:3000
 
-## Systems configuration
-Running a Quilt Registry services:
-* a Postgres database. [Create a Postres Database in Amazon RDS](https://aws.amazon.com/rds/postgresql/)
-* an S3 bucket and access keys
-* an EC2 instance to run the registry, authentication service and catalog.
-* Add policies to the security group to allow internal access to Postgres and ports 80/443 and 5000 
-* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog (80/443)
-* Using HTTPS-only is highly recommended, and straightforward using the AWS certificate manager.
-* Using your own domain name will make it easier to access your Quilt registry.
+# Running a Production Environment
+This is not meant to be a comprehensive guide on creating production
+environments, but rather a quick guide to basic Quilt configuration for a
+production environment.  In the development environment, everything is
+preconfigured to provide an easy setup.  In production, you'll have the
+following considerations:
 
-Once the resources have been created, ssh into the EC2 instance and add
-add the config file as shown below, then run the services via Docker.
+* Configuring Quilt
+* Providing a reverse proxy or load balancer -- preferably providing SSL.
+* A Postgres server
+  * database for Quilt registry and catalog information
+  * user with full rights on that database
+* An S3 service provider
+  * Amazon is the most thoroughly tested.  Other services work, but don't
+    have the same degree of support.  Feel free to file a bug if you run
+    across any incompatibilities when running other providers.
+  * S3 may not be your preferred data storage service type.  In that case,
+    see instructions on [using minio](#Using Minio) to access other blob
+    storage providers.
+* Running and exposing Quilt services
 
-Follow the instructions on [installing docker](#1.-install-docker-and-docker-compose).
-```bash
-# for Amazon Linux AMI
-ssh ec2-user@quilt.yourdomain.com
-mkdir env
-sudo yum install docker 
-sudo service docker start
-```
+## Configuring Quilt
+The full file of config values is available [here](config/example.env), and may
+help with configuration for specific use cases.  These settings that follow are
+the ones required for a basic setup.  Modify this config for your own setup,
+and save the result.  The name is not important, but for this example,
+we'll use `quilt-config.env`.
 
-## Configure your environment
-The full file of config values is available [here](config/config.env), and may
-help with configuring for specific use cases.  For now, copy this to ~/env/server.env,
-and fill in the relevant values.
 ```
 ## Quilt Secret Key
 # Choose a unique secret key
 #QUILT_SECRET_KEY=ChangeThisValue
 QUILT_SECRET_KEY=
 
+## Quilt Server Config
+# Which config loader to use
+QUILT_SERVER_CONFIG=env_config.py
+
 ## Registry URL
 # The registry typically uses port 5000.
-#REGISTRY_URL=https://yourcompany.com:5000
+#REGISTRY_URL=https://quilt.yourcompany.com:5000
 REGISTRY_URL=
 
 ## Catalog URL
 # This is the URL for the catalog, which provides web access to your registry and data.
-#CATALOG_URL=https://yourcompany.com
+#CATALOG_URL=https://quilt.yourcompany.com
 CATALOG_URL=
 
 ## Database Configuration
 # The database user must have sufficient permissions to modify the database schema.
 # Use this format:  postgresql://<DB_USER>:<DB_PASSWORD>@<DB_HOST>/<DB_DATABASE>
+# SQLALCHEMY_DATABASE_URI=postgresql://bob:supersecret@db.yourcompany.com/quilt
 SQLALCHEMY_DATABASE_URI=
 
 ## S3 Settings
 # Data storage -- settings are available via your S3 compatible provider
 # For google, acquire interoperability keys from your cloud storage settings.
+S3_ENDPOINT=
+PACKAGE_BUCKET_NAME=packages
 AWS_ACCESS_KEY_ID=
 AWS_SECRET_ACCESS_KEY=
-S3_ENDPOINT=
-PACKAGE_BUCKET_NAME=
 
 ## Mail Settings
 # This is required for account registration and similar activities
 # Exact details depend on your mail server, so in some cases
 # not all of these are required.
-QUILT_DEFAULT_SENDER=
+QUILT_DEFAULT_SENDER=noreply@quilt.yourcompany.com
 SMTP_HOST=
 SMTP_USERNAME=
 SMTP_PASSWORD=
 SMTP_PORT=
 # Defaults to true
 #SMTP_USE_TLS=false
-
 ```
 
-## Run the catalog
-```bash
-sudo docker run -d --name catalog --env-file ~/env/server.env -p 80:80 quiltdata/catalog && \
+## Running and Exposing Quilt Services
+Quilt exposes only two public ports.  By default, these are port 80
+and port 5000, but you can modify these as needed.  Start your Quilt 
+server by using `docker-compose`, or by executing docker directly.
+
+*Either user docker-compose*
 ```
-
-## Run the registry
-Initialize the database tables by running migrations.
-```bash
-sudo docker run --rm --env-file ~/env/server.env quiltdata/registry flask db upgrade && \
+# Check out the git repostory
+git clone https://github.com/quiltdata/quilt
+# Change to the quilt registry dir
+cd quilt/registry
+# Execute the Quilt server with docker-compose
+# replace <quilt config> with the path to the quilt config
+# you created above
+$QUILT_CONFIG=<quilt config> docker-compose -f docker-compose-env.yml up --build
 ```
-
-After the migrations are complete, run the registry as follows:
-```bash 
-sudo docker run -d --name registry --env-file ~/env/server.env -p 5000:80 quiltdata/registry && \
-sudo docker run -d --name registry-nginx --network container:registry quiltdata/nginx
+*Or call docker directly*
 ```
+# replace <quilt config> with the path to the config you created.
+sudo docker run -d --name catalog --env-file <quilt config> -p 80:80 quiltdata/catalog
+sudo docker run --rm --env-file <quilt config> quiltdata/registry flask db upgrade
+sudo docker run -d --name registry --env-file <quilt config> -p 5000:80 quiltdata/registry
+sudo docker run -d --name registry-nginx --env-file <quilt config> --network container:registry quiltdata/nginx
+```
+In this case, you can change the port by modifying the first value in
+'80:80' or '5000:80', for the catalog and registry, respectively.
 
-You should be able to visit your catalog url, and to point clients to your registry url.
+After starting the docker containers, the Quilt server should be listening
+on the configured ports.  Watch for errors and misconfiguration messages
+on container startup.
 
-# Advanced Use
-### Advanced: Use an alternative S3-compatible server
+
+# Hosting Quilt via Amazon
+For hosting on Amazon, create:
+* a VPC (or use an existing one)
+* an EC2 instance
+* a Postgres database -- see [Create a Postres Database in Amazon RDS](https://aws.amazon.com/rds/postgresql/)
+* an S3 bucket and access keys (this does not need to be Amazon-based)
+* an Elastic Load Balancer (ELB) to terminate SSL connections to the registry (port 5000) and catalog (80)
+  * Setting this up to use HTTPS is highly recommended, and very straightforward with the AWS certificate manager.
+* a domain name like 'quilt.yourmcompany.com' -- not mandatory, but more clear than Amazon hostnames.
+
+Check to ensure connectivity between the EC2 instance and database. Once 
+the resources have been created and connectivity verified, ssh into the EC2
+instance and follow instructions for [running a production environment](#Running-a-production-environment).
+
+
+### Using an alternative S3-compatible server
 Using an S3 compatible service is fairly easy, and just involves setting 
 a few variables in `~/env/registry` -- However, S3 implementations may 
 vary from provider to provider, and Quilt doesn't currently test services 
@@ -221,7 +254,24 @@ PACKAGE_BUCKET_NAME=<NAME OF YOUR PACKAGE BUCKET>
 QUILT_SERVER_CONFIG=env_config.py
 ```
 
+### Using Minio
+To use Minio, start the Minio server, and use Minio as your S3 endpoint.
 
+*Azure example*
+```
+docker run -p 9000:9000 --name azure-s3 \
+ -e "MINIO_ACCESS_KEY=azurestorageaccountname" \
+ -e "MINIO_SECRET_KEY=azurestorageaccountkey" \
+ minio/minio gateway azure
+```
+
+Then use Minio's URL as the `S3_ENDPOINT` in your Quilt configuration,
+using the keys you use (in this case, azure account name and key) as your
+`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. Make sure to use HTTPS
+for Minio.
+
+
+# Advanced Use
 ### Advanced: Headless installation including AWS
 
 Server installations (e.g. AWS) require special instructions because the web browser is not running on the same machine as the Quilt registry.  For this example, let's assume that your server has an external IP address of ```$EXT_IP```
