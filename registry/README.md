@@ -276,7 +276,7 @@ docker run -p 9000:9000 --name azure-s3 \
 ```
 *Quilt config changes*
 ```
-# must be exposed to quilt clients.
+# This URL must be exposed to quilt clients.
 S3_ENDPOINT=https://yourcompany.com:9000
 AWS_ACCESS_KEY_ID=azurestorageaccountname  
 AWS_SECRET_ACCESS_KEY=azurestorageaccountkey
