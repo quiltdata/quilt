@@ -129,7 +129,7 @@ further attention.  You'll need:
     make some accommodations for incompatibilities between S3 providers, so
     if you do run across an issue, please file a bug.
   * S3 may not be your preferred data storage service type.  In that case,
-    see instructions on [using minio](#Using Minio) to access other blob
+    see instructions on [using minio](#using-minio) to access other blob
     storage providers.
 
 
