@@ -152,14 +152,23 @@ def download_fragments(store, obj_urls, obj_sizes):
                                 encoding = response.raw.headers.pop('Content-Encoding', None)
 
                                 # Make sure we're getting the expected range.
-                                content_range = response.headers.get('Content-Range', '')
-                                match = CONTENT_RANGE_RE.match(content_range)
-                                if not match or not int(match.group(1)) == range_start:
-                                    with lock:
-                                        tqdm.write("Unexpected Content-Range: %s" % content_range)
-                                    break
+                                if response.status_code == 200:  # server ignored range request
+                                    compressed_size = response.headers.get('Content-Length', '').strip()
+                                    if not compressed_size:
+                                        # HTTP: Content length is specified by 'Content-Length' header, or
+                                        # by closing the connection when done. :-/
+                                        compressed_size = len(response.content)
+                                    else:
+                                        compressed_size = int(compressed_size)
+                                else:
+                                    content_range = response.headers.get('Content-Range', '')
+                                    match = CONTENT_RANGE_RE.match(content_range)
+                                    if not match or not int(match.group(1)) == range_start:
+                                        with lock:
+                                            tqdm.write("Unexpected Content-Range: %s" % content_range)
+                                        break
 
-                                compressed_size = int(match.group(3))
+                                    compressed_size = int(match.group(3))
 
                                 # We may have started with a partially-downloaded file, so update the progress bar.
                                 compressed_read = existing_file_size

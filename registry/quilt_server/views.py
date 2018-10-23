@@ -17,6 +17,7 @@ from functools import wraps
 import gzip
 import json
 import pathlib
+import re
 import time
 
 import boto3
@@ -503,7 +504,7 @@ def _mp_track(**kwargs):
     mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
 def _generate_presigned_url(method, owner, blob_hash):
-    return s3_client.generate_presigned_url(
+    url = s3_client.generate_presigned_url(
         method,
         Params=dict(
             Bucket=PACKAGE_BUCKET_NAME,
@@ -511,6 +512,13 @@ def _generate_presigned_url(method, owner, blob_hash):
         ),
         ExpiresIn=PACKAGE_URL_EXPIRATION
     )
+    # This is similar to what's done in the google documentation for a simple
+    # migration, but for pre-signed URLs (for which no example is given).
+    #    https://cloud.google.com/storage/docs/migrating#keys
+    # Modify URLs for Google Storage
+    if url.lower().startswith('https://storage.googleapis.com/'):
+        url = re.sub(r"([?&])AWSAccessKeyId(=)", r"\1GoogleAccessId\2", url)
+    return url
 
 def _get_or_create_customer():
     assert HAVE_PAYMENTS, "Payments are not enabled"
