@@ -17,8 +17,8 @@ from functools import wraps
 import gzip
 import json
 import pathlib
-import re
 import time
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode, parse_qsl
 
 import boto3
 from botocore.exceptions import ClientError
@@ -81,6 +81,9 @@ PREVIEW_MAX_CHILDREN = 10
 PREVIEW_MAX_DEPTH = 4
 
 MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
+
+GOOGLE_STORAGE_ENDPOINTS = ['cloud.google.com', 'storage.cloud.google.com']
+
 
 s3_client = boto3.client(
     's3',
@@ -515,9 +518,14 @@ def _generate_presigned_url(method, owner, blob_hash):
     # This is similar to what's done in the google documentation for a simple
     # migration, but for pre-signed URLs (for which no example is given).
     #    https://cloud.google.com/storage/docs/migrating#keys
-    # Modify URLs for Google Storage
-    if url.lower().startswith('https://storage.googleapis.com/'):
-        url = re.sub(r"([?&])AWSAccessKeyId(=)", r"\1GoogleAccessId\2", url)
+    parsed_url = urlparse(url)
+    if parsed_url.hostname.lower() in GOOGLE_STORAGE_ENDPOINTS:
+        parsed_query = parse_qsl(parsed_url.query)
+        for index, item in enumerate(parsed_query):
+            if item[0] == 'AWSAccessKeyId':
+                parsed_query[index] = ('GoogleAccessId', item[1])
+        parsed_url = parsed_url._replace(query=urlencode(parsed_query))
+        url = urlunparse(parsed_url)
     return url
 
 def _get_or_create_customer():
