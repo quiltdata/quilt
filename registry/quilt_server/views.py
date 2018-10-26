@@ -82,7 +82,7 @@ PREVIEW_MAX_DEPTH = 4
 
 MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
 
-GOOGLE_STORAGE_ENDPOINTS = ['cloud.google.com', 'storage.cloud.google.com']
+GOOGLE_STORAGE_ENDPOINTS = ['cloud.google.com', 'storage.cloud.google.com', 'storage.googleapis.com']
 
 
 s3_client = boto3.client(
@@ -520,12 +520,10 @@ def _generate_presigned_url(method, owner, blob_hash):
     #    https://cloud.google.com/storage/docs/migrating#keys
     parsed_url = urlparse(url)
     if parsed_url.hostname.lower() in GOOGLE_STORAGE_ENDPOINTS:
-        parsed_query = parse_qsl(parsed_url.query)
-        for index, item in enumerate(parsed_query):
-            if item[0] == 'AWSAccessKeyId':
-                parsed_query[index] = ('GoogleAccessId', item[1])
-        parsed_url = parsed_url._replace(query=urlencode(parsed_query))
-        url = urlunparse(parsed_url)
+        query = parse_qs(parsed_url.query)
+        if 'AWSAccessKeyId' in query:
+            query['GoogleAccessId'] = query.pop('AWSAccessKeyId')
+        url = urlunparse(parsed_url._replace(query=urlencode(query, doseq=True)))
     return url
 
 def _get_or_create_customer():
