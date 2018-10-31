@@ -1,1 +1,83 @@
-docker-compose-local-auth.yml
+version: '2.1'
+services:
+  db:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=testing
+      - POSTGRES_DB=packages
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    ports:
+      - "5432:5432"
+
+  flaskmigration:
+    build: .
+    image: quiltdata/registry
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=dev_config.py
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
+      - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      flask db upgrade
+
+  flask:
+    build: .
+    image: quiltdata/registry
+    environment:
+      - AWS_ACCESS_KEY_ID=ddccbbaa
+      - AWS_SECRET_ACCESS_KEY=abcd
+      - QUILT_SERVER_CONFIG=dev_config.py
+      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
+      - DEPLOYMENT_ID=dev
+      - REGISTRY_URL=http://localhost:5000
+      - QUILT_SECRET_KEY=aaaaaaaaaa
+      - S3_ENDPOINT = http://s3:5001
+      - DISABLE_SIGNUP
+      - ENABLE_USER_ENDPOINTS
+      - TEAM_ID
+      - TEAM_NAME
+      - ALLOW_ANONYMOUS_ACCESS
+      - ALLOW_TEAM_ACCESS
+    depends_on:
+      db:
+        condition: service_healthy
+
+  nginxflask:
+    image: nginx:latest
+    ports:
+      - "5000:80"
+    depends_on:
+      - flask
+    volumes:
+      - ./nginx/nginx-quilt.conf:/etc/nginx/nginx-quilt.template
+    environment:
+      - UWSGI_HOST=flask
+      - UWSGI_PORT=9000
+      - NGINX_PORT=80
+    command: /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+
+  s3:
+    build: nginx-s3
+    image: quiltdata/nginx-s3-proxy
+    ports:
+      - "5001:5001"
+
+  catalog:
+    build: ../catalog
+    image: quiltdata/catalog
+    environment:
+      - REGISTRY_URL=http://flask:5000
+      - STRIPE_KEY=NOSTRIPE
+      - TEAM_ID
+      - TEAM_NAME
+    ports:
+      - "3000:80"
