@@ -10,12 +10,6 @@ DEBUG = True
 
 SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI', 'postgresql://postgres@localhost/packages')
 
-AUTH_PROVIDER = os.getenv('AUTH_PROVIDER', 'quilt')
-
-STAGE_AUTH_URL = 'https://stage-auth.quiltdata.com'
-
-QUILT_AUTH_URL = os.getenv('QUILT_AUTH_URL', STAGE_AUTH_URL)
-
 CATALOG_URL = 'http://localhost:3000'
 
 REGISTRY_URL = 'http://localhost:5000'

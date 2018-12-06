@@ -41,7 +41,7 @@ setup(
         'future>=0.16.0',                   # stdlib backport: 'from builtins import xxx', plus others.
         'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
-        'pandas>=0.19.2',
+        'pandas>=0.21.0',
         'pathlib2; python_version<"3.6"',   # stdlib backport
         'pyarrow>=0.9.0',
         'pyyaml>=3.12',

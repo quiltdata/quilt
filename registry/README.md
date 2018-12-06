@@ -101,7 +101,7 @@ sudo vi /etc/hosts
 and add this line:
 
 ```bash
-127.0.0.1    auth s3 flask catalog
+127.0.0.1    s3 flask catalog
 ```
 
 then run:
@@ -124,7 +124,7 @@ To browse the catalog using a web browser, enter this location into your web bro
 Running a Quilt Registry in AWS requires the following services:
 * a Postgres database. You can find instructions for setting up Postgres in RDS here: [Create a Postres Database in RDS](https://aws.amazon.com/rds/postgresql/)
 * an S3 bucket
-* an EC2 instance to run the registry, authentication service and catalog. Add the following policies to the security group: Postgres, HTTP/HTTPS, SSH and a custom TCP rule to enable port 5000.
+* an EC2 instance to run the registry and catalog. Add the following policies to the security group: Postgres, HTTP/HTTPS, SSH and a custom TCP rule to enable port 5000.
 * an Elastic Load Balancer (ELB) to terminate SSL connections to the registry and catalog
 
 Once the resources have been created, ssh into the EC2 instance and configure the environment and run the services via Docker. You can make it easier to connect to your registry by creating a new DNS record to point to the EC2 instance's external IP address (e.g., quilt.yourdomain.com).
@@ -183,35 +183,9 @@ sudo docker run -d -e UWSGI_HOST=localhost -e UWSGI_PORT=9000 -e NGINX_PORT=80 -
 
 Server installations (e.g. AWS) require special instructions because the web browser is not running on the same machine as the Quilt registry.  For this example, let's assume that your server has an external IP address of ```$EXT_IP```
 
-First, modify your ```/etc/hosts``` from this: ```127.0.0.1    auth s3 flask catalog``` to this: ```$EXT_IP   auth s3 flask catalog```.
+First, modify your ```/etc/hosts``` from this: ```127.0.0.1    s3 flask catalog``` to this: ```$EXT_IP   s3 flask catalog```.
 
 Second, if your server has a firewall protecting against inbound connections (and most do!), you need to either (a) install and use a text browser such as [lynx](https://lynx.browser.org/) (on Ubuntu: ```apt-get install lynx; lynx http://localhost:5000/login```), (b) disable the firewall temporarily using port-forwarding [instructions for AWS](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/authorizing-access-to-an-instance.html), or (c) setup an [SSH tunnel](https://www.revsys.com/writings/quicktips/ssh-tunnel.html) so that your laptop browser can connect to your server instance behind its firewall.
-
-### Advanced: GitHub Authentication
-
-You can let users signup/login to your registry using their credentials on GitHub, where their github username (e.g. "asah") is used for their Quilt registry username.
-
-1. Create a new OAuth Application on GitHub ([link](https://github.com/settings/applications/new))
-Homepage URL: ```http://localhost:3000```
-Authorization callback URL: ```http://flask:5000/oauth_callback```
-
-2. Save your new application's client ID and client secret to the local environment:
-```bash
-export OAUTH_CLIENT_ID_GITHUB=<OAUTH_APP_CLIENT_ID>
-export OAUTH_CLIENT_SECRET_GITHUB=<OAUTH_APP_CLIENT_SECRET>
-```
-
-3. Run this command to start the registry and it will automatically use GitHub OAuth for user authentication, instead of its local database:
-```bash
-docker-compose -f docker-compose-github-auth.yml up
-```
-
-Look for this line in the output, which indicates that the server is using github for authentication:
-```bash
-flask_1       | AUTH_PROVIDER=github
-```
-
-4. When users run ```quilt login``` their browser should be redirected to a page on github.com which handles login to the catalog webserver (via cookies/rediects) and also generates the access token for the Quilt client (command-line tools, Python API, etc).
 
 ### Advanced: Modifying Components
 
@@ -270,17 +244,6 @@ If you are very careful, you can run Quilt directly in your host operating syste
         export FLASK_APP=quilt_server
         export FLASK_DEBUG=1
         export QUILT_SERVER_CONFIG=dev_config.py
-
-        # 1) Quilt auth:
-        # Get this one from the stage API app
-        # (https://quilt-heroku.herokuapp.com/admin/oauth2_provider/application/3/)
-        export OAUTH_CLIENT_SECRET_QUILT=...
-
-        # 2) GitHub auth:
-        export AUTH_PROVIDER=github
-        # Get this one from the GitHub API app
-        # (https://github.com/settings/applications/594774)
-        export OAUTH_CLIENT_SECRET_GITHUB=...
 
         # Optional: set a Mixpanel token (for the "Debug" project)
         export MIXPANEL_PROJECT_TOKEN=247b6756f3a8616f9369351b0e5e1fe9
@@ -367,7 +330,7 @@ sudo docker-compose -f docker-compose-dev.yml up
 ``` bash
 workon quilt
 cd quilt/registry
-sudo echo "127.0.0.1 auth s3 flask catalog" | sudo tee -a /etc/hosts
+sudo echo "127.0.0.1 s3 flask catalog" | sudo tee -a /etc/hosts
 source quilt_server/flask_dev.sh
 ```
 

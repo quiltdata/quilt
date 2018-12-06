@@ -1162,7 +1162,7 @@ def inspect(package):
             assert isinstance(df, pd.DataFrame)
             types = ", ".join("%r: %s" % (name, dtype) for name, dtype in df.dtypes.items())
             if len(types) > 64:
-                types = types[:63] + "…"
+                types = types[:63] + u"…"
             info = "shape %s, types %s" % (df.shape, types)
             print(prefix + name_prefix + name + ": " + info)
         else:
