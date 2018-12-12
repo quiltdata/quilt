@@ -26,7 +26,7 @@ from quilt_server.auth import (verify_token_string, _create_user,
 from quilt_server.const import PaymentPlan
 from quilt_server.core import encode_node, hash_contents
 from quilt_server.models import User
-from quilt_server.views import s3_client, MAX_PREVIEW_SIZE
+from quilt_server.views import QuiltS3Connection, MAX_PREVIEW_SIZE
 
 class MockMixpanelConsumer(object):
     """
@@ -59,7 +59,7 @@ class QuiltTestCase(TestCase):
         self.payments_patcher = mock.patch('quilt_server.views.HAVE_PAYMENTS', False)
         self.payments_patcher.start()
 
-        self.s3_stubber = Stubber(s3_client)
+        self.s3_stubber = Stubber(QuiltS3Connection().s3_client)
         self.s3_stubber.activate()
 
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))

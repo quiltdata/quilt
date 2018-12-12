@@ -81,15 +81,35 @@ PREVIEW_MAX_DEPTH = 4
 
 MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
 
-s3_client = boto3.client(
-    's3',
-    endpoint_url=app.config.get('S3_ENDPOINT'),
-    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
-    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
-)
-
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
+
+class QuiltS3Connection(object):
+
+    def __init__(self):
+        self.s3_client = boto3.client(
+            's3',
+            endpoint_url=app.config.get('S3_ENDPOINT'),
+            aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+            aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+            )
+        
+    def generate_presigned_url(self, method, owner, blob_hash):
+        return self.s3_client.generate_presigned_url(
+            method,
+            Params=dict(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
+            ),
+            ExpiresIn=PACKAGE_URL_EXPIRATION
+            )
+
+    def get_object(self, owner, obj_hash):
+        return self.s3_client.get_object(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+            )
 
 
 class QuiltCli(httpagentparser.Browser):
@@ -119,6 +139,8 @@ class ApiException(Exception):
         self.status_code = status_code
         self.message = message
 
+# Set up the S3 client
+s3_session = QuiltS3Connection()
 
 ### Web routes ###
 
@@ -502,16 +524,6 @@ def _mp_track(**kwargs):
 
     mp.track(distinct_id, MIXPANEL_EVENT, all_args)
 
-def _generate_presigned_url(method, owner, blob_hash):
-    return s3_client.generate_presigned_url(
-        method,
-        Params=dict(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
-        ),
-        ExpiresIn=PACKAGE_URL_EXPIRATION
-    )
-
 def _get_or_create_customer():
     assert HAVE_PAYMENTS, "Payments are not enabled"
     assert g.auth.user
@@ -594,7 +606,7 @@ def get_objects():
 
     return dict(
         urls={
-            blob.hash: _generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
+            blob.hash: s3_session.generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
             for blob in results
         },
         sizes={
@@ -603,11 +615,7 @@ def get_objects():
     )
 
 def download_object_preview_impl(owner, obj_hash):
-    resp = s3_client.get_object(
-        Bucket=PACKAGE_BUCKET_NAME,
-        Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
-        Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
-    )
+    resp = s3_session.get_object(owner, obj_hash)
 
     body = resp['Body']
     encoding = resp.get('ContentEncoding')
@@ -679,11 +687,6 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     # Make sure exactly one of these arguments is set.
     assert (package_hash is None) != (package_path is None)
 
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the package owner can push packages.")
-
     if not VALID_NAME_RE.match(package_name):
         raise ApiException(requests.codes.bad_request, "Invalid package name")
 
@@ -740,6 +743,11 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                 "Package already exists: %s/%s" % (package_ci.owner, package_ci.name)
             )
 
+        # Users can only create packages owned by them.
+        if g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can create packages.")
+
         if not public and not _private_packages_allowed():
             raise ApiException(
                 requests.codes.payment_required,
@@ -780,23 +788,29 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                      "run `quilt access add %(user)s/%(pkg)s public`.") %
                     dict(user=owner, pkg=package_name)
                 )
-        if team:
-            team_access = (
-                Access.query
-                .filter(sa.and_(
-                    Access.package == package,
-                    Access.user == TEAM
-                ))
-                .one_or_none()
+
+        team_access = (
+            Access.query
+            .filter(sa.and_(
+            Access.package == package,
+            Access.user == TEAM
+            ))
+            .one_or_none()
             )
-            if team_access is None:
+
+        if team_access is None:
+            if g.auth.user != owner:
+                raise ApiException(requests.codes.forbidden,
+                                   "Only the package " +
+                                   "owner can update this package.")
+            if team:
                 raise ApiException(
                     requests.codes.forbidden,
                     ("%(team)s:%(user)s/%(pkg)s is private. To share it with the team, " +
                      "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
-
+           
     if package_path is not None:
         # We're doing a subpackage push - so look up the existing contents.
         result = (
@@ -839,8 +853,8 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             for idx, blob_hash in enumerate(all_hashes):
                 comma = ('' if idx == 0 else ',')
                 value = dict(
-                    head=_generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-                    put=_generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
+                    head=s3_session.generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
+                    put=s3_session.generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
                 )
                 yield '%s%s:%s' % (comma, json.dumps(blob_hash), json.dumps(value))
             yield '}}'
@@ -935,7 +949,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     log = Log(
         package=package,
         instance=instance,
-        author=owner,
+        author=g.auth.user,
     )
     db.session.add(log)
 
@@ -998,7 +1012,7 @@ def package_get(owner, package_name, package_hash):
     ) if all_hashes else []
 
     urls = {
-        blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
+        blob_hash: s3_session.generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
         for blob_hash in all_hashes
     }
 
