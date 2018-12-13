@@ -33,14 +33,14 @@ services:
     build: .
     image: quiltdata/registry
     environment:
-      - AWS_ACCESS_KEY_ID=ddccbbaa
-      - AWS_SECRET_ACCESS_KEY=abcd
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - PACKAGE_BUCKET_NAME
       - QUILT_SERVER_CONFIG=dev_config.py
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
       - DEPLOYMENT_ID=dev
       - REGISTRY_URL=http://localhost:5000
       - QUILT_SECRET_KEY=aaaaaaaaaa
-      - S3_ENDPOINT = http://s3:5001
       - DISABLE_SIGNUP
       - ENABLE_USER_ENDPOINTS
       - TEAM_ID
@@ -65,11 +65,11 @@ services:
       - NGINX_PORT=80
     command: /bin/bash -c "envsubst < /etc/nginx/nginx-quilt.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
 
-  s3:
-    build: nginx-s3
-    image: quiltdata/nginx-s3-proxy
-    ports:
-      - "5001:5001"
+#  s3:
+#    build: nginx-s3
+#    image: quiltdata/nginx-s3-proxy
+#    ports:
+#      - "5001:5001"
 
   catalog:
     build: ../catalog

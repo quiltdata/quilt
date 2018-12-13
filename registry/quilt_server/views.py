@@ -86,13 +86,43 @@ HAVE_PAYMENTS = bool(stripe.api_key)
 
 class QuiltS3Connection(object):
 
+    singleton_client = None
+
     def __init__(self):
-        self.s3_client = boto3.client(
-            's3',
-            endpoint_url=app.config.get('S3_ENDPOINT'),
-            aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
-            aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
-            )
+        if self.singleton_client is not None:
+            assert app.config.get('CROSS_ACCOUNT_ROLE') is None
+            self.s3_client = QuiltS3Connection.singleton_client
+        else:
+            cross_account_role = app.config.get('CROSS_ACCOUNT_ROLE')
+            if cross_account_role is not None:
+                ext_id = app.config.get('CROSS_ACCOUNT_EXT_ID')
+                sts_client = boto3.client('sts',
+                                          aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+                                          aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+                                          )
+                response = sts_client.assume_role(
+                    RoleArn=cross_account_role,
+                    ExternalId=ext_id,
+                    RoleSessionName='QuiltS3Connection')
+                credentials = response['Credentials']
+
+                self.s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=credentials['AccessKeyId'],
+                    aws_secret_access_key=credentials['SecretAccessKey'],
+                    aws_session_token=credentials['SessionToken']
+                    )
+            else:
+                self.s3_client = boto3.client(
+                    's3',
+                    endpoint_url=app.config.get('S3_ENDPOINT'),
+                    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+                    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+                    )
+                QuiltS3Connection.singleton_client = self.s3_client
+
+    def client(self):
+        return self.s3_client
         
     def generate_presigned_url(self, method, owner, blob_hash):
         return self.s3_client.generate_presigned_url(
@@ -138,9 +168,6 @@ class ApiException(Exception):
         super().__init__()
         self.status_code = status_code
         self.message = message
-
-# Set up the S3 client
-s3_session = QuiltS3Connection()
 
 ### Web routes ###
 
@@ -604,9 +631,10 @@ def get_objects():
         .filter(_access_filter(g.auth))
     ).all()
 
+    s3_client = QuiltS3Connection()
     return dict(
         urls={
-            blob.hash: s3_session.generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
+            blob.hash: s3_client.generate_presigned_url(S3_GET_OBJECT, blob.owner, blob.hash)
             for blob in results
         },
         sizes={
@@ -615,7 +643,8 @@ def get_objects():
     )
 
 def download_object_preview_impl(owner, obj_hash):
-    resp = s3_session.get_object(owner, obj_hash)
+    s3_client = QuiltS3Connection()
+    resp = s3_client.get_object(owner, obj_hash)
 
     body = resp['Body']
     encoding = resp.get('ContentEncoding')
@@ -849,12 +878,13 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         # List of signed URLs is potentially huge, so stream it.
 
         def _generate():
+            s3_client = QuiltS3Connection()
             yield '{"upload_urls":{'
             for idx, blob_hash in enumerate(all_hashes):
                 comma = ('' if idx == 0 else ',')
                 value = dict(
-                    head=s3_session.generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
-                    put=s3_session.generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
+                    head=s3_client.generate_presigned_url(S3_HEAD_OBJECT, owner, blob_hash),
+                    put=s3_client.generate_presigned_url(S3_PUT_OBJECT, owner, blob_hash)
                 )
                 yield '%s%s:%s' % (comma, json.dumps(blob_hash), json.dumps(value))
             yield '}}'
@@ -1011,8 +1041,9 @@ def package_get(owner, package_name, package_hash):
         .all()
     ) if all_hashes else []
 
+    s3_client = QuiltS3Connection()
     urls = {
-        blob_hash: s3_session.generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
+        blob_hash: s3_client.generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
         for blob_hash in all_hashes
     }
 
@@ -1181,7 +1212,7 @@ def package_preview(owner, package_name, package_hash):
     if isinstance(readme, FileNode):
         assert len(readme.hashes) == 1
         readme_hash = readme.hashes[0]
-        readme_url = _generate_presigned_url(S3_GET_OBJECT, owner, readme_hash)
+        readme_url = QuiltS3Connection().generate_presigned_url(S3_GET_OBJECT, owner, readme_hash)
         readme_blob = (
             S3Blob.query
             .filter_by(owner=owner, hash=readme_hash)

@@ -59,7 +59,7 @@ class QuiltTestCase(TestCase):
         self.payments_patcher = mock.patch('quilt_server.views.HAVE_PAYMENTS', False)
         self.payments_patcher.start()
 
-        self.s3_stubber = Stubber(QuiltS3Connection().s3_client)
+        self.s3_stubber = Stubber(QuiltS3Connection().client())
         self.s3_stubber.activate()
 
         random_name = ''.join(random.sample(string.ascii_lowercase, 10))
