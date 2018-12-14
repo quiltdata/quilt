@@ -20,6 +20,7 @@ import pathlib
 import time
 
 import boto3
+from botocore.client import Config
 from botocore.exceptions import ClientError
 from flask import abort, g, redirect, request, Response
 from flask_cors import CORS
@@ -90,7 +91,6 @@ class QuiltS3Connection(object):
 
     def __init__(self):
         if self.singleton_client is not None:
-            assert app.config.get('CROSS_ACCOUNT_ROLE') is None
             self.s3_client = QuiltS3Connection.singleton_client
         else:
             cross_account_role = app.config.get('CROSS_ACCOUNT_ROLE')
@@ -106,19 +106,33 @@ class QuiltS3Connection(object):
                     RoleSessionName='QuiltS3Connection')
                 credentials = response['Credentials']
 
-                self.s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=credentials['AccessKeyId'],
-                    aws_secret_access_key=credentials['SecretAccessKey'],
-                    aws_session_token=credentials['SessionToken']
-                    )
+                access_key = credentials['AccessKeyId'],
+                secret_key = credentials['SecretAccessKey'],
+                session_token = credentials['SessionToken']
             else:
-                self.s3_client = boto3.client(
-                    's3',
-                    endpoint_url=app.config.get('S3_ENDPOINT'),
-                    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
-                    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
-                    )
+                access_key = app.config.get('AWS_ACCESS_KEY_ID')
+                secret_key = app.config.get('AWS_SECRET_ACCESS_KEY')
+                session_token = None
+                
+            kwargs = dict(aws_access_key_id=access_key,
+                          aws_secret_access_key=secret_key)
+
+            if session_token is not None:
+                kwargs['session_token'] = session_token
+
+            # Use V4 signatures when an AWS Region is specified. V4 signatures
+            # are required in newer regions (e.g., central-europe-1)
+            if app.config.get('AWS_REGION') is not None:
+                    kwargs['region_name'] = app.config.get('AWS_REGION')
+                    kwargs['config'] = Config(signature_version='s3v4')
+
+            if app.config.get('S3_ENDPOINT') is not None:
+                kwargs['endpoint_url'] = app.config.get('S3_ENDPOINT')
+
+            self.s3_client = boto3.client('s3', **kwargs)
+
+            # don't save the s3 session when using cross-account roles
+            if cross_account_role is None:
                 QuiltS3Connection.singleton_client = self.s3_client
 
     def client(self):
@@ -135,11 +149,12 @@ class QuiltS3Connection(object):
             )
 
     def get_object(self, owner, obj_hash):
-        return self.s3_client.get_object(
+        response = self.s3_client.get_object(
             Bucket=PACKAGE_BUCKET_NAME,
             Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
             Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
             )
+        return response
 
 
 class QuiltCli(httpagentparser.Browser):
