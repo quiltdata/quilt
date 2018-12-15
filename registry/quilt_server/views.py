@@ -854,7 +854,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                      "run `quilt access add %(team)s:%(user)s/%(pkg)s team`.") %
                     dict(team=app.config['TEAM_ID'], user=owner, pkg=package_name)
                 )
-           
+
     if package_path is not None:
         # We're doing a subpackage push - so look up the existing contents.
         result = (
