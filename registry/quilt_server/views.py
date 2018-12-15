@@ -113,7 +113,7 @@ class QuiltS3Connection(object):
                 access_key = app.config.get('AWS_ACCESS_KEY_ID')
                 secret_key = app.config.get('AWS_SECRET_ACCESS_KEY')
                 session_token = None
-                
+
             kwargs = dict(aws_access_key_id=access_key,
                           aws_secret_access_key=secret_key)
 
@@ -137,7 +137,7 @@ class QuiltS3Connection(object):
 
     def client(self):
         return self.s3_client
-        
+
     def generate_presigned_url(self, method, owner, blob_hash):
         return self.s3_client.generate_presigned_url(
             method,
