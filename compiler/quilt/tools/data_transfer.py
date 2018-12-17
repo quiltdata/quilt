@@ -44,6 +44,12 @@ try:
 except ImportError:
     pass
 
+def _original_read(original_size, compressed_read, compressed_size):
+    if original_size is not None:
+        original_read = compressed_read * original_size // compressed_size
+    else:
+        original_read = compressed_read
+    return original_read
 
 def create_s3_session():
     """
@@ -163,7 +169,9 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                                 # We may have started with a partially-downloaded file, so update the progress bar.
                                 compressed_read = existing_file_size
-                                original_read = compressed_read * original_size // compressed_size
+                                original_read = _original_read(original_size,
+                                                               compressed_read,
+                                                               compressed_size)
                                 with lock:
                                     progress.update(original_read - original_last_update)
                                 original_last_update = original_read
@@ -177,7 +185,9 @@ def download_fragments(store, obj_urls, obj_sizes):
                                 for chunk in response.iter_content(CHUNK_SIZE):
                                     output_file.write(chunk)
                                     compressed_read += len(chunk)
-                                    original_read = compressed_read * original_size // compressed_size
+                                    original_read = _original_read(original_size,
+                                                               compressed_read,
+                                                               compressed_size)
                                     with lock:
                                         progress.update(original_read - original_last_update)
                                     original_last_update = original_read
