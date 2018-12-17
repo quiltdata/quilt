@@ -167,7 +167,8 @@ def download_fragments(store, obj_urls, obj_sizes):
 
                                 compressed_size = int(match.group(3))
 
-                                # We may have started with a partially-downloaded file, so update the progress bar.
+                                # We may have started with a partially-downloaded file,
+                                # so update the progress bar.
                                 compressed_read = existing_file_size
                                 original_read = _original_read(original_size,
                                                                compressed_read,
