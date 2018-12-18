@@ -896,7 +896,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         blob_by_hash = {blob.hash: blob for blob in blobs}
 
         for blob_hash in all_hashes:
-            blob_size = sizes.get(blob_hash)
+            blob_size = sizes[blob_hash]
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
