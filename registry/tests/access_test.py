@@ -13,7 +13,7 @@ import requests
 from quilt_server.const import PaymentPlan, PUBLIC, TEAM
 from quilt_server.core import encode_node, hash_contents, GroupNode, RootNode, FileNode
 
-from .utils import mock_customer, QuiltTestCase
+from .utils import fake_obj_sizes, mock_customer, QuiltTestCase
 
 
 class AccessTestCase(QuiltTestCase):
@@ -211,7 +211,8 @@ class AccessTestCase(QuiltTestCase):
             newpkgurl,
             data=json.dumps(dict(
                 description="",
-                contents=newcontents
+                contents=newcontents,
+                sizes=fake_obj_sizes(newcontents),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -249,7 +250,8 @@ class AccessTestCase(QuiltTestCase):
             newpkgurl,
             data=json.dumps(dict(
                 description="",
-                contents=newcontents
+                contents=newcontents,
+                sizes=fake_obj_sizes(newcontents),
             ), default=encode_node),
             content_type='application/json',
             headers={
