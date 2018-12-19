@@ -34,5 +34,11 @@ After the CloudFormation template brings up your registry stack, set up DNS entr
 ```
 Enter a username and email for the first admin user and choose a password. After running `create_admin.sh` test your new account by logging into your Quilt Teams Registry by browsing to `CatalogHost` in your browser.
 
+## Backup and Recovery
+
+The Quilt registry stores package state and metadata in an RDS Postgres Database. Follow these [instructions](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_CommonTasks.BackupRestore.html) to backup and restore the Registry database.
+
+All package objects are stored in S3. For additional protection for object files, you can enable [object versioning](https://docs.aws.amazon.com/AmazonS3/latest/dev/ObjectVersioning.html) and [cross-region replication](https://docs.aws.amazon.com/AmazonS3/latest/dev/crr.html) on your `PackageBucket`.
+
 # Build and Run the Open-Source Registry Code
 Follow the instructions in the Registry [docs](../registry/README.md)
