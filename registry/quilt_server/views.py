@@ -693,7 +693,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     public = data.get('is_public', data.get('public', False))
     team = data.get('is_team', False)
     contents = data['contents']
-    sizes = data.get('sizes', {})
+    sizes = data['sizes']
 
     if (package_path is None) != isinstance(contents, RootNode):
         raise ApiException(requests.codes.bad_request, "Unexpected node type")
@@ -708,8 +708,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
 
     all_hashes = set(find_object_hashes(contents))
 
-    # Old clients don't send sizes. But if sizes are present, make sure they match the hashes.
-    if sizes and set(sizes) != all_hashes:
+    if set(sizes) != all_hashes:
         raise ApiException(requests.codes.bad_request, "Sizes don't match the hashes")
 
     # Insert a package if it doesn't already exist.
@@ -897,7 +896,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         blob_by_hash = {blob.hash: blob for blob in blobs}
 
         for blob_hash in all_hashes:
-            blob_size = sizes.get(blob_hash)
+            blob_size = sizes[blob_hash]
             blob = blob_by_hash.get(blob_hash)
             if blob is None:
                 blob = S3Blob(owner=owner, hash=blob_hash, size=blob_size)
