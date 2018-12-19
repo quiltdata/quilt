@@ -564,7 +564,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes=fake_obj_sizes(self.CONTENTS),
+                sizes={},
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -602,7 +602,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes=fake_obj_sizes(self.CONTENTS),
+                sizes={},
             ), default=encode_node),
             content_type='application/json',
             headers={

@@ -708,7 +708,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
 
     all_hashes = set(find_object_hashes(contents))
 
-    if set(sizes) != all_hashes:
+    if not dry_run and set(sizes) != all_hashes:
         raise ApiException(requests.codes.bad_request, "Sizes don't match the hashes")
 
     # Insert a package if it doesn't already exist.
