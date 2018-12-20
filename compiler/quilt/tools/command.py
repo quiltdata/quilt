@@ -648,7 +648,7 @@ def log(package):
             str(entry.get('tags', [])), str(entry.get('versions', []))))
     _print_table(table)
 
-def push(package, is_public=False, is_team=False, reupload=False):
+def push(package, is_public=False, is_team=False, reupload=False, hash=None):
     """
     Push a Quilt data package to the server
     """
@@ -656,11 +656,13 @@ def push(package, is_public=False, is_team=False, reupload=False):
     _check_team_id(team)
     session = _get_session(team)
 
-    store, pkgroot = PackageStore.find_package(team, owner, pkg)
+    store, pkgroot = PackageStore.find_package(team, owner, pkg, pkghash=hash)
     if pkgroot is None:
         raise CommandException("Package {package} not found.".format(package=package))
 
     pkghash = hash_contents(pkgroot)
+    if hash is not None:
+        assert pkghash == hash
     contents = pkgroot
 
     for component in subpath:

@@ -218,6 +218,7 @@ def argument_parser():
                               "(fails if the package exists and is private)"))
     push_p.add_argument("--reupload", action="store_true",
                         help="Re-upload all fragments, even if fragment is already in registry")
+    push_p.add_argument("-x", "--hash", help="Package hash", type=str)
     push_p.set_defaults(func=command.push)
 
     # quilt rm
