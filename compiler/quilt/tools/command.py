@@ -648,7 +648,7 @@ def log(package):
             str(entry.get('tags', [])), str(entry.get('versions', []))))
     _print_table(table)
 
-def push(package, hash=None, is_public=False, is_team=False, reupload=False):
+def push(package, is_public=False, is_team=False, reupload=False, hash=None):
     """
     Push a Quilt data package to the server
     """
