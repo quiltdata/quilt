@@ -4,10 +4,7 @@ Running a private registry
 
 # Deploy a Quilt Teams Registry on AWS Marketplace
 
-## Subscribe and Accept License Terms
-To begin, subscribe to the [Quilt Teams Registry](https://aws.amazon.com/marketplace/pp/B07GDSGJ3S) on AWS Marketplace. Subscribing. You will be asked to accept the terms of the software license. After accepting, click "Continue to Configuration." Choose the AWS Region in which you'd like to run your Registry then click "Continue to Launch" and choose "Launch CloudFormation" under "Choose Action." Then click the Launch button to run the Quilt Teams Registry CloudFormation Template.
-
-## Permissions and Pre-Launch Requirements
+## Pre-Launch Requirements and Permissions 
 Deploying a Quilt Teams Registry from AWS Marketplace requires `AdminstratorAccess` or at least following abilities:
 - Create a stack in CloudFormation
 - Create a bucket in S3
@@ -18,20 +15,8 @@ The Quilt Teams Registry also requires a valid SSL certificate for the domain in
 
 The registry also uses SMTP to send emails to verfiy users during sign up and to enable password resets. The Registry template asks for credentials to your SMTP service. If you do not already have an SMTP service running, see the [Amazon SES Quick Start Guide](https://docs.aws.amazon.com/ses/latest/DeveloperGuide/quick-start.html) to set up email sending in your AWS account.
 
-### AWS Resources Created
-The CloudFormation template creates several services to run The Quilt Teams Registry including:
-- EC2 Instance (`t2-small` or `m5-large` as set in `InstanceType` above)
-- S3 bucket
-- RDS Postgres Database (`t2-small` or `m5-large` as set in `DBInstanceType` above)
-- Elastic Load balancer (ELB)
-- VPC (with 3 subnets)
-- Security Groups (for SSH and HTTPS via the ELB)
-- IAM User (the registry runs as this new user) with permissions limited to accessing the newly created bucket:
-    - s3:DeleteObject
-    - s3:GetObject
-    - s3:HeadObject
-    - s3:PutObject
-    - s3:ListBucket 
+## Subscribe and Accept License Terms
+To begin, subscribe to the [Quilt Teams Registry](https://aws.amazon.com/marketplace/pp/B07GDSGJ3S) on AWS Marketplace. Subscribing. You will be asked to accept the terms of the software license. After accepting, click "Continue to Configuration." Choose the AWS Region in which you'd like to run your Registry then click "Continue to Launch" and choose "Launch CloudFormation" under "Choose Action." Then click the Launch button to run the Quilt Teams Registry CloudFormation Template. 
 
 ## Deploy the Registry using CloudFormation
 Select the default CloudFormation template URL, which is used to create and launch the registry stack. Fill in the following parameters in the template:
@@ -52,6 +37,21 @@ Select the default CloudFormation template URL, which is used to create and laun
 - TeamName: Descriptive name for the team to be displayed on the catalog front page.
 
 After entering all the template parameters, click `Next`. Acknowledge that the template will create IAM users. _Note: the template creates an IAM User instead of a role because an IAM User can create signed URLs that remain vaild for long durations, which can be necessary to upload very large files to S3._ Click `Create` to start the deployment. The deployment process takes approximately 45 minutes to complete.
+
+### AWS Resources Created
+The CloudFormation template creates several services to run The Quilt Teams Registry including:
+- EC2 Instance (`t2-small` or `m5-large` as set in `InstanceType` above)
+- S3 bucket
+- RDS Postgres Database (`t2-small` or `m5-large` as set in `DBInstanceType` above)
+- Elastic Load balancer (ELB)
+- VPC (with 3 subnets)
+- Security Groups (for SSH and HTTPS via the ELB)
+- IAM User (the registry runs as this new user) with permissions limited to accessing the newly created bucket:
+    - s3:DeleteObject
+    - s3:GetObject
+    - s3:HeadObject
+    - s3:PutObject
+    - s3:ListBucket
 
 ## Configure Your Registry and Create an Admin Account
 After the CloudFormation template brings up your registry stack, set up DNS entries in your domain for the catalog and registry. Login to your DNS provider and create a `CNAME` record with the name you chose for `CatalogHost` in the CloudFormation template that points to the DNS of the Elastic Load Balancer created by the template. Find the DNS name in the stack outputs under `LoadBalancerDNSName`. Create another `CNAME` record with the `RegistryHost` that also points to `LoadBalancerDNSName`. Once the DNS is configured, SSH into the EC2 instance created by the template (you can find the IP address of that instance in the template outputs under `EC2InstanceIp`. In the terminal, run the following commands to create an admin user:
