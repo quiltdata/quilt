@@ -86,6 +86,8 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
   }
 
   maybeWarn(plan, payment) {
+    if (!config.stripeKey) return false;
+
     let error = false;
     if (plan.error) {
       console.error(printObject(plan.error)); // eslint-disable-line no-console
@@ -177,29 +179,35 @@ export class Profile extends React.PureComponent { // eslint-disable-line react/
           admin: () => <Admin plan={plan.response} location={this.props.location} />,
         })}
 
-        <Plan
-          currentPlan={plan.response}
-          email={this.props.email}
-          handleShowDialog={() => this.showDialog(true)}
-          handleUpdatePayment={this.updatePayment}
-          haveCreditCard={response.have_credit_card}
-          isAdmin={isAdmin}
-          isLoading={isLoading}
-          isWarning={isWarning}
-          locale={this.props.intl.locale}
-          planMessage={planMessage}
-        />
-        <PaymentDialog
-          currentPlan={plan.response}
-          email={this.props.email}
-          locale={this.props.intl.locale}
-          onDowngrade={this.onDowngrade}
-          onRequestClose={() => this.showDialog(false)}
-          onSelectPlan={this.onSelectPlan}
-          open={this.state.showDialog}
-          onToken={this.onToken}
-          selectedPlan={this.state.selectedPlan}
-        />
+        {config.stripeKey
+          ? (
+            <Fragment>
+              <Plan
+                currentPlan={plan.response}
+                email={this.props.email}
+                handleShowDialog={() => this.showDialog(true)}
+                handleUpdatePayment={this.updatePayment}
+                haveCreditCard={response.have_credit_card}
+                isAdmin={isAdmin}
+                isLoading={isLoading}
+                isWarning={isWarning}
+                locale={this.props.intl.locale}
+                planMessage={planMessage}
+              />
+              <PaymentDialog
+                currentPlan={plan.response}
+                email={this.props.email}
+                locale={this.props.intl.locale}
+                onDowngrade={this.onDowngrade}
+                onRequestClose={() => this.showDialog(false)}
+                onSelectPlan={this.onSelectPlan}
+                open={this.state.showDialog}
+                onToken={this.onToken}
+                selectedPlan={this.state.selectedPlan}
+              />
+            </Fragment>
+          ) : null
+        }
       </div>
     );
   }
