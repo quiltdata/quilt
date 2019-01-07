@@ -53,7 +53,7 @@ export default composeComponent('Admin',
   }) => (
     <div>
       <Show>
-        <h1>{formatMessage(msg.teamHeader, { name: teamName })} <Status plan={plan} /></h1>
+        <h1>{formatMessage(msg.teamHeader, { name: teamName })} {config.stripeKey ? <Status plan={plan} /> : null}</h1>
       </Show>
       <Members />
       <Packages />
