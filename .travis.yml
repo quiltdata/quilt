@@ -80,7 +80,7 @@ install:
 script:
   - |
     if [[ "$TEST_COMPILER" = true ]]; then
-      pytest --cov=./ compiler
+      pytest compiler
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
