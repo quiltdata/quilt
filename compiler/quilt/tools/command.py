@@ -131,7 +131,12 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        return "https://%s-registry.team.quiltdata.com" % team
+        # Check config
+        cfg = _load_config()
+        if 'team_name' in cfg and cfg['team_name'] == team:
+            return cfg['registry_url']
+        else:
+            return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
     if _registry_url is not None:
@@ -151,18 +156,25 @@ def get_registry_url(team):
 def config():
     answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
                    "or leave this line blank to use the default registry: ")
+
+    # When saving the config, store '' instead of the actual URL in case we ever change it.
+    canonical_url = ''
+    team_name = ''
     if answer:
         url = urlparse(answer.rstrip('/'))
         if (url.scheme not in ['http', 'https'] or not url.netloc or
             url.path or url.params or url.query or url.fragment):
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
-    else:
-        # When saving the config, store '' instead of the actual URL in case we ever change it.
-        canonical_url = ''
+        answer = input("Please enter your Quilt registry team name (ask your administrator),\n"
+                       "or leave this line blank to access the registry without a team: ")
+        if answer:
+            _check_team_id(answer)
+            team_name = answer
 
     cfg = _load_config()
     cfg['registry_url'] = canonical_url
+    cfg['team_name'] = team_name
     _save_config(cfg)
 
     # Clear the cached URL.
@@ -360,7 +372,7 @@ def _check_team_exists(team):
     if team is None:
         return
 
-    hostname = '%s-registry.team.quiltdata.com' % team
+    hostname = urlparse(get_registry_url(team)).hostname
     try:
         socket.gethostbyname(hostname)
     except IOError:
