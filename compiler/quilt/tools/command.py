@@ -133,7 +133,7 @@ def get_registry_url(team):
     if team is not None:
         # Check config
         cfg = _load_config()
-        if team and 'team_id' in cfg and cfg.get('team_id') == team:
+        if team and cfg.get('team_id') == team:
             return cfg['team_registry_url']
         else:
             return "https://%s-registry.team.quiltdata.com" % team
