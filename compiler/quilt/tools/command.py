@@ -34,7 +34,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, get_or_create_package, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
+from .core import (LATEST_TAG, GroupNode, decode_node, encode_node,
                    find_object_hashes, hash_contents)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -554,7 +554,8 @@ def _build_internal(package, path, dry_run, env, build_file):
         assert not dry_run  # TODO?
         build_from_node(package, nodes.GroupNode({}))
     else:
-        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, but got %r" % path)
+        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, " +
+                         "but got %r" % path)
 
 
 def build_from_node(package, node):
