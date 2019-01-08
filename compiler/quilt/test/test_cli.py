@@ -617,7 +617,7 @@ class TestCLI(BasicQuiltTestCase):
         cmd = ['config']
         result = self.execute_with_checks(cmd, funcname='config')
 
-        assert not result['kwargs']
+        assert result['kwargs']['team'] is None
 
     def test_cli_command_login(self):
         """Ensures the 'login' command calls a specific API"""

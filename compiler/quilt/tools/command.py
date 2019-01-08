@@ -165,15 +165,14 @@ def config(team=None):
     answer = input(message)
 
     # When saving the config, store '' instead of the actual URL in case we ever change it.
+    cfg = _load_config()
     if answer:
         url = urlparse(answer.rstrip('/'))
         if (url.scheme not in ['http', 'https'] or not url.netloc or
             url.path or url.params or url.query or url.fragment):
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
-
-        cfg = _load_config()
-
+        
         if team:
             _check_team_id(team)
             cfg['team_registry_url'] = canonical_url
@@ -181,7 +180,7 @@ def config(team=None):
         else:
             cfg['registry_url'] = canonical_url
             cfg['team_id'] = ''
-        _save_config(cfg)
+    _save_config(cfg)
 
     # Clear the cached URL.
     global _registry_url
