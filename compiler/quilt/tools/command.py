@@ -159,6 +159,7 @@ def config(team=None):
                   "(ask your administrator),\n" \
                   "or leave this line blank to use the default registry: "
     else:
+        _check_team_id(team)
         message = "Please enter the URL for the Quilt Team registry [%s] " \
                   "(ask your administrator),\n" \
                   "or leave this line blank to use the default: " % team
@@ -174,7 +175,6 @@ def config(team=None):
         canonical_url = urlunparse(url)
         
         if team:
-            _check_team_id(team)
             cfg['team_registry_url'] = canonical_url
             cfg['team_id'] = team
         else:
