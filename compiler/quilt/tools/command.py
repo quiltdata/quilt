@@ -133,8 +133,8 @@ def get_registry_url(team):
     if team is not None:
         # Check config
         cfg = _load_config()
-        if 'team_name' in cfg and cfg['team_name'] == team:
-            return cfg['registry_url']
+        if team and 'team_id' in cfg and cfg.get('team_id') == team:
+            return cfg['team_registry_url']
         else:
             return "https://%s-registry.team.quiltdata.com" % team
 
@@ -153,29 +153,35 @@ def get_registry_url(team):
     _registry_url = url or DEFAULT_REGISTRY_URL
     return _registry_url
 
-def config():
-    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
-                   "or leave this line blank to use the default registry: ")
+def config(team=None):
+    if team is None:
+        message = "Please enter the URL for your custom Quilt registry " \
+                  "(ask your administrator),\n" \
+                  "or leave this line blank to use the default registry: "
+    else:
+        message = "Please enter the URL for the Quilt Team registry [%s] " \
+                  "(ask your administrator),\n" \
+                  "or leave this line blank to use the default: " % team
+    answer = input(message)
 
     # When saving the config, store '' instead of the actual URL in case we ever change it.
-    canonical_url = ''
-    team_name = ''
     if answer:
         url = urlparse(answer.rstrip('/'))
         if (url.scheme not in ['http', 'https'] or not url.netloc or
             url.path or url.params or url.query or url.fragment):
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
-        answer = input("Please enter your Quilt registry team name (ask your administrator),\n"
-                       "or leave this line blank to access the registry without a team: ")
-        if answer:
-            _check_team_id(answer)
-            team_name = answer
 
-    cfg = _load_config()
-    cfg['registry_url'] = canonical_url
-    cfg['team_name'] = team_name
-    _save_config(cfg)
+        cfg = _load_config()
+
+        if team:
+            _check_team_id(team)
+            cfg['team_registry_url'] = canonical_url
+            cfg['team_id'] = team
+        else:
+            cfg['registry_url'] = canonical_url
+            cfg['team_id'] = ''
+        _save_config(cfg)
 
     # Clear the cached URL.
     global _registry_url
@@ -554,7 +560,7 @@ def _build_internal(package, path, dry_run, env, build_file):
         assert not dry_run  # TODO?
         build_from_node(package, nodes.GroupNode({}))
     else:
-        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, " +
+        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, " \
                          "but got %r" % path)
 
 

@@ -148,6 +148,7 @@ KNOWN_PARAMS = [
     [0, 'check', '--env'],
     [0, 'check', 0],
     [0, 'config'],
+    [0, 'config', 0],
     [0, 'delete'],
     [0, 'delete', 0],
     [0, 'export'],

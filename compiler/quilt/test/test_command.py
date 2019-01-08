@@ -131,7 +131,7 @@ class CommandTest(QuiltTestCase):
         # test general URL setting -- result should match input
         for test_url in test_urls:
             mock_load_config.return_value = {}
-            mock_input.side_effect = [test_url, '']
+            mock_input.return_value = test_url
 
             command.config()
 
