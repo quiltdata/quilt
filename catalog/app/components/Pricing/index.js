@@ -77,7 +77,6 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
           <tr>
             <th>Free</th>
             <th>Individual</th>
-            <th>Team</th>
           </tr>
           <tr className="price">
             <td>
@@ -85,9 +84,6 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
             </td>
             <td>
               <h2>$7 { perUser }</h2>
-            </td>
-            <td>
-              <h2>$99* { perTeam }</h2>
             </td>
           </tr>
           <tr>
@@ -98,17 +94,10 @@ function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
               • Unlimited public packages<br />
               • Up to 1TB of private packages<br />
             </td>
-            <td>
-              • Unlimited packages<br />
-              • Runs in your AWS account<br />
-              • Admin and auditing features<br />
-              • Dedicated registry and web catalog<br />
-              • <a href="https://aws.amazon.com/marketplace/pp/B07GDSGJ3S">Buy now</a> on AWS Marketplace<br />
-            </td>
           </tr>
         </tbody>
       </table>
-      <Detail>* Does not include AWS costs</Detail>
+      <br />
       {takeAction ? <TakeAction signUp={signUp} /> : null}
     </Styler>
   );
