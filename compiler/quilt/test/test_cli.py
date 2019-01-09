@@ -148,6 +148,7 @@ KNOWN_PARAMS = [
     [0, 'check', '--env'],
     [0, 'check', 0],
     [0, 'config'],
+    [0, 'config', 0],
     [0, 'delete'],
     [0, 'delete', 0],
     [0, 'export'],
@@ -178,6 +179,7 @@ KNOWN_PARAMS = [
     [0, 'push', '--public'],
     [0, 'push', '--team'],
     [0, 'push', '--reupload'],
+    [0, 'push', '-x'],
     [0, 'push', 0],
     [0, 'rm'],
     [0, 'rm', '-f'],
@@ -615,7 +617,7 @@ class TestCLI(BasicQuiltTestCase):
         cmd = ['config']
         result = self.execute_with_checks(cmd, funcname='config')
 
-        assert not result['kwargs']
+        assert result['kwargs']['team'] is None
 
     def test_cli_command_login(self):
         """Ensures the 'login' command calls a specific API"""
@@ -695,6 +697,7 @@ class TestCLI(BasicQuiltTestCase):
             'is_public': False,
             'package': 'fakeuser/fakepackage',
             'is_team': False,
+            'hash' : None,
         }
 
         ## Test the flags as well..
@@ -707,6 +710,7 @@ class TestCLI(BasicQuiltTestCase):
             'is_public': True,
             'package': 'fakeuser/fakepackage',
             'is_team': False,
+            'hash' : None,
         }
 
         # team (without reupload)
@@ -718,6 +722,7 @@ class TestCLI(BasicQuiltTestCase):
             'is_public': False,
             'package': 'blah:fakeuser/fakepackage',
             'is_team': True,
+            'hash' : None,
         }
 
     def test_cli_command_export(self):

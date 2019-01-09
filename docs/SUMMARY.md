@@ -17,6 +17,7 @@
 * [Work with packages](step-by-step.md)
 * [Articles](articles.md)
 * [Examples](examples.md)
+* [Run a Registry](registries.md)
 
 ## API
 * [Overview](api-overview.md)

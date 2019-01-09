@@ -11,7 +11,6 @@ from io import BytesIO
 import random
 import string
 from unittest import mock, TestCase
-from unittest.mock import patch
 
 from botocore.stub import Stubber
 from mixpanel import Mixpanel
@@ -21,10 +20,9 @@ import sqlalchemy_utils
 
 import quilt_server
 from quilt_server import db
-from quilt_server.auth import (verify_token_string, _create_user,
-                               _disable_user, _update_user, pwd_context)
+from quilt_server.auth import verify_token_string, _create_user, pwd_context
 from quilt_server.const import PaymentPlan
-from quilt_server.core import encode_node, hash_contents
+from quilt_server.core import encode_node, find_object_hashes, hash_contents
 from quilt_server.models import User
 from quilt_server.views import QuiltS3Connection, MAX_PREVIEW_SIZE
 
@@ -145,6 +143,7 @@ class QuiltTestCase(TestCase):
                 contents=contents,
                 is_public=is_public,
                 is_team=is_team,
+                sizes=fake_obj_sizes(contents),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -223,3 +222,6 @@ def mock_customer(plan=PaymentPlan.FREE, have_credit_card=False):
 
         return wrapper
     return innerdec
+
+def fake_obj_sizes(contents):
+    return {h: 1 for h in find_object_hashes(contents)}

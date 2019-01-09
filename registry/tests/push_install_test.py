@@ -24,7 +24,7 @@ from quilt_server.core import (
 )
 from quilt_server.models import InstanceBlobAssoc, S3Blob
 
-from .utils import mock_customer, QuiltTestCase
+from .utils import fake_obj_sizes, mock_customer, QuiltTestCase
 
 
 class PushInstallTestCase(QuiltTestCase):
@@ -153,7 +153,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -210,7 +210,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
         assert contents == self.CONTENTS
-        assert data['sizes'] == {self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+        assert data['sizes'] == fake_obj_sizes(self.CONTENTS)
         assert data['created_by'] == data['updated_by'] == 'test_user'
         assert data['created_at'] == data['updated_at']
         urls = data['urls']
@@ -243,7 +243,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -258,7 +259,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS_WITH_METADATA
+                contents=self.CONTENTS_WITH_METADATA,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -285,7 +287,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json'
         )
@@ -307,7 +310,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -351,7 +355,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.HASH1,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -368,7 +373,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/bad-name/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -388,7 +394,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -403,7 +410,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -418,7 +426,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -433,7 +442,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -461,7 +471,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -479,7 +490,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/bar/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -497,7 +509,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -513,7 +526,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -530,7 +544,8 @@ class PushInstallTestCase(QuiltTestCase):
             '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
             data=json.dumps(dict(
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -548,7 +563,8 @@ class PushInstallTestCase(QuiltTestCase):
                 dry_run=True,
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes={},
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -585,7 +601,8 @@ class PushInstallTestCase(QuiltTestCase):
                 dry_run=True,
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes={},
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -606,7 +623,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -630,7 +647,7 @@ class PushInstallTestCase(QuiltTestCase):
         data = json.loads(resp.data.decode('utf8'), object_hook=decode_node)
         contents = data['contents']
         assert contents == self.CONTENTS
-        assert data['sizes'] == {self.HASH1: 1, self.HASH2: 2}
+        assert data['sizes'] == {self.HASH1: 1, self.HASH2: 1}
         urls = data['urls']
         assert len(urls) == 2  # HASH1 and HASH2
 
@@ -688,7 +705,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.HUGE_CONTENTS
+                contents=self.HUGE_CONTENTS,
+                sizes=fake_obj_sizes(self.HUGE_CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -752,7 +770,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.HUGE_CONTENTS
+                contents=self.HUGE_CONTENTS,
+                sizes=fake_obj_sizes(self.HUGE_CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -907,7 +926,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -928,7 +948,8 @@ class PushInstallTestCase(QuiltTestCase):
             data=json.dumps(dict(
                 is_public=True,
                 description="",
-                contents=self.CONTENTS_2
+                contents=self.CONTENTS_2,
+                sizes=fake_obj_sizes(self.CONTENTS_2),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -953,7 +974,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_team=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -973,7 +994,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -990,7 +1011,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_team=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -1009,7 +1030,7 @@ class PushInstallTestCase(QuiltTestCase):
                 public=True,
                 description="",
                 contents=self.CONTENTS,
-                sizes={self.HASH1: 1, self.HASH2: 2, self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS),
             ), default=encode_node),
             content_type='application/json',
             headers={
@@ -1041,7 +1062,7 @@ class PushInstallTestCase(QuiltTestCase):
                 is_public=True,
                 description="",
                 contents=self.CONTENTS_2,
-                sizes={self.HASH3: 3}
+                sizes=fake_obj_sizes(self.CONTENTS_2),
             ), default=encode_node),
             content_type='application/json',
             headers={

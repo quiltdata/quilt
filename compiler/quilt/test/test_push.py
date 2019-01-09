@@ -43,7 +43,7 @@ class PushTest(QuiltTestCase):
             ) for blob_hash in all_hashes
         }
 
-        # We will push the package twice, so we're mocking all responses twice.
+        # We will push the package 3 times, so we're mocking all responses 3 times.
 
         for blob_hash in all_hashes:
             urls = upload_urls[blob_hash]
@@ -52,8 +52,12 @@ class PushTest(QuiltTestCase):
             self.requests_mock.add(responses.HEAD, urls['head'], status=404)
             self.requests_mock.add(responses.PUT, urls['put'])
 
-            # Second time, s3 HEAD succeeds, and we're not expecting a PUT.
+            # Second and third times, s3 HEAD succeeds, and we're not expecting a PUT.
             self.requests_mock.add(responses.HEAD, urls['head'])
+            self.requests_mock.add(responses.HEAD, urls['head'])
+
+        self._mock_put_package('foo/bar', pkg_hash, contents, upload_urls)
+        self._mock_put_tag('foo/bar', 'latest')
 
         self._mock_put_package('foo/bar', pkg_hash, contents, upload_urls)
         self._mock_put_tag('foo/bar', 'latest')
@@ -66,6 +70,9 @@ class PushTest(QuiltTestCase):
 
         # Push it again; this time, we're verifying that there are no s3 uploads.
         command.push('foo/bar')
+
+        # Push the package by its hash
+        command.push('foo/bar', hash=pkg_hash)
 
     def test_push_subpackage(self):
         mydir = os.path.dirname(__file__)
