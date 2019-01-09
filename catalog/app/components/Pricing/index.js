@@ -8,18 +8,6 @@ import scrollIntoView from 'utils/scrollIntoView';
 
 export const width = 900;
 
-const emailBody = `To get started, tell us about your team.%0D%0A
-%0D%0A
-Team size:%0D%0A
-Team id (short alphabetical string e.g. "MegaCorp"):%0D%0A
-Admin name:%0D%0A
-Admin username:%0D%0A
-Admin email:%0D%0A
-Admin phone:%0D%0A
-%0D%0A
-Thanks. We'll get back to you right away.%0D%0A
-`;
-
 const Styler = styled.div`
   overflow: auto;
   max-width: ${width}px;
@@ -61,12 +49,7 @@ const Styler = styled.div`
   }
 `;
 
-const Detail = styled.p`
-  text-align: right;
-`;
-
 const perUser = <span className="unit">per user / month</span>;
-const perTeam = <span className="unit">per team / month</span>;
 
 function Pricing({ signUp, takeAction = true, title = 'Pricing' }) {
   return (
