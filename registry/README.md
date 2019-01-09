@@ -5,15 +5,12 @@ The registry stores package data, meta-data, and controls permissions.
 
 This is the reference implementation of the Quilt server and package registry.
 
-The instructions below are **for testing purposes only**, as `docker-compose` does not instantiate a persistent database, and does not communicate with blob storage.
-
 # Quickstart with Docker and docker-compose
 
 We recommend using `docker-compose` to run a local Quilt registry for testing and development. This starts a collection of Docker containers to run the various services needed to run the registry: database, storage, and Flask web/API server.  The advantage of Docker is that it isolates you from the details of installing each component correctly, including version, configuration, etc. -- with docker, everything is pre-configured for you.
 
 ## IMPORTANT: The database is reset (deleted) on each startup/shutdown
-
-It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package state is reset every time the services are restarted. To configure the database to use persistent storage, set `PGDATA` to point to a Docker volume as described [here](https://hub.docker.com/_/postgres/).
+The instructions below are **for testing purposes only**. It's important to note that this configuration of the registry is stateless. Because both the database and storage system are run in docker containers (without persistent volumes) all package state is reset every time the services are restarted. To configure the database to use persistent storage, set `PGDATA` to point to a Docker volume as described [here](https://hub.docker.com/_/postgres/).
 
 <!--
 In development, it's often useful to leave the database and storage service running (avoiding deletion), and only restart the Flask webserver.  To do this, from the ```registry/``` directory, run ```docker-compose create --force-recreate --build flask``` instead of docker-compose restart/down/up.

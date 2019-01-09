@@ -128,7 +128,7 @@ PACKAGE_SCHEMA = {
             }
         }
     },
-    'required': ['description', 'contents'],
+    'required': ['description', 'contents', 'sizes'],
     'additionalProperties': False
 }
 
