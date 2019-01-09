@@ -34,7 +34,7 @@ from .build import (build_package, build_package_from_contents, generate_build_f
                     generate_contents, get_or_create_package, BuildException, load_yaml)
 from .compat import pathlib
 from .const import DEFAULT_BUILDFILE, DTIMEF, QuiltException, SYSTEM_METADATA, TargetType
-from .core import (LATEST_TAG, GroupNode, RootNode, decode_node, encode_node,
+from .core import (LATEST_TAG, GroupNode, decode_node, encode_node,
                    find_object_hashes, hash_contents)
 from .data_transfer import download_fragments, upload_fragments
 from .store import PackageStore, StoreException
@@ -131,7 +131,12 @@ def _save_auth(cfg):
 
 def get_registry_url(team):
     if team is not None:
-        return "https://%s-registry.team.quiltdata.com" % team
+        # Check config
+        cfg = _load_config()
+        if team and cfg.get('team_id') == team and cfg.get('team_registry_url'):
+            return cfg['team_registry_url']
+        else:
+            return "https://%s-registry.team.quiltdata.com" % team
 
     global _registry_url
     if _registry_url is not None:
@@ -148,9 +153,20 @@ def get_registry_url(team):
     _registry_url = url or DEFAULT_REGISTRY_URL
     return _registry_url
 
-def config():
-    answer = input("Please enter the URL for your custom Quilt registry (ask your administrator),\n"
-                   "or leave this line blank to use the default registry: ")
+def config(team=None):
+    if team is None:
+        message = "Please enter the URL for your custom Quilt registry " \
+                  "(ask your administrator),\n" \
+                  "or leave this line blank to use the default registry: "
+    else:
+        _check_team_id(team)
+        message = "Please enter the URL for the Quilt Team registry [%s] " \
+                  "(ask your administrator),\n" \
+                  "or leave this line blank to use the default: " % team
+    answer = input(message)
+
+    # When saving the config, store '' instead of the actual URL in case we ever change it.
+    cfg = _load_config()
     if answer:
         url = urlparse(answer.rstrip('/'))
         if (url.scheme not in ['http', 'https'] or not url.netloc or
@@ -158,11 +174,14 @@ def config():
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
     else:
-        # When saving the config, store '' instead of the actual URL in case we ever change it.
         canonical_url = ''
-
-    cfg = _load_config()
-    cfg['registry_url'] = canonical_url
+        
+    if team:
+        cfg['team_registry_url'] = canonical_url
+        cfg['team_id'] = team
+    else:
+        cfg['registry_url'] = canonical_url
+        cfg['team_id'] = ''
     _save_config(cfg)
 
     # Clear the cached URL.
@@ -360,7 +379,7 @@ def _check_team_exists(team):
     if team is None:
         return
 
-    hostname = '%s-registry.team.quiltdata.com' % team
+    hostname = urlparse(get_registry_url(team)).hostname
     try:
         socket.gethostbyname(hostname)
     except IOError:
@@ -542,7 +561,8 @@ def _build_internal(package, path, dry_run, env, build_file):
         assert not dry_run  # TODO?
         build_from_node(package, nodes.GroupNode({}))
     else:
-        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, but got %r" % path)
+        raise ValueError("Expected a GroupNode, path, git URL, DataFrame, ndarray, or None, " \
+                         "but got %r" % path)
 
 
 def build_from_node(package, node):

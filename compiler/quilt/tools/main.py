@@ -127,6 +127,7 @@ def argument_parser():
     # quilt config
     shorthelp = "Configure Quilt"
     config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
+    config_p.add_argument("team", type=str, nargs='?', help="Specify team to configure")
     config_p.set_defaults(func=command.config)
 
     # quilt delete
