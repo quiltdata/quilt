@@ -3,7 +3,7 @@ Welcome to {% if team_id %}Quilt Team Edition{% else %}Quilt{% endif %}.
 To get started, click here to set your password: {{ reseturl }}.
 {% endif %}
 {% if team_id %}
-Your team id is "{{ team_id }}". Your team data catalog is available at {{frontend}}. To use Quilt on the command line, install Quilt (https://docs.quiltdata.com/installation.html) then type `$ quilt login {{ team_id }}`.
+Your team id is "{{ team_id }}". Your team data catalog is available at {{frontend}}. To use Quilt on the command line, install Quilt (https://docs.quiltdata.com/installation.html) then type `$ quilt config {{ team_id }}`. At the prompt, enter: {{ registry_url }}. Login to your Quilt account by typing `$ quilt login {{ team_id }}`.
 {% endif %}
 Quilt versions, packages, and deploys data so that your workflows are fast, reproducible, and auditable. Here is a brief video to get you started: https://www.youtube.com/watch?v=bKIV1GUVLPc.
 {% if team_id %}

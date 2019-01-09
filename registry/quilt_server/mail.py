@@ -64,9 +64,11 @@ def send_welcome_email(user, link=None):
     needsreset = link is not None
     reseturl = '{base}/reset_password/{link}'.format(base=CATALOG_URL, link=link)
     html = render_template('welcome_email.html', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl,
+                           registry_url=REGISTRY_URL)
     body = render_template('welcome_email.txt', team_id=TEAM_ID, team_name=TEAM_NAME,
-                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl)
+                           frontend=CATALOG_URL, needsreset=needsreset, reseturl=reseturl,
+                           registry_url=REGISTRY_URL)
     send_email(recipients=[user.email], sender=DEFAULT_SENDER, subject=subject,
                html=html, body=body)
 
