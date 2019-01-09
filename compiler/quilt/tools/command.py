@@ -133,7 +133,7 @@ def get_registry_url(team):
     if team is not None:
         # Check config
         cfg = _load_config()
-        if team and cfg.get('team_id') == team:
+        if team and cfg.get('team_id') == team and cfg.get('team_registry_url'):
             return cfg['team_registry_url']
         else:
             return "https://%s-registry.team.quiltdata.com" % team
@@ -173,13 +173,15 @@ def config(team=None):
             url.path or url.params or url.query or url.fragment):
             raise CommandException("Invalid URL: %s" % answer)
         canonical_url = urlunparse(url)
+    else:
+        canonical_url = ''
         
-        if team:
-            cfg['team_registry_url'] = canonical_url
-            cfg['team_id'] = team
-        else:
-            cfg['registry_url'] = canonical_url
-            cfg['team_id'] = ''
+    if team:
+        cfg['team_registry_url'] = canonical_url
+        cfg['team_id'] = team
+    else:
+        cfg['registry_url'] = canonical_url
+        cfg['team_id'] = ''
     _save_config(cfg)
 
     # Clear the cached URL.
