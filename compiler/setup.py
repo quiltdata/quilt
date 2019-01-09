@@ -66,8 +66,8 @@ setup(
         'tests': [
             'funcsigs; python_version<"3.4"',   # stdlib backport
             'mock; python_version<"3.3"',
-            'pytest',
-            'pytest-cov',
+            'pytest==3.3.2',
+            'pytest-cov==2.4.0',
             'responses>=0.7.0',
         ],
         'torchvision': [
