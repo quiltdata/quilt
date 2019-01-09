@@ -114,11 +114,11 @@ class QuiltS3Connection(object):
                 secret_key = app.config.get('AWS_SECRET_ACCESS_KEY')
                 session_token = None
 
-            kwargs = dict(aws_access_key_id=access_key,
-                          aws_secret_access_key=secret_key)
+            kwargs = dict(aws_access_key_id=access_key[0],
+                          aws_secret_access_key=secret_key[0])
 
             if session_token is not None:
-                kwargs['session_token'] = session_token
+                kwargs['aws_session_token'] = session_token
 
             # Use V4 signatures when an AWS Region is specified. V4 signatures
             # are required in newer regions (e.g., central-europe-1)
@@ -141,10 +141,8 @@ class QuiltS3Connection(object):
     def generate_presigned_url(self, method, owner, blob_hash):
         return self.s3_client.generate_presigned_url(
             method,
-            Params=dict(
-            Bucket=PACKAGE_BUCKET_NAME,
-            Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)
-            ),
+            Params=dict(Bucket=PACKAGE_BUCKET_NAME,
+                        Key='%s/%s/%s' % (OBJ_DIR, owner, blob_hash)),
             ExpiresIn=PACKAGE_URL_EXPIRATION
             )
 

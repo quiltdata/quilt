@@ -36,6 +36,7 @@ services:
       - QUILT_SERVER_CONFIG=dev_config.py
       - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
       - DEPLOYMENT_ID=dev
+      - CATALOG_URL =http://localhost:3000
       - REGISTRY_URL=http://localhost:5000
       - QUILT_SECRET_KEY=aaaaaaaaaa
       - DISABLE_SIGNUP
@@ -44,6 +45,12 @@ services:
       - TEAM_NAME
       - ALLOW_ANONYMOUS_ACCESS
       - ALLOW_TEAM_ACCESS
+      - S3_ENDPOINT
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+      - CROSS_ACCOUNT_ROLE
+      - CROSS_ACCOUNT_EXT_ID
+      - AWS_REGION
     depends_on:
       db:
         condition: service_healthy
