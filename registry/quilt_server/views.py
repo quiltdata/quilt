@@ -2104,8 +2104,6 @@ def list_users():
     results = [{
         'username': user.name,
         'email': user.email,
-        'first_name': user.first_name,
-        'last_name': user.last_name,
         'date_joined': user.date_joined,
         'last_login': user.last_login,
         'is_superuser': user.is_admin,

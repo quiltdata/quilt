@@ -55,7 +55,7 @@
       <p>To get started, <a href="{{ reseturl }}">click here to set your password</a>.</p>
 {% endif %}
 {% if team_id %}
-      <p>Your team id is "{{ team_id }}". Your team data catalog is available at <a href="{{frontend}}">{{frontend}}</a>. To use Quilt on the command line, <a href="https://docs.quiltdata.com/installation.html">install Quilt</a>, then type <span class="code">$ quilt login {{ team_id }}</span>.</p>
+      <p>Your team id is "{{ team_id }}". Your team data catalog is available at <a href="{{frontend}}">{{frontend}}</a>. To use Quilt on the command line, <a href="https://docs.quiltdata.com/installation.html">install Quilt</a>, then type <span class="code">$ quilt config {{ team_id }}</span>. At the prompt, enter: <span class="code">{{ registry_url }}</span>. Login to your Quilt account by typing <span class="code">$ quilt login {{ team_id }}</span>.</p>
 {% endif %}
       <p>
         Quilt versions, packages, and deploys data so that your workflows are fast, reproducible, and auditable. Below is a brief video to get you started.
