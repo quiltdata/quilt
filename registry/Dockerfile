@@ -1,11 +1,12 @@
-FROM ubuntu:16.04
+FROM python:3.6
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-RUN apt-get update -y
-RUN apt-get install -y python3 python3-dev python3-pip build-essential
+#RUN apt update -y
+#RUN apt-get install -y python3.6
+#RUN apt-get install python3-dev python3-pip build-essential
 RUN pip3 install uwsgi
 
 # Create Quilt user
