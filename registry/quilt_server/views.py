@@ -602,48 +602,46 @@ def get_objects():
         }
     )
 
+
+class PreviewException(Exception):
+    """The object is malformed (not gzipped correctly or has the wrong Content-Encoding header)"""
+
+
 def download_object_preview_impl(owner, obj_hash):
-    resp = s3_client.get_object(
-        Bucket=PACKAGE_BUCKET_NAME,
-        Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
-        Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
-    )
+    try:
+        resp = s3_client.get_object(
+            Bucket=PACKAGE_BUCKET_NAME,
+            Key='%s/%s/%s' % (OBJ_DIR, owner, obj_hash),
+            Range='bytes=-%d' % MAX_PREVIEW_SIZE  # Limit the size of the gzip'ed content.
+        )
+    except ClientError as ex:
+        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
+            raise PreviewException("File does not exist")
+        else:
+            raise
 
     body = resp['Body']
     encoding = resp.get('ContentEncoding')
     if encoding == 'gzip':
-        with gzip.GzipFile(fileobj=body, mode='rb') as fd:
-            data = fd.read(MAX_PREVIEW_SIZE)
+        try:
+            with gzip.GzipFile(fileobj=body, mode='rb') as fd:
+                data = fd.read(MAX_PREVIEW_SIZE)
+        except OSError as ex:
+            if 'gzipped' in str(ex):
+                raise PreviewException("Failed to ungzip: %s" % ex)
+            else:
+                raise
     elif encoding is None:
         data = body.read(MAX_PREVIEW_SIZE)
     else:
-        # GzipFile raises an OSError if ungzipping fails, so do the same here.
-        raise OSError("Unexpected encoding: %r" % encoding)
+        raise PreviewException("Unexpected encoding: %r" % encoding)
 
     return data.decode(errors='ignore')  # Data may be truncated in the middle of a UTF-8 character.
 
 def download_object_preview(owner, obj_hash):
     try:
         return download_object_preview_impl(owner, obj_hash)
-    except ClientError as ex:
-        _mp_track(
-            type="download_exception",
-            obj_owner=owner,
-            obj_hash=obj_hash,
-            error=str(ex),
-        )
-        if ex.response['ResponseMetadata']['HTTPStatusCode'] == requests.codes.not_found:
-            # The client somehow failed to upload the README.
-            raise ApiException(
-                requests.codes.forbidden,
-                "Failed to download the README; make sure it has been uploaded correctly."
-            )
-        else:
-            # Something unexpected happened.
-            raise
-    except OSError as ex:
-        # Failed to ungzip: either the contents is not actually gzipped,
-        # or the response was truncated because it was too big.
+    except PreviewException as ex:
         _mp_track(
             type="download_exception",
             obj_owner=owner,
@@ -652,7 +650,7 @@ def download_object_preview(owner, obj_hash):
         )
         raise ApiException(
             requests.codes.forbidden,
-            "Failed to ungzip the README; make sure it has been uploaded correctly."
+            "Failed to download the README: %s" % ex
         )
 
 def _merge_contents(base_contents, package_path, contents):
