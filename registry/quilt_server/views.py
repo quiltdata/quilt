@@ -26,6 +26,7 @@ from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
+import jwt
 import requests
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
@@ -2418,3 +2419,38 @@ def comments_list(owner, package_name):
     comments = Comment.query.filter_by(package=package).order_by(Comment.created)
 
     return dict(comments=map(_comment_dict, comments))
+
+IDENTITY_POOL_ID = 'us-east-1:bad5e611-6efb-4b71-8f46-674fa56901b8'
+AWS_TOKEN_DURATION = 60 * 60 # 60 minutes
+
+@app.route('/api/auth/get_credentials', methods=['GET'])
+@api(require_login=True)
+@as_json
+def aws_token():
+    client = boto3.client('cognito-identity')
+
+    params = {
+      'IdentityPoolId': IDENTITY_POOL_ID,
+      'Logins': {
+        'login.quiltdata': g.auth.user
+      },
+      'TokenDuration': AWS_TOKEN_DURATION
+    }
+    response = client.get_open_id_token_for_developer_identity(**params)
+
+    identity_id = response['IdentityId']
+    token = response['Token']
+
+    decoded = jwt.decode(token, verify=False)
+
+    creds_params = {
+      'IdentityId': identity_id,
+      'Logins': {
+        'cognito-identity.amazonaws.com': token
+      }
+    }
+
+    creds_response = client.get_credentials_for_identity(**creds_params)
+    creds = creds_response['Credentials']
+    creds['sub'] = decoded['sub']
+    return creds
