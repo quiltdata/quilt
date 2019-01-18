@@ -42,8 +42,8 @@ from .auth import (AuthException, ConflictException, CredentialException,
     consume_code_string, exp_from_token, issue_code, issue_token,
     reset_password, reset_password_from_email, revoke_token_string,
     try_login, verify_token_string)
-from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
-                    VALID_EMAIL_RE, VALID_USERNAME_RE)
+from .const import (AWS_TOKEN_DURATION, FTS_LANGUAGE, PaymentPlan, PUBLIC,
+                    TEAM, VALID_NAME_RE, VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_comment_email, send_invitation_email
@@ -89,6 +89,16 @@ s3_client = boto3.client(
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
+
+cognito_identity_client = boto3.client(
+    'cognito-identity',
+    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+)
+
+IDENTITY_POOL_ID = app.config.get('IDENTITY_POOL_ID')
+
+
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
@@ -2431,15 +2441,10 @@ def comments_list(owner, package_name):
 
     return dict(comments=map(_comment_dict, comments))
 
-IDENTITY_POOL_ID = 'us-east-1:bad5e611-6efb-4b71-8f46-674fa56901b8'
-AWS_TOKEN_DURATION = 60 * 60 # 60 minutes
-
 @app.route('/api/auth/get_credentials', methods=['GET'])
 @api(require_login=True)
 @as_json
 def aws_token():
-    client = boto3.client('cognito-identity')
-
     params = {
       'IdentityPoolId': IDENTITY_POOL_ID,
       'Logins': {
@@ -2447,7 +2452,7 @@ def aws_token():
       },
       'TokenDuration': AWS_TOKEN_DURATION
     }
-    response = client.get_open_id_token_for_developer_identity(**params)
+    response = cognito_identity_client.get_open_id_token_for_developer_identity(**params)
 
     identity_id = response['IdentityId']
     token = response['Token']
@@ -2461,7 +2466,7 @@ def aws_token():
       }
     }
 
-    creds_response = client.get_credentials_for_identity(**creds_params)
+    creds_response = cognito_identity_client.get_credentials_for_identity(**creds_params)
     creds = creds_response['Credentials']
     creds['sub'] = decoded['sub']
     return creds
