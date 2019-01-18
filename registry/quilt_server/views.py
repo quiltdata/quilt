@@ -1081,7 +1081,6 @@ def package_get_as_t4(owner, package_name, package_hash):
                 )
 
             body = resp['Body']
-            encoding = resp.get('ContentEncoding')
             data = body.read()
             node_meta = json.loads(data)
         else:
