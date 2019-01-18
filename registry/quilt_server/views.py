@@ -1074,7 +1074,19 @@ def package_get_as_t4(owner, package_name, package_hash):
         hash_objs = [dict(type='SHA256', value=blob_hash) for blob_hash in node.hashes]
 
         # TODO: Read metadata from object store based on node.metadata_hash
-        t4pkg.set(key, t4.packages.PackageEntry(pkeys, node_size, hash_objs, meta=None))
+        if node.metadata_hash:
+            resp = s3_client.get_object(
+                Bucket=PACKAGE_BUCKET_NAME,
+                Key='%s/%s/%s' % (OBJ_DIR, owner, node.metadata_hash)
+                )
+
+            body = resp['Body']
+            encoding = resp.get('ContentEncoding')
+            data = body.read()
+            node_meta = json.loads(data)
+        else:
+            node_meta = None
+        t4pkg.set(key, t4.packages.PackageEntry(pkeys, node_size, hash_objs, meta=node_meta))
 
     # Insert an event.
     event = Event(
