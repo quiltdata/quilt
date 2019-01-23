@@ -28,5 +28,3 @@ DISABLE_SIGNUP = bool(os.getenv('DISABLE_SIGNUP', ''))
 MAIL_DEV = False
 
 MAIL_USE_TLS = True
-
-IDENTITY_POOL_ID = os.getenv('IDENTITY_POOL_ID', '')

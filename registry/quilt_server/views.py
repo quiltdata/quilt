@@ -90,16 +90,12 @@ s3_client = boto3.client(
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
 
-cognito_identity_client = boto3.client(
-    'cognito-identity',
+sts_client = boto3.client(
+    'sts',
     region_name='us-east-1',
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
-
-IDENTITY_POOL_ID = app.config.get('IDENTITY_POOL_ID')
-
-
 
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
@@ -2445,29 +2441,13 @@ def comments_list(owner, package_name):
 @app.route('/api/auth/get_credentials', methods=['GET'])
 @api(require_login=True)
 @as_json
-def aws_token():
+def get_credentials():
+    arn = request.get_json()['arn']
     params = {
-      'IdentityPoolId': IDENTITY_POOL_ID,
-      'Logins': {
-        'login.quiltdata': g.auth.user
-      },
-      'TokenDuration': AWS_TOKEN_DURATION
+        'RoleArn': arn,
+        'RoleSessionName': g.auth.user,
+        'DurationSeconds': AWS_TOKEN_DURATION
     }
-    response = cognito_identity_client.get_open_id_token_for_developer_identity(**params)
+    response = sts_client.assume_role(**params)
+    return response
 
-    identity_id = response['IdentityId']
-    token = response['Token']
-
-    decoded = jwt.decode(token, verify=False)
-
-    creds_params = {
-      'IdentityId': identity_id,
-      'Logins': {
-        'cognito-identity.amazonaws.com': token
-      }
-    }
-
-    creds_response = cognito_identity_client.get_credentials_for_identity(**creds_params)
-    creds = creds_response['Credentials']
-    creds['sub'] = decoded['sub']
-    return creds
