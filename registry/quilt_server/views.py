@@ -39,7 +39,7 @@ from .analytics import MIXPANEL_EVENT, mp
 from .auth import (AuthException, ConflictException, CredentialException,
     NotFoundException, ValidationException, _create_user, _delete_user,
     _disable_user, _enable_user, activate_response, change_password,
-    consume_code_string, exp_from_token, issue_code, issue_token,
+    consume_code_string, exp_from_token, generate_uuid, issue_code, issue_token,
     reset_password, reset_password_from_email, revoke_token_string,
     try_login, verify_token_string)
 from .const import (AWS_TOKEN_DURATION, FTS_LANGUAGE, PaymentPlan, PUBLIC,
@@ -51,7 +51,9 @@ from .models import (Access, Comment, Customer, Event, Instance,
                      InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
-                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA,
+                      USERNAME_PASSWORD_EMAIL_SCHEMA, USERNAME_ROLE_SCHEMA,
+                      ROLE_DETAILS_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -2407,6 +2409,83 @@ def _comment_dict(comment):
         contents=comment.contents
     )
 
+@app.route('/api/users/attach_role', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
+@as_json
+def attach_role():
+    data = request.get_json()
+    username = data['username']
+    role_name = data['role']
+    user = User.query.filter_by(name=username).one_or_none()
+    if user is None:
+        raise ApiException(requests.codes.bad_request,
+                           "No user exists by the provided name.")
+    if role_name is '':
+        # delete role from user
+        user.role_id = None
+    else:
+        role = Role.query.filter_by(name=role_name).one_or_none()
+        if role is None:
+            raise ApiException(requests.codes.bad_request,
+                               "No role exists by the provided name.")
+        user.role_id = role.id
+
+    db.session.add(user)
+    db.session.commit()
+    return {}
+
+@app.route('/api/roles/edit_role', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def edit_role():
+    data = request.get_json()
+    role_name = data['name']
+    arn = data.get('arn', None)
+    new_name = data.get('new_name', None)
+    role = Role.query.filter_by(name=role_name).one_or_none()
+    if role is None:
+        if arn is None:
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Creating a role requires a role ARN"
+                    )
+        if new_name is not None:
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Cannot specify a new name for a role that does not exist yet."
+                    )
+        role = Role(
+            id=generate_uuid(),
+            name=role_name,
+            arn=arn
+            )
+        db.session.add(role)
+    elif arn is None and new_name is None:
+        # delete role
+        db.session.delete(role)
+    else:
+        if arn:
+            role.arn = arn
+        if new_name:
+            role.name = new_name
+        db.session.add(role)
+    db.session.commit()
+    return {}
+
+@app.route('/api/roles/list')
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_roles():
+    roles_list = []
+    roles = Role.query.all()
+    for role in roles:
+        role_dict = {
+            'name': role.name,
+            'arn': role.arn
+        }
+        roles_list.append(role_dict)
+    return {'results': roles_list}
+
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
 @api()
 @as_json
@@ -2438,10 +2517,10 @@ def comments_list(owner, package_name):
 
     return dict(comments=map(_comment_dict, comments))
 
-@app.route('/api/auth/get_credentials', methods=['GET'])
+@app.route('/api/auth/get_credentials_unsafe', methods=['GET'])
 @api(require_login=True)
 @as_json
-def get_credentials():
+def get_credentials_unsafe():
     arn = request.get_json()['arn']
     params = {
         'RoleArn': arn,
@@ -2451,3 +2530,26 @@ def get_credentials():
     response = sts_client.assume_role(**params)
     return response
 
+@app.route('/api/auth/get_credentials', methods=['GET'])
+@api(require_login=True)
+@as_json
+def get_credentials():
+    role_id = g.user.role_id
+    if not role_id:
+        raise ApiException(requests.codes.bad_request,
+                           "You have no attached role to assume")
+    role = Role.query.filter_by(id=role_id).one_or_none()
+    if not role:
+        raise ApiException(requests.codes.bad_request,
+                           "Cannot find role")
+    params = {
+        'RoleArn': role.arn,
+        'RoleSessionName': g.auth.user,
+        'DurationSeconds': AWS_TOKEN_DURATION
+    }
+    try:
+        creds = sts_client.assume_role(**params)
+    except ClientError:
+        raise ApiException(requests.codes.server_error,
+                           "Failed to get credentials for your role.")
+    return creds['Credentials']
