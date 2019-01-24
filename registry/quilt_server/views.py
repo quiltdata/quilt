@@ -48,7 +48,8 @@ from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_comment_email, send_invitation_email
 from .models import (Access, Comment, Customer, Event, Instance,
-                     InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
+                     InstanceBlobAssoc, Invitation, Log, Package,
+                     Role, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
                       USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA,
@@ -2434,8 +2435,8 @@ def attach_role():
     db.session.commit()
     return {}
 
-@app.route('/api/roles/edit_role', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@app.route('/api/roles/edit', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def edit_role():
     data = request.get_json()

@@ -250,7 +250,6 @@ ROLE_DETAILS_SCHEMA = {
     'additionalProperties': False
 }
 
-
 USERNAME_PASSWORD_EMAIL_SCHEMA = {
     'type': 'object',
     'properties': {
