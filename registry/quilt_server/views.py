@@ -2455,6 +2455,11 @@ def edit_role():
                     requests.codes.bad_request,
                     "Cannot specify a new name for a role that does not exist yet."
                     )
+        if not VALID_NAME_RE.match(role_name):
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Invalid name for role"
+                    )
         role = Role(
             id=generate_uuid(),
             name=role_name,
@@ -2470,10 +2475,16 @@ def edit_role():
             db.session.add(user)
         db.session.delete(role)
     else:
+        # edit existing role
+        if new_name:
+            if not VALID_NAME_RE.match(new_name):
+                raise ApiException(
+                        requests.codes.bad_request,
+                        "Invalid name for role"
+                        )
+            role.name = new_name
         if arn:
             role.arn = arn
-        if new_name:
-            role.name = new_name
         db.session.add(role)
     db.session.commit()
     return {}
