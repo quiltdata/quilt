@@ -589,6 +589,50 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert creds_request.status_code == 400
 
+            # add default user to role
+            params = {
+                'username': self.TEST_USER,
+                'role': 'new_test_role'
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 200
+
+            # ensure default user can access credentials
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers={
+                        'Authorization': self.getToken(),
+                        'content-type': 'application/json'
+                    }
+                )
+            assert creds_request.status_code == 200
+
+            # remove default user from role
+            params = {
+                'username': self.TEST_USER,
+                'role': ''
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 200
+
+            # ensure default user cannot access credentials
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers={
+                        'Authorization': self.getToken(),
+                        'content-type': 'application/json'
+                    }
+                )
+            assert creds_request.status_code == 400
+
             # delete the role
             params = {
                 'name': 'new_test_role',
@@ -607,3 +651,10 @@ class AuthTestCase(QuiltTestCase):
             assert list_request.status_code == 200
             results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 0
+
+            # ensure we cannot get credentials for deleted role
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 400
