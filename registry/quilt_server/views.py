@@ -2411,7 +2411,7 @@ def _comment_dict(comment):
     )
 
 @app.route('/api/users/attach_role', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def attach_role():
     data = request.get_json()
@@ -2463,6 +2463,11 @@ def edit_role():
         db.session.add(role)
     elif arn is None and new_name is None:
         # delete role
+        # must remove role from all users with that role due to foreign key constraint
+        users = User.query.filter_by(role_id=role.id).all()
+        for user in users:
+            user.role_id = None
+            db.session.add(user)
         db.session.delete(role)
     else:
         if arn:
@@ -2517,19 +2522,6 @@ def comments_list(owner, package_name):
     comments = Comment.query.filter_by(package=package).order_by(Comment.created)
 
     return dict(comments=map(_comment_dict, comments))
-
-@app.route('/api/auth/get_credentials_unsafe', methods=['GET'])
-@api(require_login=True)
-@as_json
-def get_credentials_unsafe():
-    arn = request.get_json()['arn']
-    params = {
-        'RoleArn': arn,
-        'RoleSessionName': g.auth.user,
-        'DurationSeconds': AWS_TOKEN_DURATION
-    }
-    response = sts_client.assume_role(**params)
-    return response
 
 @app.route('/api/auth/get_credentials', methods=['GET'])
 @api(require_login=True)
