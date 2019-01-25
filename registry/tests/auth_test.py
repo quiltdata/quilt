@@ -533,7 +533,7 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert list_request.status_code == 200
-            results = list_request.json['results']
+            results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
             assert results[0] == {'arn': 'asdf123', 'name': 'test_role'}
 
@@ -554,7 +554,7 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert list_request.status_code == 200
-            results = list_request.json['results']
+            results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
             assert results[0] == {'arn': 'qwer456', 'name': 'test_role'}
 
@@ -575,7 +575,7 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert list_request.status_code == 200
-            results = list_request.json['results']
+            results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
             assert results[0] == {'arn': 'qwer456', 'name': 'new_test_role'}
 
@@ -605,5 +605,5 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert list_request.status_code == 200
-            results = list_request.json['results']
+            results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 0
