@@ -1,16 +1,16 @@
-FROM ubuntu:16.04
+FROM amazonlinux:2.0.20190115
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-RUN apt-get update && apt-get install -y \
-    nginx \
-    curl \
-    gettext \
-    libssl-dev
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get install -y nodejs
+RUN yum update -y
+RUN yum install -y curl gettext openssl-devel
+RUN amazon-linux-extras install nginx1.12
+
+#RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
+RUN curl -sL https://rpm.nodesource.com/setup_8.x | bash -
+RUN yum install -y nodejs
 
 RUN mkdir /opt/app
 WORKDIR /opt/app

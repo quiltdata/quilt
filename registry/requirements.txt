@@ -9,7 +9,7 @@ cookies==2.2.1
 docutils==0.14
 Flask==0.12.3
 Flask-Cors==3.0.3
-Flask-JSON==0.3.2
+Flask-JSON==0.3.3
 Flask-Mail==0.9.1
 Flask-Migrate==2.1.0
 Flask-SQLAlchemy==2.2
@@ -24,7 +24,7 @@ MarkupSafe==1.0
 mixpanel==4.3.2
 packaging==16.8
 passlib==1.7.1
-psycopg2==2.7.3.2
+psycopg2-binary==2.7.4
 PyJWT==1.6.1
 pyparsing==2.2.0
 python-dateutil==2.6.1

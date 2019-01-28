@@ -1,14 +1,19 @@
-FROM ubuntu:16.04
+FROM amazonlinux:2.0.20190115
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
-RUN apt-get update -y
-RUN apt-get install -y python3 python3-dev python3-pip build-essential
+# Install Python 3
+RUN yum update -y
+RUN yum install -y gcc glibc-devel make
+RUN yum install -y python3 python3-devel postgresql-devel
+
+# Install UWSGI (for production serving)
 RUN pip3 install uwsgi
 
 # Create Quilt user
+RUN yum install -y shadow-utils
 RUN useradd -s /bin/bash -m quilt
 
 # Install the dependencies
