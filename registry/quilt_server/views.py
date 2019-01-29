@@ -2414,6 +2414,16 @@ def _comment_dict(comment):
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def attach_role():
+    """
+    Manages the role attached to a user.
+
+    The request should contain a JSON object with two keys:
+        username(string): username of user to edit
+        role_name(string): name of role to attach to user
+
+    A user can only have one role at a time.
+    To remove a role from a user, set role_name to the empty string.
+    """
     data = request.get_json()
     username = data['username']
     role_name = data['role']
@@ -2439,6 +2449,25 @@ def attach_role():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def edit_role():
+    """
+    Edits a role.
+
+    The body of the request should contain a JSON object.
+    There is one required parameter:
+        role_name(string): name of the role to operate on
+
+    There are two optional paramters:
+        arn(string): ARN of the IAM role associated with the Quilt role.
+        new_name(string): new name to attach to the role.
+
+    To create a role, you must provide an unused name and an arn.
+    To change the name of a role, provide the current name along with
+        the new name you want to use.
+    To change the ARN attached to a role, provide the current name along with
+        the new ARN you want to use.
+    To delete a role, make role_name the name of the role you want to delete
+        and leave out the optional parameters.
+    """
     data = request.get_json()
     role_name = data['name']
     arn = data.get('arn', None)
@@ -2493,6 +2522,12 @@ def edit_role():
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_roles():
+    """
+    Lists the roles the registry knows about.
+
+    Returns a JSON object with the top-level key 'results', with a value
+        that is a list of dicts of the form {'name': role_name, 'arn': role_arn}
+    """
     roles_list = []
     roles = Role.query.all()
     for role in roles:
@@ -2538,6 +2573,14 @@ def comments_list(owner, package_name):
 @api(require_login=True)
 @as_json
 def get_credentials():
+    """
+    Obtains credentials corresponding to your role.
+
+    Returns a JSON object with three keys:
+        AccessKeyId(string): access key ID
+        SecretKey(string): secret key
+        SessionToken(string): session token
+    """
     role_id = g.user.role_id
     if not role_id:
         raise ApiException(requests.codes.bad_request,
