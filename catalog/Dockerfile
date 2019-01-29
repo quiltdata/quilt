@@ -5,7 +5,8 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 RUN yum update -y
-RUN yum install -y curl gettext openssl-devel
+RUN yum install -y gcc glibc-devel make
+RUN yum install -y curl gettext openssl-devel libpng-devel
 RUN amazon-linux-extras install nginx1.12
 
 #RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -

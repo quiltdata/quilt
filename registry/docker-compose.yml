@@ -52,6 +52,7 @@ services:
         condition: service_healthy
 
   nginxflask:
+    #image: quiltdata/nginx:latest
     image: nginx:latest
     ports:
       - "5000:80"
