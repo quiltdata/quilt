@@ -31,7 +31,7 @@ services:
 
   flask:
     build: .
-    image: quiltdata/registry
+    image: 730278974607.dkr.ecr.us-east-1.amazonaws.com/quiltdata/registry:mcp
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
@@ -52,8 +52,7 @@ services:
         condition: service_healthy
 
   nginxflask:
-    #image: quiltdata/nginx:latest
-    image: nginx:latest
+    image: quiltdata/nginx
     ports:
       - "5000:80"
     depends_on:

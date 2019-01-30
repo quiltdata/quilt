@@ -28,7 +28,8 @@ COPY config.js.tmpl .
 RUN npm run build
 
 # Set up nginx
-COPY nginx-web.conf /etc/nginx/sites-available/default
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-web.conf /etc/nginx/conf.d/
 RUN rm -rf /usr/share/nginx/html
 RUN cp -r /opt/app/build/ /usr/share/nginx/html/
 
