@@ -15,6 +15,8 @@ from quilt_server.auth import (_create_user, _delete_user, issue_token,
         verify_reset_link, verify_hash
         )
 
+from botocore.exceptions import ClientError
+
 CATALOG_URL = app.config['CATALOG_URL']
 
 class AuthTestCase(QuiltTestCase):
@@ -750,3 +752,66 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert creds_request.status_code == 400
+
+            # fail case tests
+
+            # be admin again
+            headers = {
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+
+            # attempt to make role with bad name
+            # change the name
+            params = {
+                'name': '%bad-role-name%',
+                'arn': '123456'
+            }
+            edit_role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 400
+
+            # simulate a bad role ARN
+            def f(*params, **kwargs):
+                raise ClientError(
+                        error_response={
+                            'Error': {}
+                        },
+                        operation_name='assumeRole'
+                    )
+
+            client.assume_role = f
+
+            # create role
+            params = {
+                'name': 'test_role',
+                'arn': 'asdf123'
+            }
+            role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+
+            # attach role to user
+            params = {
+                'username': self.ADMIN_USERNAME,
+                'role': 'test_role'
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 200
+
+            # request creds for an arn that does not work
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 500
