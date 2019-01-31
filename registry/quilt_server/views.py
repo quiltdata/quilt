@@ -2319,7 +2319,7 @@ def _comment_dict(comment):
     )
 
 @app.route('/api/users/attach_role', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_ROLE_SCHEMA)
 @as_json
 def attach_role():
     """
@@ -2354,7 +2354,7 @@ def attach_role():
     return {}
 
 @app.route('/api/roles/edit', methods=['POST'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
 @as_json
 def edit_role():
     """

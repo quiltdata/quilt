@@ -229,7 +229,7 @@ USERNAME_ROLE_SCHEMA = {
             'type': 'string'
         }
     },
-    'required': ['username', 'role'],
+    'required': ['username'],
     'additionalProperties': False
 }
 
