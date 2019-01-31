@@ -658,3 +658,95 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert creds_request.status_code == 400
+
+
+            # create role
+            params = {
+                'name': 'test_role',
+                'arn': 'asdf123'
+            }
+            role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+
+            # non-admin tests
+
+            headers = {
+                'Authorization': self.getToken(),
+                'content-type': 'application/json'
+            }
+
+            # change the name
+            params = {
+                'name': 'test_role',
+                'new_name': 'new_test_role'
+            }
+            edit_role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # change the arn
+            params = {
+                'name': 'test_role',
+                'arn': 'arn456'
+            }
+            edit_role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # delete the role
+            params = {
+                'name': 'test_role'
+            }
+            edit_role_request = self.app.post(
+                    '/api/roles/edit',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # attach role to user
+            params = {
+                'username': self.TEST_USER,
+                'role': 'test_role'
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 403
+
+            # remove role from user
+            params = {
+                'username': self.TEST_USER
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 403
+
+            # list roles
+            list_request = self.app.get(
+                    '/api/roles/list',
+                    headers=headers
+                )
+            assert list_request.status_code == 403
+
+            # get credentials without a role
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 400
