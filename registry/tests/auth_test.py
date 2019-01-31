@@ -510,6 +510,30 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert role_request.status_code == 200
 
+            # attach role to user that does not exist
+            params = {
+                'username': 'does-not-exist',
+                'role': 'test_role'
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 400
+
+            # attach nonexistent role to user
+            params = {
+                'username': self.ADMIN_USERNAME,
+                'role': 'does-not-exist'
+            }
+            attach_request = self.app.post(
+                    '/api/users/attach_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert attach_request.status_code == 400
+
             # attach role to user
             params = {
                 'username': self.ADMIN_USERNAME,
