@@ -26,30 +26,35 @@ from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
+import jwt
 import requests
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
+import t4
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (AuthException, ConflictException, CredentialException,
     NotFoundException, ValidationException, _create_user, _delete_user,
     _disable_user, _enable_user, activate_response, change_password,
-    consume_code_string, exp_from_token, issue_code, issue_token,
+    consume_code_string, exp_from_token, generate_uuid, issue_code, issue_token,
     reset_password, reset_password_from_email, revoke_token_string,
     try_login, verify_token_string)
-from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
-                    VALID_EMAIL_RE, VALID_USERNAME_RE)
+from .const import (AWS_TOKEN_DURATION, FTS_LANGUAGE, PaymentPlan, PUBLIC,
+                    TEAM, VALID_NAME_RE, VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_comment_email, send_invitation_email
 from .models import (Access, Comment, Customer, Event, Instance,
-                     InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
+                     InstanceBlobAssoc, Invitation, Log, Package,
+                     Role, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
-                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA,
+                      USERNAME_PASSWORD_EMAIL_SCHEMA, USERNAME_ROLE_SCHEMA,
+                      ROLE_DETAILS_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -84,6 +89,13 @@ MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
 s3_client = boto3.client(
     's3',
     endpoint_url=app.config.get('S3_ENDPOINT'),
+    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+)
+
+sts_client = boto3.client(
+    'sts',
+    region_name='us-east-1',
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
@@ -1031,6 +1043,88 @@ def package_get(owner, package_name, package_hash):
         updated_at=instance.updated_at.timestamp(),
     )
 
+@app.route('/api/packaget4/<owner>/<package_name>/<package_hash>', methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_get_as_t4(owner, package_name, package_hash):
+    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    assert isinstance(instance.contents, RootNode)
+    all_hashes = set(find_object_hashes(instance.contents, meta_only=False))
+
+    blobs = (
+        S3Blob.query
+        .filter(
+            sa.and_(
+                S3Blob.owner == owner,
+                S3Blob.hash.in_(all_hashes)
+            )
+        )
+        .all()
+    ) if all_hashes else []
+
+    blob_by_hash = {blob.hash: blob for blob in blobs}
+
+    # Not needed util signed URLs allowed as physical keys
+    urls = {
+        blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
+        for blob_hash in all_hashes
+    }
+
+    # Translate Quilt 2 package tree to T4 manifest
+    t4pkg = t4.Package()
+    for node, key in _iterate_data_nodes_with_path(instance.contents, ''):
+        blobs = [blob_by_hash[blob_hash] for blob_hash in node.hashes]
+        pkeys = ['s3://%s/%s/%s/%s' % (PACKAGE_BUCKET_NAME,
+                                       OBJ_DIR,
+                                       owner,
+                                       blob_hash) for blob_hash in node.hashes]
+        node_size = sum([blob.size for blob in blobs])
+        hash_objs = [dict(type='SHA256', value=blob_hash) for blob_hash in node.hashes]
+
+        # TODO: Read metadata from object store based on node.metadata_hash
+        if node.metadata_hash:
+            resp = s3_client.get_object(
+                Bucket=PACKAGE_BUCKET_NAME,
+                Key='%s/%s/%s' % (OBJ_DIR, owner, node.metadata_hash)
+                )
+
+            body = resp['Body']
+            data = body.read()
+            node_meta = json.loads(data)
+        else:
+            node_meta = None
+        t4pkg.set(key, t4.packages.PackageEntry(pkeys, node_size, hash_objs, meta=node_meta))
+
+    # Insert an event.
+    event = Event(
+        user=g.auth.user,
+        type=Event.Type.INSTALL,
+        package_owner=owner,
+        package_name=package_name,
+        package_hash=package_hash,
+    )
+    db.session.add(event)
+
+    db.session.commit()
+
+    _mp_track(
+        type="install",
+        package_owner=owner,
+        package_name=package_name,
+        subpath=None,
+    )
+
+    return dict(
+        manifest=t4pkg.manifest,
+        urls=urls,
+        sizes={blob.hash: blob.size for blob in blobs},
+        created_by=instance.created_by,
+        created_at=instance.created_at.timestamp(),
+        updated_by=instance.updated_by,
+        updated_at=instance.updated_at.timestamp(),
+    )
+
+
 def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     if isinstance(node, GroupNode):
         max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
@@ -1052,6 +1146,13 @@ def _iterate_data_nodes(node):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
 
+def _iterate_data_nodes_with_path(node, prefix):
+    assert isinstance(node, GroupNode)
+    for key, child in node.children.items():
+        if isinstance(child, GroupNode):
+            yield from _iterate_data_nodes_with_path(child, '/'.join([prefix, key]))
+        else:
+            yield (child, '/'.join([prefix, key]))
 
 def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
     now = datetime.utcnow()
@@ -2307,6 +2408,134 @@ def _comment_dict(comment):
         contents=comment.contents
     )
 
+@app.route('/api/users/attach_role', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_ROLE_SCHEMA)
+@as_json
+def attach_role():
+    """
+    Manages the role attached to a user.
+
+    The request should contain a JSON object with two keys:
+        username(string): username of user to edit
+        role_name(string): name of role to attach to user
+
+    A user can only have one role at a time.
+    To remove a role from a user, set role_name to the empty string.
+    """
+    data = request.get_json()
+    username = data['username']
+    role_name = data['role']
+    user = User.query.filter_by(name=username).one_or_none()
+    if user is None:
+        raise ApiException(requests.codes.bad_request,
+                           "No user exists by the provided name.")
+    if role_name is '':
+        # delete role from user
+        user.role_id = None
+    else:
+        role = Role.query.filter_by(name=role_name).one_or_none()
+        if role is None:
+            raise ApiException(requests.codes.bad_request,
+                               "No role exists by the provided name.")
+        user.role_id = role.id
+
+    db.session.add(user)
+    db.session.commit()
+    return {}
+
+@app.route('/api/roles/edit', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def edit_role():
+    """
+    Edits a role.
+
+    The body of the request should contain a JSON object.
+    There is one required parameter:
+        role_name(string): name of the role to operate on
+
+    There are two optional paramters:
+        arn(string): ARN of the IAM role associated with the Quilt role.
+        new_name(string): new name to attach to the role.
+
+    To create a role, you must provide an unused name and an arn.
+    To change the name of a role, provide the current name along with
+        the new name you want to use.
+    To change the ARN attached to a role, provide the current name along with
+        the new ARN you want to use.
+    To delete a role, make role_name the name of the role you want to delete
+        and leave out the optional parameters.
+    """
+    data = request.get_json()
+    role_name = data['name']
+    arn = data.get('arn', None)
+    new_name = data.get('new_name', None)
+    role = Role.query.filter_by(name=role_name).one_or_none()
+    if role is None:
+        if arn is None:
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Creating a role requires a role ARN"
+                    )
+        if new_name is not None:
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Cannot specify a new name for a role that does not exist yet."
+                    )
+        if not VALID_NAME_RE.match(role_name):
+            raise ApiException(
+                    requests.codes.bad_request,
+                    "Invalid name for role"
+                    )
+        role = Role(
+            id=generate_uuid(),
+            name=role_name,
+            arn=arn
+            )
+        db.session.add(role)
+    elif arn is None and new_name is None:
+        # delete role
+        # must remove role from all users with that role due to foreign key constraint
+        users = User.query.filter_by(role_id=role.id).all()
+        for user in users:
+            user.role_id = None
+            db.session.add(user)
+        db.session.delete(role)
+    else:
+        # edit existing role
+        if new_name:
+            if not VALID_NAME_RE.match(new_name):
+                raise ApiException(
+                        requests.codes.bad_request,
+                        "Invalid name for role"
+                        )
+            role.name = new_name
+        if arn:
+            role.arn = arn
+        db.session.add(role)
+    db.session.commit()
+    return {}
+
+@app.route('/api/roles/list')
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_roles():
+    """
+    Lists the roles the registry knows about.
+
+    Returns a JSON object with the top-level key 'results', with a value
+        that is a list of dicts of the form {'name': role_name, 'arn': role_arn}
+    """
+    roles_list = []
+    roles = Role.query.all()
+    for role in roles:
+        role_dict = {
+            'name': role.name,
+            'arn': role.arn
+        }
+        roles_list.append(role_dict)
+    return {'results': roles_list}
+
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
 @api()
 @as_json
@@ -2337,3 +2566,35 @@ def comments_list(owner, package_name):
     comments = Comment.query.filter_by(package=package).order_by(Comment.created)
 
     return dict(comments=map(_comment_dict, comments))
+
+@app.route('/api/auth/get_credentials', methods=['GET'])
+@api(require_login=True)
+@as_json
+def get_credentials():
+    """
+    Obtains credentials corresponding to your role.
+
+    Returns a JSON object with three keys:
+        AccessKeyId(string): access key ID
+        SecretKey(string): secret key
+        SessionToken(string): session token
+    """
+    role_id = g.user.role_id
+    if not role_id:
+        raise ApiException(requests.codes.bad_request,
+                           "You have no attached role to assume")
+    role = Role.query.filter_by(id=role_id).one_or_none()
+    if not role:
+        raise ApiException(requests.codes.bad_request,
+                           "Cannot find role")
+    params = {
+        'RoleArn': role.arn,
+        'RoleSessionName': g.auth.user,
+        'DurationSeconds': AWS_TOKEN_DURATION
+    }
+    try:
+        creds = sts_client.assume_role(**params)
+    except ClientError:
+        raise ApiException(requests.codes.server_error,
+                           "Failed to get credentials for your role.")
+    return creds['Credentials']

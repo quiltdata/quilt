@@ -1328,6 +1328,15 @@ def reset_password(team, username):
             ), data=json.dumps({'username':username})
     )
 
+def get_credentials(team=None):
+    session = _get_session(team)
+    response = session.get(
+        "{url}/api/auth/get_credentials".format(
+            url=get_registry_url(team)
+        )
+    )
+    return response.json()
+
 def _load(package, hash=None):
     info = parse_package_extended(package)
     # TODO: support tags & versions.

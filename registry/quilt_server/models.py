@@ -200,6 +200,7 @@ class User(db.Model):
     is_active = db.Column(db.Boolean, default=False, nullable=False)
     date_joined = db.Column(postgresql.TIMESTAMP(True), server_default=db.func.now(), nullable=False)
     old_id = db.Column(db.BigInteger) # for django ID -- probably not necessary but good to keep around
+    role_id = db.Column(postgresql.UUID, db.ForeignKey('role.id'), nullable=True)
 
 
 class Code(db.Model):
@@ -244,3 +245,8 @@ class Comment(db.Model):
     contents = db.Column(db.String(MAX_COMMENT_LENGTH), nullable=False)
 
     package = db.relationship('Package', back_populates='comments')
+
+class Role(db.Model):
+    id = db.Column(postgresql.UUID, primary_key=True)
+    name = db.Column(db.String(200), unique=True)
+    arn = db.Column(db.String(200))
