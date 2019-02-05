@@ -26,7 +26,6 @@ from flask_cors import CORS
 from flask_json import as_json, jsonify
 import httpagentparser
 from jsonschema import Draft4Validator, ValidationError
-import jwt
 import requests
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
