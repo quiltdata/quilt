@@ -1,4 +1,4 @@
-"""empty message
+"""Role support
 
 Revision ID: 93eca89056df
 Revises: cab5dbaad226
