@@ -3,7 +3,6 @@ services:
   db:
     image: postgres
     environment:
-      - POSTGRES_PASSWORD=testing
       - POSTGRES_DB=packages
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -15,7 +14,7 @@ services:
 
   flaskmigration:
     build: .
-    image: quiltdata/registry
+    image: quiltdata/flask
     environment:
       - AWS_ACCESS_KEY_ID=ddccbbaa
       - AWS_SECRET_ACCESS_KEY=abcd
