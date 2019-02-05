@@ -31,6 +31,7 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
+import t4
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
@@ -1031,6 +1032,88 @@ def package_get(owner, package_name, package_hash):
         updated_at=instance.updated_at.timestamp(),
     )
 
+@app.route('/api/packaget4/<owner>/<package_name>/<package_hash>', methods=['GET'])
+@api(require_login=False)
+@as_json
+def package_get_as_t4(owner, package_name, package_hash):
+    instance = _get_instance(g.auth, owner, package_name, package_hash)
+    assert isinstance(instance.contents, RootNode)
+    all_hashes = set(find_object_hashes(instance.contents, meta_only=False))
+
+    blobs = (
+        S3Blob.query
+        .filter(
+            sa.and_(
+                S3Blob.owner == owner,
+                S3Blob.hash.in_(all_hashes)
+            )
+        )
+        .all()
+    ) if all_hashes else []
+
+    blob_by_hash = {blob.hash: blob for blob in blobs}
+
+    # Not needed util signed URLs allowed as physical keys
+    urls = {
+        blob_hash: _generate_presigned_url(S3_GET_OBJECT, owner, blob_hash)
+        for blob_hash in all_hashes
+    }
+
+    # Translate Quilt 2 package tree to T4 manifest
+    t4pkg = t4.Package()
+    for node, key in _iterate_data_nodes_with_path(instance.contents, ''):
+        blobs = [blob_by_hash[blob_hash] for blob_hash in node.hashes]
+        pkeys = ['s3://%s/%s/%s/%s' % (PACKAGE_BUCKET_NAME,
+                                       OBJ_DIR,
+                                       owner,
+                                       blob_hash) for blob_hash in node.hashes]
+        node_size = sum([blob.size for blob in blobs])
+        hash_objs = [dict(type='SHA256', value=blob_hash) for blob_hash in node.hashes]
+
+        # TODO: Read metadata from object store based on node.metadata_hash
+        if node.metadata_hash:
+            resp = s3_client.get_object(
+                Bucket=PACKAGE_BUCKET_NAME,
+                Key='%s/%s/%s' % (OBJ_DIR, owner, node.metadata_hash)
+                )
+
+            body = resp['Body']
+            data = body.read()
+            node_meta = json.loads(data)
+        else:
+            node_meta = None
+        t4pkg.set(key, t4.packages.PackageEntry(pkeys, node_size, hash_objs, meta=node_meta))
+
+    # Insert an event.
+    event = Event(
+        user=g.auth.user,
+        type=Event.Type.INSTALL,
+        package_owner=owner,
+        package_name=package_name,
+        package_hash=package_hash,
+    )
+    db.session.add(event)
+
+    db.session.commit()
+
+    _mp_track(
+        type="install",
+        package_owner=owner,
+        package_name=package_name,
+        subpath=None,
+    )
+
+    return dict(
+        manifest=t4pkg.manifest,
+        urls=urls,
+        sizes={blob.hash: blob.size for blob in blobs},
+        created_by=instance.created_by,
+        created_at=instance.created_at.timestamp(),
+        updated_by=instance.updated_by,
+        updated_at=instance.updated_at.timestamp(),
+    )
+
+
 def _generate_preview(node, max_depth=PREVIEW_MAX_DEPTH):
     if isinstance(node, GroupNode):
         max_children = PREVIEW_MAX_CHILDREN if max_depth else 0
@@ -1052,6 +1135,13 @@ def _iterate_data_nodes(node):
         for child in node.children.values():
             yield from _iterate_data_nodes(child)
 
+def _iterate_data_nodes_with_path(node, prefix):
+    assert isinstance(node, GroupNode)
+    for key, child in node.children.items():
+        if isinstance(child, GroupNode):
+            yield from _iterate_data_nodes_with_path(child, '/'.join([prefix, key]))
+        else:
+            yield (child, '/'.join([prefix, key]))
 
 def get_event_timeseries(owner, package_name, event_type, max_weeks_old=52):
     now = datetime.utcnow()
