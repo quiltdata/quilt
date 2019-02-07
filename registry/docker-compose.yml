@@ -52,7 +52,7 @@ services:
         condition: service_healthy
 
   nginxflask:
-    image: quiltdata/nginx
+    image: quiltdata/nginx:mcp
     ports:
       - "5000:80"
     depends_on:

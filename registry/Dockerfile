@@ -6,7 +6,7 @@ ENV LANG=C.UTF-8
 
 # Install Python 3
 RUN yum update -y
-RUN yum install -y gcc glibc-devel make
+RUN yum install -y gcc glibc-devel make which
 RUN yum install -y python3 python3-devel postgresql-devel
 
 # Install UWSGI (for production serving)
