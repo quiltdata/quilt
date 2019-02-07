@@ -60,7 +60,7 @@ setup(
         # See quilt.asa.pytorch module
         'pytorch': [
             # May not install on Linux, Windows; See https://pytorch.org/
-            'torch>=0.4.0',
+            'torch>=0.4.0,<1.0.1',
         ],
         # For dev testing
         'tests': [
