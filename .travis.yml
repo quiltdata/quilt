@@ -35,7 +35,6 @@ matrix:
       python: "3.5"
       env:
         TEST_COMPILER=true
-        TEST_REGISTRY=true
         TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl"
       services:
         - postgresql
