@@ -88,14 +88,6 @@ s3_client = boto3.client(
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
 
-marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
-marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
-metering_client = client = boto3.client('meteringmarketplace')
-metering_client.register_usage(
-    ProductCode=marketplace_product_code,
-    PublicKeyVersion=marketplace_public_key_version
-    )
-
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
 
