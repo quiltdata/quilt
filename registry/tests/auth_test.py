@@ -759,7 +759,7 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert set_request.status_code == 403
 
-            # remove role from user
+            # remove role from user bad format
             params = {
                 'username': self.TEST_USER
             }
@@ -768,7 +768,7 @@ class AuthTestCase(QuiltTestCase):
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert set_request.status_code == 403
+            assert set_request.status_code == 400
 
             # list roles
             list_request = self.app.get(
