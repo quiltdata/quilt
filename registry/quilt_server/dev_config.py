@@ -14,8 +14,8 @@ CATALOG_URL = 'http://localhost:3000'
 
 REGISTRY_URL = 'http://localhost:5000'
 
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', 'fake_id')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', 'fake_secret')
+AWS_ACCESS_KEY_ID = os.getenv('DEV_AWS_ACCESS_KEY_ID', 'fake_id')
+AWS_SECRET_ACCESS_KEY = os.getenv('DEV_AWS_SECRET_ACCESS_KEY', 'fake_secret')
 
 S3_ENDPOINT = os.getenv('S3_ENDPOINT', 'http://localhost:5001')
 PACKAGE_BUCKET_NAME = 'package'
