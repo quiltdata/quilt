@@ -2337,7 +2337,7 @@ def set_role():
     if user is None:
         raise ApiException(requests.codes.bad_request,
                            "No user exists by the provided name.")
-    if role_name is '':
+    if role_name == '':
         # delete role from user
         user.role_id = None
     else:
