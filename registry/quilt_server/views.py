@@ -2416,6 +2416,11 @@ def edit_role(role_id):
     role_name = data['name']
     arn = data['arn']
     role = Role.query.get(role_id)
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
 
     # edit existing role
     if not VALID_NAME_RE.match(role_name):
@@ -2439,8 +2444,12 @@ def delete_role(role_id):
     # delete role
     # must remove role from all users with that role due to foreign key constraint
     role = Role.query.get(role_id)
-    if role:
-        User.query.filter(role_id==role_id).update({"role_id": None})
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
+    User.query.filter(role_id==role_id).update({"role_id": None})
     db.session.delete(role)
     db.session.commit()
 
@@ -2457,6 +2466,11 @@ def get_role(role_id):
         }
     """
     role = Role.query.get(role_id)
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
     return _role_dict(role)
 
 @app.route('/api/roles', methods=['GET'])
