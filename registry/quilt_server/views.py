@@ -2480,9 +2480,9 @@ def list_roles():
     """
     roles_list = []
     roles = Role.query.all()
-    for role in roles:
-        roles_list.append(_role_dict(role))
-    return {'results': roles_list}
+    return {
+        'results': [_role_dict(role) for role in roles]
+    }
 
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
 @api()
