@@ -2374,19 +2374,19 @@ def add_role():
     To create a role, you must provide an unused name and an arn.
     """
     data = request.get_json()
-    role_name = data['name']
     arn = data.get('arn', None)
+    role_name = data['name']
+    if not VALID_NAME_RE.match(role_name):
+        raise ApiException(
+            requests.codes.bad_request,
+            "Invalid name for role"
+            )
     role = Role.query.filter_by(name=role_name).one_or_none()
     if role is None:
         if arn is None:
             raise ApiException(
                 requests.codes.bad_request,
                 "Creating a role requires a role ARN"
-                )
-        if not VALID_NAME_RE.match(role_name):
-            raise ApiException(
-                requests.codes.bad_request,
-                "Invalid name for role"
                 )
         role = Role(
             id=generate_uuid(),
@@ -2446,10 +2446,7 @@ def delete_role(role_id):
     # delete role
     # must remove role from all users with that role due to foreign key constraint
     role = Role.query.get(role_id)
-    users = User.query.filter_by(role_id=role.id).all()
-    for user in users:
-        user.role_id = None
-        db.session.add(user)
+    User.query.filter(role_id==role_id).update({"role_id": None})
     db.session.delete(role)
     db.session.commit()
 
