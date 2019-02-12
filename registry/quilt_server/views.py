@@ -2333,7 +2333,7 @@ def set_role():
     data = request.get_json()
     username = data['username']
     role_name = data['role']
-    user = User.query.filter_by(name=username).one_or_none()
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
     if user is None:
         raise ApiException(requests.codes.bad_request,
                            "No user exists by the provided name.")
