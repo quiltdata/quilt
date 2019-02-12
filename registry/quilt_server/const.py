@@ -34,3 +34,5 @@ CODE_TTL_DEFAULT = {'minutes': 10}
 MAX_LINK_AGE = 60 * 60 * 24 # 24 hours
 PASSWORD_RESET_SALT = 'reset'
 TOKEN_TTL_DEFAULT = {'days': 90}
+
+AWS_TOKEN_DURATION = 60 * 60 # 1 hour

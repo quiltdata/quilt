@@ -219,6 +219,37 @@ USERNAME_PASSWORD_SCHEMA = {
     'additionalProperties': False
 }
 
+USERNAME_ROLE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'username': {
+            'type': 'string'
+        },
+        'role': {
+            'type': 'string'
+        }
+    },
+    'required': ['username', 'role'],
+    'additionalProperties': False
+}
+
+ROLE_DETAILS_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'name': {
+            'type': 'string'
+        },
+        'arn': {
+            'type': 'string'
+        },
+        'id': {
+            'type': 'string'
+        }
+    },
+    'required': ['name', 'arn'],
+    'additionalProperties': False
+}
+
 USERNAME_PASSWORD_EMAIL_SCHEMA = {
     'type': 'object',
     'properties': {
