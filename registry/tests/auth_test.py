@@ -482,13 +482,12 @@ class AuthTestCase(QuiltTestCase):
 
     def testRoles(self):
         with mock.patch('quilt_server.views.sts_client') as client:
-            def f(**params):
-                return {'Credentials': {
-                            'AccessKeyId': 'asdf',
-                            'SecretAccessKey': 'asdf',
-                            'SessionToken': 'asdf'
-                        }}
-            client.assume_role = f
+            client.assume_role.return_value = {
+                'Credentials': {
+                    'AccessKeyId': 'asdf',
+                    'SecretAccessKey': 'asdf',
+                    'SessionToken': 'asdf'
+                }}
 
             self.createAdmin()
             token = self.getToken(self.ADMIN_USERNAME, self.ADMIN_PASSWORD)
@@ -664,6 +663,19 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert creds_request.status_code == 400
 
+            # re-create a role
+            params = {
+                'name': 'test_role',
+                'arn': 'asdf123'
+            }
+            role_request = self.app.post(
+                    '/api/roles',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+            new_role_id = json.loads(role_request.data.decode('utf-8'))['id']
+
             # delete the role
             params = {
                 'name': 'new_test_role',
@@ -676,13 +688,17 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert delete_role_request.status_code == 200
 
+            # verify the other role is still there
             list_request = self.app.get(
                     '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 200
             results = json.loads(list_request.data.decode('utf-8'))['results']
-            assert len(results) == 0
+            assert len(results) == 1
+            assert results[0]['arn'] == 'asdf123'
+            assert results[0]['name'] == 'test_role'
+            role_id = new_role_id
 
             # ensure we cannot get credentials for deleted role
             creds_request = self.app.get(
@@ -692,18 +708,6 @@ class AuthTestCase(QuiltTestCase):
             assert creds_request.status_code == 400
 
 
-            # create role
-            params = {
-                'name': 'test_role',
-                'arn': 'asdf123'
-            }
-            role_request = self.app.post(
-                    '/api/roles',
-                    data=json.dumps(params),
-                    headers=headers
-                )
-            assert role_request.status_code == 200
-            role_id = json.loads(role_request.data.decode('utf-8'))['id']
             # non-admin tests
 
             headers = {
@@ -805,16 +809,11 @@ class AuthTestCase(QuiltTestCase):
                 )
             assert edit_role_request.status_code == 400
 
-            # simulate a bad role ARN
-            def f(*params, **kwargs):
-                raise ClientError(
-                        error_response={
-                            'Error': {}
-                        },
-                        operation_name='assumeRole'
-                    )
-
-            client.assume_role = f
+            client.assume_role.side_effect = ClientError(
+                error_response={
+                    'Error': {}
+                },
+                operation_name='assumeRole')
 
             # create role
             params = {

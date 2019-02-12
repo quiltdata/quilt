@@ -2449,7 +2449,7 @@ def delete_role(role_id):
             requests.codes.not_found,
             "Role not found"
             )
-    User.query.filter(role_id==role_id).update({"role_id": None})
+    User.query.filter_by(role_id=role_id).update({"role_id": None})
     db.session.delete(role)
     db.session.commit()
 
