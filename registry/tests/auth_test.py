@@ -504,7 +504,7 @@ class AuthTestCase(QuiltTestCase):
                 'arn': 'asdf123'
             }
             role_request = self.app.post(
-                    '/api/roles/edit',
+                    '/api/roles',
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -515,36 +515,37 @@ class AuthTestCase(QuiltTestCase):
                 'username': 'does-not-exist',
                 'role': 'test_role'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 400
+            assert set_request.status_code == 400
 
             # attach nonexistent role to user
             params = {
                 'username': self.ADMIN_USERNAME,
                 'role': 'does-not-exist'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 400
+            assert set_request.status_code == 400
 
             # attach role to user
             params = {
                 'username': self.ADMIN_USERNAME,
                 'role': 'test_role'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 200
+
+            assert set_request.status_code == 200
 
             # get credentials for role
             creds_request = self.app.get(
@@ -555,55 +556,59 @@ class AuthTestCase(QuiltTestCase):
 
             # verify role appears in list
             list_request = self.app.get(
-                    '/api/roles/list',
+                    '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 200
             results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
-            assert results[0] == {'arn': 'asdf123', 'name': 'test_role'}
+            assert results[0]['arn'] == 'asdf123'
+            assert results[0]['name'] == 'test_role'
+            role_id = results[0]['id'] 
 
             # change the arn
             params = {
                 'name': 'test_role',
                 'arn': 'qwer456'
             }
-            edit_role_request = self.app.post(
-                    '/api/roles/edit',
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
             assert edit_role_request.status_code == 200
 
             list_request = self.app.get(
-                    '/api/roles/list',
+                    '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 200
             results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
-            assert results[0] == {'arn': 'qwer456', 'name': 'test_role'}
+            assert results[0]['arn'] == 'qwer456'
+            assert results[0]['name'] == 'test_role'
 
             # change the name
             params = {
-                'name': 'test_role',
-                'new_name': 'new_test_role'
+                'name': 'new_test_role',
+                'arn': 'qwer456'
             }
-            edit_role_request = self.app.post(
-                    '/api/roles/edit',
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
             assert edit_role_request.status_code == 200
 
             list_request = self.app.get(
-                    '/api/roles/list',
+                    '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 200
             results = json.loads(list_request.data.decode('utf-8'))['results']
             assert len(results) == 1
-            assert results[0] == {'arn': 'qwer456', 'name': 'new_test_role'}
+            assert results[0]['arn'] == 'qwer456'
+            assert results[0]['name'] == 'new_test_role'
 
             # ensure default user cannot access credentials
             creds_request = self.app.get(
@@ -620,12 +625,12 @@ class AuthTestCase(QuiltTestCase):
                 'username': self.TEST_USER,
                 'role': 'new_test_role'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 200
+            assert set_request.status_code == 200
 
             # ensure default user can access credentials
             creds_request = self.app.get(
@@ -642,12 +647,12 @@ class AuthTestCase(QuiltTestCase):
                 'username': self.TEST_USER,
                 'role': ''
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 200
+            assert set_request.status_code == 200
 
             # ensure default user cannot access credentials
             creds_request = self.app.get(
@@ -662,16 +667,17 @@ class AuthTestCase(QuiltTestCase):
             # delete the role
             params = {
                 'name': 'new_test_role',
+                'arn': 'qwer456'
             }
-            delete_role_request = self.app.post(
-                    '/api/roles/edit',
+            delete_role_request = self.app.delete(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
             assert delete_role_request.status_code == 200
 
             list_request = self.app.get(
-                    '/api/roles/list',
+                    '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 200
@@ -692,12 +698,12 @@ class AuthTestCase(QuiltTestCase):
                 'arn': 'asdf123'
             }
             role_request = self.app.post(
-                    '/api/roles/edit',
+                    '/api/roles',
                     data=json.dumps(params),
                     headers=headers
                 )
             assert role_request.status_code == 200
-
+            role_id = json.loads(role_request.data.decode('utf-8'))['id']
             # non-admin tests
 
             headers = {
@@ -707,11 +713,11 @@ class AuthTestCase(QuiltTestCase):
 
             # change the name
             params = {
-                'name': 'test_role',
-                'new_name': 'new_test_role'
+                'name': 'new_test_role',
+                'arn': 'asdf123'
             }
-            edit_role_request = self.app.post(
-                    '/api/roles/edit',
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -722,8 +728,8 @@ class AuthTestCase(QuiltTestCase):
                 'name': 'test_role',
                 'arn': 'arn456'
             }
-            edit_role_request = self.app.post(
-                    '/api/roles/edit',
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -731,10 +737,11 @@ class AuthTestCase(QuiltTestCase):
 
             # delete the role
             params = {
-                'name': 'test_role'
+                'name': 'test_role',
+                'arn': 'arn456'
             }
-            edit_role_request = self.app.post(
-                    '/api/roles/edit',
+            edit_role_request = self.app.delete(
+                    '/api/roles/' + role_id,
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -745,27 +752,27 @@ class AuthTestCase(QuiltTestCase):
                 'username': self.TEST_USER,
                 'role': 'test_role'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 403
+            assert set_request.status_code == 403
 
             # remove role from user
             params = {
                 'username': self.TEST_USER
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 403
+            assert set_request.status_code == 403
 
             # list roles
             list_request = self.app.get(
-                    '/api/roles/list',
+                    '/api/roles',
                     headers=headers
                 )
             assert list_request.status_code == 403
@@ -792,7 +799,7 @@ class AuthTestCase(QuiltTestCase):
                 'arn': '123456'
             }
             edit_role_request = self.app.post(
-                    '/api/roles/edit',
+                    '/api/roles',
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -811,11 +818,11 @@ class AuthTestCase(QuiltTestCase):
 
             # create role
             params = {
-                'name': 'test_role',
-                'arn': 'asdf123'
+                'name': 'test_role_2',
+                'arn': 'asdf1234'
             }
             role_request = self.app.post(
-                    '/api/roles/edit',
+                    '/api/roles',
                     data=json.dumps(params),
                     headers=headers
                 )
@@ -824,14 +831,14 @@ class AuthTestCase(QuiltTestCase):
             # attach role to user
             params = {
                 'username': self.ADMIN_USERNAME,
-                'role': 'test_role'
+                'role': 'test_role_2'
             }
-            attach_request = self.app.post(
-                    '/api/users/attach_role',
+            set_request = self.app.post(
+                    '/api/users/set_role',
                     data=json.dumps(params),
                     headers=headers
                 )
-            assert attach_request.status_code == 200
+            assert set_request.status_code == 200
 
             # request creds for an arn that does not work
             creds_request = self.app.get(

@@ -242,11 +242,11 @@ ROLE_DETAILS_SCHEMA = {
         'arn': {
             'type': 'string'
         },
-        'new_name': {
+        'id': {
             'type': 'string'
         }
     },
-    'required': ['name'],
+    'required': ['name', 'arn'],
     'additionalProperties': False
 }
 

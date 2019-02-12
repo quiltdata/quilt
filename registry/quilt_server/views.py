@@ -2317,16 +2317,16 @@ def _comment_dict(comment):
         contents=comment.contents
     )
 
-@app.route('/api/users/attach_role', methods=['POST'])
+@app.route('/api/users/set_role', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_ROLE_SCHEMA)
 @as_json
-def attach_role():
+def set_role():
     """
     Manages the role attached to a user.
 
     The request should contain a JSON object with two keys:
         username(string): username of user to edit
-        role_name(string): name of role to attach to user
+        role(string): name of role to attach to user
 
     A user can only have one role at a time.
     To remove a role from a user, set role_name to the empty string.
@@ -2352,80 +2352,124 @@ def attach_role():
     db.session.commit()
     return {}
 
-@app.route('/api/roles/edit', methods=['POST'])
+def _role_dict(role):
+    role_dict = {
+        'id': role.id,
+        'name': role.name,
+        'arn': role.arn
+    }
+    return role_dict
+
+@app.route('/api/roles', methods=['POST'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
 @as_json
-def edit_role():
+def add_role():
     """
-    Edits a role.
-
     The body of the request should contain a JSON object.
     There is one required parameter:
-        role_name(string): name of the role to operate on
+        name(string): name of the role to operate on
 
-    There are two optional paramters:
+    There is an optional paramters:
         arn(string): ARN of the IAM role associated with the Quilt role.
-        new_name(string): new name to attach to the role.
 
     To create a role, you must provide an unused name and an arn.
-    To change the name of a role, provide the current name along with
-        the new name you want to use.
-    To change the ARN attached to a role, provide the current name along with
-        the new ARN you want to use.
-    To delete a role, make role_name the name of the role you want to delete
-        and leave out the optional parameters.
     """
     data = request.get_json()
     role_name = data['name']
     arn = data.get('arn', None)
-    new_name = data.get('new_name', None)
     role = Role.query.filter_by(name=role_name).one_or_none()
     if role is None:
         if arn is None:
             raise ApiException(
-                    requests.codes.bad_request,
-                    "Creating a role requires a role ARN"
-                    )
-        if new_name is not None:
-            raise ApiException(
-                    requests.codes.bad_request,
-                    "Cannot specify a new name for a role that does not exist yet."
-                    )
+                requests.codes.bad_request,
+                "Creating a role requires a role ARN"
+                )
         if not VALID_NAME_RE.match(role_name):
             raise ApiException(
-                    requests.codes.bad_request,
-                    "Invalid name for role"
-                    )
+                requests.codes.bad_request,
+                "Invalid name for role"
+                )
         role = Role(
             id=generate_uuid(),
             name=role_name,
             arn=arn
             )
         db.session.add(role)
-    elif arn is None and new_name is None:
-        # delete role
-        # must remove role from all users with that role due to foreign key constraint
-        users = User.query.filter_by(role_id=role.id).all()
-        for user in users:
-            user.role_id = None
-            db.session.add(user)
-        db.session.delete(role)
+        db.session.commit()
+        return _role_dict(role)
     else:
-        # edit existing role
-        if new_name:
-            if not VALID_NAME_RE.match(new_name):
-                raise ApiException(
-                        requests.codes.bad_request,
-                        "Invalid name for role"
-                        )
-            role.name = new_name
-        if arn:
-            role.arn = arn
-        db.session.add(role)
-    db.session.commit()
-    return {}
+        raise ApiException(
+            requests.codes.conflict,
+            "Role name already exists"
+            )
 
-@app.route('/api/roles/list')
+@app.route('/api/roles/<role_id>', methods=['PUT'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def edit_role(role_id):
+    """
+    Edits a role.
+
+    The body of the request should contain a JSON object.
+    There is body should contain the parameters:
+        name(string): name of the role to operate on
+        arn(string): ARN of the IAM role associated with the Quilt role.
+
+    To change the name of a role, provide the new name you want to use along with
+        the current ARN.
+    To change the ARN attached to a role, provide the current name along with
+        the new ARN you want to use.
+    """
+    data = request.get_json()
+    role_name = data['name']
+    arn = data['arn']
+    role = Role.query.get(role_id)
+
+    # edit existing role
+    if not VALID_NAME_RE.match(role_name):
+        raise ApiException(
+            requests.codes.bad_request,
+            "Invalid name for role"
+            )
+    role.name = role_name
+    role.arn = arn
+    db.session.add(role)
+    db.session.commit()
+    return _role_dict(role)
+
+@app.route('/api/roles/<role_id>', methods=['DELETE'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def delete_role(role_id):
+    """
+    Delete the role at role_id and remove it from associated user accounts.
+    """
+    # delete role
+    # must remove role from all users with that role due to foreign key constraint
+    role = Role.query.get(role_id)
+    users = User.query.filter_by(role_id=role.id).all()
+    for user in users:
+        user.role_id = None
+        db.session.add(user)
+    db.session.delete(role)
+    db.session.commit()
+
+@app.route('/api/roles/<role_id>', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def get_role(role_id):
+    """
+    Gets a role by id.
+
+        role_dict = {
+            'name': role.name,
+            'arn': role.arn
+        }
+    """
+    role = Role.query.get(role_id)
+    return _role_dict(role)
+
+@app.route('/api/roles', methods=['GET'])
 @api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def list_roles():
@@ -2438,11 +2482,7 @@ def list_roles():
     roles_list = []
     roles = Role.query.all()
     for role in roles:
-        role_dict = {
-            'name': role.name,
-            'arn': role.arn
-        }
-        roles_list.append(role_dict)
+        roles_list.append(_role_dict(role))
     return {'results': roles_list}
 
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
