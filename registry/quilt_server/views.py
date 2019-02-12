@@ -2365,16 +2365,14 @@ def _role_dict(role):
 def add_role():
     """
     The body of the request should contain a JSON object.
-    There is one required parameter:
+    There are two required parameter:
         name(string): name of the role to operate on
-
-    There is an optional paramters:
         arn(string): ARN of the IAM role associated with the Quilt role.
 
     To create a role, you must provide an unused name and an arn.
     """
     data = request.get_json()
-    arn = data.get('arn', None)
+    arn = data['arn']
     role_name = data['name']
     if not VALID_NAME_RE.match(role_name):
         raise ApiException(
@@ -2383,11 +2381,6 @@ def add_role():
             )
     role = Role.query.filter_by(name=role_name).one_or_none()
     if role is None:
-        if arn is None:
-            raise ApiException(
-                requests.codes.bad_request,
-                "Creating a role requires a role ARN"
-                )
         role = Role(
             id=generate_uuid(),
             name=role_name,
@@ -2446,7 +2439,8 @@ def delete_role(role_id):
     # delete role
     # must remove role from all users with that role due to foreign key constraint
     role = Role.query.get(role_id)
-    User.query.filter(role_id==role_id).update({"role_id": None})
+    if role:
+        User.query.filter(role_id==role_id).update({"role_id": None})
     db.session.delete(role)
     db.session.commit()
 
@@ -2475,7 +2469,6 @@ def list_roles():
     Returns a JSON object with the top-level key 'results', with a value
         that is a list of dicts of the form {'name': role_name, 'arn': role_arn}
     """
-    roles_list = []
     roles = Role.query.all()
     return {
         'results': [_role_dict(role) for role in roles]
@@ -2529,9 +2522,6 @@ def get_credentials():
         raise ApiException(requests.codes.bad_request,
                            "You have no attached role to assume")
     role = Role.query.filter_by(id=role_id).one_or_none()
-    if not role:
-        raise ApiException(requests.codes.bad_request,
-                           "Cannot find role")
     params = {
         'RoleArn': role.arn,
         'RoleSessionName': g.auth.user,
