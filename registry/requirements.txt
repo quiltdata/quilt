@@ -1,6 +1,6 @@
 alembic==0.9.4
 blinker==1.4
-boto3==1.4.5
+boto3==1.9.93
 botocore==1.5.92
 certifi==2017.7.27.1
 chardet==3.0.4
