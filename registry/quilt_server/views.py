@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from functools import wraps
 import gzip
 import json
+import os
 import pathlib
 import time
 
@@ -91,7 +92,6 @@ s3_client = boto3.client(
 stripe.api_key = app.config['STRIPE_SECRET_KEY']
 HAVE_PAYMENTS = bool(stripe.api_key)
 
-
 class QuiltCli(httpagentparser.Browser):
     look_for = 'quilt-cli'
     version_markers = [('/', '')]
@@ -125,6 +125,13 @@ class ApiException(Exception):
 @app.route('/healthcheck')
 def healthcheck():
     """ELB health check; just needs to return a 200 status code."""
+    marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
+    marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
+    metering_client = client = boto3.client('meteringmarketplace')
+    metering_client.register_usage(
+        ProductCode=marketplace_product_code,
+        PublicKeyVersion=marketplace_public_key_version
+        )
     return Response("ok", content_type='text/plain')
 
 ROBOTS_TXT = '''
@@ -183,6 +190,16 @@ class PackageNotFoundException(ApiException):
             message = "%s (do you need to log in?)" % message
         super().__init__(requests.codes.not_found, message)
 
+
+#@app.before_first_request
+#def register_marketplace_usage():
+#    marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
+#    marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
+#    metering_client = client = boto3.client('meteringmarketplace')
+#    metering_client.register_usage(
+#        ProductCode=marketplace_product_code,
+#        PublicKeyVersion=marketplace_public_key_version
+#        )
 
 @app.errorhandler(ApiException)
 def handle_api_exception(error):
