@@ -191,15 +191,18 @@ class PackageNotFoundException(ApiException):
         super().__init__(requests.codes.not_found, message)
 
 
-#@app.before_first_request
-#def register_marketplace_usage():
-#    marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
-#    marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
-#    metering_client = client = boto3.client('meteringmarketplace')
-#    metering_client.register_usage(
-#        ProductCode=marketplace_product_code,
-#        PublicKeyVersion=marketplace_public_key_version
-#        )
+@app.before_first_request
+def register_marketplace_usage():
+    marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
+    marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
+    metering_client = client = boto3.client('meteringmarketplace')
+    if marketplace_product_code is not None:
+        metering_client.register_usage(
+            ProductCode=marketplace_product_code,
+            PublicKeyVersion=marketplace_public_key_version
+            )
+    else:
+        print("Not reg")
 
 @app.errorhandler(ApiException)
 def handle_api_exception(error):
