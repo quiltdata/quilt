@@ -241,9 +241,6 @@ ROLE_DETAILS_SCHEMA = {
         },
         'arn': {
             'type': 'string'
-        },
-        'id': {
-            'type': 'string'
         }
     },
     'required': ['name', 'arn'],
