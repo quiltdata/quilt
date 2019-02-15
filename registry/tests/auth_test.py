@@ -508,7 +508,8 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert role_request.status_code == 200
-            role_id = role_request.json['id']
+            results = json.loads(role_request.data.decode('utf-8'))
+            role_id = results['id']
 
             # get role that does not exist
             get_request = self.app.get(
@@ -523,8 +524,9 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert get_request.status_code == 200
-            assert get_request.json['name'] == 'test_role'
-            assert get_request.json['arn'] == 'asdf123'
+            results = json.loads(get_request.data.decode('utf-8'))
+            assert results['name'] == 'test_role'
+            assert results['arn'] == 'asdf123'
 
             # attach role to user that does not exist
             params = {
