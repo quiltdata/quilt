@@ -15,16 +15,25 @@ from quilt_server.auth import (_create_user, _delete_user, issue_token,
         verify_reset_link, verify_hash
         )
 
+from botocore.exceptions import ClientError
+
 CATALOG_URL = app.config['CATALOG_URL']
 
 class AuthTestCase(QuiltTestCase):
     """
     unit tests for Flask-based auth
     """
+    ADMIN_USERNAME = 'test_admin'
+    ADMIN_PASSWORD = 'test_admin'
+
     def setUp(self):
         super(AuthTestCase, self).setUp()
         self.TEST_USER_ID = User.query.filter_by(name=self.TEST_USER).one_or_none().id
         self.token_verify_mock.stop() # disable auth mock
+
+    def createAdmin(self):
+        _create_user(self.ADMIN_USERNAME, password=self.ADMIN_PASSWORD, is_admin=True,
+                email='test_admin@example.com', requires_activation=False)
 
     def getToken(self, username=None, password=None):
         username = username or self.TEST_USER
@@ -470,3 +479,369 @@ class AuthTestCase(QuiltTestCase):
             data={'refresh_token': code}
         )
         assert token_request.status_code == 401
+
+    def testRoles(self):
+        with mock.patch('quilt_server.views.sts_client') as client:
+            client.assume_role.return_value = {
+                'Credentials': {
+                    'AccessKeyId': 'asdf',
+                    'SecretAccessKey': 'asdf',
+                    'SessionToken': 'asdf'
+                }}
+
+            self.createAdmin()
+            token = self.getToken(self.ADMIN_USERNAME, self.ADMIN_PASSWORD)
+
+            headers = {
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+
+            # create role
+            params = {
+                'name': 'test_role',
+                'arn': 'asdf123'
+            }
+            role_request = self.app.post(
+                    '/api/roles',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+
+            # attach role to user that does not exist
+            params = {
+                'username': 'does-not-exist',
+                'role': 'test_role'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 400
+
+            # attach nonexistent role to user
+            params = {
+                'username': self.ADMIN_USERNAME,
+                'role': 'does-not-exist'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 400
+
+            # attach role to user
+            params = {
+                'username': self.ADMIN_USERNAME,
+                'role': 'test_role'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+
+            assert set_request.status_code == 200
+
+            # get credentials for role
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 200
+
+            # verify role appears in list
+            list_request = self.app.get(
+                    '/api/roles',
+                    headers=headers
+                )
+            assert list_request.status_code == 200
+            results = json.loads(list_request.data.decode('utf-8'))['results']
+            assert len(results) == 1
+            assert results[0]['arn'] == 'asdf123'
+            assert results[0]['name'] == 'test_role'
+            role_id = results[0]['id'] 
+
+            # change the arn
+            params = {
+                'name': 'test_role',
+                'arn': 'qwer456'
+            }
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 200
+
+            list_request = self.app.get(
+                    '/api/roles',
+                    headers=headers
+                )
+            assert list_request.status_code == 200
+            results = json.loads(list_request.data.decode('utf-8'))['results']
+            assert len(results) == 1
+            assert results[0]['arn'] == 'qwer456'
+            assert results[0]['name'] == 'test_role'
+
+            # change the name
+            params = {
+                'name': 'new_test_role',
+                'arn': 'qwer456'
+            }
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 200
+
+            list_request = self.app.get(
+                    '/api/roles',
+                    headers=headers
+                )
+            assert list_request.status_code == 200
+            results = json.loads(list_request.data.decode('utf-8'))['results']
+            assert len(results) == 1
+            assert results[0]['arn'] == 'qwer456'
+            assert results[0]['name'] == 'new_test_role'
+
+            # ensure default user cannot access credentials
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers={
+                        'Authorization': self.getToken(),
+                        'content-type': 'application/json'
+                    }
+                )
+            assert creds_request.status_code == 400
+
+            # add default user to role
+            params = {
+                'username': self.TEST_USER,
+                'role': 'new_test_role'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 200
+
+            # ensure default user can access credentials
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers={
+                        'Authorization': self.getToken(),
+                        'content-type': 'application/json'
+                    }
+                )
+            assert creds_request.status_code == 200
+
+            # remove default user from role
+            params = {
+                'username': self.TEST_USER,
+                'role': ''
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 200
+
+            # ensure default user cannot access credentials
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers={
+                        'Authorization': self.getToken(),
+                        'content-type': 'application/json'
+                    }
+                )
+            assert creds_request.status_code == 400
+
+            # re-create a role
+            params = {
+                'name': 'test_role',
+                'arn': 'asdf123'
+            }
+            role_request = self.app.post(
+                    '/api/roles',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+            new_role_id = json.loads(role_request.data.decode('utf-8'))['id']
+
+            # delete the role
+            params = {
+                'name': 'new_test_role',
+                'arn': 'qwer456'
+            }
+            delete_role_request = self.app.delete(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert delete_role_request.status_code == 200
+
+            # verify the other role is still there
+            list_request = self.app.get(
+                    '/api/roles',
+                    headers=headers
+                )
+            assert list_request.status_code == 200
+            results = json.loads(list_request.data.decode('utf-8'))['results']
+            assert len(results) == 1
+            assert results[0]['arn'] == 'asdf123'
+            assert results[0]['name'] == 'test_role'
+            role_id = new_role_id
+
+            # ensure we cannot get credentials for deleted role
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 400
+
+
+            # non-admin tests
+
+            headers = {
+                'Authorization': self.getToken(),
+                'content-type': 'application/json'
+            }
+
+            # change the name
+            params = {
+                'name': 'new_test_role',
+                'arn': 'asdf123'
+            }
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # change the arn
+            params = {
+                'name': 'test_role',
+                'arn': 'arn456'
+            }
+            edit_role_request = self.app.put(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # delete the role
+            params = {
+                'name': 'test_role',
+                'arn': 'arn456'
+            }
+            edit_role_request = self.app.delete(
+                    '/api/roles/' + role_id,
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 403
+
+            # attach role to user
+            params = {
+                'username': self.TEST_USER,
+                'role': 'test_role'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 403
+
+            # remove role from user bad format
+            params = {
+                'username': self.TEST_USER
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 400
+
+            # list roles
+            list_request = self.app.get(
+                    '/api/roles',
+                    headers=headers
+                )
+            assert list_request.status_code == 403
+
+            # get credentials without a role
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 400
+
+            # fail case tests
+
+            # be admin again
+            headers = {
+                'Authorization': token,
+                'content-type': 'application/json'
+            }
+
+            # attempt to make role with bad name
+            # change the name
+            params = {
+                'name': '%bad-role-name%',
+                'arn': '123456'
+            }
+            edit_role_request = self.app.post(
+                    '/api/roles',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert edit_role_request.status_code == 400
+
+            client.assume_role.side_effect = ClientError(
+                error_response={
+                    'Error': {}
+                },
+                operation_name='assumeRole')
+
+            # create role
+            params = {
+                'name': 'test_role_2',
+                'arn': 'asdf1234'
+            }
+            role_request = self.app.post(
+                    '/api/roles',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert role_request.status_code == 200
+
+            # attach role to user
+            params = {
+                'username': self.ADMIN_USERNAME,
+                'role': 'test_role_2'
+            }
+            set_request = self.app.post(
+                    '/api/users/set_role',
+                    data=json.dumps(params),
+                    headers=headers
+                )
+            assert set_request.status_code == 200
+
+            # request creds for an arn that does not work
+            creds_request = self.app.get(
+                    '/api/auth/get_credentials',
+                    headers=headers
+                )
+            assert creds_request.status_code == 500

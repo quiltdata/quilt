@@ -87,6 +87,14 @@ Please enter the URL for your custom Quilt registry (ask your administrator),
 or leave this line blank to use the default registry: http://localhost:5000
 ```
 
+### Create an Admin Account
+Create admin accounts by running the script `create_admin.py` using the registry docker container.
+
+```bash
+docker exec -it registry_flask_1 ./scripts/create_admin.py
+```
+Follow the instructions at each prompt to enter the username, email and password for the new account.
+
 ### Login to your registry server
 
 Run:
@@ -107,7 +115,7 @@ then run:
 quilt login
 ```
 
-and follow the instructions provided.  The default login is "admin" and password "quilt".
+and follow the instructions provided.
 
 Note: ```quilt login``` is its own test that the server is working.  You can now run ```quilt build``` and ```quilt push``` to add package(s) to this server, then ```quilt install``` from another machine to install these packages.
 

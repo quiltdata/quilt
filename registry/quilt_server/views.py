@@ -38,19 +38,22 @@ from .analytics import MIXPANEL_EVENT, mp
 from .auth import (AuthException, ConflictException, CredentialException,
     NotFoundException, ValidationException, _create_user, _delete_user,
     _disable_user, _enable_user, activate_response, change_password,
-    consume_code_string, exp_from_token, issue_code, issue_token,
+    consume_code_string, exp_from_token, generate_uuid, issue_code, issue_token,
     reset_password, reset_password_from_email, revoke_token_string,
     try_login, verify_token_string)
-from .const import (FTS_LANGUAGE, PaymentPlan, PUBLIC, TEAM, VALID_NAME_RE,
-                    VALID_EMAIL_RE, VALID_USERNAME_RE)
+from .const import (AWS_TOKEN_DURATION, FTS_LANGUAGE, PaymentPlan, PUBLIC,
+                    TEAM, VALID_NAME_RE, VALID_EMAIL_RE, VALID_USERNAME_RE)
 from .core import (decode_node, find_object_hashes, hash_contents,
                    FileNode, GroupNode, RootNode, TableNode, LATEST_TAG, README)
 from .mail import send_comment_email, send_invitation_email
 from .models import (Access, Comment, Customer, Event, Instance,
-                     InstanceBlobAssoc, Invitation, Log, Package, S3Blob, Tag, User, Version)
+                     InstanceBlobAssoc, Invitation, Log, Package,
+                     Role, S3Blob, Tag, User, Version)
 from .schemas import (GET_OBJECTS_SCHEMA, LOG_SCHEMA, PACKAGE_SCHEMA,
                       PASSWORD_RESET_SCHEMA, USERNAME_EMAIL_SCHEMA, EMAIL_SCHEMA,
-                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA, USERNAME_PASSWORD_EMAIL_SCHEMA)
+                      USERNAME_PASSWORD_SCHEMA, USERNAME_SCHEMA,
+                      USERNAME_PASSWORD_EMAIL_SCHEMA, USERNAME_ROLE_SCHEMA,
+                      ROLE_DETAILS_SCHEMA)
 from .search import keywords_tsvector, tsvector_concat
 
 QUILT_CDN = 'https://cdn.quiltdata.com/'
@@ -85,6 +88,12 @@ MAX_PREVIEW_SIZE = 640 * 1024  # 640KB ought to be enough for anybody...
 s3_client = boto3.client(
     's3',
     endpoint_url=app.config.get('S3_ENDPOINT'),
+    aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
+)
+
+sts_client = boto3.client(
+    'sts',
     aws_access_key_id=app.config.get('AWS_ACCESS_KEY_ID'),
     aws_secret_access_key=app.config.get('AWS_SECRET_ACCESS_KEY')
 )
@@ -696,14 +705,11 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     # This function handles two endpoints: a normal push and subpackage push.
     # Make sure exactly one of these arguments is set.
     assert (package_hash is None) != (package_path is None)
-
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the package owner can push packages.")
-
+    
     if not VALID_NAME_RE.match(package_name):
         raise ApiException(requests.codes.bad_request, "Invalid package name")
+
+    print("%s: %s/%s" % (g.auth.user, owner, package_name))
 
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
@@ -737,8 +743,12 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
-
+   
     if package is None:
+        if g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can create packages.")
+
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -781,6 +791,18 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             team_access = Access(package=package, user=TEAM)
             db.session.add(team_access)
     else:
+        team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+        if not team_access and g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can push private packages.")
+
         if public:
             public_access = (
                 Access.query
@@ -797,15 +819,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                      "run `quilt access add %(user)s/%(pkg)s public`.") %
                     dict(user=owner, pkg=package_name)
                 )
-        if team:
-            team_access = (
-                Access.query
-                .filter(sa.and_(
-                    Access.package == package,
-                    Access.user == TEAM
-                ))
-                .one_or_none()
-            )
+        if team:            
             if team_access is None:
                 raise ApiException(
                     requests.codes.forbidden,
@@ -2327,6 +2341,178 @@ def _comment_dict(comment):
         contents=comment.contents
     )
 
+@app.route('/api/users/set_role', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_ROLE_SCHEMA)
+@as_json
+def set_role():
+    """
+    Manages the role attached to a user.
+
+    The request should contain a JSON object with two keys:
+        username(string): username of user to edit
+        role(string): name of role to attach to user
+
+    A user can only have one role at a time.
+    To remove a role from a user, set role_name to the empty string.
+    """
+    data = request.get_json()
+    username = data['username']
+    role_name = data['role']
+    user = User.query.filter_by(name=username).with_for_update().one_or_none()
+    if user is None:
+        raise ApiException(requests.codes.bad_request,
+                           "No user exists by the provided name.")
+    if role_name == '':
+        # delete role from user
+        user.role_id = None
+    else:
+        role = Role.query.filter_by(name=role_name).one_or_none()
+        if role is None:
+            raise ApiException(requests.codes.bad_request,
+                               "No role exists by the provided name.")
+        user.role_id = role.id
+
+    db.session.add(user)
+    db.session.commit()
+    return {}
+
+def _role_dict(role):
+    role_dict = {
+        'id': role.id,
+        'name': role.name,
+        'arn': role.arn
+    }
+    return role_dict
+
+@app.route('/api/roles', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def add_role():
+    """
+    The body of the request should contain a JSON object.
+    There are two required parameter:
+        name(string): name of the role to operate on
+        arn(string): ARN of the IAM role associated with the Quilt role.
+
+    To create a role, you must provide an unused name and an arn.
+    """
+    data = request.get_json()
+    arn = data['arn']
+    role_name = data['name']
+    if not VALID_NAME_RE.match(role_name):
+        raise ApiException(
+            requests.codes.bad_request,
+            "Invalid name for role"
+            )
+    role = Role.query.filter_by(name=role_name).one_or_none()
+    if role is None:
+        role = Role(
+            id=generate_uuid(),
+            name=role_name,
+            arn=arn
+            )
+        db.session.add(role)
+        db.session.commit()
+        return _role_dict(role)
+    else:
+        raise ApiException(
+            requests.codes.conflict,
+            "Role name already exists"
+            )
+
+@app.route('/api/roles/<role_id>', methods=['PUT'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def edit_role(role_id):
+    """
+    Edits a role.
+
+    The body of the request should contain a JSON object.
+    There is body should contain the parameters:
+        name(string): name of the role to operate on
+        arn(string): ARN of the IAM role associated with the Quilt role.
+
+    To change the name of a role, provide the new name you want to use along with
+        the current ARN.
+    To change the ARN attached to a role, provide the current name along with
+        the new ARN you want to use.
+    """
+    data = request.get_json()
+    role_name = data['name']
+    arn = data['arn']
+    role = Role.query.get(role_id)
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
+
+    # edit existing role
+    if not VALID_NAME_RE.match(role_name):
+        raise ApiException(
+            requests.codes.bad_request,
+            "Invalid name for role"
+            )
+    role.name = role_name
+    role.arn = arn
+    db.session.add(role)
+    db.session.commit()
+    return _role_dict(role)
+
+@app.route('/api/roles/<role_id>', methods=['DELETE'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def delete_role(role_id):
+    """
+    Delete the role at role_id and remove it from associated user accounts.
+    """
+    # delete role
+    # must remove role from all users with that role due to foreign key constraint
+    role = Role.query.get(role_id)
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
+    User.query.filter_by(role_id=role_id).update({"role_id": None})
+    db.session.delete(role)
+    db.session.commit()
+
+@app.route('/api/roles/<role_id>', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@as_json
+def get_role(role_id):
+    """
+    Gets a role by id.
+
+        role_dict = {
+            'name': role.name,
+            'arn': role.arn
+        }
+    """
+    role = Role.query.get(role_id)
+    if not role:
+        raise ApiException(
+            requests.codes.not_found,
+            "Role not found"
+            )
+    return _role_dict(role)
+
+@app.route('/api/roles', methods=['GET'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
+@as_json
+def list_roles():
+    """
+    Lists the roles the registry knows about.
+
+    Returns a JSON object with the top-level key 'results', with a value
+        that is a list of dicts of the form {'name': role_name, 'arn': role_arn}
+    """
+    roles = Role.query.all()
+    return {
+        'results': [_role_dict(role) for role in roles]
+    }
+
 @app.route('/api/comments/<owner>/<package_name>/', methods=['POST'])
 @api()
 @as_json
@@ -2357,3 +2543,32 @@ def comments_list(owner, package_name):
     comments = Comment.query.filter_by(package=package).order_by(Comment.created)
 
     return dict(comments=map(_comment_dict, comments))
+
+@app.route('/api/auth/get_credentials', methods=['GET'])
+@api(require_login=True)
+@as_json
+def get_credentials():
+    """
+    Obtains credentials corresponding to your role.
+
+    Returns a JSON object with three keys:
+        AccessKeyId(string): access key ID
+        SecretKey(string): secret key
+        SessionToken(string): session token
+    """
+    role_id = g.user.role_id
+    if not role_id:
+        raise ApiException(requests.codes.bad_request,
+                           "You have no attached role to assume")
+    role = Role.query.filter_by(id=role_id).one_or_none()
+    params = {
+        'RoleArn': role.arn,
+        'RoleSessionName': g.auth.user,
+        'DurationSeconds': AWS_TOKEN_DURATION
+    }
+    try:
+        creds = sts_client.assume_role(**params)
+    except ClientError:
+        raise ApiException(requests.codes.server_error,
+                           "Failed to get credentials for your role.")
+    return creds['Credentials']
