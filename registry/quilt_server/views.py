@@ -677,14 +677,11 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     # This function handles two endpoints: a normal push and subpackage push.
     # Make sure exactly one of these arguments is set.
     assert (package_hash is None) != (package_path is None)
-
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the package owner can push packages.")
-
+    
     if not VALID_NAME_RE.match(package_name):
         raise ApiException(requests.codes.bad_request, "Invalid package name")
+
+    print("%s: %s/%s" % (g.auth.user, owner, package_name))
 
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
@@ -718,8 +715,12 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
-
+   
     if package is None:
+        if g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can create packages.")
+
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -762,6 +763,18 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             team_access = Access(package=package, user=TEAM)
             db.session.add(team_access)
     else:
+        team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+        if not team_access and g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can push private packages.")
+
         if public:
             public_access = (
                 Access.query
@@ -778,15 +791,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                      "run `quilt access add %(user)s/%(pkg)s public`.") %
                     dict(user=owner, pkg=package_name)
                 )
-        if team:
-            team_access = (
-                Access.query
-                .filter(sa.and_(
-                    Access.package == package,
-                    Access.user == TEAM
-                ))
-                .one_or_none()
-            )
+        if team:            
             if team_access is None:
                 raise ApiException(
                     requests.codes.forbidden,
