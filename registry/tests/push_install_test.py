@@ -1021,6 +1021,38 @@ class PushInstallTestCase(QuiltTestCase):
 
         assert resp.status_code == requests.codes.ok
 
+        # Team push from non-owner succeeds.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                is_team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
+            ), default=encode_node),
+            content_type='application/json',
+            headers={
+                'Authorization': 'share_with'
+            }
+        )
+
+        assert resp.status_code == requests.codes.ok
+
+        # Team push from anonymous user fails.
+        resp = self.app.put(
+            '/api/package/test_user/foo/%s' % self.CONTENTS_HASH,
+            data=json.dumps(dict(
+                is_team=True,
+                description="",
+                contents=self.CONTENTS,
+                sizes=fake_obj_sizes(self.CONTENTS),
+            ), default=encode_node),
+            content_type='application/json',
+        )
+
+        assert resp.status_code == requests.codes.unauthorized
+        
+
     @patch('quilt_server.views.ALLOW_ANONYMOUS_ACCESS', True)
     def testOldPublicParamn(self):
         # Push a package using "public" rather than "is_public".
