@@ -204,7 +204,8 @@ class PackageNotFoundException(ApiException):
 def register_marketplace_usage():
     marketplace_product_code = os.environ.get("MP_PRODUCT_CODE")
     marketplace_public_key_version = os.environ.get("MP_PUBLIC_KEY_VERSION")
-    metering_client = client = boto3.client('meteringmarketplace')
+    aws_region=os.environ.get("AWS_REGION")
+    metering_client = client = boto3.client('meteringmarketplace', region_name=aws_region)
     if marketplace_product_code is not None:
         metering_client.register_usage(
             ProductCode=marketplace_product_code,
