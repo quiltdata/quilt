@@ -2435,7 +2435,7 @@ def edit_role(role_id):
     return _role_dict(role)
 
 @app.route('/api/roles/<role_id>', methods=['DELETE'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def delete_role(role_id):
     """
@@ -2454,7 +2454,7 @@ def delete_role(role_id):
     db.session.commit()
 
 @app.route('/api/roles/<role_id>', methods=['GET'])
-@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=ROLE_DETAILS_SCHEMA)
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True)
 @as_json
 def get_role(role_id):
     """

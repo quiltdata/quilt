@@ -508,6 +508,25 @@ class AuthTestCase(QuiltTestCase):
                     headers=headers
                 )
             assert role_request.status_code == 200
+            results = json.loads(role_request.data.decode('utf-8'))
+            role_id = results['id']
+
+            # get role that does not exist
+            get_request = self.app.get(
+                    '/api/roles/00000000-0000-0000-0000-000000000000',
+                    headers=headers
+                )
+            assert get_request.status_code == 404
+
+            # get role we just created
+            get_request = self.app.get(
+                    '/api/roles/' + role_id,
+                    headers=headers
+                )
+            assert get_request.status_code == 200
+            results = json.loads(get_request.data.decode('utf-8'))
+            assert results['name'] == 'test_role'
+            assert results['arn'] == 'asdf123'
 
             # attach role to user that does not exist
             params = {
@@ -677,13 +696,8 @@ class AuthTestCase(QuiltTestCase):
             new_role_id = json.loads(role_request.data.decode('utf-8'))['id']
 
             # delete the role
-            params = {
-                'name': 'new_test_role',
-                'arn': 'qwer456'
-            }
             delete_role_request = self.app.delete(
                     '/api/roles/' + role_id,
-                    data=json.dumps(params),
                     headers=headers
                 )
             assert delete_role_request.status_code == 200
@@ -715,6 +729,13 @@ class AuthTestCase(QuiltTestCase):
                 'content-type': 'application/json'
             }
 
+            # get the role
+            get_request = self.app.get(
+                    '/api/roles/' + role_id,
+                    headers=headers
+                )
+            assert get_request.status_code == 403
+
             # change the name
             params = {
                 'name': 'new_test_role',
@@ -740,13 +761,8 @@ class AuthTestCase(QuiltTestCase):
             assert edit_role_request.status_code == 403
 
             # delete the role
-            params = {
-                'name': 'test_role',
-                'arn': 'arn456'
-            }
             edit_role_request = self.app.delete(
                     '/api/roles/' + role_id,
-                    data=json.dumps(params),
                     headers=headers
                 )
             assert edit_role_request.status_code == 403
