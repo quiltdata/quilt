@@ -208,6 +208,20 @@ def _disable_user(user):
         db.session.add(user)
     else:
         raise NotFoundException("User to disable not found")
+    
+def _grant_admin(user):
+    if user:
+        user.is_admin = True
+        db.session.add(user)
+    else:
+        raise NotFoundException("User to grant admin capabilities is not found")
+    
+def _revoke_admin(user):
+    if user:
+        user.is_admin = False
+        db.session.add(user)
+    else:
+        raise NotFoundException("User to revoke admin capabilities not found")
 
 def issue_code(user):
     user_id = user.id
