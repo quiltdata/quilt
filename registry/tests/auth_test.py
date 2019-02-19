@@ -79,7 +79,7 @@ class AuthTestCase(QuiltTestCase):
 
     def testDuplicateUserFails(self):
         try:
-            _create_user(self.TEST_USER, pasword=self.TEST_PASSWORD,
+            _create_user(self.TEST_USER, pasword=self.TEST_USER_PASSWORD,
                     email=self.TEST_USER_EMAIL, requires_activation=False)
         except:
             return True
@@ -125,7 +125,7 @@ class AuthTestCase(QuiltTestCase):
 
         # test re-creating user doesn't invalidate tokens
         try:
-            _create_user(self.TEST_USER, password=self.TEST_PASSWORD,
+            _create_user(self.TEST_USER, password=self.TEST_USER_PASSWORD,
                     email='{user}{suf}'.format(user=self.TEST_USER, suf=self.email_suffix),
                     requires_activation=False)
         except:
@@ -340,6 +340,45 @@ class AuthTestCase(QuiltTestCase):
         refreshed_token_payload = json.loads(refresh_request.data.decode('utf8'))
         assert 'expires_at' in refreshed_token_payload
         assert refreshed_token_payload['access_token'] == refreshed_token_payload['refresh_token']
+
+    def testGrantRevokeAdmin(self):
+
+        def list_users(token):
+            response = self.app.get(
+                '/api/users/list',
+                headers={
+                'content-type': 'application/json',
+                'Authorization': token
+                }
+                )
+            return response
+
+        self.createAdmin()
+        admin_token = self.getToken(self.ADMIN_USERNAME, self.ADMIN_PASSWORD)
+        testuser_token = self.getToken(self.TEST_USER, self.TEST_USER_PASSWORD)
+        assert list_users(testuser_token).status_code == requests.codes.forbidden
+
+        # Grant Admin to Test User
+        response = self.app.post(
+            '/api/users/grant_admin',
+            data=json.dumps({'username': self.TEST_USER}),
+            headers={
+            'content-type': 'application/json',
+            'Authorization': admin_token
+            })
+        assert response.status_code == requests.codes.ok
+        assert list_users(testuser_token).status_code == requests.codes.ok
+        
+        # Revoke Admin for Test User
+        response = self.app.post(
+            '/api/users/revoke_admin',
+            data=json.dumps({'username': self.TEST_USER}),
+            headers={
+            'content-type': 'application/json',
+            'Authorization': admin_token
+            })
+        assert response.status_code == requests.codes.ok
+        assert list_users(testuser_token).status_code == requests.codes.forbidden
 
     def testDisabledandDeletedUsersCodesAndTokensAreRevoked(self):
         admin_token_request = self.app.post(
