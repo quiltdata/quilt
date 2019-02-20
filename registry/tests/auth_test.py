@@ -335,7 +335,7 @@ class AuthTestCase(QuiltTestCase):
     def testGrantRevokeAdmin(self):
 
         def list_users(token):
-            response = self.app.get(
+            return self.app.get(
                 '/api/users/list',
                 headers={
                 'content-type': 'application/json',
