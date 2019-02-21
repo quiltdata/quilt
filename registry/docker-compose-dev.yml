@@ -44,5 +44,7 @@ services:
     environment:
       - REGISTRY_URL=http://localhost:5000
       - STRIPE_KEY=NOSTRIPE
+      - TEAM_ID
+      - TEAM_NAME
     ports:
       - "3000:80"

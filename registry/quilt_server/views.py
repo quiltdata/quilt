@@ -1602,8 +1602,8 @@ TAG_SCHEMA = {
 @api(schema=TAG_SCHEMA)
 @as_json
 def tag_put(owner, package_name, package_tag):
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
+    # TODO: Write access for individual collaborators.
+    if g.auth.user != owner and not ALLOW_TEAM_ACCESS:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can modify tags"
@@ -1622,6 +1622,24 @@ def tag_put(owner, package_name, package_tag):
 
     if instance is None:
         raise ApiException(requests.codes.not_found, "Package hash does not exist")
+
+    # Check to see if the tag update is to a team-shared package
+    # and therefore allowed
+    if g.auth.user != owner:
+        # Check if the package is shared team-wide
+        team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == instance.package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+        if not team_access:
+            raise ApiException(
+                requests.codes.forbidden,
+                "Private package: only the package owner can modify tags"
+                )
 
     # Update an existing tag or create a new one.
     tag = (
