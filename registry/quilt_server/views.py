@@ -681,8 +681,6 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     if not VALID_NAME_RE.match(package_name):
         raise ApiException(requests.codes.bad_request, "Invalid package name")
 
-    print("%s: %s/%s" % (g.auth.user, owner, package_name))
-
     # TODO: Description.
     data = json.loads(request.data.decode('utf-8'), object_hook=decode_node)
     dry_run = data.get('dry_run', False)
@@ -715,7 +713,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
         .filter_by(owner=owner, name=package_name)
         .one_or_none()
     )
-   
+
     if package is None:
         if g.auth.user != owner:
             raise ApiException(requests.codes.forbidden,
