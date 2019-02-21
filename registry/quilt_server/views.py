@@ -37,7 +37,7 @@ from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
 from .auth import (AuthException, ConflictException, CredentialException,
     NotFoundException, ValidationException, _create_user, _delete_user,
-    _disable_user, _enable_user, activate_response, change_password,
+    _disable_user, _enable_user, _grant_admin, _revoke_admin, activate_response, change_password,
     consume_code_string, exp_from_token, issue_code, issue_token,
     reset_password, reset_password_from_email, revoke_token_string,
     try_login, verify_token_string)
@@ -2282,6 +2282,37 @@ def enable_user():
         username = data['username']
         user = User.query.filter_by(name=username).with_for_update().one_or_none()
         _enable_user(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
+
+@app.route('/api/users/grant_admin', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
+@as_json
+def grant_admin():
+    try:
+        data = request.get_json()
+        username = data['username']
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _grant_admin(user)
+        db.session.commit()
+        return {}
+    except NotFoundException as ex:
+        raise ApiException(requests.codes.not_found, ex.message)
+
+@app.route('/api/users/revoke_admin', methods=['POST'])
+@api(enabled=ENABLE_USER_ENDPOINTS, require_admin=True, schema=USERNAME_SCHEMA)
+@as_json
+def revoke_admin():
+    try:
+        data = request.get_json()
+        username = data['username']
+        if g.auth.user == username:
+            raise ApiException(requests.codes.forbidden, "Can't revoke yourself")
+        
+        user = User.query.filter_by(name=username).with_for_update().one_or_none()
+        _revoke_admin(user)
         db.session.commit()
         return {}
     except NotFoundException as ex:

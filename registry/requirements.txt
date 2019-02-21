@@ -24,7 +24,7 @@ MarkupSafe==1.0
 mixpanel==4.3.2
 packaging==16.8
 passlib==1.7.1
-psycopg2==2.7.3.2
+psycopg2==2.7.7
 PyJWT==1.6.1
 pyparsing==2.2.0
 python-dateutil==2.6.1
