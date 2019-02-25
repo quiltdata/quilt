@@ -677,12 +677,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     # This function handles two endpoints: a normal push and subpackage push.
     # Make sure exactly one of these arguments is set.
     assert (package_hash is None) != (package_path is None)
-
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
-        raise ApiException(requests.codes.forbidden,
-                           "Only the package owner can push packages.")
-
+    
     if not VALID_NAME_RE.match(package_name):
         raise ApiException(requests.codes.bad_request, "Invalid package name")
 
@@ -720,6 +715,10 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
     )
 
     if package is None:
+        if g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can create packages.")
+
         # Check for case-insensitive matches, and reject the push.
         package_ci = (
             Package.query
@@ -762,6 +761,18 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
             team_access = Access(package=package, user=TEAM)
             db.session.add(team_access)
     else:
+        team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+        if not team_access and g.auth.user != owner:
+            raise ApiException(requests.codes.forbidden,
+                               "Only the package owner can push private packages.")
+
         if public:
             public_access = (
                 Access.query
@@ -778,15 +789,7 @@ def package_put(owner, package_name, package_hash=None, package_path=None):
                      "run `quilt access add %(user)s/%(pkg)s public`.") %
                     dict(user=owner, pkg=package_name)
                 )
-        if team:
-            team_access = (
-                Access.query
-                .filter(sa.and_(
-                    Access.package == package,
-                    Access.user == TEAM
-                ))
-                .one_or_none()
-            )
+        if team:            
             if team_access is None:
                 raise ApiException(
                     requests.codes.forbidden,
@@ -1599,8 +1602,8 @@ TAG_SCHEMA = {
 @api(schema=TAG_SCHEMA)
 @as_json
 def tag_put(owner, package_name, package_tag):
-    # TODO: Write access for collaborators.
-    if g.auth.user != owner:
+    # TODO: Write access for individual collaborators.
+    if g.auth.user != owner and not ALLOW_TEAM_ACCESS:
         raise ApiException(
             requests.codes.forbidden,
             "Only the package owner can modify tags"
@@ -1619,6 +1622,24 @@ def tag_put(owner, package_name, package_tag):
 
     if instance is None:
         raise ApiException(requests.codes.not_found, "Package hash does not exist")
+
+    # Check to see if the tag update is to a team-shared package
+    # and therefore allowed
+    if g.auth.user != owner:
+        # Check if the package is shared team-wide
+        team_access = (
+                Access.query
+                .filter(sa.and_(
+                    Access.package == instance.package,
+                    Access.user == TEAM
+                ))
+                .one_or_none()
+            )
+        if not team_access:
+            raise ApiException(
+                requests.codes.forbidden,
+                "Private package: only the package owner can modify tags"
+                )
 
     # Update an existing tag or create a new one.
     tag = (
