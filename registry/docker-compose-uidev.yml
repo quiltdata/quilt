@@ -14,14 +14,7 @@ services:
 
   flaskmigration:
     image: quiltdata/flask
-    environment:
-      - AWS_ACCESS_KEY_ID=ddccbbaa
-      - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_DEFAULT_SENDER=support@quiltdata.io
-      - QUILT_SECRET_KEY=testing
-      - QUILT_SERVER_CONFIG=docker_config.py
-      - REGISTRY_URL=http://localhost:5000
-      - STRIPE_SECRET_KEY=
+    env_file: registry.env
     depends_on:
       db:
         condition: service_healthy
@@ -30,16 +23,7 @@ services:
 
   flask:
     image: quiltdata/flask
-    environment:
-      - AWS_ACCESS_KEY_ID=ddccbbaa
-      - AWS_SECRET_ACCESS_KEY=abcd
-      - DEPLOYMENT_ID=dev
-      - MAIL_DEV=True
-      - REGISTRY_URL=http://localhost:5000
-      - STRIPE_SECRET_KEY=
-      - QUILT_DEFAULT_SENDER=support@quiltdata.io
-      - QUILT_SECRET_KEY=testing
-      - QUILT_SERVER_CONFIG=docker_config.py
+    env_file: registry.env
     depends_on:
       db:
         condition: service_healthy
