@@ -31,7 +31,6 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import undefer
 import stripe
-import t4
 
 from . import app, db
 from .analytics import MIXPANEL_EVENT, mp
@@ -1039,6 +1038,7 @@ def package_get(owner, package_name, package_hash):
 @api(require_login=False)
 @as_json
 def package_get_as_t4(owner, package_name, package_hash):
+    import t4
     instance = _get_instance(g.auth, owner, package_name, package_hash)
     assert isinstance(instance.contents, RootNode)
     all_hashes = set(find_object_hashes(instance.contents, meta_only=False))

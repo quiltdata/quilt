@@ -16,16 +16,7 @@ services:
   flaskmigration:
     build: .
     image: quiltdata/registry
-    environment:
-      - AWS_ACCESS_KEY_ID=ddccbbaa
-      - AWS_SECRET_ACCESS_KEY=abcd
-      - QUILT_SERVER_CONFIG=dev_config.py
-      - SQLALCHEMY_DATABASE_URI=postgresql://postgres:testing@db/packages
-      - STRIPE_SECRET_KEY=STRIPETEST
-      - REGISTRY_URL=http://localhost:5000
-      - QUILT_DEFAULT_SENDER=support@quiltdata.io
-      - MAIL_DEV=1
-      - QUILT_SECRET_KEY=testing
+    env_file: registry.env
     depends_on:
       db:
         condition: service_healthy
