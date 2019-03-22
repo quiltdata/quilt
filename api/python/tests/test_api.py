@@ -69,33 +69,6 @@ class TestAPI(QuiltTestCase):
         assert np.array_equal(data, data2)
         assert meta == meta2
 
-    @patch('quilt3.session.get_session')
-    def test_credentials_from_registry(self, get_session):
-        mock_session = Mock()
-        get_session.return_value = mock_session
-
-        mock_response = Mock()
-        mock_response.ok = True
-        mock_session.post.return_value = mock_response
-
-        mock_creds_response = Mock()
-        exp = datetime.now(timezone.utc) + timedelta(hours=2)
-        creds_data = {
-            'AccessKeyId': 'asdf',
-            'SecretAccessKey': 'asdf',
-            'SessionToken': 'asdf',
-            'Expiration': exp.isoformat()
-        }
-        mock_creds_response.json.return_value = creds_data
-        mock_session.get.return_value = mock_creds_response
-
-        he.session.set_credentials_from_registry()
-
-        credentials = he.session.get_credentials()
-        frozen_creds = credentials.get_frozen_credentials()
-        assert frozen_creds.access_key == 'asdf'
-        assert frozen_creds.secret_key == 'asdf'
-
     def test_empty_list_role(self):
         empty_list_response = { 'results': [] }
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',

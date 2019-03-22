@@ -10,15 +10,15 @@ import subprocess
 import sys
 import time
 
-from botocore.credentials import RefreshableCredentials
+from botocore.credentials import CredentialProvider, CredentialResolver, RefreshableCredentials
 import pkg_resources
 import requests
 
-from .data_transfer import _update_credentials
 from .util import BASE_PATH, get_from_config, QuiltException
 
 
 AUTH_PATH = BASE_PATH / 'auth.json'
+CREDENTIALS_PATH = BASE_PATH / 'credentials.json'
 VERSION = pkg_resources.require('quilt3')[0].version
 
 def _load_auth():
@@ -32,6 +32,18 @@ def _save_auth(cfg):
     with open(AUTH_PATH, 'w') as fd:
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
+
+def _load_credentials():
+    if AUTH_PATH.exists():
+        with open(CREDENTIALS_PATH) as fd:
+            return json.load(fd)
+    return {}
+
+def _save_credentials(creds):
+    BASE_PATH.mkdir(parents=True, exist_ok=True)
+    with open(CREDENTIALS_PATH, 'w') as fd:
+        CREDENTIALS_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
+        json.dump(creds, fd)
 
 def get_registry_url():
     return get_from_config('registryUrl')
@@ -184,35 +196,22 @@ def login_with_token(refresh_token):
     clear_session()
 
     # use registry-provided credentials
-    set_credentials_from_registry()
-    _update_credentials(CREDENTIALS)
+    _refresh_credentials()
 
 def logout():
     """
     Become anonymous. Useful for testing.
     """
     # TODO revoke refresh token (without logging out of web sessions)
-    if _load_auth():
+    if _load_auth() or _load_credentials():
         _save_auth({})
+        _save_credentials({})
     else:
         print("Already logged out.")
 
     clear_session()
 
-CREDENTIALS = None
-
-def get_credentials():
-    return CREDENTIALS
-
-def set_refreshable_credentials(get_credentials):
-    global CREDENTIALS
-    CREDENTIALS = RefreshableCredentials.create_from_metadata(
-            metadata=get_credentials(),
-            refresh_using=get_credentials,
-            method='quilt-registry'
-            )
-
-def get_registry_credentials():
+def _refresh_credentials():
     session = get_session()
     creds = session.get(
         "{url}/api/auth/get_credentials".format(
@@ -225,7 +224,37 @@ def get_registry_credentials():
         'token': creds['SessionToken'],
         'expiry_time': creds['Expiration']
     }
+    _save_credentials(result)
     return result
 
-def set_credentials_from_registry():
-    set_refreshable_credentials(get_registry_credentials)
+
+class QuiltProvider(CredentialProvider):
+    METHOD = 'quilt-registry'
+    CANONICAL_NAME = 'QuiltRegistry'
+
+    def __init__(self, credentials):
+        self._credentials = credentials
+
+    def load(self):
+        creds = RefreshableCredentials.create_from_metadata(
+            metadata=self._credentials,
+            method=self.METHOD,
+            refresh_using=_refresh_credentials,
+        )
+
+        return creds
+
+
+def create_botocore_session():
+    from botocore.session import get_session as botocore_get_session  # Don't override our own get_session
+
+    botocore_session = botocore_get_session()
+
+    # If we have saved credentials, use them. Otherwise, create a normal Boto session.
+    credentials = _load_credentials()
+    if credentials:
+        provider = QuiltProvider(credentials)
+        resolver = CredentialResolver([provider])
+        botocore_session.register_component('credential_provider', resolver)
+
+    return botocore_session

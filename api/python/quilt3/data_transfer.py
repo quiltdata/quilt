@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.exceptions import ClientError, NoCredentialsError
-from botocore.session import get_session
 import boto3
 from boto3.s3.transfer import TransferConfig
 from six import BytesIO, binary_type, text_type
@@ -25,6 +24,7 @@ with warnings.catch_warnings():
 
 import jsonlines
 
+from .session import create_botocore_session
 from .util import QuiltException, make_s3_url, parse_file_url, parse_s3_url
 from . import xattr
 
@@ -37,13 +37,21 @@ if platform.system() == 'Linux':
     # Linux only allows users to modify user.* xattrs.
     HELIUM_XATTR = 'user.%s' % HELIUM_XATTR
 
-# Check whether credentials are present
-if boto3.session.Session().get_credentials() is None:
-    # Use unsigned boto if credentials aren't present
-    s3_client = boto3.client('s3', config=Config(signature_version=UNSIGNED))
-else:
-    # Use normal boto
-    s3_client = boto3.client('s3')
+
+def create_s3_client():
+    botocore_session = create_botocore_session()
+    boto_session = boto3.Session(botocore_session=botocore_session)
+
+    # Check whether credentials are present
+    if boto_session.get_credentials() is None:
+        # Use unsigned boto if credentials aren't present
+        s3_client = boto_session.client('s3', config=Config(signature_version=UNSIGNED))
+    else:
+        # Use normal boto
+        s3_client = boto_session.client('s3')
+
+    return s3_client
+
 
 s3_transfer_config = TransferConfig()
 s3_threads = 4
@@ -51,16 +59,6 @@ s3_threads = 4
 # When uploading files at least this size, compare the ETags first and skip the upload if they're equal;
 # copy the remote file onto itself if the metadata changes.
 UPLOAD_ETAG_OPTIMIZATION_THRESHOLD = 1024
-
-
-def _update_credentials(credentials):
-    session = get_session()
-    session._credentials = credentials
-    # TODO: figure out if this is necessary
-    # session.set_config_variable("region", aws_region)
-    updated_session = boto3.Session(botocore_session=session)
-    global s3_client
-    s3_client = updated_session.client('s3')
 
 
 def _parse_metadata(resp):
@@ -85,11 +83,11 @@ def _response_generator(func, tokens, kwargs):
             kwargs[token] = response['Next' + token]
 
 
-def _list_objects(**kwargs):
+def _list_objects(s3_client, **kwargs):
     return _response_generator(s3_client.list_objects_v2, ['ContinuationToken'], kwargs)
 
 
-def _list_object_versions(**kwargs):
+def _list_object_versions(s3_client, **kwargs):
     return _response_generator(s3_client.list_object_versions, ['KeyMarker', 'VersionIdMarker'], kwargs)
 
 
@@ -116,6 +114,8 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
         meta = _parse_file_metadata(src_path)
     else:
         meta = override_meta
+
+    s3_client = ctx.s3_client
 
     if size < s3_transfer_config.multipart_threshold:
         # TODO(dima): Use OSUtils.open_file_chunk_reader for progress callbacks.
@@ -185,6 +185,8 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path, override_me
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
+    s3_client = ctx.s3_client
+
     dest_file.parent.mkdir(parents=True, exist_ok=True)
 
     params = dict(Bucket=src_bucket, Key=src_key)
@@ -230,6 +232,8 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
         src_params.update(
             VersionId=src_version
         )
+
+    s3_client = ctx.s3_client
 
     if size < s3_transfer_config.multipart_threshold:
         params = dict(
@@ -307,6 +311,8 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
 
 
 def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_meta):
+    s3_client = ctx.s3_client
+
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
     if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
@@ -347,13 +353,14 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_m
 
 
 class WorkerContext(object):
-    def __init__(self, progress, done, run):
+    def __init__(self, s3_client, progress, done, run):
+        self.s3_client = s3_client
         self.progress = progress
         self.done = done
         self.run = run
 
 
-def _copy_file_list_internal(file_list):
+def _copy_file_list_internal(s3_client, file_list):
     """
     Takes a list of tuples (src, dest, size, override_meta) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
@@ -383,7 +390,7 @@ def _copy_file_list_internal(file_list):
                     assert results[idx] is None
                     results[idx] = value
 
-            ctx = WorkerContext(progress=progress_callback, done=done_callback, run=run_task)
+            ctx = WorkerContext(s3_client=s3_client, progress=progress_callback, done=done_callback, run=run_task)
 
             if src_url.scheme == 'file':
                 src_path = parse_file_url(src_url)
@@ -457,8 +464,10 @@ def _calculate_etag(file_path):
 
 
 def delete_object(bucket, key):
+    s3_client = create_s3_client()
+
     if key.endswith('/'):
-        for response in _list_objects(Bucket=bucket, Prefix=key):
+        for response in _list_objects(s3_client, Bucket=bucket, Prefix=key):
             for obj in response.get('Contents', []):
                 s3_client.delete_object(Bucket=bucket, Key=obj['Key'])
     else:
@@ -482,7 +491,9 @@ def list_object_versions(bucket, prefix, recursive=True):
     delete_markers = []
     prefixes = []
 
-    for response in _list_object_versions(**list_obj_params):
+    s3_client = create_s3_client()
+
+    for response in _list_object_versions(s3_client, **list_obj_params):
         versions += response.get('Versions', [])
         delete_markers += response.get('DeleteMarkers', [])
         prefixes += response.get('CommonPrefixes', [])
@@ -505,7 +516,9 @@ def list_objects(bucket, prefix, recursive=True):
         # Treat '/' as a directory separator and only return one level of files instead of everything.
         list_obj_params.update(dict(Delimiter='/'))
 
-    for response in _list_objects(**list_obj_params):
+    s3_client = create_s3_client()
+
+    for response in _list_objects(s3_client, **list_obj_params):
         objects += response.get('Contents', [])
         prefixes += response.get('CommonPrefixes', [])
 
@@ -537,7 +550,8 @@ def list_url(src):
             raise ValueError("Directories cannot have version IDs: %r" % src_url)
         if src_path and not src_path.endswith('/'):
             src_path += '/'
-        for response in _list_objects(Bucket=src_bucket, Prefix=src_path):
+        s3_client = create_s3_client()
+        for response in _list_objects(s3_client, Bucket=src_bucket, Prefix=src_path):
             for obj in response.get('Contents', []):
                 key = obj['Key']
                 if not key.startswith(src_path):
@@ -569,7 +583,8 @@ def copy_file_list(file_list):
 
         processed_file_list.append((src_url, dest_url, size, override_meta))
 
-    return _copy_file_list_internal(processed_file_list)
+    s3_client = create_s3_client()
+    return _copy_file_list_internal(s3_client, processed_file_list)
 
 
 def copy_file(src, dest, override_meta=None, size=None):
@@ -615,7 +630,8 @@ def copy_file(src, dest, override_meta=None, size=None):
             size, _, _ = get_size_and_meta(src)
         url_list.append((src_url, dest_url, size, override_meta))
 
-    _copy_file_list_internal(url_list)
+    s3_client = create_s3_client()
+    _copy_file_list_internal(s3_client, url_list)
 
 
 def put_bytes(data, dest, meta=None):
@@ -632,6 +648,7 @@ def put_bytes(data, dest, meta=None):
             raise ValueError("Invalid path: %r" % dest_path)
         if dest_version_id:
             raise ValueError("Cannot set VersionId on destination")
+        s3_client = create_s3_client()
         s3_client.put_object(
             Bucket=dest_bucket,
             Key=dest_path,
@@ -652,6 +669,7 @@ def get_bytes(src):
         params = dict(Bucket=src_bucket, Key=src_path)
         if src_version_id is not None:
             params.update(dict(VersionId=src_version_id))
+        s3_client = create_s3_client()
         resp = s3_client.get_object(**params)
         data = resp['Body'].read()
         meta = _parse_metadata(resp)
@@ -687,6 +705,7 @@ def get_size_and_meta(src):
         )
         if version_id:
             params.update(dict(VersionId=version_id))
+        s3_client = create_s3_client()
         resp = s3_client.head_object(**params)
         size = resp['ContentLength']
         meta = _parse_metadata(resp)
@@ -733,6 +752,7 @@ def calculate_sha256(src_list, sizes):
                 params = dict(Bucket=src_bucket, Key=src_path)
                 if src_version_id is not None:
                     params.update(dict(VersionId=src_version_id))
+                s3_client = create_s3_client()
                 resp = s3_client.get_object(**params)
                 body = resp['Body']
                 for chunk in body:
@@ -883,6 +903,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
     # Include user-specified passthrough options, overriding other options
     select_kwargs.update(kwargs)
 
+    s3_client = create_s3_client()
     response = s3_client.select_object_content(**select_kwargs)
 
     # we don't want multiple copies of large chunks of data hanging around.

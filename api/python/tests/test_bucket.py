@@ -146,14 +146,7 @@ class TestBucket(QuiltTestCase):
         self.s3_stubber.add_response('head_object', response, params)
 
         boto_return_val = {'Payload': iter(records)}
-        patched_s3 = patch.object(
-            data_transfer.s3_client,
-            'select_object_content',
-            return_value=boto_return_val,
-            autospec=True,
-        )
-
-        with patched_s3 as patched:
+        with patch.object(self.s3_client, 'select_object_content', return_value=boto_return_val) as patched:
             bucket = Bucket('s3://test-bucket')
 
             result = bucket.select('test', 'select * from S3Object')
