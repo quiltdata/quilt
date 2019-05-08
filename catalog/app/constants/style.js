@@ -24,9 +24,23 @@ const typography = {
   },
 }
 
+const overrides = {
+  MuiAppBar: {
+    colorPrimary: {
+      backgroundColor: '#2d306d',
+    },
+  },
+}
+
 export const theme = createMuiTheme({
   palette,
   typography,
+  layout: {
+    container: {
+      width: 1140,
+    },
+  },
+  overrides,
 })
 
 // expose theme for development purposes
@@ -37,4 +51,5 @@ if (process.env.NODE_ENV === 'development') {
 export const themeInverted = createMuiTheme({
   palette: { ...palette, type: 'dark' },
   typography,
+  overrides,
 })

@@ -41,6 +41,8 @@ const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
 const HomePage = mkLazy(() => import('containers/HomePage'))
 
+const MLanding = mkLazy(() => import('containers/Marketing/Landing'))
+
 export default () => {
   const cfg = Config.useConfig()
   const protect = React.useMemo(
@@ -53,7 +55,11 @@ export default () => {
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route path={paths.home} component={protect(HomePage)} exact />
+        <Route
+          path={paths.home}
+          component={protect(cfg.enableMarketingPages ? MLanding : HomePage)}
+          exact
+        />
 
         <Route path={paths.activate} component={Activate} exact />
 

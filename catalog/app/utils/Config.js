@@ -35,6 +35,7 @@ const validateConfig = conforms({
   }),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
+  enableMarketingPages: isNullable(Boolean),
 })
 
 const validateBucket = conforms({

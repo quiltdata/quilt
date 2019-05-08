@@ -132,7 +132,6 @@ export const Container = composeComponent(
   'NavBar.Container',
   withStyles(({ palette }) => ({
     root: {
-      backgroundColor: palette.primary.dark,
       color: palette.getContrastText(palette.primary.dark),
     },
   })),
