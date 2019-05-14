@@ -1,0 +1,165 @@
+version: 2
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test-3.6
+      - test-lambdas-indexer
+      - test-lambdas-preview
+      - test-lambdas-shared
+  build_and_deploy:
+    jobs:
+      - build:
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - build
+          filters:
+            tags:
+              only: /[0-9]+(\.[0-9]+)*/
+            branches:
+              ignore: /.*/
+jobs:
+  test-3.6: &test-template
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install -e api/python/v3[tests]
+      - run:
+          name: Run Pytest
+          command: |
+            . venv/bin/activate
+            cd api/python/v3 && pytest --cov=./
+            codecov
+
+  test-lambdas-indexer:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install -r lambdas/es/indexer/requirements.txt
+            pip install -r lambdas/es/indexer/test-requirements.txt
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/es/indexer && pytest --cov=./
+
+  test-lambdas-preview:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install -r lambdas/preview/requirements.txt
+            pip install -r lambdas/preview/test-requirements.txt
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/preview && pytest --cov=./
+
+  test-lambdas-shared:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/[tests]
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/shared && pytest --cov=./
+  build:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -e api/python/v3[tests]
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          paths:
+            - "venv"
+      - run:
+          name: run tests
+          command: |
+            . venv/bin/activate
+            cd api/python/v3 && pytest --cov=./
+            codecov
+      - store_artifacts:
+          path: htmlcov/
+
+  deploy:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - restore_cache:
+          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+      - run:
+          name: install python dependencies
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -e api/python/v3[tests]
+      - save_cache:
+          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          paths:
+            - "venv"
+      - run:
+          name: verify git tag vs. version
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            python api/python/v3/setup.py verify
+      - run:
+          name: init .pypirc
+          command: |
+            echo -e "[pypi]" >> ~/.pypirc
+            echo -e "username = quiltdata" >> ~/.pypirc
+            echo -e "password = $PYPI_PASSWORD" >> ~/.pypirc
+      - run:
+          name: create packages
+          command: |
+            cd api/python/v3
+            python setup.py sdist
+            python setup.py bdist_wheel
+      - run:
+          name: upload to pypi
+          command: |
+            . venv/bin/activate
+            cd api/python/v3
+            pip install twine
+            twine upload dist/*
