@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "properties": {
+    "buckets": {
+      "type": "array",
+      "description": "List of buckets the federation provides",
+      "items": {
+        "anyOf": [
+          { "type": "string" },
+          { "$ref": "#/definitions/bucket_config" }
+        ]
+      }
+    }
+  },
+  "required": [ "buckets" ],
+  "additionalProperties": false,
+  "definitions": {
+    "bucket_config": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the bucket in s3."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title to display in catalog drop-down."
+        },
+        "description": {
+          "type": "string",
+          "description": "Short description of the bucket to be displayed in catalog drop-down."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Link to a square icon to be displayed in the catalog drop-down."
+        },
+        "searchEndpoint": {
+          "type": "string",
+          "description": "Endpoint for searching the bucket."
+        },
+        "apiGatewayEndpoint": {
+          "type": "string",
+          "description": "Endpoint for previewing objects in your bucket."
+        },
+        "region": {
+          "type": "string",
+          "description": "AWS region where your resources are located."
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
