@@ -54,7 +54,7 @@ install:
     if [[ "$TEST_COMPILER" = true ]]; then
       # pytorch doesn't fully support pip; see https://pytorch.org/
       travis_retry pip install "$TORCH"
-      travis_retry pip install "./compiler[img,tests,torchvision]"
+      travis_retry pip install "./api/python/v2[img,tests,torchvision]"
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
@@ -69,7 +69,7 @@ install:
 script:
   - |
     if [[ "$TEST_COMPILER" = true ]]; then
-      pytest --cov=./ compiler
+      pytest --cov=./ api/python/v2
     fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
