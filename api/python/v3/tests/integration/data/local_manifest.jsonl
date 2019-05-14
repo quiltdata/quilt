@@ -1,0 +1,4 @@
+{"semver": "1.1.1","comment": "example schema","quilt_schema_version": "0.0.1"}
+{"logical_key":"foo","physical_keys":["file:///foo"],"hash":{"type":"SHA256","value":"abcd"},"size":1024,"meta":{}}
+{"logical_key":"bar.csv","physical_keys":["file:///bar.csv"],"hash":{"type":"SHA256","value":"abcd"},"size":1024,"meta":{}}
+{"logical_key":"baz/bat","physical_keys":["file:///User/home/baz/bat"],"hash":{"type":"SHA256","value":"abcd"},"size":1024,"meta":{}}

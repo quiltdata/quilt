@@ -1,0 +1,4 @@
+Use pytest during normal development.
+
+When your branch is ready, run 'tox' (single) or 'detox' (concurrent) to test a new install.
+   'detox  --refresh'   will reset the environment it creates, for testing dependencies etc.
