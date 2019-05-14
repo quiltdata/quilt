@@ -1,44 +1,35 @@
-<!--
-	Used by gitbook to generate docs.quiltdata.com navigation
-	WARNING - changing section names changes docs paths used both
-	within docs and other parts of Quilt, like /catalog
-
-	Paths are of the form: word1-word2-word3/bullet-name
-	So, for example: docs.quiltdata.com/get-started/install
-	(all lowercase)
-!-->
-
 # Summary
 
-## Get started
-* [Introduction](README.md)
-* [Install](installation.md)
-* [Quick start](quick-start.md)
-* [Work with packages](step-by-step.md)
-* [Articles](articles.md)
-* [Examples](examples.md)
-* [Run a Registry](registries.md)
+* [Introduction](v3/README.md)
+* [Installation](v3/Installation.md)
+* [Quickstart](v3/Quickstart.md)
 
-## API
-* [Overview](api-overview.md)
-* [Command line](api-cli.md)
-* [Python](api-python.md)
-* [build.yml](buildyml.md)
-* [quilt.yml requirements](quiltyml.md)
-* [Teams](api-teams.md)
-* [R](api-r.md)
+### Walkthrough
 
-## Advanced Usage
-* [Environment variables](env.md)
-* [Shared drives](shared-store.md)
-* [Checks](checks.md)
-* [Package composition](compose.md)
-* [PySpark](pyspark.md)
+* [Creating a Package](v3/Walkthrough/Creating a Package.md)
+* [Distributing a Package](v3/Walkthrough/Distributing a Package.md)
+* [Installing a Package](v3/Walkthrough/Installing a Package.md)
+* [Reading from a Package](v3/Walkthrough/Reading from a Package.md)
+* [Working with the Catalog](v3/Walkthrough/Working with the Catalog.md)
+* [Working with a Bucket](v3/Walkthrough/Working with a Bucket.md)
 
-## Support
-* [FAQ](faq.md)
-* [Contact](contact.md)
+### Advanced Usage
 
-## Developer
-* [Contributing](CONTRIBUTING.md)
-* [Fragment store](repo-format.md)
+* [Filtering a Package](v3/Advanced Features/Filtering a Package.md)
+* [.quiltignore](v3/Advanced Features/.quiltignore.md)
+* [Materialization](v3/Advanced Features/Materialization.md)
+* [Working with Manifests](v3/Advanced Features/Working with Manifests.md)
+* [S3 Select](v3/Advanced Features/S3 Select.md)
+
+### API Reference
+
+* [quilt3](v3/API Reference/api.md)
+* [quilt3.Package](v3/API Reference/Package.md)
+* [quilt3.Bucket](v3/API Reference/Bucket.md)
+* [quilt2](v2/SUMMARY.md)
+
+### References
+
+* [Technical Reference](v3/Technical Reference.md)
+* [Contributing](v3/CONTRIBUTING.md)
+* [Further Reading](v3/Further Reading.md)
