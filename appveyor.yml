@@ -39,7 +39,7 @@ install:
   # must precede torchvision install so torchvision install doesn't fail
   # deprecated until pytorch is easier to install
   # - ps: python -m pip install "$env:TORCH"
-  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\compiler[img,tests]"
+  - ps: python -m pip install "$env:APPVEYOR_BUILD_FOLDER\\api\\python\\v2[img,tests]"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
@@ -51,8 +51,8 @@ install:
 build: off
 
 test_script:
-  - ECHO "Testing compiler..."
-  - ps: python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\compiler"
+  - ECHO "Testing python api..."
+  - ps: python -m pytest "$env:APPVEYOR_BUILD_FOLDER\\api\\python\\v2"
   - ps: |
       if($env:TEST_REGISTRY -match "true")
       {
