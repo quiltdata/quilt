@@ -6,7 +6,7 @@ from unittest import TestCase
 from botocore.stub import Stubber
 import responses
 
-from t4.data_transfer import s3_client
+from quilt3.data_transfer import s3_client
 
 
 class QuiltTestCase(TestCase):

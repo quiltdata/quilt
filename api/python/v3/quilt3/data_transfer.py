@@ -664,7 +664,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
     least.  This function returns the result as a dataframe instead.  It also
     performs the following actions, for convenience:
 
-    * If t4 metadata is given, necessary info to handle the select query is
+    * If quilt3 metadata is given, necessary info to handle the select query is
       pulled from the format metadata.
     * If no metadata is present, but the URL indicates an object with a known
       extension, the file format (and potentially compression) are determeined

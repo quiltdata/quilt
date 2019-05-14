@@ -15,7 +15,7 @@ import pandas as pd
 import pytest
 
 ### Project imports
-from t4 import data_transfer
+from quilt3 import data_transfer
 
 from .utils import QuiltTestCase
 
@@ -231,7 +231,7 @@ class DataTransferTest(QuiltTestCase):
         )
 
         # stubber expects responses in order, so disable multi-threading.
-        with mock.patch('t4.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_threads', 1):
             urls = data_transfer.copy_file_list([
                 (path1.as_uri(), 's3://example1/foo.csv', path1.stat().st_size, None),
                 (path2.as_uri(), 's3://example2/foo.txt', path2.stat().st_size, {'foo': 'bar'}),

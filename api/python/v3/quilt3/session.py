@@ -19,7 +19,7 @@ from .util import BASE_PATH, load_config, QuiltException
 
 
 AUTH_PATH = BASE_PATH / 'auth.json'
-VERSION = pkg_resources.require('t4')[0].version
+VERSION = pkg_resources.require('quilt3')[0].version
 
 def _load_auth():
     if AUTH_PATH.exists():
@@ -73,7 +73,7 @@ def _update_auth(refresh_token, timeout=None):
 def _handle_response(resp, **kwargs):
     if resp.status_code == requests.codes.unauthorized:
         raise QuiltException(
-            "Authentication failed. Run `t4 login` again."
+            "Authentication failed. Run `quilt3 login` again."
         )
     elif not resp.ok:
         try:
@@ -97,7 +97,7 @@ def _create_auth(timeout=None):
                 auth = _update_auth(auth['refresh_token'], timeout)
             except QuiltException as ex:
                 raise QuiltException(
-                    "Failed to update the access token (%s). Run `t4 login` again." % ex
+                    "Failed to update the access token (%s). Run `quilt3 login` again." % ex
                 )
             contents[url] = auth
             _save_auth(contents)

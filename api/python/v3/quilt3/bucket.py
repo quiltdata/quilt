@@ -16,7 +16,7 @@ from .util import QuiltException, find_bucket_config, fix_url, get_from_config, 
 
 
 class Bucket(object):
-    """Bucket interface for T4.
+    """Bucket interface for Quilt3.
     """
     def __init__(self, bucket_uri):
         """
@@ -45,7 +45,7 @@ class Bucket(object):
         if not config_url:
             navigator_url = get_from_config('navigator_url')
             if not navigator_url:
-                raise QuiltException("Must set `t4.config(navigator_url)`, where `navigator_url` is the URL "
+                raise QuiltException("Must set `quilt3.config(navigator_url)`, where `navigator_url` is the URL "
                                      "of your catalog homepage.")
 
             navigator_url.rstrip('/') # remove trailing / if present
@@ -161,7 +161,7 @@ class Bucket(object):
             key(str): key in bucket to store file at
             path(str): string representing local path to file
         Optional args:
-            meta(dict): T4 metadata to attach to file
+            meta(dict): Quilt3 metadata to attach to file
                 Must be less than 2KiB serialized
 
         Returns:
