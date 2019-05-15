@@ -118,7 +118,16 @@ const render = (messages) => {
       Notifications.Provider,
       [APIConnector.Provider, { fetch, middleware: [Auth.apiMiddleware] }],
       [Auth.Provider, { checkOn: LOCATION_CHANGE, storage }],
-      [Intercom.Provider, { userSelector: intercomUserSelector }],
+      [
+        Intercom.Provider,
+        {
+          userSelector: intercomUserSelector,
+          horizontal_padding:
+            // align the launcher with the right side of the container
+            (window.innerWidth - Math.min(1172, window.innerWidth)) / 2 + 16,
+          vertical_padding: 59,
+        },
+      ],
       [
         Tracking,
         {
