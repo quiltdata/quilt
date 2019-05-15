@@ -42,6 +42,10 @@ const createTheme = (t) =>
       h4: {
         fontSize: '1.25rem',
       },
+      h5: {
+        fontSize: '1rem',
+        lineHeight: 1.5,
+      },
       body1: {
         lineHeight: 2,
       },

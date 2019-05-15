@@ -8,7 +8,7 @@ import Highlights from './Highlights'
 import MoreAboutQuilt from './MoreAboutQuilt'
 // import Packages from './Packages'
 import Pricing from './Pricing'
-// import Testimonials from './Testimonials'
+import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
 export default () => (
@@ -20,7 +20,7 @@ export default () => (
           {/* <Packages /> */}
           <UseQuilt />
           <Highlights />
-          {/* <Testimonials /> */}
+          <Testimonials />
           <Pricing />
           <MoreAboutQuilt />
         </>
