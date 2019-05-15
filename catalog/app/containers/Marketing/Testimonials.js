@@ -39,7 +39,9 @@ const Testimonial = ({ color, initial, name, children, ...props }) => (
     <Box>
       <Typography variant="h4">{name}</Typography>
       <Box mt={2}>
-        <Typography color="textSecondary">{children}</Typography>
+        <Typography variant="body1" color="textSecondary">
+          {children}
+        </Typography>
       </Box>
     </Box>
   </Box>
