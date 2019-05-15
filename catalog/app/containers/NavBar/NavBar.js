@@ -7,6 +7,7 @@ import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import AppBar from '@material-ui/core/AppBar'
+import { unstable_Box as Box } from '@material-ui/core/Box'
 import Button from '@material-ui/core/Button'
 import CircularProgress from '@material-ui/core/CircularProgress'
 import Icon from '@material-ui/core/Icon'
@@ -15,11 +16,14 @@ import MenuItem from '@material-ui/core/MenuItem'
 import Toolbar from '@material-ui/core/Toolbar'
 import { withStyles } from '@material-ui/styles'
 
+import LayoutContainer from 'components/Layout/Container'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { composeComponent } from 'utils/reactTools'
 
 import logo from 'img/logo/horizontal-white.png'
+import bg from './bg.png'
 
 import BucketControls from './BucketControls'
 
@@ -120,7 +124,7 @@ const SignIn = composeComponent(
             error_outline
           </Icon>
         )}
-        <Button component={Link} to={urls.signIn()} variant="text" color="inherit">
+        <Button component={Link} to={urls.signIn()} variant="contained" color="primary">
           Sign In
         </Button>
       </React.Fragment>
@@ -132,14 +136,17 @@ export const Container = composeComponent(
   'NavBar.Container',
   withStyles(({ palette }) => ({
     root: {
+      background: `left / 64px url(${bg})`,
       color: palette.getContrastText(palette.primary.dark),
     },
   })),
   ({ classes, children }) => (
     <AppBar className={classes.root} position="static">
-      <Toolbar>
-        <Logo />
-        {children}
+      <Toolbar disableGutters>
+        <LayoutContainer display="flex">
+          <Logo />
+          {children}
+        </LayoutContainer>
       </Toolbar>
     </AppBar>
   ),
@@ -161,6 +168,31 @@ const whenNot = (path, fn) => (
   </Route>
 )
 
+const NavLink = (props) => (
+  <Box
+    component={props.to ? Link : 'a'}
+    mr={4}
+    color="text.secondary"
+    fontSize="body2.fontSize"
+    {...props}
+  />
+)
+
+const Links = () => {
+  const { urls } = NamedRoutes.use()
+  return (
+    <Box component="nav" display="flex" alignItems="center">
+      <NavLink href="EXT">Docs</NavLink>
+      <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+      <NavLink href="EXT">Blog</NavLink>
+      <NavLink href="EXT">Jobs</NavLink>
+      <NavLink to={urls.personas()}>Personas</NavLink>
+      <NavLink to={urls.product()}>Product</NavLink>
+      <NavLink to={urls.about()}>About</NavLink>
+    </Box>
+  )
+}
+
 export const NavBar = composeComponent(
   'NavBar',
   connect(
@@ -171,20 +203,24 @@ export const NavBar = composeComponent(
     undefined,
     { pure: false },
   ),
-  NamedRoutes.inject(),
-  ({ paths, error, waiting, authenticated }) => (
-    <Container>
-      {whenNot(paths.signIn, () => (
-        <BucketControls />
-      ))}
-      <Spacer />
-      {authenticated ? (
-        <NavMenu />
-      ) : (
-        whenNot(paths.signIn, () => <SignIn error={error} waiting={waiting} />)
-      )}
-    </Container>
-  ),
+  ({ error, waiting, authenticated }) => {
+    const { paths } = NamedRoutes.use()
+    const cfg = Config.useConfig()
+    return (
+      <Container>
+        {whenNot(paths.signIn, () => (
+          <BucketControls />
+        ))}
+        <Spacer />
+        {!!cfg.enableMarketingPages && <Links />}
+        {authenticated ? (
+          <NavMenu />
+        ) : (
+          whenNot(paths.signIn, () => <SignIn error={error} waiting={waiting} />)
+        )}
+      </Container>
+    )
+  },
 )
 
 export default NavBar
