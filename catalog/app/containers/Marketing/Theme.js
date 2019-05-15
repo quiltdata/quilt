@@ -20,6 +20,9 @@ const createTheme = (t) =>
         main: '#5471f1',
         dark: '#2d306d',
       },
+      tertiary: {
+        main: '#6a93ff',
+      },
       text: {
         secondary: '#b2bddb',
       },

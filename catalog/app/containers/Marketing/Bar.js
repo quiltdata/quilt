@@ -9,6 +9,7 @@ export default styled(({ color, ...props }) => <Box {...props} />)(
     background: {
       primary: t.palette.primary.light,
       secondary: t.palette.secondary.main,
+      tertiary: t.palette.tertiary.main,
     }[color],
   }),
 )
