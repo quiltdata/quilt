@@ -1,76 +1,99 @@
 import * as React from 'react'
 import { FormattedMessage } from 'react-intl'
-import { withStyles } from '@material-ui/styles'
+import { Link as RRLink } from 'react-router-dom'
+import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Link, Typography } from '@material-ui/core'
 
-import FAIcon from 'components/FAIcon'
+import * as Intercom from 'components/Intercom'
+import LayoutContainer from 'components/Layout/Container'
 import { blog, twitter, gitWeb } from 'constants/urls'
-import * as RT from 'utils/reactTools'
+import * as NamedRoutes from 'utils/NamedRoutes'
+
+import logo from 'img/logo/horizontal-white.png'
 
 import messages from './messages'
 
-export default RT.composeComponent(
-  'Footer',
-  withStyles(({ palette, breakpoints, spacing: { unit } }) => ({
-    root: {
-      backgroundColor: palette.primary.dark,
-      color: palette.getContrastText(palette.primary.dark),
-      display: 'flex',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      paddingBottom: 2 * unit,
-      paddingTop: 2 * unit,
-    },
-    col: {
-      width: '25%',
-      textAlign: 'center',
-      [breakpoints.down('xs')]: {
-        width: '100%',
-        '& + &': {
-          marginTop: 2 * unit,
-        },
-      },
-    },
-    small: {
-      fontSize: '.8em',
-      lineHeight: '2em',
-      opacity: 0.7,
-    },
-    link: {
-      fontSize: '2em',
-      lineHeight: '2em',
-      '&, &:active, &:visited': {
-        color: 'inherit',
-        opacity: 0.9,
-      },
-      '&:hover, &:focus': {
-        color: 'inherit',
-        opacity: 1,
-      },
-    },
-  })),
-  ({ classes }) => (
-    <footer className={classes.root}>
-      <div className={classes.col}>
-        <a className={classes.link} href={twitter}>
-          <FAIcon type="twitter" />
-        </a>
-      </div>
-      <div className={classes.col}>
-        <a className={classes.link} href={gitWeb}>
-          <FAIcon type="github" />
-        </a>
-      </div>
-      <div className={classes.col}>
-        <a className={classes.link} href={blog}>
-          <FAIcon type="medium" />
-        </a>
-      </div>
-      <div className={classes.col}>
-        <p className={classes.small}>
-          &copy;&nbsp;
-          <FormattedMessage {...messages.copy} />
-        </p>
-      </div>
-    </footer>
-  ),
+import bg from './bg.png'
+import iconFacebook from './icon-facebook.svg'
+import iconGithub from './icon-github.svg'
+import iconTwitter from './icon-twitter.svg'
+import iconMedium from './icon-medium.svg'
+
+const NavLink = (props) => (
+  <Link
+    variant="button"
+    underline="none"
+    color="textPrimary"
+    component={props.to ? RRLink : undefined}
+    {...props}
+  />
 )
+
+const NavIcon = ({ icon, ...props }) => (
+  <Box component="a" {...props}>
+    <Box component="img" height={18} src={icon} alt="" display="block" />
+  </Box>
+)
+
+export default () => {
+  const { urls } = NamedRoutes.use()
+  const intercom = Intercom.use()
+  return (
+    <Box
+      component="footer"
+      style={{
+        background: `left / 64px url(${bg})`,
+        boxShadow: `
+          0px -12px 24px 0px rgba(25, 22, 59, 0.05),
+          0px -16px 40px 0px rgba(25, 22, 59, 0.07),
+          0px -24px 88px 0px rgba(25, 22, 59, 0.16)
+        `,
+      }}
+      height={230}
+      pt={6}
+    >
+      <LayoutContainer display="flex" justifyContent="space-between">
+        <Box>
+          <Box component={RRLink} to={urls.home()} display="block" height={36} mb={6}>
+            <Box component="img" height="100%" alt="Quilt logo" src={logo} />
+          </Box>
+
+          <Typography color="textSecondary">
+            &copy;&nbsp;
+            <FormattedMessage {...messages.copy} />
+          </Typography>
+        </Box>
+
+        <Box>
+          {/* TODO: hide this nav when enableMarketingPages is false? */}
+          <Box
+            component="nav"
+            display="flex"
+            alignItems="center"
+            justifyContent="flex-end"
+            height={36}
+            mb={6}
+          >
+            <NavLink href="TBD">Docs</NavLink>
+            <Box ml={3} />
+            <NavLink href="TBD">Pricing</NavLink>
+            <Box ml={3} />
+            <NavLink href={blog}>Blog</NavLink>
+            <Box ml={3} />
+            <NavLink href="TBD">Jobs</NavLink>
+            <Box ml={3} />
+            <NavLink to={urls.about()}>About</NavLink>
+          </Box>
+
+          <Box component="nav" display="flex" justifyContent="flex-end">
+            <NavIcon icon={iconFacebook} href="TBD" />
+            <NavIcon icon={iconTwitter} href={twitter} ml={4} />
+            <NavIcon icon={iconGithub} href={gitWeb} ml={4} />
+            <NavIcon icon={iconMedium} href={blog} ml={4} />
+            {!intercom.dummy && <Box ml={4} width={60} />}
+          </Box>
+        </Box>
+      </LayoutContainer>
+    </Box>
+  )
+}
