@@ -7,6 +7,22 @@ export const home = {
   url: () => '/',
 }
 
+// marketing
+export const about = {
+  path: '/about',
+  url: () => '/about',
+}
+
+export const personas = {
+  path: '/personas',
+  url: () => '/personas',
+}
+
+export const product = {
+  path: '/product',
+  url: () => '/product',
+}
+
 export const activate = {
   path: '/activate/:token',
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
