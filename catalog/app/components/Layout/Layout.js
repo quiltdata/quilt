@@ -20,7 +20,7 @@ export const Root = styled(({ dark = false, ...props }) => (
   overflowX: 'hidden',
 })
 
-export default composeComponent(
+export const Layout = composeComponent(
   'Layout',
   RC.setPropTypes({
     children: PT.node,
@@ -38,3 +38,5 @@ export default composeComponent(
     </Root>
   ),
 )
+
+export default Layout
