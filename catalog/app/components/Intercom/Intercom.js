@@ -25,12 +25,18 @@ const mkPlaceholder = () => {
 // should return undefined or { name, email, user_id }
 const defaultUserSelector = () => undefined
 
-const IntercomProvider = ({ appId, userSelector = defaultUserSelector, children }) => {
-  const settings = { app_id: appId }
+const IntercomProvider = ({
+  appId,
+  userSelector = defaultUserSelector,
+  children,
+  ...props
+}) => {
+  const settings = { app_id: appId, ...props }
 
   if (!window.Intercom) window.Intercom = mkPlaceholder()
 
   const api = React.useCallback((...args) => window.Intercom(...args), [])
+  if (!('dummy' in api)) api.dummy = false
 
   React.useEffect(() => {
     api('boot', settings)
@@ -70,6 +76,7 @@ const DummyProvider = ({ children }) => {
     // eslint-disable-next-line no-console
     console.log("Trying to call Intercom, but it's unavailable", args)
   }, [])
+  if (!('dummy' in api)) api.dummy = true
 
   return children(api)
 }
