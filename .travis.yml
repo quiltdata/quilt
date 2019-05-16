@@ -36,6 +36,7 @@ install:
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
       travis_retry pip install -r registry/requirements.txt
+      travis_retry pip install -r registry/test-requirements.txt
       pip install registry
     fi
 
