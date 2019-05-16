@@ -1,3 +1,0 @@
-does_not:
-  contain: contents.node
-  contents: foo.txt

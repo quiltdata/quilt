@@ -33,12 +33,12 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
-            pip install -e api/python/v3[tests]
+            pip install -e api/python[tests]
       - run:
           name: Run Pytest
           command: |
             . venv/bin/activate
-            cd api/python/v3 && pytest --cov=./
+            cd api/python && pytest --cov=./
             codecov
 
   test-lambdas-indexer:
@@ -101,22 +101,22 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
       - run:
           name: install python dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -e api/python/v3[tests]
+            pip install -e api/python[tests]
       - save_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
           paths:
             - "venv"
       - run:
           name: run tests
           command: |
             . venv/bin/activate
-            cd api/python/v3 && pytest --cov=./
+            cd api/python && pytest --cov=./
             codecov
       - store_artifacts:
           path: htmlcov/
@@ -127,15 +127,15 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
       - run:
           name: install python dependencies
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            pip install -e api/python/v3[tests]
+            pip install -e api/python[tests]
       - save_cache:
-          key: v1-dependency-cache-{{ checksum "api/python/v3/setup.py" }}-{{ checksum "Makefile" }}
+          key: v1-dependency-cache-{{ checksum "api/python/setup.py" }}-{{ checksum "Makefile" }}
           paths:
             - "venv"
       - run:
@@ -143,7 +143,7 @@ jobs:
           command: |
             python3 -m venv venv
             . venv/bin/activate
-            python api/python/v3/setup.py verify
+            python api/python/setup.py verify
       - run:
           name: init .pypirc
           command: |
@@ -153,13 +153,13 @@ jobs:
       - run:
           name: create packages
           command: |
-            cd api/python/v3
+            cd api/python
             python setup.py sdist
             python setup.py bdist_wheel
       - run:
           name: upload to pypi
           command: |
             . venv/bin/activate
-            cd api/python/v3
+            cd api/python
             pip install twine
             twine upload dist/*

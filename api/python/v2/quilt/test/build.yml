@@ -1,9 +1,0 @@
----
-contents:
-  dataframes:
-    csv: 
-      file: data/foo.csv
-    nulls:
-      file: data/nulls.csv
-  README:
-    file: data/README.md

@@ -1,4 +1,0 @@
----
-test_case:
-  bad_syntax:  this string definition for bad_syntax key conflicts with
-    this: object defition for bad_syntax key
