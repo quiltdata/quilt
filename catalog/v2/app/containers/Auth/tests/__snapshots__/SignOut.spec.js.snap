@@ -1,9 +1,0 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
-
-exports[`Feature: containers/Auth/SignOut Background: Scenario: Signing out Given storage has current auth data Given signOut request is expected When the component tree is mounted Then the rendered markup should match the snapshot 1`] = `
-<component-working>
-  <span>
-    Signing out
-  </span>
-</component-working>
-`;
