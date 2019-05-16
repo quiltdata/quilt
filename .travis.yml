@@ -6,8 +6,6 @@ os:
 
 env:
   global:
-    # Compiler and stuff
-    - TEST_COMPILER=false
     # Registry supports only a subset of the matrix
     - TEST_REGISTRY=false
     # Registry configs
@@ -26,23 +24,9 @@ matrix:
   include:
     - os: linux
       language: python
-      python: "2.7"
-      env:
-        TEST_COMPILER=true
-        TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp27-cp27mu-linux_x86_64.whl"
-    - os: linux
-      language: python
-      python: "3.5"
-      env:
-        TEST_COMPILER=true
-        TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp35-cp35m-linux_x86_64.whl"
-      services:
-        - postgresql
-    - os: linux
-      language: python
       python: "3.6"
       env:
-        TEST_COMPILER=true
+        TEST_COMPILER=false
         TEST_REGISTRY=true
         TORCH="http://download.pytorch.org/whl/cpu/torch-0.4.0-cp36-cp36m-linux_x86_64.whl"
       services:
@@ -50,39 +34,16 @@ matrix:
 
 install:
   - |
-    # install quilt from setup.py
-    if [[ "$TEST_COMPILER" = true ]]; then
-      # pytorch doesn't fully support pip; see https://pytorch.org/
-      travis_retry pip install "$TORCH"
-      travis_retry pip install "./api/python/v2[img,tests,torchvision]"
-    fi
-  - |
     if [[ "$TEST_REGISTRY" = true ]]; then
       travis_retry pip install -r registry/requirements.txt
       pip install registry
     fi
-  - |
-    if [[ "$TEST_CATALOG" = true ]]; then
-      (cd catalog && npm ci)
-    fi
 
 script:
-  - |
-    if [[ "$TEST_COMPILER" = true ]]; then
-      pytest --cov=./ api/python/v2
-    fi
   - |
     if [[ "$TEST_REGISTRY" = true ]]; then
       pytest --cov=./ ./registry
     fi
-  - |
-    if [[ "$TEST_CATALOG" = true ]]; then
-      (cd catalog && npm test && npm run build -- --output-filename='[name].js' --output-chunk-filename='[name].chunk.js')
-    fi
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
-  - |
-    if [[ "$TEST_CATALOG" = true ]]; then
-      (cd catalog && npm run bundlesize)
-    fi
