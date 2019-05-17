@@ -166,7 +166,7 @@ def extract_parquet(file_):
         # seems silly but sets up a simple json.dumps(info) below
         k.decode():json.loads(meta.metadata[k])
         for k in meta.metadata
-    }
+    } if meta.metadata is not None else {}
     info['num_row_groups'] = meta.num_row_groups
     info['schema'] = {
         name: {
