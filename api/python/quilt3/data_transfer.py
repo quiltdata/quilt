@@ -681,7 +681,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
     least.  This function returns the result as a dataframe instead.  It also
     performs the following actions, for convenience:
 
-    * If t4 metadata is given, necessary info to handle the select query is
+    * If quilt3 metadata is given, necessary info to handle the select query is
       pulled from the format metadata.
     * If no metadata is present, but the URL indicates an object with a known
       extension, the file format (and potentially compression) are determeined
@@ -697,7 +697,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
         url(str):  S3 URL of the object to query
         query(str): An SQL query using the 'SELECT' directive. See examples at
             https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectSELECTContent.html
-        meta: T4 Object Metadata
+        meta: QUILT3 Object Metadata
         raw(bool):  True to return the raw Boto3 response object
         **kwargs:  s3_client.select() kwargs override.
             All kwargs specified passed to S3 client directly, overriding
