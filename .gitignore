@@ -7,6 +7,8 @@ dist
 node_modules
 tmp_*
 
+**/.DS_Store
+
 metastore_db
 derby.log
 
@@ -22,7 +24,7 @@ derby.log
 cov_html/*
 
 # Pytest cache
-compiler/.pytest_cache/*
+api/python/.pytest_cache/*
 
 ### emacs
 *~
@@ -32,3 +34,8 @@ compiler/.pytest_cache/*
 .idea
 
 registry/dpmd
+
+**/.ipynb_checkpoints
+
+# Doc Build
+_build
