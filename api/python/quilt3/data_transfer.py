@@ -141,7 +141,7 @@ def _upload_file(callback, size, src_path, dest_bucket, dest_key, override_meta)
         with open(src_path, 'rb') as fd:
             for i in itertools.count(1):
                 # TODO(dima): Better progress callback.
-                chunk = fd.read(s3_transfer_config.multipart_threshold)
+                chunk = fd.read(s3_transfer_config.multipart_chunksize)
                 if not chunk:
                     break
                 part = s3_client.upload_part(
@@ -201,14 +201,6 @@ def _download_file(callback, src_bucket, src_key, src_version, dest_path, overri
     return pathlib.Path(dest_path).as_uri()
 
 
-NO_OP_COPY_ERROR_MESSAGE = ("An error occurred (InvalidRequest) when calling "
-                            "the CopyObject operation: This copy request is illegal "
-                            "because it is trying to copy an object to itself "
-                            "without changing the object's metadata, storage "
-                            "class, website redirect location or encryption "
-                            "attributes.")
-
-
 def _copy_remote_file(callback, size, src_bucket, src_key, src_version,
                       dest_bucket, dest_key, override_meta, extra_args=None):
     src_params = dict(
@@ -220,37 +212,62 @@ def _copy_remote_file(callback, size, src_bucket, src_key, src_version,
             VersionId=src_version
         )
 
-    params = dict(
-        CopySource=src_params,
-        Bucket=dest_bucket,
-        Key=dest_key
-    )
-    if override_meta is None:
-        params.update(dict(
-            MetadataDirective='COPY'
-        ))
-    else:
-        params.update(dict(
-            MetadataDirective='REPLACE',
-            Metadata={HELIUM_METADATA: json.dumps(override_meta)}
-        ))
+    if size < s3_transfer_config.multipart_threshold:
+        params = dict(
+            CopySource=src_params,
+            Bucket=dest_bucket,
+            Key=dest_key
+        )
+        if override_meta is None:
+            params.update(dict(
+                MetadataDirective='COPY'
+            ))
+        else:
+            params.update(dict(
+                MetadataDirective='REPLACE',
+                Metadata={HELIUM_METADATA: json.dumps(override_meta)}
+            ))
 
-    if extra_args:
-        params.update(extra_args)
+        if extra_args:
+            params.update(extra_args)
 
-    try:
         resp = s3_client.copy_object(**params)
         callback(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         return make_s3_url(dest_bucket, dest_key, version_id)
-    except ClientError as e:
-        # suppress error from copying a file to itself
-        if str(e) == NO_OP_COPY_ERROR_MESSAGE:
-            callback(size)
-            # TODO: We need to return a new URL, but the error does not tell us
-            # the file's version ID!
-            return
-        raise
+    else:
+        if override_meta is None:
+            resp = s3_client.head_object(Bucket=src_bucket, Key=src_key)
+            metadata = resp['Metadata']
+        else:
+            metadata = {HELIUM_METADATA: json.dumps(override_meta)}
+        resp = s3_client.create_multipart_upload(
+            Bucket=dest_bucket,
+            Key=dest_key,
+            Metadata=metadata,
+        )
+        upload_id = resp['UploadId']
+        parts = []
+        for i, start in enumerate(range(0, size, s3_transfer_config.multipart_chunksize), 1):
+            end = min(start + s3_transfer_config.multipart_chunksize, size)
+            part = s3_client.upload_part_copy(
+                CopySource=src_params,
+                CopySourceRange=f'bytes={start}-{end-1}',
+                Bucket=dest_bucket,
+                Key=dest_key,
+                UploadId=upload_id,
+                PartNumber=i
+            )
+            parts.append({"PartNumber": i, "ETag": part["CopyPartResult"]["ETag"]})
+            callback(end - start)
+        resp = s3_client.complete_multipart_upload(
+            Bucket=dest_bucket,
+            Key=dest_key,
+            UploadId=upload_id,
+            MultipartUpload={"Parts": parts}
+        )
+        version_id = resp.get('VersionId')  # Absent in unversioned buckets.
+        return make_s3_url(dest_bucket, dest_key, version_id)
 
 
 def _copy_file_list_internal(file_list):
@@ -664,7 +681,7 @@ def select(url, query, meta=None, raw=False, **kwargs):
     least.  This function returns the result as a dataframe instead.  It also
     performs the following actions, for convenience:
 
-    * If quilt3 metadata is given, necessary info to handle the select query is
+    * If t4 metadata is given, necessary info to handle the select query is
       pulled from the format metadata.
     * If no metadata is present, but the URL indicates an object with a known
       extension, the file format (and potentially compression) are determeined
