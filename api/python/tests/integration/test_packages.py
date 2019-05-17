@@ -1,4 +1,5 @@
-""" Integration tests for Quilt Packages. """
+""" Integration tests for T4 Packages. """
+from io import BytesIO
 import os
 import pathlib
 from pathlib import Path
@@ -8,9 +9,9 @@ import jsonlines
 from unittest.mock import patch, call, ANY
 import pytest
 
-import quilt3
-from quilt3 import Package
-from quilt3.util import (QuiltException, APP_NAME, APP_AUTHOR, BASE_DIR, BASE_PATH,
+import t4
+from t4 import Package
+from t4.util import (QuiltException, APP_NAME, APP_AUTHOR, BASE_DIR, BASE_PATH,
                      validate_package_name, parse_file_url, fix_url)
 
 from ..utils import QuiltTestCase
@@ -23,7 +24,7 @@ REMOTE_MANIFEST = DATA_DIR / 't4_manifest.jsonl'
 def mock_make_api_call(self, operation_name, kwarg):
     """ Mock boto3's AWS API Calls for testing. """
     if operation_name == 'GetObject':
-        parsed_response = {'Body': {'foo'}}
+        parsed_response = {'Body': BytesIO(b'foo')}
         return parsed_response
     if operation_name == 'ListObjectsV2':
         parsed_response = {'CommonPrefixes': ['foo']}
@@ -36,10 +37,6 @@ def mock_make_api_call(self, operation_name, kwarg):
         }
         return parsed_response
     raise NotImplementedError(operation_name)
-
-
-def no_op_mock(*args, **kwargs):
-    pass
 
 
 class PackageTest(QuiltTestCase):
@@ -111,7 +108,7 @@ class PackageTest(QuiltTestCase):
             assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
 
         new_base_path = Path(BASE_PATH, ".quilttest")
-        with patch('quilt3.packages.get_from_config') as mock_config:
+        with patch('t4.packages.get_from_config') as mock_config:
             mock_config.return_value = new_base_path
             top_hash = new_pkg.build("Quilt/Test").top_hash
             out_path = Path(new_base_path, ".quilt/packages", top_hash).resolve()
@@ -119,20 +116,20 @@ class PackageTest(QuiltTestCase):
                 pkg = Package.load(fd)
                 assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
 
-        with patch('quilt3.packages.get_from_config') as mock_config:
+        with patch('t4.packages.get_from_config') as mock_config:
             mock_config.return_value = new_base_path
             new_pkg.push("Quilt/Test")
             with open(out_path) as fd:
                 pkg = Package.load(fd)
                 assert pkg['bar'].physical_keys[0].endswith('.quilttest/Quilt/Test/bar')
 
-    @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
+    @patch('t4.Package.browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        with patch('quilt3.Package.push') as push_mock:
+        with patch('t4.Package.push') as push_mock:
             Package.install('Quilt/nice-name', registry='s3://my-test-bucket')
             push_mock.assert_called_once_with(
-                dest=quilt3.util.get_install_location(),
+                dest=t4.util.get_install_location(),
                 name='Quilt/nice-name',
                 registry=ANY
             )
@@ -159,7 +156,7 @@ class PackageTest(QuiltTestCase):
 
     def test_browse_package_from_registry(self):
         """ Verify loading manifest locally and from s3 """
-        with patch('quilt3.Package._from_path') as pkgmock:
+        with patch('t4.Package._from_path') as pkgmock:
             registry = BASE_PATH.as_uri()
             pkg = Package()
             pkgmock.return_value = pkg
@@ -178,7 +175,7 @@ class PackageTest(QuiltTestCase):
 
             pkgmock.reset_mock()
 
-            with patch('quilt3.packages.get_bytes') as dl_mock:
+            with patch('t4.packages.get_bytes') as dl_mock:
                 dl_mock.return_value = (top_hash.encode('utf-8'), None)
                 pkg = Package.browse('Quilt/nice-name', registry='local')
                 assert registry + '/.quilt/named_packages/Quilt/nice-name/latest' \
@@ -199,39 +196,39 @@ class PackageTest(QuiltTestCase):
                     in [x[0][0] for x in pkgmock.call_args_list]
 
             pkgmock.reset_mock()
-            with patch('quilt3.packages.get_bytes') as dl_mock:
+            with patch('t4.packages.get_bytes') as dl_mock:
                 dl_mock.return_value = (top_hash.encode('utf-8'), None)
                 pkg = Package.browse('Quilt/nice-name', registry=remote_registry)
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
             # default remote registry failure case
-            with patch('quilt3.packages.get_from_config', return_value=None):
+            with patch('t4.packages.get_from_config', return_value=None):
                 with pytest.raises(QuiltException):
                     Package.browse('Quilt/nice-name')
 
     def test_local_install(self):
         """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
+        with patch('t4.packages.get_from_config') as get_config_mock, \
+            patch('t4.Package.push') as push_mock:
             local_registry = '.'
             get_config_mock.return_value = local_registry
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
-            quilt3.Package.install('Quilt/nice-name', registry='local', dest='./')
+            t4.Package.install('Quilt/nice-name', registry='local', dest='./')
             push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=local_registry)
 
     def test_remote_install(self):
         """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
+        with patch('t4.packages.get_from_config') as get_config_mock, \
+            patch('t4.Package.push') as push_mock:
             remote_registry = '.'
             get_config_mock.return_value = remote_registry
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
-            quilt3.Package.install('Quilt/nice-name', dest='./')
+            t4.Package.install('Quilt/nice-name', dest='./')
             push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=remote_registry)
 
     def test_package_fetch(self):
@@ -289,25 +286,25 @@ class PackageTest(QuiltTestCase):
             pkg.set('foo', DATA_DIR / 'foo.txt')['foo'].fetch(DATA_DIR / 'foo.txt')
 
         # The key gets re-rooted correctly.
-        pkg = quilt3.Package().set('foo', DATA_DIR / 'foo.txt')
+        pkg = t4.Package().set('foo', DATA_DIR / 'foo.txt')
         new_pkg_entry = pkg['foo'].fetch('bar.txt')
         out_abs_path = f'file://{pathlib.Path(".").absolute().as_posix()}/bar.txt'
         assert new_pkg_entry.physical_keys[0] == out_abs_path
 
     def test_fetch_default_dest(tmpdir):
         """Verify fetching a package entry to a default destination."""
-        with patch('quilt3.packages.copy_file') as copy_mock:
+        with patch('t4.packages.copy_file') as copy_mock:
             (Package()
              .set('foo', os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))['foo']
              .fetch())
             filepath = fix_url(os.path.join(os.path.dirname(__file__), 'data', 'foo.txt'))
             copy_mock.assert_called_once_with(filepath, ANY, ANY)
 
-    def test_load_into_quilt3(self):
+    def test_load_into_t4(self):
         """ Verify loading local manifest and data into S3. """
-        with patch('quilt3.packages.put_bytes') as bytes_mock, \
-            patch('quilt3.data_transfer._upload_file') as file_mock, \
-            patch('quilt3.packages.get_from_config') as config_mock:
+        with patch('t4.packages.put_bytes') as bytes_mock, \
+            patch('t4.data_transfer._upload_file') as file_mock, \
+            patch('t4.packages.get_from_config') as config_mock:
             file_mock.return_value = 'foo.txt'
             config_mock.return_value = 's3://my_test_bucket'
             new_pkg = Package()
@@ -328,9 +325,9 @@ class PackageTest(QuiltTestCase):
 
     def test_local_push(self):
         """ Verify loading local manifest and data into S3. """
-        with patch('quilt3.packages.put_bytes') as bytes_mock, \
-            patch('quilt3.data_transfer._copy_local_file') as file_mock, \
-            patch('quilt3.packages.get_from_config') as config_mock:
+        with patch('t4.packages.put_bytes') as bytes_mock, \
+            patch('t4.data_transfer._copy_local_file') as file_mock, \
+            patch('t4.packages.get_from_config') as config_mock:
             file_mock.return_value = 'foo.txt'
             config_mock.return_value = 'package_contents'
             new_pkg = Package()
@@ -443,7 +440,7 @@ class PackageTest(QuiltTestCase):
 
     def test_s3_set_dir(self):
         """ Verify building a package from an S3 directory. """
-        with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
+        with patch('t4.packages.list_object_versions') as list_object_versions_mock:
             pkg = Package()
 
             list_object_versions_mock.return_value = ([
@@ -495,24 +492,24 @@ class PackageTest(QuiltTestCase):
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
         temp_local_registry = Path('test_registry').resolve().as_uri() + '/.quilt'
-        with patch('quilt3.packages.get_package_registry', lambda path: temp_local_registry), \
-            patch('quilt3.api.get_package_registry', lambda path: temp_local_registry):
+        with patch('t4.packages.get_package_registry', lambda path: temp_local_registry), \
+            patch('t4.api.get_package_registry', lambda path: temp_local_registry):
             # Build a new package into the local registry.
             Package().build("Quilt/Foo")
             Package().build("Quilt/Bar")
             Package().build("Quilt/Test")
 
             # Verify packages are returned.
-            pkgs = quilt3.list_packages()
+            pkgs = t4.list_packages()
             assert len(pkgs) == 3
             assert "Quilt/Foo" in pkgs
             assert "Quilt/Bar" in pkgs
 
             # Verify 'local' keyword works as expected.
-            assert list(pkgs) == list(quilt3.list_packages('local'))
+            assert list(pkgs) == list(t4.list_packages('local'))
 
             # Verify specifying a local path explicitly works as expected.
-            assert list(pkgs) == list(quilt3.list_packages(
+            assert list(pkgs) == list(t4.list_packages(
                 pathlib.Path(temp_local_registry).parent.as_posix()
             ))
 
@@ -524,11 +521,11 @@ class PackageTest(QuiltTestCase):
 
             # Test unnamed packages are not added.
             Package().build()
-            pkgs = quilt3.list_packages()
+            pkgs = t4.list_packages()
             assert len(pkgs) == 3
 
             # Verify manifest is registered by hash when local path given
-            pkgs = quilt3.list_packages("/")
+            pkgs = t4.list_packages("/")
             assert "Quilt/Foo" in pkgs
             assert "Quilt/Bar" in pkgs
 
@@ -670,10 +667,10 @@ class PackageTest(QuiltTestCase):
             else:
                 raise ValueError
 
-        with patch('quilt3.api.list_objects', side_effect=pseudo_list_objects), \
-            patch('quilt3.api.get_bytes', side_effect=pseudo_get_bytes), \
-            patch('quilt3.Package.browse', return_value=Package()):
-            pkgs = quilt3.list_packages('s3://my_test_bucket/')
+        with patch('t4.api.list_objects', side_effect=pseudo_list_objects), \
+            patch('t4.api.get_bytes', side_effect=pseudo_get_bytes), \
+            patch('t4.Package.browse', return_value=Package()):
+            pkgs = t4.list_packages('s3://my_test_bucket/')
 
             assert len(pkgs) == 1
             assert list(pkgs) == ['foo/bar']
@@ -763,9 +760,9 @@ class PackageTest(QuiltTestCase):
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test")
-        quilt3.delete_package('Quilt/Test', registry=BASE_PATH)
+        t4.delete_package('Quilt/Test', registry=BASE_PATH)
 
-        assert 'Quilt/Test' not in quilt3.list_packages()
+        assert 'Quilt/Test' not in t4.list_packages()
         assert top_hash not in [p.name for p in
                                 Path(BASE_PATH, '.quilt/packages').iterdir()]
 
@@ -777,14 +774,14 @@ class PackageTest(QuiltTestCase):
         """
         top_hash = Package().build("Quilt/Test1").top_hash
         top_hash = Package().build("Quilt/Test2").top_hash
-        quilt3.delete_package('Quilt/Test1', registry=BASE_PATH)
+        t4.delete_package('Quilt/Test1', registry=BASE_PATH)
 
-        assert 'Quilt/Test1' not in quilt3.list_packages()
+        assert 'Quilt/Test1' not in t4.list_packages()
         assert top_hash in [p.name for p in
                             Path(BASE_PATH, '.quilt/packages').iterdir()]
 
-        quilt3.delete_package('Quilt/Test2', registry=BASE_PATH)
-        assert 'Quilt/Test2' not in quilt3.list_packages()
+        t4.delete_package('Quilt/Test2', registry=BASE_PATH)
+        assert 'Quilt/Test2' not in t4.list_packages()
         assert top_hash not in [p.name for p in
                                 Path(BASE_PATH, '.quilt/packages').iterdir()]
 
@@ -802,12 +799,12 @@ class PackageTest(QuiltTestCase):
 
         def get_bytes_mock(*args): return b'101', None
 
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
+        with patch('t4.api.list_packages', new=list_packages_mock), \
+                patch('t4.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
+                patch('t4.api.list_objects', new=list_objects_mock), \
+                patch('t4.api.get_bytes', new=get_bytes_mock), \
+                patch('t4.api.delete_object') as delete_mock:
+            t4.delete_package('Quilt/Test', registry='s3://test-bucket')
 
             delete_mock.assert_any_call('test-bucket', '.quilt/packages/101')
             delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test/0')
@@ -832,12 +829,12 @@ class PackageTest(QuiltTestCase):
 
         def get_bytes_mock(*args): return b'101', None
 
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test1', registry='s3://test-bucket')
+        with patch('t4.api.list_packages', new=list_packages_mock), \
+                patch('t4.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
+                patch('t4.api.list_objects', new=list_objects_mock), \
+                patch('t4.api.get_bytes', new=get_bytes_mock), \
+                patch('t4.api.delete_object') as delete_mock:
+            t4.delete_package('Quilt/Test1', registry='s3://test-bucket')
 
             # the reference count for the tophash 101 is still one, so it should still exist
             assert call('test-bucket', '.quilt/packages/101') not in delete_mock.call_args_list
@@ -850,16 +847,12 @@ class PackageTest(QuiltTestCase):
         with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call):
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
-            with patch('quilt3.data_transfer._download_file', return_value='foo.txt'), \
-                    patch('quilt3.Package.build', new=no_op_mock), \
-                    patch('quilt3.packages.get_from_config') as config_mock:
-                config_mock.return_value = BASE_DIR
-                pkg.push('Quilt/test_pkg_name', 'pkg', message='test_message')
-                assert pkg._meta['message'] == 'test_message'
+            pkg.push('Quilt/test_pkg_name', 'pkg', message='test_message')
+            assert pkg._meta['message'] == 'test_message'
 
-                # ensure messages are strings
-                with pytest.raises(ValueError):
-                    pkg.push('Quilt/test_pkg_name', 'pkg', message={})
+            # ensure messages are strings
+            with pytest.raises(ValueError):
+                pkg.push('Quilt/test_pkg_name', 'pkg', message={})
 
     def test_overwrite_dir_fails(self):
         with pytest.raises(QuiltException):
@@ -902,7 +895,7 @@ class PackageTest(QuiltTestCase):
         assert repr(pkg) == TEST_REPR
 
     def test_remote_repr(self):
-        with patch('quilt3.packages.get_size_and_meta', return_value=(0, dict(), '0')):
+        with patch('t4.packages.get_size_and_meta', return_value=(0, dict(), '0')):
             TEST_REPR = (
                 "(remote Package)\n"
                 " └─asdf\n"
@@ -972,18 +965,18 @@ class PackageTest(QuiltTestCase):
 
 
     def test_import(self):
-        with patch('quilt3.Package.browse') as browse_mock, \
-            patch('quilt3.imports.list_packages') as list_packages_mock:
-            browse_mock.return_value = quilt3.Package()
+        with patch('t4.Package.browse') as browse_mock, \
+            patch('t4.imports.list_packages') as list_packages_mock:
+            browse_mock.return_value = t4.Package()
             list_packages_mock.return_value = ['foo/bar', 'foo/baz']
 
-            from quilt3.data.foo import bar
+            from t4.data.foo import bar
             assert isinstance(bar, Package)
             browse_mock.assert_has_calls(
                 [call('foo/baz', registry=ANY), call('foo/bar', registry=ANY)], any_order=True
             )
 
-            from quilt3.data import foo
+            from t4.data import foo
             assert hasattr(foo, 'bar') and hasattr(foo, 'baz')
 
 
@@ -1016,25 +1009,25 @@ class PackageTest(QuiltTestCase):
         currdir = 'file://' + pathlib.Path('.').absolute().as_posix() + '/'
 
         # consistent local case
-        pkg = quilt3.Package().set_dir("/", "./")
+        pkg = t4.Package().set_dir("/", "./")
         assert pkg.get() == currdir
 
         # package with one inconsistent path, leading case
-        pkg = quilt3.Package().set_dir("/", "./")
+        pkg = t4.Package().set_dir("/", "./")
         pkg.set('badpath', 'bar')
         with pytest.raises(QuiltException):
             pkg.get()
 
         # package with one inconsistent path, training case
-        pkg = quilt3.Package().set_dir("/", "./")
+        pkg = t4.Package().set_dir("/", "./")
         # prefix with 'z_' to ensure that this entry is last in sorted order
         pkg.set('z_badpath', 'bar')
         with pytest.raises(QuiltException):
             pkg.get()
 
         # package with inconsistent schemes
-        with patch('quilt3.packages.get_size_and_meta', return_value=(0, dict(), '0')):
-            pkg = quilt3.Package().set_dir("/", "./")
+        with patch('t4.packages.get_size_and_meta', return_value=(0, dict(), '0')):
+            pkg = t4.Package().set_dir("/", "./")
             pkg.set("bar", "s3://test-bucket/bar")
             with pytest.raises(QuiltException):
                 pkg.get()
@@ -1042,7 +1035,7 @@ class PackageTest(QuiltTestCase):
         # package with inconsistent root directories
         with open('foo_dir/foo', 'w') as fd:
             fd.write(fd.name)
-        pkg = quilt3.Package().set_dir("/", "./")
+        pkg = t4.Package().set_dir("/", "./")
         pkg.set('foo', 'foo_dir/foo')
         with pytest.raises(QuiltException):
             pkg.get()
