@@ -168,6 +168,8 @@ def _download_file(callback, src_bucket, src_key, src_version, dest_path, overri
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
+    dest_file.parent.mkdir(parents=True, exist_ok=True)
+
     params = dict(Bucket=src_bucket, Key=src_key)
     if src_version is not None:
         params.update(dict(VersionId=src_version))
@@ -270,6 +272,44 @@ def _copy_remote_file(callback, size, src_bucket, src_key, src_version,
         return make_s3_url(dest_bucket, dest_key, version_id)
 
 
+def _upload_or_copy_file(progress_callback, size, src_path, dest_bucket, dest_path, override_meta):
+    # Optimization: check if the remote file already exists and has the right ETag,
+    # and skip the upload.
+    if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
+        try:
+            resp = s3_client.head_object(Bucket=dest_bucket, Key=dest_path)
+        except ClientError:
+            # Destination doesn't exist, so fall through to the normal upload.
+            pass
+        else:
+            # Check the ETag.
+            dest_size = resp['ContentLength']
+            dest_etag = resp['ETag']
+            dest_version_id = resp['VersionId']
+            if size == dest_size:
+                src_etag = _calculate_etag(src_path)
+                if src_etag == dest_etag:
+                    if override_meta is None:
+                        # Nothing more to do. We should not attempt to copy the object because
+                        # that would cause the "copy object to itself" error.
+                        progress_callback(size)
+                        return make_s3_url(dest_bucket, dest_path, dest_version_id)
+                    else:
+                        # NOTE(dima): There is technically a race condition here: if the S3 file
+                        # got modified after the `head_object` call AND we have no version ID,
+                        # we could end up with mismatched body and metadata. It makes no sense
+                        # for the user to perform such actions, but just in case, pass
+                        # CopySourceIfMatch to make the request fail.
+                        extra_args = dict(CopySourceIfMatch=src_etag)
+                        return _copy_remote_file(
+                            progress_callback, size, dest_bucket, dest_path, dest_version_id,
+                            dest_bucket, dest_path, override_meta, extra_args
+                        )
+
+    # If the optimization didn't happen, do the normal upload.
+    return _upload_file(progress_callback, size, src_path, dest_bucket, dest_path, override_meta)
+
+
 def _copy_file_list_internal(file_list):
     """
     Takes a list of tuples (src, dest, size, override_meta) and copies the data in parallel.
@@ -295,49 +335,13 @@ def _copy_file_list_internal(file_list):
                     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
                     if dest_version_id:
                         raise ValueError("Cannot set VersionId on destination")
-
-                    # Optimization: check if the remote file already exists and has the right ETag,
-                    # and skip the upload.
-                    if size >= UPLOAD_ETAG_OPTIMIZATION_THRESHOLD:
-                        try:
-                            resp = s3_client.head_object(Bucket=dest_bucket, Key=dest_path)
-                        except ClientError:
-                            # Destination doesn't exist, so fall through to the normal upload.
-                            pass
-                        else:
-                            # Check the ETag.
-                            dest_size = resp['ContentLength']
-                            dest_etag = resp['ETag']
-                            dest_version_id = resp['VersionId']
-                            if size == dest_size:
-                                src_etag = _calculate_etag(src_path)
-                                if src_etag == dest_etag:
-                                    if override_meta is None:
-                                        # Nothing more to do. We should not attempt to copy the object because
-                                        # that would cause the "copy object to itself" error.
-                                        progress_callback(size)
-                                        return make_s3_url(dest_bucket, dest_path, dest_version_id)
-                                    else:
-                                        # NOTE(dima): There is technically a race condition here: if the S3 file
-                                        # got modified after the `head_object` call AND we have no version ID,
-                                        # we could end up with mismatched body and metadata. It makes no sense
-                                        # for the user to perform such actions, but just in case, pass
-                                        # CopySourceIfMatch to make the request fail.
-                                        extra_args = dict(CopySourceIfMatch=src_etag)
-                                        return _copy_remote_file(
-                                            progress_callback, size, dest_bucket, dest_path, dest_version_id,
-                                            dest_bucket, dest_path, override_meta, extra_args
-                                        )
-
-                    # If the optimization didn't happen, do the normal upload.
-                    return _upload_file(progress_callback, size, src_path, dest_bucket, dest_path, override_meta)
+                    return _upload_or_copy_file(progress_callback, size, src_path, dest_bucket, dest_path, override_meta)
                 else:
                     raise NotImplementedError
             elif src_url.scheme == 's3':
                 src_bucket, src_path, src_version_id = parse_s3_url(src_url)
                 if dest_url.scheme == 'file':
                     dest_path = parse_file_url(dest_url)
-                    pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
                     return _download_file(progress_callback, src_bucket, src_path, src_version_id, dest_path, override_meta)
                 elif dest_url.scheme == 's3':
                     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
