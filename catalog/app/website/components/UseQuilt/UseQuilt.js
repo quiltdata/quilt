@@ -5,17 +5,11 @@ import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import * as Layout from 'components/Layout'
 
-import Bar from './Bar'
-import Bullet from './Bullet'
-import Illustration from './Illustration'
+import Bar from 'website/components/Bar'
+import Bullet from 'website/components/Bullet'
+import Illustration from 'website/components/Illustration'
 
 import amazon from './amazon.svg'
-import personaScientist from './persona-data-scientists.png'
-import personaScientist2x from './persona-data-scientists@2x.png'
-import personaEngineer from './persona-data-engineers.png'
-import personaEngineer2x from './persona-data-engineers@2x.png'
-import personaHead from './persona-head-of-data-science.png'
-import personaHead2x from './persona-head-of-data-science@2x.png'
 
 const Amazon = styled((props) => <img alt="" src={amazon} {...props} />)({
   width: 74,

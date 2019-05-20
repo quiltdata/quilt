@@ -1,8 +1,6 @@
-import * as React from 'react'
 import { createMuiTheme } from '@material-ui/core/styles'
-import { ThemeProvider } from '@material-ui/styles'
 
-const createTheme = (t) =>
+export default (t) =>
   createMuiTheme({
     ...t,
     palette: {
@@ -81,13 +79,3 @@ const createTheme = (t) =>
       },
     },
   })
-
-const expose = (create) => (t) => {
-  const mt = create(t)
-  window.MTHEME = mt
-  return mt
-}
-
-export default ({ children }) => (
-  <ThemeProvider theme={expose(createTheme)}>{children}</ThemeProvider>
-)
