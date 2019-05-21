@@ -300,7 +300,9 @@ class TestBucket(QuiltTestCase):
 
     # further testing in test_search.py
     @patch('quilt.bucket.search')
-    def test_search_bucket(self, search_mock):
+    @patch('quilt.bucket.get_from_config')
+    def test_search_bucket(self, config_mock, search_mock):
+        config_mock.return_value = 'https://foo.bar'
         content = {
             'federations': ['/federation.json'],
         }
@@ -318,6 +320,7 @@ class TestBucket(QuiltTestCase):
         b = Bucket('s3://quilt-testing-fake')
         b.search('blah', limit=1)
 
+        config_mock.assert_called_once_with('navigator_url')
         search_mock.assert_called_once_with('blah', 'https://es-fake.endpoint', limit=1, aws_region='us-meow')
 
     @patch('quilt.bucket.put_bytes')

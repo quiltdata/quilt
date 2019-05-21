@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import numpy as np
+import pathlib
 import pytest
 import responses
 from ruamel.yaml import YAML
@@ -23,14 +24,17 @@ class TestAPI(QuiltTestCase):
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
 
-        he.config('foo.bar')
+        mock_config = pathlib.Path('config.yml')
+
+        with patch('quilt.api.CONFIG_PATH', mock_config):
+            he.config('foo.bar')
 
         # TODO: This seems unnecessary?
         assert len(self.requests_mock.calls) == 1
         assert self.requests_mock.calls[0].request.url == 'https://foo.bar/config.json'
 
         yaml = YAML()
-        config = yaml.load(util.CONFIG_PATH)
+        config = yaml.load(mock_config)
 
         content['default_local_registry'] = util.BASE_PATH.as_uri()
         content['default_remote_registry'] = None
