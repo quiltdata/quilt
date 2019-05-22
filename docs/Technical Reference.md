@@ -51,7 +51,7 @@ the elastic load balancer of the Quilt server. See the above for details.
 1. For maximum security, Quilt requires **a region that supports [AWS Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**. As of this writing, all U.S. regions support Fargate.
 
 1. **An S3 Bucket** for your team data. This may be a new or existing bucket.
-The bucket should not have any notifications
+The bucket should not have any notifications attached to it
 (S3 Console > Bucket > Properties > Events).
 Quilt will need to install its own notifications.
 Installing Quilt will modify the following Bucket characteristics:
@@ -65,6 +65,9 @@ Email [contact@quiltdata.io](mailto:contact@quiltdata.io), with the subodomain t
 (e.g. https://quilt.example.com) to obtain a license key.
 
 1. An **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
+
+1. Available **CloudTrail Trails** in the region where you wish to host your stack
+([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 
 ### AWS Service Catalog
 

@@ -1,6 +1,6 @@
 The Quilt T4 Catalog is the second half of Quilt T4. It provides an interface on top of your S3 bucket that brings T4 features like data packages and search to the web.
 
-**[To get a hands on demo, check out the public demo catalog](https://aics.quiltdata.com/b/quilt-example).**
+**[To get a hands on demo, check out the public demo catalog](https://allencell.quiltdata.com/b/quilt-example).**
 
 Note that you can use the T4 Python API without using the catalog product, but they are designed to work together.
 
@@ -47,4 +47,4 @@ The admin page is only accessible to catalog admins. Only admins may create othe
 
 You may invite new users to collaborate on your T4 bucket via email, again from the admin interface.
 
-**[To learn more, check out the public demo catalog](https://aics.quiltdata.com/b/quilt-example)**.
+**[To learn more, check out the public demo catalog](https://allencell.quiltdata.com/b/quilt-example)**.

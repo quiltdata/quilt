@@ -9,11 +9,14 @@
 [![pypi](https://img.shields.io/pypi/v/t4.svg?style=flat-square)](https://pypi.org/project/t4/)
 
 
-## Collaborate in S3
+## Overview
+[Rethinking S3: Announcing T4, a team data hub](https://blog.quiltdata.com/rethinking-s3-announcing-t4-a-team-data-hub-8e63ce7ec988).
 
-* Quilt adds search, content preview, versioning, and a Python API to any S3 bucket
-* Every file in Quilt is versioned and searchable
-* Quilt is for data scientists, data engineers, and data-driven teams
+## A team data hub for S3
+
+* T4 adds search, content preview, versioning, and a Python API to any S3 bucket
+* Every file in T4 is versioned and searchable
+* T4 is for data scientists, data engineers, and data-driven teams
 
 ![](https://github.com/quiltdata/t4/blob/master/docs/imgs/t4.gif?raw=true)
 

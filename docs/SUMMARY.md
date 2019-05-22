@@ -1,35 +1,34 @@
 # Summary
 
-* [Introduction](v3/README.md)
-* [Installation](v3/Installation.md)
-* [Quickstart](v3/Quickstart.md)
+* [Introduction](README.md)
+* [Installation](Installation.md)
+* [Quickstart](Quickstart.md)
 
 ### Walkthrough
 
-* [Creating a Package](v3/Walkthrough/Creating a Package.md)
-* [Distributing a Package](v3/Walkthrough/Distributing a Package.md)
-* [Installing a Package](v3/Walkthrough/Installing a Package.md)
-* [Reading from a Package](v3/Walkthrough/Reading from a Package.md)
-* [Working with the Catalog](v3/Walkthrough/Working with the Catalog.md)
-* [Working with a Bucket](v3/Walkthrough/Working with a Bucket.md)
+* [Creating a Package](Walkthrough/Creating a Package.md)
+* [Distributing a Package](Walkthrough/Distributing a Package.md)
+* [Installing a Package](Walkthrough/Installing a Package.md)
+* [Reading from a Package](Walkthrough/Reading from a Package.md)
+* [Working with the Catalog](Walkthrough/Working with the Catalog.md)
+* [Working with a Bucket](Walkthrough/Working with a Bucket.md)
 
 ### Advanced Usage
 
-* [Filtering a Package](v3/Advanced Features/Filtering a Package.md)
-* [.quiltignore](v3/Advanced Features/.quiltignore.md)
-* [Materialization](v3/Advanced Features/Materialization.md)
-* [Working with Manifests](v3/Advanced Features/Working with Manifests.md)
-* [S3 Select](v3/Advanced Features/S3 Select.md)
+* [Filtering a Package](Advanced Features/Filtering a Package.md)
+* [.quiltignore](Advanced Features/.quiltignore.md)
+* [Materialization](Advanced Features/Materialization.md)
+* [Working with Manifests](Advanced Features/Working with Manifests.md)
+* [S3 Select](Advanced Features/S3 Select.md)
 
 ### API Reference
 
-* [quilt3](v3/API Reference/api.md)
-* [quilt3.Package](v3/API Reference/Package.md)
-* [quilt3.Bucket](v3/API Reference/Bucket.md)
-* [quilt2](v2/SUMMARY.md)
+* [t4](API Reference/api.md)
+* [t4.Package](API Reference/Package.md)
+* [t4.Bucket](API Reference/Bucket.md)
 
 ### References
 
-* [Technical Reference](v3/Technical Reference.md)
-* [Contributing](v3/CONTRIBUTING.md)
-* [Further Reading](v3/Further Reading.md)
+* [Technical Reference](Technical Reference.md)
+* [Contributing](CONTRIBUTING.md)
+* [Further Reading](Further Reading.md)
