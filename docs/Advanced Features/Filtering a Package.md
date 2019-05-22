@@ -1,10 +1,10 @@
-`t4` provides a handful of functions for operating on the contents of a package in an entry-by-entry manner. These are helpful for performing more complicated parsing operations on the package:
+`quilt` provides a handful of functions for operating on the contents of a package in an entry-by-entry manner. These are helpful for performing more complicated parsing operations on the package:
 
 ```python
-import t4
+import quilt
 
 # create a package
-p = (t4.Package()
+p = (quilt.Package()
         .set_dir("foo/", "foo/")
         .set("bar", "bar"))
 

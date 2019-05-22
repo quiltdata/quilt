@@ -1,14 +1,14 @@
-T4 allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with T4. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
+Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with Quilt. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
 ## Connecting to a bucket
 
 To connect to an S3 `Bucket`:
 
 ```python
-b = t4.Bucket("s3://my-bucket")
+b = quilt.Bucket("s3://my-bucket")
 ```
 
-This requires that the bucket is configured to work with T4.
+This requires that the bucket is configured to work with Quilt.
 
 ## Introspecting a bucket
 
@@ -75,14 +75,14 @@ b.delete_dir("foo/")
 
 You can search for individual objects using `search`.
 
-Note that this feature is currently only supported for buckets backed by a T4 catalog instance. Before performing a search you must first configure a connection to that instance using `t4.config`.
+Note that this feature is currently only supported for buckets backed by a Quilt catalog instance. Before performing a search you must first configure a connection to that instance using `quilt.config`.
 
 ```python
 # for example
-t4.config(navigator_url="https://allencell.quiltdata.com")
+quilt.config(navigator_url="https://allencell.quiltdata.com")
 ```
 
-T4 supports unstructured search:
+Quilt supports unstructured search:
 
 ```bash
 $ python

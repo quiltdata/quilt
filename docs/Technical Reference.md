@@ -187,7 +187,6 @@ It is highly recommended that you continue to index all of the default files, so
 #### Search limitations
 
 * Queries containing the tilde (~), forward slash (/), back slash, and angle bracket ({, }, (, ), [, ]) must be quoted. For example search for `'~foo'`, not `~foo`.
-* The search index will only pick up objects written to S3 _after_ T4 was enabled on that bucket.
 * Files over 10 MB in size may cause search to fail.
 * Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-
 
@@ -197,7 +196,7 @@ By default, Quilt bucket search is only available to authorized Quilt users and 
 
 This section describes how to make your search endpoint available to anyone with valid AWS credentials.
 
-Go to your AWS Console. Under the `Services` dropdown at the top of the screen, choose `Elasticsearch Service`. Select the domain corresponding to your T4 stack.
+Go to your AWS Console. Under the `Services` dropdown at the top of the screen, choose `Elasticsearch Service`. Select the domain corresponding to your Quilt stack.
 
 Note the value of the `Domain ARN` for your search domain.
 
@@ -228,9 +227,9 @@ Select `Submit` and your search domain should now be open to the public.
 
 In this section we will discuss how you can configure your catalog instance using _federations_ and _bucket config_.
 
-When you create your T4 stack, you specify a *ConfigBucketName* in your stack parameters. This bucket will be created and populated with two files -- `config.json` and `federation.json`. `config.json` is the main navigator config file, and contains things that are specific to your navigator, like `defaultBucket` and `signInRedirect`. It also includes one or more references to federations, including your `federation.json`. `federation.json` is your default federation. It includes an inline bucket config for your T4 bucket.
+When you create your Quilt stack, you specify a *ConfigBucketName* in your stack parameters. This bucket will be created and populated with two files -- `config.json` and `federation.json`. `config.json` is the main navigator config file, and contains things that are specific to your navigator, like `defaultBucket` and `signInRedirect`. It also includes one or more references to federations, including your `federation.json`. `federation.json` is your default federation. It includes an inline bucket config for your Quilt bucket.
 
-A **federation** is just a list of bucket configurations. Your catalog will specify one or more federations from which it sources its bucket configs. Federations are a convenient way to manage collections of buckets that are useful in groups, like all the T4 buckets owned by a specific group or all public T4 buckets pertaining to a certain field. Each bucket configuration in a federation can be either a hyperlink (possibly relative) to a JSON file containing the bucket config, or an object containing the bucket config itself. 
+A **federation** is just a list of bucket configurations. Your catalog will specify one or more federations from which it sources its bucket configs. Federations are a convenient way to manage collections of buckets that are useful in groups, like all the Quilt buckets owned by a specific group or all public Quilt buckets pertaining to a certain field. Each bucket configuration in a federation can be either a hyperlink (possibly relative) to a JSON file containing the bucket config, or an object containing the bucket config itself. 
 
 An example:
 
@@ -246,7 +245,7 @@ An example:
 }
 ```
 
-A **bucket config**, meanwhile, is a JSON object that describes metadata associated with a T4 bucket. It is of the following form:
+A **bucket config**, meanwhile, is a JSON object that describes metadata associated with a Quilt bucket. It is of the following form:
 
 ```json
 {
@@ -254,17 +253,17 @@ A **bucket config**, meanwhile, is a JSON object that describes metadata associa
   "title": "friendly title to be displayed in the catalog drop-down",
   "icon": "square icon to be displayed in the catalog drop-down",
   "description": "short description of the bucket to be displayed in the catalog drop-down",
-  "searchEndpoint": "url of the search endpoint for your T4 bucket"
+  "searchEndpoint": "url of the search endpoint for your Quilt bucket"
 }
 ```
 
 A bucket config can be included inline in a federation, or it can be a standalone JSON file that is linked from a federation.
 
-### Preparing an AWS Role for use with T4
+### Preparing an AWS Role for use with Quilt
 
-These instructions document how to set up an existing role for use with T4. If the role you want to use doesn't exist yet, create it now.
+These instructions document how to set up an existing role for use with Quilt. If the role you want to use doesn't exist yet, create it now.
 
-Go to your T4 stack in CloudFormation. Go to `Outputs`, then find `RegistryRoleARN` and copy its value. It should look something like this: `arn:aws:iam::000000000000:role/stackname-ecsTaskExecutionRole`.
+Go to your Quilt stack in CloudFormation. Go to `Outputs`, then find `RegistryRoleARN` and copy its value. It should look something like this: `arn:aws:iam::000000000000:role/stackname-ecsTaskExecutionRole`.
 
 Go to the IAM console and navigate to `Roles`. Select the role you want to use. Go to the `Trust Relationships` tab for the role, and select `Edit Trust Relationship`. The statement might look something like this:
 
@@ -307,4 +306,4 @@ Note the comma after the object. Your trust relationship should now look somethi
 }
 ```
 
-You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `t4.admin.create_role`).
+You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt.admin.create_role`).

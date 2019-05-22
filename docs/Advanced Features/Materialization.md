@@ -14,7 +14,7 @@ Under the hood, there are just two differences between `push` and `build`:
 
 The latter of these two differences is known as **materialization**, and it means that `push` creates **materialized packages**: packages which point solely to files located in an S3 bucket.
 
-A materialized package is stronger than a unmaterialized (or "local") package because S3 guarantees that individual object versions are never lost or destroyed (assuming object versioning is enabled). Furthermore, only materialized packages may be browsed in the online T4 catalog.
+A materialized package is stronger than a unmaterialized (or "local") package because S3 guarantees that individual object versions are never lost or destroyed (assuming object versioning is enabled). Furthermore, only materialized packages may be browsed in the online Quilt catalog.
 
 ## Pushing unmaterialized packages
 
@@ -23,8 +23,8 @@ There are advanced use cases where automatically copying (potentially large) fil
 To push an _umaterialized_ file to a remote registry, provide `build` with a `registry`. For example:
 
 ```python
-import t4
-p = t4.Package().set("example.csv", "example.csv")
+import quilt
+p = quilt.Package().set("example.csv", "example.csv")
 p.build("username/packagename", registry="s3://my-bucket")
 ```
 

@@ -1,4 +1,4 @@
-T4 is an open source project, and we welcome contributions from the community.
+Quilt is an open source project, and we welcome contributions from the community.
 
 Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/quilt/blob/master/docs/CODE_OF_CONDUCT.md).
 
@@ -6,20 +6,20 @@ Contributors must adhere to the [Code of Conduct](https://github.com/quiltdata/q
 
 Unsure about something? To get support, check out our [Slack channel](https://quiltusers.slack.com/messages).
 
-Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/t4/issues).
+Found a bug? File it in our [GitHub issues](https://github.com/quiltdata/quilt/issues).
 
 ## Cloning
 
-To work on `t4` you will first need to clone the repository.
+To work on `quilt` you will first need to clone the repository.
 
 ```bash
-$ git clone https://github.com/quiltdata/t4
+$ git clone https://github.com/quiltdata/quilt
 ```
 
 You can then set up your own branch version of the code, and work on your changes for a pull request from there.
 
 ```bash
-$ cd t4
+$ cd quilt
 $ git checkout -B new-branch-name
 ```
 
@@ -27,14 +27,14 @@ $ git checkout -B new-branch-name
 
 ### Environment
 
-Use `pip` to install `t4` locally (including development dependencies):
+Use `pip` to install `quilt` locally (including development dependencies):
 
 ```bash
 $ cd api/python
 $ pip install -e .[extra]
 ```
 
-This will create an [editable install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs) of `t4`, allowing you to modify the code and test your changes right away.
+This will create an [editable install](https://pip.pypa.io/en/stable/reference/pip_install/#editable-installs) of `quilt`, allowing you to modify the code and test your changes right away.
 
 ### Testing
 
@@ -55,14 +55,14 @@ Note that, at the current time, it is only possible to run a local catalog if yo
 
 ### Environment
 
-Use `npm` to install the catalog (`t4-navigator`) dependencies locally:
+Use `npm` to install the catalog (`quilt-navigator`) dependencies locally:
 
 ```bash
 $ cd catalog
 $ npm install
 ```
 
-There is one known issue with installation. At time of writing, the `t4-navigator` package depends on `iltorb@1.3.10`, which may lack prebuilt binaries for your platform and may fall back on building from source using `node-gyp`. `node-gyp` depends on Python 2; if you only have Python 3 in your install environment it will fail.
+There is one known issue with installation. At time of writing, the `quilt-navigator` package depends on `iltorb@1.3.10`, which may lack prebuilt binaries for your platform and may fall back on building from source using `node-gyp`. `node-gyp` depends on Python 2; if you only have Python 3 in your install environment it will fail.
 
 To fix this, point `npm` to a Python 2 path on your machine. For example on macOS:
 
@@ -100,7 +100,7 @@ For `config.json` use the following template:
    "apiGatewayEndpoint": "$PREVIEW_ENDPOINT",
    "sentryDSN": "",
    "alwaysRequiresAuth": false,
-   "defaultBucket": "t4-staging",
+   "defaultBucket": "quilt-staging",
    "disableSignUp": true,
    "guestCredentials": {
       "accessKeyId": "$ACCESS_KEY_ID",
@@ -148,7 +148,7 @@ npm run test
 
 ## Updating documentation
 
-Documentation is served via GitBook, and is based on the `docs/` folder in the `master` branch of the `t4` repository.
+Documentation is served via GitBook, and is based on the `docs/` folder in the `master` branch of the `quilt` repository.
 
 Documentation changes go live at pull request merge time. There is currently no way to preview documentation updates except locally.
 

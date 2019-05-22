@@ -23,9 +23,9 @@
 
 ### API Reference
 
-* [t4](API Reference/api.md)
-* [t4.Package](API Reference/Package.md)
-* [t4.Bucket](API Reference/Bucket.md)
+* [quilt](API Reference/api.md)
+* [quilt.Package](API Reference/Package.md)
+* [quilt.Bucket](API Reference/Bucket.md)
 
 ### References
 

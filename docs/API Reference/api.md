@@ -1,31 +1,31 @@
 
-# t4
-T4 API
+# quilt
+Quilt API
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
-Set or read the T4 configuration.
+Set or read the Quilt configuration.
 
 To retrieve the current config, call directly, without arguments:
 
 ```python
-    >>> import t4
-    >>> t4.config()
+    >>> import quilt
+    >>> quilt.config()
 ```
 
 To trigger autoconfiguration, call with just the navigator URL:
 
 ```python
-    >>> t4.config('https://example.com')
+    >>> quilt.config('https://example.com')
 ```
 
 To set config values, call with one or more key=value pairs:
 
 ```python
-    >>> t4.config(navigator_url='http://example.com',
+    >>> quilt.config(navigator_url='http://example.com',
     ...           elastic_search_url='http://example.com/queries')
 ```
 
-Default config values can be found in `t4.util.CONFIG_TEMPLATE`.
+Default config values can be found in `quilt.util.CONFIG_TEMPLATE`.
 
 __Arguments__
 
@@ -34,7 +34,7 @@ __Arguments__
 
 __Returns__
 
-`T4Config`: (an ordered Mapping)
+`Quilt`: (an ordered Mapping)
 
 
 ## delete\_package(name, registry=None)  {#delete\_package}

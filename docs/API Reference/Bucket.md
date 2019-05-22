@@ -1,6 +1,6 @@
 
 # Bucket(self, bucket\_uri)  {#Bucket}
-Bucket interface for T4.
+Bucket interface for Quilt.
 
 **\_\_init\_\_**
 
@@ -104,7 +104,7 @@ __Arguments__
 * __key(str)__:  key in bucket to store file at
 * __path(str)__:  string representing local path to file
 Optional args:
-    meta(dict): T4 metadata to attach to file
+    meta(dict): Quilt metadata to attach to file
         Must be less than 2KiB serialized
 
 __Returns__

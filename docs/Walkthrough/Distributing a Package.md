@@ -5,8 +5,8 @@ Once your package is ready it's time to save and distribute it.
 To save a package to your local disk use `build`.
 
 ```python
-import t4
-p = t4.Package()
+import quilt
+p = quilt.Package()
 
 top_hash = p.build("username/packagename")
 ```
@@ -18,8 +18,8 @@ Building a package requires providing it with a name. Packages names must follow
 To share a package with others via a remote registry, `push` it:
 
 ```python
-import t4
-p = t4.Package()
+import quilt
+p = quilt.Package()
 p.push(
     "username/packagename",
     "s3://your-bucket",
@@ -32,10 +32,10 @@ p.push(
 If you omit a registry entirely, the default remote registry will be used:
 
 ```python
-import t4
-t4.config(default_remote_registry='s3://your-bucket')
+import quilt
+quilt.config(default_remote_registry='s3://your-bucket')
 # this now 'just works'
-t4.Package().push("username/packagename")  
+quilt.Package().push("username/packagename")  
 ```
 
 The default remote registry, if set, persists between sessions.
@@ -58,9 +58,9 @@ p.push(
 Once you build `build` or `push` a package, it has a *top_hash*:
 
 ```python
-import t4
+import quilt
 
-p = t4.Package()
+p = quilt.Package()
 p.build("username/packagename")
 p.top_hash
 
@@ -74,13 +74,13 @@ A top hash is a persistent, immutable reference to a specific version of a packa
 To delete a package from a registry:
 
 ```python
-import t4
+import quilt
 
 # delete a package in the local registry
-t4.delete_package("username/packagename")
+quilt.delete_package("username/packagename")
 
 # delete a package in a remote registry
-t4.delete_package("username/packagename", "s3://your-bucket")
+quilt.delete_package("username/packagename", "s3://your-bucket")
 ```
 
 Only do this if you really need to as this will break the package for anyone relying on it.

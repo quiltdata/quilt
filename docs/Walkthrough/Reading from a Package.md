@@ -1,8 +1,8 @@
 The examples in this section use the following mock package:
 
 ```python
-import t4
-p = (t4.Package()
+import quilt
+p = (quilt.Package()
         .set("trades.parquet", "trades.parquet")
         .set("symbols.yaml", "symbols.yaml")
         .set("commodities/gold.csv", "gold.csv")

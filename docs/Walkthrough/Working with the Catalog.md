@@ -1,12 +1,12 @@
-The Quilt T4 Catalog is the second half of Quilt T4. It provides an interface on top of your S3 bucket that brings T4 features like data packages and search to the web.
+The Quilt Catalog is the second half of Quilt. It provides an interface on top of your S3 bucket that brings Quilt features like data packages and search to the web.
 
 **[To get a hands on demo, check out the public demo catalog](https://allencell.quiltdata.com/b/quilt-example).**
 
-Note that you can use the T4 Python API without using the catalog product, but they are designed to work together.
+Note that you can use the Quilt Python API without using the catalog product, but they are designed to work together.
 
 ## Brief tour
 
-The T4 catalog provides a homepage for your catalog, based on a `README.md` file that you can optionally create at the top of your bucket.
+The Quilt catalog provides a homepage for your catalog, based on a `README.md` file that you can optionally create at the top of your bucket.
 
 ![](../imgs/catalog_homepage.png)
 
@@ -37,7 +37,7 @@ Colocating data with context in this way is a powerful way of making your data p
 
 ## Access control
 
-The T4 catalog includes an admin panel. This is used to control user authorization to your catalog.
+The Quilt catalog includes an admin panel. This is used to control user authorization to your catalog.
 
 ![](../imgs/catalog_admin_panel.png)
 
@@ -45,6 +45,6 @@ You can create and delete, activate and deactivate, admin and de-admin, and assi
 
 The admin page is only accessible to catalog admins. Only admins may create other admins, and the catalog enforces a constraint that there must always be at least one admin account on the catalog (a default one is created as part of the catalog standup process).
 
-You may invite new users to collaborate on your T4 bucket via email, again from the admin interface.
+You may invite new users to collaborate on your QUILT bucket via email, again from the admin interface.
 
 **[To learn more, check out the public demo catalog](https://allencell.quiltdata.com/b/quilt-example)**.

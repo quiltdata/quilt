@@ -1,9 +1,9 @@
-Data in T4 is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata:
+Data in Quilt is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata:
 
 ```python
-import t4
+import quilt
 # initialize a package
-p = t4.Package()
+p = quilt.Package()
 ```
 
 ## Adding data to a package
@@ -80,7 +80,7 @@ Note that this will only remove this piece of data from the package. It will not
 Packages support metadata anywhere in the package. To set metadata on package entries or directories, use the `meta` argument:
 
 ```python
-p = (t4.Package()
+p = (quilt.Package()
     .set("foo.csv", "foo.csv", meta={"type": "csv"})
     .set_dir("stuff/", "stuff/", meta={"origin": "unknown"})
 )

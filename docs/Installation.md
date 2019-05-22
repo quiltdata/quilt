@@ -10,7 +10,7 @@ Quilt has two user-facing components:
 Python 3.6 or higher is required.
 
 ```bash
-$ pip install t4
+$ pip install quilt
 ```
 
 If you wish to use AWS resources, such as S3 buckets, you will need valid AWS credentials. If this is your first time using the AWS CLI, run the following:
@@ -24,10 +24,10 @@ If you are already using the AWS CLI, you may use your existing profile, or [cre
 
 ### Developer
 
-Install the current T4 client from `master`:
+Install the current Quilt client from `master`:
 
 ```bash
-$ pip install git+https://github.com/quiltdata/t4.git#subdirectory=api/python
+$ pip install git+https://github.com/quiltdata/quilt.git#subdirectory=api/python
 ```
 
 ## Web catalog and backend services (on AWS)

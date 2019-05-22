@@ -4,8 +4,8 @@ Every time you save a data package to a registry you also save its manifest. You
 
 ```bash
 $ python
->>> import t4
->>> p = t4.Package().set("foo.txt", "foo.txt")
+>>> import quilt
+>>> p = quilt.Package().set("foo.txt", "foo.txt")
 >>> list(p.manifest)
 <<< [
         {'version': 'v0'},
@@ -48,8 +48,8 @@ The manifest fields are as follows:
 In almost all cases you should be using registries, `build`, and `push` to handle sending manifests to and fro. However, there may be advanced use cases where you want to save or load a manifest directly. For that, you can use the low-level manifest API:
 
 ```python
-import t4
-p = t4.Package()
+import quilt
+p = quilt.Package()
 p.dump("example.jsonl")  # write to file
 p.load(open("example.jsonl", "r"))  # read from file
 ```
