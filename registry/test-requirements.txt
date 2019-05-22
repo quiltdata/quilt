@@ -1,3 +1,0 @@
-pytest==3.3.2
-pytest-cov==2.4.0
-responses>=0.7.0

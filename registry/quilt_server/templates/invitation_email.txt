@@ -1,3 +1,0 @@
-{{owner}} shared data with you on Quilt.
-{{owner}}/{{pkg}}
-Sign up to access the data.
