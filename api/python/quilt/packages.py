@@ -23,7 +23,7 @@ from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
     get_package_registry, make_s3_url, parse_file_url, parse_s3_url,
-    validate_package_name, quiltignore_filter
+    validate_package_name, quiltignore_filter, validate_key
 )
 
 
@@ -838,7 +838,12 @@ class Package(object):
             self
         """
         if not logical_key or logical_key.endswith('/'):
-            raise QuiltException("Invalid logical_key: %r; cannot be a directory" % logical_key)
+            raise QuiltException(
+                f"Invalid logical key {logical_key!r}. "
+                f"A package entry logical key cannot be a directory."
+            )
+
+        validate_key(logical_key)
 
         if not entry:
             current_working_dir = pathlib.Path.cwd()
@@ -859,7 +864,10 @@ class Package(object):
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
         else:
-            raise TypeError("Expected a string for entry")
+            raise TypeError(
+                f"Expected a string for entry, but got an instance of {type(entry)}."
+            )
+
         if meta is not None:
             entry.set_meta(meta)
 

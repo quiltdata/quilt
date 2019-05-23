@@ -1,4 +1,4 @@
-""" Integration tests for QUILT Packages. """
+""" Integration tests for Quilt Packages. """
 from io import BytesIO
 import os
 import pathlib
@@ -302,50 +302,86 @@ class PackageTest(QuiltTestCase):
 
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
-        with patch('quilt.packages.put_bytes') as bytes_mock, \
-            patch('quilt.data_transfer._upload_file') as file_mock, \
-            patch('quilt.packages.get_from_config') as config_mock:
-            file_mock.return_value = 'foo.txt'
-            config_mock.return_value = 's3://my_test_bucket'
-            new_pkg = Package()
-            # Create a dummy file to add to the package.
-            contents = 'blah'
-            test_file = Path('bar')
-            test_file.write_text(contents)
-            new_pkg = new_pkg.set('foo', test_file)
+        top_hash = '5333a204bbc6e21607c2bc842f4a77d2e21aa6147cf2bf493dbf6282188d01ca'
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v1'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'my_test_bucket',
+                'Key': 'Quilt/package/foo',
+                'Metadata': {'helium': '{}'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/packages/' + top_hash,
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v3'
+            },
+            expected_params={
+                'Body': top_hash.encode(),
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/named_packages/Quilt/package/1234567890',
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v4'
+            },
+            expected_params={
+                'Body': top_hash.encode(),
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/named_packages/Quilt/package/latest',
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        new_pkg = Package()
+        # Create a dummy file to add to the package.
+        contents = 'blah'
+        test_file = Path('bar')
+        test_file.write_text(contents)
+        new_pkg = new_pkg.set('foo', test_file)
+
+        with patch('time.time', return_value=1234567890):
             new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
-            # Manifest copied
-            top_hash = new_pkg.top_hash
-            bytes_mock.assert_any_call(top_hash.encode(), 's3://my_test_bucket/.quilt/named_packages/Quilt/package/latest')
-            bytes_mock.assert_any_call(ANY, 's3://my_test_bucket/.quilt/packages/' + top_hash)
-
-            # Data copied
-            file_mock.assert_called_once_with(ANY, len(contents), str(test_file.resolve()), 'my_test_bucket', 'Quilt/package/foo', {})
-
     def test_local_push(self):
-        """ Verify loading local manifest and data into S3. """
-        with patch('quilt.packages.put_bytes') as bytes_mock, \
-            patch('quilt.data_transfer._copy_local_file') as file_mock, \
-            patch('quilt.packages.get_from_config') as config_mock:
-            file_mock.return_value = 'foo.txt'
-            config_mock.return_value = 'package_contents'
-            new_pkg = Package()
-            contents = 'blah'
-            test_file = Path('bar')
-            test_file.write_text(contents)
-            new_pkg = new_pkg.set('foo', test_file)
-            new_pkg.push('Quilt/package', 'package_contents')
+        """ Verify loading local manifest and data into a local dir. """
+        top_hash = '5333a204bbc6e21607c2bc842f4a77d2e21aa6147cf2bf493dbf6282188d01ca'
 
-            push_uri = Path('package_contents').resolve().as_uri()
+        new_pkg = Package()
+        contents = 'blah'
+        test_file = Path('bar')
+        test_file.write_text(contents)
+        new_pkg = new_pkg.set('foo', test_file)
+        new_pkg.push('Quilt/package', 'package_contents')
 
-            # Manifest copied
-            top_hash = new_pkg.top_hash
-            bytes_mock.assert_any_call(top_hash.encode(), push_uri + '/.quilt/named_packages/Quilt/package/latest')
-            bytes_mock.assert_any_call(ANY, push_uri + '/.quilt/packages/' + top_hash)
+        push_dir = Path('package_contents')
 
-            # Data copied
-            file_mock.assert_called_once_with(ANY, len(contents), str(test_file.resolve()), str(Path('package_contents/Quilt/package/foo').resolve()), {})
+        assert (push_dir / '.quilt/named_packages/Quilt/package/latest').read_text() == top_hash
+        assert (push_dir / ('.quilt/packages/' + top_hash)).exists()
+        assert (push_dir / 'Quilt/package/foo').read_text() == contents
 
 
     def test_package_deserialize(self):
@@ -990,6 +1026,29 @@ class PackageTest(QuiltTestCase):
             pkg.set('foo', './')
         with pytest.raises(QuiltException):
             pkg.set('foo', os.path.dirname(__file__))
+
+        # we do not allow '.' or '..' files or filename separators
+        with pytest.raises(QuiltException):
+            pkg.set('.', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('..', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('./foo', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('../foo', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('foo/.', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('foo/..', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('foo/./bar', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('foo/../bar', LOCAL_MANIFEST)
+
+        with pytest.raises(QuiltException):
+            pkg.set('s3://foo/.', LOCAL_MANIFEST)
+        with pytest.raises(QuiltException):
+            pkg.set('s3://foo/..', LOCAL_MANIFEST)
 
 
     def test_default_package_get_local(self):

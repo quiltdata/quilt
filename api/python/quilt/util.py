@@ -21,7 +21,7 @@ from appdirs import user_data_dir
 import requests
 
 
-APP_NAME = "QUILT"
+APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
@@ -366,3 +366,19 @@ def quiltignore_filter(paths, ignore, url_scheme):
         return files.union(dirs)
     else:
         raise NotImplementedError
+
+def validate_key(key):
+    """
+    Verify that a file path or S3 path does not contain any '.' or '..' separators or files.
+    """
+    if key is None or key == '':
+        raise QuiltException(
+            f"Invalid key {key!r}. A package entry key cannot be empty."
+        )
+
+    for part in key.split('/'):
+        if part in ('', '.', '..'):
+            raise QuiltException(
+                f"Invalid key {key!r}. "
+                f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
+            )
