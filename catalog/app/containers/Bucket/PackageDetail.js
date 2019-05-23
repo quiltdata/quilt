@@ -1,18 +1,25 @@
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
-import Card from '@material-ui/core/Card'
-import CardContent from '@material-ui/core/CardContent'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Typography from '@material-ui/core/Typography'
+import {
+  Card,
+  CardContent,
+  CircularProgress,
+  Typography,
+  colors,
+} from '@material-ui/core'
+import { unstable_Box as Box } from '@material-ui/core/Box'
 import { makeStyles, withStyles } from '@material-ui/styles'
 
+import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
+import { readableQuantity } from 'utils/string'
 
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -37,6 +44,57 @@ const Field = RT.composeComponent(
   ),
 )
 
+const Counts = ({ bucket, name, hash }) => {
+  const s3 = AWS.S3.use()
+  const { analyticsBucket } = Config.useConfig()
+  const today = React.useMemo(() => new Date(), [])
+  const [cursor, setCursor] = React.useState(null)
+  return (
+    <Data
+      fetch={requests.pkgVersionAccessCounts}
+      params={{ s3, analyticsBucket, bucket, name, hash, today }}
+    >
+      {AsyncResult.case({
+        Ok: ({ counts, total }) => (
+          <Box width={200}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              fontSize="body1.fontSize"
+              fontWeight="fontWeightMedium"
+              style={{ lineHeight: 1.5 }}
+            >
+              <Box>
+                Views (
+                {cursor === null
+                  ? `${counts.length} days`
+                  : dateFns.format(counts[cursor].date, `D MMM`)}
+                ):
+              </Box>
+              <Box>
+                {readableQuantity(cursor === null ? total : counts[cursor].value)}
+              </Box>
+            </Box>
+            <Box height={16} mt={1} width="100%">
+              <Sparkline
+                data={R.pluck('value', counts)}
+                onCursor={setCursor}
+                width={200}
+                height={16}
+                color={colors.blueGrey[100]}
+                color2={colors.blueGrey[800]}
+                fill={false}
+              />
+            </Box>
+          </Box>
+        ),
+        Pending: () => <CircularProgress />,
+        _: () => null,
+      })}
+    </Data>
+  )
+}
+
 const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
   card: {
     marginTop: unit,
@@ -59,7 +117,6 @@ export default ({
   const s3 = AWS.S3.use()
   const signer = AWS.Signer.use()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
-
   return (
     <>
       <Typography variant="h4">{name}: revisions</Typography>
@@ -79,9 +136,19 @@ export default ({
                     className={classes.link}
                     to={urls.bucketPackageTree(bucket, name, id)}
                   >
-                    <Field label="Message:">{info.commit_message || '<empty>'}</Field>
-                    <Field label="Date:">{modified.toLocaleString()}</Field>
-                    <Field label="Hash:">{hash}</Field>
+                    <Box
+                      display="flex"
+                      flexWrap="wrap"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Box>
+                        <Field label="Message:">{info.commit_message || '<empty>'}</Field>
+                        <Field label="Date:">{modified.toLocaleString()}</Field>
+                        <Field label="Hash:">{hash}</Field>
+                      </Box>
+                      <Counts {...{ bucket, name, hash }} />
+                    </Box>
                   </CardContent>
                 </Card>
               ),

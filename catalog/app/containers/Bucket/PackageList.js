@@ -1,55 +1,88 @@
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
-import Card from '@material-ui/core/Card'
-import CardContent from '@material-ui/core/CardContent'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Typography from '@material-ui/core/Typography'
-import { withStyles } from '@material-ui/styles'
+import {
+  Card,
+  CardContent,
+  CircularProgress,
+  Typography,
+  colors,
+} from '@material-ui/core'
+import { unstable_Box as Box } from '@material-ui/core/Box'
 
+import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
-import { withData } from 'utils/Data'
+import * as Config from 'utils/Config'
+import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import * as RT from 'utils/reactTools'
+import { readableQuantity } from 'utils/string'
 
 import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-export default RT.composeComponent(
-  'Bucket.PackageList',
-  AWS.S3.inject(),
-  NamedRoutes.inject(),
-  withData({
-    params: ({
-      s3,
-      match: {
-        params: { bucket },
-      },
-    }) => ({ s3, bucket }),
-    fetch: requests.listPackages,
-  }),
-  withStyles(({ spacing: { unit } }) => ({
-    root: {
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      maxWidth: 600,
-    },
-    card: {
-      marginTop: unit,
-    },
-  })),
-  ({
-    classes,
-    data: { result },
-    match: {
-      params: { bucket },
-    },
-    urls,
-  }) =>
-    AsyncResult.case(
-      {
+const Counts = ({ bucket, name }) => {
+  const s3 = AWS.S3.use()
+  const { analyticsBucket } = Config.useConfig()
+  const today = React.useMemo(() => new Date(), [])
+  const [cursor, setCursor] = React.useState(null)
+  return (
+    <Data
+      fetch={requests.pkgAccessCounts}
+      params={{ s3, analyticsBucket, bucket, name, today }}
+    >
+      {AsyncResult.case({
+        Ok: ({ counts, total }) => (
+          <Box width={168}>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              fontSize="body1.fontSize"
+              style={{ lineHeight: 1.5 }}
+            >
+              <Box>
+                Views (
+                {cursor === null
+                  ? `${counts.length} days`
+                  : dateFns.format(counts[cursor].date, `D MMM`)}
+                ):
+              </Box>
+              <Box>
+                {readableQuantity(cursor === null ? total : counts[cursor].value)}
+              </Box>
+            </Box>
+            <Box height={16} mt={1} width="100%">
+              <Sparkline
+                data={R.pluck('value', counts)}
+                onCursor={setCursor}
+                width={168}
+                height={16}
+                color={colors.blueGrey[100]}
+                color2={colors.blueGrey[800]}
+                fill={false}
+              />
+            </Box>
+          </Box>
+        ),
+        Pending: () => <CircularProgress />,
+        _: () => null,
+      })}
+    </Data>
+  )
+}
+
+export default ({
+  match: {
+    params: { bucket },
+  },
+}) => {
+  const s3 = AWS.S3.use()
+  const { urls } = NamedRoutes.use()
+  return (
+    <Data fetch={requests.listPackages} params={{ s3, bucket }}>
+      {AsyncResult.case({
         _: () => <CircularProgress />,
         Err: displayError(),
         Ok: R.ifElse(
@@ -64,21 +97,30 @@ export default RT.composeComponent(
           ),
           R.pipe(
             R.map(({ name, revisions: { latest: { modified } } }) => (
-              <Card key={name} className={classes.card}>
+              <Box component={Card} key={name} mt={1}>
                 <CardContent>
-                  <Typography variant="h5">
-                    <Link to={urls.bucketPackageDetail(bucket, name)}>{name}</Link>
-                  </Typography>
-                  <Typography variant="body1">
-                    Updated on {modified.toLocaleString()}
-                  </Typography>
+                  <Box display="flex" justifyContent="space-between">
+                    <Box>
+                      <Typography variant="h5">
+                        <Link to={urls.bucketPackageDetail(bucket, name)}>{name}</Link>
+                      </Typography>
+                      <Typography variant="body1">
+                        Updated on {modified.toLocaleString()}
+                      </Typography>
+                    </Box>
+                    <Counts {...{ bucket, name }} />
+                  </Box>
                 </CardContent>
-              </Card>
+              </Box>
             )),
-            (content) => <div className={classes.root}>{content}</div>,
+            (content) => (
+              <Box mx="auto" maxWidth={800}>
+                {content}
+              </Box>
+            ),
           ),
         ),
-      },
-      result,
-    ),
-)
+      })}
+    </Data>
+  )
+}

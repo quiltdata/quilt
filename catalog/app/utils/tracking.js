@@ -6,7 +6,7 @@ import * as Config from 'utils/Config'
 import usePrevious from 'utils/usePrevious'
 
 const loadMixpanel = (token) =>
-  import('mixpanel-browser').then((mp) => {
+  import('mixpanel-browser').then(({ default: mp }) => {
     mp.init(token)
     return mp
   })
@@ -37,8 +37,10 @@ const mkTracker = (token) => {
 
 export default ({ locationSelector, userSelector, children }) => {
   const cfg = Config.useConfig()
+  // workaround to avoid changing client configs
+  const token = cfg.mixpanelToken || cfg.mixPanelToken
 
-  const tracker = React.useMemo(() => mkTracker(cfg.mixpanelToken), [cfg.mixpanelToken])
+  const tracker = React.useMemo(() => mkTracker(token), [token])
 
   const selector = React.useCallback(
     R.applySpec({

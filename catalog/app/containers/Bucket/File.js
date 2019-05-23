@@ -1,5 +1,6 @@
 import { basename } from 'path'
 
+import * as dateFns from 'date-fns'
 import dedent from 'dedent'
 import PT from 'prop-types'
 import * as R from 'ramda'
@@ -7,30 +8,35 @@ import * as React from 'react'
 import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
-import Button from '@material-ui/core/Button'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Icon from '@material-ui/core/Icon'
-import IconButton from '@material-ui/core/IconButton'
-import List from '@material-ui/core/List'
-import ListItem from '@material-ui/core/ListItem'
-import ListItemIcon from '@material-ui/core/ListItemIcon'
-import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction'
-import ListItemText from '@material-ui/core/ListItemText'
-import Popover from '@material-ui/core/Popover'
-import Typography from '@material-ui/core/Typography'
-import * as colors from '@material-ui/core/colors'
+import {
+  Button,
+  CircularProgress,
+  Icon,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  ListItemText,
+  Popover,
+  Typography,
+  colors,
+} from '@material-ui/core'
+import { unstable_Box as Box } from '@material-ui/core/Box'
 import { makeStyles, styled } from '@material-ui/styles'
 
 import ButtonIcon from 'components/ButtonIcon'
+import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { linkStyle } from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 import { getBreadCrumbs, up } from 'utils/s3paths'
-import { readableBytes } from 'utils/string'
+import { readableBytes, readableQuantity } from 'utils/string'
 
 import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Code from './Code'
@@ -229,6 +235,62 @@ const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
   },
 }))
 
+const Analytics = ({ bucket, path }) => {
+  const [cursor, setCursor] = React.useState(null)
+  const { analyticsBucket } = Config.useConfig()
+  const s3 = AWS.S3.use()
+  const today = React.useMemo(() => new Date(), [])
+  const formatDate = (date) =>
+    dateFns.format(
+      date,
+      today.getFullYear() === date.getFullYear() ? `D MMM` : `D MMM YYYY`,
+    )
+  return (
+    <Section icon="bar_charts" heading="Analytics" defaultExpanded>
+      <Data
+        fetch={requests.objectAccessCounts}
+        params={{ s3, analyticsBucket, bucket, path, today }}
+      >
+        {AsyncResult.case({
+          Ok: ({ counts, total }) => (
+            <Box
+              display="flex"
+              width="100%"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Box>
+                <Typography variant="h5">Downloads</Typography>
+                <Typography variant="h4" component="div">
+                  {readableQuantity(cursor === null ? total : counts[cursor].value)}
+                </Typography>
+                <Typography variant="overline" component="span">
+                  {cursor === null
+                    ? `${counts.length} days`
+                    : formatDate(counts[cursor].date)}
+                </Typography>
+              </Box>
+              <Box width="calc(100% - 7rem)">
+                <Sparkline
+                  data={R.pluck('value', counts)}
+                  onCursor={setCursor}
+                  width={1000}
+                  height={60}
+                  color={colors.blueGrey[100]}
+                  color2={colors.blueGrey[800]}
+                  fill={false}
+                />
+              </Box>
+            </Box>
+          ),
+          Err: () => <Typography>Couldn&apos;t fetch the data</Typography>,
+          _: () => <CircularProgress />,
+        })}
+      </Data>
+    </Section>
+  )
+}
+
 export default ({
   match: {
     params: { bucket, path },
@@ -266,6 +328,7 @@ export default ({
       <Section icon="code" heading="Code">
         <Code>{code}</Code>
       </Section>
+      <Analytics {...{ bucket, path }} />
       <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>

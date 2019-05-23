@@ -1,3 +1,4 @@
+import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
 import { resolveKey } from 'utils/s3paths'
@@ -319,3 +320,107 @@ export const search = async ({ es, query }) => {
     throw e
   }
 }
+
+const sqlEscape = (arg) => arg.replace(/'/g, "''")
+
+const ACCESS_COUNTS_PREFIX = 'AccessCounts'
+
+const queryAccessCounts = async ({
+  s3,
+  analyticsBucket,
+  type,
+  query,
+  today,
+  window = 365,
+}) => {
+  try {
+    const { Payload } = await s3
+      .selectObjectContent({
+        Bucket: analyticsBucket,
+        Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
+        Expression: query,
+        ExpressionType: 'SQL',
+        InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+        OutputSerialization: { JSON: {} },
+      })
+      .promise()
+
+    const recordedCounts = Payload.reduce((acc, i) => {
+      if (!i.Records) return acc
+      const [json] = i.Records.Payload.toString().split('\n')
+      const data = JSON.parse(json)
+      return JSON.parse(data.counts)
+    }, {})
+
+    const counts = R.times((i) => {
+      const date = dateFns.subDays(today, window - i - 1)
+      return {
+        date,
+        value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+      }
+    }, window)
+
+    const total = counts.reduce((sum, { value }) => sum + value, 0)
+
+    return { counts, total }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('queryAccessCounts: error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    throw e
+  }
+}
+
+export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today }) =>
+  queryAccessCounts({
+    s3,
+    analyticsBucket,
+    type: 'Objects',
+    query: `
+      SELECT counts FROM s3object
+      WHERE eventname = 'GetObject'
+      AND bucket = '${sqlEscape(bucket)}'
+      AND "key" = '${sqlEscape(path)}'
+    `,
+    today,
+    window: 365,
+  })
+
+export const pkgAccessCounts = ({ s3, analyticsBucket, bucket, name, today }) =>
+  queryAccessCounts({
+    s3,
+    analyticsBucket,
+    type: 'Packages',
+    query: `
+      SELECT counts FROM s3object
+      WHERE eventname = 'GetObject'
+      AND bucket = '${sqlEscape(bucket)}'
+      AND name = '${sqlEscape(name)}'
+    `,
+    today,
+    window: 30,
+  })
+
+export const pkgVersionAccessCounts = ({
+  s3,
+  analyticsBucket,
+  bucket,
+  name,
+  hash,
+  today,
+}) =>
+  queryAccessCounts({
+    s3,
+    analyticsBucket,
+    type: 'PackageVersions',
+    query: `
+      SELECT counts FROM s3object
+      WHERE eventname = 'GetObject'
+      AND bucket = '${sqlEscape(bucket)}'
+      AND name = '${sqlEscape(name)}'
+      AND hash = '${sqlEscape(hash)}'
+    `,
+    today,
+    window: 30,
+  })

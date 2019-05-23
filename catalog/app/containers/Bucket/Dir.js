@@ -22,8 +22,7 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const HELP_LINK =
-  'https://quiltdocs.gitbook.io/t4/walkthrough/working-with-a-bucket'
+const HELP_LINK = 'https://quiltdocs.gitbook.io/t4/walkthrough/working-with-a-bucket'
 
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(' / ')),
