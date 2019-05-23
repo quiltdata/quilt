@@ -333,7 +333,7 @@ class Package(object):
             if registry is None:
                 raise QuiltException("No registry specified and no default remote "
                                      "registry configured. Please specify a registry "
-                                     "or configure a default remote registry with t4.config")
+                                     "or configure a default remote registry with quilt.config")
         elif registry == 'local':
             registry = get_from_config('default_local_registry')
 
@@ -363,7 +363,7 @@ class Package(object):
             if registry is None:
                 raise QuiltException("No registry specified and no default remote "
                                      "registry configured. Please specify a registry "
-                                     "or configure a default remote registry with t4.config")
+                                     "or configure a default remote registry with quilt.config")
         elif registry == 'local':
             registry = get_from_config('default_local_registry')
 
@@ -659,7 +659,7 @@ class Package(object):
                     f"physical keys have different names. For example, the {first_lkey!r} package "
                     f"entry points to a file named {first_pkey.split('/')[-1]!r} (expected a file "
                     f"named {first_lkey.split('/')[-1]!r}). To make this package physically "
-                    f"consistent run 't4.Package.install(\"$PKG_NAME\")', replacing '$PKG_NAME' "
+                    f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing '$PKG_NAME' "
                     f"with the name of this package. Note that this will result in file copying."
                 )
             hypothesized_root_path = first_pkey[:first_pkey.rfind(first_lkey)]
@@ -678,7 +678,7 @@ class Package(object):
                         f"For example, the {first_lkey!r} package entry is a "
                         f"'{hypothesized_scheme}' entry, whist the {lkey!r} package entry is a "
                         f"'{scheme}' entry. To make this package physically "
-                        f"consistent run 't4.Package.install(\"$PKG_NAME\")', replacing "
+                        f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing "
                         f"'$PKG_NAME' with the name of this package. Note that this will result "
                         f"in file copying."
                     )
@@ -690,7 +690,7 @@ class Package(object):
                         f"{lkey!r} package entry points to a file named "
                         f"{pkey.split('/')[-1]!r} (expected a file named "
                         f"{first_lkey.split('/')[-1]!r}). To make this package physically "
-                        f"consistent run 't4.Package.install(\"$PKG_NAME\")', replacing "
+                        f"consistent run 'quilt.Package.install(\"$PKG_NAME\")', replacing "
                         f"'$PKG_NAME' with the name of this package. Note that this will result "
                         f"in file copying."
                     )
@@ -702,7 +702,7 @@ class Package(object):
                         f"{'/'.join(pkey.split('/')[:-1])!r} directory, whilst the "
                         f"{first_lkey!r} is located in the "
                         f"{'/'.join(first_pkey.split('/')[:-1])!r} directory. To make this "
-                        f"package physically consistent run 't4.Package.install(\"$PKG_NAME\")', "
+                        f"package physically consistent run 'quilt.Package.install(\"$PKG_NAME\")', "
                         f"replacing '$PKG_NAME' with the name of this package. Note that this "
                         f"will result in file copying."
                     )
@@ -960,7 +960,7 @@ class Package(object):
                     raise QuiltException("No registry specified and no default remote "
                                         "registry configured. Please specify a "
                                         "registry or configure a default remote "
-                                        "registry with t4.config")
+                                        "registry with quilt.config")
 
                 dest = registry
             else:

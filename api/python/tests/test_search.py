@@ -1,11 +1,11 @@
 import json
 from unittest.mock import patch, MagicMock
 
-from quilt3 import Bucket
+from quilt import Bucket
 
-from quilt3.search_util import get_search_schema
+from quilt.search_util import get_search_schema
 
-@patch('quilt3.search_util.get_raw_mapping_unpacked')
+@patch('quilt.search_util.get_raw_mapping_unpacked')
 def test_search_schema_transform(get_raw_mapping_unpacked):
     get_raw_mapping_unpacked.return_value = {
         'properties': {
@@ -47,7 +47,7 @@ class ResponseMock(object):
 
 
 def get_configured_bucket():
-    with patch('quilt3.util.requests') as requests_mock:
+    with patch('quilt.util.requests') as requests_mock:
         FEDERATION_URL = 'https://test.com/federation.json'
         mock_federation = {
                 'buckets': [
@@ -87,7 +87,7 @@ def test_bucket_config():
     assert bucket._search_endpoint == 'test'
 
 def test_bucket_search():
-    with patch('quilt3.search_util._create_es') as create_es_mock:
+    with patch('quilt.search_util._create_es') as create_es_mock:
         es_mock = MagicMock()
         es_mock.search.return_value = {
             'hits': {

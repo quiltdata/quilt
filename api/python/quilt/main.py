@@ -24,7 +24,7 @@ def create_parser():
     logout_p = subparsers.add_parser("logout", description=shorthelp, help=shorthelp)
     logout_p.set_defaults(func=session.logout)
 
-    shorthelp = "Configure T4"
+    shorthelp = "Configure Quilt"
     config_p = subparsers.add_parser("config", description=shorthelp, help=shorthelp)
     config_p.add_argument("catalog_url", help="URL of catalog to config with",
                           type=str, nargs="?")

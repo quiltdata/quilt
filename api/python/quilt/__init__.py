@@ -1,4 +1,4 @@
-"""T4 API"""
+"""Quilt API"""
 
 # Suppress numpy warnings
 import warnings

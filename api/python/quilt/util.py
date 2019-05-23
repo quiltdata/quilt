@@ -21,7 +21,7 @@ from appdirs import user_data_dir
 import requests
 
 
-APP_NAME = "QUILT3"
+APP_NAME = "QUILT"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
@@ -235,10 +235,10 @@ def validate_url(url):
 # user's usage in an interpreted environment like Jupyter, and keeping the displayed
 # information concise.  Given the limitations of the other options, making a class with
 # custom repr panned out to be the best (and shortest) option.
-class Quilt3Config(OrderedDict):
+class QuiltConfig(OrderedDict):
     def __init__(self, filepath, *args, **kwargs):
         self.filepath = pathlib.Path(filepath)
-        super(Quilt3Config, self).__init__(*args, **kwargs)
+        super(QuiltConfig, self).__init__(*args, **kwargs)
 
     def __setitem__(self, key, value):
         # Per chat in #engineering 4-5-19, strip navigator_url of trailing slash.

@@ -1,4 +1,4 @@
-from quilt3 import main
+from quilt import main
 
 from .utils import QuiltTestCase
 
@@ -14,7 +14,7 @@ class CommandLineTestCase(QuiltTestCase):
         parser = create_parser()
         cls.parser = parser
 
-class Quilt3CLITestCase(CommandLineTestCase):
-    def test_quilt3_config(self):
+class QuiltCLITestCase(CommandLineTestCase):
+    def test_quilt_config(self):
         args = self.parser.parse_args(['config', 'https://foo.bar'])
         assert args.catalog_url == 'https://foo.bar'

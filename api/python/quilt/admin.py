@@ -1,4 +1,4 @@
-"""Provides admin-only functions for T4."""
+"""Provides admin-only functions for Quilt."""
 from .session import get_registry_url, get_session
 
 def create_role(name, arn):

@@ -598,7 +598,7 @@ class CSVPandasFormatHandler(BaseFormatHandler):
                 If `use_header` is False: no header is read
                 In either case, `header_names` will define the column names.
         index_names(list of str or int):
-            If given, these are stored in T4 metadata.  The names are used
+            If given, these are stored in Quilt metadata.  The names are used
             instead of existing/configured index column names (if any).
 
             serializing: The list must be the same length as the number of

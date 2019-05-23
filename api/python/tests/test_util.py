@@ -12,7 +12,7 @@ except ImportError: import pathlib
 import pytest
 
 ### Project imports
-from quilt3 import util
+from quilt import util
 
 ### Constants
 TEST_YAML = """

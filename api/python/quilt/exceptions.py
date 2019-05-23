@@ -1,4 +1,4 @@
-""" Exceptions for T4 """
+""" Exceptions for Quilt """
 
 class PackageException(Exception):
     """ Exception relating to package validity. """

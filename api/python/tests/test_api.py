@@ -6,8 +6,8 @@ import pytest
 import responses
 from ruamel.yaml import YAML
 
-import quilt3 as he
-from quilt3 import util
+import quilt as he
+from quilt import util
 
 from .utils import QuiltTestCase
 
@@ -65,7 +65,7 @@ class TestAPI(QuiltTestCase):
         assert np.array_equal(data, data2)
         assert meta == meta2
 
-    @patch('quilt3.session.get_session')
+    @patch('quilt.session.get_session')
     def test_credentials_from_registry(self, get_session):
         mock_session = Mock()
         get_session.return_value = mock_session

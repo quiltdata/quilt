@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 import responses
 
-from quilt3 import Bucket, data_transfer, config
-from quilt3.util import QuiltException
+from quilt import Bucket, data_transfer, config
+from quilt.util import QuiltException
 
 from .utils import QuiltTestCase
 
@@ -165,7 +165,7 @@ class TestBucket(QuiltTestCase):
 
 
     def test_bucket_put_file(self):
-        with patch("quilt3.bucket.copy_file") as copy_mock:
+        with patch("quilt.bucket.copy_file") as copy_mock:
             bucket = Bucket('s3://test-bucket')
             bucket.put_file(key='README.md', path='./README') # put local file to bucket
             copy_src = copy_mock.call_args_list[0][0][0]
@@ -186,15 +186,15 @@ class TestBucket(QuiltTestCase):
         path = pathlib.Path(__file__).parent / 'data'
         bucket = Bucket('s3://test-bucket')
 
-        with patch("quilt3.bucket.copy_file") as copy_mock:
+        with patch("quilt.bucket.copy_file") as copy_mock:
             bucket.put_dir('test', path)
             copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/test/')
 
-        with patch("quilt3.bucket.copy_file") as copy_mock:
+        with patch("quilt.bucket.copy_file") as copy_mock:
             bucket.put_dir('test/', path)
             copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/test/')
 
-        with patch("quilt3.bucket.copy_file") as copy_mock:
+        with patch("quilt.bucket.copy_file") as copy_mock:
             bucket.put_dir('', path)
             copy_mock.assert_called_once_with(path.as_uri() + '/', 's3://test-bucket/')
 
@@ -274,8 +274,8 @@ class TestBucket(QuiltTestCase):
         with pytest.raises(ValueError):
             bucket.delete_dir('s3://test-bucket/dir')
 
-    @patch('quilt3.bucket.find_bucket_config')
-    @patch('quilt3.bucket.get_from_config')
+    @patch('quilt.bucket.find_bucket_config')
+    @patch('quilt.bucket.get_from_config')
     def test_bucket_config(self, config_mock, bucket_config_mock):
         bucket_config_mock.return_value = {
             'name': 'test-bucket',
@@ -299,7 +299,7 @@ class TestBucket(QuiltTestCase):
         bucket_config_mock.assert_called_once_with('test-bucket', 'https://bar.foo/config.json')
 
     # further testing in test_search.py
-    @patch('quilt3.bucket.search')
+    @patch('quilt.bucket.search')
     def test_search_bucket(self, search_mock):
         content = {
             'federations': ['/federation.json'],
@@ -307,7 +307,7 @@ class TestBucket(QuiltTestCase):
         federations = {
             "buckets": [
                 {
-                    "name": "quilt3-testing-fake",
+                    "name": "quilt-testing-fake",
                     "searchEndpoint": "https://es-fake.endpoint",
                     "region": "us-meow"
                 },
@@ -315,16 +315,16 @@ class TestBucket(QuiltTestCase):
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
         self.requests_mock.add(responses.GET, 'https://foo.bar/federation.json', json=federations, status=200)
-        b = Bucket('s3://quilt3-testing-fake')
+        b = Bucket('s3://quilt-testing-fake')
         b.search('blah', limit=1)
 
         search_mock.assert_called_once_with('blah', 'https://es-fake.endpoint', limit=1, aws_region='us-meow')
 
-    @patch('quilt3.bucket.put_bytes')
+    @patch('quilt.bucket.put_bytes')
     def test_bucket_put_ext(self, put_bytes):
         # This just ensures the bucket is calling serialize() correctly.
         obj = 'just a string..'
-        b = Bucket('s3://quilt3-testing-fake')
+        b = Bucket('s3://quilt-testing-fake')
         b.put('foo.json', obj)
 
         assert put_bytes.called
@@ -337,5 +337,5 @@ class TestBucket(QuiltTestCase):
         meta = kwargs['meta'] if 'meta' in kwargs else args[2]
 
         assert json.loads(data) == obj
-        assert dest == 's3://quilt3-testing-fake/foo.json'
+        assert dest == 's3://quilt-testing-fake/foo.json'
         assert meta.get('format', {}).get('name') == 'json'

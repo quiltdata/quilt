@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 
 ### Project imports
-from quilt3.formats import FormatRegistry
-from quilt3.util import QuiltException
+from quilt.formats import FormatRegistry
+from quilt.util import QuiltException
 
 
 ### Constants
@@ -19,7 +19,7 @@ from quilt3.util import QuiltException
 ### Code
 def test_buggy_parquet():
     """
-    Test that Quilt3 avoids crashing on bad Pandas metadata from
+    Test that Quilt avoids crashing on bad Pandas metadata from
     old pyarrow libaries.
     """
     path = pathlib.Path(__file__).parent

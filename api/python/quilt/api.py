@@ -15,7 +15,7 @@ from .data_transfer import (copy_file, get_bytes, put_bytes, delete_object, list
 from .formats import FormatRegistry
 from .packages import get_package_registry, Package
 from .session import get_registry_url, get_session
-from .util import (Quilt3Config, QuiltException, CONFIG_PATH,
+from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, fix_url, parse_file_url, parse_s3_url, read_yaml, validate_url,
                    write_yaml, yaml_has_comments, validate_package_name)
 
@@ -28,7 +28,7 @@ except ImportError:
 
 def copy(src, dest):
     """
-    Copies ``src`` object from QUILT3 to ``dest``.
+    Copies ``src`` object from QUILT to ``dest``.
 
     Either of ``src`` and ``dest`` may be S3 paths (starting with ``s3://``)
     or local file paths (starting with ``file:///``).
@@ -41,7 +41,7 @@ def copy(src, dest):
 
 
 def put(obj, dest, meta=None):
-    """Write an in-memory object to the specified QUILT3 ``dest``.
+    """Write an in-memory object to the specified QUILT ``dest``.
 
     Note:
         Does not work with all objects -- object must be serializable.
@@ -63,7 +63,7 @@ def put(obj, dest, meta=None):
 
 
 def get(src):
-    """Retrieves src object from QUILT3 and loads it into memory.
+    """Retrieves src object from QUILT and loads it into memory.
 
     An optional ``version`` may be specified.
 
@@ -406,30 +406,30 @@ def list_packages(registry=None):
 
 
 def config(*catalog_url, **config_values):
-    """Set or read the QUILT3 configuration.
+    """Set or read the QUILT configuration.
 
     To retrieve the current config, call directly, without arguments:
 
-        >>> import quilt3
-        >>> quilt3.config()
+        >>> import quilt
+        >>> quilt.config()
 
     To trigger autoconfiguration, call with just the navigator URL:
 
-        >>> quilt3.config('https://example.com')
+        >>> quilt.config('https://example.com')
 
     To set config values, call with one or more key=value pairs:
 
-        >>> quilt3.config(navigator_url='http://example.com',
+        >>> quilt.config(navigator_url='http://example.com',
         ...           elastic_search_url='http://example.com/queries')
 
-    Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
+    Default config values can be found in `quilt.util.CONFIG_TEMPLATE`.
 
     Args:
         catalog_url: A (single) URL indicating a location to configure from
         **config_values: `key=value` pairs to set in the config
 
     Returns:
-        Quilt3Config: (an ordered Mapping)
+        QuiltConfig: (an ordered Mapping)
     """
     if catalog_url and config_values:
         raise QuiltException("Expected either an auto-config URL or key=value pairs, but got both.")
@@ -457,8 +457,8 @@ def config(*catalog_url, **config_values):
                 message.format(code=response.status_code, reason=response.reason),
                 response=response
                 )
-        # Quilt3Config may perform some validation and value scrubbing.
-        new_config = Quilt3Config('', response.json())
+        # QuiltConfig may perform some validation and value scrubbing.
+        new_config = QuiltConfig('', response.json())
 
         # 'navigator_url' needs to be renamed, the term is outdated.
         if not new_config.get('navigator_url'):
@@ -468,7 +468,7 @@ def config(*catalog_url, **config_values):
         for key, value in new_config.items():
             config_template[key] = value
         write_yaml(config_template, CONFIG_PATH, keep_backup=True)
-        return Quilt3Config(CONFIG_PATH, config_template)
+        return QuiltConfig(CONFIG_PATH, config_template)
 
     # Use local configuration (or defaults)
     if CONFIG_PATH.exists():
@@ -478,10 +478,10 @@ def config(*catalog_url, **config_values):
 
     # Write to config if needed
     if config_values:
-        config_values = Quilt3Config('', config_values)  # Does some validation/scrubbing
+        config_values = QuiltConfig('', config_values)  # Does some validation/scrubbing
         for key, value in config_values.items():
             local_config[key] = value
         write_yaml(local_config, CONFIG_PATH)
 
     # Return current config
-    return Quilt3Config(CONFIG_PATH, local_config)
+    return QuiltConfig(CONFIG_PATH, local_config)
