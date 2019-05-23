@@ -1,7 +1,6 @@
-import { actionCreator } from 'utils/reduxTools';
+import { actionCreator } from 'utils/reduxTools'
 
-import { actions } from './constants';
-
+import { actions } from './constants'
 
 /**
  * Create a SIGN_UP action.
@@ -15,7 +14,7 @@ import { actions } from './constants';
 export const signUp = actionCreator(actions.SIGN_UP, (credentials, resolver) => ({
   payload: credentials,
   meta: { ...resolver },
-}));
+}))
 
 /**
  * Create a RESET_PASSWORD action.
@@ -29,7 +28,7 @@ export const signUp = actionCreator(actions.SIGN_UP, (credentials, resolver) => 
 export const resetPassword = actionCreator(actions.RESET_PASSWORD, (email, resolver) => ({
   payload: email,
   meta: { ...resolver },
-}));
+}))
 
 /**
  * Create a CHANGE_PASSWORD action.
@@ -41,10 +40,13 @@ export const resetPassword = actionCreator(actions.RESET_PASSWORD, (email, resol
  *
  * @returns {Action}
  */
-export const changePassword = actionCreator(actions.CHANGE_PASSWORD, (link, password, resolver) => ({
-  payload: { link, password },
-  meta: { ...resolver },
-}));
+export const changePassword = actionCreator(
+  actions.CHANGE_PASSWORD,
+  (link, password, resolver) => ({
+    payload: { link, password },
+    meta: { ...resolver },
+  }),
+)
 
 /**
  * Create a GET_CODE action.
@@ -55,7 +57,7 @@ export const changePassword = actionCreator(actions.CHANGE_PASSWORD, (link, pass
  */
 export const getCode = actionCreator(actions.GET_CODE, (resolver) => ({
   meta: { ...resolver },
-}));
+}))
 
 /**
  * Create a SIGN_IN action.
@@ -69,7 +71,7 @@ export const getCode = actionCreator(actions.GET_CODE, (resolver) => ({
 export const signIn = actionCreator(actions.SIGN_IN, (credentials, resolver) => ({
   payload: credentials,
   meta: { ...resolver },
-}));
+}))
 
 /**
  * Create a SIGN_IN_RESULT action.
@@ -83,7 +85,7 @@ export const signIn = actionCreator(actions.SIGN_IN, (credentials, resolver) => 
 signIn.resolve = actionCreator(actions.SIGN_IN_RESULT, (payload) => ({
   error: payload instanceof Error,
   payload,
-}));
+}))
 
 /**
  * Create a SIGN_OUT action.
@@ -94,7 +96,7 @@ signIn.resolve = actionCreator(actions.SIGN_IN_RESULT, (payload) => ({
  */
 export const signOut = actionCreator(actions.SIGN_OUT, (resolver) => ({
   meta: { ...resolver },
-}));
+}))
 
 /**
  * Create a SIGN_OUT_RESULT action.
@@ -106,7 +108,7 @@ export const signOut = actionCreator(actions.SIGN_OUT, (resolver) => ({
 signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
   error: result instanceof Error,
   payload: result,
-}));
+}))
 
 /**
  * Create a CHECK action.
@@ -119,17 +121,20 @@ signOut.resolve = actionCreator(actions.SIGN_OUT_RESULT, (result) => ({
  *
  * @returns {Action}
  */
-export const check = actionCreator(actions.CHECK, ({ refetch = true } = {}, resolver) => ({
-  payload: { refetch },
-  meta: { ...resolver },
-}));
+export const check = actionCreator(
+  actions.CHECK,
+  ({ refetch = true } = {}, resolver) => ({
+    payload: { refetch },
+    meta: { ...resolver },
+  }),
+)
 
 /**
  * Create a REFRESH action.
  *
  * @returns {Action}
  */
-export const refresh = actionCreator(actions.REFRESH);
+export const refresh = actionCreator(actions.REFRESH)
 
 /**
  * Create a REFRESH_RESULT action.
@@ -141,7 +146,7 @@ export const refresh = actionCreator(actions.REFRESH);
 refresh.resolve = actionCreator(actions.REFRESH_RESULT, (payload) => ({
   error: payload instanceof Error,
   payload,
-}));
+}))
 
 /**
  * Create an AUTH_LOST action.
@@ -153,4 +158,4 @@ refresh.resolve = actionCreator(actions.REFRESH_RESULT, (payload) => ({
  */
 export const authLost = actionCreator(actions.AUTH_LOST, (payload) => ({
   payload,
-}));
+}))

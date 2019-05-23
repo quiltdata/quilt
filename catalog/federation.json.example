@@ -1,0 +1,23 @@
+{
+  "buckets": [
+    {
+      "name": "quilt-example",
+      "title": "Quilt Data",
+      "icon": "https://quiltcorp.files.wordpress.com/2017/08/q.png",
+      "description": "Turbocharging your S3 Bucket",
+      "searchEndpoint": "https://search-quilt-example-rytakqayno3rlembetdhuflrna.us-east-1.es.amazonaws.com/"
+    },
+    {
+      "name": "quilt-aics",
+      "title": "Allen Institute for Cell Science",
+      "icon": "https://3c1703fe8d.site.internapcdn.net/newman/gfx/news/hires/2017/3dwindowinto.png",
+      "description": "Launched with a contribution from Paul G. Allen in 2014, the Allen Institute for Cell Science will serve as a catalyzing force to integrate diverse technologies and approaches at a large scale in order to study the cell as an integrated system: something that traditional academic labs cannot do. Our inaugural project, the Allen Cell Explorer, will be a novel visual, dynamic, predictive model of the cell that will accelerate cell biology and biomedical research.",
+      "searchEndpoint": "https://search-quilt-aics-2alivodd7we6cjhcrkxguahbkm.us-east-1.es.amazonaws.com/"
+    },
+    {
+      "name": "alpha-quilt-storage",
+      "title": "Alpha",
+      "searchEndpoint": "https://search-alpha-ness-i55uw3a7cpm3aejv22y7p4ijge.us-east-1.es.amazonaws.com"
+    }
+  ]
+}

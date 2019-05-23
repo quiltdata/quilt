@@ -6,9 +6,9 @@
  */
 
 export default (timeout = 100) => (el) => {
-  const { hash } = window.location;
+  const { hash } = window.location
   if (el && el.id && hash) {
-    const id = hash.replace('#', '');
-    if (el.id === id) setTimeout(() => el.scrollIntoView(), timeout);
+    const id = hash.replace('#', '')
+    if (el.id === id) setTimeout(() => el.scrollIntoView(), timeout)
   }
-};
+}

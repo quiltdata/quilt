@@ -1,6 +1,6 @@
-import { defineMessages } from 'react-intl';
+import { defineMessages } from 'react-intl'
 
-const scope = 'app.containers.Auth';
+const scope = 'app.containers.Auth'
 
 export default defineMessages({
   notificationAuthLost: {
@@ -100,13 +100,18 @@ export default defineMessages({
     id: `${scope}.SignUp.errorUnexpected`,
     defaultMessage: 'Something went wrong. Try again later.',
   },
+  signUpErrorSMTP: {
+    id: `${scope}.SignUp.errorSMTP`,
+    defaultMessage: 'SMTP error: contact your administrator',
+  },
   signUpSubmit: {
     id: `${scope}.SignUp.submit`,
     defaultMessage: 'Sign up',
   },
   signUpSuccess: {
     id: `${scope}.SignUp.success`,
-    defaultMessage: 'You have signed up for Quilt. Check your email for further instructions.',
+    defaultMessage:
+      'You have signed up for Quilt. Check your email for further instructions.',
   },
   signUpHintSignIn: {
     id: `${scope}.SignUp.hintSignIn`,
@@ -192,11 +197,16 @@ export default defineMessages({
   },
   passResetSuccess: {
     id: `${scope}.PassReset.success`,
-    defaultMessage: 'You have requested a password reset. Check your email for further instructions.',
+    defaultMessage:
+      'You have requested a password reset. Check your email for further instructions.',
   },
   passResetErrorUnexpected: {
     id: `${scope}.PassReset.errorUnexpected`,
     defaultMessage: 'Something went wrong. Try again later.',
+  },
+  passResetErrorSMTP: {
+    id: `${scope}.PassReset.errorSMTP`,
+    defaultMessage: 'SMTP error: contact your administrator',
   },
   passResetHintSignUp: {
     id: `${scope}.PassReset.hintSignUp`,
@@ -290,8 +300,7 @@ export default defineMessages({
   },
   activationErrorMessage: {
     id: `${scope}.ActivationError.message`,
-    defaultMessage:
-      `Something went wrong during account activation.
+    defaultMessage: `Something went wrong during account activation.
       We're here to help. Email us at {email}.`,
   },
-});
+})

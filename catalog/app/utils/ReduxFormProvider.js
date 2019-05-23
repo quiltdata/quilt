@@ -1,9 +1,11 @@
-import { withProps } from 'recompose';
-import { reducer } from 'redux-form/immutable';
+import { withProps } from 'recompose'
+import { reducer } from 'redux-form/immutable'
 
-import { composeComponent } from 'utils/reactTools';
-import { InjectReducer } from 'utils/ReducerInjector';
+import { composeComponent } from 'utils/reactTools'
+import * as ReducerInjector from 'utils/ReducerInjector'
 
-export default composeComponent('ReduxFormProvider',
+export default composeComponent(
+  'ReduxFormProvider',
   withProps({ mount: 'form', reducer }),
-  InjectReducer);
+  ReducerInjector.Inject,
+)

@@ -1,23 +1,20 @@
-import { call, put, select, fork, takeEvery } from 'redux-saga/effects';
+import { call, put, select, fork, takeEvery } from 'redux-saga/effects'
 
-import { apiRequest, HTTPError } from 'utils/APIConnector';
-import defer from 'utils/defer';
-import { waitTil } from 'utils/sagaTools';
-import { timestamp } from 'utils/time';
+import { apiRequest, HTTPError } from 'utils/APIConnector'
+import defer from 'utils/defer'
+import { waitTil } from 'utils/sagaTools'
+import { timestamp } from 'utils/time'
 
-import * as actions from './actions';
-import * as errors from './errors';
-import * as selectors from './selectors';
-
+import * as actions from './actions'
+import * as errors from './errors'
+import * as selectors from './selectors'
 
 export const adjustTokensForLatency = (tokens, latency) => ({
   ...tokens,
-  exp:
-    Number.isFinite(tokens.exp)
-      ? tokens.exp - latency
-      /* istanbul ignore next */
-      : tokens.exp,
-});
+  exp: Number.isFinite(tokens.exp)
+    ? tokens.exp - latency
+    : /* istanbul ignore next */ tokens.exp,
+})
 
 /**
  * Get auth tokens from stored auth data, checking if auth token is up-to-date
@@ -27,12 +24,13 @@ export const adjustTokensForLatency = (tokens, latency) => ({
  *   Object containing the auth tokens, undefined if not authenticated.
  */
 export function* getTokens() {
-  const checked = defer();
-  yield put(actions.check({ refetch: false }, checked.resolver));
-  // eslint-disable-next-line no-empty
-  try { yield checked.promise; } catch (e) {}
-  yield call(waitTil, selectors.waiting, (w) => !w);
-  return yield select(selectors.tokens);
+  const checked = defer()
+  yield put(actions.check({ refetch: false }, checked.resolver))
+  try {
+    yield checked.promise
+  } catch (e) {} // eslint-disable-line no-empty
+  yield call(waitTil, selectors.waiting, (w) => !w)
+  return yield select(selectors.tokens)
 }
 
 /**
@@ -54,30 +52,33 @@ function* signUp(credentials) {
       endpoint: '/register',
       method: 'POST',
       body: credentials,
-    });
+    })
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
       if (e.status === 400 && e.json && e.json.message === 'Invalid username.') {
-        throw new errors.InvalidUsername({ originalError: e });
+        throw new errors.InvalidUsername({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message === 'Invalid email.') {
-        throw new errors.InvalidEmail({ originalError: e });
+        throw new errors.InvalidEmail({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
-        throw new errors.InvalidPassword({ originalError: e });
+        throw new errors.InvalidPassword({ originalError: e })
       }
       if (e.status === 409 && e.json && e.json.message === 'Username already taken.') {
-        throw new errors.UsernameTaken({ originalError: e });
+        throw new errors.UsernameTaken({ originalError: e })
       }
       if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
-        throw new errors.EmailTaken({ originalError: e });
+        throw new errors.EmailTaken({ originalError: e })
+      }
+      if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
+        throw new errors.SMTPError({ originalError: e })
       }
     }
     throw new errors.AuthError({
       message: 'unable to sign up',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -92,12 +93,12 @@ function* signOut() {
       auth: { handleInvalidToken: false },
       endpoint: '/logout',
       method: 'POST',
-    });
+    })
   } catch (e) {
     throw new errors.AuthError({
       message: 'unable to sign out',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -118,17 +119,17 @@ function* signIn(credentials) {
       endpoint: '/login',
       method: 'POST',
       body: credentials,
-    });
-    return { token, exp };
+    })
+    return { token, exp }
   } catch (e) {
     if (e instanceof HTTPError && e.status === 401) {
-      throw new errors.InvalidCredentials();
+      throw new errors.InvalidCredentials()
     }
 
     throw new errors.AuthError({
       message: 'unable to sign in',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -149,17 +150,17 @@ function* fetchUser(tokens) {
     const auth = yield call(apiRequest, {
       auth: { tokens, handleInvalidToken: false },
       endpoint: '/me',
-    });
-    return auth;
+    })
+    return auth
   } catch (e) {
     if (e instanceof HTTPError && e.status === 401) {
-      throw new errors.InvalidToken({ originalError: e });
+      throw new errors.InvalidToken({ originalError: e })
     }
 
     throw new errors.AuthError({
       message: 'unable to fetch user data',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -177,12 +178,16 @@ function* resetPassword(email) {
       endpoint: '/reset_password',
       method: 'POST',
       body: { email },
-    });
+    })
   } catch (e) {
+    if (HTTPError.is(e, 500, /SMTP.*invalid/)) {
+      throw new errors.SMTPError({ originalError: e })
+    }
+
     throw new errors.AuthError({
       message: 'unable to reset password',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -203,25 +208,25 @@ function* changePassword(link, password) {
       endpoint: '/change_password',
       method: 'POST',
       body: { link, password },
-    });
+    })
   } catch (e) {
     /* istanbul ignore else */
     if (e instanceof HTTPError) {
       if (e.status === 404 && e.json && e.json.error === 'User not found.') {
-        throw new errors.InvalidResetLink({ originalError: e });
+        throw new errors.InvalidResetLink({ originalError: e })
       }
       if (e.status === 401 && e.json && e.json.error === 'Reset token invalid.') {
-        throw new errors.InvalidResetLink({ originalError: e });
+        throw new errors.InvalidResetLink({ originalError: e })
       }
       if (e.status === 400 && e.json && e.json.message.match(/Password must be/)) {
-        throw new errors.InvalidPassword({ originalError: e });
+        throw new errors.InvalidPassword({ originalError: e })
       }
     }
 
     throw new errors.AuthError({
       message: 'unable to change password',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -234,13 +239,13 @@ function* changePassword(link, password) {
  */
 function* getCode() {
   try {
-    const { code } = yield call(apiRequest, '/code');
-    return code;
+    const { code } = yield call(apiRequest, '/code')
+    return code
   } catch (e) {
     throw new errors.AuthError({
       message: 'unable to get the code',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -262,16 +267,16 @@ function* refreshTokens(latency, tokens) {
       auth: { tokens, handleInvalidToken: false },
       endpoint: '/refresh',
       method: 'POST',
-    });
-    return adjustTokensForLatency(newTokens, latency);
+    })
+    return adjustTokensForLatency(newTokens, latency)
   } catch (e) {
     if (e instanceof HTTPError && e.status === 401) {
-      throw new errors.InvalidToken({ originalError: e });
+      throw new errors.InvalidToken({ originalError: e })
     }
     throw new errors.AuthError({
       message: 'unable to refresh tokens',
       originalError: e,
-    });
+    })
   }
 }
 
@@ -294,18 +299,18 @@ function* handleSignIn(
   { payload: credentials, meta: { resolve, reject } },
 ) {
   try {
-    const tokensRaw = yield call(signIn, credentials);
-    const tokens = adjustTokensForLatency(tokensRaw, latency);
-    const user = yield call(fetchUser, tokens);
-    yield fork(storeTokens, tokens);
-    yield fork(storeUser, user);
-    yield put(actions.signIn.resolve({ tokens, user }));
+    const tokensRaw = yield call(signIn, credentials)
+    const tokens = adjustTokensForLatency(tokensRaw, latency)
+    const user = yield call(fetchUser, tokens)
+    yield fork(storeTokens, tokens)
+    yield fork(storeUser, user)
+    yield put(actions.signIn.resolve({ tokens, user }))
     /* istanbul ignore else */
-    if (resolve) yield call(resolve, { tokens, user });
+    if (resolve) yield call(resolve, { tokens, user })
   } catch (e) {
-    yield put(actions.signIn.resolve(e));
+    yield put(actions.signIn.resolve(e))
     /* istanbul ignore else */
-    if (reject) yield call(reject, e);
+    if (reject) yield call(reject, e)
   }
 }
 
@@ -320,29 +325,30 @@ function* handleSignIn(
  */
 function* handleSignOut({ forgetTokens, forgetUser }, { meta: { resolve, reject } }) {
   try {
-    yield call(signOut);
-    yield put(actions.signOut.resolve());
+    yield call(signOut)
+    yield put(actions.signOut.resolve())
     /* istanbul ignore else */
-    if (resolve) yield call(resolve);
+    if (resolve) yield call(resolve)
   } catch (e) {
-    yield put(actions.signOut.resolve(e));
+    yield put(actions.signOut.resolve(e))
     /* istanbul ignore else */
-    if (reject) yield call(reject, e);
+    if (reject) yield call(reject, e)
   } finally {
-    yield fork(forgetUser);
-    yield fork(forgetTokens);
+    yield fork(forgetUser)
+    yield fork(forgetTokens)
   }
 }
 
 const isExpired = (tokens, time) => {
   // some backwards compatibility
-  const exp = tokens.exp
+  const exp =
+    tokens.exp ||
     // istanbul ignore next
-    || tokens.expires_at
+    tokens.expires_at ||
     // istanbul ignore next
-    || tokens.expires_on;
-  return exp && exp < time;
-};
+    tokens.expires_on
+  return exp && exp < time
+}
 
 /**
  * Handle CHECK action.
@@ -366,35 +372,35 @@ function* handleCheck(
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
-    const tokens = yield select(selectors.tokens);
-    const time = yield call(timestamp);
+    const tokens = yield select(selectors.tokens)
+    const time = yield call(timestamp)
     if (!tokens || !isExpired(tokens, time)) {
       /* istanbul ignore else */
-      if (resolve) yield call(resolve);
-      return;
+      if (resolve) yield call(resolve)
+      return
     }
 
-    yield put(actions.refresh());
-    const newTokens = yield call(refreshTokens, latency, tokens);
-    yield fork(storeTokens, newTokens);
-    let user;
+    yield put(actions.refresh())
+    const newTokens = yield call(refreshTokens, latency, tokens)
+    yield fork(storeTokens, newTokens)
+    let user
     if (refetch) {
-      user = yield call(fetchUser, newTokens);
-      yield fork(storeUser, user);
+      user = yield call(fetchUser, newTokens)
+      yield fork(storeUser, user)
     }
-    const payload = { tokens: newTokens, user };
-    yield put(actions.refresh.resolve(payload));
+    const payload = { tokens: newTokens, user }
+    yield put(actions.refresh.resolve(payload))
     /* istanbul ignore else */
-    if (resolve) yield call(resolve, payload);
+    if (resolve) yield call(resolve, payload)
   } catch (e) {
-    yield put(actions.refresh.resolve(e));
+    yield put(actions.refresh.resolve(e))
     if (e instanceof errors.InvalidToken) {
-      yield put(actions.authLost(e));
+      yield put(actions.authLost(e))
     } else {
-      yield call(onAuthError, e);
+      yield call(onAuthError, e)
     }
     /* istanbul ignore else */
-    if (reject) yield call(reject, e);
+    if (reject) yield call(reject, e)
   }
 }
 
@@ -406,9 +412,9 @@ function* handleCheck(
  * @param {Action} action
  */
 function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: err }) {
-  yield fork(forgetTokens);
-  yield fork(forgetUser);
-  yield call(onAuthLost, err);
+  yield fork(forgetTokens)
+  yield fork(forgetUser)
+  yield call(onAuthLost, err)
 }
 
 /**
@@ -418,10 +424,10 @@ function* handleAuthLost({ forgetTokens, forgetUser, onAuthLost }, { payload: er
  */
 function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
   try {
-    yield call(signUp, credentials);
-    yield call(resolve);
+    yield call(signUp, credentials)
+    yield call(resolve)
   } catch (e) {
-    yield call(reject, e);
+    yield call(reject, e)
   }
 }
 
@@ -432,10 +438,10 @@ function* handleSignUp({ payload: credentials, meta: { resolve, reject } }) {
  */
 function* handleResetPassword({ payload: email, meta: { resolve, reject } }) {
   try {
-    yield call(resetPassword, email);
-    yield call(resolve);
+    yield call(resetPassword, email)
+    yield call(resolve)
   } catch (e) {
-    yield call(reject, e);
+    yield call(reject, e)
   }
 }
 
@@ -444,12 +450,15 @@ function* handleResetPassword({ payload: email, meta: { resolve, reject } }) {
  *
  * @param {Action} action
  */
-function* handleChangePassword({ payload: { link, password }, meta: { resolve, reject } }) {
+function* handleChangePassword({
+  payload: { link, password },
+  meta: { resolve, reject },
+}) {
   try {
-    yield call(changePassword, link, password);
-    yield call(resolve);
+    yield call(changePassword, link, password)
+    yield call(resolve)
   } catch (e) {
-    yield call(reject, e);
+    yield call(reject, e)
   }
 }
 
@@ -460,10 +469,10 @@ function* handleChangePassword({ payload: { link, password }, meta: { resolve, r
  */
 function* handleGetCode({ meta: { resolve, reject } }) {
   try {
-    const code = yield call(getCode);
-    yield call(resolve, code);
+    const code = yield call(getCode)
+    yield call(resolve, code)
   } catch (e) {
-    yield call(reject, e);
+    yield call(reject, e)
   }
 }
 
@@ -480,7 +489,7 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * @param {function} options.onAuthLost
  * @param {function} options.onAuthError
  */
-export default function* ({
+export default function*({
   latency,
   checkOn,
   storeTokens,
@@ -490,18 +499,27 @@ export default function* ({
   onAuthLost,
   onAuthError,
 }) {
-  yield takeEvery(actions.signIn.type, handleSignIn,
-    { latency, storeTokens, storeUser });
-  yield takeEvery(actions.signOut.type, handleSignOut,
-    { forgetTokens, forgetUser });
-  yield takeEvery(actions.check.type, handleCheck,
-    { latency, storeTokens, storeUser, onAuthError });
-  yield takeEvery(actions.authLost.type, handleAuthLost,
-    { forgetTokens, forgetUser, onAuthLost });
-  yield takeEvery(actions.signUp.type, handleSignUp);
-  yield takeEvery(actions.resetPassword.type, handleResetPassword);
-  yield takeEvery(actions.changePassword.type, handleChangePassword);
-  yield takeEvery(actions.getCode.type, handleGetCode);
+  yield takeEvery(actions.signIn.type, handleSignIn, { latency, storeTokens, storeUser })
+  yield takeEvery(actions.signOut.type, handleSignOut, { forgetTokens, forgetUser })
+  yield takeEvery(actions.check.type, handleCheck, {
+    latency,
+    storeTokens,
+    storeUser,
+    onAuthError,
+  })
+  yield takeEvery(actions.authLost.type, handleAuthLost, {
+    forgetTokens,
+    forgetUser,
+    onAuthLost,
+  })
+  yield takeEvery(actions.signUp.type, handleSignUp)
+  yield takeEvery(actions.resetPassword.type, handleResetPassword)
+  yield takeEvery(actions.changePassword.type, handleChangePassword)
+  yield takeEvery(actions.getCode.type, handleGetCode)
 
-  if (checkOn) yield takeEvery(checkOn, function* checkAuth() { yield put(actions.check()); });
+  if (checkOn) {
+    yield takeEvery(checkOn, function* checkAuth() {
+      yield put(actions.check())
+    })
+  }
 }

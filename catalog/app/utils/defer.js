@@ -16,9 +16,9 @@
  * @returns {Deferred}
  */
 export default () => {
-  let resolver;
+  let resolver
   const promise = new Promise((resolve, reject) => {
-    resolver = { resolve, reject };
-  });
-  return { resolver, promise };
-};
+    resolver = { resolve, reject }
+  })
+  return { resolver, promise }
+}

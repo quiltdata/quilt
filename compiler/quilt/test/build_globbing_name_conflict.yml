@@ -1,7 +1,0 @@
----
-contents:
-  naming_collision:   # order of processing is indeterminate.
-    "data/csv.*":     # csv.txt will be named 'csv'
-      transform: csv
-    csv:              # This node is also be named 'csv'
-      file: data/nuts.csv

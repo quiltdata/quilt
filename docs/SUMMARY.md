@@ -1,44 +1,34 @@
-<!--
-	Used by gitbook to generate docs.quiltdata.com navigation
-	WARNING - changing section names changes docs paths used both
-	within docs and other parts of Quilt, like /catalog
-
-	Paths are of the form: word1-word2-word3/bullet-name
-	So, for example: docs.quiltdata.com/get-started/install
-	(all lowercase)
-!-->
-
 # Summary
 
-## Get started
 * [Introduction](README.md)
-* [Install](installation.md)
-* [Quick start](quick-start.md)
-* [Work with packages](step-by-step.md)
-* [Articles](articles.md)
-* [Examples](examples.md)
-* [Run a Registry](registries.md)
+* [Installation](Installation.md)
+* [Quickstart](Quickstart.md)
 
-## API
-* [Overview](api-overview.md)
-* [Command line](api-cli.md)
-* [Python](api-python.md)
-* [build.yml](buildyml.md)
-* [quilt.yml requirements](quiltyml.md)
-* [Teams](api-teams.md)
-* [R](api-r.md)
+### Walkthrough
 
-## Advanced Usage
-* [Environment variables](env.md)
-* [Shared drives](shared-store.md)
-* [Checks](checks.md)
-* [Package composition](compose.md)
-* [PySpark](pyspark.md)
+* [Creating a Package](Walkthrough/Creating a Package.md)
+* [Distributing a Package](Walkthrough/Distributing a Package.md)
+* [Installing a Package](Walkthrough/Installing a Package.md)
+* [Reading from a Package](Walkthrough/Reading from a Package.md)
+* [Working with the Catalog](Walkthrough/Working with the Catalog.md)
+* [Working with a Bucket](Walkthrough/Working with a Bucket.md)
 
-## Support
-* [FAQ](faq.md)
-* [Contact](contact.md)
+### Advanced Usage
 
-## Developer
+* [Filtering a Package](Advanced Features/Filtering a Package.md)
+* [.quiltignore](Advanced Features/.quiltignore.md)
+* [Materialization](Advanced Features/Materialization.md)
+* [Working with Manifests](Advanced Features/Working with Manifests.md)
+* [S3 Select](Advanced Features/S3 Select.md)
+
+### API Reference
+
+* [quilt](API Reference/api.md)
+* [quilt.Package](API Reference/Package.md)
+* [quilt.Bucket](API Reference/Bucket.md)
+
+### References
+
+* [Technical Reference](Technical Reference.md)
 * [Contributing](CONTRIBUTING.md)
-* [Fragment store](repo-format.md)
+* [Further Reading](Further Reading.md)

@@ -1,0 +1,3 @@
+{"version": "v0", "top_hash": {"alg": "v0", "value": "20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733"}}
+{"logical_key": "a.txt", "physical_keys": ["file:///home/dima/src/t4/api/python/tmp/a.txt"], "size": 13, "hash": {"type": "SHA256", "value": "8663bab6d124806b9727f89bb4ab9db4cbcc3862f6bbf22024dfa7212aa4ab7d"}, "meta": {"user_meta": {"x": "y"}}}
+{"logical_key": "b/x.json", "physical_keys": ["file:///home/dima/src/t4/api/python/tmp/b/x.json"], "size": 14, "hash": {"type": "SHA256", "value": "426fc04f04bf8fdb5831dc37bbb6dcf70f63a37e05a68c6ea5f63e85ae579376"}, "meta": {}}

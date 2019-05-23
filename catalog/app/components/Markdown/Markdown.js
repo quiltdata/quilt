@@ -1,71 +1,179 @@
-import hljs from 'highlight.js';
-import flow from 'lodash/flow';
-import memoize from 'lodash/memoize';
-import PT from 'prop-types';
-import React from 'react';
-import { setPropTypes } from 'recompose';
-import Remarkable from 'remarkable';
-import { replaceEntities, escapeHtml } from 'remarkable/lib/common/utils';
-import styled from 'styled-components';
+import cx from 'classnames'
+import createDOMPurify from 'dompurify'
+import hljs from 'highlight.js'
+import memoize from 'lodash/memoize'
+import PT from 'prop-types'
+import * as R from 'ramda'
+import * as React from 'react'
+import * as RC from 'recompose'
+import Remarkable from 'remarkable'
+import { replaceEntities, escapeHtml, unescapeMd } from 'remarkable/lib/common/utils'
+import { withStyles } from '@material-ui/styles'
 
-import { composeComponent } from 'utils/reactTools';
+import { linkStyle } from 'utils/StyledLink'
+import * as RT from 'utils/reactTools'
 
+/* Most of what's in the commonmark spec for HTML blocks;
+ * minus troublesome/abusey/not-in-HTML5 tags: basefont, body, center, dialog,
+ * dir, fieldset, form, frame, frameset, head, html, iframe, link, main, menu,
+ * menuitem, meta, noframes,  optgroup, option, source (we don't support audio),
+ * track (we don't support video).
+ *
+ * I opted not to include UI tags (opt, optgroup); ditto for base, body, head,
+ * meta, title
+ * which shouldn't be needed
+ */
+const SANITIZE_OPTS = {
+  ALLOWED_TAGS: [
+    'a',
+    'abbr',
+    'address',
+    'article',
+    'aside',
+    'b',
+    'blockquote',
+    'caption',
+    'code',
+    'col',
+    'colgroup',
+    'dd',
+    'details',
+    'del',
+    'div',
+    'dl',
+    'dt',
+    'em',
+    'figure',
+    'figcaption',
+    'footer',
+    'h1',
+    'h2',
+    'h3',
+    'h4',
+    'h5',
+    'h6',
+    'header',
+    'hr',
+    'i',
+    'img',
+    'ins',
+    'legend',
+    'li',
+    'mark',
+    'nav',
+    'ol',
+    'p',
+    'param',
+    'pre',
+    'section',
+    'span',
+    'strong',
+    'sub',
+    'summary',
+    'sup',
+    'table',
+    'tbody',
+    'td',
+    'tfoot',
+    'th',
+    'thead',
+    'tr',
+    'ul',
+  ],
+  FORBID_TAGS: ['style', 'script'],
+  FORBID_ATTR: ['style'],
+}
 
+// TODO: switch to pluggable react-aware renderer
+// TODO: use react-router's Link component for local links
 const highlight = (str, lang) => {
   if (lang === 'none') {
-    return '';
-  } else if (hljs.getLanguage(lang)) {
+    return ''
+  }
+  if (hljs.getLanguage(lang)) {
     try {
-      return hljs.highlight(lang, str).value;
+      return hljs.highlight(lang, str).value
     } catch (err) {
       // istanbul ignore next
-      console.error(err); // eslint-disable-line no-console
+      console.error(err) // eslint-disable-line no-console
     }
   } else {
     try {
-      return hljs.highlightAuto(str).value;
+      return hljs.highlightAuto(str).value
     } catch (err) {
       // istanbul ignore next
-      console.error(err); // eslint-disable-line no-console
+      console.error(err) // eslint-disable-line no-console
     }
   }
   // istanbul ignore next
-  return ''; // use external default escaping
-};
+  return '' // use external default escaping
+}
 
-const escape = flow(replaceEntities, escapeHtml);
+const escape = R.pipe(
+  replaceEntities,
+  escapeHtml,
+)
 
 /**
- * Plugin for remarkable that disables image rendering.
+ * A Markdown (Remarkable) plugin. Takes a Remarkable instance and adjusts it.
  *
- * @param {Object} md Remarkable instance
+ * @typedef {function} MarkdownPlugin
+ *
+ * @param {Object} md Remarkable instance.
  */
-const disableImg = (md) => {
+
+/**
+ * Create a plugin for remarkable that does custom processing of image tags.
+ *
+ * @param {Object} options
+ * @param {bool} options.disable
+ *   Don't show images, render them as they are in markdown contents (escaped).
+ * @param {function} options.process
+ *   Function that takes an image object ({ alt, src, title }) and returns a
+ *   (possibly modified) image object.
+ *
+ * @returns {MarkdownPlugin}
+ */
+const imageHandler = ({ disable = false, process = R.identity }) => (md) => {
   // eslint-disable-next-line no-param-reassign
   md.renderer.rules.image = (tokens, idx) => {
-    const t = tokens[idx];
-    const src = escape(t.src);
-    const title = t.title ? ` "${escape(t.title)}"` : '';
-    const alt = t.alt ? escape(t.alt) : '';
-    return `<span>![${alt}](${src}${title})</span>`;
-  };
-};
+    const t = process(tokens[idx])
+
+    if (disable) {
+      const alt = t.alt ? escape(t.alt) : ''
+      const src = escape(t.src)
+      const title = t.title ? ` "${escape(t.title)}"` : ''
+      return `<span>![${alt}](${src}${title})</span>`
+    }
+
+    const src = escapeHtml(t.src)
+    const alt = t.alt ? escape(unescapeMd(t.alt)) : ''
+    const title = t.title ? ` title="${escape(t.title)}"` : ''
+    return `<img src="${src}" alt="${alt}"${title} />`
+  }
+}
 
 /**
- * Plugin for remarkable that adjusts link rendering:
+ * Create a plugin for remarkable that does custom processing of links.
  *
- *   - adds rel="nofollow" attribute
+ * @param {Object} options
+ * @param {bool} options.nofollow
+ *   Add rel="nofollow" attribute if true (default).
+ * @param {function} options.process
+ *   Function that takes a link object ({ href, title }) and returns a
+ *   (possibly modified) link object.
  *
- * @param {Object} md Remarkable instance
+ * @returns {MarkdownPlugin}
  */
-const adjustLinks = (md) => {
+const linkHandler = ({ nofollow = true, process = R.identity }) => (md) => {
   // eslint-disable-next-line no-param-reassign
   md.renderer.rules.link_open = (tokens, idx) => {
-    const t = tokens[idx];
-    const title = t.title ? ` title="${escape(t.title)}"` : '';
-    return `<a href="${escapeHtml(t.href)}" rel="nofollow"${title}>`;
-  };
-};
+    const t = process(tokens[idx])
+    const title = t.title ? ` title="${escape(t.title)}"` : ''
+    const rel = nofollow ? ' rel="nofollow"' : ''
+    return `<a href="${escapeHtml(t.href)}"${rel}${title}>`
+  }
+}
 
 /**
  * Get Remarkable instance based on the given options (memoized).
@@ -77,47 +185,76 @@ const adjustLinks = (md) => {
  *
  * @returns {Object} Remarakable instance
  */
-const getRenderer = memoize(({ images }) => {
+export const getRenderer = memoize(({ images, processImg, processLink }) => {
   const md = new Remarkable('full', {
     highlight,
-    html: false,
+    html: true,
     linkify: true,
     typographer: true,
-  });
-  md.use(adjustLinks);
-  if (!images) md.use(disableImg);
-  return md;
-});
+  })
+  md.use(linkHandler({ process: processLink }))
+  md.use(imageHandler({ disable: !images, process: processImg }))
+  const purify = createDOMPurify(window)
+  return (data) => purify.sanitize(md.render(data), SANITIZE_OPTS)
+})
 
-// Ensure that markdown styles are smaller than page h1, h2, etc. since
-// they should appear as subordinate to the page's h1, h2
-const Style = styled.div`
-  display: block;
-  overflow: auto;
-
-  h1 code {
-    background-color: inherit;
-  }
-
-  /* prevent horizontal overflow */
-  img {
-    max-width: 100%;
-  }
-`;
-
-export default composeComponent('Markdown',
-  setPropTypes({
-    data: PT.string,
+export const Container = RT.composeComponent(
+  'Markdown.Container',
+  RC.setPropTypes({
+    children: PT.string,
     className: PT.string,
-    images: PT.bool,
   }),
-  ({ data, className = '', images = true }) => (
-    <Style
-      className={`markdown ${className}`}
-      dangerouslySetInnerHTML={{
-        // would prefer to render in a saga but md.render() fails when called
-        // in a generator
-        __html: getRenderer({ images }).render(data),
-      }}
+  withStyles(() => ({
+    root: {
+      overflow: 'auto',
+
+      '& a': linkStyle,
+
+      '& h1 code': {
+        backgroundColor: 'inherit',
+      },
+
+      /* prevent horizontal overflow */
+      '& img': {
+        maxWidth: '100%',
+      },
+
+      '& table': {
+        maxWidth: '100%',
+        width: '100%',
+
+        'th, td': {
+          lineHeight: '1.5em',
+          padding: '8px',
+          textAlign: 'left',
+        },
+
+        '&, th, td': {
+          border: '1px solid #ddd',
+        },
+      },
+    },
+  })),
+  ({ classes, className, children }) => (
+    <div
+      className={cx(className, classes.root)}
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: children }}
     />
-  ));
+  ),
+)
+
+export default RT.composeComponent(
+  'Markdown',
+  RC.setPropTypes({
+    data: PT.string,
+    images: PT.bool,
+    processImg: PT.func,
+    processLink: PT.func,
+  }),
+  ({ data, images = true, processImg, processLink, ...props }) => (
+    <Container {...props}>
+      {getRenderer({ images, processImg, processLink })(data)}
+    </Container>
+  ),
+)

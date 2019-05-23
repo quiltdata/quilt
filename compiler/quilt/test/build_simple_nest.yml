@@ -1,6 +1,0 @@
-contents:
-  foo:
-    file: data/foo.csv
-  subnode:
-    nuts:
-      file: data/nuts.csv

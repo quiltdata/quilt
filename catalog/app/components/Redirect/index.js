@@ -1,23 +1,13 @@
 /* Redirect */
-import PT from 'prop-types';
-import React from 'react';
+import * as React from 'react'
 
-import redirect from 'utils/redirect';
-import Working from 'components/Working';
+import redirect from 'utils/redirect'
+import Working from 'components/Working'
 
-export default class Redirect extends React.PureComponent {
-  static propTypes = {
-    url: PT.string.isRequired,
-  }
+export default ({ url }) => {
+  React.useEffect(() => {
+    redirect(url)
+  }, [])
 
-  componentWillMount() {
-    redirect(this.props.url);
-  }
-  render() {
-    return (
-      <div>
-        <Working />
-      </div>
-    );
-  }
+  return <Working />
 }

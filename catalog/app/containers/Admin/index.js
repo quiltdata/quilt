@@ -1,70 +1,37 @@
-/* Admin */
-import PT from 'prop-types';
-import React from 'react';
-import { connect } from 'react-redux';
-import { injectIntl } from 'react-intl';
-import { setPropTypes, withHandlers } from 'recompose';
-import styled from 'styled-components';
+import * as React from 'react'
+import Typography from '@material-ui/core/Typography'
+import { makeStyles } from '@material-ui/styles'
 
-import config from 'constants/config';
-import { push } from 'containers/Notifications/actions';
-import { composeComponent } from 'utils/reactTools';
-import withParsedQuery from 'utils/withParsedQuery';
+import Layout from 'components/Layout'
+import * as APIConnector from 'utils/APIConnector'
+import * as Cache from 'utils/ResourceCache'
 
-import msg from './messages';
+import Roles from './Roles'
+import Users from './Users'
+import * as data from './data'
 
-import Members from './Members';
-import MemberAudit from './MemberAudit';
-import Packages from './Packages';
-import PackageAudit from './PackageAudit';
-import Status from './Status';
-import Policies from './Policies';
+const useStyles = makeStyles((t) => ({
+  section: {
+    marginTop: t.spacing.unit * 2,
+  },
+}))
 
-
-const teamName = config.team ? config.team.name || config.team.id : '?';
-
-const Show = styled.div`
-  h1 {
-    overflow: visible;
-  }
-`;
-
-export default composeComponent('Admin',
-  injectIntl,
-  withParsedQuery,
-  connect(null, { notify: push }),
-  setPropTypes({
-    plan: PT.string.isRequired,
-    notify: PT.func.isRequired,
-    intl: PT.shape({
-      formatMessage: PT.func.isRequired,
-    }).isRequired,
-  }),
-  withHandlers({
-    changePolicy: ({ notify, intl: { formatMessage } }) => () => {
-      notify(formatMessage(msg.changePolicy));
-    },
-  }),
-  ({
-    plan,
-    location: { pathname, query: { audit } },
-    intl: { formatMessage },
-    changePolicy,
-  }) => (
-    <div>
-      <Show>
-        <h1>{formatMessage(msg.teamHeader, { name: teamName })} {config.stripeKey ? <Status plan={plan} /> : null}</h1>
-      </Show>
-      <Members />
-      <Packages />
-      <Policies
-        read
-        write={false}
-        onReadCheck={changePolicy}
-        onWriteCheck={changePolicy}
-      />
-
-      <PackageAudit back={pathname} id={audit && audit.includes('/') ? audit : null} />
-      <MemberAudit back={pathname} id={audit && !audit.includes('/') ? audit : null} />
-    </div>
-  ));
+export default () => {
+  const classes = useStyles()
+  const req = APIConnector.use()
+  const users = Cache.useData(data.UsersResource, { req })
+  const roles = Cache.useData(data.RolesResource, { req })
+  return (
+    <Layout>
+      <div className={classes.section}>
+        <Typography variant="h4">Users and roles</Typography>
+      </div>
+      <div className={classes.section}>
+        <Users users={users} roles={roles} />
+      </div>
+      <div className={classes.section}>
+        <Roles roles={roles} />
+      </div>
+    </Layout>
+  )
+}

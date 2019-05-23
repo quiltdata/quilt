@@ -1,0 +1,95 @@
+{
+  "type": "object",
+  "properties": {
+    "alwaysRequiresAuth": {
+      "type": "boolean",
+      "description": "If true, then all routes will require the user to be signed in."
+    },
+    "apiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+    },
+    "defaultBucket": {
+      "type": "string",
+      "description": "Default bucket users will see upon navigating to the catalog."
+    },
+    "disableSignUp": {
+      "type": "boolean",
+      "description": "If true, don't show Sign Up UI. Useful for private/business catalogs."
+    },
+    "federations": {
+      "type": "array",
+      "description": "List of links to federations you want your catalog to be aware of.",
+      "items": { "$ref": "#/definitions/urlSchema" }
+    },
+    "guestCredentials": {
+      "type": "object",
+      "description": "Credentials anonymous users will use to access resources.",
+      "properties": {
+        "accessKeyId": {
+          "type": "string"
+        },
+        "secretAccessKey": {
+          "type": "string"
+        }
+      }
+    },
+    "intercomAppId": {
+      "type": "string",
+      "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
+    },
+    "registryUrl": {
+      "allOf": [
+        {
+          "type": "string",
+          "description": "Registry your users will use to login and get credentials."
+        },
+        { "$ref": "#/definitions/urlSchema" }
+      ]
+    },
+    "sentryDSN": {
+      "type": "string",
+      "description": "Token used for logging to Sentry."
+    },
+    "signInRedirect": {
+      "type": "string",
+      "description": "Where users will be redirected upon successful login."
+    },
+    "signOutRedirect": {
+      "type": "string",
+      "description": "Where users will be redirected upon successful logout."
+    },
+    "suggestedBuckets": {
+      "type": "array",
+      "description": "List of buckets you want to appear in the dropdown menu in your catalog."
+    },
+    "mixPanelToken": {
+      "type": "string",
+      "description": "Token for MixPanel analytics service"
+    },
+    "analyticsBucket": {
+      "type": "string",
+      "description": "Bucket where object analytics data is stored"
+    }
+  },
+  "required": [
+    "alwaysRequiresAuth",
+    "apiGatewayEndpoint",
+    "defaultBucket",
+    "federations",
+    "guestCredentials",
+    "mixPanelToken",
+    "registryUrl",
+    "sentryDSN",
+    "signInRedirect",
+    "signOutRedirect",
+    "suggestedBuckets"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "urlSchema": {
+      "type": "string",
+      "pattern": "((^$)|(^.*[^/]$))"
+    }
+  }
+}

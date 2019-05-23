@@ -1,16 +1,16 @@
-import { fromJS } from 'immutable';
+import { fromJS } from 'immutable'
 
-import { PUSH, DISMISS } from './constants';
+import { PUSH, DISMISS } from './constants'
 
-const initialState = fromJS([]);
+const initialState = fromJS([])
 
 export default (state = initialState, action) => {
   switch (action.type) {
     case PUSH:
-      return state.push(fromJS(action.notification));
+      return state.push(fromJS(action.notification))
     case DISMISS:
-      return state.filter((n) => n.get('id') !== action.id);
+      return state.filter((n) => n.get('id') !== action.id)
     default:
-      return state;
+      return state
   }
-};
+}

@@ -1,7 +1,0 @@
-
-A new user activated an account on {{ authurl }}:
-{{ user }}
-{{ email }}
-
-Site={{ site }}
-Next={{ next }}

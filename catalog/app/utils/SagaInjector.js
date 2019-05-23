@@ -1,132 +1,66 @@
-import invariant from 'invariant';
-import set from 'lodash/fp/set';
-import isEmpty from 'lodash/isEmpty';
-import isFunction from 'lodash/isFunction';
-import isString from 'lodash/isString';
-import isSymbol from 'lodash/isSymbol';
-import PT from 'prop-types';
-import { Fragment } from 'react';
-import {
-  lifecycle,
-  setPropTypes,
-  withState,
-  withHandlers,
-  getContext,
-  withContext,
-} from 'recompose';
-import { applyMiddleware } from 'redux';
-import createSagaMiddleware from 'redux-saga';
+import invariant from 'invariant'
+import isFunction from 'lodash/isFunction'
+import PT from 'prop-types'
+import * as React from 'react'
+import * as RC from 'recompose'
+import { applyMiddleware } from 'redux'
+import { StoreContext } from 'redux-react-hook'
+import createSagaMiddleware from 'redux-saga'
 
-import {
-  composeComponent,
-  composeHOC,
-  restoreProps,
-  saveProps,
-} from 'utils/reactTools';
+import * as RT from 'utils/reactTools'
 
+const scope = 'app/utils/SagaInjector'
 
-const scope = 'app/utils/SagaInjector';
+export const useSaga = (saga, ...args) => {
+  const innerScope = `${scope}/SagaInjector/useSaga`
+  invariant(isFunction(saga), `${innerScope}: Expected 'saga' to be a function`)
 
-export const RESTART_ON_REMOUNT = Symbol(`${scope}/RESTART_ON_REMOUNT`);
-export const DAEMON = Symbol(`${scope}/DAEMON`);
-export const ONCE_TILL_UNMOUNT = Symbol(`${scope}/ONCE_TILL_UNMOUNT`);
+  const { runSaga } = React.useContext(StoreContext)
+  const running = React.useRef()
 
-export const MODES = { RESTART_ON_REMOUNT, DAEMON, ONCE_TILL_UNMOUNT };
+  if (running.current && running.current.saga !== saga) {
+    running.current.task.cancel()
+    running.current = null
+  }
 
-const DONE = Symbol(`${scope}/DONE`);
+  if (!running.current) {
+    const task = runSaga(saga, ...args)
+    running.current = { saga, task }
+  }
 
-const SagaInjectorShape = PT.shape({
-  inject: PT.func.isRequired,
-  eject: PT.func.isRequired,
-});
-
-const isValidKey = (key) => isString(key) && !isEmpty(key);
-
-const isValidMode = (mode) => isSymbol(mode) && Object.values(MODES).includes(mode);
-
-export const SagaInjector = composeComponent('SagaInjector',
-  setPropTypes({
-    run: PT.func.isRequired,
-  }),
-  saveProps({ keep: ['run'] }),
-  withState('descriptors', 'setDescriptors', {}),
-  withHandlers({
-    inject: ({ descriptors, setDescriptors, run }) =>
-      (key, { saga, mode = RESTART_ON_REMOUNT } = {}, ...args) => {
-        const innerScope = `${scope}/SagaInjector/inject`;
-        invariant(isValidKey(key),
-          `${innerScope}: Expected 'key' to be a non-empty string`);
-        invariant(isFunction(saga),
-          `${innerScope}: Expected 'descriptor.saga' to be a function`);
-        invariant(isValidMode(mode),
-          `${innerScope}: Expected 'descriptor.mode' to be a valid saga run mode`);
-
-        let hasSaga = key in descriptors;
-
-        if (process.env.NODE_ENV !== 'production') {
-          const oldDescriptor = descriptors[key];
-          // enable hot reloading of daemon and once-till-unmount sagas
-          if (oldDescriptor && oldDescriptor.saga !== saga) {
-            oldDescriptor.task.cancel();
-            hasSaga = false;
-          }
-        }
-
-        if (!hasSaga || (hasSaga && mode === RESTART_ON_REMOUNT)) {
-          setDescriptors(set(key, { saga, mode, task: run(saga, ...args) }));
-        }
-      },
-    eject: ({ descriptors, setDescriptors }) => (key) => {
-      const innerScope = `${scope}/SagaInjector/eject`;
-      invariant(isValidKey(key),
-        `${innerScope}: Expected 'key' to be a non-empty string`);
-
-      const desc = descriptors[key];
-      if (!desc || desc === DONE) return;
-
-      if (desc.mode !== DAEMON) {
-        desc.task.cancel();
-        // Clean up in production; in development we need `descriptor.saga` for hot reloading
-        if (process.env.NODE_ENV === 'production') {
-          // Need some value to be able to detect `ONCE_TILL_UNMOUNT` sagas in `inject`
-          setDescriptors(set(key, DONE));
-        }
-      }
+  React.useEffect(
+    () => () => {
+      if (running.current) running.current.task.cancel()
     },
+    [],
+  )
+
+  return running.current.task
+}
+
+export const Inject = RT.composeComponent(
+  'SagaInjector.Inject',
+  RC.setPropTypes({
+    saga: PT.func.isRequired,
+    args: PT.array,
   }),
-  withContext(
-    { sagaInjector: SagaInjectorShape.isRequired },
-    ({ inject, eject }) => ({ sagaInjector: { inject, eject } }),
-  ),
-  restoreProps(),
-  Fragment);
+  ({ saga, args = [], children }) => {
+    useSaga(saga, ...args)
+    return children
+  },
+)
 
-const ownPropsKey = 'ownProps';
-
-export const injectSaga = (key, saga, {
-  mode,
-  args = (props) => [props],
-} = {}) =>
-  composeHOC(`injectSaga(${key})`,
-    saveProps({ key: ownPropsKey }),
-    getContext({
-      sagaInjector: SagaInjectorShape.isRequired,
-    }),
-    lifecycle({
-      componentWillMount() {
-        this.props.sagaInjector.inject(key, { saga, mode }, ...args(this.props[ownPropsKey]));
-      },
-      componentWillUnmount() {
-        this.props.sagaInjector.eject(key);
-      },
-    }),
-    restoreProps({ key: ownPropsKey }));
+export const injectSaga = (name, saga, { args = (props) => [props] } = {}) =>
+  RT.composeHOC(
+    `injectSaga(${name})`,
+    RT.wrap(Inject, (props) => ({ saga, args: args(props) })),
+  )
 
 export const withSaga = (...sagaMWArgs) => (createStore) => (...args) => {
-  const sagaMiddleware = createSagaMiddleware(...sagaMWArgs);
-  const store = applyMiddleware(sagaMiddleware)(createStore)(...args);
+  const sagaMiddleware = createSagaMiddleware(...sagaMWArgs)
+  const store = applyMiddleware(sagaMiddleware)(createStore)(...args)
   return {
     ...store,
     runSaga: sagaMiddleware.run,
-  };
-};
+  }
+}

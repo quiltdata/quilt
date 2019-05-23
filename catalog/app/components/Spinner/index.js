@@ -1,29 +1,27 @@
 /* Spinner */
-import PropTypes from 'prop-types';
-import React from 'react';
-import styled from 'styled-components';
+import cx from 'classnames'
+import PT from 'prop-types'
+import * as React from 'react'
+import * as RC from 'recompose'
+import { withStyles } from '@material-ui/styles'
 
-const Drop = styled.div`
-  display: inline-block;
-  padding-top: ${(props) => props.paddingTop};
-`;
+import * as RT from 'utils/reactTools'
 
-function Spinner({ className, drop, ...props }) {
-  const myClass = `fa fa-cog fa-fw fa-spin ${className || ''}`;
-  return (
-    <Drop paddingTop={drop} {...props}>
-      <i className={myClass}></i>
-    </Drop>
-  );
-}
-
-Spinner.propTypes = {
-  className: PropTypes.string,
-  drop: PropTypes.string,
-};
-
-Spinner.defaultProps = {
-  drop: '0px',
-};
-
-export default Spinner;
+export default RT.composeComponent(
+  'Spinner',
+  RC.setPropTypes({
+    className: PT.string,
+    drop: PT.any,
+  }),
+  withStyles(() => ({
+    root: {
+      display: 'inline-block',
+      paddingTop: (props) => props.drop || 0,
+    },
+  })),
+  ({ classes, className, drop, ...props }) => (
+    <div className={cx(className, classes.root)} {...props}>
+      <i className="fa fa-cog fa-fw fa-spin" />
+    </div>
+  ),
+)

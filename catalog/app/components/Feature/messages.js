@@ -2,7 +2,7 @@
  * Text for Feature component
  */
 
-import { defineMessages } from 'react-intl';
+import { defineMessages } from 'react-intl'
 
 export default defineMessages({
   demo: {
@@ -11,7 +11,7 @@ export default defineMessages({
   },
   header: {
     id: 'app.components.Feature.header',
-    defaultMessage: 'Manage data like code',
+    defaultMessage: 'Create a library of data',
   },
   primaryCall: {
     id: 'app.components.Feature.primaryCall',
@@ -29,4 +29,4 @@ export default defineMessages({
     id: 'app.components.Feature.tagline',
     defaultMessage: 'Quilt versions and deploys data',
   },
-});
+})

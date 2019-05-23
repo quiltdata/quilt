@@ -1,3 +1,3 @@
 export default function redirect(loc) {
-  window.location = loc;
+  window.location = loc
 }

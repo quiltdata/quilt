@@ -6,25 +6,37 @@
  * IntlProvider component and i18n messages (loaded from `app/translations`)
  */
 
-import PropTypes from 'prop-types';
-import { connect } from 'react-redux';
-import { mapProps, setPropTypes } from 'recompose';
-import { createSelector } from 'reselect';
-import { IntlProvider } from 'react-intl';
+import PropTypes from 'prop-types'
+import * as React from 'react'
+import { connect } from 'react-redux'
+import { mapProps, setPropTypes } from 'recompose'
+import { createSelector } from 'reselect'
+import { IntlProvider, injectIntl } from 'react-intl'
 
-import { composeComponent } from 'utils/reactTools';
-import { injectReducer } from 'utils/ReducerInjector';
+import { composeComponent } from 'utils/reactTools'
+import { injectReducer } from 'utils/ReducerInjector'
 
-import { REDUX_KEY } from './constants';
-import reducer from './reducer';
-import { makeSelectLocale } from './selectors';
+import { REDUX_KEY } from './constants'
+import reducer from './reducer'
+import { makeSelectLocale } from './selectors'
 
-export default composeComponent('LanguageProvider',
+const IntlContext = React.createContext({})
+
+const IntlContextProvider = injectIntl(({ intl, children }) => (
+  <IntlContext.Provider value={intl}>{children}</IntlContext.Provider>
+))
+
+export const useIntl = () => React.useContext(IntlContext)
+
+export default composeComponent(
+  'LanguageProvider',
   injectReducer(REDUX_KEY, reducer),
-  connect(createSelector(
-    makeSelectLocale(),
-    (locale) => ({ locale })
-  )),
+  connect(
+    createSelector(
+      makeSelectLocale(),
+      (locale) => ({ locale }),
+    ),
+  ),
   setPropTypes({
     locale: PropTypes.string,
     messages: PropTypes.object,
@@ -36,4 +48,9 @@ export default composeComponent('LanguageProvider',
     messages: messages[locale],
     ...props,
   })),
-  IntlProvider);
+  ({ children, ...props }) => (
+    <IntlProvider {...props}>
+      <IntlContextProvider>{children}</IntlContextProvider>
+    </IntlProvider>
+  ),
+)

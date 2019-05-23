@@ -1,27 +1,52 @@
-import { Map } from 'immutable';
-import id from 'lodash/identity';
-import { createSelector } from 'reselect';
+import { Map } from 'immutable'
+import id from 'lodash/identity'
+import { createSelector } from 'reselect'
 
-import { get, getIn, toJS } from 'utils/immutableTools';
+import { get, getIn, toJS } from 'utils/immutableTools'
 
-import { REDUX_KEY, waitingStates } from './constants';
+import { REDUX_KEY, waitingStates } from './constants'
 
-export const domain = createSelector(get(REDUX_KEY, Map({})), toJS());
+export const domain = createSelector(
+  get(REDUX_KEY, Map({})),
+  toJS(),
+)
 
-export const state = createSelector(getIn([REDUX_KEY, 'state']), id);
+export const state = createSelector(
+  getIn([REDUX_KEY, 'state']),
+  id,
+)
 
-export const waiting = createSelector(state, (s) => waitingStates.includes(s));
+export const waiting = createSelector(
+  state,
+  (s) => waitingStates.includes(s),
+)
 
-export const error = createSelector(getIn([REDUX_KEY, 'error']), id);
+export const error = createSelector(
+  getIn([REDUX_KEY, 'error']),
+  id,
+)
 
-export const username = createSelector(getIn([REDUX_KEY, 'user', 'current_user']), id);
+export const username = createSelector(
+  getIn([REDUX_KEY, 'user', 'current_user']),
+  id,
+)
 
-export const authenticated = createSelector(username, Boolean);
+export const authenticated = createSelector(
+  username,
+  Boolean,
+)
 
-export const email = createSelector(getIn([REDUX_KEY, 'user', 'email']), id);
+export const isAdmin = createSelector(
+  getIn([REDUX_KEY, 'user', 'is_staff']),
+  id,
+)
 
-export const tokens = createSelector(getIn([REDUX_KEY, 'tokens']), toJS());
+export const email = createSelector(
+  getIn([REDUX_KEY, 'user', 'email']),
+  id,
+)
 
-export const signInRedirect = createSelector(getIn([REDUX_KEY, 'signInRedirect']), id);
-
-export const signOutRedirect = createSelector(getIn([REDUX_KEY, 'signOutRedirect']), id);
+export const tokens = createSelector(
+  getIn([REDUX_KEY, 'tokens']),
+  toJS(),
+)

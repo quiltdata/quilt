@@ -1,16 +1,18 @@
-import initial from 'lodash/initial';
-import last from 'lodash/last';
-import omit from 'lodash/omit';
-import pick from 'lodash/pick';
-import React, { createElement, Fragment } from 'react';
+// TODO: rm lodash
+import initial from 'lodash/initial'
+import last from 'lodash/last'
+import omit from 'lodash/omit'
+import pick from 'lodash/pick'
+import * as R from 'ramda'
+import * as React from 'react'
 import {
   compose,
+  hoistStatics,
   mapProps,
+  getDisplayName,
   setDisplayName,
   wrapDisplayName,
-} from 'recompose';
-import styled from 'styled-components';
-
+} from 'recompose'
 
 /**
  * Create a factory (function that renders a given component).
@@ -28,7 +30,9 @@ import styled from 'styled-components';
  * const res1 = factory({ children: 'sup', cls: 'hey' });
  * const res2 = <Component cls="hey">sup</Component>;
  */
-const createFactory = (Component) => (props) => createElement(Component, props);
+const createFactory = hoistStatics((Component) => (props) =>
+  React.createElement(Component, props),
+)
 
 /**
  * React Higher-Order Component: given a react component as an argument,
@@ -53,7 +57,7 @@ const createFactory = (Component) => (props) => createElement(Component, props);
 const maybeSetDisplayName = (name) => (C) =>
   !C || typeof C === 'string' || typeof C === 'symbol' || C.displayName || C.name
     ? C
-    : setDisplayName(name)(C);
+    : setDisplayName(name)(C)
 
 /**
  * Create a compound component from a set of HOCs (possibly empty) and a component.
@@ -72,17 +76,17 @@ const maybeSetDisplayName = (name) => (C) =>
  *   The resulting component with all the HOCs applied and displayName set.
  */
 export const composeComponent = (name, ...args) => {
-  const decorators = initial(args);
-  const render = last(args);
+  const decorators = initial(args)
+  const render = last(args)
   return decorators.length
     ? compose(
-      setDisplayName(name),
-      createFactory,
-      ...decorators,
-      maybeSetDisplayName(`${name}:render`),
-    )(render)
-    : setDisplayName(name)(render);
-};
+        setDisplayName(name),
+        createFactory,
+        ...decorators,
+        maybeSetDisplayName(`${name}:render`),
+      )(render)
+    : setDisplayName(name)(render)
+}
 
 /**
  * Create a compound HOC from a set of HOCs.
@@ -102,9 +106,9 @@ export const composeHOC = (name, ...decorators) => (Component) =>
     setDisplayName(wrapDisplayName(Component, name)),
     createFactory,
     ...decorators,
-  )(Component);
+  )(Component)
 
-const DEFAULT_SAVED_PROPS_KEY = '@@app/utils/reactTools/originalProps';
+const DEFAULT_SAVED_PROPS_KEY = '@@app/utils/reactTools/originalProps'
 
 /**
  * Create a HOC that saves the props passed to the resulting component
@@ -123,8 +127,10 @@ const DEFAULT_SAVED_PROPS_KEY = '@@app/utils/reactTools/originalProps';
  * @returns {HOC}
  */
 export const saveProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) =>
-  composeHOC('saveProps',
-    mapProps((props) => ({ ...pick(props, keep), [key]: omit(props, keep) })));
+  composeHOC(
+    'saveProps',
+    mapProps((props) => ({ ...pick(props, keep), [key]: omit(props, keep) })),
+  )
 
 /**
  * Create a HOC that restores the props saved by `saveProps()` HOC.
@@ -142,43 +148,17 @@ export const saveProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) =>
  * @returns {HOC}
  */
 export const restoreProps = ({ key = DEFAULT_SAVED_PROPS_KEY, keep = [] } = {}) =>
-  composeHOC('restoreProps',
-    mapProps(({ [key]: original, ...props }) =>
-      ({ ...original, ...pick(props, keep) })));
-
-/**
- * A composition-friendly interface for styled-components decorator.
- *
- * @example
- * const styledComponent = withStyle`
- *   color: #f00;
- * `(Component);
- *
- * // equivalent to:
- * const styledComponent = styled(Component)`
- *   color: #f00;
- * `;
- *
- * // composition friendliness:
- * const ComplexComponent = composeComponent('ComplexComponent',
- *   someHOC,
- *   withStyle`
- *     color: #f00;
- *   `,
- *   someOtherHOC,
- *   Component);
- *
- * @returns {HOC}
- */
-export const withStyle = (...args) =>
-  composeHOC('withStyle',
-    (C) => styled(C)(...args));
+  composeHOC(
+    'restoreProps',
+    mapProps(({ [key]: original, ...props }) => ({ ...original, ...pick(props, keep) })),
+  )
 
 /**
  * Component that simply renders its children.
  */
-export const RenderChildren = composeComponent('RenderChildren',
-  ({ children }) => <Fragment>{children}</Fragment>);
+export const RenderChildren = composeComponent('RenderChildren', ({ children }) => (
+  <>{children}</>
+))
 
 /**
  * Render nested components.
@@ -190,6 +170,120 @@ export const RenderChildren = composeComponent('RenderChildren',
  */
 export const nest = (...components) =>
   components.reduceRight((children, comp) => {
-    const [Component, props = {}] = [].concat(comp);
-    return <Component {...props}>{children}</Component>;
-  }, undefined);
+    const [Component, props = {}] = [].concat(comp)
+    const actualProps = children ? { ...props, children } : props
+    return <Component {...actualProps} />
+  }, undefined)
+
+/**
+ * Wrap component with another component.
+ *
+ * @param {react.Component} Wrapper
+ *   Wrapper component
+ *
+ * @param {function} propMapper
+ *   Prop mapper for the wrapper component. Default to identity, meaning
+ *   that the wrapper component gets the same props as wrapped component.
+ *
+ * @returns {react.Component}
+ */
+export const wrap = (Wrapper, propMapper = R.identity) =>
+  composeHOC(`wrap(${getDisplayName(Wrapper)})`, (Component) => (props) =>
+    nest([Wrapper, propMapper(props)], [Component, props]),
+  )
+
+/**
+ * Shorthand for creating context providers.
+ *
+ * @param {Object} context
+ * @param {react.ContextProvider} context.Provider
+ *
+ * @param {string|function} getValue
+ *   When string, use it as a prop name to get the value from.
+ *   When function, call it with the props to get the value.
+ */
+export const provide = ({ Provider }, getValue) =>
+  mapProps((props) => ({
+    value: typeof getValue === 'string' ? props[getValue] : getValue(props),
+    children: props.children,
+  }))(Provider)
+
+/**
+ * Create a HOC that consumes a given context and injects it into props.
+ *
+ * @param {Object} context
+ * @param {react.ContextConsumer} context.Consumer
+ *
+ * @param {string|function} propMapper
+ *   When string, use it as a prop name to inject the context value to.
+ *   When function, call it with the context value and props passed to the
+ *   resulting component, and use the result as props passed to the decorated
+ *   component.
+ *
+ * @returns {HOC}
+ *
+ * @example
+ * const ctx = createContext({ thing: 'value' });
+ *
+ * // the following calls are equivalent:
+ * const withStuff = consume(ctx, 'stuff');
+ * const withStuff2 = consume(ctx, (stuff, props) => ({ ...props, stuff });
+ *
+ * const Component = composeComponent('Component',
+ *   withStuff,
+ *   ({ stuff }) => <h1>{stuff.thing}</h1>);
+ */
+export const consume = ({ Consumer }, propMapper) => {
+  const mkProps =
+    typeof propMapper === 'string'
+      ? (value, props) => ({ ...props, [propMapper]: value })
+      : propMapper
+  return (Component) => (props) => (
+    <Consumer>{(value) => <Component {...mkProps(value, props)} />}</Consumer>
+  )
+}
+
+/**
+ * Given a prop name and a function of that prop as the first argument and the
+ * rest props as the second, create a function of props.
+ *
+ * @param {string} prop Prop name to extract
+ * @param {function} fn
+ *   Function accepting the specified prop as the first arg and the rest props
+ *   as the second arg.
+ *
+ * @returns {function}
+ */
+export const extractProp = (prop, fn) => ({ [prop]: value, ...props }) => fn(value, props)
+
+/**
+ * Wrap component into React.Suspense with given fallback and extra props.
+ *
+ * @param {function} fallback
+ *   Function that renders fallback based on props.
+ *
+ * @param {object} options
+ *   Extra props passed to React.Suspense.
+ *
+ * @returns {HOC}
+ */
+export const withSuspense = (fallback, opts) =>
+  wrap(React.Suspense, (props) => ({ fallback: fallback(props), ...opts }))
+
+/**
+ * Create a lazy component.
+ *
+ * @param {function} importFunc
+ *   Function that imports the component, e.g. `() => import('Component')`.
+ *
+ * @param {object} options
+ *   All the options except for `fallback` are passed directly to Suspense.
+ *
+ * @param {function} options.fallback
+ *   Function for rendering fallback UI given props passed to the component.
+ *   Result is passed to Suspense as `fallback` prop
+ *   Renders `null` by default.
+ *
+ */
+export const loadable = (importFunc, { fallback = () => null, ...opts }) =>
+  withSuspense(fallback, opts)(React.lazy(importFunc))

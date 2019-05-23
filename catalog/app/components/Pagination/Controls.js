@@ -1,65 +1,49 @@
-import PT from 'prop-types';
-import React from 'react';
-import {
-  compose,
-  setDisplayName,
-  setPropTypes,
-  withProps,
-} from 'recompose';
-import styled from 'styled-components';
-import { FormattedMessage as FM } from 'react-intl';
-import IconButton from 'material-ui/IconButton';
+import PT from 'prop-types'
+import * as React from 'react'
+import { setPropTypes } from 'recompose'
+import { FormattedMessage as FM } from 'react-intl'
+import { unstable_Box as Box } from '@material-ui/core/Box'
+import Icon from '@material-ui/core/Icon'
+import IconButton from '@material-ui/core/IconButton'
+import { withStyles } from '@material-ui/styles'
 
-import MIcon from 'components/MIcon';
+import * as RT from 'utils/reactTools'
 
-import messages from './messages';
+import messages from './messages'
 
-const UNIT_SIZE = '24px';
-
-const Container = styled.div`
-  display: flex;
-  margin-top: 16px;
-`;
-
-const Chevron = compose(
+const Chevron = RT.composeComponent(
+  'Pagination.Chevron',
   setPropTypes({
     direction: PT.oneOf(['left', 'right']).isRequired,
   }),
-  withProps(({ direction }) => ({
-    children: <MIcon>{`chevron_${direction}`}</MIcon>,
-    style: {
-      height: UNIT_SIZE,
-      padding: 0,
-      width: UNIT_SIZE,
+  withStyles((t) => ({
+    root: {
+      padding: t.spacing.unit * 0.5,
     },
   })),
-)(IconButton);
+  ({ classes, direction, ...rest }) => (
+    <IconButton className={classes.root} {...rest}>
+      <Icon>{`chevron_${direction}`}</Icon>
+    </IconButton>
+  ),
+)
 
-const Pages = styled.span`
-  margin-left: 12px;
-`;
-
-export default compose(
+export default RT.composeComponent(
+  'Pagination.Controls',
   setPropTypes({
     page: PT.number.isRequired,
     pages: PT.number.isRequired,
     nextPage: PT.func.isRequired,
     prevPage: PT.func.isRequired,
   }),
-  setDisplayName('Pagination.Controls'),
-// eslint-disable-next-line object-curly-newline
-)(({ page, pages, nextPage, prevPage }) => pages <= 1 ? null : (
-  <Container>
-    <Chevron
-      direction="left"
-      onClick={prevPage}
-      disabled={page <= 1}
-    />
-    <Chevron
-      direction="right"
-      onClick={nextPage}
-      disabled={page >= pages}
-    />
-    <Pages>{page} <FM {...messages.of} /> {pages}</Pages>
-  </Container>
-));
+  ({ page, pages, nextPage, prevPage }) =>
+    pages <= 1 ? null : (
+      <Box display="flex" alignItems="center">
+        <Chevron direction="left" onClick={prevPage} disabled={page <= 1} />
+        <Chevron direction="right" onClick={nextPage} disabled={page >= pages} />
+        <Box ml={1.5}>
+          {page} <FM {...messages.of} /> {pages}
+        </Box>
+      </Box>
+    ),
+)

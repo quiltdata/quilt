@@ -1,8 +1,8 @@
-import id from 'lodash/identity';
-import isFunction from 'lodash/isFunction';
+import id from 'lodash/identity'
+import isFunction from 'lodash/isFunction'
 
-export const unset = Symbol('reduxTools/unset');
-export const noop = Symbol('reduxTools/noop');
+export const unset = Symbol('reduxTools/unset')
+export const noop = Symbol('reduxTools/noop')
 
 /**
  * A redux action.
@@ -70,14 +70,19 @@ export const noop = Symbol('reduxTools/noop');
  */
 export const combine = (handlers) => (state, action) =>
   Object.entries(handlers).reduce((acc, [key, handler]) => {
-    const updater = isFunction(handler) ? handler(action.payload, action.meta, action) : handler;
-    const updated = isFunction(updater) ? updater(acc.get(key)) : updater;
+    const updater = isFunction(handler)
+      ? handler(action.payload, action.meta, action)
+      : handler
+    const updated = isFunction(updater) ? updater(acc.get(key)) : updater
     switch (updated) {
-      case noop: return acc;
-      case unset: return acc.remove(key);
-      default: return acc.set(key, updated);
+      case noop:
+        return acc
+      case unset:
+        return acc.remove(key)
+      default:
+        return acc.set(key, updated)
     }
-  }, state);
+  }, state)
 
 /**
  * Create a reducer that handles actions based on a given reducer map.
@@ -88,7 +93,7 @@ export const combine = (handlers) => (state, action) =>
  * @returns {Reducer}
  */
 export const handleActions = (reducers) => (state, action) =>
-  (reducers[action.type] || id)(state, action);
+  (reducers[action.type] || id)(state, action)
 
 /**
  * Create a reducer that handles transitions.
@@ -100,7 +105,7 @@ export const handleActions = (reducers) => (state, action) =>
  *   Reducer map (FSM state -> Reducer).
  */
 export const handleTransitions = (getState, reducers) => (state, action) =>
-  (reducers[getState(state)] || id)(state, action);
+  (reducers[getState(state)] || id)(state, action)
 
 /**
  * Sets the initial state for a reducer.
@@ -111,8 +116,10 @@ export const handleTransitions = (getState, reducers) => (state, action) =>
  * @returns {Reducer}
  *   Reducer with the given initial state.
  */
-export const withInitialState = (initialState, reducer) =>
-  (state = initialState, action) => reducer(state, action);
+export const withInitialState = (initialState, reducer) => (
+  state = initialState,
+  action,
+) => reducer(state, action)
 
 /**
  * Create a reducer that uses different handlers for error and non-error actions.
@@ -126,7 +133,7 @@ export const withInitialState = (initialState, reducer) =>
  *  @returns {Reducer}
  */
 export const handleResult = ({ resolve, reject }) => (state, action) =>
-  ((action.error ? reject : resolve) || id)(state, action);
+  ((action.error ? reject : resolve) || id)(state, action)
 
 /**
  * Create map of actions prefixed with the given scope.
@@ -139,8 +146,7 @@ export const handleResult = ({ resolve, reject }) => (state, action) =>
  *   and the prefixed strings as values.
  */
 export const createActions = (scope, ...actions) =>
-  actions.reduce((acc, action) => ({ ...acc, [action]: `${scope}/${action}` }), {});
-
+  actions.reduce((acc, action) => ({ ...acc, [action]: `${scope}/${action}` }), {})
 
 /**
  * Create an action creator for the given action type.
@@ -156,4 +162,4 @@ export const createActions = (scope, ...actions) =>
  * @returns {function} The action creator.
  */
 export const actionCreator = (type, create = () => {}) =>
-  Object.assign((...args) => ({ type, ...create(...args) }), { type });
+  Object.assign((...args) => ({ type, ...create(...args) }), { type })

@@ -1,4 +1,4 @@
-import memoize from 'lodash/memoize';
+import memoize from 'lodash/memoize'
 
 /**
  * @typedef {function} TestFunction
@@ -60,7 +60,8 @@ import memoize from 'lodash/memoize';
  */
 export default memoize((error, test) => (v, vs, props) =>
   // only test truthy values
-  v && !test(v, vs, props) ? error : undefined);
+  v && !test(v, vs, props) ? error : undefined,
+)
 
 /**
  * Create a test function that checks if the value matches the given RegExp.
@@ -69,7 +70,7 @@ export default memoize((error, test) => (v, vs, props) =>
  *
  * @returns {TestFunction}
  */
-export const matches = (re) => (str) => re.test(str);
+export const matches = (re) => (str) => re.test(str)
 
 /**
  * Create a test function that checks if the value matches the other field's
@@ -80,13 +81,13 @@ export const matches = (re) => (str) => re.test(str);
  * @returns {TestFunction}
  */
 export const matchesField = (field) => (v, vs) => {
-  const other = vs.get(field);
-  return !other || v === other;
-};
+  const other = vs.get(field)
+  return !other || v === other
+}
 
 /**
  * Validate that the value is present (truthy). Error string: 'required'.
  *
  * @type {Validator}
  */
-export const required = (v) => v ? undefined : 'required';
+export const required = (v) => (v ? undefined : 'required')

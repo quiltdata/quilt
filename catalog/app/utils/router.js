@@ -1,37 +1,30 @@
-import { Map } from 'immutable';
-import { ConnectedRouter, LOCATION_CHANGE } from 'react-router-redux';
-import { combineReducers } from 'redux-immutable';
-import { createSelector } from 'reselect';
+import {
+  ConnectedRouter,
+  connectRouter,
+  LOCATION_CHANGE,
+} from 'connected-react-router/immutable'
+import { matchPath } from 'react-router-dom'
+import * as reduxHook from 'redux-react-hook'
 
-import { get } from 'utils/immutableTools';
-import { composeComponent } from 'utils/reactTools';
-import { injectReducer } from 'utils/ReducerInjector';
+import { composeComponent } from 'utils/reactTools'
+import { injectReducerFactory } from 'utils/ReducerInjector'
 
-/*
- * route reducer
- *
- * The reducer merges route location changes into our immutable state.
- * The change is necessitated by moving to react-router-redux@5
- *
- */
+export { LOCATION_CHANGE }
 
-export const REDUX_KEY = 'router';
+export const REDUX_KEY = 'router'
 
-export const selectRouterDomain = (state) => state.get(REDUX_KEY, Map({}));
+export const selectLocation = (s) => s.getIn([REDUX_KEY, 'location']).toJS()
 
-export const selectLocation = createSelector(selectRouterDomain, get('location', null));
+export const useLocation = () => reduxHook.useMappedState(selectLocation)
 
-export const reducer = combineReducers({
-  location: (state = null, action) => {
-    switch (action.type) {
-      case LOCATION_CHANGE:
-        return action.payload;
-      default:
-        return state;
-    }
-  },
-});
+export const useRoute = (path, opts) => {
+  const location = useLocation()
+  const match = matchPath(location.pathname, { path, ...opts })
+  return { location, match }
+}
 
-export default composeComponent('RouterProvider',
-  injectReducer(REDUX_KEY, reducer),
-  ConnectedRouter);
+export default composeComponent(
+  'RouterProvider',
+  injectReducerFactory(REDUX_KEY, ({ history }) => connectRouter(history)),
+  ConnectedRouter,
+)

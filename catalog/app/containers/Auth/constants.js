@@ -1,20 +1,13 @@
-import { createActions } from 'utils/reduxTools';
+import { createActions } from 'utils/reduxTools'
 
-export const REDUX_KEY = 'app/Auth';
+export const REDUX_KEY = 'app/Auth'
 
-export const states = [
-  'SIGNED_OUT',
-  'SIGNING_IN',
-  'SIGNED_IN',
-  'REFRESHING',
-];
+export const states = ['SIGNED_OUT', 'SIGNING_IN', 'SIGNED_IN', 'REFRESHING']
 
-export const waitingStates = [
-  'SIGNING_IN',
-  'REFRESHING',
-];
+export const waitingStates = ['SIGNING_IN', 'REFRESHING']
 
-export const actions = createActions(REDUX_KEY,
+export const actions = createActions(
+  REDUX_KEY,
   'SIGN_UP',
   'RESET_PASSWORD',
   'CHANGE_PASSWORD',
@@ -27,4 +20,4 @@ export const actions = createActions(REDUX_KEY,
   'REFRESH_RESULT',
   'AUTH_LOST',
   'GET_CODE',
-); // eslint-disable-line function-paren-newline
+) // eslint-disable-line function-paren-newline
