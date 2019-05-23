@@ -10,7 +10,6 @@
 
 [![Linux](https://travis-ci.org/quiltdata/quilt.svg?branch=master)](https://travis-ci.org/quiltdata/quilt/branches)
 [![CircleCI](https://circleci.com/gh/quiltdata/quilt/tree/master.svg?style=svg)](https://circleci.com/gh/quiltdata/quilt/tree/master)
-[![Windows](https://ci.appveyor.com/api/projects/status/7s4sufpi2gr90ase/branch/master?svg=true)](https://ci.appveyor.com/project/akarve/quilt/branch/master)
 
 # Manage data like code
 
