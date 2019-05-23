@@ -136,6 +136,20 @@ class TestIndex():
             f'Unexpected body["info"] for {parquet}'
 
     @responses.activate
+    def test_no_meta_parquet(self):
+        """test a parquet file with no meta.metadata"""
+        no_meta_parquet = BASE_DIR / 'no_meta.parquet'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=no_meta_parquet.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
+        resp = index.lambda_handler(event, None)
+        
+        assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
+
+    @responses.activate
     def test_txt_long(self):
         """test sending txt bytes"""
         txt = BASE_DIR / 'long.txt'
