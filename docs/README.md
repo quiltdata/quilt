@@ -8,6 +8,7 @@
 [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
 [![pypi](https://img.shields.io/pypi/v/quilt.svg?style=flat-square)](https://pypi.org/project/quilt/)
 
+*Note: this is the documentation for [Quilt 3](https://blog.quiltdata.com/rethinking-s3-announcing-t4-a-team-data-hub-8e63ce7ec988). For Quilt 2 see [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master).*
 
 ## Overview
 
