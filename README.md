@@ -3,11 +3,21 @@
 	* /README.md and docs/README.md should be identical copies (symlinks don't work)
 	* Use only *absolute links* in these files. Relative links will break.
 !-->
-[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://quiltdocs.gitbook.io/t4/)
+[![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://quiltdocs.gitbook.io/quilt/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
-[![codecov](https://codecov.io/gh/quiltdata/t4/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/t4)
-[![pypi](https://img.shields.io/pypi/v/t4.svg?style=flat-square)](https://pypi.org/project/t4/)
+[![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
+[![pypi](https://img.shields.io/pypi/v/quilt.svg?style=flat-square)](https://pypi.org/project/quilt/)
 
+*Note: this is the documentation for [Quilt 3](https://blog.quiltdata.com/rethinking-s3-announcing-t4-a-team-data-hub-8e63ce7ec988). For Quilt 2 see [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master).*
+
+## Overview
+
+Quilt is a collaboration tool for creating, managing, and sharing
+datasets in S3. Quilt users transform raw, messy data in S3 buckets
+into immutable datasets--reusable, trusted building blocks that are
+easy to version, test, share and catalog. Working with datasets in
+Quilt speeds up model creation, accelerates experimentation, reduces
+downtime and increase the productivity of data science teams.
 
 ## Collaborate in S3
 
@@ -15,7 +25,7 @@
 * Every file in Quilt is versioned and searchable
 * Quilt is for data scientists, data engineers, and data-driven teams
 
-![](https://github.com/quiltdata/t4/blob/master/docs/imgs/t4.gif?raw=true)
+![](https://github.com/quiltdata/quilt/blob/master/docs/imgs/quilt.gif?raw=true)
 
 ### Use cases
 * Collaborate - get everyone on the same page by pointing them all to the same immutable data version
@@ -33,7 +43,3 @@
 
 * `/catalog` (JavaScript) - Search, browse, and preview your data in S3
 * `/api/python` - Read, write, and annotate Python objects in S3
-
-## Roadmap
-
-* [Roadmap](https://github.com/quiltdata/t4/blob/master/Roadmap.md)
