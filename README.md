@@ -19,7 +19,7 @@ easy to version, test, share and catalog. Working with datasets in
 Quilt speeds up model creation, accelerates experimentation, reduces
 downtime and increase the productivity of data science teams.
 
-## A team data hub for S3
+## Collaborate in S3
 
 * Quilt adds search, content preview, versioning, and a Python API to any S3 bucket
 * Every file in Quilt is versioned and searchable
