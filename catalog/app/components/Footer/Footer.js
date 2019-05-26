@@ -41,6 +41,7 @@ export default () => {
   return (
     <Box
       component="footer"
+      position="relative"
       style={{
         background: `left / 64px url(${bg})`,
         boxShadow: `
