@@ -3,16 +3,19 @@ import { Button, Hidden, Icon, Link, Typography } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 import { unstable_Box as Box } from '@material-ui/core/Box'
 
-import * as Layout from 'components/Layout'
-
+import { Container } from 'components/Layout'
+import offset from 'utils/bgOffset'
+import img2x from 'utils/img2x'
+import Backlight1 from 'website/components/Backgrounds/Backlight1'
+import Dots from 'website/components/Backgrounds/Dots'
+import Overlay1 from 'website/components/Backgrounds/Overlay1'
+import Overlay2 from 'website/components/Backgrounds/Overlay2'
 import Bar from 'website/components/Bar'
-import * as Backgrounds from 'website/components/Backgrounds'
 
 import heroArt from './hero-illustration.png'
 import heroArt2x from './hero-illustration@2x.png'
 
-
-const Art = styled('div')({
+const Art = styled(Box)({
   backgroundImage: `url(${img2x(heroArt, heroArt2x)})`,
   backgroundPosition: `top left ${offset(770)}`,
   backgroundSize: 'auto 100%',
@@ -23,19 +26,34 @@ const Art = styled('div')({
   top: 210,
 })
 
+const Arrow = styled((props) => <Icon {...props}>arrow_forward</Icon>)(
+  ({ theme: t }) => ({
+    color: t.palette.common.white,
+    marginLeft: '0.5em',
+    verticalAlign: 'top',
+  }),
+)
 
 export default () => (
-  <Layout.Container>
-    <Backgrounds.Backlight1 />
-    <Backgrounds.Dots />
-    <Backgrounds.Overlay2 />
-    <Backgrounds.Overlay1 />
+  <Container>
+    <Backlight1 />
+    <Dots />
+    <Overlay2 />
+    <Overlay1 />
     <Hidden xsDown>
       <Art />
     </Hidden>
-    <Box pt={28} pb={10} maxWidth={320} position="relative">
+    <Box
+      pt={28}
+      pb={10}
+      maxWidth={['unset', 320]}
+      position="relative"
+      display="flex"
+      flexDirection="column"
+      alignItems={['center', 'unset']}
+    >
       <Bar color="primary" />
-      <Box mt={5}>
+      <Box mt={5} textAlign={['center', 'unset']}>
         <Typography variant="h1">Trust your data and models.</Typography>
       </Box>
       <Box mt={4}>
@@ -64,5 +82,5 @@ export default () => (
         </Link>
       </Box>
     </Box>
-  </Layout.Container>
+  </Container>
 )
