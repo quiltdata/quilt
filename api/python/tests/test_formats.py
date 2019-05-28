@@ -9,8 +9,8 @@ import pandas as pd
 import pytest
 
 ### Project imports
-from quilt.formats import FormatRegistry
-from quilt.util import QuiltException
+from quilt3.formats import FormatRegistry
+from quilt3.util import QuiltException
 
 
 ### Constants

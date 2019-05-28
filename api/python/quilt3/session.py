@@ -19,7 +19,7 @@ from .util import BASE_PATH, load_config, QuiltException
 
 
 AUTH_PATH = BASE_PATH / 'auth.json'
-VERSION = pkg_resources.require('quilt')[0].version
+VERSION = pkg_resources.require('quilt3')[0].version
 
 def _load_auth():
     if AUTH_PATH.exists():

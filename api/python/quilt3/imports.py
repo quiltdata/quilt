@@ -3,8 +3,8 @@
 from importlib.machinery import ModuleSpec
 import sys
 
-from quilt.util import get_from_config
-from quilt import list_packages, Package
+from quilt3.util import get_from_config
+from quilt3 import list_packages, Package
 
 
 MODULE_PATH = []
@@ -31,14 +31,14 @@ class DataPackageImporter:
         name_parts = module.__name__.split('.')
         registry = get_from_config('default_local_registry')
 
-        if module.__name__ == 'quilt.data':
+        if module.__name__ == 'quilt3.data':
             # __path__ must be set even if the package is virtual. Since __path__ will be
             # scanned by all other finders preceding this one in sys.meta_path order, make sure
             # it points to someplace lacking importable objects
             module.__path__ = MODULE_PATH
             return module
 
-        elif len(name_parts) == 3:  # e.g. module.__name__ == quilt.data.foo
+        elif len(name_parts) == 3:  # e.g. module.__name__ == quilt3.data.foo
             namespace = name_parts[2]
 
             # we do not know the name the user will ask for, so populate all valid names
@@ -70,7 +70,7 @@ class DataPackageFinder:
         # consistency issues. For now let's avoid, but you can see the full code at
         # https://github.com/ResidentMario/package-autorelaod/blob/master/loader.py
         name_parts = fullname.split('.')
-        if name_parts[:2] != ['quilt', 'data'] or len(name_parts) > 3:
+        if name_parts[:2] != ['quilt3', 'data'] or len(name_parts) > 3:
             return None
         else:
             return ModuleSpec(fullname, DataPackageImporter())
