@@ -369,3 +369,141 @@ class DataTransferTest(QuiltTestCase):
             (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, {'foo': 'bar'}),
         ])
         assert urls[0] == 's3://example/large_file.npy?versionId=v2'
+
+
+    def test_multipart_upload(self):
+        path = DATA_DIR / 'large_file.npy'
+
+        self.s3_stubber.add_client_error(
+            method='head_object',
+            http_status_code=404,
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='create_multipart_upload',
+            service_response={
+                'UploadId': '123'
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'Metadata': {'helium': '{}'}
+            }
+        )
+
+        with open(path, 'rb') as fd:
+            for part_num in range(1, 6):
+                self.s3_stubber.add_response(
+                    method='upload_part',
+                    service_response={
+                        'ETag': 'etag%d' % part_num
+                    },
+                    expected_params={
+                        'Bucket': 'example',
+                        'Key': 'large_file.npy',
+                        'UploadId': '123',
+                        'Body': fd.read(2048),
+                        'PartNumber': part_num
+                    }
+                )
+
+        self.s3_stubber.add_response(
+            method='complete_multipart_upload',
+            service_response={},
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+                'UploadId': '123',
+                'MultipartUpload': {
+                    'Parts': [{
+                        'ETag': 'etag%d' % i,
+                        'PartNumber': i
+                    } for i in range(1, 6)]
+                }
+            }
+        )
+
+        with mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', 4096), \
+             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', 2048), \
+             mock.patch('quilt.data_transfer.s3_threads', 1):
+            data_transfer.copy_file_list([
+                (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, None),
+            ])
+
+
+    def test_multipart_copy(self):
+        file_size = 5000
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'Metadata': {'helium': '{"foo": "bar"}'}
+            },
+            expected_params={
+                'Bucket': 'example1',
+                'Key': 'large_file1.npy',
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='create_multipart_upload',
+            service_response={
+                'UploadId': '123'
+            },
+            expected_params={
+                'Bucket': 'example2',
+                'Key': 'large_file2.npy',
+                'Metadata': {'helium': '{"foo": "bar"}'}
+            }
+        )
+
+        for part_num in range(1, 4):
+            self.s3_stubber.add_response(
+                method='upload_part_copy',
+                service_response={
+                    'CopyPartResult': {
+                        'ETag': 'etag%d' % part_num
+                    }
+                },
+                expected_params={
+                    'Bucket': 'example2',
+                    'Key': 'large_file2.npy',
+                    'UploadId': '123',
+                    'PartNumber': part_num,
+                    'CopySource': {
+                        'Bucket': 'example1',
+                        'Key': 'large_file1.npy'
+                    },
+                    'CopySourceRange': 'bytes=%d-%d' % (
+                        (part_num-1) * 2048,
+                        min(part_num * 2048, file_size) - 1
+                    )
+                }
+            )
+
+        self.s3_stubber.add_response(
+            method='complete_multipart_upload',
+            service_response={},
+            expected_params={
+                'Bucket': 'example2',
+                'Key': 'large_file2.npy',
+                'UploadId': '123',
+                'MultipartUpload': {
+                    'Parts': [{
+                        'ETag': 'etag%d' % i,
+                        'PartNumber': i
+                    } for i in range(1, 4)]
+                }
+            }
+        )
+
+        with mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', 4096), \
+             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', 2048), \
+             mock.patch('quilt.data_transfer.s3_threads', 1):
+            data_transfer.copy_file_list([
+                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', file_size, None),
+            ])

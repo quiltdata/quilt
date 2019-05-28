@@ -7,7 +7,7 @@ Contains the Bucket class, which provides several useful functions
 import pathlib
 from urllib.parse import urlparse
 
-from .data_transfer import (copy_file, copy_object, delete_object, get_bytes,
+from .data_transfer import (copy_file, delete_object, get_bytes,
                             get_size_and_meta, list_object_versions,
                             list_objects, put_bytes, select)
 from .formats import FormatRegistry
@@ -319,9 +319,10 @@ class Bucket(object):
         Raises:
             * if put to bucket fails
         """
-        existing_meta = self.get_meta(key)
+        key_uri = self._uri + key
+        size, existing_meta, _ = get_size_and_meta(key_uri)
         existing_meta['user_meta'] = meta
-        copy_object(self._bucket, key, self._bucket, key, existing_meta)
+        copy_file(key_uri, key_uri, existing_meta, size)
 
     def select(self, key, query, raw=False):
         """
