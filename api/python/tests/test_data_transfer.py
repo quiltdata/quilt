@@ -280,7 +280,8 @@ class DataTransferTest(QuiltTestCase):
             service_response={
                 'ContentLength': path.stat().st_size,
                 'ETag': data_transfer._calculate_etag(path),
-                'VersionId': 'v1'
+                'VersionId': 'v1',
+                'Metadata': {}
             },
             expected_params={
                 'Bucket': 'example',
@@ -302,7 +303,8 @@ class DataTransferTest(QuiltTestCase):
             service_response={
                 'ContentLength': path.stat().st_size,
                 'ETag': '"123"',
-                'VersionId': 'v1'
+                'VersionId': 'v1',
+                'Metadata': {}
             },
             expected_params={
                 'Bucket': 'example',
@@ -329,7 +331,7 @@ class DataTransferTest(QuiltTestCase):
         assert urls[0] == 's3://example/large_file.npy?versionId=v2'
 
 
-    def test_upload_large_file_etag_match_metadata(self):
+    def test_upload_large_file_etag_match_metadata_match(self):
         path = DATA_DIR / 'large_file.npy'
         etag = data_transfer._calculate_etag(path)
 
@@ -338,7 +340,32 @@ class DataTransferTest(QuiltTestCase):
             service_response={
                 'ContentLength': path.stat().st_size,
                 'ETag': etag,
-                'VersionId': 'v1'
+                'VersionId': 'v1',
+                'Metadata': {'helium': '{"foo": "bar"}'}
+            },
+            expected_params={
+                'Bucket': 'example',
+                'Key': 'large_file.npy',
+            }
+        )
+
+        urls = data_transfer.copy_file_list([
+            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, {'foo': 'bar'}),
+        ])
+        assert urls[0] == 's3://example/large_file.npy?versionId=v1'
+
+
+    def test_upload_large_file_etag_match_metadata_mismatch(self):
+        path = DATA_DIR / 'large_file.npy'
+        etag = data_transfer._calculate_etag(path)
+
+        self.s3_stubber.add_response(
+            method='head_object',
+            service_response={
+                'ContentLength': path.stat().st_size,
+                'ETag': etag,
+                'VersionId': 'v1',
+                'Metadata': {}
             },
             expected_params={
                 'Bucket': 'example',

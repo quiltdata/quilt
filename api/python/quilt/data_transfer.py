@@ -320,10 +320,11 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_m
             dest_size = resp['ContentLength']
             dest_etag = resp['ETag']
             dest_version_id = resp['VersionId']
+            dest_meta = _parse_metadata(resp)
             if size == dest_size:
                 src_etag = _calculate_etag(src_path)
                 if src_etag == dest_etag:
-                    if override_meta is None:
+                    if override_meta is None or override_meta == dest_meta:
                         # Nothing more to do. We should not attempt to copy the object because
                         # that would cause the "copy object to itself" error.
                         ctx.progress(size)
