@@ -2,7 +2,7 @@ The examples in this section use the following mock package:
 
 ```python
 import quilt
-p = (quilt.Package()
+p = (quilt3.Package()
         .set("trades.parquet", "trades.parquet")
         .set("symbols.yaml", "symbols.yaml")
         .set("commodities/gold.csv", "gold.csv")

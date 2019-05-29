@@ -6,13 +6,13 @@ As explained in ["Building a Package"](Building%20a%20Package.md), packages are 
 $ python
 >>> import quilt
 
->>> quilt.list_packages()  # list local packages
+>>> quilt3.list_packages()  # list local packages
 
 PACKAGE                            TOPHASH        CREATED        SIZE
 namespace/packagename:latest       cac145b9c3dc   just now       2.4 GB
 othernamespace/packagename:latest  95a134c80z48   14 days ago    2.4 GB
 
->>> quilt.list_packages("s3://my-bucket")  # list remote packages
+>>> quilt3.list_packages("s3://my-bucket")  # list remote packages
 
 PACKAGE                            TOPHASH        CREATED        SIZE
 user1/seattle-weather:latest       cac145b9c3dc   1 hour ago     2.4 GB
@@ -25,7 +25,7 @@ To make a remote package and all of its data available locally, `install` it.
 
 ```python
 import quilt
-p = quilt.Package.install(
+p = quilt3.Package.install(
     "username/packagename",
     "s3://your-bucket",
 )
@@ -36,22 +36,22 @@ Installing a package downloads all of the data and populates an entry for the pa
 You can omit `registry` if you configure a default remote registry (this will persists between sessions):
 
 ```python
-quilt.config(default_remote_registry='s3://your-bucket')
+quilt3.config(default_remote_registry='s3://your-bucket')
 
 # this now 'just works'
-quilt.Package.install("username/packagename")
+quilt3.Package.install("username/packagename")
 ```
 
 Data files that you download are written to a folder in your local registry by default. You can specify an alternative destination using `dest`:
 
 ```python
-quilt.Package.install("username/packagename", dest="./")
+quilt3.Package.install("username/packagename", dest="./")
 ```
 
 Finally, you can install a specific version of a package by specifying the corresponding top hash:
 
 ```python
-quilt.Package.install("username/packagename", top_hash="abcd1234")
+quilt3.Package.install("username/packagename", top_hash="abcd1234")
 ```
 
 ## Browsing a package manifest
@@ -62,13 +62,13 @@ An alternative to `install` is `browse`. `browse` downloads a package manifest w
 import quilt
 
 # load a package manifest from a remote registry
-p  = quilt.Package.browse("username/packagename", "s3://your-bucket")
+p  = quilt3.Package.browse("username/packagename", "s3://your-bucket")
 
 # load a package manifest from the default remote registry
-p  = quilt.Package.browse("username/packagename")
+p  = quilt3.Package.browse("username/packagename")
 
 # load a package manifest from the local registry
-p = quilt.Package.browse("username/packagename", "local")
+p = quilt3.Package.browse("username/packagename", "local")
 ```
 
 `browse` is advantageous when you don't want to download everything in a package at once. For example if you just want to look at a package's metadata.
@@ -78,7 +78,7 @@ p = quilt.Package.browse("username/packagename", "local")
 You can import a local package from within Python:
 
 ```python
-from quilt.data.username import packagename
+from quilt3.data.username import packagename
 ```
 
 This allows you to manage your data and code dependencies all in one place in your Python scripts or Jupyter notebooks.

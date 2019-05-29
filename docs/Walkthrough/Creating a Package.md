@@ -3,7 +3,7 @@ Data in Quilt is organized in terms of **data packages**. A data package is a lo
 ```python
 import quilt
 # initialize a package
-p = quilt.Package()
+p = quilt3.Package()
 ```
 
 ## Adding data to a package
@@ -80,7 +80,7 @@ Note that this will only remove this piece of data from the package. It will not
 Packages support metadata anywhere in the package. To set metadata on package entries or directories, use the `meta` argument:
 
 ```python
-p = (quilt.Package()
+p = (quilt3.Package()
     .set("foo.csv", "foo.csv", meta={"type": "csv"})
     .set_dir("stuff/", "stuff/", meta={"origin": "unknown"})
 )

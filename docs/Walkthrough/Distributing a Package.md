@@ -6,7 +6,7 @@ To save a package to your local disk use `build`.
 
 ```python
 import quilt
-p = quilt.Package()
+p = quilt3.Package()
 
 top_hash = p.build("username/packagename")
 ```
@@ -19,7 +19,7 @@ To share a package with others via a remote registry, `push` it:
 
 ```python
 import quilt
-p = quilt.Package()
+p = quilt3.Package()
 p.push(
     "username/packagename",
     "s3://your-bucket",
@@ -33,9 +33,9 @@ If you omit a registry entirely, the default remote registry will be used:
 
 ```python
 import quilt
-quilt.config(default_remote_registry='s3://your-bucket')
+quilt3.config(default_remote_registry='s3://your-bucket')
 # this now 'just works'
-quilt.Package().push("username/packagename")  
+quilt3.Package().push("username/packagename")  
 ```
 
 The default remote registry, if set, persists between sessions.
@@ -60,7 +60,7 @@ Once you build `build` or `push` a package, it has a *top_hash*:
 ```python
 import quilt
 
-p = quilt.Package()
+p = quilt3.Package()
 p.build("username/packagename")
 p.top_hash
 
@@ -77,10 +77,10 @@ To delete a package from a registry:
 import quilt
 
 # delete a package in the local registry
-quilt.delete_package("username/packagename")
+quilt3.delete_package("username/packagename")
 
 # delete a package in a remote registry
-quilt.delete_package("username/packagename", "s3://your-bucket")
+quilt3.delete_package("username/packagename", "s3://your-bucket")
 ```
 
 Only do this if you really need to as this will break the package for anyone relying on it.
