@@ -9,23 +9,23 @@ To retrieve the current config, call directly, without arguments:
 
 ```python
     >>> import quilt
-    >>> quilt.config()
+    >>> quilt3.config()
 ```
 
 To trigger autoconfiguration, call with just the navigator URL:
 
 ```python
-    >>> quilt.config('https://example.com')
+    >>> quilt3.config('https://example.com')
 ```
 
 To set config values, call with one or more key=value pairs:
 
 ```python
-    >>> quilt.config(navigator_url='http://example.com',
+    >>> quilt3.config(navigator_url='http://example.com',
     ...           elastic_search_url='http://example.com/queries')
 ```
 
-Default config values can be found in `quilt.util.CONFIG_TEMPLATE`.
+Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
 
 __Arguments__
 

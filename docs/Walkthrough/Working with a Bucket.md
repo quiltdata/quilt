@@ -1,14 +1,14 @@
-Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with Quilt. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
+Quilt allows you to create, read, and write packages both on your local filesystem and on S3 buckets configured to work with Quilt3. For convenience, we provide a simple API for working with S3 buckets that serves as an alternative to [boto3](https://boto3.amazonaws.com/v1/documentation/api/latest/index.html).
 
 ## Connecting to a bucket
 
 To connect to an S3 `Bucket`:
 
 ```python
-b = quilt.Bucket("s3://my-bucket")
+b = quilt3.Bucket("s3://my-bucket")
 ```
 
-This requires that the bucket is configured to work with Quilt.
+This requires that the bucket is configured to work with Quilt3.
 
 ## Introspecting a bucket
 
@@ -75,11 +75,11 @@ b.delete_dir("foo/")
 
 You can search for individual objects using `search`.
 
-Note that this feature is currently only supported for buckets backed by a Quilt catalog instance. Before performing a search you must first configure a connection to that instance using `quilt.config`.
+Note that this feature is currently only supported for buckets backed by a Quilt catalog instance. Before performing a search you must first configure a connection to that instance using `quilt3.config`.
 
 ```python
 # for example
-quilt.config(navigator_url="https://allencell.quiltdata.com")
+quilt3.config(navigator_url="https://allencell.quiltdata.com")
 ```
 
 Quilt supports unstructured search:

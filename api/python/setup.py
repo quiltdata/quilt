@@ -31,7 +31,7 @@ class VerifyVersionCommand(install):
             sys.exit(info)
 
 setup(
-    name="quilt",
+    name="quilt3",
     version=VERSION,
     packages=find_packages(),
     description='Quilt: where data comes together',
@@ -85,7 +85,7 @@ setup(
     },
     include_package_data=True,
     entry_points={
-        'console_scripts': ['quilt=quilt.main:main'],
+        'console_scripts': ['quilt=quilt3.main:main'],
     },
     cmdclass={
         'verify': VerifyVersionCommand,

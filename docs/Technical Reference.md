@@ -306,4 +306,4 @@ Note the comma after the object. Your trust relationship should now look somethi
 }
 ```
 
-You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt.admin.create_role`).
+You can now configure a Quilt Role with this role (using the Catalog's admin panel, or `quilt3.admin.create_role`).

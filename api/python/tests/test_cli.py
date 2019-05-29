@@ -1,4 +1,4 @@
-from quilt import main
+from quilt3 import main
 
 from .utils import QuiltTestCase
 
