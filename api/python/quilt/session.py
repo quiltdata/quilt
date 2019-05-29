@@ -15,7 +15,7 @@ import pkg_resources
 import requests
 
 from .data_transfer import _update_credentials
-from .util import BASE_PATH, load_config, QuiltException
+from .util import BASE_PATH, get_from_config, QuiltException
 
 
 AUTH_PATH = BASE_PATH / 'auth.json'
@@ -33,16 +33,8 @@ def _save_auth(cfg):
         AUTH_PATH.chmod(stat.S_IRUSR | stat.S_IWUSR)
         json.dump(cfg, fd)
 
-_registry_url = None
-
 def get_registry_url():
-    global _registry_url
-    if _registry_url is not None:
-        return _registry_url
-
-    _registry_url = load_config()['registryUrl']
-
-    return _registry_url
+    return get_from_config('registryUrl')
 
 def _update_auth(refresh_token, timeout=None):
     try:
