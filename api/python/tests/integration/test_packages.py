@@ -244,7 +244,7 @@ class PackageTest(QuiltTestCase):
             for name in files:
                 file_count += 1
                 with open(os.path.join(dirpath, name)) as file_:
-                    assert name in expected, 'unexpected file: {}'.format(file_)
+                    assert name in expected, 'unexpected file: {}'.format(name)
                     contents = file_.read().strip()
                     assert contents == expected[name], \
                         'unexpected contents in {}: {}'.format(name, contents)
@@ -252,7 +252,7 @@ class PackageTest(QuiltTestCase):
             'fetch wrote {} files; expected: {}'.format(file_count, expected)
 
         # test that package re-rooting works as expected
-        out_dir_abs_path = f'file://{pathlib.Path(out_dir).absolute().as_posix()}'
+        out_dir_abs_path = pathlib.Path(out_dir).resolve().as_uri()
         assert all(
             entry.physical_keys[0].startswith(out_dir_abs_path) for _, entry in new_package_.walk()
         )
@@ -288,7 +288,7 @@ class PackageTest(QuiltTestCase):
         # The key gets re-rooted correctly.
         pkg = quilt3.Package().set('foo', DATA_DIR / 'foo.txt')
         new_pkg_entry = pkg['foo'].fetch('bar.txt')
-        out_abs_path = f'file://{pathlib.Path(".").absolute().as_posix()}/bar.txt'
+        out_abs_path = pathlib.Path("bar.txt").resolve().as_uri()
         assert new_pkg_entry.physical_keys[0] == out_abs_path
 
     def test_fetch_default_dest(tmpdir):
@@ -527,9 +527,10 @@ class PackageTest(QuiltTestCase):
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
-        temp_local_registry = Path('test_registry').resolve().as_uri() + '/.quilt'
+        temp_local_registry = Path('.').resolve().as_uri() + '/test_registry/.quilt'
         with patch('quilt3.packages.get_package_registry', lambda path: temp_local_registry), \
             patch('quilt3.api.get_package_registry', lambda path: temp_local_registry):
+
             # Build a new package into the local registry.
             Package().build("Quilt/Foo")
             Package().build("Quilt/Bar")
@@ -1065,7 +1066,7 @@ class PackageTest(QuiltTestCase):
         with open(foodir / 'bar', 'w') as fd:
             fd.write(fd.name)
 
-        currdir = 'file://' + pathlib.Path('.').absolute().as_posix() + '/'
+        currdir = pathlib.Path('.').resolve().as_uri() + '/'
 
         # consistent local case
         pkg = quilt3.Package().set_dir("/", "./")
