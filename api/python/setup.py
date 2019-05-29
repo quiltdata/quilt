@@ -8,7 +8,7 @@ VERSION = "3.0.0"
 
 def readme():
     readme_short = """
-    Quilt3 is a data management tool designed for data discoverability, data dependency
+    Quilt is a data management tool designed for data discoverability, data dependency
     management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
 
     The `quilt` PyPi package allows you to build, push, and pull data packages in Quilt using Python.
@@ -34,7 +34,7 @@ setup(
     name="quilt3",
     version=VERSION,
     packages=find_packages(),
-    description='Quilt3: where data comes together',
+    description='Quilt: where data comes together',
     long_description=readme(),
     classifiers=[
         'Development Status :: 5 - Production/Stable',
