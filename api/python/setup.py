@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.0.1"
+VERSION = "3.0.2"
 
 def readme():
     readme_short = """
@@ -36,6 +36,7 @@ setup(
     packages=find_packages(),
     description='Quilt: where data comes together',
     long_description=readme(),
+    python_requires='>=3.6',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
