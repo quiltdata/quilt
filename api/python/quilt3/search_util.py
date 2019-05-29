@@ -10,7 +10,7 @@ from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 
-from .session import get_credentials
+from .session import create_botocore_session
 from .util import QuiltException
 
 ES_INDEX = 'drive'
@@ -22,7 +22,7 @@ def _create_es(search_endpoint, aws_region):
     """
     es_url = urlparse(search_endpoint)
 
-    credentials = get_credentials()
+    credentials = create_botocore_session().get_credentials()
     if credentials:
         # use registry-provided credentials
         creds = credentials.get_frozen_credentials()

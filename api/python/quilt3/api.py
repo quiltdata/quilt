@@ -11,7 +11,7 @@ import requests
 import humanize
 
 from .data_transfer import (copy_file, get_bytes, put_bytes, delete_object, list_objects,
-                            list_object_versions, _update_credentials)
+                            list_object_versions)
 from .formats import FormatRegistry
 from .packages import get_package_registry, Package
 from .session import get_registry_url, get_session
