@@ -27,11 +27,7 @@ class TestAPI(QuiltTestCase):
         mock_config = pathlib.Path('config.yml')
 
         with patch('quilt3.api.CONFIG_PATH', mock_config):
-            he.config('foo.bar')
-
-        # TODO: This seems unnecessary?
-        assert len(self.requests_mock.calls) == 1
-        assert self.requests_mock.calls[0].request.url == 'https://foo.bar/config.json'
+            he.config('https://foo.bar')
 
         yaml = YAML()
         config = yaml.load(mock_config)
