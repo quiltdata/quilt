@@ -439,34 +439,38 @@ def config(*catalog_url, **config_values):
 
     # Use given catalog's config to replace local configuration
     if catalog_url:
+        catalog_url = catalog_url[0]
+
         config_template = read_yaml(CONFIG_TEMPLATE)
 
-        # Clean up and validate catalog url
-        catalog_url = catalog_url[0].rstrip('/')
-        if catalog_url[:7] not in ('http://', 'https:/'):
-            catalog_url = 'https://' + catalog_url
-        validate_url(catalog_url)
+        # If catalog_url is empty, reset to the default config.
 
-        # Get the new config
-        config_url = catalog_url + '/config.json'
+        if catalog_url:
+            # Clean up and validate catalog url
+            catalog_url = catalog_url.rstrip('/')
+            validate_url(catalog_url)
 
-        response = requests.get(config_url)
-        if not response.ok:
-            message = "An HTTP Error ({code}) occurred: {reason}"
-            raise QuiltException(
-                message.format(code=response.status_code, reason=response.reason),
-                response=response
-                )
-        # QuiltConfig may perform some validation and value scrubbing.
-        new_config = QuiltConfig('', response.json())
+            # Get the new config
+            config_url = catalog_url + '/config.json'
 
-        # 'navigator_url' needs to be renamed, the term is outdated.
-        if not new_config.get('navigator_url'):
-            new_config['navigator_url'] = catalog_url
+            response = requests.get(config_url)
+            if not response.ok:
+                message = "An HTTP Error ({code}) occurred: {reason}"
+                raise QuiltException(
+                    message.format(code=response.status_code, reason=response.reason),
+                    response=response
+                    )
+            # QuiltConfig may perform some validation and value scrubbing.
+            new_config = QuiltConfig('', response.json())
 
-        # Use our template + their configured values, keeping our comments.
-        for key, value in new_config.items():
-            config_template[key] = value
+            # 'navigator_url' needs to be renamed, the term is outdated.
+            if not new_config.get('navigator_url'):
+                new_config['navigator_url'] = catalog_url
+
+            # Use our template + their configured values, keeping our comments.
+            for key, value in new_config.items():
+                config_template[key] = value
+
         write_yaml(config_template, CONFIG_PATH, keep_backup=True)
         return QuiltConfig(CONFIG_PATH, config_template)
 
