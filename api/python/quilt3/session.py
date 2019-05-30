@@ -169,6 +169,14 @@ def login():
 
     Launches a web browser and asks the user for a token.
     """
+    registry_url = get_registry_url()
+    if registry_url is None:
+        raise QuiltException(
+            f"You attempted to authenticate to a Quilt catalog, but your home catalog is "
+            f"currently set to None. Please first specify your home catalog by running "
+            f"\"t4.config('$URL')\", replacing '$URL' with your catalog homepage."
+        )
+
     login_url = "%s/login" % get_registry_url()
 
     print("Launching a web browser...")
