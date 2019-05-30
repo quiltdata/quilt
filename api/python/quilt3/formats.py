@@ -68,16 +68,12 @@ Format metadata has the following form:
 
 # Python imports
 from abc import ABC, abstractmethod
-from collections import Mapping
 import copy
 import csv
 import io
 import json
 import sys
 import warnings
-
-# Third Party imports
-from six import text_type
 
 # Project imports
 from .util import QuiltException
@@ -559,7 +555,7 @@ GenericFormatHandler(
     serializer=lambda s: s.encode('utf-8'),
     deserializer=lambda b: b.decode('utf-8'),
     handled_extensions=['txt', 'md', 'rst'],
-    handled_types=[text_type],
+    handled_types=[str],
 ).register()
 
 
@@ -568,7 +564,7 @@ GenericFormatHandler(
     serializer=lambda s: s.encode('utf-8'),
     deserializer=lambda b: b.decode('utf-8'),
     handled_extensions=['txt', 'md', 'rst'],
-    handled_types=[text_type],
+    handled_types=[str],
 ).register()
 
 

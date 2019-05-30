@@ -1,29 +1,17 @@
-import json
-import re
-from six.moves import urllib
-from urllib.parse import urlparse, unquote
 import datetime
-import pytz
+import pathlib
+from urllib.parse import urlparse, unquote
 
-from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
-from elasticsearch import Elasticsearch, RequestsHttpConnection
+import pytz
 import requests
 import humanize
 
-from .data_transfer import (copy_file, get_bytes, put_bytes, delete_object, list_objects,
-                            list_object_versions)
+from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import get_package_registry, Package
-from .session import get_registry_url, get_session
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, fix_url, parse_file_url, parse_s3_url, read_yaml, validate_url,
-                   write_yaml, yaml_has_comments, validate_package_name)
-
-# backports
-try:
-    import pathlib2 as pathlib
-except ImportError:
-    import pathlib
+                   write_yaml, validate_package_name)
 
 
 def copy(src, dest):
@@ -114,13 +102,13 @@ def _tophashes_with_packages(registry=None):
                         out[tophash] = {pkg_name}
 
     elif registry_url.scheme == 's3':
-        bucket, path, version = parse_s3_url(registry_url)
+        bucket, path, _ = parse_s3_url(registry_url)
 
         pkg_namespace_path = path + '/named_packages/'
 
         for pkg_entry in list_objects(bucket, pkg_namespace_path):
             pkg_entry_path = pkg_entry['Key']
-            tophash, meta = get_bytes('s3://' + bucket + '/' + pkg_entry_path)
+            tophash, _ = get_bytes('s3://' + bucket + '/' + pkg_entry_path)
             tophash = tophash.decode('utf-8')
             pkg_name = "/".join(pkg_entry_path.split("/")[-3:-1])
 
@@ -177,7 +165,7 @@ def delete_package(name, registry=None):
             pkg_namespace_dir.rmdir()
 
     elif registry_url.scheme == 's3':
-        bucket, path, version = parse_s3_url(registry_url)
+        bucket, path, _ = parse_s3_url(registry_url)
         pkg_namespace_dir = path + '/named_packages/' + pkg_namespace
         pkg_dir = pkg_namespace_dir + '/' + pkg_subname + '/'
         packages_path = path + '/packages/'
@@ -186,7 +174,7 @@ def delete_package(name, registry=None):
             tophash_file = tophash_obj_repr['Key']
             timestamp = tophash_file.split("/")[-1]
             tophash_path = 's3://' + bucket + '/' + tophash_file
-            tophash, meta = get_bytes(tophash_path)
+            tophash, _ = get_bytes(tophash_path)
             tophash = tophash.decode('utf-8')
 
             if timestamp != 'latest' and len(tophashes_with_packages[tophash]) == 1:

@@ -1,12 +1,9 @@
-#! /usr/bin/python
 # -*- coding: utf-8 -*-
 
 """ Testing for util.py """
 
 ### Python imports
-# Backports
-try: import pathlib2 as pathlib
-except ImportError: import pathlib
+import pathlib
 
 ### Third Party imports
 import pytest

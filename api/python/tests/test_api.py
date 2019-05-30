@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
+import pathlib
 from unittest.mock import Mock, patch
 
 import numpy as np
-import pathlib
 import pytest
 import responses
 from ruamel.yaml import YAML
