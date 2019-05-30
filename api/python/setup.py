@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.0.2"
+VERSION = "3.0.3"
 
 def readme():
     readme_short = """
@@ -84,7 +84,7 @@ setup(
     },
     include_package_data=True,
     entry_points={
-        'console_scripts': ['quilt=quilt3.main:main'],
+        'console_scripts': ['quilt3=quilt3.main:main'],
     },
     cmdclass={
         'verify': VerifyVersionCommand,
