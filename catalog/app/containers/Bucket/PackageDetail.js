@@ -44,9 +44,8 @@ const Field = RT.composeComponent(
   ),
 )
 
-const Counts = ({ bucket, name, hash }) => {
+const Counts = ({ analyticsBucket, bucket, name, hash }) => {
   const s3 = AWS.S3.use()
-  const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
@@ -116,7 +115,7 @@ export default ({
   const classes = useStyles()
   const s3 = AWS.S3.use()
   const signer = AWS.Signer.use()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const { apiGatewayEndpoint: endpoint, analyticsBucket } = Config.useConfig()
   return (
     <>
       <Typography variant="h4">{name}: revisions</Typography>
@@ -147,7 +146,9 @@ export default ({
                         <Field label="Date:">{modified.toLocaleString()}</Field>
                         <Field label="Hash:">{hash}</Field>
                       </Box>
-                      <Counts {...{ bucket, name, hash }} />
+                      {!!analyticsBucket && (
+                        <Counts {...{ analyticsBucket, bucket, name, hash }} />
+                      )}
                     </Box>
                   </CardContent>
                 </Card>
