@@ -171,6 +171,10 @@ export default defineMessages({
     id: `${scope}.SignIn.hintResetLink`,
     defaultMessage: 'Reset it',
   },
+  signInWithGoogle: {
+    id: `${scope}.SignIn.google`,
+    defaultMessage: 'Sign in with Google',
+  },
 
   // SignOut
   signOutWaiting: {

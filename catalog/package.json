@@ -92,6 +92,7 @@
     "ramda": "^0.26.1",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
+    "react-google-login": "^5.0.4",
     "react-helmet": "^6.0.0-beta",
     "react-intl": "^2.9.0",
     "react-redux": "^7.0.3",
