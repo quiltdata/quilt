@@ -4,16 +4,9 @@ from collections.abc import Mapping, Sequence, Set
 import datetime
 import json
 import os
+import pathlib
 from urllib.parse import parse_qs, quote, unquote, urlencode, urljoin, urlparse, urlunparse
 from urllib.request import url2pathname
-from fnmatch import fnmatch
-
-# backports
-from six.moves import urllib
-try:
-    import pathlib2 as pathlib
-except ImportError:
-    import pathlib
 
 # Third-Party
 import ruamel.yaml
@@ -219,7 +212,7 @@ def yaml_has_comments(parsed):
 
 def validate_url(url):
     """A URL must have scheme and host, at minimum."""
-    parsed_url = urllib.parse.urlparse(url)
+    parsed_url = urlparse(url)
 
     # require scheme and host at minimum, like config_path'http://foo'
     if not all((parsed_url.scheme, parsed_url.netloc)):

@@ -1,21 +1,18 @@
 from codecs import iterdecode
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
-import itertools
 import json
 import pathlib
 import platform
 import shutil
 from threading import Lock
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 
 from botocore import UNSIGNED
 from botocore.client import Config
-from botocore.exceptions import ClientError, NoCredentialsError
+from botocore.exceptions import ClientError
 import boto3
 from boto3.s3.transfer import TransferConfig
-from six import BytesIO, binary_type, text_type
-from urllib.parse import quote, unquote
 
 import warnings
 with warnings.catch_warnings():

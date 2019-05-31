@@ -1,13 +1,9 @@
 """ Testing for data_transfer.py """
 
 ### Python imports
+import pathlib
 
-# Backports
-try: import pathlib2 as pathlib
-except ImportError: import pathlib
-
-try: import unittest.mock as mock
-except ImportError: import mock
+from unittest import mock
 
 ### Third-party imports
 from botocore.stub import ANY

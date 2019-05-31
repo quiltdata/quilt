@@ -54,17 +54,13 @@ setup(
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
         'elasticsearch~=6.3.1',
-        'enum34; python_version<"3.0"',     # stdlib backport
-        'future>=0.16.0',                   # stdlib backport: 'from builtins import xxx', plus others.
         'jsonlines==1.2.0',
         'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
         'pandas>=0.19.2',
-        'pathlib2; python_version<="3.5"',  # stdlib backport
         'pyarrow>=0.9.0',
         'requests>=2.12.4',
         'ruamel.yaml<=0.15.70',
-        'six>=1.10.0',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',             # required by requests
         'xattr>=0.9.6; platform_system!="Windows"',
@@ -88,5 +84,5 @@ setup(
     },
     cmdclass={
         'verify': VerifyVersionCommand,
-    }    
+    }
 )

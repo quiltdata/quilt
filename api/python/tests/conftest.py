@@ -1,16 +1,7 @@
 
-### stdlib and backports
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
-
-try:
-    from pathlib2 import Path
-except ImportError:
-    from pathlib import Path
-
+### stdlib
 import os
+from unittest import mock
 
 # third party imports
 import pytest

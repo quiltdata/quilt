@@ -11,7 +11,6 @@ import time
 from urllib.parse import quote, urlparse, unquote
 
 import jsonlines
-from six import string_types, binary_type
 
 
 from .data_transfer import (
@@ -405,7 +404,7 @@ class Package(object):
         Converts a string logical key like 'a/b/c' into a list of ['a', 'b', 'c'].
         Returns the original key if it's already a list or a tuple.
         """
-        if isinstance(logical_key, string_types):
+        if isinstance(logical_key, str):
             path = logical_key.split('/')
         elif isinstance(logical_key, (tuple, list)):
             path = logical_key
@@ -850,7 +849,7 @@ class Package(object):
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
 
-        if isinstance(entry, (string_types, getattr(os, 'PathLike', str))):
+        if isinstance(entry, (str, os.PathLike)):
             url = fix_url(str(entry))
             size, orig_meta, version = get_size_and_meta(url)
 
