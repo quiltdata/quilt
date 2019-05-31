@@ -23,8 +23,8 @@ There are advanced use cases where automatically copying (potentially large) fil
 To push an _umaterialized_ file to a remote registry, provide `build` with a `registry`. For example:
 
 ```python
-import quilt
-p = quilt.Package().set("example.csv", "example.csv")
+import quilt3
+p = quilt3.Package().set("example.csv", "example.csv")
 p.build("username/packagename", registry="s3://my-bucket")
 ```
 

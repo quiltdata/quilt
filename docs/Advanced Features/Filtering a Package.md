@@ -1,10 +1,10 @@
-`quilt` provides a handful of functions for operating on the contents of a package in an entry-by-entry manner. These are helpful for performing more complicated parsing operations on the package:
+`quilt3` provides a handful of functions for operating on the contents of a package in an entry-by-entry manner. These are helpful for performing more complicated parsing operations on the package:
 
 ```python
-import quilt
+import quilt3
 
 # create a package
-p = (quilt.Package()
+p = (quilt3.Package()
         .set_dir("foo/", "foo/")
         .set("bar", "bar"))
 

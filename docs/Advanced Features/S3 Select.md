@@ -2,8 +2,8 @@
 
 ```bash
 $ python
->>> import quilt
->>> b = quilt.Bucket("s3://alpha-quilt-example")
+>>> import quilt3
+>>> b = quilt3.Bucket("s3://alpha-quilt-example")
 >>> b.select("foo/bar.csv", "SELECT * FROM S3Object LIMIT 5")
 <<< <pandas DataFrame object at ...>
 ```
