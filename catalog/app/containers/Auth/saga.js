@@ -114,6 +114,7 @@ function* signOut() {
  */
 function* signIn(credentials) {
   try {
+    console.log(credentials)
     const { token, exp } = yield call(apiRequest, {
       auth: false,
       endpoint: '/login',

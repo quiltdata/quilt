@@ -4,8 +4,10 @@ import { FormattedMessage as FM } from 'react-intl'
 import { connect } from 'react-redux'
 import { Redirect } from 'react-router-dom'
 import { branch, renderComponent } from 'recompose'
+import { startSubmit, stopSubmit } from 'redux-form'
 import { reduxForm, Field, SubmissionError } from 'redux-form/immutable'
 import { createStructuredSelector } from 'reselect'
+import { GoogleLogin } from 'react-google-login'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -56,7 +58,7 @@ export default composeComponent(
       return <Redirect to={query.next || cfg.signInRedirect} />
     }),
   ),
-  ({ handleSubmit, submitting, submitFailed, invalid, error }) => {
+  ({ handleSubmit, submitting, submitFailed, invalid, error, dispatch }) => {
     const cfg = Config.useConfig()
     const { urls } = NamedRoutes.use()
 
@@ -98,6 +100,36 @@ export default composeComponent(
               busy={submitting}
             />
           </Layout.Actions>
+          {cfg.googleClientId && (
+            <Layout.Actions>
+              <GoogleLogin
+                clientId={cfg.googleClientId}
+                buttonText={<FM {...msg.signInWithGoogle} />}
+                onSuccess={async (user) => {
+                  const provider = 'google'
+                  const token = user.getAuthResponse().id_token
+                  const result = defer()
+                  dispatch(startSubmit('Auth.SignIn'))
+                  dispatch(signIn({ provider, token }, result.resolver))
+                  try {
+                    await result.promise
+                    dispatch(stopSubmit('Auth.SignIn'))
+                  } catch (e) {
+                    if (e instanceof errors.InvalidCredentials) {
+                      dispatch(
+                        stopSubmit('Auth.SignIn', { _error: 'invalidCredentials' }),
+                      )
+                    } else {
+                      dispatch(stopSubmit('Auth.SignIn', { _error: 'unexpected' }))
+                      throw e
+                    }
+                  }
+                }}
+                cookiePolicy="single_host_origin"
+                disabled={submitting}
+              />
+            </Layout.Actions>
+          )}
           {!cfg.disableSignUp && (
             <Layout.Hint>
               <FM
