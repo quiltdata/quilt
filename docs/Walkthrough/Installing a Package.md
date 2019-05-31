@@ -4,7 +4,7 @@ As explained in ["Building a Package"](Building%20a%20Package.md), packages are 
 
 ```bash
 $ python
->>> import quilt
+>>> import quilt3
 
 >>> quilt3.list_packages()  # list local packages
 
@@ -24,11 +24,19 @@ user2/new-york-ballgames:latest    95a134c80z48   6 days ago     2.4 GB
 To make a remote package and all of its data available locally, `install` it.
 
 ```python
-import quilt
+import quilt3
 p = quilt3.Package.install(
     "username/packagename",
     "s3://your-bucket",
 )
+```
+
+Note that unless this registry is public, you will need to be logged into a user who has read access to this registry in order to install from it:
+
+```python
+import quilt3
+quilt3.config('https://your-catalog-homepage/')  # only need to run this once
+quilt3.login()  # follow the instructions to finish login
 ```
 
 Installing a package downloads all of the data and populates an entry for the package in your local registry.
@@ -59,7 +67,7 @@ quilt3.Package.install("username/packagename", top_hash="abcd1234")
 An alternative to `install` is `browse`. `browse` downloads a package manifest without also downloading the data in the package.
 
 ```python
-import quilt
+import quilt3
 
 # load a package manifest from a remote registry
 p  = quilt3.Package.browse("username/packagename", "s3://your-bucket")
