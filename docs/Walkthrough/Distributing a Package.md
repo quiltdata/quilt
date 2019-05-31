@@ -5,7 +5,7 @@ Once your package is ready it's time to save and distribute it.
 To save a package to your local disk use `build`.
 
 ```python
-import quilt
+import quilt3
 p = quilt3.Package()
 
 top_hash = p.build("username/packagename")
@@ -15,10 +15,18 @@ Building a package requires providing it with a name. Packages names must follow
 
 ## Pushing a package to a remote registry
 
-To share a package with others via a remote registry, `push` it:
+To share a package with others via a remote registry, you will first need to authenticate against that registry (if you haven't done so already):
 
 ```python
-import quilt
+import quilt3
+quilt3.config('https://your-catalog-homepage/')  # only need to run this once
+quilt3.login()  # follow the instructions to finish login
+```
+
+Assuming your user has write access to that registry you will now be able to `push` your package to it:
+
+```python
+import quilt3
 p = quilt3.Package()
 p.push(
     "username/packagename",
@@ -32,7 +40,7 @@ p.push(
 If you omit a registry entirely, the default remote registry will be used:
 
 ```python
-import quilt
+import quilt3
 quilt3.config(default_remote_registry='s3://your-bucket')
 # this now 'just works'
 quilt3.Package().push("username/packagename")  
@@ -58,7 +66,7 @@ p.push(
 Once you build `build` or `push` a package, it has a *top_hash*:
 
 ```python
-import quilt
+import quilt3
 
 p = quilt3.Package()
 p.build("username/packagename")
@@ -74,7 +82,7 @@ A top hash is a persistent, immutable reference to a specific version of a packa
 To delete a package from a registry:
 
 ```python
-import quilt
+import quilt3
 
 # delete a package in the local registry
 quilt3.delete_package("username/packagename")

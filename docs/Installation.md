@@ -10,7 +10,7 @@ Quilt has two user-facing components:
 Python 3.6 or higher is required.
 
 ```bash
-$ pip install quilt
+$ pip install quilt3
 ```
 
 If you wish to use AWS resources, such as S3 buckets, you will need valid AWS credentials. If this is your first time using the AWS CLI, run the following:

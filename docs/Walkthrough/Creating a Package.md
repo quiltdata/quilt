@@ -1,7 +1,7 @@
 Data in Quilt is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata:
 
 ```python
-import quilt
+import quilt3
 # initialize a package
 p = quilt3.Package()
 ```

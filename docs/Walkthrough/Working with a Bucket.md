@@ -5,10 +5,17 @@ Quilt allows you to create, read, and write packages both on your local filesyst
 To connect to an S3 `Bucket`:
 
 ```python
+import quilt3
 b = quilt3.Bucket("s3://my-bucket")
 ```
 
-This requires that the bucket is configured to work with Quilt3.
+This requires that the bucket is configured to work with Quilt 3. Unless this bucket is public, you will also first need to log into the catalog that controls this bucket:
+
+```python
+import quilt3
+quilt3.config('https://your-catalog-homepage/')  # only need to run this once
+quilt3.login()  # follow the instructions to finish login
+```
 
 ## Introspecting a bucket
 

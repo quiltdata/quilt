@@ -1,7 +1,7 @@
 The examples in this section use the following mock package:
 
 ```python
-import quilt
+import quilt3
 p = (quilt3.Package()
         .set("trades.parquet", "trades.parquet")
         .set("symbols.yaml", "symbols.yaml")
