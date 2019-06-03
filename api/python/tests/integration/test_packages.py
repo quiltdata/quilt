@@ -796,7 +796,12 @@ class PackageTest(QuiltTestCase):
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
-        top_hash = Package().build("Quilt/Test")
+        top_hash = Package().build("Quilt/Test").top_hash
+
+        assert 'Quilt/Test' in quilt3.list_packages()
+        assert top_hash in [p.name for p in
+                            Path(BASE_PATH, '.quilt/packages').iterdir()]
+
         quilt3.delete_package('Quilt/Test', registry=BASE_PATH)
 
         assert 'Quilt/Test' not in quilt3.list_packages()
@@ -811,6 +816,11 @@ class PackageTest(QuiltTestCase):
         """
         top_hash = Package().build("Quilt/Test1").top_hash
         top_hash = Package().build("Quilt/Test2").top_hash
+
+        assert 'Quilt/Test1' in quilt3.list_packages()
+        assert top_hash in [p.name for p in
+                            Path(BASE_PATH, '.quilt/packages').iterdir()]
+
         quilt3.delete_package('Quilt/Test1', registry=BASE_PATH)
 
         assert 'Quilt/Test1' not in quilt3.list_packages()
