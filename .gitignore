@@ -1,3 +1,41 @@
-.DS_Store
-.ipynb_checkpoints/
-*.csv
+*.egg-info
+*.py[cod]
+*.swp
+build
+.cache
+dist
+node_modules
+tmp_*
+
+**/.DS_Store
+
+metastore_db
+derby.log
+
+# let users have their own local ignores
+**/*.gitignore
+
+# Visual Studio Code
+.vscode
+.imdone
+
+# Test coverage
+.coverage
+cov_html/*
+
+# Pytest cache
+api/python/.pytest_cache/*
+
+### emacs
+*~
+[#]*
+
+# Pycharm
+.idea
+
+registry/dpmd
+
+**/.ipynb_checkpoints
+
+# Doc Build
+_build

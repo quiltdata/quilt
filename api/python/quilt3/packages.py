@@ -344,7 +344,13 @@ class Package(object):
         if dest is None:
             dest = get_install_location().rstrip('/') + '/' + quote(name)
 
-        import pdb; pdb.set_trace()
+        parsed = urlparse(fix_url(dest))
+        if parsed.scheme != 'file':
+            raise QuiltException(
+                f'Package install can only target a local file path, but the "dest" argument '
+                f'provided, {dest!r}, is a remote path with the {parsed.scheme!r} scheme. To '
+                f'copy a package to a remote registry use "push" instead.'
+            )
         return pkg.push(name=name, dest=dest, registry=dest_registry)
 
 
@@ -992,7 +998,6 @@ class Package(object):
 
         self._fix_sha256()
 
-        import pdb; pdb.set_trace()
         dest_url = fix_url(dest).rstrip('/') + '/'
         if dest_url.startswith('file://') or dest_url.startswith('s3://'):
             pkg = self._materialize(dest_url)
