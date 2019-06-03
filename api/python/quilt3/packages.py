@@ -342,8 +342,9 @@ class Package(object):
         pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
 
         if dest is None:
-            dest = get_install_location()
+            dest = get_install_location().rstrip('/') + '/' + quote(name)
 
+        import pdb; pdb.set_trace()
         return pkg.push(name=name, dest=dest, registry=dest_registry)
 
 
@@ -969,7 +970,7 @@ class Package(object):
                                         "registry or configure a default remote "
                                         "registry with quilt.config")
 
-                dest = registry
+                dest = registry.rstrip('/') + '/' + quote(name)
             else:
                 # The dest is specified and registry is not. Get registry from dest.
                 parsed = urlparse(fix_url(dest))
@@ -991,7 +992,8 @@ class Package(object):
 
         self._fix_sha256()
 
-        dest_url = fix_url(dest).rstrip('/') + '/' + quote(name)
+        import pdb; pdb.set_trace()
+        dest_url = fix_url(dest).rstrip('/') + '/'
         if dest_url.startswith('file://') or dest_url.startswith('s3://'):
             pkg = self._materialize(dest_url)
             pkg.build(name, registry=registry, message=message)
