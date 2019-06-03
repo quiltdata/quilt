@@ -11,8 +11,7 @@ import pytest
 
 import quilt3
 from quilt3 import Package
-from quilt3.util import (QuiltException, APP_NAME, APP_AUTHOR, BASE_DIR, BASE_PATH,
-                     validate_package_name, parse_file_url, fix_url)
+from quilt3.util import QuiltException, validate_package_name, parse_file_url, fix_url
 
 from ..utils import QuiltTestCase
 
@@ -20,6 +19,9 @@ from ..utils import QuiltTestCase
 DATA_DIR = Path(__file__).parent / 'data'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
+
+LOCAL_REGISTRY = Path('local_registry')  # Set by QuiltTestCase
+
 
 def mock_make_api_call(self, operation_name, kwarg):
     """ Mock boto3's AWS API Calls for testing. """
@@ -55,13 +57,13 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = Path(BASE_PATH, ".quilt/packages", top_hash)
+        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['foo'].physical_keys[0]
 
         # Verify latest points to the new location.
-        named_pointer_path = Path(BASE_PATH, ".quilt/named_packages/Quilt/Test/latest")
+        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
 
@@ -69,7 +71,7 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build().top_hash
-        out_path = Path(BASE_PATH, ".quilt/packages", top_hash)
+        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
@@ -88,13 +90,13 @@ class PackageTest(QuiltTestCase):
         top_hash = new_pkg.build("Quilt/Test").top_hash
 
         # Verify manifest is registered by hash.
-        out_path = Path(BASE_PATH, ".quilt/packages", top_hash)
+        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['foo'].physical_keys[0]
 
         # Verify latest points to the new location.
-        named_pointer_path = Path(BASE_PATH, ".quilt/named_packages/Quilt/Test/latest")
+        named_pointer_path = LOCAL_REGISTRY / ".quilt/named_packages/Quilt/Test/latest"
         with open(named_pointer_path) as fd:
             assert fd.read().replace('\n', '') == top_hash
 
@@ -102,26 +104,10 @@ class PackageTest(QuiltTestCase):
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
         top_hash = new_pkg.build().top_hash
-        out_path = Path(BASE_PATH, ".quilt/packages", top_hash)
+        out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
-
-        new_base_path = Path(BASE_PATH, ".quilttest")
-        with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = new_base_path
-            top_hash = new_pkg.build("Quilt/Test").top_hash
-            out_path = Path(new_base_path, ".quilt/packages", top_hash).resolve()
-            with open(out_path) as fd:
-                pkg = Package.load(fd)
-                assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
-
-        with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = new_base_path
-            new_pkg.push("Quilt/Test")
-            with open(out_path) as fd:
-                pkg = Package.load(fd)
-                assert pkg['bar'].physical_keys[0].endswith('.quilttest/Quilt/Test/bar')
 
     @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
@@ -157,7 +143,7 @@ class PackageTest(QuiltTestCase):
     def test_browse_package_from_registry(self):
         """ Verify loading manifest locally and from s3 """
         with patch('quilt3.Package._from_path') as pkgmock:
-            registry = BASE_PATH.as_uri()
+            registry = LOCAL_REGISTRY.resolve().as_uri()
             pkg = Package()
             pkgmock.return_value = pkg
             top_hash = pkg.top_hash
@@ -203,16 +189,15 @@ class PackageTest(QuiltTestCase):
                     in [x[0][0] for x in pkgmock.call_args_list]
 
             # default remote registry failure case
-            with patch('quilt3.packages.get_from_config', return_value=None):
-                with pytest.raises(QuiltException):
-                    Package.browse('Quilt/nice-name')
+            quilt3.config(default_remote_registry=None)
+            with pytest.raises(QuiltException):
+                Package.browse('Quilt/nice-name')
 
     def test_local_install(self):
         """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
-            local_registry = '.'
-            get_config_mock.return_value = local_registry
+        local_registry = Path('.').resolve().as_uri()
+        quilt3.config(default_local_registry=local_registry)
+        with patch('quilt3.Package.push') as push_mock:
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
@@ -221,10 +206,12 @@ class PackageTest(QuiltTestCase):
 
     def test_remote_install(self):
         """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
-            remote_registry = '.'
-            get_config_mock.return_value = remote_registry
+        remote_registry = Path('.').resolve().as_uri()
+        quilt3.config(
+            default_local_registry=remote_registry,
+            default_remote_registry=remote_registry
+        )
+        with patch('quilt3.Package.push') as push_mock:
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
@@ -799,14 +786,12 @@ class PackageTest(QuiltTestCase):
         top_hash = Package().build("Quilt/Test").top_hash
 
         assert 'Quilt/Test' in quilt3.list_packages()
-        assert top_hash in [p.name for p in
-                            Path(BASE_PATH, '.quilt/packages').iterdir()]
+        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
-        quilt3.delete_package('Quilt/Test', registry=BASE_PATH)
+        quilt3.delete_package('Quilt/Test')
 
         assert 'Quilt/Test' not in quilt3.list_packages()
-        assert top_hash not in [p.name for p in
-                                Path(BASE_PATH, '.quilt/packages').iterdir()]
+        assert top_hash not in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
 
     def test_local_package_delete_overlapping(self):
@@ -818,19 +803,16 @@ class PackageTest(QuiltTestCase):
         top_hash = Package().build("Quilt/Test2").top_hash
 
         assert 'Quilt/Test1' in quilt3.list_packages()
-        assert top_hash in [p.name for p in
-                            Path(BASE_PATH, '.quilt/packages').iterdir()]
+        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
-        quilt3.delete_package('Quilt/Test1', registry=BASE_PATH)
+        quilt3.delete_package('Quilt/Test1')
 
         assert 'Quilt/Test1' not in quilt3.list_packages()
-        assert top_hash in [p.name for p in
-                            Path(BASE_PATH, '.quilt/packages').iterdir()]
+        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
-        quilt3.delete_package('Quilt/Test2', registry=BASE_PATH)
+        quilt3.delete_package('Quilt/Test2')
         assert 'Quilt/Test2' not in quilt3.list_packages()
-        assert top_hash not in [p.name for p in
-                                Path(BASE_PATH, '.quilt/packages').iterdir()]
+        assert top_hash not in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
 
     def test_remote_package_delete(self):

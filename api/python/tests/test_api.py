@@ -1,6 +1,4 @@
 from datetime import datetime, timedelta, timezone
-import pathlib
-from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -12,8 +10,8 @@ from quilt3 import util
 
 from .utils import QuiltTestCase
 
+DEFAULT_URL = 'https://registry.example.com'
 
-DEFAULT_URL = 'https://quilt-t4-staging-registry.quiltdata.com'
 
 class TestAPI(QuiltTestCase):
     def test_config(self):
@@ -24,18 +22,16 @@ class TestAPI(QuiltTestCase):
         }
         self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
 
-        mock_config = pathlib.Path('config.yml')
-
-        with patch('quilt3.api.CONFIG_PATH', mock_config):
-            he.config('https://foo.bar')
+        he.config('https://foo.bar')
 
         yaml = YAML()
-        config = yaml.load(mock_config)
+        config = yaml.load(util.CONFIG_PATH)
 
+        # These come from CONFIG_TEMPLATE, not the mocked config file.
         content['default_local_registry'] = util.BASE_PATH.as_uri()
         content['default_remote_registry'] = None
         content['default_install_location'] = None
-        content['registryUrl'] = DEFAULT_URL
+        content['registryUrl'] = 'https://quilt-t4-staging-registry.quiltdata.com'
 
         assert config == content
 
