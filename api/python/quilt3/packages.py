@@ -764,9 +764,6 @@ class Package(object):
         """
         self._set_commit_message(message)
 
-        if registry is None:
-            registry = get_from_config('default_local_registry')
-
         registry_prefix = get_package_registry(fix_url(registry) if registry else None)
 
         self._fix_sha256()
