@@ -23,7 +23,7 @@ class QuiltTestCase(TestCase):
     """
     def setUp(self):
         # Verify that CONFIG_PATH is in the test dir (patched by conftest.py).
-        assert any(d.name == 'pytest' for d in CONFIG_PATH.parents)
+        assert 'pytest' in str(CONFIG_PATH)
 
         quilt3.config(
             navigator_url='https://example.com',
