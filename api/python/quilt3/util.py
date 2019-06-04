@@ -53,7 +53,7 @@ default_remote_registry:
 default_install_location:
 
 # Identity service URL
-registryUrl: https://quilt-t4-staging-registry.quiltdata.com
+registryUrl:
 """.format(BASE_PATH.as_uri())
 
 
@@ -298,7 +298,7 @@ def validate_package_name(name):
 def get_package_registry(path=None):
     """ Returns the package registry root for a given path """
     if path is None:
-        path = BASE_PATH.as_uri()
+        path = get_from_config('default_local_registry')
     return path.rstrip('/') + '/.quilt'
 
 def load_config():

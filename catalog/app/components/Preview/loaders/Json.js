@@ -8,7 +8,7 @@ import * as Text from './Text'
 import * as utils from './utils'
 
 const MAX_SIZE = 1024 * 1024
-const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/vega\/(.+)\.json"/
+const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
 
 const signVegaSpec = ({ signer, handle }) =>
   R.evolve({
@@ -23,9 +23,12 @@ const signVegaSpec = ({ signer, handle }) =>
     ),
   })
 
-const detectVersion = (txt) => {
+const detectSchema = (txt) => {
   const m = txt.match(SCHEMA_RE)
-  return m ? m[1] : false
+  if (!m) return false
+  const [, library, version] = m
+  if (library !== 'vega' && library !== 'vega-lite') return false
+  return { library, version }
 }
 
 const vegaFetcher = utils.objectGetter((r, { handle, signer }) => {
@@ -61,8 +64,7 @@ export const detect = R.either(utils.extIs('.json'), R.startsWith('.quilt/'))
 export const load = utils.withFirstBytes(
   256,
   ({ firstBytes, contentLength, handle }, callback) => {
-    const version = detectVersion(firstBytes)
-    const vega = !!version && contentLength <= MAX_SIZE
-    return (vega ? loadVega : loadText)(handle, callback)
+    const schema = detectSchema(firstBytes)
+    return (!!schema && contentLength <= MAX_SIZE ? loadVega : loadText)(handle, callback)
   },
 )
