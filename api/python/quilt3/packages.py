@@ -358,7 +358,7 @@ class Package(object):
 
         pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
         dest = fix_url(dest)
-        message = pkg._meta.get('message', None)  # propogate the package message
+        message = pkg._meta.get('message', None)  # propagate the package message
 
         pkg = pkg._materialize(dest)
         pkg.build(name, registry=dest_registry, message=message)
@@ -1008,8 +1008,8 @@ class Package(object):
             dest_parsed = urlparse(fix_url(dest))
             if dest_parsed.scheme != registry_parsed.scheme:
                 raise QuiltException(
-                    f"Invalid package destination path {dest!r}. 'dest', if set, must path "
-                    f"into the {registry!r} package registry specified by 'registry'."
+                    f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
+                    f"in the {registry!r} package registry specified by 'registry'."
                 )
 
             assert dest_parsed.scheme == 's3'
@@ -1017,8 +1017,8 @@ class Package(object):
             dest_bucket, _, _ = parse_s3_url(dest_parsed)
             if registry_bucket != dest_bucket:
                 raise QuiltException(
-                    f"Invalid package destination path {dest!r}. 'dest', if set, must path "
-                    f"into the {registry!r} package registry specified by 'registry'."
+                    f"Invalid package destination path {dest!r}. 'dest', if set, must be a path "
+                    f"in the {registry!r} package registry specified by 'registry'."
                 )
 
         self._fix_sha256()
