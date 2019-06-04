@@ -254,7 +254,7 @@ def list_packages(registry=None):
                         f"{self._fmt_str(size_str, 15).rstrip(' ')}\t\n")
             return out
 
-    if registry is None or registry == 'local':
+    if registry is None:
         registry = get_package_registry(None)
     else:
         registry = get_package_registry(fix_url(registry))

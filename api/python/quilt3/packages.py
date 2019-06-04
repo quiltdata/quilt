@@ -382,13 +382,11 @@ class Package(object):
             top_hash(string): top hash of package version to load
         """
         if registry is None:
-            registry = get_from_config('default_remote_registry')
+            registry = get_from_config('default_local_registry')
             if registry is None:
                 raise QuiltException("No registry specified and no default remote "
                                      "registry configured. Please specify a registry "
                                      "or configure a default remote registry with quilt.config")
-        elif registry == 'local':
-            registry = get_from_config('default_local_registry')
 
         registry_prefix = get_package_registry(fix_url(registry) if registry else None)
 
@@ -494,7 +492,7 @@ class Package(object):
             pkg.set(logical_key, new_entry)
 
         copy_file_list(file_list)
-        
+
         return pkg
 
     def keys(self):
@@ -725,7 +723,8 @@ class Package(object):
                         f"{'/'.join(pkey.split('/')[:-1])!r} directory, whilst the "
                         f"{first_lkey!r} is located in the "
                         f"{'/'.join(first_pkey.split('/')[:-1])!r} directory. To make this "
-                        f"package physically consistent run 'quilt.Package.install(\"$PKG_NAME\")', "
+                        f"package physically consistent run "
+                        f"'quilt.Package.install(\"$PKG_NAME\")', "
                         f"replacing '$PKG_NAME' with the name of this package. Note that this "
                         f"will result in file copying."
                     )
@@ -808,7 +807,7 @@ class Package(object):
             validate_package_name(name)
 
             named_path = registry_prefix + '/named_packages/' + quote(name) + '/'
-            # todo: use a float to string formater instead of double casting
+            # TODO: use a float to string formater instead of double casting
             hash_bytes = hash_string.encode('utf-8')
             timestamp_path = named_path + str(int(time.time()))
             latest_path = named_path + "latest"
@@ -994,13 +993,7 @@ class Package(object):
             registry_parsed = urlparse(fix_url(registry))
         else:
             registry_parsed = urlparse(fix_url(registry))
-            if registry_parsed.scheme == 'file':
-                raise QuiltException(
-                    f"Can only 'push' to remote registries in S3, but {registry!r} "
-                    f"is a local file. To store a package in the local registry, use "
-                    f"'build' instead."
-                )
-            elif registry_parsed.scheme == 's3':
+            if registry_parsed.scheme == 's3':
                 bucket, path, _ = parse_s3_url(registry_parsed)
                 if path != '':  # parse_s3_url returns path == '' if input is pathless
                     raise QuiltException(
@@ -1010,7 +1003,12 @@ class Package(object):
                         f"data land in a specific directory use 'dest'."
                     )
                 registry = 's3://' + bucket
-
+            elif registry_parsed.scheme == 'file':
+                raise QuiltException(
+                    f"Can only 'push' to remote registries in S3, but {registry!r} "
+                    f"is a local file. To store a package in the local registry, use "
+                    f"'build' instead."
+                )
             else:
                 raise NotImplementedError
 
@@ -1149,7 +1147,7 @@ class Package(object):
                     excluded_dirs.add(lk)
 
         for lk, entity in self.walk():
-            if (not any(p in excluded_dirs 
+            if (not any(p in excluded_dirs
                         for p in pathlib.PurePosixPath(lk).parents)
                     and f(lk, entity)):
                 p.set(lk, entity)

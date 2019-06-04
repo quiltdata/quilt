@@ -163,13 +163,13 @@ class PackageTest(QuiltTestCase):
             top_hash = pkg.top_hash
 
             # local registry load
-            pkg = Package.browse(registry='local', top_hash=top_hash)
+            pkg = Package.browse(top_hash=top_hash)
             assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
             pkgmock.reset_mock()
 
-            pkg = Package.browse('Quilt/nice-name', registry='local', top_hash=top_hash)
+            pkg = Package.browse('Quilt/nice-name', top_hash=top_hash)
             assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
@@ -177,7 +177,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.packages.get_bytes') as dl_mock:
                 dl_mock.return_value = (top_hash.encode('utf-8'), None)
-                pkg = Package.browse('Quilt/nice-name', registry='local')
+                pkg = Package.browse('Quilt/nice-name')
                 assert registry + '/.quilt/named_packages/Quilt/nice-name/latest' \
                         == dl_mock.call_args_list[0][0][0]
 
@@ -202,7 +202,7 @@ class PackageTest(QuiltTestCase):
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
-            # default remote registry failure case
+            # registry failure case
             with patch('quilt3.packages.get_from_config', return_value=None):
                 with pytest.raises(QuiltException):
                     Package.browse('Quilt/nice-name')
@@ -726,8 +726,8 @@ class PackageTest(QuiltTestCase):
         new_pkg = new_pkg.set('foo', test_file_name)
         top_hash = new_pkg.build("Quilt/Test")
 
-        p1 = Package.browse('Quilt/Test', registry='local')
-        p2 = Package.browse('Quilt/Test', registry='local')
+        p1 = Package.browse('Quilt/Test')
+        p2 = Package.browse('Quilt/Test')
         assert p1.diff(p2) == ([], [], [])
 
 
@@ -940,7 +940,7 @@ class PackageTest(QuiltTestCase):
         top_hash = pkg.build().top_hash
         manifest = list(pkg.manifest)
 
-        pkg2 = Package.browse(top_hash=top_hash, registry='local')
+        pkg2 = Package.browse(top_hash=top_hash)
         assert list(pkg.manifest) == list(pkg2.manifest)
 
 
