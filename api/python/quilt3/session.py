@@ -174,7 +174,7 @@ def login():
         raise QuiltException(
             f"You attempted to authenticate to a Quilt catalog, but your home catalog is "
             f"currently set to None. Please first specify your home catalog by running "
-            f"\"t4.config('$URL')\", replacing '$URL' with your catalog homepage."
+            f"\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
 
     login_url = "%s/login" % get_registry_url()

@@ -31,7 +31,7 @@ class TestAPI(QuiltTestCase):
         content['default_local_registry'] = util.BASE_PATH.as_uri()
         content['default_remote_registry'] = None
         content['default_install_location'] = None
-        content['registryUrl'] = 'https://quilt-t4-staging-registry.quiltdata.com'
+        content['registryUrl'] = None
 
         assert config == content
 
