@@ -862,6 +862,26 @@ class PackageTest(QuiltTestCase):
             delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/latest')
 
 
+    def test_push_restrictions(self):
+        p = Package()
+
+        # disallow pushing not to the top level of a remote S3 registry
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket/foo/bar')
+
+        # disallow pushing to the local filesystem (use install instead)
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', './')
+
+        # disallow pushing the package manifest to remote but package data to local
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket', dest='./')
+
+        # disallow pushing the pacakge manifest to remote but package data to a different remote
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
+
+
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
         with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
