@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.0.3"
+VERSION = "3.0.4"
 
 def readme():
     readme_short = """
