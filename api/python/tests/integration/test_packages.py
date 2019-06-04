@@ -211,10 +211,20 @@ class PackageTest(QuiltTestCase):
 
                 quilt3.Package.install('Quilt/nice-name', dest='./')
 
-                materialize_mock.assert_called_once_with('./')
+                materialize_mock.assert_called_once_with(fix_url('./'))
                 build_mock.assert_called_once_with(
                     'Quilt/nice-name', message=None, registry=dest_registry
                 )
+
+    def test_install_restrictions(self):
+        """Verify that install can only operate remote -> local."""
+        # disallow installs which send package data to a remote registry
+        with pytest.raises(QuiltException):
+            quilt3.Package.install('Quilt/nice-name', dest='s3://test-bucket')
+
+        # disallow installs which send the package manifest to a remote registry
+        with pytest.raises(QuiltException):
+            quilt3.Package.install('Quilt/nice-name', dest_registry='s3://test-bucket')
 
     def test_package_fetch(self):
         """ Package.fetch() on nested, relative keys """

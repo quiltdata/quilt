@@ -356,18 +356,11 @@ class Package(object):
                     f"'build' instead."
                 )
 
-
-        parsed = urlparse(fix_url(dest))
-        if parsed.scheme != 'file':
-            raise QuiltException(
-                f"Package install can only target a local file path, but the 'dest' argument "
-                f"provided, {dest!r}, is a remote path with the {parsed.scheme!r} scheme. To "
-                f"copy a package to a remote registry use 'push' or 'build' instead."
-            )
-
         pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
-        pkg = pkg._materialize(dest)
+        dest = fix_url(dest)
         message = pkg._meta.get('message', None)  # propogate the package message
+
+        pkg = pkg._materialize(dest)
         pkg.build(name, registry=dest_registry, message=message)
         return pkg
 
