@@ -53,7 +53,7 @@ default_remote_registry:
 default_install_location:
 
 # Identity service URL
-registryUrl: https://quilt-t4-staging-registry.quiltdata.com
+registryUrl:
 """.format(BASE_PATH.as_uri())
 
 
