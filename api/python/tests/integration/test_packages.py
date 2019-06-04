@@ -109,22 +109,6 @@ class PackageTest(QuiltTestCase):
             pkg = Package.load(fd)
             assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
 
-        new_base_path = Path(BASE_PATH, ".quilttest")
-        with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = fix_url(new_base_path)
-            top_hash = new_pkg.build("Quilt/Test").top_hash
-            out_path = Path(new_base_path, ".quilt/packages", top_hash).resolve()
-            with open(out_path) as fd:
-                pkg = Package.load(fd)
-                assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
-
-        with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = fix_url(new_base_path)
-            new_pkg.push("Quilt/Test")
-            with open(out_path) as fd:
-                pkg = Package.load(fd)
-                assert pkg['bar'].physical_keys[0].endswith('.quilttest/Quilt/Test/bar')
-
     @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
@@ -223,10 +207,14 @@ class PackageTest(QuiltTestCase):
             with patch('quilt3.Package._materialize') as materialize_mock, \
                 patch('quilt3.Package.build') as build_mock:
                 materialize_mock.return_value = pkg
+                dest_registry = quilt3.util.get_from_config('default_local_registry')
+
                 quilt3.Package.install('Quilt/nice-name', dest='./')
 
                 materialize_mock.assert_called_once_with('./')
-                build_mock.assert_called_once_with('Quilt/nice-name', message=None, registry='.')
+                build_mock.assert_called_once_with(
+                    'Quilt/nice-name', message=None, registry=dest_registry
+                )
 
     def test_package_fetch(self):
         """ Package.fetch() on nested, relative keys """
