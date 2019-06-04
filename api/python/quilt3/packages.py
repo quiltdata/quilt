@@ -333,26 +333,43 @@ class Package(object):
                 raise QuiltException("No registry specified and no default remote "
                                      "registry configured. Please specify a registry "
                                      "or configure a default remote registry with quilt.config")
-        elif registry == 'local':
-            registry = get_from_config('default_local_registry')
 
         if dest_registry is None:
             dest_registry = get_from_config('default_local_registry')
-
-        pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
+        else:
+            dest_registry_parsed = urlparse(fix_url(dest_registry))
+            if dest_registry_parsed.scheme != 'file':
+                raise QuiltException(
+                    f"Can only 'install' to a local registry, but 'dest_registry' "
+                    f"{dest_registry!r} is a remote path. To store a package in a remote "
+                    f"registry, use 'push' or 'build' instead."
+                )
 
         if dest is None:
             dest = get_install_location().rstrip('/') + '/' + quote(name)
+        else:
+            dest_parsed = urlparse(fix_url(dest))
+            if dest_parsed.scheme != 'file':
+                raise QuiltException(
+                    f"Invalid package destination path {dest!r}. 'dest', if set, must point at "
+                    f"the local filesystem. To copy a package to a remote registry use 'push' or "
+                    f"'build' instead."
+                )
+
 
         parsed = urlparse(fix_url(dest))
         if parsed.scheme != 'file':
             raise QuiltException(
-                f'Package install can only target a local file path, but the "dest" argument '
-                f'provided, {dest!r}, is a remote path with the {parsed.scheme!r} scheme. To '
-                f'copy a package to a remote registry use "push" instead.'
+                f"Package install can only target a local file path, but the 'dest' argument "
+                f"provided, {dest!r}, is a remote path with the {parsed.scheme!r} scheme. To "
+                f"copy a package to a remote registry use 'push' or 'build' instead."
             )
-        return pkg.push(name=name, dest=dest, registry=dest_registry)
 
+        pkg = cls.browse(name=name, registry=registry, top_hash=top_hash)
+        pkg = pkg._materialize(dest)
+        message = pkg._meta.get('message', None)  # propogate the package message
+        pkg.build(name, registry=dest_registry, message=message)
+        return pkg
 
     @classmethod
     def browse(cls, name=None, registry=None, top_hash=None):
@@ -938,7 +955,9 @@ class Package(object):
         top_hash.update(top_meta.encode('utf-8'))
         for logical_key, entry in self.walk():
             if entry.hash is None or entry.size is None:
-                raise QuiltException("PackageEntry missing hash and/or size: %s" % entry.physical_keys[0])
+                raise QuiltException(
+                    "PackageEntry missing hash and/or size: %s" % entry.physical_keys[0]
+                )
             entry_dict = entry.as_dict()
             entry_dict['logical_key'] = logical_key
             entry_dict.pop('physical_keys', None)
@@ -947,7 +966,7 @@ class Package(object):
 
         return top_hash.hexdigest()
 
-    def push(self, name, dest=None, registry=None, message=None):
+    def push(self, name, registry=None, dest=None, message=None):
         """
         Copies objects to path, then creates a new package that points to those objects.
         Copies each object in this package to path according to logical key structure,
@@ -966,45 +985,58 @@ class Package(object):
         validate_package_name(name)
 
         if registry is None:
-            if dest is None:
-                # Only a package name is set, so set registry and dest to the default 
-                # registry.
-                registry = get_from_config('default_remote_registry')
-                if not registry:
-                    raise QuiltException("No registry specified and no default remote "
-                                        "registry configured. Please specify a "
-                                        "registry or configure a default remote "
-                                        "registry with quilt.config")
-
-                dest = registry.rstrip('/') + '/' + quote(name)
-            else:
-                # The dest is specified and registry is not. Get registry from dest.
-                parsed = urlparse(fix_url(dest))
-                if parsed.scheme == 's3':
-                    bucket, _, _ = parse_s3_url(parsed)
-                    registry = 's3://' + bucket
-                elif parsed.scheme == 'file':
-                    registry = parsed.path
-                else:
-                    raise NotImplementedError
-
+            registry = get_from_config('default_remote_registry')
+            if not registry:
+                raise QuiltException("No registry specified and no default remote "
+                                     "registry configured. Please specify a "
+                                     "registry or configure a default remote "
+                                     "registry with quilt3.config")
+            registry_parsed = urlparse(fix_url(registry))
         else:
-            if dest is None:
-                # Specifying registry but not a dest doesn't make sense. Throw.
-                raise ValueError("Registry specified but dest is undefined.")
+            registry_parsed = urlparse(fix_url(registry))
+            if registry_parsed.scheme == 'file':
+                raise QuiltException(
+                    f"Can only 'push' to remote registries in S3, but {registry!r} "
+                    f"is a local file. To store a package in the local registry, use "
+                    f"'build' instead."
+                )
+            elif registry_parsed.scheme == 's3':
+                bucket, path, _ = parse_s3_url(registry_parsed)
+                if path != '':  # parse_s3_url returns path == '' if input is pathless
+                    raise QuiltException(
+                        f"The 'registry' argument expects an S3 bucket but the S3 object path "
+                        f"{registry!r} was provided instead. You probably wanted to set "
+                        f"'registry' to {'s3://' + bucket!r} instead. To specify that package "
+                        f"data land in a specific directory use 'dest'."
+                    )
+                registry = 's3://' + bucket
+
             else:
-                # If both dest and registry are specified, no further work needed.
-                pass
+                raise NotImplementedError
+
+        if dest is None:
+            dest = registry.rstrip('/') + '/' + quote(name)
+        else:
+            dest_parsed = urlparse(fix_url(dest))
+            if dest_parsed.scheme != registry_parsed.scheme:
+                raise QuiltException(
+                    f"Invalid package destination path {dest!r}. 'dest', if set, must path "
+                    f"into the {registry!r} package registry specified by 'registry'."
+                )
+
+            assert dest_parsed.scheme == 's3'
+            registry_bucket, _, _ = parse_s3_url(registry_parsed)
+            dest_bucket, _, _ = parse_s3_url(dest_parsed)
+            if registry_bucket != dest_bucket:
+                raise QuiltException(
+                    f"Invalid package destination path {dest!r}. 'dest', if set, must path "
+                    f"into the {registry!r} package registry specified by 'registry'."
+                )
 
         self._fix_sha256()
-
-        dest_url = fix_url(dest).rstrip('/') + '/'
-        if dest_url.startswith('file://') or dest_url.startswith('s3://'):
-            pkg = self._materialize(dest_url)
-            pkg.build(name, registry=registry, message=message)
-            return pkg
-        else:
-            raise NotImplementedError
+        pkg = self._materialize(dest)
+        pkg.build(name, registry=registry, message=message)
+        return pkg
 
     def _materialize(self, dest_url):
         """
@@ -1069,7 +1101,7 @@ class Package(object):
                 modified.append(lk)
 
         added = list(sorted(other_entries))
-        
+
         return added, modified, deleted
 
     def map(self, f, include_directories=False):

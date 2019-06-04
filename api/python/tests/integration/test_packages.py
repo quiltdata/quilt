@@ -109,7 +109,7 @@ class PackageTest(QuiltTestCase):
 
         new_base_path = Path(BASE_PATH, ".quilttest")
         with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = new_base_path
+            mock_config.return_value = fix_url(new_base_path)
             top_hash = new_pkg.build("Quilt/Test").top_hash
             out_path = Path(new_base_path, ".quilt/packages", top_hash).resolve()
             with open(out_path) as fd:
@@ -117,7 +117,7 @@ class PackageTest(QuiltTestCase):
                 assert test_file.resolve().as_uri() == pkg['bar'].physical_keys[0]
 
         with patch('quilt3.packages.get_from_config') as mock_config:
-            mock_config.return_value = new_base_path
+            mock_config.return_value = fix_url(new_base_path)
             new_pkg.push("Quilt/Test")
             with open(out_path) as fd:
                 pkg = Package.load(fd)
@@ -126,12 +126,12 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        with patch('quilt3.Package.push') as push_mock:
-            Package.install('Quilt/nice-name', registry='s3://my-test-bucket')
-            push_mock.assert_called_once_with(
-                dest=quilt3.util.get_install_location(),
-                name='Quilt/nice-name',
-                registry=ANY
+        with patch('quilt3.Package._materialize') as materialize_mock:
+            pkg_name = 'Quilt/nice-name'
+            Package.install(pkg_name, registry='s3://my-test-bucket')
+
+            materialize_mock.assert_called_once_with(
+                quilt3.util.get_install_location().rstrip('/') + '/' + pkg_name,
             )
 
     def test_read_manifest(self):
@@ -207,29 +207,21 @@ class PackageTest(QuiltTestCase):
                 with pytest.raises(QuiltException):
                     Package.browse('Quilt/nice-name')
 
-    def test_local_install(self):
-        """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
-            local_registry = '.'
-            get_config_mock.return_value = local_registry
-            pkg = Package()
-            pkg.build('Quilt/nice-name')
-
-            quilt3.Package.install('Quilt/nice-name', registry='local', dest='./')
-            push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=local_registry)
-
     def test_remote_install(self):
-        """Verify that installing from a local package works as expected."""
-        with patch('quilt3.packages.get_from_config') as get_config_mock, \
-            patch('quilt3.Package.push') as push_mock:
+        """Verify that installing from a remote package works as expected."""
+        with patch('quilt3.packages.get_from_config') as get_config_mock:
             remote_registry = '.'
             get_config_mock.return_value = remote_registry
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
-            quilt3.Package.install('Quilt/nice-name', dest='./')
-            push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=remote_registry)
+            with patch('quilt3.Package._materialize') as materialize_mock, \
+                patch('quilt3.Package.build') as build_mock:
+                materialize_mock.return_value = pkg
+                quilt3.Package.install('Quilt/nice-name', dest='./')
+
+                materialize_mock.assert_called_once_with('./')
+                build_mock.assert_called_once_with('Quilt/nice-name', message=None, registry='.')
 
     def test_package_fetch(self):
         """ Package.fetch() on nested, relative keys """
@@ -365,23 +357,6 @@ class PackageTest(QuiltTestCase):
 
         with patch('time.time', return_value=1234567890):
             new_pkg.push('Quilt/package', 's3://my_test_bucket/')
-
-    def test_local_push(self):
-        """ Verify loading local manifest and data into a local dir. """
-        top_hash = '5333a204bbc6e21607c2bc842f4a77d2e21aa6147cf2bf493dbf6282188d01ca'
-
-        new_pkg = Package()
-        contents = 'blah'
-        test_file = Path('bar')
-        test_file.write_text(contents)
-        new_pkg = new_pkg.set('foo', test_file)
-        new_pkg.push('Quilt/package', 'package_contents')
-
-        push_dir = Path('package_contents')
-
-        assert (push_dir / '.quilt/named_packages/Quilt/package/latest').read_text() == top_hash
-        assert (push_dir / ('.quilt/packages/' + top_hash)).exists()
-        assert (push_dir / 'Quilt/package/foo').read_text() == contents
 
 
     def test_package_deserialize(self):
@@ -881,15 +856,17 @@ class PackageTest(QuiltTestCase):
 
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
-        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call):
+        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
+            patch('quilt3.Package._materialize') as materialize_mock, \
+            patch('quilt3.Package.build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
-            pkg.push('Quilt/test_pkg_name', 'pkg', message='test_message')
-            assert pkg._meta['message'] == 'test_message'
+            materialize_mock.return_value = pkg
 
-            # ensure messages are strings
-            with pytest.raises(ValueError):
-                pkg.push('Quilt/test_pkg_name', 'pkg', message={})
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
+            build_mock.assert_called_once_with(
+                'Quilt/test_pkg_name', registry='s3://test-bucket', message='test_message'
+            )
 
     def test_overwrite_dir_fails(self):
         with pytest.raises(QuiltException):
