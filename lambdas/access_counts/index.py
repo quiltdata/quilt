@@ -96,6 +96,15 @@ PACKAGE_VERSION_ACCESS_COUNTS = textwrap.dedent("""\
     GROUP BY eventname, package_hashes.bucket, name, hash
 """)
 
+BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
+    SELECT
+        eventname,
+        bucket,
+        CAST(histogram(date) AS JSON) AS counts
+    FROM object_access_log
+    GROUP BY eventname, bucket
+""")
+
 
 athena = boto3.client('athena')
 s3 = boto3.client('s3')
@@ -184,6 +193,7 @@ def handler(event, context):
         ('Objects', OBJECT_ACCESS_COUNTS),
         ('Packages', PACKAGE_ACCESS_COUNTS),
         ('PackageVersions', PACKAGE_VERSION_ACCESS_COUNTS),
+        ('Bucket', BUCKET_ACCESS_COUNTS),
     ]
 
     execution_ids = [(filename, run_query(query)) for filename, query in queries]
