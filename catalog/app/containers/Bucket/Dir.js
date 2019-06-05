@@ -75,8 +75,8 @@ export default ({
   const { urls } = NamedRoutes.use()
   const s3 = AWS.S3.use()
   const code = dedent`
-    import t4
-    b = t4.Bucket("s3://${bucket}")
+    import quilt3
+    b = quilt3.Bucket("s3://${bucket}")
     b.fetch("${path}", "./")
   `
 
