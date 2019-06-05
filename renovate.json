@@ -1,5 +1,9 @@
 {
   "extends": [
-    "config:base"
-  ]
+    "config:base",
+    "schedule:earlyMondays"
+  ],
+  "enabledManagers": ["npm"],
+  "rangeStrategy": "bump",
+  "labels": ["js dependencies"]
 }
