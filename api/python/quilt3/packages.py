@@ -574,7 +574,12 @@ class Package(object):
         """
         lkey = lkey.strip("/")
 
-        root = self._ensure_subpackage(self._split_key(lkey)) if lkey else self
+        if not lkey or lkey == '.' or lkey == './':
+            root = self
+        else:
+            validate_key(lkey)
+            root = self._ensure_subpackage(self._split_key(lkey))
+
         root.set_meta(meta)
 
         if not path:
@@ -619,6 +624,7 @@ class Package(object):
         else:
             raise NotImplementedError
 
+        import pdb; pdb.set_trace()
         return self
 
     def get(self, logical_key=None):
