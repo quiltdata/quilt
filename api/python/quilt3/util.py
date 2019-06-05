@@ -316,7 +316,7 @@ def get_from_config(key):
 def get_install_location():
     loc = load_config().get('default_install_location')
     if loc is None:
-        loc = get_package_registry().rstrip('/') + '/'
+        loc = get_package_registry().rstrip('/') + 'data/'
     return loc
 
 def quiltignore_filter(paths, ignore, url_scheme):
