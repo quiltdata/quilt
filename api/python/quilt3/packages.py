@@ -624,7 +624,6 @@ class Package(object):
         else:
             raise NotImplementedError
 
-        import pdb; pdb.set_trace()
         return self
 
     def get(self, logical_key=None):
