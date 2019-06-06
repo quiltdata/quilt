@@ -54,7 +54,7 @@ default_install_location:
 
 # Identity service URL
 registryUrl:
-""".format(BASE_PATH.as_uri() + 'packages')
+""".format(BASE_PATH.as_uri() + '/packages')
 
 
 class QuiltException(Exception):
