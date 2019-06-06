@@ -176,8 +176,8 @@ export default ({
 
   // TODO: handle revision / hash
   const code = dedent`
-    import t4
-    p = t4.Package.browse("${name}", registry="s3://${bucket}")
+    import quilt3
+    p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
   `
 
   return (
