@@ -106,6 +106,27 @@ BUCKET_ACCESS_COUNTS = textwrap.dedent("""\
 """)
 
 
+EXTS_ACCESS_COUNTS = textwrap.dedent("""\
+    SELECT
+        eventname,
+        bucket,
+        ext,
+        CAST(histogram(date) AS JSON) AS counts
+    FROM (
+        SELECT eventname, bucket, lower(IF(cardinality(parts) > 1, element_at(parts, -1), '')) AS ext, date
+        FROM (
+            SELECT
+                eventname,
+                bucket,
+                split(element_at(split(key, '/'), -1), '.') AS parts,
+                date
+            FROM object_access_log
+        )
+    )
+    GROUP BY eventname, bucket, ext
+""")
+
+
 athena = boto3.client('athena')
 s3 = boto3.client('s3')
 
@@ -194,6 +215,7 @@ def handler(event, context):
         ('Packages', PACKAGE_ACCESS_COUNTS),
         ('PackageVersions', PACKAGE_VERSION_ACCESS_COUNTS),
         ('Bucket', BUCKET_ACCESS_COUNTS),
+        ('Exts', EXTS_ACCESS_COUNTS)
     ]
 
     execution_ids = [(filename, run_query(query)) for filename, query in queries]
