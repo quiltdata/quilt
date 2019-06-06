@@ -1,6 +1,6 @@
 ## Searching for packages
 
-As explained in ["Building a Package"](Building%20a%20Package.md), packages are managed using *registries*. There is a one local registry on your machine, and potentially many remote registries elsewhere "in the world". Use `list_packages` to see the packages available on a registry:
+As explained in ["Uploading a Package"](Uploading%20a%20Package.md), packages are managed using *registries*. There is a one local registry on your machine, and potentially many remote registries elsewhere "in the world". Use `list_packages` to see the packages available on a registry:
 
 ```bash
 $ python
