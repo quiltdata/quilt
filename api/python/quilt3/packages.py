@@ -21,7 +21,7 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location,
-    get_package_registry, make_s3_url, parse_file_url, parse_s3_url,
+    make_s3_url, parse_file_url, parse_s3_url,
     validate_package_name, quiltignore_filter, validate_key
 )
 
@@ -330,8 +330,8 @@ class Package(object):
         if registry is None:
             registry = get_from_config('default_remote_registry')
             if registry is None:
-                raise QuiltException("No registry specified and no default remote "
-                                     "registry configured. Please specify a registry "
+                raise QuiltException("No registry specified and no default_remote_registry "
+                                     "configured. Please specify a registry "
                                      "or configure a default remote registry with quilt.config")
 
         if dest_registry is None:
@@ -376,27 +376,22 @@ class Package(object):
         """
         if registry is None:
             registry = get_from_config('default_local_registry')
-            if registry is None:
-                raise QuiltException("No registry specified and no default remote "
-                                     "registry configured. Please specify a registry "
-                                     "or configure a default remote registry with quilt.config")
 
-        registry_prefix = get_package_registry(fix_url(registry) if registry else None)
+        registry = registry.rstrip('/')
+        validate_package_name(name)
+        name = quote(name)
 
         if top_hash is not None:
-            # If hash is specified, name doesn't matter.
-            pkg_path = '{}/packages/{}'.format(registry_prefix, top_hash)
-            return cls._from_path(pkg_path)
+            # TODO: verify that name is correct with respect to this top_hash
+            # TODO: allow partial hashes (e.g. first six alphanumeric)
+            pkg_manifest_uri = fix_url(f'{registry}/.quilt/packages/{top_hash}')
+            return cls._from_path(pkg_manifest_uri)
         else:
-            validate_package_name(name)
-
-        pkg_path = '{}/named_packages/{}/latest'.format(registry_prefix, quote(name))
-        latest_bytes, _ = get_bytes(pkg_path)
-        latest_hash = latest_bytes.decode('utf-8')
-
-        latest_hash = latest_hash.strip()
-        latest_path = '{}/packages/{}'.format(registry_prefix, quote(latest_hash))
-        return cls._from_path(latest_path)
+            pkg_timestamp_file = f'{registry}/.quilt/named_packages/{name}/latest'
+            latest_pkg_hash, _ = get_bytes(pkg_timestamp_file)
+            latest_pkg_hash = latest_pkg_hash.decode('utf-8').strip()
+            pkg_manifest_uri = fix_url(f'{registry}/.quilt/packages/{quote(latest_pkg_hash)}')
+            return cls._from_path(pkg_manifest_uri)
 
 
     @classmethod
@@ -780,29 +775,30 @@ class Package(object):
         """
         self._set_commit_message(message)
 
-        registry_prefix = get_package_registry(fix_url(registry) if registry else None)
+        if registry is None:
+            registry = get_from_config('default_local_registry')
+
+        registry = registry.rstrip('/')
+        validate_package_name(name)
+        name = quote(name)
 
         self._fix_sha256()
-
-        hash_string = self.top_hash
         manifest = io.BytesIO()
         self.dump(manifest)
+
+        pkg_manifest_file = f'{registry}/.quilt/packages/{self.top_hash}'
         put_bytes(
             manifest.getvalue(),
-            registry_prefix + '/packages/' + hash_string
+            pkg_manifest_file
         )
 
-        if name:
-            # Sanitize name.
-            validate_package_name(name)
-
-            named_path = registry_prefix + '/named_packages/' + quote(name) + '/'
-            # TODO: use a float to string formater instead of double casting
-            hash_bytes = hash_string.encode('utf-8')
-            timestamp_path = named_path + str(int(time.time()))
-            latest_path = named_path + "latest"
-            put_bytes(hash_bytes, timestamp_path)
-            put_bytes(hash_bytes, latest_path)
+        named_path = f'{registry}/.quilt/named_packages/{name}/'
+        # TODO: use a float to string formater instead of double casting
+        hash_bytes = self.top_hash.encode('utf-8')
+        timestamp_path = named_path + str(int(time.time()))
+        latest_path = named_path + "latest"
+        put_bytes(hash_bytes, timestamp_path)
+        put_bytes(hash_bytes, latest_path)
 
         return self
 
