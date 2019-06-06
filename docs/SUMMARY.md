@@ -6,7 +6,7 @@
 
 ### Walkthrough
 
-* [Creating a Package](Walkthrough/Creating a Package.md)
+* [Editing a Package](Walkthrough/Editing a Package.md)
 * [Uploading a Package](Walkthrough/Uploading a Package.md)
 * [Installing a Package](Walkthrough/Installing a Package.md)
 * [Getting Data from a Package](Walkthrough/Getting Data from a Package.md)

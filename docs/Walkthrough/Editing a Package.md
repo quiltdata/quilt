@@ -1,10 +1,22 @@
-Data in Quilt is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata:
+Data in Quilt is organized in terms of **data packages**. A data package is a logical group of files, directories, and metadata.
+
+## Initializing a package
+
+To edit a new empty package, use the package constructor:
 
 ```python
 import quilt3
-# initialize a package
 p = quilt3.Package()
 ```
+
+To edit a preexisting package, use `browse`:
+
+```python
+import quilt3
+p = quilt3.Package.browse('quilt/demo')
+```
+
+For more information on accessing existing packages see the section "[Installing a Package](./Installing%20a%20Package.md)".
 
 ## Adding data to a package
 
