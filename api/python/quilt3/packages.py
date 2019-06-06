@@ -756,7 +756,10 @@ class Package(object):
             a ValueError if msg is not a string
         """
         if msg is not None and not isinstance(msg, str):
-            raise ValueError("The package message must be a string.")
+            raise ValueError(
+                f"The package commit message must be a string, but the message provided is an "
+                f"instance of {type(msg)}."
+            )
 
         self._meta.update({'message': msg})
 
@@ -972,10 +975,10 @@ class Package(object):
         if registry is None:
             registry = get_from_config('default_remote_registry')
             if not registry:
-                raise QuiltException("No registry specified and no default remote "
-                                     "registry configured. Please specify a "
-                                     "registry or configure a default remote "
-                                     "registry with quilt3.config")
+                raise QuiltException(
+                    "No registry specified and no default remote registry configured. Please "
+                    "specify a registry or configure a default remote registry with quilt3.config"
+                )
             registry_parsed = urlparse(fix_url(registry))
         else:
             registry_parsed = urlparse(fix_url(registry))
