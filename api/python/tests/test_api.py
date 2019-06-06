@@ -28,7 +28,7 @@ class TestAPI(QuiltTestCase):
         config = yaml.load(util.CONFIG_PATH)
 
         # These come from CONFIG_TEMPLATE, not the mocked config file.
-        content['default_local_registry'] = util.BASE_PATH.as_uri()
+        content['default_local_registry'] = util.BASE_PATH.as_uri() + '/packages'
         content['default_remote_registry'] = None
         content['default_install_location'] = None
         content['registryUrl'] = None
