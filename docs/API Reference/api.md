@@ -1,14 +1,14 @@
 
-# quilt
+# quilt3
 Quilt API
 
 ## config(\*catalog\_url, \*\*config\_values)  {#config}
-Set or read the Quilt configuration.
+Set or read the QUILT configuration.
 
 To retrieve the current config, call directly, without arguments:
 
 ```python
-    >>> import quilt
+    >>> import quilt3
     >>> quilt3.config()
 ```
 
@@ -22,7 +22,7 @@ To set config values, call with one or more key=value pairs:
 
 ```python
     >>> quilt3.config(navigator_url='http://example.com',
-    ...           elastic_search_url='http://example.com/queries')
+    ...               elastic_search_url='http://example.com/queries')
 ```
 
 Default config values can be found in `quilt3.util.CONFIG_TEMPLATE`.
@@ -34,7 +34,7 @@ __Arguments__
 
 __Returns__
 
-`Quilt`: (an ordered Mapping)
+`QuiltConfig`: (an ordered Mapping)
 
 
 ## delete\_package(name, registry=None)  {#delete\_package}
