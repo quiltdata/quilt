@@ -1,28 +1,24 @@
-from collections import deque
 import copy
 import hashlib
 import io
 import json
 import pathlib
 import os
-
 import time
-
 from urllib.parse import quote, urlparse, unquote
+from collections import deque
 
 import jsonlines
 
-
 from .data_transfer import (
-    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_meta, 
+    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_meta,
     list_object_versions, put_bytes
 )
 from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
-    QuiltException, fix_url, get_from_config, get_install_location,
-    make_s3_url, parse_file_url, parse_s3_url,
-    validate_package_name, quiltignore_filter, validate_key
+    QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
+    parse_s3_url, validate_package_name, quiltignore_filter, validate_key
 )
 
 
@@ -330,9 +326,10 @@ class Package(object):
         if registry is None:
             registry = get_from_config('default_remote_registry')
             if registry is None:
-                raise QuiltException("No registry specified and no default_remote_registry "
-                                     "configured. Please specify a registry "
-                                     "or configure a default remote registry with quilt.config")
+                raise QuiltException(
+                    "No registry specified and no default_remote_registry configured. Please "
+                    "specify a registry or configure a default remote registry with quilt.config"
+                )
 
         if dest_registry is None:
             dest_registry = get_from_config('default_local_registry')
@@ -609,7 +606,6 @@ class Package(object):
                     continue
                 entry = PackageEntry([f.as_uri()], f.stat().st_size, None, None)
                 logical_key = f.relative_to(src_path).as_posix()
-                # TODO: Warn if overwritting a logical key?
                 root.set(logical_key, entry)
         elif url.scheme == 's3':
             src_bucket, src_key, src_version = parse_s3_url(url)
@@ -624,7 +620,6 @@ class Package(object):
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)
                 logical_key = obj['Key'][len(src_key):]
-                # TODO: Warn if overwritting a logical key?
                 root.set(logical_key, entry)
         else:
             raise NotImplementedError
