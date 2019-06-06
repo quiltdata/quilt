@@ -7,9 +7,9 @@
 ### Walkthrough
 
 * [Creating a Package](Walkthrough/Creating a Package.md)
-* [Distributing a Package](Walkthrough/Distributing a Package.md)
+* [Uploading a Package](Walkthrough/Uploading a Package.md)
 * [Installing a Package](Walkthrough/Installing a Package.md)
-* [Reading from a Package](Walkthrough/Reading from a Package.md)
+* [Getting Data from a Package](Walkthrough/Getting Data from a Package.md)
 * [Working with the Catalog](Walkthrough/Working with the Catalog.md)
 * [Working with a Bucket](Walkthrough/Working with a Bucket.md)
 
