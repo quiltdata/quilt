@@ -8,10 +8,10 @@ import humanize
 
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
-from .packages import get_package_registry, Package
+from .packages import Package
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, fix_url, parse_file_url, parse_s3_url, read_yaml, validate_url,
-                   write_yaml, validate_package_name)
+                   write_yaml, validate_package_name, get_from_config, get_package_registry)
 
 
 def copy(src, dest):
@@ -254,13 +254,11 @@ def list_packages(registry=None):
                         f"{self._fmt_str(size_str, 15).rstrip(' ')}\t\n")
             return out
 
-    if registry is None or registry == 'local':
-        registry = get_package_registry(None)
-    else:
-        registry = get_package_registry(fix_url(registry))
-    # the get_package_registry path includes '/.quilt', which Package.browse does not expect
-    registry = registry[:registry.rindex('.quilt')]
-    named_packages_urlparse = urlparse(registry + '.quilt/named_packages')
+    if registry is None:
+        registry = get_from_config('default_local_registry')
+
+    registry = fix_url(registry)
+    named_packages_urlparse = urlparse(registry.rstrip('/') + '/.quilt/named_packages')
     registry_scheme = named_packages_urlparse.scheme
 
     pkg_info = []

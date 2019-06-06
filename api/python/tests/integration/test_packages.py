@@ -70,7 +70,7 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build().top_hash
+        top_hash = new_pkg.build('Quilt/Test').top_hash
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
@@ -103,7 +103,7 @@ class PackageTest(QuiltTestCase):
         # Test unnamed packages.
         new_pkg = Package()
         new_pkg = new_pkg.set('bar', test_file_name)
-        top_hash = new_pkg.build().top_hash
+        top_hash = new_pkg.build("Quilt/Test").top_hash
         out_path = LOCAL_REGISTRY / ".quilt/packages" / top_hash
         with open(out_path) as fd:
             pkg = Package.load(fd)
@@ -112,12 +112,12 @@ class PackageTest(QuiltTestCase):
     @patch('quilt3.Package.browse', lambda name, registry, top_hash: Package())
     def test_default_install_location(self):
         """Verify that pushes to the default local install location work as expected"""
-        with patch('quilt3.Package.push') as push_mock:
-            Package.install('Quilt/nice-name', registry='s3://my-test-bucket')
-            push_mock.assert_called_once_with(
-                dest=quilt3.util.get_install_location(),
-                name='Quilt/nice-name',
-                registry=ANY
+        with patch('quilt3.Package._materialize') as materialize_mock:
+            pkg_name = 'Quilt/nice-name'
+            Package.install(pkg_name, registry='s3://my-test-bucket')
+
+            materialize_mock.assert_called_once_with(
+                quilt3.util.get_install_location().rstrip('/') + '/' + pkg_name,
             )
 
     def test_read_manifest(self):
@@ -137,8 +137,8 @@ class PackageTest(QuiltTestCase):
         with open(out_path) as fd:
             written_set = list(jsonlines.Reader(fd))
         assert len(original_set) == len(written_set)
-        assert sorted(original_set, key=lambda k: k.get('logical_key','manifest')) \
-            == sorted(written_set, key=lambda k: k.get('logical_key','manifest'))
+        assert sorted(original_set, key=lambda k: k.get('logical_key', 'manifest')) \
+            == sorted(written_set, key=lambda k: k.get('logical_key', 'manifest'))
 
     def test_browse_package_from_registry(self):
         """ Verify loading manifest locally and from s3 """
@@ -148,14 +148,7 @@ class PackageTest(QuiltTestCase):
             pkgmock.return_value = pkg
             top_hash = pkg.top_hash
 
-            # local registry load
-            pkg = Package.browse(registry='local', top_hash=top_hash)
-            assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
-                    in [x[0][0] for x in pkgmock.call_args_list]
-
-            pkgmock.reset_mock()
-
-            pkg = Package.browse('Quilt/nice-name', registry='local', top_hash=top_hash)
+            pkg = Package.browse('Quilt/nice-name', top_hash=top_hash)
             assert '{}/.quilt/packages/{}'.format(registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
@@ -163,7 +156,7 @@ class PackageTest(QuiltTestCase):
 
             with patch('quilt3.packages.get_bytes') as dl_mock:
                 dl_mock.return_value = (top_hash.encode('utf-8'), None)
-                pkg = Package.browse('Quilt/nice-name', registry='local')
+                pkg = Package.browse('Quilt/nice-name')
                 assert registry + '/.quilt/named_packages/Quilt/nice-name/latest' \
                         == dl_mock.call_args_list[0][0][0]
 
@@ -177,7 +170,7 @@ class PackageTest(QuiltTestCase):
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
             pkgmock.reset_mock()
-            pkg = Package.browse(top_hash=top_hash, registry=remote_registry)
+            pkg = Package.browse('Quilt/nice-name', top_hash=top_hash, registry=remote_registry)
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
@@ -188,21 +181,11 @@ class PackageTest(QuiltTestCase):
             assert '{}/.quilt/packages/{}'.format(remote_registry, top_hash) \
                     in [x[0][0] for x in pkgmock.call_args_list]
 
-            # default remote registry failure case
-            quilt3.config(default_remote_registry=None)
-            with pytest.raises(QuiltException):
-                Package.browse('Quilt/nice-name')
-
-    def test_local_install(self):
-        """Verify that installing from a local package works as expected."""
-        local_registry = Path('.').resolve().as_uri()
-        quilt3.config(default_local_registry=local_registry)
-        with patch('quilt3.Package.push') as push_mock:
-            pkg = Package()
-            pkg.build('Quilt/nice-name')
-
-            quilt3.Package.install('Quilt/nice-name', registry='local', dest='./')
-            push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=local_registry)
+            # registry failure case
+            with patch('quilt3.packages.get_from_config',
+                       return_value=fix_url(os.path.dirname(__file__))):
+                with pytest.raises(FileNotFoundError):
+                    Package.browse('Quilt/nice-name')
 
     def test_remote_install(self):
         """Verify that installing from a local package works as expected."""
@@ -215,8 +198,27 @@ class PackageTest(QuiltTestCase):
             pkg = Package()
             pkg.build('Quilt/nice-name')
 
-            quilt3.Package.install('Quilt/nice-name', dest='./')
-            push_mock.assert_called_once_with(dest='./', name='Quilt/nice-name', registry=remote_registry)
+            with patch('quilt3.Package._materialize') as materialize_mock, \
+                patch('quilt3.Package.build') as build_mock:
+                materialize_mock.return_value = pkg
+                dest_registry = quilt3.util.get_from_config('default_local_registry')
+
+                quilt3.Package.install('Quilt/nice-name', dest='./')
+
+                materialize_mock.assert_called_once_with(fix_url('./'))
+                build_mock.assert_called_once_with(
+                    'Quilt/nice-name', message=None, registry=dest_registry
+                )
+
+    def test_install_restrictions(self):
+        """Verify that install can only operate remote -> local."""
+        # disallow installs which send package data to a remote registry
+        with pytest.raises(QuiltException):
+            quilt3.Package.install('Quilt/nice-name', dest='s3://test-bucket')
+
+        # disallow installs which send the package manifest to a remote registry
+        with pytest.raises(QuiltException):
+            quilt3.Package.install('Quilt/nice-name', dest_registry='s3://test-bucket')
 
     def test_package_fetch(self):
         """ Package.fetch() on nested, relative keys """
@@ -353,23 +355,6 @@ class PackageTest(QuiltTestCase):
         with patch('time.time', return_value=1234567890):
             new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
-    def test_local_push(self):
-        """ Verify loading local manifest and data into a local dir. """
-        top_hash = '5333a204bbc6e21607c2bc842f4a77d2e21aa6147cf2bf493dbf6282188d01ca'
-
-        new_pkg = Package()
-        contents = 'blah'
-        test_file = Path('bar')
-        test_file.write_text(contents)
-        new_pkg = new_pkg.set('foo', test_file)
-        new_pkg.push('Quilt/package', 'package_contents')
-
-        push_dir = Path('package_contents')
-
-        assert (push_dir / '.quilt/named_packages/Quilt/package/latest').read_text() == top_hash
-        assert (push_dir / ('.quilt/packages/' + top_hash)).exists()
-        assert (push_dir / 'Quilt/package/foo').read_text() == contents
-
 
     def test_package_deserialize(self):
         """ Verify loading data from a local file. """
@@ -379,7 +364,7 @@ class PackageTest(QuiltTestCase):
             .set('bar', DATA_DIR / 'foo.unrecognized.ext')
             .set('baz', DATA_DIR / 'foo.txt')
         )
-        pkg.build()
+        pkg.build('foo/bar')
 
         pkg['foo'].meta['target'] = 'unicode'
         assert pkg['foo'].deserialize() == '123\n'
@@ -514,44 +499,26 @@ class PackageTest(QuiltTestCase):
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
-        temp_local_registry = Path('.').resolve().as_uri() + '/test_registry/.quilt'
-        with patch('quilt3.packages.get_package_registry', lambda path: temp_local_registry), \
-            patch('quilt3.api.get_package_registry', lambda path: temp_local_registry):
 
-            # Build a new package into the local registry.
-            Package().build("Quilt/Foo")
-            Package().build("Quilt/Bar")
-            Package().build("Quilt/Test")
+        # Build a new package into the local registry.
+        Package().build("Quilt/Foo")
+        Package().build("Quilt/Bar")
+        Package().build("Quilt/Test")
 
-            # Verify packages are returned.
-            pkgs = quilt3.list_packages()
-            assert len(pkgs) == 3
-            assert "Quilt/Foo" in pkgs
-            assert "Quilt/Bar" in pkgs
+        # Verify packages are returned.
+        pkgs = quilt3.list_packages()
+        assert len(pkgs) == 3
+        assert "Quilt/Foo" in pkgs
+        assert "Quilt/Bar" in pkgs
 
-            # Verify 'local' keyword works as expected.
-            assert list(pkgs) == list(quilt3.list_packages('local'))
+        # Verify specifying a local path explicitly works as expected.
+        assert list(pkgs) == list(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
 
-            # Verify specifying a local path explicitly works as expected.
-            assert list(pkgs) == list(quilt3.list_packages(
-                pathlib.Path(temp_local_registry).parent.as_posix()
-            ))
-
-            # Verify package repr is as expected.
-            pkgs_repr = str(pkgs)
-            assert 'Quilt/Test:latest' in pkgs_repr
-            assert 'Quilt/Foo:latest' in pkgs_repr
-            assert 'Quilt/Bar:latest' in pkgs_repr
-
-            # Test unnamed packages are not added.
-            Package().build()
-            pkgs = quilt3.list_packages()
-            assert len(pkgs) == 3
-
-            # Verify manifest is registered by hash when local path given
-            pkgs = quilt3.list_packages("/")
-            assert "Quilt/Foo" in pkgs
-            assert "Quilt/Bar" in pkgs
+        # Verify package repr is as expected.
+        pkgs_repr = str(pkgs)
+        assert 'Quilt/Test:latest' in pkgs_repr
+        assert 'Quilt/Foo:latest' in pkgs_repr
+        assert 'Quilt/Bar:latest' in pkgs_repr
 
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
@@ -582,13 +549,13 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         th1 = pkg.top_hash
         pkg.set('asdf', test_file)
-        pkg.build()
+        pkg.build('foo/bar')
         th2 = pkg.top_hash
         assert th1 != th2
 
         test_file.write_text('jkl', 'utf-8')
         pkg.set('jkl', test_file)
-        pkg.build()
+        pkg.build('foo/bar')
         th3 = pkg.top_hash
         assert th1 != th3
         assert th2 != th3
@@ -648,7 +615,7 @@ class PackageTest(QuiltTestCase):
         )
         pkg['foo'].meta['target'] = 'unicode'
 
-        pkg.build()
+        pkg.build("Quilt/Test")
 
         assert pkg['foo'].deserialize() == '123\n'
         assert pkg['foo']() == '123\n'
@@ -738,8 +705,8 @@ class PackageTest(QuiltTestCase):
         new_pkg = new_pkg.set('foo', test_file_name)
         top_hash = new_pkg.build("Quilt/Test")
 
-        p1 = Package.browse('Quilt/Test', registry='local')
-        p2 = Package.browse('Quilt/Test', registry='local')
+        p1 = Package.browse('Quilt/Test')
+        p2 = Package.browse('Quilt/Test')
         assert p1.diff(p2) == ([], [], [])
 
 
@@ -750,7 +717,7 @@ class PackageTest(QuiltTestCase):
         pkg.set('asdf/qwer', LOCAL_MANIFEST)
         pkg.set('qwer/asdf', LOCAL_MANIFEST)
         pkg.set('qwer/as/df', LOCAL_MANIFEST)
-        pkg.build()
+        pkg.build('Quilt/Test')
         assert pkg['asdf'].meta == {}
         assert pkg.meta == {}
         assert pkg['qwer']['as'].meta == {}
@@ -772,26 +739,22 @@ class PackageTest(QuiltTestCase):
     def test_top_hash_stable(self):
         """Ensure that top_hash() never changes for a given manifest"""
 
-        registry = DATA_DIR
+        registry = DATA_DIR.as_posix()
         top_hash = '20de5433549a4db332a11d8d64b934a82bdea8f144b4aecd901e7d4134f8e733'
 
-        pkg = Package.browse(registry=registry, top_hash=top_hash)
+        pkg = Package.browse('foo/bar', registry=registry, top_hash=top_hash)
 
         assert pkg.top_hash == top_hash, \
-            "Unexpected top_hash for {}/.quilt/packages/{}".format(registry, top_hash)
+            "Unexpected top_hash for {}/packages/.quilt/packages/{}".format(registry, top_hash)
 
 
     def test_local_package_delete(self):
         """Verify local package delete works."""
         top_hash = Package().build("Quilt/Test").top_hash
-
         assert 'Quilt/Test' in quilt3.list_packages()
-        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
         quilt3.delete_package('Quilt/Test')
-
         assert 'Quilt/Test' not in quilt3.list_packages()
-        assert top_hash not in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
 
 
     def test_local_package_delete_overlapping(self):
@@ -871,17 +834,39 @@ class PackageTest(QuiltTestCase):
             delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/latest')
 
 
+    def test_push_restrictions(self):
+        p = Package()
+
+        # disallow pushing not to the top level of a remote S3 registry
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket/foo/bar')
+
+        # disallow pushing to the local filesystem (use install instead)
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', './')
+
+        # disallow pushing the package manifest to remote but package data to local
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket', dest='./')
+
+        # disallow pushing the pacakge manifest to remote but package data to a different remote
+        with pytest.raises(QuiltException):
+            p.push('Quilt/Test', 's3://test-bucket', dest='s3://other-test-bucket')
+
+
     def test_commit_message_on_push(self):
         """ Verify commit messages populate correctly on push."""
-        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call):
+        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
+            patch('quilt3.Package._materialize') as materialize_mock, \
+            patch('quilt3.Package.build') as build_mock:
             with open(REMOTE_MANIFEST) as fd:
                 pkg = Package.load(fd)
-            pkg.push('Quilt/test_pkg_name', 'pkg', message='test_message')
-            assert pkg._meta['message'] == 'test_message'
+            materialize_mock.return_value = pkg
 
-            # ensure messages are strings
-            with pytest.raises(ValueError):
-                pkg.push('Quilt/test_pkg_name', 'pkg', message={})
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket', message='test_message')
+            build_mock.assert_called_once_with(
+                'Quilt/test_pkg_name', registry='s3://test-bucket', message='test_message'
+            )
 
     def test_overwrite_dir_fails(self):
         with pytest.raises(QuiltException):
@@ -952,10 +937,10 @@ class PackageTest(QuiltTestCase):
         pkg = Package()
         pkg.set('as/df', LOCAL_MANIFEST)
         pkg.set('as/qw', LOCAL_MANIFEST)
-        top_hash = pkg.build().top_hash
+        top_hash = pkg.build('foo/bar').top_hash
         manifest = list(pkg.manifest)
 
-        pkg2 = Package.browse(top_hash=top_hash, registry='local')
+        pkg2 = Package.browse('foo/bar', top_hash=top_hash)
         assert list(pkg.manifest) == list(pkg2.manifest)
 
 

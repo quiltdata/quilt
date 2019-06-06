@@ -54,7 +54,7 @@ default_install_location:
 
 # Identity service URL
 registryUrl:
-""".format(BASE_PATH.as_uri())
+""".format(BASE_PATH.as_uri() + '/packages')
 
 
 class QuiltException(Exception):
@@ -316,7 +316,7 @@ def get_from_config(key):
 def get_install_location():
     loc = load_config().get('default_install_location')
     if loc is None:
-        loc = get_package_registry() + '/' + 'data/'
+        loc = get_from_config('default_local_registry').rstrip('/')
     return loc
 
 def quiltignore_filter(paths, ignore, url_scheme):
