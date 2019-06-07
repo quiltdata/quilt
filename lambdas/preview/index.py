@@ -6,6 +6,7 @@ Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
 import json
+from urllib.parse import urlparse
 import zlib
 
 import requests
@@ -22,6 +23,8 @@ CHUNK = 1024*8
 MAX_BYTES = 1024*1024 # must be positive int
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
+
+S3_DOMAIN_SUFFIX = '.s3.amazonaws.com'
 
 SCHEMA = {
     'type': 'object',
@@ -59,6 +62,14 @@ def lambda_handler(request):
     url = request.args['url']
     input_type = request.args.get('input')
     compression = request.args.get('compression')
+
+    parsed_url = urlparse(url, allow_fragments=False)
+    if not (parsed_url.scheme == 'https' and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
+            parsed_url.username is None and parsed_url.password is None):
+        return make_json_response(400, {
+            'title': 'Invalid S3 URL'
+        })
+
     try:
         line_count = _str_to_line_count(request.args.get('line_count', str(MAX_LINES)))
     except ValueError as error:

@@ -17,7 +17,7 @@ BASE_DIR = pathlib.Path(__file__).parent / 'data'
 # pylint: disable=no-member,invalid-sequence-index
 class TestIndex():
     """Class to test various inputs to the main indexing function"""
-    FILE_URL = f'{MOCK_ORIGIN}/file.ext'
+    FILE_URL = 'https://quilt-example.s3.amazonaws.com/file.ext'
     # pylint: disable=too-many-function-args
     # pylint hates on index.lambda_handler(event, None), even though, without the
     # second arg we would get TypeError: wrapper() missing 1 required positional argument: '_'
@@ -38,6 +38,14 @@ class TestIndex():
         assert resp['statusCode'] == 400, 'Expected 400 on event without "input" query param'
         assert resp['body'], 'Expected explanation for 400'
         assert resp['headers']['access-control-allow-origin'] == '*'
+
+    def test_bad_hostname(self):
+        bad_url = 'https://example.com/foo'
+        event = self._make_event({'url': bad_url, 'input': 'txt'}, {'origin': MOCK_ORIGIN})
+        resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 400, 'Expected 400 on event with a non-S3 URL'
+        body = json.loads(resp['body'])
+        assert 'S3' in body['title'], 'Expected 400 explanation'
 
     def test_bad_line_count(self):
         """send a known bad line_count parameter"""
