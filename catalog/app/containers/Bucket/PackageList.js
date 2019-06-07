@@ -2,13 +2,13 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import {
+  Box,
   Card,
   CardContent,
   CircularProgress,
   Typography,
   colors,
 } from '@material-ui/core'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'

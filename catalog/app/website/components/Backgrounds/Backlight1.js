@@ -1,4 +1,4 @@
-import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Box } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
 import backlight1 from './backlight1.png'

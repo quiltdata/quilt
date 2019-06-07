@@ -1,8 +1,7 @@
 import * as React from 'react'
 import { FormattedMessage } from 'react-intl'
 import { Link as RRLink } from 'react-router-dom'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import { Link, Typography } from '@material-ui/core'
+import { Box, Link, Typography } from '@material-ui/core'
 
 import * as Intercom from 'components/Intercom'
 import LayoutContainer from 'components/Layout/Container'

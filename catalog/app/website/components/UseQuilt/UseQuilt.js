@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { Button, Grid, Typography } from '@material-ui/core'
+import { Box, Button, Grid, Typography } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import * as Layout from 'components/Layout'
 

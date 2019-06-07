@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { Typography } from '@material-ui/core'
+import { Box, Typography } from '@material-ui/core'
 import { makeStyles, styled } from '@material-ui/styles'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import * as Layout from 'components/Layout'
 import styledBy from 'utils/styledBy'

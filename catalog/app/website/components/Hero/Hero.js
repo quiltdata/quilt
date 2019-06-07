@@ -1,7 +1,6 @@
 import * as React from 'react'
-import { Button, Hidden, Icon, Link, Typography } from '@material-ui/core'
+import { Box, Button, Hidden, Icon, Link, Typography } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import { Container } from 'components/Layout'
 import offset from 'utils/bgOffset'

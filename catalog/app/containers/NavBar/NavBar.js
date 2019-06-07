@@ -6,14 +6,16 @@ import { Link, Route } from 'react-router-dom'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
-import AppBar from '@material-ui/core/AppBar'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import Button from '@material-ui/core/Button'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Icon from '@material-ui/core/Icon'
-import Menu from '@material-ui/core/Menu'
-import MenuItem from '@material-ui/core/MenuItem'
-import Toolbar from '@material-ui/core/Toolbar'
+import {
+  AppBar,
+  Box,
+  Button,
+  CircularProgress,
+  Icon,
+  Menu,
+  MenuItem,
+  Toolbar,
+} from '@material-ui/core'
 import { withStyles } from '@material-ui/styles'
 
 import LayoutContainer from 'components/Layout/Container'

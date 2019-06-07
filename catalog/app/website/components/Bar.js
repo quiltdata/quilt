@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { styled } from '@material-ui/styles'
-import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Box } from '@material-ui/core'
 
 export default styled(({ color, ...props }) => <Box {...props} />)(
   ({ theme: t, color }) => ({

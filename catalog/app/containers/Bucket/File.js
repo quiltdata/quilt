@@ -9,6 +9,7 @@ import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
 import {
+  Box,
   Button,
   CircularProgress,
   Icon,
@@ -22,7 +23,6 @@ import {
   Typography,
   colors,
 } from '@material-ui/core'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 import { makeStyles, styled } from '@material-ui/styles'
 
 import ButtonIcon from 'components/ButtonIcon'

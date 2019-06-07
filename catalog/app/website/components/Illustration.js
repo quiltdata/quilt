@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { styled } from '@material-ui/styles'
-import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Box } from '@material-ui/core'
 
 const img2x = (x1, x2) => (window.devicePixelRatio >= 1.5 ? x2 : x1)
 

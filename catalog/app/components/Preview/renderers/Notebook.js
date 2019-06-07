@@ -2,7 +2,7 @@ import cx from 'classnames'
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
-import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Box } from '@material-ui/core'
 
 import 'katex/dist/katex.css'
 

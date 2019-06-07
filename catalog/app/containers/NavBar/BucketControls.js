@@ -1,9 +1,7 @@
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import Button from '@material-ui/core/Button'
-import Icon from '@material-ui/core/Icon'
+import { Box, Button, Icon } from '@material-ui/core'
 import { withStyles } from '@material-ui/styles'
 
 import * as BucketConfig from 'utils/BucketConfig'

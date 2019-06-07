@@ -5,14 +5,16 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
-import Button from '@material-ui/core/Button'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import Card from '@material-ui/core/Card'
-import CardContent from '@material-ui/core/CardContent'
-import CardHeader from '@material-ui/core/CardHeader'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Divider from '@material-ui/core/Divider'
-import Typography from '@material-ui/core/Typography'
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CircularProgress,
+  Divider,
+  Typography,
+} from '@material-ui/core'
 import { styled, withStyles } from '@material-ui/styles'
 
 import * as Pagination from 'components/Pagination'

@@ -1,7 +1,6 @@
 import * as R from 'ramda'
 import * as React from 'react'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import Icon from '@material-ui/core/Icon'
+import { Box, Icon } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
 const IconBlank = () => <Box pr={2.5} />

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { unstable_Box as Box } from '@material-ui/core/Box'
+import { Box } from '@material-ui/core'
 import { useTheme } from '@material-ui/styles'
 
 export default (props) => {

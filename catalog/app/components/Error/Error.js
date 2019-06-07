@@ -1,8 +1,7 @@
 import PT from 'prop-types'
 import * as React from 'react'
 import { setPropTypes } from 'recompose'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import Typography from '@material-ui/core/Typography'
+import { Box, Typography } from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
 import { composeComponent } from 'utils/reactTools'
