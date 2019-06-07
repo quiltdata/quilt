@@ -64,10 +64,12 @@ def lambda_handler(request):
     compression = request.args.get('compression')
 
     parsed_url = urlparse(url, allow_fragments=False)
-    if not (parsed_url.scheme == 'https' and parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
-            parsed_url.username is None and parsed_url.password is None):
+    if not (parsed_url.scheme == 'https' and
+            parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
+            parsed_url.username is None and
+            parsed_url.password is None):
         return make_json_response(400, {
-            'title': 'Invalid S3 URL'
+            'title': 'Invalid url=. Expected S3 virtual-host URL.'
         })
 
     try:
