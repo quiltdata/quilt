@@ -2,8 +2,6 @@
 // Needed for redux-saga es6 generator support
 import '@babel/polyfill'
 
-// TODO: remove after mui v4 release
-import './installStyles'
 /* eslint-disable import/first */
 
 // Import all the third party stuff
