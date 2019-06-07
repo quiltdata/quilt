@@ -18,7 +18,6 @@ const palette = {
 }
 
 const typography = {
-  useNextVariants: true,
   monospace: {
     fontFamily: ['Roboto Mono', 'monospace'],
   },

@@ -29,7 +29,6 @@ export default (t) =>
       borderRadius: 2,
     },
     typography: {
-      useNextVariants: true,
       h1: {
         fontSize: '3rem',
         lineHeight: '4rem',
