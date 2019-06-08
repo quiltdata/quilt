@@ -27,40 +27,51 @@ import * as requests from './requests'
 
 const TreeDisplay = tagged([
   'File', // S3Handle
-  'Dir', // { files, dirs, truncated }
+  'Dir', // { files, dirs }
   'NotFound',
 ])
 
-const mkHandle = ({ logicalKey, physicalKey, size }) => ({
-  ...parseS3Url(physicalKey),
+const mkHandle = ({ logical_key: logicalKey, physical_keys: [key], size }) => ({
+  ...parseS3Url(key),
   size,
   logicalKey,
 })
 
 const getParents = (path) => (path ? [...getParents(up(path)), path] : [])
 
-const computeTree = ({ bucket, name, revision, path }) => ({ keys, truncated }) => {
-  if (isDir(path)) {
-    return TreeDisplay.Dir({
-      dirs: R.pipe(
-        R.map((info) => getPrefix(info.logicalKey)),
-        R.uniq,
-        R.chain(getParents),
-        R.uniq,
-        R.filter((dir) => up(dir) === path),
-      )(keys),
-      files: keys.filter((info) => getPrefix(info.logicalKey) === path).map(mkHandle),
-      bucket,
-      name,
-      revision,
-      path,
-      truncated,
-    })
-  }
-
-  const key = keys.find(R.propEq('logicalKey', path))
-  return key ? TreeDisplay.File(mkHandle(key)) : TreeDisplay.NotFound()
-}
+const computeTree = ({ bucket, name, revision, path }) =>
+  R.pipe(
+    R.prop('keys'),
+    R.ifElse(
+      () => isDir(path),
+      R.pipe(
+        R.applySpec({
+          dirs: R.pipe(
+            // eslint-disable-next-line camelcase
+            R.map((info) => getPrefix(info.logical_key)),
+            R.uniq,
+            R.chain(getParents),
+            R.uniq,
+            R.filter((dir) => up(dir) === path),
+          ),
+          files: R.pipe(
+            // eslint-disable-next-line camelcase
+            R.filter((info) => getPrefix(info.logical_key) === path),
+            R.map(mkHandle),
+          ),
+          bucket: () => bucket,
+          name: () => name,
+          revision: () => revision,
+          path: () => path,
+        }),
+        TreeDisplay.Dir,
+      ),
+      (keys) => {
+        const key = keys.find(R.propEq('logical_key', path))
+        return key ? TreeDisplay.File(mkHandle(key)) : TreeDisplay.NotFound()
+      },
+    ),
+  )
 
 const formatListing = ({ urls }, r) => {
   const dirs = r.dirs.map((dir) =>
@@ -208,9 +219,9 @@ export default ({
                     <FilePreview handle={handle} />
                   </Section>
                 ),
-                Dir: ({ truncated, ...dir }) => (
+                Dir: (dir) => (
                   <Box mt={2}>
-                    <Listing items={formatListing({ urls }, dir)} truncated={truncated} />
+                    <Listing items={formatListing({ urls }, dir)} />
                     {/* TODO: use proper versions */}
                     <Summary files={dir.files} />
                   </Box>
