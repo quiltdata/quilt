@@ -383,13 +383,15 @@ const queryAccessCounts = async ({
   window = 365,
 }) => {
   try {
-    const [{ counts: recordedCounts }] = await s3Select({
+    const [{ counts: recordedCountsJson }] = await s3Select({
       s3,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
       Expression: query,
       InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
     })
+
+    const recordedCounts = JSON.parse(recordedCountsJson)
 
     const counts = R.times((i) => {
       const date = dateFns.subDays(today, window - i - 1)
