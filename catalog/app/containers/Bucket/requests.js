@@ -184,12 +184,6 @@ const loadRevisionHash = ({ s3, bucket, key }) =>
     .promise()
     .then((res) => res.Body.toString('utf-8'))
 
-const parseJSONL = R.pipe(
-  R.split('\n'),
-  R.map(R.tryCatch(JSON.parse, () => null)),
-  R.reject(R.isNil),
-)
-
 const getRevisionIdFromKey = (key) => key.substring(key.lastIndexOf('/') + 1)
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
@@ -238,15 +232,70 @@ export const getPackageRevisions = withErrorHandling(
   },
 )
 
+const s3Select = ({
+  s3,
+  ExpressionType = 'SQL',
+  InputSerialization = { JSON: { Type: 'LINES' } },
+  ...rest
+}) =>
+  s3
+    .selectObjectContent({
+      ExpressionType,
+      InputSerialization,
+      OutputSerialization: { JSON: {} },
+      ...rest,
+    })
+    .promise()
+    .then(
+      R.pipe(
+        R.prop('Payload'),
+        R.reduce((acc, evt) => {
+          if (!evt.Records) return acc
+          const s = evt.Records.Payload.toString()
+          return acc + s
+        }, ''),
+        R.trim,
+        R.split('\n'),
+        R.map(JSON.parse),
+      ),
+    )
+
 export const fetchPackageTree = withErrorHandling(
   async ({ s3, bucket, name, revision }) => {
     const hashKey = getRevisionKeyFromId(name, revision)
     const hash = await loadRevisionHash({ s3, bucket, key: hashKey })
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-    const r = await s3.getObject({ Bucket: bucket, Key: manifestKey }).promise()
-    const [info, ...keys] = parseJSONL(r.Body.toString('utf-8'))
-    const modified = r.LastModified
-    return { id: revision, hash, info, keys, modified }
+
+    const [[{ total }], keys] = await Promise.all([
+      s3Select({
+        s3,
+        Bucket: bucket,
+        Key: manifestKey,
+        Expression: `
+          SELECT COUNT(*) AS total
+          FROM S3Object[*] o
+          WHERE o.logical_key IS NOT MISSING
+        `,
+      }),
+      s3Select({
+        s3,
+        Bucket: bucket,
+        Key: manifestKey,
+        Expression: `
+          SELECT
+            o.logical_key AS logicalKey,
+            o.physical_keys[0] AS physicalKey,
+            o."size" AS "size"
+          FROM S3Object[*] o
+          WHERE o.logical_key IS NOT MISSING
+          LIMIT 1000
+        `,
+      }),
+    ])
+
+    const truncated = total > keys.length
+
+    return { id: revision, hash, keys, truncated }
   },
 )
 
@@ -334,23 +383,15 @@ const queryAccessCounts = async ({
   window = 365,
 }) => {
   try {
-    const { Payload } = await s3
-      .selectObjectContent({
-        Bucket: analyticsBucket,
-        Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
-        Expression: query,
-        ExpressionType: 'SQL',
-        InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
-        OutputSerialization: { JSON: {} },
-      })
-      .promise()
+    const [{ counts: recordedCountsJson }] = await s3Select({
+      s3,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
+      Expression: query,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
 
-    const recordedCounts = Payload.reduce((acc, i) => {
-      if (!i.Records) return acc
-      const [json] = i.Records.Payload.toString().split('\n')
-      const data = JSON.parse(json)
-      return JSON.parse(data.counts)
-    }, {})
+    const recordedCounts = JSON.parse(recordedCountsJson)
 
     const counts = R.times((i) => {
       const date = dateFns.subDays(today, window - i - 1)
