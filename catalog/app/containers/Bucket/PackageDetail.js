@@ -143,7 +143,7 @@ export default ({
                       alignItems="center"
                     >
                       <Box>
-                        <Field label="Message:">{info.commit_message || '<empty>'}</Field>
+                        <Field label="Message:">{info.message || '<empty>'}</Field>
                         <Field label="Date:">{modified.toLocaleString()}</Field>
                         <Field label="Hash:">{hash}</Field>
                       </Box>
