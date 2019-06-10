@@ -65,7 +65,7 @@
     "@sentry/browser": "^5.2.1",
     "assert": "^1.5.0",
     "autobind-decorator": "^2.4.0",
-    "aws-sdk": "^2.458.0",
+    "aws-sdk": "^2.471.0",
     "chalk": "^2.4.2",
     "classnames": "^2.2.6",
     "compression": "^1.7.4",
