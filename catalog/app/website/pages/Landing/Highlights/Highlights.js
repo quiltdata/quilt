@@ -1,11 +1,9 @@
 import * as React from 'react'
-import { Box, Button, Typography } from '@material-ui/core'
+import * as M from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
-import * as Layout from 'components/Layout'
-
-import Bar from './Bar'
-import Illustration from './Illustration'
+import Bar from 'website/components/Bar'
+import Illustration from 'website/components/Illustration'
 
 import search from './highlights-search.png'
 import search2x from './highlights-search@2x.png'
@@ -18,33 +16,45 @@ import python2x from './highlights-python@2x.png'
 import catalog from './highlights-catalog.png'
 import catalog2x from './highlights-catalog@2x.png'
 
-const Grid = styled(Box)({
+const Grid = styled(M.Box)(({ theme: t }) => ({
   display: 'grid',
   gridTemplateColumns: 'repeat(3, 210px)',
   justifyContent: 'space-between',
-})
+
+  [t.breakpoints.only('sm')]: {
+    gridTemplateColumns: 'repeat(2, 210px)',
+    width: 600,
+  },
+
+  [t.breakpoints.only('xs')]: {
+    gridTemplateColumns: '210px',
+    justifyContent: 'center',
+  },
+}))
 
 const Highlight = ({ img, heading, children }) => (
-  <Box mt={8}>
-    <Illustration srcs={img.srcs} offset={img.offset} width={img.width} height={380} />
-    <Typography variant="h4">{heading}</Typography>
-    <Box mt={3}>
-      <Typography variant="body2" color="textSecondary">
+  <M.Box mt={{ xs: 12, md: 8 }}>
+    <Illustration {...img} alwaysAbsolute height={380} />
+    <M.Typography variant="h4" color="textPrimary">{heading}</M.Typography>
+    <M.Box mt={3}>
+      <M.Typography variant="body2" color="textSecondary">
         {children}
-      </Typography>
-    </Box>
-  </Box>
+      </M.Typography>
+    </M.Box>
+  </M.Box>
 )
 
 export default () => (
-  <Layout.Container position="relative">
-    <Box display="flex" flexDirection="column" alignItems="center" pt={20} pb={2}>
+  <M.Container maxWidth="lg" style={{ position: 'relative' }}>
+    <M.Box display="flex" flexDirection="column" alignItems="center" pt={10} pb={2}>
       <Bar color="secondary" />
-      <Box mt={5}>
-        <Typography variant="h1">Product Highlights</Typography>
-      </Box>
-    </Box>
-    <Grid>
+      <M.Box mt={5}>
+        <M.Typography variant="h1" color="textPrimary" align="center">
+          Product Highlights
+        </M.Typography>
+      </M.Box>
+    </M.Box>
+    <Grid mx="auto">
       <Highlight
         img={{ srcs: [search, search2x], offset: 42, width: 307 }}
         heading="Search"
@@ -81,10 +91,10 @@ export default () => (
         temporincididunt
       </Highlight>
     </Grid>
-    <Box pt={15} textAlign="center">
-      <Button variant="contained" color="secondary" href="">
+    <M.Box pt={12} pb={15} textAlign="center">
+      <M.Button variant="contained" color="secondary" href="">
         Try demo
-      </Button>
-    </Box>
-  </Layout.Container>
+      </M.Button>
+    </M.Box>
+  </M.Container>
 )
