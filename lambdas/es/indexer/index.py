@@ -135,7 +135,7 @@ def post_to_es(event_type, size, text, key, meta, version_id=''):
             connection_class=RequestsHttpConnection
         )
 
-        res = es.index(index=ES_INDEX, doc_type='_doc', body=data)
+        res = es.index(index=ES_INDEX, doc_type='_doc', body=data, id=f'{key}_{version_id}')
         print(res)
     except RequestError as e:
         if e.error == 'mapper_parsing_exception':
