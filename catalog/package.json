@@ -111,7 +111,7 @@
     "uuid": "^3.3.2",
     "vega": "^5.4.0",
     "vega-embed": "^4.2.0",
-    "vega-lite": "^3.2.1",
+    "vega-lite": "^3.3.0",
     "warning": "^4.0.3"
   },
   "devDependencies": {

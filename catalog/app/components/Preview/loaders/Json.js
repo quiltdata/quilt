@@ -10,9 +10,11 @@ import * as utils from './utils'
 const MAX_SIZE = 1024 * 1024
 const SCHEMA_RE = /"\$schema":\s*"https:\/\/vega\.github\.io\/schema\/([\w-]+)\/([\w.-]+)\.json"/
 
+const map = (fn) => R.ifElse(Array.isArray, R.map(fn), fn)
+
 const signVegaSpec = ({ signer, handle }) =>
   R.evolve({
-    data: R.map(
+    data: map(
       R.evolve({
         url: (url) =>
           signer.signResource({
