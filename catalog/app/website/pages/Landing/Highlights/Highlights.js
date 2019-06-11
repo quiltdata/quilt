@@ -35,7 +35,9 @@ const Grid = styled(M.Box)(({ theme: t }) => ({
 const Highlight = ({ img, heading, children }) => (
   <M.Box mt={{ xs: 12, md: 8 }}>
     <Illustration {...img} alwaysAbsolute height={380} />
-    <M.Typography variant="h4" color="textPrimary">{heading}</M.Typography>
+    <M.Typography variant="h4" color="textPrimary">
+      {heading}
+    </M.Typography>
     <M.Box mt={3}>
       <M.Typography variant="body2" color="textSecondary">
         {children}
@@ -91,7 +93,7 @@ export default () => (
         temporincididunt
       </Highlight>
     </Grid>
-    <M.Box pt={12} pb={15} textAlign="center">
+    <M.Box pt={12} pb={10} textAlign="center">
       <M.Button variant="contained" color="secondary" href="">
         Try demo
       </M.Button>

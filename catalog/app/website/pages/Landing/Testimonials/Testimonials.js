@@ -1,11 +1,10 @@
 import * as React from 'react'
-import { Box, Typography } from '@material-ui/core'
+import * as M from '@material-ui/core'
 import { styled } from '@material-ui/styles'
 
-import * as Layout from 'components/Layout'
 import styledBy from 'utils/styledBy'
 
-import Bar from './Bar'
+import Bar from 'website/components/Bar'
 
 const avatarGradients = {
   primary: 'linear-gradient(to top, #f1b39d, #f78881)',
@@ -14,7 +13,7 @@ const avatarGradients = {
 }
 
 const Avatar = styled(({ children, color, ...props }) => (
-  <Box
+  <M.Box
     display="flex"
     alignItems="center"
     justifyContent="center"
@@ -23,37 +22,43 @@ const Avatar = styled(({ children, color, ...props }) => (
     minWidth={80}
     {...props}
   >
-    <Typography variant="h3">{children}</Typography>
-  </Box>
+    <M.Typography variant="h3" color="textPrimary">
+      {children}
+    </M.Typography>
+  </M.Box>
 ))({
   borderRadius: '50%',
   background: styledBy('color', avatarGradients),
 })
 
 const Testimonial = ({ color, initial, name, children, ...props }) => (
-  <Box pt={7} display="flex" {...props}>
-    <Avatar color={color} mr={5}>
+  <M.Box pt={7} display="flex" flexDirection={{ xs: 'column', sm: 'row' }} {...props}>
+    <Avatar color={color} mr={{ xs: 0, sm: 5 }} mb={{ xs: 3, sm: 0 }}>
       {initial}
     </Avatar>
-    <Box>
-      <Typography variant="h4">{name}</Typography>
-      <Box mt={2}>
-        <Typography variant="body1" color="textSecondary">
+    <M.Box>
+      <M.Typography variant="h4" color="textPrimary">
+        {name}
+      </M.Typography>
+      <M.Box mt={2}>
+        <M.Typography variant="body1" color="textSecondary">
           {children}
-        </Typography>
-      </Box>
-    </Box>
-  </Box>
+        </M.Typography>
+      </M.Box>
+    </M.Box>
+  </M.Box>
 )
 
 export default () => (
-  <Layout.Container position="relative" zIndex={1}>
-    <Box pt={18} pb={10}>
+  <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
+    <M.Box pt={10} pb={10}>
       <Bar color="primary" />
-      <Box mt={5} mb={2}>
-        <Typography variant="h1">Testimonials</Typography>
-      </Box>
-      <Box>
+      <M.Box mt={5}>
+        <M.Typography variant="h1" color="textPrimary">
+          Testimonials
+        </M.Typography>
+      </M.Box>
+      <M.Box>
         <Testimonial color="primary" initial="A" name="Allen Institute for Cell Science">
           Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
           incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
@@ -74,7 +79,7 @@ export default () => (
           Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
           fugiat nulla pariatur.
         </Testimonial>
-      </Box>
-    </Box>
-  </Layout.Container>
+      </M.Box>
+    </M.Box>
+  </M.Container>
 )
