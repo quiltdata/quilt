@@ -70,6 +70,10 @@
     "analyticsBucket": {
       "type": "string",
       "description": "Bucket where object analytics data is stored"
+    },
+    "googleClientId": {
+      "type": "string",
+      "description": "Client ID for Google Sign-In"
     }
   },
   "required": [
