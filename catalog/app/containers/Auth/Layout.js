@@ -36,7 +36,7 @@ export const Field = composeComponent(
     errors: PT.objectOf(PT.node),
   }),
   mapProps(({ input, meta, errors, floatingLabelText: label, ...rest }) => ({
-    error: meta.submitFailed && meta.error,
+    error: meta.submitFailed && !!meta.error,
     helperText:
       meta.submitFailed && meta.error
         ? errors[meta.error] || /* istanbul ignore next */ meta.error
