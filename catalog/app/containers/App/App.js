@@ -43,7 +43,7 @@ const HomePage = mkLazy(() => import('containers/HomePage'))
 
 const MLanding = mkLazy(() => import('website/pages/Landing'))
 const MAbout = mkLazy(() => import('website/pages/About'))
-// const MPersonas = mkLazy(() => import('website/pages/Personas'))
+const MPersonas = mkLazy(() => import('website/pages/Personas'))
 // const MProduct = mkLazy(() => import('website/pages/Product'))
 
 export default () => {
@@ -67,10 +67,10 @@ export default () => {
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />
         )}
-        {/*
         {cfg.enableMarketingPages && (
           <Route path={paths.personas} component={MPersonas} exact />
         )}
+        {/*
         {cfg.enableMarketingPages && (
           <Route path={paths.product} component={MProduct} exact />
         )}
