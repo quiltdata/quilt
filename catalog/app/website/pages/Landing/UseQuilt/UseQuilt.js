@@ -30,7 +30,7 @@ const SectionContents = (props) => (
     alignItems={{ xs: 'center', md: 'flex-start' }}
     display="flex"
     flexDirection="column"
-    width={{ xs: '100%', md: '21rem', lg: `${5/12*100}%` }}
+    width={{ xs: '100%', md: '21rem', lg: `${(5 / 12) * 100}%` }}
     {...props}
   />
 )
@@ -40,7 +40,9 @@ export default () => (
     <M.Box display="flex" flexDirection="column" alignItems="center">
       <Bar color="primary" />
       <M.Box mt={5}>
-        <M.Typography variant="h1" color="textPrimary">Why use Quilt?</M.Typography>
+        <M.Typography variant="h1" color="textPrimary">
+          Why use Quilt?
+        </M.Typography>
       </M.Box>
       <M.Box mt={4} mb={5} maxWidth={570}>
         <M.Typography variant="body1" color="textSecondary" align="center">
@@ -56,14 +58,16 @@ export default () => (
     <Section mt={{ xs: 15, md: 3 }}>
       <Illustration {...Personas.DataScientists} dir="left" />
       <SectionContents pb={{ xs: 0, md: 15 }} pt={{ xs: 6, md: 24 }}>
-        <M.Typography variant="h2" color="textPrimary">Data scientists</M.Typography>
+        <M.Typography variant="h2" color="textPrimary">
+          Data scientists
+        </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">
             Find any Jupyter notebook you&apos;ve ever touched with powerful search
           </Bullet>
           <Bullet color="tertiary">
-            Version and back up everything, including large data that doesn&apos;t fit
-            on GitHub
+            Version and back up everything, including large data that doesn&apos;t fit on
+            GitHub
           </Bullet>
           <Bullet color="secondary">Ensure data quality with data unit tests</Bullet>
         </M.Box>
@@ -76,7 +80,9 @@ export default () => (
     <Section mt={{ xs: 20, md: 0 }}>
       <Illustration {...Personas.DataEngineers} dir="right" order={{ xs: 0, md: 1 }} />
       <SectionContents pb={{ xs: 0, md: 20 }} pt={{ xs: 6, md: 32 }}>
-        <M.Typography variant="h2" color="textPrimary">Data engineers</M.Typography>
+        <M.Typography variant="h2" color="textPrimary">
+          Data engineers
+        </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">
             Data science infrastructure in a box&mdash;no more data busy work for you
@@ -95,7 +101,9 @@ export default () => (
     <Section mt={{ xs: 20, md: 0 }}>
       <Illustration {...Personas.HeadOfDataScience} dir="left" />
       <SectionContents pb={{ xs: 0, md: 30 }} pt={{ xs: 6, md: 25 }}>
-        <M.Typography variant="h2" color="textPrimary">Head of data science</M.Typography>
+        <M.Typography variant="h2" color="textPrimary">
+          Head of data science
+        </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">Central hub for all data and models</Bullet>
           <Bullet color="tertiary">Audit every data access ever</Bullet>
