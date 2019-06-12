@@ -1,14 +1,14 @@
 import * as React from 'react'
-import { Box, Typography } from '@material-ui/core'
-import { makeStyles, styled } from '@material-ui/styles'
+import * as M from '@material-ui/core'
+import { makeStyles } from '@material-ui/styles'
 
-import * as Layout from 'components/Layout'
+import img2x from 'utils/img2x'
 import styledBy from 'utils/styledBy'
 
-import Bar from './Bar'
-import Plus from './Plus'
+import Bar from 'website/components/Bar'
+import Backlight from 'website/components/Backgrounds/Backlight4'
+import Plus from 'website/components/Plus'
 
-import backlight from './backlight4.png'
 import pricingFree from './pricing-free.png'
 import pricingFree2x from './pricing-free@2x.png'
 import pricingHosted from './pricing-hosted.png'
@@ -51,19 +51,26 @@ const PLANS = {
   },
 }
 
-const img2x = (x1, x2) => (window.devicePixelRatio >= 1.5 ? x2 : x1)
-
 const usePlanStyles = makeStyles((t) => ({
   root: {
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
-    marginLeft: styledBy('featured', { true: -100 }),
-    marginRight: styledBy('featured', { true: -100 }),
-    marginTop: styledBy('featured', { false: 50 }),
-    position: styledBy('featured', { true: 'relative' }),
-    width: styledBy('featured', { false: 400, true: 460 }),
-    zIndex: styledBy('featured', { true: 1 }),
+    [t.breakpoints.down('sm')]: {
+      maxWidth: 410,
+      width: '100%',
+      '& + &': {
+        marginTop: t.spacing(8),
+      },
+    },
+    [t.breakpoints.up('md')]: {
+      marginLeft: styledBy('featured', { true: -100 }),
+      marginRight: styledBy('featured', { true: -100 }),
+      maxWidth: styledBy('featured', { false: 410, true: 480 }),
+      position: styledBy('featured', { true: 'relative' }),
+      width: styledBy('featured', { false: '35%', true: '40%' }),
+      zIndex: styledBy('featured', { true: 1 }),
+    },
   },
   bgBox: {
     alignItems: 'center',
@@ -127,49 +134,42 @@ const Plan = ({ bg, name, price, features, plus, featured = false }) => {
   return (
     <div className={classes.root}>
       <div className={classes.bgBox} style={{ backgroundImage: `url(${img2x(...bg)})` }}>
-        <Typography variant="h3" className={classes.name}>
+        <M.Typography variant="h3" color="textPrimary" className={classes.name}>
           {name}
-        </Typography>
-        <Typography variant="h1" className={classes.price}>
+        </M.Typography>
+        <M.Typography variant="h1" color="textPrimary" className={classes.price}>
           {price}
-        </Typography>
-        <Typography variant="caption" color="textSecondary" className={classes.perMonth}>
+        </M.Typography>
+        <M.Typography
+          variant="caption"
+          color="textSecondary"
+          className={classes.perMonth}
+        >
           $ per month
-        </Typography>
+        </M.Typography>
       </div>
       <div className={classes.featureBox}>
         {features.map((f) => (
-          <Typography
+          <M.Typography
             className={classes.feature}
             variant="caption"
             color="textSecondary"
             key={f}
           >
             {f}
-          </Typography>
+          </M.Typography>
         ))}
       </div>
-      <Plus variant={plus} />
+      <Plus variant={plus} href="TBD" />
     </div>
   )
 }
 
-const Backlight = styled('div')({
-  backgroundImage: `url(${backlight})`,
-  backgroundPosition: 'center',
-  backgroundSize: 'cover',
-  height: 2059,
-  left: 0,
-  position: 'absolute',
-  right: 0,
-  top: -320,
-})
-
 export default () => (
-  <Box position="relative">
-    <Backlight />
-    <Layout.Container>
-      <Box
+  <M.Box position="relative">
+    <Backlight top={-320} />
+    <M.Container maxWidth="lg">
+      <M.Box
         display="flex"
         flexDirection="column"
         alignItems="center"
@@ -177,15 +177,25 @@ export default () => (
         position="relative"
       >
         <Bar color="secondary" />
-        <Box mt={5}>
-          <Typography variant="h1">Pricing</Typography>
-        </Box>
-      </Box>
-      <Box mt={10} display="flex" justifyContent="space-between" position="relative">
+        <M.Box mt={5}>
+          <M.Typography variant="h1" color="textPrimary">
+            Pricing
+          </M.Typography>
+        </M.Box>
+      </M.Box>
+      <M.Box
+        mt={10}
+        pb={10}
+        display="flex"
+        justifyContent="space-between"
+        position="relative"
+        flexDirection={{ xs: 'column', md: 'row' }}
+        alignItems="center"
+      >
         <Plan {...PLANS.free} />
         <Plan {...PLANS.hosted} featured />
         <Plan {...PLANS.vpc} />
-      </Box>
-    </Layout.Container>
-  </Box>
+      </M.Box>
+    </M.Container>
+  </M.Box>
 )
