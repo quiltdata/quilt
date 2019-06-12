@@ -1,19 +1,15 @@
 import * as React from 'react'
+import * as M from '@material-ui/core'
 
-import { Box, Button, Typography } from '@material-ui/core'
-import { styled } from '@material-ui/styles'
+import Backlight from 'website/components/Backgrounds/Backlight1'
+import Dots from 'website/components/Backgrounds/Dots'
+import Overlay1 from 'website/components/Backgrounds/Overlay1'
+import Overlay2 from 'website/components/Backgrounds/Overlay2'
+import Bar from 'website/components/Bar'
+import Bullet from 'website/components/Bullet'
+import Illustration from 'website/components/Illustration'
+import Layout from 'website/components/Layout'
 
-import * as Layout from 'components/Layout'
-
-import Bar from './Bar'
-import Bullet from './Bullet'
-import Illustration from './Illustration'
-import Theme from './Theme'
-
-import backlight from './backlight1.png'
-import dots from './dots.png'
-import overlay1 from './overlay1.png'
-import overlay2 from './overlay2.png'
 import artProductDetail from './product-detail.png'
 import artProductDetail2 from './product-detail@2x.png'
 import artWho from './product-who-is-it-for.png'
@@ -23,124 +19,88 @@ import artWhy2 from './product-why-use@2x.png'
 import artFeatures from './product-key-features.png'
 import artFeatures2 from './product-key-features@2x.png'
 
-// TODO: share
-const ASSET_WIDTH = 1920
-
-// TODO: share
-const offset = (o = 0) => `calc(${o}px - (${ASSET_WIDTH}px - 100vw) / 2)`
-
-const Backlight = styled('div')({
-  backgroundImage: `url(${backlight})`,
-  backgroundPosition: 'center',
-  backgroundSize: 'cover',
-  height: 1449,
-  left: 0,
-  position: 'absolute',
-  right: 0,
-})
-
-const Pattern = styled('div')({
-  backgroundImage: `url(${dots})`,
-  backgroundRepeat: 'repeat',
-  backgroundSize: 101,
-  height: 1790,
-  left: 0,
-  mixBlendMode: 'overlay',
-  position: 'absolute',
-  right: 0,
-})
-
-const Overlay1 = styled('div')({
-  backgroundImage: `url(${overlay1})`,
-  backgroundPosition: 'center',
-  backgroundSize: 'cover',
-  height: 741,
-  left: 0,
-  mixBlendMode: 'overlay',
-  position: 'absolute',
-  right: 0,
-})
-
-const Overlay2 = styled('div')({
-  backgroundImage: `url(${overlay2})`,
-  backgroundPosition: `top left ${offset()}`,
-  backgroundSize: 'cover',
-  height: 1105,
-  left: 0,
-  mixBlendMode: 'overlay',
-  position: 'absolute',
-  right: 0,
-})
-
 const H = ({ color, children, ...props }) => (
-  <Box mb={3} {...props}>
+  <M.Box mb={3} {...props}>
     <Bar color={color} mb={5} />
-    <Typography variant="h1">{children}</Typography>
-  </Box>
+    <M.Typography variant="h1" color="textPrimary">
+      {children}
+    </M.Typography>
+  </M.Box>
 )
 
 const P = ({ children, ...props }) => (
-  <Box mb={5} {...props}>
-    <Typography variant="body1" color="textSecondary">
+  <M.Box mb={5} {...props}>
+    <M.Typography variant="body1" color="textSecondary">
       {children}
-    </Typography>
-  </Box>
+    </M.Typography>
+  </M.Box>
+)
+
+const Section = (props) => (
+  <M.Box position="relative" display="flex" flexDirection="column" {...props} />
+)
+
+const ContentBox = (props) => (
+  <M.Box
+    position={{ xs: 'static', md: 'absolute' }}
+    mt={{ xs: 3, md: 0 }}
+    mx="auto"
+    {...props}
+  />
+)
+
+const Art = ({ height, width, ...props }) => (
+  <Illustration
+    width={width}
+    height={{ xs: 'auto', md: height }}
+    mx={{ xs: 'auto', md: 'unset' }}
+    maxWidth={{ xs: width / 2, md: 'unset' }}
+    {...props}
+  />
 )
 
 const SectionDetail = (props) => (
-  <Box position="relative" {...props}>
-    <Illustration
+  <Section {...props}>
+    <Art
       srcs={[artProductDetail, artProductDetail2]}
-      dir="right"
       width={919}
       height={743}
       offset={177}
+      dir="right"
     />
-    <Box maxWidth={320} position="absolute" top={72}>
+    <ContentBox maxWidth={320} top={72}>
       <H color="primary">Product detail</H>
       <P>Quilt is continuous integration and deployment for data science.</P>
-      <Box>
-        <Button variant="contained" color="primary" href="">
+      <M.Box>
+        <M.Button variant="contained" color="primary" href="">
           Buy now
-        </Button>
-        <Box display="inline-block" ml={2} />
-        <Button variant="contained" color="secondary" href="">
+        </M.Button>
+        <M.Box display="inline-block" ml={2} />
+        <M.Button variant="contained" color="secondary" href="">
           Request Demo
-        </Button>
-      </Box>
-    </Box>
-  </Box>
+        </M.Button>
+      </M.Box>
+    </ContentBox>
+  </Section>
 )
 
 const SectionWho = (props) => (
-  <Box position="relative" {...props}>
-    <Illustration
-      srcs={[artWho, artWho2]}
-      dir="left"
-      width={924}
-      height={924}
-      offset={276}
-    />
-    <Box maxWidth={448} position="absolute" top={304} right={0}>
+  <Section {...props}>
+    <Art srcs={[artWho, artWho2]} width={924} height={924} offset={276} dir="left" />
+    <ContentBox maxWidth={{ xs: 320, md: 320, lg: 448 }} top={304} right={0}>
       <H color="primary">Who is it for?</H>
       <P>The S3 catalog is for data-driven teams, data scientists, and data engineers.</P>
-      <Button variant="contained" color="primary" href="">
+      <M.Button variant="contained" color="primary" href="">
         Learn more
-      </Button>
-    </Box>
-  </Box>
+      </M.Button>
+    </ContentBox>
+  </Section>
 )
 
 const SectionWhy = (props) => (
-  <Box position="relative" {...props}>
-    <Illustration
-      srcs={[artWhy, artWhy2]}
-      dir="right"
-      width={924}
-      height={924}
-      offset={242}
-    />
-    <Box maxWidth={416} position="absolute" top={216}>
+  <Section {...props}>
+    <Art srcs={[artWhy, artWhy2]} width={924} height={924} offset={242} dir="right" />
+    <ContentBox maxWidth={{ xs: 360, lg: 416 }} top={216}>
       <H color="secondary">Why use the S3 Data Catalog</H>
       <P>
         Get everyone on the same page with a central data hub Make your data powerfully
@@ -148,25 +108,24 @@ const SectionWhy = (props) => (
         place, versioned and backed up A home for all of your Jupyter experiments Store
         and version data that won&apos;t fit in git.
       </P>
-      <Button variant="contained" color="secondary" href="">
+      <M.Button variant="contained" color="secondary" href="">
         Learn more
-      </Button>
-    </Box>
-  </Box>
+      </M.Button>
+    </ContentBox>
+  </Section>
 )
 
 const SectionFeatures = (props) => (
-  <Box position="relative" {...props}>
-    <Illustration
+  <Section {...props}>
+    <Art
       srcs={[artFeatures, artFeatures2]}
-      dir="left"
       width={765}
       height={957}
       offset={191}
+      dir="left"
     />
-    <Box maxWidth={512} position="absolute" top={256} right={0}>
+    <ContentBox maxWidth={{ xs: 424, lg: 512 }} top={256} right={0}>
       <H color="primary">Key features</H>
-      {/* TODO: fancy bullet style */}
       <Bullet color="primary">Search through all of your Jupyter notebooks</Bullet>
       <Bullet color="secondary">
         Rollback and recover with versioning and data packages
@@ -178,28 +137,26 @@ const SectionFeatures = (props) => (
         Preview what&apos;s in S3 without downloading a single file Move data from Python
         to S3 and back
       </Bullet>
-      <Button variant="contained" color="primary" href="">
+      <M.Button variant="contained" color="primary" href="">
         Learn more
-      </Button>
-    </Box>
-  </Box>
+      </M.Button>
+    </ContentBox>
+  </Section>
 )
 
 export default () => (
-  <Theme>
-    <Layout.Layout
-      pre={
-        <Layout.Container>
-          <Backlight />
-          <Pattern />
-          <Overlay2 />
-          <Overlay1 />
-          <SectionDetail mt={18} />
-          <SectionWho mt={18} />
-          <SectionWhy mt={12} />
-          <SectionFeatures mt={6} mb={16} />
-        </Layout.Container>
-      }
-    />
-  </Theme>
+  <Layout>
+    <M.Box position="relative">
+      <Backlight />
+      <Dots />
+      <Overlay2 />
+      <Overlay1 />
+    </M.Box>
+    <M.Container maxWidth="lg" style={{ position: 'relative' }}>
+      <SectionDetail mt={{ xs: 10, md: 18 }} />
+      <SectionWho mt={{ xs: 20, md: 18 }} />
+      <SectionWhy mt={{ xs: 20, md: 12 }} />
+      <SectionFeatures mt={{ xs: 20, md: 6 }} mb={15} />
+    </M.Container>
+  </Layout>
 )

@@ -109,8 +109,10 @@ const Head = (props) => (
 
 export default () => (
   <Layout>
-    <Backlight />
-    <Dots />
+    <M.Box position="relative">
+      <Backlight />
+      <Dots />
+    </M.Box>
     <M.Container maxWidth="lg" style={{ position: 'relative' }}>
       <Scientist mt={{ xs: 10, md: 16 }} position="relative" />
       <Engineer mt={{ xs: 20, md: 16 }} position="relative" />
