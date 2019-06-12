@@ -61,7 +61,9 @@ export default () => (
     >
       <Bar color="primary" />
       <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
-        <M.Typography variant="h1" color="textPrimary">Trust your data and models.</M.Typography>
+        <M.Typography variant="h1" color="textPrimary">
+          Trust your data and models.
+        </M.Typography>
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
