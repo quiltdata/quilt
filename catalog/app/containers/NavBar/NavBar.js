@@ -1,13 +1,13 @@
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { connect } from 'react-redux'
 import { Link, Route } from 'react-router-dom'
 import { HashLink } from 'react-router-hash-link'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
+import { useTheme } from '@material-ui/core/styles'
 import { withStyles } from '@material-ui/styles'
 
 import * as URLS from 'constants/urls'
@@ -21,24 +21,14 @@ import bg from './bg.png'
 
 import BucketControls from './BucketControls'
 
-const Logo = composeComponent(
-  'NavBar.Logo',
-  NamedRoutes.inject(),
-  withStyles(({ spacing: { unit } }) => ({
-    root: {
-      height: unit * 4.5,
-      marginRight: unit * 2,
-    },
-    img: {
-      height: '100%',
-    },
-  })),
-  ({ classes, urls }) => (
-    <Link className={classes.root} to={urls.home()}>
-      <img className={classes.img} alt="Quilt logo" src={logo} />
-    </Link>
-  ),
-)
+const Logo = (props) => {
+  const { urls } = NamedRoutes.use()
+  return (
+    <M.Box component={Link} height={36} mr={2} to={urls.home()} {...props}>
+      <M.Box component="img" alt="Quilt logo" src={logo} height="100%" />
+    </M.Box>
+  )
+}
 
 const Item = composeComponent(
   'NavBar.MenuItem',
@@ -68,7 +58,7 @@ const NavMenu = () => {
   }, [setAnchor])
 
   return (
-    <div>
+    <>
       <M.Button variant="text" color="inherit" onClick={open}>
         {user.isAdmin && (
           <React.Fragment>
@@ -88,7 +78,7 @@ const NavMenu = () => {
           Sign Out
         </Item>
       </M.Menu>
-    </div>
+    </>
   )
 }
 
@@ -126,25 +116,30 @@ const SignIn = composeComponent(
   },
 )
 
-export const Container = composeComponent(
-  'NavBar.Container',
-  withStyles(({ palette }) => ({
-    root: {
-      background: `left / 64px url(${bg})`,
-      color: palette.getContrastText(palette.primary.dark),
-    },
-  })),
-  ({ classes, children }) => (
-    <M.AppBar className={classes.root} position="static">
-      <M.Toolbar disableGutters>
-        <M.Container maxWidth="lg" style={{ display: 'flex' }}>
-          <Logo />
-          {children}
-        </M.Container>
-      </M.Toolbar>
-    </M.AppBar>
-  ),
-)
+export const Container = ({ children }) => {
+  const t = useTheme()
+  const trigger = M.useScrollTrigger()
+  return (
+    <M.Box>
+      <M.Toolbar />
+      <M.Slide appear={false} direction="down" in={!trigger}>
+        <M.AppBar
+          style={{
+            color: t.palette.getContrastText(t.palette.primary.dark),
+            background: `left / 64px url(${bg})`,
+          }}
+        >
+          <M.Toolbar disableGutters>
+            <M.Container maxWidth="lg" style={{ display: 'flex', alignItems: 'center' }}>
+              <Logo />
+              {children}
+            </M.Container>
+          </M.Toolbar>
+        </M.AppBar>
+      </M.Slide>
+    </M.Box>
+  )
+}
 
 const Spacer = composeComponent(
   'NavBar.Spacer',
@@ -165,7 +160,7 @@ const whenNot = (path, fn) => (
 const NavLink = (props) => (
   <M.Box
     component={props.to ? HashLink : 'a'}
-    mr={4}
+    mr={3}
     color="text.secondary"
     fontSize="body2.fontSize"
     {...props}
@@ -174,49 +169,73 @@ const NavLink = (props) => (
 
 const Links = () => {
   const { urls } = NamedRoutes.use()
+  const cfg = Config.useConfig()
   return (
     <M.Box component="nav" display="flex" alignItems="center">
       <NavLink href={URLS.docs}>Docs</NavLink>
-      <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+      {!!cfg.enableMarketingPages && (
+        <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+      )}
       <NavLink href={URLS.jobs}>Jobs</NavLink>
       <NavLink href={URLS.blog}>Blog</NavLink>
       {/*
       <NavLink to={urls.personas()}>Personas</NavLink>
       <NavLink to={urls.product()}>Product</NavLink>
       */}
-      <NavLink to={urls.about()}>About</NavLink>
+      {!!cfg.enableMarketingPages && <NavLink to={urls.about()}>About</NavLink>}
     </M.Box>
   )
 }
 
-export const NavBar = composeComponent(
-  'NavBar',
-  connect(
+export const NavBar = () => {
+  const selector = React.useCallback(
     createStructuredSelector(
       R.pick(['error', 'waiting', 'authenticated'], authSelectors),
     ),
-    undefined,
-    undefined,
-    { pure: false },
-  ),
-  ({ error, waiting, authenticated }) => {
-    const { paths } = NamedRoutes.use()
-    const cfg = Config.useConfig()
-    return (
-      <Container>
-        {whenNot(paths.signIn, () => (
-          <BucketControls />
-        ))}
-        <Spacer />
-        {!!cfg.enableMarketingPages && <Links />}
-        {authenticated ? (
-          <NavMenu />
-        ) : (
-          whenNot(paths.signIn, () => <SignIn error={error} waiting={waiting} />)
-        )}
-      </Container>
-    )
-  },
-)
+    [],
+  )
+  const { error, waiting, authenticated } = reduxHook.useMappedState(selector)
+  const { paths } = NamedRoutes.use()
+  const t = useTheme()
+  const useDrawer = M.useMediaQuery(t.breakpoints.down('sm'))
+  const [drawer, setDrawer] = React.useState(false)
+  const toggleDrawer = React.useCallback(() => setDrawer((d) => !d), [setDrawer])
+  return (
+    <Container>
+      {whenNot(paths.signIn, () => !useDrawer && <BucketControls />)}
+      <Spacer />
+      {!useDrawer && <Links />}
+
+      {authenticated ? (
+        <NavMenu />
+      ) : (
+        whenNot(paths.signIn, () => <SignIn error={error} waiting={waiting} />)
+      )}
+
+      {useDrawer && (
+        <M.Box ml={1}>
+          <M.IconButton onClick={toggleDrawer} aria-label="Menu" edge="end">
+            <M.Icon>menu</M.Icon>
+          </M.IconButton>
+        </M.Box>
+      )}
+
+      {useDrawer && (
+        <M.SwipeableDrawer
+          anchor="right"
+          open={drawer}
+          onClose={() => setDrawer(false)}
+          onOpen={() => setDrawer(true)}
+        >
+          {/* TODO: populate the drawer with necessary controls / nav */}
+          <M.Box px={1} width="calc(100vw - 4rem)" maxWidth={400}>
+            <BucketControls />
+            <Links />
+          </M.Box>
+        </M.SwipeableDrawer>
+      )}
+    </Container>
+  )
+}
 
 export default NavBar
