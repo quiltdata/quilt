@@ -20,3 +20,4 @@ export const tutorial =
   'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial'
 export const t4Docs = 'https://quiltdocs.gitbook.io/t4/'
 export const twitter = 'https://twitter.com/quiltdata'
+export const facebook = 'https://www.facebook.com/quiltdata/'
