@@ -36,7 +36,7 @@ const SectionContents = (props) => (
 )
 
 export default () => (
-  <M.Container maxWidth="lg" style={{ position: 'relative' }}>
+  <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
     <M.Box display="flex" flexDirection="column" alignItems="center">
       <Bar color="primary" />
       <M.Box mt={5}>
