@@ -3,6 +3,7 @@ import * as M from '@material-ui/core'
 import { makeStyles } from '@material-ui/styles'
 
 import img2x from 'utils/img2x'
+import scrollIntoView from 'utils/scrollIntoView'
 import styledBy from 'utils/styledBy'
 
 import Bar from 'website/components/Bar'
@@ -178,7 +179,12 @@ export default () => (
       >
         <Bar color="secondary" />
         <M.Box mt={5}>
-          <M.Typography variant="h1" color="textPrimary">
+          <M.Typography
+            variant="h1"
+            color="textPrimary"
+            id="pricing"
+            ref={scrollIntoView()}
+          >
             Pricing
           </M.Typography>
         </M.Box>

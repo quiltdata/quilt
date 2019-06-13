@@ -3,22 +3,14 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { connect } from 'react-redux'
 import { Link, Route } from 'react-router-dom'
+import { HashLink } from 'react-router-hash-link'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
-import {
-  AppBar,
-  Box,
-  Button,
-  CircularProgress,
-  Icon,
-  Menu,
-  MenuItem,
-  Toolbar,
-} from '@material-ui/core'
+import * as M from '@material-ui/core'
 import { withStyles } from '@material-ui/styles'
 
-import LayoutContainer from 'components/Layout/Container'
+import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -51,7 +43,7 @@ const Logo = composeComponent(
 const Item = composeComponent(
   'NavBar.MenuItem',
   RC.withProps({ component: Link }),
-  MenuItem,
+  M.MenuItem,
 )
 
 const selectUser = createStructuredSelector({
@@ -77,25 +69,25 @@ const NavMenu = () => {
 
   return (
     <div>
-      <Button variant="text" color="inherit" onClick={open}>
+      <M.Button variant="text" color="inherit" onClick={open}>
         {user.isAdmin && (
           <React.Fragment>
-            <Icon fontSize="small">security</Icon>
+            <M.Icon fontSize="small">security</M.Icon>
             &nbsp;
           </React.Fragment>
         )}
-        {user.name} <Icon>expand_more</Icon>
-      </Button>
-      <Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+        {user.name} <M.Icon>expand_more</M.Icon>
+      </M.Button>
+      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
         {user.isAdmin && (
           <Item to={urls.admin()} onClick={close} divider>
-            <Icon fontSize="small">security</Icon>&nbsp;Users and roles
+            <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
           </Item>
         )}
         <Item to={urls.signOut()} onClick={close}>
           Sign Out
         </Item>
-      </Menu>
+      </M.Menu>
     </div>
   )
 }
@@ -114,21 +106,21 @@ const SignIn = composeComponent(
   })),
   ({ error, waiting, urls, classes }) => {
     if (waiting) {
-      return <CircularProgress color="inherit" />
+      return <M.CircularProgress color="inherit" />
     }
     return (
       <React.Fragment>
         {error && (
-          <Icon
+          <M.Icon
             title={`${error.message}\n${JSON.stringify(error)}`}
             className={classes.icon}
           >
             error_outline
-          </Icon>
+          </M.Icon>
         )}
-        <Button component={Link} to={urls.signIn()} variant="contained" color="primary">
+        <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
           Sign In
-        </Button>
+        </M.Button>
       </React.Fragment>
     )
   },
@@ -143,14 +135,14 @@ export const Container = composeComponent(
     },
   })),
   ({ classes, children }) => (
-    <AppBar className={classes.root} position="static">
-      <Toolbar disableGutters>
-        <LayoutContainer display="flex">
+    <M.AppBar className={classes.root} position="static">
+      <M.Toolbar disableGutters>
+        <M.Container maxWidth="lg" style={{ display: 'flex' }}>
           <Logo />
           {children}
-        </LayoutContainer>
-      </Toolbar>
-    </AppBar>
+        </M.Container>
+      </M.Toolbar>
+    </M.AppBar>
   ),
 )
 
@@ -171,8 +163,8 @@ const whenNot = (path, fn) => (
 )
 
 const NavLink = (props) => (
-  <Box
-    component={props.to ? Link : 'a'}
+  <M.Box
+    component={props.to ? HashLink : 'a'}
     mr={4}
     color="text.secondary"
     fontSize="body2.fontSize"
@@ -183,15 +175,17 @@ const NavLink = (props) => (
 const Links = () => {
   const { urls } = NamedRoutes.use()
   return (
-    <Box component="nav" display="flex" alignItems="center">
-      <NavLink href="EXT">Docs</NavLink>
+    <M.Box component="nav" display="flex" alignItems="center">
+      <NavLink href={URLS.docs}>Docs</NavLink>
       <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
-      <NavLink href="EXT">Blog</NavLink>
-      <NavLink href="EXT">Jobs</NavLink>
+      <NavLink href={URLS.jobs}>Jobs</NavLink>
+      <NavLink href={URLS.blog}>Blog</NavLink>
+      {/*
       <NavLink to={urls.personas()}>Personas</NavLink>
       <NavLink to={urls.product()}>Product</NavLink>
+      */}
       <NavLink to={urls.about()}>About</NavLink>
-    </Box>
+    </M.Box>
   )
 }
 
