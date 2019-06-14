@@ -24,7 +24,11 @@ MAX_BYTES = 1024*1024 # must be positive int
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
-S3_DOMAIN_SUFFIX = '.s3.amazonaws.com'
+# TODO: Add per-stack proxy for VPC case?
+ALLOWED_DOMAINS = [
+    'open-proxy.quiltdata.com',
+    '.s3.amazonaws.com'
+]
 
 SCHEMA = {
     'type': 'object',
@@ -65,11 +69,12 @@ def lambda_handler(request):
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
-            parsed_url.netloc.endswith(S3_DOMAIN_SUFFIX) and
+            any(parsed_url.netloc.endswith(s) for s in ALLOWED_DOMAINS) and
             parsed_url.username is None and
             parsed_url.password is None):
         return make_json_response(400, {
-            'title': 'Invalid url=. Expected S3 virtual-host URL.'
+            'title':
+            'Invalid url=. Expected S3 virtual-host URL or open-proxy.quiltdata.com.'
         })
 
     try:
