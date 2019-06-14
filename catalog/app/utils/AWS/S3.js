@@ -25,7 +25,8 @@ export const Provider = RT.composeComponent(
 export const useS3 = (extra) => {
   const config = Config.use()
   // TODO: do this via config.json, update json-schema
-  config.endpoint = 'https://open-proxy.quiltdata.com'
+  //config.endpoint = 'https://open-proxy.quiltdata.com'
+  config.endpoint = 'http://localhost:5000'
   config.s3ForcePathStyle = true
   Credentials.use().suspend()
   const props = React.useContext(Ctx)
