@@ -59,9 +59,9 @@
   },
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
-    "@material-ui/core": "^4.0.2",
-    "@material-ui/styles": "^4.0.2",
-    "@material-ui/system": "^4.0.2",
+    "@material-ui/core": "^4.1.1",
+    "@material-ui/styles": "^4.1.1",
+    "@material-ui/system": "^4.2.0",
     "@sentry/browser": "^5.4.0",
     "assert": "^1.5.0",
     "autobind-decorator": "^2.4.0",
