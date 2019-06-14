@@ -139,7 +139,7 @@ def post_to_es(event_type, size, text, key, meta, version_id=''):
         res = es.index(
             index=ES_INDEX,
             doc_type='_doc',
-            body=data
+            body=data,
             refresh='wait_for'
         )
         print(res)
@@ -194,21 +194,25 @@ def handler(event, _):
                         event_type = eventname
                     try:
                         # Retry with back-off for eventual consistency reasons
-                        # TODO only get object body if we need to plaintext index
-                        # TODO use batch calls!
                         @tenacity.retry(wait=tenacity.wait_exponential(multiplier=2, min=4, max=30))
-                        def get_obj_from_s3(bucket, key, version_id=None, etag=None):
+                        def retry_head_object(bucket, key, version_id=None, etag=None):
                             if version_id:
-                                response = S3_CLIENT.get_object(Bucket=bucket, Key=key, VersionId=version_id)
+                                head = S3_CLIENT.head_object(Bucket=bucket, Key=key, VersionId=version_id)
                             else:
-                                response = S3_CLIENT.get_object(Bucket=bucket, Key=key)
-                                # assert etag match, otherwise raise exception and let retry handle a new
-                                # request.
-                                if response['ETag'] != etag:
-                                    raise Exception("Failed to retrieve most recent object matching eTag in "
-                                                    "bucket notification.")
-                            return response
-                        response = get_obj_from_s3(bucket, key, version_id, etag)
+                                head = S3_CLIENT.head_object(Bucket=bucket, Key=key, IfMatch=etag)
+
+                            return head
+
+                        @tenacity.retry(wait=tenacity.wait_exponential(multiplier=2, min=4, max=30))
+                        def retry_get_object(bucket, key, version_id=None, etag=None):
+                            if version_id:
+                                obj = S3_CLIENT.get_object(Bucket=bucket, Key=key, VersionId=version_id)
+                            else:
+                                obj = S3_CLIENT.get_object(Bucket=bucket, Key=key, IfMatch=etag)
+
+                            return obj
+
+                        head = retry_head_object(bucket, key, version_id, etag)
 
                     except botocore.exceptions.ClientError as e:
                         print("Exception while getting object")
@@ -217,8 +221,8 @@ def handler(event, _):
                         print(key)
                         raise
 
-                    size = response['ContentLength']
-                    meta = response['Metadata']
+                    size = head['ContentLength']
+                    meta = head['Metadata']
                     text = ''
 
                     to_index = get_config(bucket).get('to_index', [])
@@ -229,14 +233,14 @@ def handler(event, _):
                         # try to index data from the object itself
                         if ext in ['.md', '.rmd']:
                             try:
-                                # TODO fetch body here
-                                text = response['Body'].read().decode('utf-8')
+                                obj = retry_get_object(bucket, key, version_id, etag)
+                                text = obj['Body'].read().decode('utf-8')
                             except UnicodeDecodeError:
                                 print("Unicode decode error in .md file")
                         elif ext == '.ipynb':
                             try:
-                                # TODO fetch body here
-                                notebook = response['Body'].read().decode('utf-8')
+                                obj = retry_get_object(bucket, key, version_id, etag)
+                                notebook = obj['Body'].read().decode('utf-8')
                                 text = extract_text(notebook)
                             except UnicodeDecodeError as uni:
                                 print("Unicode decode error in {}: {} ".format(key, uni))
@@ -266,6 +270,7 @@ def handler(event, _):
                     import traceback
                     traceback.print_tb(e.__traceback__)
                     print(msg)
+
     except Exception as e:
         # do our best to process each result
         print("Exception encountered for whole Event")
@@ -273,5 +278,5 @@ def handler(event, _):
         import traceback
         traceback.print_tb(e.__traceback__)
         print(event)
-        # TODO: Fail the lambda so the message is not dequeued.
-        # raise e
+        # Fail the lambda so the message is not dequeued.
+        raise e
