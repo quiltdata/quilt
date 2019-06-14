@@ -34,11 +34,6 @@ const overrides = {
 export const theme = createMuiTheme({
   palette,
   typography,
-  layout: {
-    container: {
-      width: 1140,
-    },
-  },
   overrides,
 })
 
