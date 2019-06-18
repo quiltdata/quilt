@@ -21,14 +21,14 @@ const parseJSON = (msg = 'invalid JSON') =>
 const validateConfig = conforms({
   registryUrl: R.is(String),
   alwaysRequiresAuth: R.is(Boolean),
-  sentryDSN: isNullable(String),
-  intercomAppId: isNullable(String),
-  mixpanelToken: isNullable(String),
+  sentryDSN: isNullable(R.is(String)),
+  intercomAppId: isNullable(R.is(String)),
+  mixpanelToken: isNullable(R.is(String)),
   apiGatewayEndpoint: R.is(String),
   defaultBucket: R.is(String),
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
-  disableSignUp: isNullable(Boolean),
+  disableSignUp: isNullable(R.is(Boolean)),
   guestCredentials: conforms({
     accessKeyId: R.is(String),
     secretAccessKey: R.is(String),
@@ -39,11 +39,11 @@ const validateConfig = conforms({
 
 const validateBucket = conforms({
   name: R.is(String),
-  title: isNullable(String),
-  icon: isNullable(String),
-  description: isNullable(String),
-  searchEndpoint: isNullable(String),
-  apiGatewayEndpoint: isNullable(String),
+  title: isNullable(R.is(String)),
+  icon: isNullable(R.is(String)),
+  description: isNullable(R.is(String)),
+  searchEndpoint: isNullable(R.is(String)),
+  apiGatewayEndpoint: isNullable(R.is(String)),
 })
 
 const validateFederation = conforms({
