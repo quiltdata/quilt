@@ -235,9 +235,8 @@ const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
   },
 }))
 
-const Analytics = ({ bucket, path }) => {
+const Analytics = ({ analyticsBucket, bucket, path }) => {
   const [cursor, setCursor] = React.useState(null)
-  const { analyticsBucket } = Config.useConfig()
   const s3 = AWS.S3.use()
   const today = React.useMemo(() => new Date(), [])
   const formatDate = (date) =>
@@ -300,6 +299,7 @@ export default ({
   const { version } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const { analyticsBucket } = Config.useConfig()
 
   const code = dedent`
     import quilt3
@@ -328,7 +328,7 @@ export default ({
       <Section icon="code" heading="Code">
         <Code>{code}</Code>
       </Section>
-      <Analytics {...{ bucket, path }} />
+      {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
       <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>

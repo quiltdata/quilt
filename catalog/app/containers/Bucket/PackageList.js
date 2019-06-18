@@ -23,9 +23,8 @@ import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const Counts = ({ bucket, name }) => {
+const Counts = ({ analyticsBucket, bucket, name }) => {
   const s3 = AWS.S3.use()
-  const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
@@ -80,6 +79,7 @@ export default ({
 }) => {
   const s3 = AWS.S3.use()
   const { urls } = NamedRoutes.use()
+  const { analyticsBucket } = Config.useConfig()
   return (
     <Data fetch={requests.listPackages} params={{ s3, bucket }}>
       {AsyncResult.case({
@@ -108,7 +108,9 @@ export default ({
                         Updated on {modified.toLocaleString()}
                       </Typography>
                     </Box>
-                    <Counts {...{ bucket, name }} />
+                    {!!analyticsBucket && (
+                      <Counts {...{ analyticsBucket, bucket, name }} />
+                    )}
                   </Box>
                 </CardContent>
               </Box>
