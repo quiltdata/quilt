@@ -1,12 +1,8 @@
-import get from 'lodash/fp/get'
-import React from 'react'
+import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
-import { connect } from 'react-redux'
+import * as reduxHook from 'redux-react-hook'
 import { Redirect } from 'react-router-dom'
-import { branch, renderComponent } from 'recompose'
-import { startSubmit, stopSubmit } from 'redux-form'
-import { reduxForm, Field, SubmissionError } from 'redux-form/immutable'
-import { createStructuredSelector } from 'reselect'
+import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 import { GoogleLogin } from 'react-google-login'
 
 import * as Config from 'utils/Config'
@@ -14,9 +10,9 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
+import parseSearch from 'utils/parseSearch'
 import { composeComponent } from 'utils/reactTools'
 import * as validators from 'utils/validators'
-import withParsedQuery from 'utils/withParsedQuery'
 
 import { signIn } from './actions'
 import * as errors from './errors'
@@ -26,16 +22,11 @@ import * as Layout from './Layout'
 
 const Container = Layout.mkLayout(<FM {...msg.signInHeading} />)
 
-export default composeComponent(
-  'Auth.SignIn',
-  connect(
-    createStructuredSelector({
-      authenticated: selectors.authenticated,
-    }),
-  ),
+const PasswordSignIn = composeComponent(
+  'Auth.SignIn.Password',
   Sentry.inject(),
   reduxForm({
-    form: 'Auth.SignIn',
+    form: 'Auth.SignIn.Password',
     onSubmit: async (values, dispatch, { sentry }) => {
       const result = defer()
       dispatch(signIn(values.toJS(), result.resolver))
@@ -50,114 +41,119 @@ export default composeComponent(
       }
     },
   }),
-  withParsedQuery,
-  branch(
-    get('authenticated'),
-    renderComponent(({ location: { query } }) => {
-      const cfg = Config.useConfig()
-      return <Redirect to={query.next || cfg.signInRedirect} />
-    }),
-  ),
-  ({ handleSubmit, submitting, submitFailed, invalid, error, dispatch }) => {
-    const cfg = Config.useConfig()
-    const { urls } = NamedRoutes.use()
-
+  ({ handleSubmit, submitting, submitFailed, invalid, error }) => {
     return (
-      <Container>
-        <form onSubmit={handleSubmit}>
-          <Field
-            component={Layout.Field}
-            name="username"
-            validate={[validators.required]}
-            disabled={submitting}
-            floatingLabelText={<FM {...msg.signInUsernameLabel} />}
-            errors={{
-              required: <FM {...msg.signInUsernameRequired} />,
-            }}
+      <form onSubmit={handleSubmit}>
+        <Field
+          component={Layout.Field}
+          name="username"
+          validate={[validators.required]}
+          disabled={submitting}
+          floatingLabelText={<FM {...msg.signInUsernameLabel} />}
+          errors={{
+            required: <FM {...msg.signInUsernameRequired} />,
+          }}
+        />
+        <Field
+          component={Layout.Field}
+          name="password"
+          type="password"
+          validate={[validators.required]}
+          disabled={submitting}
+          floatingLabelText={<FM {...msg.signInPassLabel} />}
+          errors={{
+            required: <FM {...msg.signInPassRequired} />,
+          }}
+        />
+        <Layout.Error
+          {...{ submitFailed, error }}
+          errors={{
+            invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
+            unexpected: <FM {...msg.signInErrorUnexpected} />,
+          }}
+        />
+        <Layout.Actions>
+          <Layout.Submit
+            label={<FM {...msg.signInSubmit} />}
+            disabled={submitting || (submitFailed && invalid)}
+            busy={submitting}
           />
-          <Field
-            component={Layout.Field}
-            name="password"
-            type="password"
-            validate={[validators.required]}
-            disabled={submitting}
-            floatingLabelText={<FM {...msg.signInPassLabel} />}
-            errors={{
-              required: <FM {...msg.signInPassRequired} />,
-            }}
-          />
-          <Layout.Error
-            {...{ submitFailed, error }}
-            errors={{
-              invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
-              unexpected: <FM {...msg.signInErrorUnexpected} />,
-            }}
-          />
-          <Layout.Actions>
-            <Layout.Submit
-              label={<FM {...msg.signInSubmit} />}
-              disabled={submitting || (submitFailed && invalid)}
-              busy={submitting}
-            />
-          </Layout.Actions>
-          {cfg.googleClientId && (
-            <Layout.Actions>
-              <GoogleLogin
-                clientId={cfg.googleClientId}
-                buttonText={<FM {...msg.signInWithGoogle} />}
-                onSuccess={async (user) => {
-                  const provider = 'google'
-                  const token = user.getAuthResponse().id_token
-                  const result = defer()
-                  dispatch(startSubmit('Auth.SignIn'))
-                  dispatch(signIn({ provider, token }, result.resolver))
-                  try {
-                    await result.promise
-                    dispatch(stopSubmit('Auth.SignIn'))
-                  } catch (e) {
-                    if (e instanceof errors.InvalidCredentials) {
-                      dispatch(
-                        stopSubmit('Auth.SignIn', { _error: 'invalidCredentials' }),
-                      )
-                    } else {
-                      dispatch(stopSubmit('Auth.SignIn', { _error: 'unexpected' }))
-                      throw e
-                    }
-                  }
-                }}
-                cookiePolicy="single_host_origin"
-                disabled={submitting}
-              />
-            </Layout.Actions>
-          )}
-          {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
-            <Layout.Hint>
-              <FM
-                {...msg.signInHintSignUp}
-                values={{
-                  link: (
-                    <Link to={urls.signUp()}>
-                      <FM {...msg.signInHintSignUpLink} />
-                    </Link>
-                  ),
-                }}
-              />
-            </Layout.Hint>
-          )}
-          <Layout.Hint>
-            <FM
-              {...msg.signInHintReset}
-              values={{
-                link: (
-                  <Link to={urls.passReset()}>
-                    <FM {...msg.signInHintResetLink} />
-                  </Link>
-                ),
-              }}
-            />
-          </Layout.Hint>
-        </form>
-      </Container>
+        </Layout.Actions>
+      </form>
     )
   },
 )
+
+const GoogleSignIn = () => {
+  const dispatch = reduxHook.useDispatch()
+  const cfg = Config.useConfig()
+  return (
+    <Layout.Actions>
+      <GoogleLogin
+        clientId={cfg.googleClientId}
+        buttonText={<FM {...msg.signInWithGoogle} />}
+        onSuccess={async (user) => {
+          console.log('onSuccess', user)
+          const { id_token: token } = user.getAuthResponse()
+          const result = defer()
+          dispatch(signIn({ provider: 'google', token }, result.resolver))
+          try {
+            await result.promise
+          } catch (e) {
+            if (e instanceof errors.InvalidCredentials) {
+              console.log('sso error: invalid credentials', e)
+            } else {
+              console.log('sso error: unexpected', e)
+              throw e
+            }
+          }
+        }}
+        cookiePolicy="single_host_origin"
+        //disabled={submitting}
+      />
+    </Layout.Actions>
+  )
+}
+
+export default ({ location: { search } }) => {
+  const authenticated = reduxHook.useMappedState(selectors.authenticated)
+  const cfg = Config.useConfig()
+  const { urls } = NamedRoutes.use()
+
+  if (authenticated) {
+    return <Redirect to={parseSearch(search).next || cfg.signInRedirect} />
+  }
+
+  return (
+    <Container>
+      {cfg.signInProviders.includes('password') && <PasswordSignIn />}
+      {cfg.signInProviders.includes('google') && !!cfg.googleClientId && <GoogleSignIn />}
+      {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintSignUp}
+            values={{
+              link: (
+                <Link to={urls.signUp()}>
+                  <FM {...msg.signInHintSignUpLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
+      )}
+      <Layout.Hint>
+        <FM
+          {...msg.signInHintReset}
+          values={{
+            link: (
+              <Link to={urls.passReset()}>
+                <FM {...msg.signInHintResetLink} />
+              </Link>
+            ),
+          }}
+        />
+      </Layout.Hint>
+    </Container>
+  )
+}
