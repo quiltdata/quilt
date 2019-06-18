@@ -130,7 +130,7 @@ export default composeComponent(
               />
             </Layout.Actions>
           )}
-          {!cfg.disableSignUp && (
+          {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
             <Layout.Hint>
               <FM
                 {...msg.signInHintSignUp}

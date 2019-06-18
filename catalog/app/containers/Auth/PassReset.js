@@ -89,7 +89,7 @@ export default composeComponent(
               busy={submitting}
             />
           </Layout.Actions>
-          {!cfg.disableSignUp && (
+          {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
             <Layout.Hint>
               <FM
                 {...msg.passResetHintSignUp}

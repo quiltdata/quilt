@@ -60,7 +60,9 @@ export default () => {
         <Route path={paths.signIn} component={AuthSignIn} exact />
         <Route path="/login" component={redirectTo(urls.signIn())} exact />
         <Route path={paths.signOut} component={AuthSignOut} exact />
-        {!cfg.disableSignUp && <Route path={paths.signUp} component={AuthSignUp} exact />}
+        {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
+          <Route path={paths.signUp} component={AuthSignUp} exact />
+        )}
         <Route path={paths.passReset} component={AuthPassReset} exact />
         <Route path={paths.passChange} component={AuthPassChange} exact />
         <Route path={paths.code} component={protect(AuthCode)} exact />
