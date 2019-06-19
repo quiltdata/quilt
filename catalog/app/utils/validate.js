@@ -1,9 +1,13 @@
 import * as R from 'ramda'
 
 export const isNullable = (pred) => R.either(R.isNil, pred)
+
 export const isArrayOf = (pred) => R.both(R.is(Array), R.all(pred))
+
 export const isNonEmptyArrayOf = (pred) =>
   R.both(R.complement(R.isEmpty), isArrayOf(pred))
+
+export const oneOf = R.flip(R.includes)
 
 export const conforms = R.pipe(
   R.toPairs,
