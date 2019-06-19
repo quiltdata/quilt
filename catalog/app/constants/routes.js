@@ -33,6 +33,10 @@ export const passChange = {
   path: '/reset_password/:link',
   url: (link) => `/reset_password/${link}`,
 }
+export const ssoSignUp = {
+  path: '/signup-sso',
+  url: ({ provider, token }) => `/signup-sso${mkSearch({ provider, token })}`,
+}
 export const code = {
   path: '/code',
   url: () => '/code',

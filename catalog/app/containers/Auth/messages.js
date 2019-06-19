@@ -30,6 +30,20 @@ export default defineMessages({
     defaultMessage: 'Authenticating...',
   },
 
+  // SSO
+  ssoGoogleUse: {
+    id: `${scope}.SSO.Google.use`,
+    defaultMessage: 'Use Google Account',
+  },
+  ssoGoogleError: {
+    id: `${scope}.SSO.Google.error`,
+    defaultMessage: "Couldn't sign in with your Google account",
+  },
+  ssoGoogleNotFound: {
+    id: `${scope}.SSO.Google.notFound`,
+    defaultMessage: "There's no user linked to your Google account",
+  },
+
   // SignUp
   signUpHeading: {
     id: `${scope}.SignUp.heading`,
@@ -170,10 +184,6 @@ export default defineMessages({
   signInHintResetLink: {
     id: `${scope}.SignIn.hintResetLink`,
     defaultMessage: 'Reset it',
-  },
-  signInWithGoogle: {
-    id: `${scope}.SignIn.google`,
-    defaultMessage: 'Sign in with Google',
   },
 
   // SignOut

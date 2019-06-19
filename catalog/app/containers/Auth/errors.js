@@ -82,3 +82,11 @@ export class SMTPError extends AuthError {
     super(withDefaultMessage('SMTP error', props))
   }
 }
+
+export class SSOUserNotFound extends AuthError {
+  static displayName = 'SSOUserNotFound'
+
+  constructor(props) {
+    super(withDefaultMessage('linked user not found', props))
+  }
+}

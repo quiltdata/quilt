@@ -89,7 +89,7 @@ export default composeComponent(
               busy={submitting}
             />
           </Layout.Actions>
-          {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
+          {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
             <Layout.Hint>
               <FM
                 {...msg.passResetHintSignUp}

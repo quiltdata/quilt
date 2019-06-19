@@ -114,7 +114,6 @@ function* signOut() {
  */
 function* signIn(credentials) {
   try {
-    console.log(credentials)
     const { token, exp } = yield call(apiRequest, {
       auth: false,
       endpoint: '/login',
@@ -123,7 +122,10 @@ function* signIn(credentials) {
     })
     return { token, exp }
   } catch (e) {
-    if (e instanceof HTTPError && e.status === 401) {
+    if (HTTPError.is(e, 401, /user does not exist/i)) {
+      throw new errors.SSOUserNotFound()
+    }
+    if (HTTPError.is(e, 401, /login attempt failed/i)) {
       throw new errors.InvalidCredentials()
     }
 

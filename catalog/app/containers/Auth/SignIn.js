@@ -1,9 +1,8 @@
 import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
-import * as reduxHook from 'redux-react-hook'
 import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
-import { GoogleLogin } from 'react-google-login'
+import * as reduxHook from 'redux-react-hook'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -12,24 +11,30 @@ import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
 import { composeComponent } from 'utils/reactTools'
+import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
 
-import { signIn } from './actions'
+import * as Layout from './Layout'
+import SSOGoogle from './SSOGoogle'
+import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
 import * as selectors from './selectors'
-import * as Layout from './Layout'
 
 const Container = Layout.mkLayout(<FM {...msg.signInHeading} />)
+
+const MUTEX_ID = 'password'
 
 const PasswordSignIn = composeComponent(
   'Auth.SignIn.Password',
   Sentry.inject(),
   reduxForm({
     form: 'Auth.SignIn.Password',
-    onSubmit: async (values, dispatch, { sentry }) => {
+    onSubmit: async (values, dispatch, { sentry, mutex }) => {
+      if (mutex.current) return
+      mutex.claim(MUTEX_ID)
       const result = defer()
-      dispatch(signIn(values.toJS(), result.resolver))
+      dispatch(actions.signIn(values.toJS(), result.resolver))
       try {
         await result.promise
       } catch (e) {
@@ -38,87 +43,63 @@ const PasswordSignIn = composeComponent(
         }
         sentry('captureException', e)
         throw new SubmissionError({ _error: 'unexpected' })
+      } finally {
+        mutex.release(MUTEX_ID)
       }
     },
   }),
-  ({ handleSubmit, submitting, submitFailed, invalid, error }) => {
-    return (
-      <form onSubmit={handleSubmit}>
-        <Field
-          component={Layout.Field}
-          name="username"
-          validate={[validators.required]}
-          disabled={submitting}
-          floatingLabelText={<FM {...msg.signInUsernameLabel} />}
-          errors={{
-            required: <FM {...msg.signInUsernameRequired} />,
-          }}
-        />
-        <Field
-          component={Layout.Field}
-          name="password"
-          type="password"
-          validate={[validators.required]}
-          disabled={submitting}
-          floatingLabelText={<FM {...msg.signInPassLabel} />}
-          errors={{
-            required: <FM {...msg.signInPassRequired} />,
-          }}
-        />
-        <Layout.Error
-          {...{ submitFailed, error }}
-          errors={{
-            invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
-            unexpected: <FM {...msg.signInErrorUnexpected} />,
-          }}
-        />
-        <Layout.Actions>
-          <Layout.Submit
-            label={<FM {...msg.signInSubmit} />}
-            disabled={submitting || (submitFailed && invalid)}
-            busy={submitting}
-          />
-        </Layout.Actions>
-      </form>
-    )
-  },
-)
-
-const GoogleSignIn = () => {
-  const dispatch = reduxHook.useDispatch()
-  const cfg = Config.useConfig()
-  return (
-    <Layout.Actions>
-      <GoogleLogin
-        clientId={cfg.googleClientId}
-        buttonText={<FM {...msg.signInWithGoogle} />}
-        onSuccess={async (user) => {
-          console.log('onSuccess', user)
-          const { id_token: token } = user.getAuthResponse()
-          const result = defer()
-          dispatch(signIn({ provider: 'google', token }, result.resolver))
-          try {
-            await result.promise
-          } catch (e) {
-            if (e instanceof errors.InvalidCredentials) {
-              console.log('sso error: invalid credentials', e)
-            } else {
-              console.log('sso error: unexpected', e)
-              throw e
-            }
-          }
+  ({ mutex, handleSubmit, submitting, submitFailed, invalid, error }) => (
+    <form onSubmit={handleSubmit}>
+      <Field
+        component={Layout.Field}
+        name="username"
+        validate={[validators.required]}
+        disabled={!!mutex.current || submitting}
+        floatingLabelText={<FM {...msg.signInUsernameLabel} />}
+        errors={{
+          required: <FM {...msg.signInUsernameRequired} />,
         }}
-        cookiePolicy="single_host_origin"
-        //disabled={submitting}
       />
-    </Layout.Actions>
-  )
-}
+      <Field
+        component={Layout.Field}
+        name="password"
+        type="password"
+        validate={[validators.required]}
+        disabled={!!mutex.current || submitting}
+        floatingLabelText={<FM {...msg.signInPassLabel} />}
+        errors={{
+          required: <FM {...msg.signInPassRequired} />,
+        }}
+      />
+      <Layout.Error
+        {...{ submitFailed, error }}
+        errors={{
+          invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
+          unexpected: <FM {...msg.signInErrorUnexpected} />,
+        }}
+      />
+      <Layout.Actions>
+        <Layout.Submit
+          label={<FM {...msg.signInSubmit} />}
+          disabled={!!mutex.current || submitting || (submitFailed && invalid)}
+          busy={submitting}
+        />
+      </Layout.Actions>
+    </form>
+  ),
+)
 
 export default ({ location: { search } }) => {
   const authenticated = reduxHook.useMappedState(selectors.authenticated)
   const cfg = Config.useConfig()
+  const mutex = useMutex()
   const { urls } = NamedRoutes.use()
+
+  const ssoEnabled = (provider) => {
+    if (!cfg.ssoAuth) return false
+    const { ssoProviders = [] } = cfg
+    return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
+  }
 
   if (authenticated) {
     return <Redirect to={parseSearch(search).next || cfg.signInRedirect} />
@@ -126,9 +107,10 @@ export default ({ location: { search } }) => {
 
   return (
     <Container>
-      {cfg.signInProviders.includes('password') && <PasswordSignIn />}
-      {cfg.signInProviders.includes('google') && !!cfg.googleClientId && <GoogleSignIn />}
-      {!!cfg.signUpProviders && !!cfg.signUpProviders.length && (
+      {ssoEnabled('google') && <SSOGoogle mutex={mutex} />}
+      {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}
+      {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
+      {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
         <Layout.Hint>
           <FM
             {...msg.signInHintSignUp}

@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import { conforms, isNullable, isArrayOf, isNonEmptyArrayOf } from 'utils/validate'
+import { conforms, isNullable, isArrayOf, isNonEmptyArrayOf, oneOf } from 'utils/validate'
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
@@ -18,9 +18,7 @@ const parseJSON = (msg = 'invalid JSON') =>
     throw new ConfigError(`${msg}:\n${src}`, { src, originalError: e })
   })
 
-const AUTH_PROVIDERS = ['password', 'google']
-// eslint-disable-next-line no-underscore-dangle
-const isAuthProvider = R.includes(R.__, AUTH_PROVIDERS)
+const SSO_PROVIDERS = ['google']
 
 const validateConfig = conforms({
   registryUrl: R.is(String),
@@ -32,8 +30,9 @@ const validateConfig = conforms({
   defaultBucket: R.is(String),
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
-  signInProviders: isNonEmptyArrayOf(isAuthProvider),
-  signUpProviders: isNullable(isArrayOf(isAuthProvider)),
+  passwordAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
+  ssoAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
+  ssoProviders: isNullable(isNonEmptyArrayOf(oneOf(SSO_PROVIDERS))),
   guestCredentials: conforms({
     accessKeyId: R.is(String),
     secretAccessKey: R.is(String),
