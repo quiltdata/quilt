@@ -2,7 +2,7 @@ import {
   ConnectedRouter,
   connectRouter,
   LOCATION_CHANGE,
-} from 'connected-react-router/immutable'
+} from 'connected-react-router/esm/immutable'
 import { matchPath } from 'react-router-dom'
 import * as reduxHook from 'redux-react-hook'
 

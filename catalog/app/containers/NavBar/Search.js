@@ -1,5 +1,5 @@
 import cx from 'classnames'
-import { push } from 'connected-react-router/immutable'
+import { push } from 'connected-react-router/esm/immutable'
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
