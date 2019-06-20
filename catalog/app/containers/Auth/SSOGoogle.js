@@ -24,7 +24,7 @@ const GoogleLogo = (props) => <Box component="img" src={googleLogo} alt="" {...p
 
 const MUTEX_ID = 'sso:google'
 
-export default ({ mutex }) => {
+export default ({ mutex, next }) => {
   const cfg = Config.useConfig()
   invariant(!!cfg.googleClientId, 'Auth.SSO.Google: config missing "googleClientId"')
 
@@ -42,7 +42,6 @@ export default ({ mutex }) => {
 
   const handleSuccess = React.useCallback(
     async (user) => {
-      console.log('onSuccess', user)
       const provider = 'google'
       const { id_token: token } = user.getAuthResponse()
       const result = defer()
@@ -52,7 +51,7 @@ export default ({ mutex }) => {
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
           if (cfg.ssoAuth === true) {
-            dispatch(push(urls.ssoSignUp({ provider, token })))
+            dispatch(push(urls.ssoSignUp({ provider, token, next })))
             // dont release mutex on redirect
             return
           }
@@ -68,13 +67,19 @@ export default ({ mutex }) => {
   )
 
   const handleFailure = React.useCallback(
-    (resp) => {
-      console.log('onFailure', resp)
-      notify(intl.formatMessage(msg.ssoGoogleError))
-      // TODO: sentry captureException?
+    (code, details) => {
+      if (code !== 'popup_closed_by_user') {
+        notify(
+          <>
+            {intl.formatMessage(msg.ssoGoogleError)}: {details}
+          </>,
+        )
+        const e = new errors.SSOError({ provider: 'google', code, details })
+        sentry('captureException', e)
+      }
       mutex.release(MUTEX_ID)
     },
-    [mutex.release],
+    [mutex.release, sentry],
   )
 
   return (

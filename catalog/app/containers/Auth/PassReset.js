@@ -2,7 +2,7 @@ import get from 'lodash/fp/get'
 import React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
 import { branch, renderComponent, withStateHandlers } from 'recompose'
-import { reduxForm, Field, SubmissionError } from 'redux-form/immutable'
+import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'

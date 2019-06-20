@@ -23,7 +23,7 @@ export const signOut = {
 }
 export const signUp = {
   path: '/signup',
-  url: () => '/signup',
+  url: (next) => `/signup${mkSearch({ next })}`,
 }
 export const passReset = {
   path: '/reset_password',
@@ -35,7 +35,7 @@ export const passChange = {
 }
 export const ssoSignUp = {
   path: '/signup-sso',
-  url: ({ provider, token }) => `/signup-sso${mkSearch({ provider, token })}`,
+  url: ({ provider, token, next }) => `/signup-sso${mkSearch({ provider, token, next })}`,
 }
 export const code = {
   path: '/code',

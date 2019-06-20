@@ -43,6 +43,18 @@ export default defineMessages({
     id: `${scope}.SSO.Google.notFound`,
     defaultMessage: "There's no user linked to your Google account",
   },
+  ssoSignUpHeading: {
+    id: `${scope}.SSO.SignUp.heading`,
+    defaultMessage: 'Complete sign-up',
+  },
+  ssoSignUpCancel: {
+    id: `${scope}.SSO.SignUp.cancel`,
+    defaultMessage: 'Cancel',
+  },
+  ssoSignUpErrorEmailDomain: {
+    id: `${scope}.SSO.SignUp.errorEmailDomain`,
+    defaultMessage: 'Email domain is not allowed',
+  },
 
   // SignUp
   signUpHeading: {

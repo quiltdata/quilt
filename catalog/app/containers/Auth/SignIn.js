@@ -101,13 +101,15 @@ export default ({ location: { search } }) => {
     return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
   }
 
+  const { next } = parseSearch(search)
+
   if (authenticated) {
-    return <Redirect to={parseSearch(search).next || cfg.signInRedirect} />
+    return <Redirect to={next || cfg.signInRedirect} />
   }
 
   return (
     <Container>
-      {ssoEnabled('google') && <SSOGoogle mutex={mutex} />}
+      {ssoEnabled('google') && <SSOGoogle mutex={mutex} next={next} />}
       {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}
       {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
       {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
@@ -116,7 +118,7 @@ export default ({ location: { search } }) => {
             {...msg.signInHintSignUp}
             values={{
               link: (
-                <Link to={urls.signUp()}>
+                <Link to={urls.signUp(next)}>
                   <FM {...msg.signInHintSignUpLink} />
                 </Link>
               ),

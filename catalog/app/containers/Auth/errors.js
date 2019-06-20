@@ -35,6 +35,14 @@ export class EmailTaken extends AuthError {
   }
 }
 
+export class EmailDomainNotAllowed extends AuthError {
+  static displayName = 'EmailDomainNotAllowed'
+
+  constructor(props) {
+    super(withDefaultMessage(`email domain not allowed: "${props.domain}"`, props))
+  }
+}
+
 export class UsernameTaken extends AuthError {
   static displayName = 'UsernameTaken'
 
@@ -88,5 +96,15 @@ export class SSOUserNotFound extends AuthError {
 
   constructor(props) {
     super(withDefaultMessage('linked user not found', props))
+  }
+}
+
+export class SSOError extends AuthError {
+  static displayName = 'SSOError'
+
+  constructor(props) {
+    super(
+      withDefaultMessage(`[${props.provider}] ${props.code}: ${props.details}`, props),
+    )
   }
 }

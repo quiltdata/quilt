@@ -71,6 +71,10 @@ function* signUp(credentials) {
       if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
         throw new errors.EmailTaken({ originalError: e })
       }
+      if (HTTPError.is(e, 401, /domain \S+ is not allowed/i)) {
+        const domain = e.json.message.match(/domain (\S+) is/i)[1]
+        throw new errors.EmailDomainNotAllowed({ domain, originalError: e })
+      }
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
       }
