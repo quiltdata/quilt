@@ -17,7 +17,7 @@ datasets in S3. Quilt users transform raw, messy data in S3 buckets
 into immutable datasets--reusable, trusted building blocks that are
 easy to version, test, share and catalog. Working with datasets in
 Quilt speeds up model creation, accelerates experimentation, reduces
-downtime and increase the productivity of data science teams.
+downtime, and increases the productivity of data science teams.
 
 ## Collaborate in S3
 
