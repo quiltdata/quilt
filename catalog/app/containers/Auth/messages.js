@@ -55,6 +55,10 @@ export default defineMessages({
     id: `${scope}.SSO.SignUp.errorEmailDomain`,
     defaultMessage: 'Email domain is not allowed',
   },
+  ssoSignUpSignInError: {
+    id: `${scope}.SSO.SignUp.signInError`,
+    defaultMessage: "Couldn't sign in automatically",
+  },
 
   // SignUp
   signUpHeading: {
