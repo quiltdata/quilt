@@ -69,7 +69,7 @@ class Bucket(object):
         schema = get_search_schema(self._search_endpoint, self._region)
         return schema['user_meta']
 
-    def search(self, query, limit=10):
+    def search(self, query, limit=10, bucket=self._bucket):
         """
         Execute a search against the configured search endpoint.
 
