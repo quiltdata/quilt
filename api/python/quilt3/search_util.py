@@ -49,12 +49,15 @@ def _create_es(search_endpoint, aws_region):
     return es_client
 
 def _bucket_index_name(bucket_name):
-    es_index = bucket_name if bucket_name is not None else '_all'
-    return es_index
+    if bucket_name is None:
+        return '_all'
+    else:
+        es_index = ", ".join([bucket_name, 'drive'])
+        return es_index
 
 def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     """
-    Searches your bucket. Query may contain plaintext and clauses of the 
+    Searches your bucket. Query may contain plaintext and clauses of the
         form $key:"$value" that search for exact matches on specific keys.
 
     Arguments:
@@ -94,29 +97,21 @@ def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     try:
         results = []
         for result in raw_response['hits']['hits']:
-            key = result['_source']['key']
-            vid = result['_source']['version_id']
-            operation = result['_source']['type']
-            meta = json.dumps(result['_source']['user_meta'])
-            size = str(result['_source']['size'])
-            text = result['_source']['text']
-
-            time = str(result['_source']['updated'])
             results.append({
-                'key': key,
-                'version_id': vid,
-                'operation': operation,
-                'meta': meta,
-                'size': size,
-                'text': text,
+                'key': result['_source']['key'],
+                'version_id': result['_source']['version_id'],
+                'operation': result['_source']['type'],
+                'meta': json.dumps(result['_source']['user_meta']),
+                'size': str(result['_source']['size']),
+                'text': result['_source']['text'],
                 'source': result['_source'],
-                'time': time
+                'time': str(result['_source']['updated'])
             })
         results = list(sorted(results, key=lambda x: x['time'], reverse=True))
         return results
     except KeyError:
-        exception =  QuiltException("Query failed unexpectedly due to either a "
-                                    "bad query or a misconfigured search service.")
+        exception = QuiltException("Query failed unexpectedly due to either a "
+                                   "bad query or a misconfigured search service.")
         setattr(exception, 'raw_response', raw_response)
         raise exception
 
