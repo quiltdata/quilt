@@ -21,6 +21,7 @@ ParquetMeta: {
 export const PreviewData = tagged([
   'DataFrame', // { preview: string }
   'Image', // { handle: object }
+  'IFrame', // { src: string }
   'Markdown', // { rendered: string }
   'Notebook', // { preview: string }
   'Parquet', // { preview: string, ...ParquetMeta }

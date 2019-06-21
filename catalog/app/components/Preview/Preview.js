@@ -19,6 +19,7 @@ const loaderChain = [
   loaders.Notebook,
   loaders.Parquet,
   loaders.Vcf,
+  loaders.Html,
   loaders.Text,
   loaders.Image,
   fallback,
