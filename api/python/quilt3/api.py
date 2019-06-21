@@ -9,9 +9,11 @@ import humanize
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import Package
+from .search_util import search as util_search
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, fix_url, parse_file_url, parse_s3_url, read_yaml, validate_url,
-                   write_yaml, validate_package_name, get_from_config, get_package_registry)
+                   CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
+                   get_package_registry, parse_file_url, parse_s3_url, read_yaml,
+                   validate_url, validate_package_name, write_yaml)
 
 
 def copy(src, dest):
@@ -475,3 +477,43 @@ def config(*catalog_url, **config_values):
 
     # Return current config
     return QuiltConfig(CONFIG_PATH, local_config)
+
+def search(query, limit=10):
+    """
+    Execute a search against the configured search endpoint.
+
+    Args:
+        query (str): query string to search
+        limit (number): maximum number of results to return. Defaults to 10
+
+    Query Syntax:
+        By default, a normal plaintext search will be executed over the query string.
+        You can use field-match syntax to filter on exact matches for fields in
+            your metadata.
+        The syntax for field match is `user_meta.$field_name:"exact_match"`.
+
+    Returns:
+        either the request object (in case of an error) or
+        a list of objects with the following structure:
+        ```
+        [{
+            "key": <key of the object>,
+            "version_id": <version_id of object version>,
+            "operation": <"Create" or "Delete">,
+            "meta": <metadata attached to object>,
+            "size": <size of object in bytes>,
+            "text": <indexed text of object>,
+            "source": <source document for object (what is actually stored in ElasticSeach)>,
+            "time": <timestamp for operation>,
+        }...]
+        ```
+    """
+    default_bucket = get_from_config('defaultBucket')
+    navigator_url = get_from_config('navigator_url')
+    config_url = navigator_url + '/config.json'
+    search_endpoint = get_from_config('elastic_search_url')
+
+    # TODO: we can maybe get this from searchEndpoint or apiGatewayEndpoint
+    region = get_from_config('region')
+
+    return util_search(query, search_endpoint, limit=limit, aws_region=region)

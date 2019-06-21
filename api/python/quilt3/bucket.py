@@ -69,7 +69,7 @@ class Bucket(object):
         schema = get_search_schema(self._search_endpoint, self._region)
         return schema['user_meta']
 
-    def search(self, query, limit=10, bucket=self._bucket):
+    def search(self, query, limit=10):
         """
         Execute a search against the configured search endpoint.
 
@@ -103,8 +103,8 @@ class Bucket(object):
             self.config()
         if self._region:
             return search(
-                query, self._search_endpoint, limit=limit, aws_region=self._region)
-        return search(query, self._search_endpoint, limit=limit)
+                query, self._search_endpoint, limit=limit, aws_region=self._region, bucket=self._bucket)
+        return search(query, self._search_endpoint, limit=limit, bucket=self._bucket)
 
     def deserialize(self, key):
         """
