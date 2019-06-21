@@ -1,0 +1,142 @@
+<thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Unnamed: 0</th>
+      <th>CellId</th>
+      <th>actin_dna_cell_struct_cell_distal_ratio</th>
+      <th>actin_dna_cell_struct_cell_maj_ratio</th>
+      <th>actin_dna_cell_struct_cell_min_ratio</th>
+      <th>actin_dna_cell_struct_cell_z_ratio</th>
+      <th>actin_dna_cell_struct_cyto_distal_ratio</th>
+      <th>actin_dna_cell_struct_cyto_maj_ratio</th>
+      <th>actin_dna_cell_struct_cyto_min_ratio</th>
+      <th>actin_dna_cell_struct_cyto_z_ratio</th>
+      <th>actin_dna_cell_struct_nuc_distal_ratio</th>
+      <th>actin_dna_cell_struct_nuc_maj_ratio</th>
+      <th>actin_dna_cell_struct_nuc_min_ratio</th>
+      <th>actin_dna_cell_struct_nuc_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_z_ratio</th>
+      <th>angle</th>
+      <th>cell_intensity_entropy</th>
+      <th>cell_intensity_max</th>
+      <th>cell_intensity_mean</th>
+      <th>cell_intensity_median</th>
+      <th>cell_intensity_mode</th>
+      <th>cell_intensity_std</th>
+      <th>cell_intensity_sum</th>
+      <th>cell_position_highest_z</th>
+      <th>cell_position_lowest_z</th>
+      <th>cell_position_x_centroid</th>
+      <th>cell_position_y_centroid</th>
+      <th>cell_position_z_centroid</th>
+      <th>cell_shape_1st_axis_length</th>
+      <th>cell_shape_1st_axis_x</th>
+      <th>cell_shape_1st_axis_y</th>
+      <th>cell_shape_1st_axis_z</th>
+      <th>cell_shape_1st_eigenvalue</th>
+      <th>cell_shape_2nd_axis_length</th>
+      <th>cell_shape_2nd_axis_x</th>
+      <th>cell_shape_2nd_axis_y</th>
+      <th>cell_shape_2nd_axis_z</th>
+      <th>cell_shape_2nd_eigenvalue</th>
+      <th>cell_shape_3rd_axis_length</th>
+      <th>cell_shape_3rd_axis_x</th>
+      <th>cell_shape_3rd_axis_y</th>
+      <th>cell_shape_3rd_axis_z</th>
+      <th>cell_shape_3rd_eigenvalue</th>
+      <th>cell_shape_equator_eccentricity</th>
+      <th>cell_shape_meridional_eccentricity</th>
+      <th>cell_shape_sphericity</th>
+      <th>cell_surface_area</th>
+      <th>cell_texture_haralick_ang2nd_moment</th>
+      <th>cell_texture_haralick_contrast</th>
+      <th>cell_texture_haralick_corr</th>
+      <th>cell_texture_haralick_diff_entropy</th>
+      <th>cell_texture_haralick_diff_var</th>
+      <th>cell_texture_haralick_entropy</th>
+      <th>cell_texture_haralick_info_corr1</th>
+      <th>cell_texture_haralick_info_corr2</th>
+      <th>cell_texture_haralick_inv_diff_moment</th>
+      <th>cell_texture_haralick_sum_avg</th>
+      <th>...</th>
+      <th>mem (cellmask)_dna_cell_struct_cyto_min_ratio</th>
+      <th>mem (cellmask)_dna_cell_struct_cyto_z_ratio</th>
+      <th>mem (cellmask)_dna_cell_struct_nuc_distal_ratio</th>
+      <th>mem (cellmask)_dna_cell_struct_nuc_maj_ratio</th>
+      <th>mem (cellmask)_dna_cell_struct_nuc_min_ratio</th>
+      <th>mem (cellmask)_dna_cell_struct_nuc_z_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cell_distal_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cell_maj_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cell_min_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cell_z_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cyto_distal_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cyto_maj_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cyto_min_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_cyto_z_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_nuc_distal_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_nuc_maj_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_nuc_min_ratio</th>
+      <th>mem (rfp)_dna_cell_struct_nuc_z_ratio</th>
+      <th>microtubules_dna_cell_struct_cell_distal_ratio</th>
+      <th>microtubules_dna_cell_struct_cell_maj_ratio</th>
+      <th>microtubules_dna_cell_struct_cell_min_ratio</th>
+      <th>microtubules_dna_cell_struct_cell_z_ratio</th>
+      <th>microtubules_dna_cell_struct_cyto_distal_ratio</th>
+      <th>microtubules_dna_cell_struct_cyto_maj_ratio</th>
+      <th>microtubules_dna_cell_struct_cyto_min_ratio</th>
+      <th>microtubules_dna_cell_struct_cyto_z_ratio</th>
+      <th>microtubules_dna_cell_struct_nuc_distal_ratio</th>
+      <th>microtubules_dna_cell_struct_nuc_maj_ratio</th>
+      <th>microtubules_dna_cell_struct_nuc_min_ratio</th>
+      <th>microtubules_dna_cell_struct_nuc_z_ratio</th>
+      <th>mito_dna_cell_struct_cell_distal_ratio</th>
+      <th>mito_dna_cell_struct_cell_maj_ratio</th>
+      <th>mito_dna_cell_struct_cell_min_ratio</th>
+      <th>mito_dna_cell_struct_cell_z_ratio</th>
+      <th>mito_dna_cell_struct_cyto_distal_ratio</th>
+      <th>mito_dna_cell_struct_cyto_maj_ratio</th>
+      <th>mito_dna_cell_struct_cyto_min_ratio</th>
+      <th>mito_dna_cell_struct_cyto_z_ratio</th>
+      <th>mito_dna_cell_struct_nuc_distal_ratio</th>
+      <th>mito_dna_cell_struct_nuc_maj_ratio</th>
+      <th>mito_dna_cell_struct_nuc_min_ratio</th>
+      <th>mito_dna_cell_struct_nuc_z_ratio</th>
+      <th>nucleoli_dna_cell_struct_cell_distal_ratio</th>
+      <th>nucleoli_dna_cell_struct_cell_maj_ratio</th>
+      <th>nucleoli_dna_cell_struct_cell_min_ratio</th>
+      <th>nucleoli_dna_cell_struct_cell_z_ratio</th>
+      <th>nucleoli_dna_cell_struct_cyto_distal_ratio</th>
+      <th>nucleoli_dna_cell_struct_cyto_maj_ratio</th>
+      <th>nucleoli_dna_cell_struct_cyto_min_ratio</th>
+      <th>nucleoli_dna_cell_struct_cyto_z_ratio</th>
+      <th>nucleoli_dna_cell_struct_nuc_distal_ratio</th>
+      <th>nucleoli_dna_cell_struct_nuc_maj_ratio</th>
+      <th>nucleoli_dna_cell_struct_nuc_min_ratio</th>
+      <th>nucleoli_dna_cell_struct_nuc_z_ratio</th>
+      <th>tl_dna_cell_struct_cell_distal_ratio</th>
+      <th>tl_dna_cell_struct_cell_maj_ratio</th>
+      <th>tl_dna_cell_struct_cell_min_ratio</th>
+      <th>tl_dna_cell_struct_cell_z_ratio</th>
+      <th>tl_dna_cell_struct_cyto_distal_ratio</th>
+      <th>tl_dna_cell_struct_cyto_maj_ratio</th>
+      <th>tl_dna_cell_struct_cyto_min_ratio</th>
+      <th>tl_dna_cell_struct_cyto_z_ratio</th>
+      <th>tl_dna_cell_struct_nuc_distal_ratio</th>
+      <th>tl_dna_cell_struct_nuc_maj_ratio</th>
+      <th>tl_dna_cell_struct_nuc_min_ratio</th>
+      <th>tl_dna_cell_struct_nuc_z_ratio</th>
+      <th>CellIndex</th>
+      <th>source_image</th>
+    </tr>
+  </thead>

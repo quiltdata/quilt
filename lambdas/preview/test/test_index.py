@@ -72,6 +72,25 @@ class TestIndex():
         assert 'invalid literal' in body['detail'], 'Expected 400 explanation'
 
     @responses.activate
+    def test_csv(self):
+        """test parsing excel files in S3"""
+        csv = BASE_DIR / 'sample.csv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        body_html = body['html']
+        assert '9 rows × 255 column' in body_html, 'unexpected table dimensions'
+        with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
+
+    @responses.activate
     def test_excel(self):
         """test parsing excel files in S3"""
         workbook = BASE_DIR / 'sample.xlsx'

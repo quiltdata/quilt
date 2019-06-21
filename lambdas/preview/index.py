@@ -39,7 +39,7 @@ SCHEMA = {
             'type': 'string',
         },
         'input': {
-            'enum': ['excel', 'ipynb', 'parquet', 'txt', 'vcf']
+            'enum': ['csv', 'excel', 'ipynb', 'parquet', 'txt', 'vcf']
         },
         'compression': {
             'enum': ['gz']
@@ -84,7 +84,9 @@ def lambda_handler(request):
     # stream=True saves memory almost equal to file size
     resp = requests.get(url, stream=True)
     if resp.ok:
-        if input_type == 'excel':
+        if input_type == 'csv':
+            html, info = extract_csv(_from_stream(resp, compression, line_count))
+        elif input_type == 'excel':
             html, info = extract_excel(_to_memory(resp, compression))
         elif input_type == 'ipynb':
             html, info = extract_ipynb(_to_memory(resp, compression))
@@ -111,6 +113,28 @@ def lambda_handler(request):
         }
 
     return make_json_response(200, ret_val)
+
+def extract_csv(head):
+    """
+    csv file => data frame => html
+    Args:
+        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+    Returns:
+        html - html version of *first sheet only* in workbook
+        info - metadata
+    """
+    # doing this locally because it might be slow
+    import pandas
+    # this shouldn't balloon memory because head is limited in size by _from_stream
+    data = pandas.read_csv(io.StringIO('\n'.join(head)))
+    html = data._repr_html_() # pylint: disable=protected-access
+    return html, {
+        'note': (
+            'Object truncated for preview. Row count may be smaller than expected. '
+            'S3 data remain intact, full length.'
+        )
+    }
+
 
 def extract_excel(file_):
     """
