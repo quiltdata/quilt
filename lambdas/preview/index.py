@@ -125,9 +125,11 @@ def extract_csv(head):
     """
     # doing this locally because it might be slow
     import pandas
+    import re
     # this shouldn't balloon memory because head is limited in size by _from_stream
     data = pandas.read_csv(io.StringIO('\n'.join(head)))
     html = data._repr_html_() # pylint: disable=protected-access
+    html = re.sub(r'</table>\n<p>\d+ rows × \d+ columns</p>\n</div>$', '', html)
     return html, {
         'note': (
             'Object truncated for preview. Row count may be smaller than expected. '

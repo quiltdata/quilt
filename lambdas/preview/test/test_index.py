@@ -85,7 +85,7 @@ class TestIndex():
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, 'preview failed on sample.csv'
         body_html = body['html']
-        assert '9 rows × 255 column' in body_html, 'unexpected table dimensions'
+        assert '9 rows × 255 column' not in body_html, 'table dimensions should be removed'
         with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
