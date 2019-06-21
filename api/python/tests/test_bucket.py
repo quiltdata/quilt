@@ -314,7 +314,11 @@ class TestBucket(QuiltTestCase):
         b.search('blah', limit=1)
 
         config_mock.assert_called_once_with('navigator_url')
-        search_mock.assert_called_once_with('blah', 'https://es-fake.endpoint', limit=1, aws_region='us-meow')
+        search_mock.assert_called_once_with('blah',
+                                            'https://es-fake.endpoint',
+                                            limit=1,
+                                            aws_region='us-meow',
+                                            bucket='quilt-testing-fake')
 
     @patch('quilt3.bucket.put_bytes')
     def test_bucket_put_ext(self, put_bytes):
