@@ -73,7 +73,7 @@ class TestIndex():
 
     @responses.activate
     def test_csv(self):
-        """test parsing excel files in S3"""
+        """test returning HTML previews of CSV (via pandas)"""
         csv = BASE_DIR / 'sample.csv'
         responses.add(
             responses.GET,
