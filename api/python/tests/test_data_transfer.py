@@ -394,21 +394,20 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        with open(path, 'rb') as fd:
-            for part_num in range(1, 6):
-                self.s3_stubber.add_response(
-                    method='upload_part',
-                    service_response={
-                        'ETag': 'etag%d' % part_num
-                    },
-                    expected_params={
-                        'Bucket': 'example',
-                        'Key': 'large_file.npy',
-                        'UploadId': '123',
-                        'Body': fd.read(2048),
-                        'PartNumber': part_num
-                    }
-                )
+        for part_num in range(1, 6):
+            self.s3_stubber.add_response(
+                method='upload_part',
+                service_response={
+                    'ETag': 'etag%d' % part_num
+                },
+                expected_params={
+                    'Bucket': 'example',
+                    'Key': 'large_file.npy',
+                    'UploadId': '123',
+                    'Body': ANY,
+                    'PartNumber': part_num
+                }
+            )
 
         self.s3_stubber.add_response(
             method='complete_multipart_upload',
