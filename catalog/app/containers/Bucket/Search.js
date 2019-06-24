@@ -106,7 +106,12 @@ const Header = RT.composeComponent(
         <div className={classes.spacer} />
         {h.version ? (
           <span className={classes.buttonContainer}>
-            <IconButton className={classes.button} href={getUrl(h)} title="Download">
+            <IconButton
+              className={classes.button}
+              href={getUrl(h)}
+              title="Download"
+              download
+            >
               <Icon>arrow_downward</Icon>
             </IconButton>
           </span>
