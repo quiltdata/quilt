@@ -12,7 +12,7 @@ export const detect = utils.extIn(['.htm', '.html'])
 
 const IFrameLoader = ({ handle, children }) => {
   const sign = AWS.Signer.useS3Signer()
-  const src = React.useMemo(() => sign(handle), [
+  const src = React.useMemo(() => sign(handle, { ResponseContentType: 'text/html' }), [
     handle.bucket,
     handle.key,
     handle.version,
