@@ -65,9 +65,9 @@ export default defineMessages({
     id: `${scope}.SignUp.heading`,
     defaultMessage: 'Sign up',
   },
-  signUpPassResetHint: {
-    id: `${scope}.SignUp.passResetHint`,
-    defaultMessage: 'Did you forget your password?',
+  signUpSignInHint: {
+    id: `${scope}.SignUp.signInHint`,
+    defaultMessage: 'signing in',
   },
   signUpUsernameLabel: {
     id: `${scope}.SignUp.usernameLabel`,
@@ -79,7 +79,7 @@ export default defineMessages({
   },
   signUpUsernameTaken: {
     id: `${scope}.SignUp.usernameTaken`,
-    defaultMessage: 'Username taken. {link}',
+    defaultMessage: 'Username taken, try {link}',
   },
   signUpUsernameInvalid: {
     id: `${scope}.SignUp.usernameInvalid`,
@@ -96,7 +96,7 @@ export default defineMessages({
   },
   signUpEmailTaken: {
     id: `${scope}.SignUp.emailTaken`,
-    defaultMessage: 'Email taken. {link}',
+    defaultMessage: 'Email taken, try {link}',
   },
   signUpEmailInvalid: {
     id: `${scope}.SignUp.emailInvalid`,

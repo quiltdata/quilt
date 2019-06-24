@@ -81,8 +81,8 @@ const PasswordSignUp = composeComponent(
                 {...msg.signUpUsernameTaken}
                 values={{
                   link: (
-                    <Layout.FieldErrorLink to={urls.passReset()}>
-                      <FM {...msg.signUpPassResetHint} />
+                    <Layout.FieldErrorLink to={urls.signIn(next)}>
+                      <FM {...msg.signUpSignInHint} />
                     </Layout.FieldErrorLink>
                   ),
                 }}
@@ -104,8 +104,8 @@ const PasswordSignUp = composeComponent(
                 {...msg.signUpEmailTaken}
                 values={{
                   link: (
-                    <Layout.FieldErrorLink to={urls.passReset()}>
-                      <FM {...msg.signUpPassResetHint} />
+                    <Layout.FieldErrorLink to={urls.signIn(next)}>
+                      <FM {...msg.signUpSignInHint} />
                     </Layout.FieldErrorLink>
                   ),
                 }}

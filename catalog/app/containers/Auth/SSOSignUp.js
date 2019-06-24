@@ -14,7 +14,7 @@ import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
 import parseSearch from 'utils/parseSearch'
-import * as validators from 'utils/validators'
+import validate, * as validators from 'utils/validators'
 
 import * as Layout from './Layout'
 import * as actions from './actions'
@@ -41,10 +41,12 @@ export default ({ location: { search } }) => {
 
   const onSubmit = React.useCallback(
     async (values) => {
-      const { username } = values.toJS()
+      const { username, password } = values.toJS()
       try {
         const result = defer()
-        dispatch(actions.signUp({ username, provider, token }, result.resolver))
+        const credentials = { username, provider, token }
+        if (password != null) credentials.password = password
+        dispatch(actions.signUp(credentials, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.UsernameTaken) {
@@ -52,6 +54,9 @@ export default ({ location: { search } }) => {
         }
         if (e instanceof errors.InvalidUsername) {
           throw new SubmissionError({ username: 'invalid' })
+        }
+        if (password != null && e instanceof errors.InvalidPassword) {
+          throw new SubmissionError({ password: 'invalid' })
         }
         if (e instanceof errors.EmailDomainNotAllowed) {
           throw new SubmissionError({ _error: 'emailDomain' })
@@ -99,8 +104,8 @@ export default ({ location: { search } }) => {
                     {...msg.signUpUsernameTaken}
                     values={{
                       link: (
-                        <Layout.FieldErrorLink to={urls.passReset()}>
-                          <FM {...msg.signUpPassResetHint} />
+                        <Layout.FieldErrorLink to={urls.signIn(next)}>
+                          <FM {...msg.signUpSignInHint} />
                         </Layout.FieldErrorLink>
                       ),
                     }}
@@ -109,6 +114,37 @@ export default ({ location: { search } }) => {
                 invalid: <FM {...msg.signUpUsernameInvalid} />,
               }}
             />
+            {!!cfg.passwordAuth && (
+              <>
+                <Field
+                  component={Layout.Field}
+                  name="password"
+                  type="password"
+                  validate={[validators.required]}
+                  disabled={submitting}
+                  floatingLabelText={<FM {...msg.signUpPassLabel} />}
+                  errors={{
+                    required: <FM {...msg.signUpPassRequired} />,
+                    invalid: <FM {...msg.signUpPassInvalid} />,
+                  }}
+                />
+                <Field
+                  component={Layout.Field}
+                  name="passwordCheck"
+                  type="password"
+                  validate={[
+                    validators.required,
+                    validate('check', validators.matchesField('password')),
+                  ]}
+                  disabled={submitting}
+                  floatingLabelText={<FM {...msg.signUpPassCheckLabel} />}
+                  errors={{
+                    required: <FM {...msg.signUpPassCheckRequired} />,
+                    check: <FM {...msg.signUpPassCheckMatch} />,
+                  }}
+                />
+              </>
+            )}
             <Layout.Error
               {...{ submitFailed, error }}
               errors={{
