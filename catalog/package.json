@@ -136,7 +136,7 @@
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
     "bundlesize": "^0.17.2",
     "circular-dependency-plugin": "^5.0.2",
-    "compare-versions": "^3.4.0",
+    "compare-versions": "^3.5.0",
     "compression-webpack-plugin": "^2.0.0",
     "copy-webpack-plugin": "^5.0.3",
     "coveralls": "^3.0.4",
