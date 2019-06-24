@@ -13,6 +13,7 @@ from botocore.client import Config
 from botocore.exceptions import ClientError
 import boto3
 from boto3.s3.transfer import TransferConfig
+from s3transfer.utils import OSUtils, signal_transferring, signal_not_transferring
 
 import warnings
 with warnings.catch_warnings():
@@ -46,6 +47,16 @@ def create_s3_client():
     else:
         # Use normal boto
         s3_client = boto_session.client('s3')
+
+    # Enable/disable file read callbacks when uploading files.
+    # Copied from https://github.com/boto/s3transfer/blob/develop/s3transfer/manager.py#L501
+    event_name = 'request-created.s3'
+    s3_client.meta.events.register_first(
+        event_name, signal_not_transferring,
+        unique_id='datatransfer-not-transferring')
+    s3_client.meta.events.register_last(
+        event_name, signal_transferring,
+        unique_id='datatransfer-transferring')
 
     return s3_client
 
@@ -98,15 +109,13 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
     s3_client = ctx.s3_client
 
     if size < s3_transfer_config.multipart_threshold:
-        # TODO(dima): Use OSUtils.open_file_chunk_reader for progress callbacks.
-        with open(src_path, 'rb') as fd:
+        with OSUtils().open_file_chunk_reader(src_path, 0, size, [ctx.progress]) as fd:
             resp = s3_client.put_object(
                 Body=fd,
                 Bucket=dest_bucket,
                 Key=dest_key,
                 Metadata={HELIUM_METADATA: json.dumps(meta)},
             )
-            ctx.progress(fd.tell())
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
         ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
@@ -127,23 +136,18 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
         def upload_part(i, start, end):
             nonlocal remaining
             part_id = i + 1
-            # TODO(dima): Better progress callback.
-            with open(src_path, 'rb') as fd:
-                fd.seek(start)
-                chunk = fd.read(end - start)
-            part = s3_client.upload_part(
-                Body=chunk,
-                Bucket=dest_bucket,
-                Key=dest_key,
-                UploadId=upload_id,
-                PartNumber=part_id
-            )
+            with OSUtils().open_file_chunk_reader(src_path, start, end-start, [ctx.progress]) as fd:
+                part = s3_client.upload_part(
+                    Body=fd,
+                    Bucket=dest_bucket,
+                    Key=dest_key,
+                    UploadId=upload_id,
+                    PartNumber=part_id
+                )
             with lock:
                 parts[i] = {"PartNumber": part_id, "ETag": part["ETag"]}
                 remaining -= 1
                 done = remaining == 0
-
-            ctx.progress(end - start)
 
             if done:
                 resp = s3_client.complete_multipart_upload(
@@ -354,9 +358,9 @@ def _copy_file_list_internal(s3_client, file_list):
     with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
          ThreadPoolExecutor(s3_threads) as executor:
 
-        def progress_callback(size):
+        def progress_callback(bytes_transferred):
             with lock:
-                progress.update(size)
+                progress.update(bytes_transferred)
 
         def run_task(func, *args):
             future = executor.submit(func, *args)
