@@ -132,7 +132,7 @@ def extract_csv(head):
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
         r'\1\2',
-        '</table>\n<p>5 rows × 19 columns</p>\n</div>'
+        html
     )
     return html, {
         'note': (

@@ -3,6 +3,7 @@ Test functions for preview endpoint
 """
 import json
 import pathlib
+import re
 import os
 
 from unittest.mock import patch
@@ -85,7 +86,11 @@ class TestIndex():
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, 'preview failed on sample.csv'
         body_html = body['html']
-        assert '9 rows × 255 column' not in body_html, 'table dimensions should be removed'
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
         with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
             head = expected.read()
             assert head in body_html, 'unexpected first columns'
