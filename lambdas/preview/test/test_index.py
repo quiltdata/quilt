@@ -3,6 +3,7 @@ Test functions for preview endpoint
 """
 import json
 import pathlib
+import re
 import os
 
 from unittest.mock import patch
@@ -70,6 +71,29 @@ class TestIndex():
         body = json.loads(resp['body'])
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
         assert 'invalid literal' in body['detail'], 'Expected 400 explanation'
+
+    @responses.activate
+    def test_csv(self):
+        """test returning HTML previews of CSV (via pandas)"""
+        csv = BASE_DIR / 'sample.csv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        body_html = body['html']
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
+        with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
 
     @responses.activate
     def test_excel(self):

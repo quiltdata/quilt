@@ -1,0 +1,29 @@
+<thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Unnamed: 0</th>
+      <th>CellId</th>
+      <th>actin_dna_cell_struct_cell_distal_ratio</th>
+      <th>actin_dna_cell_struct_cell_maj_ratio</th>
+      <th>actin_dna_cell_struct_cell_min_ratio</th>
+      <th>actin_dna_cell_struct_cell_z_ratio</th>
+      <th>actin_dna_cell_struct_cyto_distal_ratio</th>
+      <th>actin_dna_cell_struct_cyto_maj_ratio</th>
+      <th>actin_dna_cell_struct_cyto_min_ratio</th>
+      <th>actin_dna_cell_struct_cyto_z_ratio</th>
+      <th>actin_dna_cell_struct_nuc_distal_ratio</th>
+      <th>actin_dna_cell_struct_nuc_maj_ratio</th>
+      <th>actin_dna_cell_struct_nuc_min_ratio</th>
+      <th>actin_dna_cell_struct_nuc_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_cell_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_cyto_z_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_distal_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_maj_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_min_ratio</th>
+      <th>actomyosin_dna_cell_struct_nuc_z_ratio</th>
