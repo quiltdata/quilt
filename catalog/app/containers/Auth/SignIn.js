@@ -126,18 +126,20 @@ export default ({ location: { search } }) => {
           />
         </Layout.Hint>
       )}
-      <Layout.Hint>
-        <FM
-          {...msg.signInHintReset}
-          values={{
-            link: (
-              <Link to={urls.passReset()}>
-                <FM {...msg.signInHintResetLink} />
-              </Link>
-            ),
-          }}
-        />
-      </Layout.Hint>
+      {!!cfg.passwordAuth && (
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintReset}
+            values={{
+              link: (
+                <Link to={urls.passReset()}>
+                  <FM {...msg.signInHintResetLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
+      )}
     </Container>
   )
 }
