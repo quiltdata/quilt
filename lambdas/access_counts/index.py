@@ -172,8 +172,8 @@ def delete_temp_dir():
         Prefix=QUERY_TEMP_DIR,
         MaxKeys=1000,  # The max we're allowed to delete at once.
     )
-    while True:
-        list_response = s3.list_objects_v2(**params)
+    paginator = s3.get_paginator('list_objects_v2')
+    for list_response in paginator.paginate(**params):
         contents = list_response.get('Contents')
         if not contents:
             break
@@ -190,13 +190,6 @@ def delete_temp_dir():
         if errors:
             print(errors)
             raise Exception("Failed to delete the temporary directory")
-
-        if list_response['IsTruncated']:
-            params.update(dict(
-                ContinuationToken=list_response['ContinuationToken']
-            ))
-        else:
-            break
 
 
 def handler(event, context):

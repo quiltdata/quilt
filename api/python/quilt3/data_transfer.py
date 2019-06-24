@@ -70,23 +70,6 @@ def _parse_file_metadata(path):
         meta = {}
     return meta
 
-def _response_generator(func, tokens, kwargs):
-    while True:
-        response = func(**kwargs)
-        yield response
-        if not response['IsTruncated']:
-            break
-        for token in tokens:
-            kwargs[token] = response['Next' + token]
-
-
-def _list_objects(s3_client, **kwargs):
-    return _response_generator(s3_client.list_objects_v2, ['ContinuationToken'], kwargs)
-
-
-def _list_object_versions(s3_client, **kwargs):
-    return _response_generator(s3_client.list_object_versions, ['KeyMarker', 'VersionIdMarker'], kwargs)
-
 
 def _copy_local_file(ctx, size, src_path, dest_path, override_meta):
     pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
@@ -464,7 +447,8 @@ def delete_object(bucket, key):
     s3_client = create_s3_client()
 
     if key.endswith('/'):
-        for response in _list_objects(s3_client, Bucket=bucket, Prefix=key):
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for response in paginator.paginate(Bucket=bucket, Prefix=key):
             for obj in response.get('Contents', []):
                 s3_client.delete_object(Bucket=bucket, Key=obj['Key'])
     else:
@@ -489,8 +473,9 @@ def list_object_versions(bucket, prefix, recursive=True):
     prefixes = []
 
     s3_client = create_s3_client()
+    paginator = s3_client.get_paginator('list_object_versions')
 
-    for response in _list_object_versions(s3_client, **list_obj_params):
+    for response in paginator.paginate(**list_obj_params):
         versions += response.get('Versions', [])
         delete_markers += response.get('DeleteMarkers', [])
         prefixes += response.get('CommonPrefixes', [])
@@ -514,8 +499,9 @@ def list_objects(bucket, prefix, recursive=True):
         list_obj_params.update(dict(Delimiter='/'))
 
     s3_client = create_s3_client()
+    paginator = s3_client.get_paginator('list_objects_v2')
 
-    for response in _list_objects(s3_client, **list_obj_params):
+    for response in paginator.paginate(**list_obj_params):
         objects += response.get('Contents', [])
         prefixes += response.get('CommonPrefixes', [])
 
@@ -548,7 +534,8 @@ def list_url(src):
         if src_path and not src_path.endswith('/'):
             src_path += '/'
         s3_client = create_s3_client()
-        for response in _list_objects(s3_client, Bucket=src_bucket, Prefix=src_path):
+        paginator = s3_client.get_paginator('list_objects_v2')
+        for response in paginator.paginate(Bucket=src_bucket, Prefix=src_path):
             for obj in response.get('Contents', []):
                 key = obj['Key']
                 if not key.startswith(src_path):
