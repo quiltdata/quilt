@@ -67,7 +67,7 @@ export default ({ mutex, next }) => {
   )
 
   const handleFailure = React.useCallback(
-    (code, details) => {
+    ({ error: code, details }) => {
       if (code !== 'popup_closed_by_user') {
         notify(
           <>
