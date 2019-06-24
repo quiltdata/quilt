@@ -118,7 +118,7 @@ def extract_csv(head):
     """
     csv file => data frame => html
     Args:
-        file_ - file-like object opened in binary mode, pointing to XLS or XLSX
+        file_ - file-like object opened in binary mode, pointing to .csv
     Returns:
         html - html version of *first sheet only* in workbook
         info - metadata
