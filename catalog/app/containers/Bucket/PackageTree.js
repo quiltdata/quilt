@@ -184,6 +184,7 @@ export default ({
                       variant="outlined"
                       href={getSignedS3URL({ bucket, key, version })}
                       className={classes.button}
+                      download
                     >
                       Download file
                     </Button>

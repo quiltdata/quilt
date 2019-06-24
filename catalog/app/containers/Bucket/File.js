@@ -320,7 +320,7 @@ export default ({
         </Typography>
         <div className={classes.spacer} />
         {withSignedUrl({ bucket, key: path, version }, (url) => (
-          <Button variant="outlined" href={url} className={classes.button}>
+          <Button variant="outlined" href={url} className={classes.button} download>
             <ButtonIcon position="left">arrow_downward</ButtonIcon> Download
           </Button>
         ))}
