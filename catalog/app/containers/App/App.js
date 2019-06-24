@@ -67,8 +67,12 @@ export default () => {
         {cfg.ssoAuth === true && (
           <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
         )}
-        <Route path={paths.passReset} component={AuthPassReset} exact />
-        <Route path={paths.passChange} component={AuthPassChange} exact />
+        {!!cfg.passwordAuth && (
+          <Route path={paths.passReset} component={AuthPassReset} exact />
+        )}
+        {!!cfg.passwordAuth && (
+          <Route path={paths.passChange} component={AuthPassChange} exact />
+        )}
         <Route path={paths.code} component={protect(AuthCode)} exact />
         <Route path={paths.activationError} component={AuthActivationError} exact />
 
