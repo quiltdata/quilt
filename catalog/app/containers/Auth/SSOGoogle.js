@@ -22,7 +22,8 @@ import * as Layout from './Layout'
 
 const GoogleLogo = (props) => <Box component="img" src={googleLogo} alt="" {...props} />
 
-const MUTEX_ID = 'sso:google'
+const MUTEX_POPUP = 'sso:google:popup'
+const MUTEX_REQUEST = 'sso:google:request'
 
 export default ({ mutex, next }) => {
   const cfg = Config.useConfig()
@@ -36,7 +37,7 @@ export default ({ mutex, next }) => {
 
   const handleClick = (onClick) => (...args) => {
     if (mutex.current) return
-    mutex.claim(MUTEX_ID)
+    mutex.claim(MUTEX_POPUP)
     onClick(...args)
   }
 
@@ -45,8 +46,9 @@ export default ({ mutex, next }) => {
       const provider = 'google'
       const { id_token: token } = user.getAuthResponse()
       const result = defer()
-      dispatch(actions.signIn({ provider, token }, result.resolver))
+      mutex.claim(MUTEX_REQUEST)
       try {
+        dispatch(actions.signIn({ provider, token }, result.resolver))
         await result.promise
       } catch (e) {
         if (e instanceof errors.SSOUserNotFound) {
@@ -60,10 +62,10 @@ export default ({ mutex, next }) => {
           notify(intl.formatMessage(msg.ssoGoogleError))
           sentry('captureException', e)
         }
-        mutex.release(MUTEX_ID)
+        mutex.release(MUTEX_REQUEST)
       }
     },
-    [dispatch, mutex.release, sentry, notify],
+    [dispatch, mutex.claim, mutex.release, sentry, notify],
   )
 
   const handleFailure = React.useCallback(
@@ -77,7 +79,7 @@ export default ({ mutex, next }) => {
         const e = new errors.SSOError({ provider: 'google', code, details })
         sentry('captureException', e)
       }
-      mutex.release(MUTEX_ID)
+      mutex.release(MUTEX_POPUP)
     },
     [mutex.release, sentry],
   )
@@ -92,7 +94,7 @@ export default ({ mutex, next }) => {
         disabled={!!mutex.current}
         render={({ onClick, disabled }) => (
           <M.Button variant="outlined" onClick={handleClick(onClick)} disabled={disabled}>
-            {mutex.current === MUTEX_ID ? (
+            {mutex.current === MUTEX_REQUEST ? (
               <M.CircularProgress size={18} />
             ) : (
               <GoogleLogo />
