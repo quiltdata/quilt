@@ -59,7 +59,7 @@ export default ({ mutex, next }) => {
           }
           notify(intl.formatMessage(msg.ssoGoogleNotFound))
         } else {
-          notify(intl.formatMessage(msg.ssoGoogleError))
+          notify(intl.formatMessage(msg.ssoGoogleErrorUnexpected))
           sentry('captureException', e)
         }
         mutex.release(MUTEX_REQUEST)
@@ -71,11 +71,7 @@ export default ({ mutex, next }) => {
   const handleFailure = React.useCallback(
     ({ error: code, details }) => {
       if (code !== 'popup_closed_by_user') {
-        notify(
-          <>
-            {intl.formatMessage(msg.ssoGoogleError)}: {details}
-          </>,
-        )
+        notify(intl.formatMessage(msg.ssoGoogleError, { details }))
         const e = new errors.SSOError({ provider: 'google', code, details })
         sentry('captureException', e)
       }

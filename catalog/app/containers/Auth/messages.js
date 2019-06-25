@@ -37,11 +37,16 @@ export default defineMessages({
   },
   ssoGoogleError: {
     id: `${scope}.SSO.Google.error`,
-    defaultMessage: "Couldn't sign in with your Google account",
+    defaultMessage: 'Unable to sign in with Google. {details}',
+  },
+  ssoGoogleErrorUnexpected: {
+    id: `${scope}.SSO.Google.errorUnexpected`,
+    defaultMessage: 'Unable to sign in with Google. Try again later or contact support.',
   },
   ssoGoogleNotFound: {
     id: `${scope}.SSO.Google.notFound`,
-    defaultMessage: "There's no user linked to your Google account",
+    defaultMessage:
+      'No Quilt user linked to this Google account. Notify your Quilt administrator.',
   },
   ssoSignUpHeading: {
     id: `${scope}.SSO.SignUp.heading`,
