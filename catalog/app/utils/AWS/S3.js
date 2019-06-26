@@ -46,8 +46,10 @@ export const useRequest = (extra) => {
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
-      const client = bucket === cfg.defaultBucket ? s3RegularClient : s3ProxiyngClient
-      const method = authenticated ? 'makeRequest' : 'makeUnauthenticatedRequest'
+      const useProxy = bucket !== cfg.defaultBucket
+      const client = useProxy ? s3ProxiyngClient : s3RegularClient
+      const method =
+        authenticated && !useProxy ? 'makeRequest' : 'makeUnauthenticatedRequest'
       return client[method](operation, params).promise()
     },
     [s3RegularClient, s3ProxiyngClient, authenticated, cfg.defaultBucket],
