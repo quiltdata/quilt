@@ -5,10 +5,7 @@
   "signOutRedirect": "/",
   "defaultBucket": "quilt-example",
   "apiGatewayEndpoint": "https://ozj6r9bglc.execute-api.us-east-1.amazonaws.com/prod",
-  "guestCredentials": {
-    "accessKeyId": "",
-    "secretAccessKey": ""
-  },
+  "s3Proxy": "https://open-proxy.quiltdata.com",
   "suggestedBuckets": [
     "quilt-example",
     "quilt-aics"

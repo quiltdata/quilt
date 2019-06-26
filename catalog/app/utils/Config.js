@@ -29,10 +29,7 @@ const validateConfig = conforms({
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
   disableSignUp: isNullable(Boolean),
-  guestCredentials: conforms({
-    accessKeyId: R.is(String),
-    secretAccessKey: R.is(String),
-  }),
+  s3Proxy: R.is(String),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
 })

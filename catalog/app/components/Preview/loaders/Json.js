@@ -48,7 +48,7 @@ const vegaFetcher = utils.objectGetter((r, { handle, signer }) => {
 
 const loadVega = (handle, callback) =>
   utils.withSigner((signer) =>
-    utils.withS3((s3) => vegaFetcher({ s3, handle, signer }, callback)),
+    utils.withS3Request((s3req) => vegaFetcher({ s3req, handle, signer }, callback)),
   )
 
 const loadText = (handle, callback) =>

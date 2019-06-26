@@ -259,9 +259,9 @@ export default composeComponent(
         )}
         {!!images.length && <Thumbnails images={images} />}
         {summarize && (
-          <AWS.S3.Inject>
-            {(s3) => (
-              <Data fetch={requests.summarize} params={{ s3, handle: summarize }}>
+          <AWS.S3.InjectRequest>
+            {(s3req) => (
+              <Data fetch={requests.summarize} params={{ s3req, handle: summarize }}>
                 {AsyncResult.case({
                   Err: () => null,
                   _: () => <CircularProgress className={classes.progress} />,
@@ -276,7 +276,7 @@ export default composeComponent(
                 })}
               </Data>
             )}
-          </AWS.S3.Inject>
+          </AWS.S3.InjectRequest>
         )}
       </React.Fragment>
     )

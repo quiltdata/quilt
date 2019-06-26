@@ -24,13 +24,13 @@ import { displayError } from './errors'
 import * as requests from './requests'
 
 const Counts = ({ analyticsBucket, bucket, name }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
     <Data
       fetch={requests.pkgAccessCounts}
-      params={{ s3, analyticsBucket, bucket, name, today }}
+      params={{ s3req, analyticsBucket, bucket, name, today }}
     >
       {AsyncResult.case({
         Ok: ({ counts, total }) => (
@@ -77,11 +77,11 @@ export default ({
     params: { bucket },
   },
 }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const { analyticsBucket } = Config.useConfig()
   return (
-    <Data fetch={requests.listPackages} params={{ s3, bucket }}>
+    <Data fetch={requests.listPackages} params={{ s3req, bucket }}>
       {AsyncResult.case({
         _: () => <CircularProgress />,
         Err: displayError(),

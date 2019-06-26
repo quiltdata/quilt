@@ -76,7 +76,7 @@ const VersionInfo = RT.composeComponent(
     version: PT.string,
   }),
   ({ bucket, path, version }) => {
-    const s3 = AWS.S3.use()
+    const s3req = AWS.S3.useRequest()
     const { urls } = NamedRoutes.use()
 
     const [anchor, setAnchor] = React.useState()
@@ -97,7 +97,7 @@ const VersionInfo = RT.composeComponent(
           )}{' '}
           <Icon>expand_more</Icon>
         </span>
-        <Data fetch={requests.objectVersions} params={{ s3, bucket, path }}>
+        <Data fetch={requests.objectVersions} params={{ s3req, bucket, path }}>
           {R.pipe(
             AsyncResult.case({
               Ok: (versions) => (
@@ -191,9 +191,9 @@ const AnnotationsBox = styled('div')(({ theme: t }) => ({
 }))
 
 const Annotations = ({ bucket, path, version }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   return (
-    <Data fetch={requests.objectMeta} params={{ s3, bucket, path, version }}>
+    <Data fetch={requests.objectMeta} params={{ s3req, bucket, path, version }}>
       {AsyncResult.case({
         Ok: (meta) =>
           !!meta &&
@@ -237,7 +237,7 @@ const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
 
 const Analytics = ({ analyticsBucket, bucket, path }) => {
   const [cursor, setCursor] = React.useState(null)
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const formatDate = (date) =>
     dateFns.format(
@@ -248,7 +248,7 @@ const Analytics = ({ analyticsBucket, bucket, path }) => {
     <Section icon="bar_charts" heading="Analytics" defaultExpanded>
       <Data
         fetch={requests.objectAccessCounts}
-        params={{ s3, analyticsBucket, bucket, path, today }}
+        params={{ s3req, analyticsBucket, bucket, path, today }}
       >
         {AsyncResult.case({
           Ok: ({ counts, total }) => (
