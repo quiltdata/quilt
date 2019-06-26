@@ -45,13 +45,13 @@ const Field = RT.composeComponent(
 )
 
 const Counts = ({ analyticsBucket, bucket, name, hash }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
     <Data
       fetch={requests.pkgVersionAccessCounts}
-      params={{ s3, analyticsBucket, bucket, name, hash, today }}
+      params={{ s3req, analyticsBucket, bucket, name, hash, today }}
     >
       {AsyncResult.case({
         Ok: ({ counts, total }) => (
@@ -113,7 +113,7 @@ export default ({
 }) => {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const signer = AWS.Signer.use()
   const { apiGatewayEndpoint: endpoint, analyticsBucket } = Config.useConfig()
   return (
@@ -121,7 +121,7 @@ export default ({
       <Typography variant="h4">{name}: revisions</Typography>
       <Data
         fetch={requests.getPackageRevisions}
-        params={{ s3, signer, endpoint, bucket, name }}
+        params={{ s3req, signer, endpoint, bucket, name }}
       >
         {AsyncResult.case({
           _: () => <CircularProgress />,

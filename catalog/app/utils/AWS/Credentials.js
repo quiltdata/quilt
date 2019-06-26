@@ -5,7 +5,6 @@ import * as reduxHook from 'redux-react-hook'
 
 import * as Auth from 'containers/Auth'
 import * as APIConnector from 'utils/APIConnector'
-import * as Config from 'utils/Config'
 import useMemoEq from 'utils/useMemoEq'
 
 class RegistryCredentials extends AWS.Credentials {
@@ -40,27 +39,23 @@ class RegistryCredentials extends AWS.Credentials {
   }
 }
 
-class GuestCredentials extends AWS.Credentials {
+class EmptyCredentials extends AWS.Credentials {
   suspend() {
     return this
   }
 }
 
 const useCredentialsMemo = () => {
-  const guest = useMemoEq(
-    Config.useConfig().guestCredentials,
-    (creds) => new GuestCredentials(creds),
-  )
-
+  const empty = React.useMemo(() => new EmptyCredentials(), [])
   const reg = useMemoEq(APIConnector.use(), (req) => new RegistryCredentials({ req }))
 
   return useMemoEq(
     {
       auth: reduxHook.useMappedState(Auth.selectors.authenticated),
-      guest,
       reg,
+      empty,
     },
-    (i) => (i.auth ? i.reg : i.guest),
+    (i) => (i.auth ? i.reg : i.empty),
   )
 }
 
