@@ -100,7 +100,7 @@ const parseRange = (range) => {
 const getFirstBytes = (bytes) => async ({ s3req, handle }) => {
   try {
     const res = await s3req({
-      bukcet: handle.bucket,
+      bucket: handle.bucket,
       operation: 'getObject',
       params: {
         Bucket: handle.bucket,
