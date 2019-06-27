@@ -112,7 +112,7 @@ export const summarize = async ({ s3req, handle }) => {
   try {
     const file = await s3req({
       bucket: handle.bucket,
-      operaation: 'getObject',
+      operation: 'getObject',
       params: {
         Bucket: handle.bucket,
         Key: handle.key,
