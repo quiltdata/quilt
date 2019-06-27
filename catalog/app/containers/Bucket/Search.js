@@ -425,6 +425,8 @@ const Results = RT.composeComponent(
     bucket: PT.string.isRequired,
     query: PT.string.isRequired,
     searchEndpoint: PT.string.isRequired,
+    id: PT.string.isRequired,
+    retry: PT.func.isRequired,
   }),
   withStyles(({ spacing: { unit } }) => ({
     heading: {
@@ -432,15 +434,13 @@ const Results = RT.composeComponent(
       marginTop: 2 * unit,
     },
   })),
-  ({ classes, bucket, query, searchEndpoint }) => {
+  ({ classes, bucket, query, searchEndpoint, id, retry }) => {
     const es = AWS.ES.use({ host: searchEndpoint, bucket })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
       if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
     })
-    const [id, setId] = React.useState(() => uuid())
-    const retry = React.useCallback(() => setId(uuid()), [setId])
 
     try {
       const { total, hits } = cache.get(SearchResource, { es, id, bucket, query })
@@ -504,9 +504,11 @@ export default RT.composeComponent(
     },
   }) => {
     const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+    const [id, setId] = React.useState(() => uuid())
+    const retry = React.useCallback(() => setId(uuid()), [setId])
     return searchEndpoint ? (
       <React.Suspense fallback={<Working>Searching</Working>}>
-        <Results {...{ bucket: name, searchEndpoint, query }} />
+        <Results {...{ bucket: name, searchEndpoint, query, id, retry }} />
       </React.Suspense>
     ) : (
       <Message headline="Search Not Available">
