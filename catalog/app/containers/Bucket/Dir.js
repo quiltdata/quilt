@@ -73,7 +73,7 @@ export default ({
   },
 }) => {
   const { urls } = NamedRoutes.use()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const code = dedent`
     import quilt3
     b = quilt3.Bucket("s3://${bucket}")
@@ -91,7 +91,7 @@ export default ({
         <Code>{code}</Code>
       </Section>
 
-      <Data fetch={requests.bucketListing} params={{ s3, bucket, path }}>
+      <Data fetch={requests.bucketListing} params={{ s3req, bucket, path }}>
         {AsyncResult.case({
           Err: displayError(),
           Ok: (res) => {

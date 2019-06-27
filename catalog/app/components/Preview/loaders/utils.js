@@ -37,7 +37,9 @@ export const extIn = (exts) => (key) => exts.includes(extname(key).toLowerCase()
 
 export const withSigner = (callback) => <AWS.Signer.Inject>{callback}</AWS.Signer.Inject>
 
-export const withS3 = (callback) => <AWS.S3.Inject>{callback}</AWS.S3.Inject>
+export const withS3Request = (callback) => (
+  <AWS.S3.InjectRequest>{callback}</AWS.S3.InjectRequest>
+)
 
 export const withRoutes = (callback) => (
   <NamedRoutes.Inject>{callback}</NamedRoutes.Inject>
@@ -45,16 +47,18 @@ export const withRoutes = (callback) => (
 
 export const withData = (props, callback) => <Data {...props}>{callback}</Data>
 
-const gate = async ({ s3, handle }) => {
+const gate = async ({ s3req, handle }) => {
   let length
   try {
-    const head = await s3
-      .headObject({
+    const head = await s3req({
+      bucket: handle.bucket,
+      operation: 'headObject',
+      params: {
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
-      })
-      .promise()
+      },
+    })
     length = head.ContentLength
   } catch (e) {
     if (['NoSuchKey', 'NotFound'].includes(e.name)) {
@@ -73,12 +77,12 @@ const gate = async ({ s3, handle }) => {
 }
 
 export const gatedS3Request = (fetcher) => (handle, callback, extraParams) =>
-  withS3((s3) =>
+  withS3Request((s3req) =>
     withData(
-      { fetch: gate, params: { s3, handle } },
+      { fetch: gate, params: { s3req, handle } },
       AsyncResult.case({
         Ok: ({ gated }) =>
-          fetcher({ s3, handle, gated, ...extraParams }, (r, ...args) =>
+          fetcher({ s3req, handle, gated, ...extraParams }, (r, ...args) =>
             callback(AsyncResult.Ok(r), ...args),
           ),
         _: callback,
@@ -93,16 +97,18 @@ const parseRange = (range) => {
   return Number(m[1])
 }
 
-const getFirstBytes = (bytes) => async ({ s3, handle }) => {
+const getFirstBytes = (bytes) => async ({ s3req, handle }) => {
   try {
-    const res = await s3
-      .getObject({
+    const res = await s3req({
+      bucket: handle.bucket,
+      operation: 'getObject',
+      params: {
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
         Range: `bytes=0-${bytes}`,
-      })
-      .promise()
+      },
+    })
     const firstBytes = res.Body.toString('utf-8')
     const contentLength = parseRange(res.ContentRange) || 0
     return { firstBytes, contentLength }
@@ -122,12 +128,12 @@ export const withFirstBytes = (bytes, fetcher) => {
   const fetch = getFirstBytes(bytes)
 
   return (handle, callback) =>
-    withS3((s3) =>
+    withS3Request((s3req) =>
       withData(
-        { fetch, params: { s3, handle } },
+        { fetch, params: { s3req, handle } },
         AsyncResult.case({
           Ok: ({ firstBytes, contentLength }) =>
-            fetcher({ s3, handle, firstBytes, contentLength }, (r, ...args) =>
+            fetcher({ s3req, handle, firstBytes, contentLength }, (r, ...args) =>
               callback(AsyncResult.Ok(r), ...args),
             ),
           _: callback,
@@ -137,18 +143,19 @@ export const withFirstBytes = (bytes, fetcher) => {
 }
 
 export const objectGetter = (process) => {
-  const fetch = ({ s3, handle, ...extra }) =>
-    s3
-      .getObject({
+  const fetch = ({ s3req, handle, ...extra }) =>
+    s3req({
+      bucket: handle.bucket,
+      operation: 'getObject',
+      params: {
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
-      })
-      .promise()
-      .then((r) => process(r, { s3, handle, ...extra }))
+      },
+    }).then((r) => process(r, { s3req, handle, ...extra }))
 
-  return ({ s3, handle, gated, ...extra }, callback) =>
-    withData({ fetch, params: { s3, handle, ...extra }, noAutoFetch: gated }, callback)
+  return ({ s3req, handle, gated, ...extra }, callback) =>
+    withData({ fetch, params: { s3req, handle, ...extra }, noAutoFetch: gated }, callback)
 }
 
 const previewUrl = (endpoint, url, input, compression) =>

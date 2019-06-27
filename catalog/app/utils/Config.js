@@ -33,10 +33,7 @@ const validateConfig = conforms({
   passwordAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
   ssoAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
   ssoProviders: isNullable(isNonEmptyArrayOf(oneOf(SSO_PROVIDERS))),
-  guestCredentials: conforms({
-    accessKeyId: R.is(String),
-    secretAccessKey: R.is(String),
-  }),
+  s3Proxy: R.is(String),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
   googleClientId: isNullable(R.is(String)),

@@ -2,7 +2,11 @@ import SignerV4 from 'aws-sdk/lib/signers/v4'
 import PT from 'prop-types'
 import * as React from 'react'
 import { setPropTypes } from 'recompose'
+import * as reduxHook from 'redux-react-hook'
 
+import * as Auth from 'containers/Auth'
+import * as Config from 'utils/Config'
+import { mkSearch } from 'utils/NamedRoutes'
 import * as Resource from 'utils/Resource'
 import { composeComponent, composeHOC } from 'utils/reactTools'
 import { resolveKey } from 'utils/s3paths'
@@ -13,27 +17,42 @@ import * as S3 from './S3'
 const DEFAULT_URL_EXPIRATION = 5 * 60 // in seconds
 
 export const useRequestSigner = () => {
+  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   const credentials = Credentials.use().suspend()
   return React.useCallback(
     (request, serviceName) => {
-      const signer = new SignerV4(request, serviceName)
-      signer.addAuthorization(credentials, new Date())
+      if (authenticated) {
+        const signer = new SignerV4(request, serviceName)
+        signer.addAuthorization(credentials, new Date())
+      }
     },
-    [credentials],
+    [credentials, authenticated],
   )
 }
 
+// AWS docs (https://docs.aws.amazon.com/AmazonS3/latest/dev/UsingBucket.html) state that
+// "buckets created in Regions launched after March 20, 2019 are not reachable via the
+// `https://bucket.s3.amazonaws.com naming scheme`", so probably we need to support
+// `https://bucket.s3.aws-region.amazonaws.com` scheme as well.
+const buildS3Url = ({ bucket, key, version }) =>
+  `https://${bucket}.s3.amazonaws.com/${key}${mkSearch({ versionId: version })}`
+
 export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => {
   Credentials.use().suspend()
+  const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
+  const cfg = Config.useConfig()
   const s3 = S3.use()
   return React.useCallback(
-    ({ bucket, key, version }) =>
-      s3.getSignedUrl('getObject', {
-        Bucket: bucket,
-        Key: key,
-        VersionId: version,
-        Expires: urlExpiration,
-      }),
+    ({ bucket, key, version }, opts) =>
+      bucket === cfg.defaultBucket && authenticated
+        ? s3.getSignedUrl('getObject', {
+            Bucket: bucket,
+            Key: key,
+            VersionId: version,
+            Expires: urlExpiration,
+            ...opts,
+          })
+        : buildS3Url({ bucket, key, version }),
     [s3, urlExpiration],
   )
 }
