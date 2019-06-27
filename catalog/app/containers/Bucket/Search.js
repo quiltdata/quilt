@@ -22,6 +22,7 @@ import Working from 'components/Working'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
@@ -432,7 +433,7 @@ const Results = RT.composeComponent(
     },
   })),
   ({ classes, bucket, query, searchEndpoint }) => {
-    const es = AWS.ES.use({ host: searchEndpoint })
+    const es = AWS.ES.use({ host: searchEndpoint, bucket })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
@@ -505,10 +506,12 @@ export default RT.composeComponent(
       query: { q: query = '' },
     },
   }) => {
+    const cfg = Config.useConfig()
     const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+    const enableSigning = name === cfg.defaultBucket
     return searchEndpoint ? (
       <React.Suspense fallback={<Working>Searching</Working>}>
-        <Results {...{ bucket: name, searchEndpoint, query }} />
+        <Results {...{ bucket: name, searchEndpoint, query, enableSigning }} />
       </React.Suspense>
     ) : (
       <Message headline="Search Not Available">

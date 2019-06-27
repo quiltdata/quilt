@@ -67,9 +67,12 @@ class SignedConnector extends es.ConnectionPool.connectionClasses.xhr {
   }
 }
 
-export const useES = (props) => {
+const noop = () => {}
+
+export const useES = ({ enableSigning, ...props } = {}) => {
   const awsConfig = Config.use()
-  const signRequest = Signer.useRequestSigner()
+  const requestSigner = Signer.useRequestSigner()
+  const signRequest = enableSigning ? requestSigner : noop
   return useMemoEq(
     { awsConfig, signRequest, ...props },
     (cfg) =>
