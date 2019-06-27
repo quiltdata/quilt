@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
+import uuid from 'uuid/v1'
 import { unstable_Box as Box } from '@material-ui/core/Box'
 import Button from '@material-ui/core/Button'
 import Card from '@material-ui/core/Card'
@@ -22,7 +23,6 @@ import Working from 'components/Working'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
@@ -416,7 +416,7 @@ const Browse = RT.composeComponent(
 const SearchResource = Cache.createResource({
   name: 'Bucket.Search.results',
   fetch: requests.search,
-  key: ({ query }) => query,
+  key: ({ id, bucket, query }) => `${bucket}:${query}:${id}`,
 })
 
 const Results = RT.composeComponent(
@@ -439,9 +439,11 @@ const Results = RT.composeComponent(
     const scroll = React.useCallback((prev) => {
       if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
     })
+    const [id, setId] = React.useState(() => uuid())
+    const retry = React.useCallback(() => setId(uuid()), [setId])
 
     try {
-      const { total, hits } = cache.get(SearchResource, { es, query })
+      const { total, hits } = cache.get(SearchResource, { es, id, bucket, query })
       return (
         <React.Fragment>
           <Typography variant="h5" className={classes.heading}>
@@ -484,12 +486,7 @@ const Results = RT.composeComponent(
           Something went wrong.
           <br />
           <br />
-          <Button
-            // TODO: fix retry
-            // onClick={fetch}
-            color="primary"
-            variant="contained"
-          >
+          <Button onClick={retry} color="primary" variant="contained">
             Retry
           </Button>
         </Message>
@@ -506,12 +503,10 @@ export default RT.composeComponent(
       query: { q: query = '' },
     },
   }) => {
-    const cfg = Config.useConfig()
     const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
-    const enableSigning = name === cfg.defaultBucket
     return searchEndpoint ? (
       <React.Suspense fallback={<Working>Searching</Working>}>
-        <Results {...{ bucket: name, searchEndpoint, query, enableSigning }} />
+        <Results {...{ bucket: name, searchEndpoint, query }} />
       </React.Suspense>
     ) : (
       <Message headline="Search Not Available">

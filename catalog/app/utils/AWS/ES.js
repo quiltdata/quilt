@@ -5,6 +5,7 @@ import es from 'elasticsearch-browser'
 import invariant from 'invariant'
 import * as R from 'ramda'
 
+import { useConfig } from 'utils/Config'
 import useMemoEq from 'utils/useMemoEq'
 
 import * as Config from './Config'
@@ -69,10 +70,11 @@ class SignedConnector extends es.ConnectionPool.connectionClasses.xhr {
 
 const noop = () => {}
 
-export const useES = ({ enableSigning, ...props } = {}) => {
+export const useES = ({ bucket, ...props }) => {
+  const { defaultBucket } = useConfig()
   const awsConfig = Config.use()
   const requestSigner = Signer.useRequestSigner()
-  const signRequest = enableSigning ? requestSigner : noop
+  const signRequest = bucket === defaultBucket ? requestSigner : noop
   return useMemoEq(
     { awsConfig, signRequest, ...props },
     (cfg) =>
