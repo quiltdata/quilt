@@ -1,0 +1,6 @@
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>URL	Name/Alias	Appearances	Current?	Gender	Probationary Introl	Full/Reserve Avengers Intro	Year	Years since joining	Honorary	Death1	Return1	Death2	Return2	Death3	Return3	Death4	Return4	Death5	Return5	Notes</th>
+    </tr>
+  </thead>

@@ -168,6 +168,32 @@ class TestIndex():
             f'Unexpected body["info"] for {parquet}'
 
     @responses.activate
+    def test_tsv(self):
+        """test returning HTML previews of TSV (via pandas)"""
+        csv = BASE_DIR / 'avengers.tsv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        body_html = body['html']
+        print(body_html)
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<thead>') == 1, 'expected one HTML table'
+        assert body_html.count('</thead>') == 1, 'expected one HTML table'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
+        with open(BASE_DIR / 'tsv_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
+
+    @responses.activate
     def test_no_meta_parquet(self):
         """test a parquet file with no meta.metadata"""
         no_meta_parquet = BASE_DIR / 'no_meta.parquet'
