@@ -7,10 +7,6 @@ export default defineMessages({
     id: `${scope}.notificationAuthLost`,
     defaultMessage: 'Authentication lost. Sign in again.',
   },
-  notificationAuthError: {
-    id: `${scope}.notificationAuthError`,
-    defaultMessage: 'Authentication error. Try again later.',
-  },
 
   // Wrapper
   wrapperFailureHeading: {
