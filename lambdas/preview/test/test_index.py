@@ -176,17 +176,18 @@ class TestIndex():
             self.FILE_URL,
             body=csv.read_bytes(),
             status=200)
-        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
         resp = index.lambda_handler(event, None)
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, 'preview failed on sample.csv'
         body_html = body['html']
-        print(body_html)
         assert body_html.count('<table') == 1, 'expected one HTML table'
         assert body_html.count('</table>') == 1, 'expected one HTML table'
         assert body_html.count('<thead>') == 1, 'expected one HTML table'
         assert body_html.count('</thead>') == 1, 'expected one HTML table'
         assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert '<td>Nicholas Fury, Jr., Marcus Johnson</td>' in body_html, \
+            'Expected Nick to be an Avenger'
         assert not re.match(r'\d+ rows × \d+ columns', body_html), \
             'table dimensions should be removed'
         with open(BASE_DIR / 'tsv_html_response_head.txt') as expected:
