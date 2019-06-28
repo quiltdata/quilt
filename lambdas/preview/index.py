@@ -20,8 +20,8 @@ CHUNK = 1024*8
 # MAX_BYTES is bytes scanned, so functions as an upper bound on bytes returned
 # in practice we will hit MAX_LINES first
 # we need a largish number for things like VCF where we will discard many bytes
-# Only appled _from_stream() types _to_memory types are limited either by pandas
-# or by exclude_output='true'
+# Only applied to _from_stream() types. _to_memory types are size limited either
+# by pandas or by exclude_output='true'
 MAX_BYTES = 1024*1024
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
