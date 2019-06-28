@@ -44,7 +44,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
   const s3 = S3.use()
   return React.useCallback(
     ({ bucket, key, version }, opts) =>
-      bucket === cfg.defaultBucket && authenticated
+      cfg.shouldSign(bucket) && authenticated
         ? s3.getSignedUrl('getObject', {
             Bucket: bucket,
             Key: key,
@@ -53,7 +53,7 @@ export const useS3Signer = ({ urlExpiration = DEFAULT_URL_EXPIRATION } = {}) => 
             ...opts,
           })
         : buildS3Url({ bucket, key, version }),
-    [s3, urlExpiration],
+    [cfg, authenticated, s3, urlExpiration],
   )
 }
 
