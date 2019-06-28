@@ -20,7 +20,9 @@ CHUNK = 1024*8
 # MAX_BYTES is bytes scanned, so functions as an upper bound on bytes returned
 # in practice we will hit MAX_LINES first
 # we need a largish number for things like VCF where we will discard many bytes
-MAX_BYTES = 1024*1024 # must be positive int
+# Only appled _from_stream() types _to_memory types are limited either by pandas
+# or by exclude_output='true'
+MAX_BYTES = 1024*1024
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
@@ -32,6 +34,9 @@ SCHEMA = {
         'url': {
             'type': 'string'
         },
+        'max_bytes' : {
+            'type': 'string',
+        },
         # line_count used to be an integer with a max and min, which is more correct
         # nevertheless, request.args has it as a string, even if
         # the request specifies it as an integer
@@ -40,6 +45,9 @@ SCHEMA = {
         },
         'input': {
             'enum': ['csv', 'excel', 'ipynb', 'parquet', 'txt', 'vcf']
+        },
+        'exclude_output': {
+            'enum': ['true', 'false']
         },
         'compression': {
             'enum': ['gz']
@@ -62,6 +70,8 @@ def lambda_handler(request):
     url = request.args['url']
     input_type = request.args.get('input')
     compression = request.args.get('compression')
+    exclude_output = request.args.get('exclude_output') == 'true'
+    max_bytes = request.args.get('max_bytes', MAX_BYTES)
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
@@ -85,17 +95,17 @@ def lambda_handler(request):
     resp = requests.get(url, stream=True)
     if resp.ok:
         if input_type == 'csv':
-            html, info = extract_csv(_from_stream(resp, compression, line_count))
+            html, info = extract_csv(_from_stream(resp, compression, line_count, max_bytes))
         elif input_type == 'excel':
             html, info = extract_excel(_to_memory(resp, compression))
         elif input_type == 'ipynb':
-            html, info = extract_ipynb(_to_memory(resp, compression))
+            html, info = extract_ipynb(_to_memory(resp, compression), exclude_output)
         elif input_type == 'parquet':
             html, info = extract_parquet(_to_memory(resp, compression))
         elif input_type == 'vcf':
-            html, info = extract_vcf(_from_stream(resp, compression, line_count))
+            html, info = extract_vcf(_from_stream(resp, compression, line_count, max_bytes))
         elif input_type == 'txt':
-            html, info = extract_txt(_from_stream(resp, compression, line_count))
+            html, info = extract_txt(_from_stream(resp, compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -158,7 +168,7 @@ def extract_excel(file_):
     html = first_sheet._repr_html_() # pylint: disable=protected-access
     return html, {}
 
-def extract_ipynb(file_):
+def extract_ipynb(file_, exclude_output):
     """
     parse and extract ipynb files
 
@@ -175,6 +185,7 @@ def extract_ipynb(file_):
 
     html_exporter = HTMLExporter()
     html_exporter.template_file = 'basic'
+    html_exporter.exclude_output = exclude_output
 
     notebook = nbformat.read(file_, 4)
     html, _ = html_exporter.from_notebook_node(notebook)
@@ -296,7 +307,7 @@ def extract_txt(head):
 
     return '', info
 
-def _from_stream(response, compression, line_count):
+def _from_stream(response, compression, line_count, max_bytes):
     """
     for files we can read in a streaming manner
     """
@@ -314,13 +325,13 @@ def _from_stream(response, compression, line_count):
                 size += len(piece)
             # TODO why are we hitting dec.eof after ~65kb of large gz files?
             # not >= since we might get lucky and complete a line if we wait
-            if size > MAX_BYTES or dec.eof:
+            if size > max_bytes or dec.eof:
                 break
         # drop the very last line since it might not be complete
         buffer = b''.join(buffer).split(b'\n', line_count)[:-1]
     else:
         for i, line in enumerate(response.iter_lines()):
-            if i >= line_count or size >= MAX_BYTES:
+            if i >= line_count or size >= max_bytes:
                 break
             buffer.append(line)
             size += len(line)

@@ -130,6 +130,7 @@ class TestIndex():
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
+
         # neither lxml, nor py_w3c.validators.html.validator works to validate
         # these fragments; reasons include base64 encoded images, html entities, etc.
         # so we are going to trust nbconvert and just do some basic sanity checks
@@ -147,6 +148,40 @@ class TestIndex():
             'Cell 3 output seems off'
         assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
             'Last cell output missing'
+
+    @responses.activate
+    def test_ipynb_exclude(self):
+        """test sending ipynb bytes"""
+        notebook = BASE_DIR / 'nb_1200727.ipynb'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=notebook.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb', 'exclude_output': 'true'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
+        body_html = body['html']
+        # neither lxml, nor py_w3c.validators.html.validator works to validate
+        # these fragments; reasons include base64 encoded images, html entities, etc.
+        # so we are going to trust nbconvert and just do some basic sanity checks
+        # it is also the case that we (often) need to update nbconvert, and
+        # HTML output changes version over version, so checking for exact HTML
+        # is fragile
+        assert body_html.count('<div') > 0, 'expected divs in ipynb HTML'
+        assert body_html.count('<div') == body_html.count('</div>')
+        assert body_html.count('<span') > 0, 'expected spans in ipynb HTML'
+        assert body_html.count('<span') == body_html.count('</span>')
+        # check for some strings we know should be in there
+        assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
+        assert 'Preprocessing' in body_html, 'missing expected contents'
+        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
+            'Unexpected output cell; exclude_output:true was given' 
+        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
+            'Last cell output missing'
+        assert len(body_html.encode()) < 19_000, \
+            'Preview larger than expected; exclude_output:true was given'
 
     @responses.activate
     def test_parquet(self):
