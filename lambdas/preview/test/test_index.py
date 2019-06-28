@@ -183,8 +183,8 @@ class TestIndex():
         body_html = body['html']
         assert body_html.count('<table') == 1, 'expected one HTML table'
         assert body_html.count('</table>') == 1, 'expected one HTML table'
-        assert body_html.count('<thead>') == 1, 'expected one HTML table'
-        assert body_html.count('</thead>') == 1, 'expected one HTML table'
+        assert body_html.count('<thead>') == 1, 'expected one HTML table head'
+        assert body_html.count('</thead>') == 1, 'expected one HTML table head'
         assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
         assert '<td>Nicholas Fury, Jr., Marcus Johnson</td>' in body_html, \
             'Expected Nick to be an Avenger'
