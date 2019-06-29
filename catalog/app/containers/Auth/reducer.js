@@ -13,14 +13,10 @@ import {
 } from 'utils/reduxTools'
 
 import { actions } from './constants'
-import { InvalidToken } from './errors'
 
 const initial = {
   state: 'SIGNED_OUT',
 }
-
-const handleInvalidToken = (lost, error) => (e) =>
-  e instanceof InvalidToken ? lost : error
 
 export default withInitialState(
   fromJS(initial),
@@ -68,12 +64,10 @@ export default withInitialState(
           user: ({ user }) => (user ? fromJS(user) : noop),
         }),
         reject: combine({
-          // if token is invalid, sign out and destroy auth data,
-          // otherwise (backend malfunction or smth) just register error
-          state: handleInvalidToken('SIGNED_OUT', 'SIGNED_IN'),
+          state: 'SIGNED_OUT',
           error: id,
-          tokens: handleInvalidToken(unset, noop),
-          user: handleInvalidToken(unset, noop),
+          tokens: unset,
+          user: unset,
         }),
       }),
     }),
