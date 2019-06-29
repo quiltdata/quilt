@@ -74,6 +74,12 @@ const fetchConfig = async (path) => {
   }
 }
 
+const transformConfig = (cfg) => ({
+  ...cfg,
+  shouldSign: (bucket) => [cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
+  shouldProxy: (bucket) => ![cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
+})
+
 const fetchBucket = async (b) => {
   try {
     const res = await fetch(b)
@@ -147,7 +153,7 @@ const fetchFederations = R.pipe(
 
 const ConfigResource = Cache.createResource({
   name: 'Config.config',
-  fetch: fetchConfig,
+  fetch: R.pipeWith(R.then)([fetchConfig, transformConfig]),
 })
 
 const FederationsResource = Cache.createResource({

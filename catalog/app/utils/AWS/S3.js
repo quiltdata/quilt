@@ -37,8 +37,8 @@ export const use = useS3
 
 export const useRequest = (extra) => {
   const cfg = useConfig()
-  const s3RegularClient = useS3(extra)
-  const s3ProxyingClient = useS3({
+  const regularClient = useS3(extra)
+  const proxyingClient = useS3({
     endpoint: cfg.s3Proxy,
     s3ForcePathStyle: true,
     ...extra,
@@ -46,13 +46,14 @@ export const useRequest = (extra) => {
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
-      const useProxy = bucket !== cfg.defaultBucket && bucket !== cfg.analyticsBucket
-      const client = useProxy ? s3ProxyingClient : s3RegularClient
+      const client = cfg.shouldProxy(bucket) ? proxyingClient : regularClient
       const method =
-        authenticated && !useProxy ? 'makeRequest' : 'makeUnauthenticatedRequest'
+        authenticated && cfg.shouldSign(bucket)
+          ? 'makeRequest'
+          : 'makeUnauthenticatedRequest'
       return client[method](operation, params).promise()
     },
-    [s3RegularClient, s3ProxyingClient, authenticated, cfg.defaultBucket],
+    [regularClient, proxyingClient, authenticated, cfg],
   )
 }
 
