@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import { conforms, isNullable, isArrayOf } from 'utils/validate'
+import { conforms, isNullable, isArrayOf, isNonEmptyArrayOf, oneOf } from 'utils/validate'
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
@@ -18,29 +18,34 @@ const parseJSON = (msg = 'invalid JSON') =>
     throw new ConfigError(`${msg}:\n${src}`, { src, originalError: e })
   })
 
+const SSO_PROVIDERS = ['google']
+
 const validateConfig = conforms({
   registryUrl: R.is(String),
   alwaysRequiresAuth: R.is(Boolean),
-  sentryDSN: isNullable(String),
-  intercomAppId: isNullable(String),
-  mixpanelToken: isNullable(String),
+  sentryDSN: isNullable(R.is(String)),
+  intercomAppId: isNullable(R.is(String)),
+  mixpanelToken: isNullable(R.is(String)),
   apiGatewayEndpoint: R.is(String),
   defaultBucket: R.is(String),
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
-  disableSignUp: isNullable(Boolean),
+  passwordAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
+  ssoAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
+  ssoProviders: isNullable(isNonEmptyArrayOf(oneOf(SSO_PROVIDERS))),
   s3Proxy: R.is(String),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
+  googleClientId: isNullable(R.is(String)),
 })
 
 const validateBucket = conforms({
   name: R.is(String),
-  title: isNullable(String),
-  icon: isNullable(String),
-  description: isNullable(String),
-  searchEndpoint: isNullable(String),
-  apiGatewayEndpoint: isNullable(String),
+  title: isNullable(R.is(String)),
+  icon: isNullable(R.is(String)),
+  description: isNullable(R.is(String)),
+  searchEndpoint: isNullable(R.is(String)),
+  apiGatewayEndpoint: isNullable(R.is(String)),
 })
 
 const validateFederation = conforms({

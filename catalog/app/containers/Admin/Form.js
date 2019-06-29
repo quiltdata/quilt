@@ -1,7 +1,7 @@
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
-import * as RF from 'redux-form/immutable'
+import * as RF from 'redux-form/es/immutable'
 import TextField from '@material-ui/core/TextField'
 import Typography from '@material-ui/core/Typography'
 import { withStyles } from '@material-ui/styles'

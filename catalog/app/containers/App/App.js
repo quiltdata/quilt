@@ -38,6 +38,7 @@ const AuthPassReset = mkLazy(() => import('containers/Auth/PassReset'))
 const AuthSignIn = mkLazy(() => import('containers/Auth/SignIn'))
 const AuthSignOut = mkLazy(() => import('containers/Auth/SignOut'))
 const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
+const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
 const HomePage = mkLazy(() => import('containers/HomePage'))
 
@@ -60,9 +61,18 @@ export default () => {
         <Route path={paths.signIn} component={AuthSignIn} exact />
         <Route path="/login" component={redirectTo(urls.signIn())} exact />
         <Route path={paths.signOut} component={AuthSignOut} exact />
-        {!cfg.disableSignUp && <Route path={paths.signUp} component={AuthSignUp} exact />}
-        <Route path={paths.passReset} component={AuthPassReset} exact />
-        <Route path={paths.passChange} component={AuthPassChange} exact />
+        {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+          <Route path={paths.signUp} component={AuthSignUp} exact />
+        )}
+        {cfg.ssoAuth === true && (
+          <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
+        )}
+        {!!cfg.passwordAuth && (
+          <Route path={paths.passReset} component={AuthPassReset} exact />
+        )}
+        {!!cfg.passwordAuth && (
+          <Route path={paths.passChange} component={AuthPassChange} exact />
+        )}
         <Route path={paths.code} component={protect(AuthCode)} exact />
         <Route path={paths.activationError} component={AuthActivationError} exact />
 
