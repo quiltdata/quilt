@@ -34,6 +34,11 @@ SCHEMA = {
         'url': {
             'type': 'string'
         },
+        # separator for CSV files
+        'sep': {
+            'minLength': 1,
+            'maxLength': 1
+        },
         'max_bytes' : {
             'type': 'string',
         },
@@ -70,6 +75,7 @@ def lambda_handler(request):
     url = request.args['url']
     input_type = request.args.get('input')
     compression = request.args.get('compression')
+    separator = request.args.get('sep') or ','
     exclude_output = request.args.get('exclude_output') == 'true'
     max_bytes = request.args.get('max_bytes', MAX_BYTES)
 
@@ -95,7 +101,10 @@ def lambda_handler(request):
     resp = requests.get(url, stream=True)
     if resp.ok:
         if input_type == 'csv':
-            html, info = extract_csv(_from_stream(resp, compression, line_count, max_bytes))
+            html, info = extract_csv(
+                _from_stream(resp, compression, line_count, max_bytes),
+                separator
+            )
         elif input_type == 'excel':
             html, info = extract_excel(_to_memory(resp, compression))
         elif input_type == 'ipynb':
@@ -124,7 +133,7 @@ def lambda_handler(request):
 
     return make_json_response(200, ret_val)
 
-def extract_csv(head):
+def extract_csv(head, separator):
     """
     csv file => data frame => html
     Args:
@@ -137,7 +146,10 @@ def extract_csv(head):
     import pandas
     import re
     # this shouldn't balloon memory because head is limited in size by _from_stream
-    data = pandas.read_csv(io.StringIO('\n'.join(head)))
+    data = pandas.read_csv(
+        io.StringIO('\n'.join(head)),
+        sep=separator
+    )
     html = data._repr_html_() # pylint: disable=protected-access
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
