@@ -101,7 +101,10 @@ def lambda_handler(request):
     resp = requests.get(url, stream=True)
     if resp.ok:
         if input_type == 'csv':
-            html, info = extract_csv(_from_stream(resp, compression, line_count, max_bytes), separator)
+            html, info = extract_csv(
+                _from_stream(resp, compression, line_count, max_bytes),
+                separator
+            )
         elif input_type == 'excel':
             html, info = extract_excel(_to_memory(resp, compression))
         elif input_type == 'ipynb':
