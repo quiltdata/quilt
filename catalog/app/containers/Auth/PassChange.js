@@ -4,7 +4,7 @@ import { FormattedMessage as FM } from 'react-intl'
 import { connect } from 'react-redux'
 import { branch, renderComponent, withStateHandlers } from 'recompose'
 import { createStructuredSelector } from 'reselect'
-import { reduxForm, Field, SubmissionError } from 'redux-form/immutable'
+import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 
 import Working from 'components/Working'
 import * as NamedRoutes from 'utils/NamedRoutes'

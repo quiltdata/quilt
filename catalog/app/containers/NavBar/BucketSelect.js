@@ -1,4 +1,4 @@
-import { push } from 'connected-react-router/immutable'
+import { push } from 'connected-react-router/esm/immutable'
 import deburr from 'lodash/deburr'
 import PT from 'prop-types'
 import * as R from 'ramda'
