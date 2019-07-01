@@ -164,7 +164,9 @@ const previewUrl = (endpoint, query) =>
 const fetchPreview = async ({ endpoint, type, handle, signer, ...rest }) => {
   const signed = signer.getSignedS3URL(handle)
   const compression = getCompression(handle.key)
-  const r = await fetch(previewUrl(endpoint, { url: signed, type, compression, ...rest }))
+  const r = await fetch(
+    previewUrl(endpoint, { url: signed, input: type, compression, ...rest }),
+  )
   const json = await r.json()
   return json
 }
