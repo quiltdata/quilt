@@ -158,13 +158,15 @@ export const objectGetter = (process) => {
     withData({ fetch, params: { s3req, handle, ...extra }, noAutoFetch: gated }, callback)
 }
 
-const previewUrl = (endpoint, url, input, compression) =>
-  `${endpoint}/preview${NamedRoutes.mkSearch({ url, input, compression })}`
+const previewUrl = (endpoint, query) =>
+  `${endpoint}/preview${NamedRoutes.mkSearch(query)}`
 
-const fetchPreview = async ({ endpoint, type, handle, signer }) => {
+const fetchPreview = async ({ endpoint, type, handle, signer, ...rest }) => {
   const signed = signer.getSignedS3URL(handle)
   const compression = getCompression(handle.key)
-  const r = await fetch(previewUrl(endpoint, signed, type, compression))
+  const r = await fetch(
+    previewUrl(endpoint, { url: signed, input: type, compression, ...rest }),
+  )
   const json = await r.json()
   return json
 }
