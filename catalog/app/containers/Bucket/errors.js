@@ -6,6 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 
 import * as Auth from 'containers/Auth'
+import docs from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { BaseError } from 'utils/error'
@@ -53,7 +54,9 @@ const defaultHandlers = [
       <Message headline="Error">
         Seems like this bucket is not configured for T4.
         <br />
-        <StyledLink href="https://quiltdocs.gitbook.io/t4/references/technical-reference#deploy-a-private-quilt-instance-on-aws">
+        <StyledLink
+          href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
+        >
           Learn how to configure the bucket for T4
         </StyledLink>
         .
@@ -67,7 +70,9 @@ const defaultHandlers = [
         <Message headline="Access Denied">
           Seems like you don&apos;t have access to this bucket.
           <br />
-          <StyledLink href="https://quiltdocs.gitbook.io/t4/walkthrough/working-with-the-catalog#access-control">
+          <StyledLink
+            href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
+          >
             Learn about access control in T4
           </StyledLink>
           .
