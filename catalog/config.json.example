@@ -13,8 +13,8 @@
   "federations": [
     "/federation.json"
   ],
-  "passwordAuth": true,
+  "passwordAuth": "ENABLED",
   "ssoAuth": "SIGN_IN_ONLY",
-  "ssoProviders": ["google"],
+  "ssoProviders": "google",
   "googleClientId": "414254601868-vlofcqbns27cd7v337k0v8kg6g11fukr.apps.googleusercontent.com"
 }

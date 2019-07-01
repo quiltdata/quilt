@@ -13,10 +13,6 @@
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
     },
-    "disableSignUp": {
-      "type": "boolean",
-      "description": "If true, don't show Sign Up UI. Useful for private/business catalogs."
-    },
     "federations": {
       "type": "array",
       "description": "List of links to federations you want your catalog to be aware of.",
@@ -41,6 +37,18 @@
     "signOutRedirect": {
       "type": "string",
       "description": "Where users will be redirected upon successful logout."
+    },
+    "passwordAuth": {
+      "type": "string",
+      "description": "Whether password authentication is enabled for sign in and sign up."
+    },
+    "ssoAuth": {
+      "type": "string",
+      "description": "Whether Single Sign-On authentication is enabled for sign in and sign up."
+    },
+    "ssoProviders": {
+      "type": "string",
+      "description": "Space-separated list of Single Sign-On providers (just Google for now)."
     },
     "suggestedBuckets": {
       "type": "array",
@@ -73,6 +81,9 @@
     "sentryDSN",
     "signInRedirect",
     "signOutRedirect",
+    "passwordAuth",
+    "ssoAuth",
+    "ssoProviders",
     "suggestedBuckets",
     "s3Proxy"
   ],
