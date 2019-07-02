@@ -19,7 +19,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { readableQuantity } from 'utils/string'
 
-import docs from 'constants/urls'
+import { docs } from 'constants/urls'
 import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
