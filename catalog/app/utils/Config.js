@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import { conforms, isNullable, isArrayOf, isNonEmptyArrayOf, oneOf } from 'utils/validate'
+import { conforms, isNullable, isArrayOf, oneOf } from 'utils/validate'
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
@@ -17,8 +17,6 @@ const parseJSON = (msg = 'invalid JSON') =>
   R.tryCatch(JSON.parse, (e, src) => {
     throw new ConfigError(`${msg}:\n${src}`, { src, originalError: e })
   })
-
-const SSO_PROVIDERS = ['google']
 
 const validateConfig = conforms({
   registryUrl: R.is(String),
@@ -30,9 +28,9 @@ const validateConfig = conforms({
   defaultBucket: R.is(String),
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
-  passwordAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
-  ssoAuth: isNullable(oneOf([true, false, 'SIGN_IN_ONLY'])),
-  ssoProviders: isNullable(isNonEmptyArrayOf(oneOf(SSO_PROVIDERS))),
+  passwordAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
+  ssoAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
+  ssoProviders: oneOf(['', 'google']),
   s3Proxy: R.is(String),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
@@ -52,6 +50,21 @@ const validateFederation = conforms({
   buckets: isArrayOf(R.either(R.is(String), validateBucket)),
 })
 
+const fixConfig = (cfg) => {
+  const { passwordAuth, ssoAuth, ssoProviders, ...rest } = cfg
+  const authMap = {
+    ENABLED: true,
+    DISABLED: false,
+    SIGN_IN_ONLY: 'SIGN_IN_ONLY',
+  }
+  return {
+    passwordAuth: authMap[passwordAuth],
+    ssoAuth: authMap[ssoAuth],
+    ssoProviders: ssoProviders.length ? ssoProviders.split(' ') : [],
+    ...rest,
+  }
+}
+
 const fetchConfig = async (path) => {
   try {
     const res = await fetch(path)
@@ -70,6 +83,7 @@ const fetchConfig = async (path) => {
           { json },
         )
       }),
+      fixConfig,
     )(text)
   } catch (e) {
     if (!(e instanceof ConfigError)) {
