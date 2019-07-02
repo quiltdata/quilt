@@ -40,7 +40,7 @@
     },
     "passwordAuth": {
       "type": "string",
-      "description": "Whether password authentication is enabled for sign in and sign up."
+      "description": "Whether Quilt password authentication is enabled for sign in and sign up."
     },
     "ssoAuth": {
       "type": "string",
@@ -48,7 +48,7 @@
     },
     "ssoProviders": {
       "type": "string",
-      "description": "Space-separated list of Single Sign-On providers (just Google for now)."
+      "description": "Space-separated list of Single Sign-On providers (just 'google' for now)."
     },
     "suggestedBuckets": {
       "type": "array",
