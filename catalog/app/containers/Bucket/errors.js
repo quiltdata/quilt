@@ -6,7 +6,7 @@ import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 
 import * as Auth from 'containers/Auth'
-import docs from 'constants/urls'
+import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { BaseError } from 'utils/error'
