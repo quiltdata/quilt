@@ -268,8 +268,9 @@ const PreviewBox = RT.composeComponent(
         marginLeft: 'auto',
         marginRight: 'auto',
       },
-      // workaround to speed-up notebook preview rendering: only show the first cell
-      '& .ipynb-preview .cell:nth-child(n+2)': {
+      // workaround to speed-up notebook preview rendering:
+      // only show 2 first cells unless expanded
+      '&:not($expanded) .ipynb-preview .cell:nth-child(n+3)': {
         display: 'none',
       },
     },
