@@ -13,7 +13,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
 
-import docs from 'constants/urls'
+import { docs } from 'constants/urls'
 import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
