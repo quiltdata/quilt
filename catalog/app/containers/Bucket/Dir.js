@@ -13,6 +13,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
 
+import { docs } from 'constants/urls'
 import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
@@ -22,7 +23,7 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const HELP_LINK = 'https://quiltdocs.gitbook.io/t4/walkthrough/working-with-a-bucket'
+const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
 
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(' / ')),

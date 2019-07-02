@@ -19,6 +19,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { readableQuantity } from 'utils/string'
 
+import { docs } from 'constants/urls'
 import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -89,10 +90,7 @@ export default ({
           R.isEmpty,
           () => (
             <Message headline="No packages">
-              <Link href="https://quiltdocs.gitbook.io/t4/walkthrough/creating-a-package">
-                Learn how to create a package
-              </Link>
-              .
+              <Link href={`${docs}/walkthrough/`}>Learn how to create a package</Link> .
             </Message>
           ),
           R.pipe(
