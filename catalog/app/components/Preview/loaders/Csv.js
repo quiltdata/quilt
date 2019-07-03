@@ -17,4 +17,4 @@ const fetcher = utils.previewFetcher('csv', (json) =>
 const isTsv = utils.extIs('.tsv')
 
 export const load = (handle, callback) =>
-  fetcher(handle, callback, isTsv(handle.key) ? { sep: '\t' } : undefined)
+  fetcher(handle, callback, isTsv(handle.key) ? { query: { sep: '\t' } } : undefined)
