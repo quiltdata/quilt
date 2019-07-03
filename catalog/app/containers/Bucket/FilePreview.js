@@ -62,7 +62,7 @@ export default ({ handle }) =>
         Unsupported: () => (
           <Message>
             {withSignedUrl(handle, (url) => (
-              <Button variant="outlined" href={url}>
+              <Button variant="outlined" href={url} download>
                 Download and view in Browser
               </Button>
             ))}

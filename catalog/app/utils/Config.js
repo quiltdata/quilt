@@ -7,7 +7,7 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import { conforms, isNullable, isArrayOf } from 'utils/validate'
+import { conforms, isNullable, isArrayOf, oneOf } from 'utils/validate'
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
@@ -21,34 +21,49 @@ const parseJSON = (msg = 'invalid JSON') =>
 const validateConfig = conforms({
   registryUrl: R.is(String),
   alwaysRequiresAuth: R.is(Boolean),
-  sentryDSN: isNullable(String),
-  intercomAppId: isNullable(String),
-  mixpanelToken: isNullable(String),
+  sentryDSN: isNullable(R.is(String)),
+  intercomAppId: isNullable(R.is(String)),
+  mixpanelToken: isNullable(R.is(String)),
   apiGatewayEndpoint: R.is(String),
   defaultBucket: R.is(String),
   signInRedirect: R.is(String),
   signOutRedirect: R.is(String),
-  disableSignUp: isNullable(Boolean),
-  guestCredentials: conforms({
-    accessKeyId: R.is(String),
-    secretAccessKey: R.is(String),
-  }),
+  passwordAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
+  ssoAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
+  ssoProviders: oneOf(['', 'google']),
+  s3Proxy: R.is(String),
   suggestedBuckets: isArrayOf(R.is(String)),
   federations: isArrayOf(R.is(String)),
+  googleClientId: isNullable(R.is(String)),
 })
 
 const validateBucket = conforms({
   name: R.is(String),
-  title: isNullable(String),
-  icon: isNullable(String),
-  description: isNullable(String),
-  searchEndpoint: isNullable(String),
-  apiGatewayEndpoint: isNullable(String),
+  title: isNullable(R.is(String)),
+  icon: isNullable(R.is(String)),
+  description: isNullable(R.is(String)),
+  searchEndpoint: isNullable(R.is(String)),
+  apiGatewayEndpoint: isNullable(R.is(String)),
 })
 
 const validateFederation = conforms({
   buckets: isArrayOf(R.either(R.is(String), validateBucket)),
 })
+
+const fixConfig = (cfg) => {
+  const { passwordAuth, ssoAuth, ssoProviders, ...rest } = cfg
+  const authMap = {
+    ENABLED: true,
+    DISABLED: false,
+    SIGN_IN_ONLY: 'SIGN_IN_ONLY',
+  }
+  return {
+    passwordAuth: authMap[passwordAuth],
+    ssoAuth: authMap[ssoAuth],
+    ssoProviders: ssoProviders.length ? ssoProviders.split(' ') : [],
+    ...rest,
+  }
+}
 
 const fetchConfig = async (path) => {
   try {
@@ -68,6 +83,7 @@ const fetchConfig = async (path) => {
           { json },
         )
       }),
+      fixConfig,
     )(text)
   } catch (e) {
     if (!(e instanceof ConfigError)) {
@@ -76,6 +92,12 @@ const fetchConfig = async (path) => {
     throw e
   }
 }
+
+const transformConfig = (cfg) => ({
+  ...cfg,
+  shouldSign: (bucket) => [cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
+  shouldProxy: (bucket) => ![cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
+})
 
 const fetchBucket = async (b) => {
   try {
@@ -150,7 +172,7 @@ const fetchFederations = R.pipe(
 
 const ConfigResource = Cache.createResource({
   name: 'Config.config',
-  fetch: fetchConfig,
+  fetch: R.pipeWith(R.then)([fetchConfig, transformConfig]),
 })
 
 const FederationsResource = Cache.createResource({

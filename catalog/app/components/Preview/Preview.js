@@ -13,12 +13,14 @@ const fallback = {
 }
 
 const loaderChain = [
+  loaders.Csv,
   loaders.Excel,
   loaders.Json,
   loaders.Markdown,
   loaders.Notebook,
   loaders.Parquet,
   loaders.Vcf,
+  loaders.Html,
   loaders.Text,
   loaders.Image,
   fallback,

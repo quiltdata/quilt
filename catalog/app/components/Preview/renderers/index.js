@@ -1,5 +1,6 @@
 export { default as DataFrame } from './DataFrame'
 export { default as Image } from './Image'
+export { default as IFrame } from './IFrame'
 export { default as Markdown } from './Markdown'
 export { default as Notebook } from './Notebook'
 export { default as Parquet } from './Parquet'

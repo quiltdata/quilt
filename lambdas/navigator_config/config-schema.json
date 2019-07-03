@@ -13,39 +13,18 @@
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
     },
-    "disableSignUp": {
-      "type": "boolean",
-      "description": "If true, don't show Sign Up UI. Useful for private/business catalogs."
-    },
     "federations": {
       "type": "array",
       "description": "List of links to federations you want your catalog to be aware of.",
       "items": { "$ref": "#/definitions/urlSchema" }
-    },
-    "guestCredentials": {
-      "type": "object",
-      "description": "Credentials anonymous users will use to access resources.",
-      "properties": {
-        "accessKeyId": {
-          "type": "string"
-        },
-        "secretAccessKey": {
-          "type": "string"
-        }
-      }
     },
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
     },
     "registryUrl": {
-      "allOf": [
-        {
-          "type": "string",
-          "description": "Registry your users will use to login and get credentials."
-        },
-        { "$ref": "#/definitions/urlSchema" }
-      ]
+      "$ref": "#/definitions/urlSchema",
+      "description": "Registry your users will use to login and get credentials."
     },
     "sentryDSN": {
       "type": "string",
@@ -58,6 +37,18 @@
     "signOutRedirect": {
       "type": "string",
       "description": "Where users will be redirected upon successful logout."
+    },
+    "passwordAuth": {
+      "type": "string",
+      "description": "Whether Quilt password authentication is enabled for sign in and sign up."
+    },
+    "ssoAuth": {
+      "type": "string",
+      "description": "Whether Single Sign-On authentication is enabled for sign in and sign up."
+    },
+    "ssoProviders": {
+      "type": "string",
+      "description": "Space-separated list of Single Sign-On providers (just 'google' for now)."
     },
     "suggestedBuckets": {
       "type": "array",
@@ -74,6 +65,10 @@
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
+    },
+    "s3Proxy": {
+      "$ref": "#/definitions/urlSchema",
+      "description": "Proxy server to use to get around S3 buckets with no CORS policies."
     }
   },
   "required": [
@@ -81,13 +76,16 @@
     "apiGatewayEndpoint",
     "defaultBucket",
     "federations",
-    "guestCredentials",
     "mixPanelToken",
     "registryUrl",
     "sentryDSN",
     "signInRedirect",
     "signOutRedirect",
-    "suggestedBuckets"
+    "passwordAuth",
+    "ssoAuth",
+    "ssoProviders",
+    "suggestedBuckets",
+    "s3Proxy"
   ],
   "additionalProperties": false,
   "definitions": {

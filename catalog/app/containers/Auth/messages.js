@@ -7,10 +7,6 @@ export default defineMessages({
     id: `${scope}.notificationAuthLost`,
     defaultMessage: 'Authentication lost. Sign in again.',
   },
-  notificationAuthError: {
-    id: `${scope}.notificationAuthError`,
-    defaultMessage: 'Authentication error. Try again later.',
-  },
 
   // Wrapper
   wrapperFailureHeading: {
@@ -30,14 +26,49 @@ export default defineMessages({
     defaultMessage: 'Authenticating...',
   },
 
+  // SSO
+  ssoGoogleUse: {
+    id: `${scope}.SSO.Google.use`,
+    defaultMessage: 'Use Google Account',
+  },
+  ssoGoogleError: {
+    id: `${scope}.SSO.Google.error`,
+    defaultMessage: 'Unable to sign in with Google. {details}',
+  },
+  ssoGoogleErrorUnexpected: {
+    id: `${scope}.SSO.Google.errorUnexpected`,
+    defaultMessage: 'Unable to sign in with Google. Try again later or contact support.',
+  },
+  ssoGoogleNotFound: {
+    id: `${scope}.SSO.Google.notFound`,
+    defaultMessage:
+      'No Quilt user linked to this Google account. Notify your Quilt administrator.',
+  },
+  ssoSignUpHeading: {
+    id: `${scope}.SSO.SignUp.heading`,
+    defaultMessage: 'Complete sign-up',
+  },
+  ssoSignUpCancel: {
+    id: `${scope}.SSO.SignUp.cancel`,
+    defaultMessage: 'Cancel',
+  },
+  ssoSignUpErrorEmailDomain: {
+    id: `${scope}.SSO.SignUp.errorEmailDomain`,
+    defaultMessage: 'Email domain is not allowed',
+  },
+  ssoSignUpSignInError: {
+    id: `${scope}.SSO.SignUp.signInError`,
+    defaultMessage: "Couldn't sign in automatically",
+  },
+
   // SignUp
   signUpHeading: {
     id: `${scope}.SignUp.heading`,
     defaultMessage: 'Sign up',
   },
-  signUpPassResetHint: {
-    id: `${scope}.SignUp.passResetHint`,
-    defaultMessage: 'Did you forget your password?',
+  signUpSignInHint: {
+    id: `${scope}.SignUp.signInHint`,
+    defaultMessage: 'signing in',
   },
   signUpUsernameLabel: {
     id: `${scope}.SignUp.usernameLabel`,
@@ -49,7 +80,7 @@ export default defineMessages({
   },
   signUpUsernameTaken: {
     id: `${scope}.SignUp.usernameTaken`,
-    defaultMessage: 'Username taken. {link}',
+    defaultMessage: 'Username taken, try {link}',
   },
   signUpUsernameInvalid: {
     id: `${scope}.SignUp.usernameInvalid`,
@@ -66,7 +97,7 @@ export default defineMessages({
   },
   signUpEmailTaken: {
     id: `${scope}.SignUp.emailTaken`,
-    defaultMessage: 'Email taken. {link}',
+    defaultMessage: 'Email taken, try {link}',
   },
   signUpEmailInvalid: {
     id: `${scope}.SignUp.emailInvalid`,

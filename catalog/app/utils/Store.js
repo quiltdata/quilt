@@ -1,4 +1,4 @@
-import { routerMiddleware } from 'connected-react-router/immutable'
+import { routerMiddleware } from 'connected-react-router/esm/immutable'
 import { fromJS, Iterable } from 'immutable'
 import PT from 'prop-types'
 import * as React from 'react'

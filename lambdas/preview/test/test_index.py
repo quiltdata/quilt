@@ -3,6 +3,7 @@ Test functions for preview endpoint
 """
 import json
 import pathlib
+import re
 import os
 
 from unittest.mock import patch
@@ -72,6 +73,29 @@ class TestIndex():
         assert 'invalid literal' in body['detail'], 'Expected 400 explanation'
 
     @responses.activate
+    def test_csv(self):
+        """test returning HTML previews of CSV (via pandas)"""
+        csv = BASE_DIR / 'sample.csv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        body_html = body['html']
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
+        with open(BASE_DIR / 'csv_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
+
+    @responses.activate
     def test_excel(self):
         """test parsing excel files in S3"""
         workbook = BASE_DIR / 'sample.xlsx'
@@ -106,6 +130,7 @@ class TestIndex():
         body = json.loads(resp['body'])
         assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
         body_html = body['html']
+
         # neither lxml, nor py_w3c.validators.html.validator works to validate
         # these fragments; reasons include base64 encoded images, html entities, etc.
         # so we are going to trust nbconvert and just do some basic sanity checks
@@ -125,6 +150,40 @@ class TestIndex():
             'Last cell output missing'
 
     @responses.activate
+    def test_ipynb_exclude(self):
+        """test sending ipynb bytes"""
+        notebook = BASE_DIR / 'nb_1200727.ipynb'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=notebook.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'ipynb', 'exclude_output': 'true'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on nb_1200727.ipynb'
+        body_html = body['html']
+        # neither lxml, nor py_w3c.validators.html.validator works to validate
+        # these fragments; reasons include base64 encoded images, html entities, etc.
+        # so we are going to trust nbconvert and just do some basic sanity checks
+        # it is also the case that we (often) need to update nbconvert, and
+        # HTML output changes version over version, so checking for exact HTML
+        # is fragile
+        assert body_html.count('<div') > 0, 'expected divs in ipynb HTML'
+        assert body_html.count('<div') == body_html.count('</div>')
+        assert body_html.count('<span') > 0, 'expected spans in ipynb HTML'
+        assert body_html.count('<span') == body_html.count('</span>')
+        # check for some strings we know should be in there
+        assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
+        assert 'Preprocessing' in body_html, 'missing expected contents'
+        assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
+            'Unexpected output cell; exclude_output:true was given' 
+        assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
+            'Last cell output missing'
+        assert len(body_html.encode()) < 19_000, \
+            'Preview larger than expected; exclude_output:true was given'
+
+    @responses.activate
     def test_parquet(self):
         """test sending parquet bytes"""
         parquet = BASE_DIR / 'atlantic_storms.parquet'
@@ -142,6 +201,33 @@ class TestIndex():
             expected = json.load(info_json)
         assert (body['info'] == expected), \
             f'Unexpected body["info"] for {parquet}'
+
+    @responses.activate
+    def test_tsv(self):
+        """test returning HTML previews of TSV (via pandas)"""
+        csv = BASE_DIR / 'avengers.tsv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        body_html = body['html']
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<thead>') == 1, 'expected one HTML table head'
+        assert body_html.count('</thead>') == 1, 'expected one HTML table head'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert '<td>Nicholas Fury, Jr., Marcus Johnson</td>' in body_html, \
+            'Expected Nick to be an Avenger'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
+        with open(BASE_DIR / 'tsv_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
 
     @responses.activate
     def test_no_meta_parquet(self):
