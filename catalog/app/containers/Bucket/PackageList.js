@@ -103,7 +103,7 @@ export default ({
                         <Link to={urls.bucketPackageDetail(bucket, name)}>{name}</Link>
                       </Typography>
                       <Typography variant="body1">
-                        Updated on {modified.toLocaleString()}
+                        Updated on {modified ? modified.toLocaleString() : '???'}
                       </Typography>
                     </Box>
                     {!!analyticsBucket && (

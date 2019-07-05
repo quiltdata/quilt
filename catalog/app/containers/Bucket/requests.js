@@ -191,7 +191,7 @@ export const listPackages = ({ s3req, bucket }) =>
                   },
                 }).then(({ Contents: [latest] }) => ({
                   name: p.Prefix.slice(PACKAGES_PREFIX.length, -1),
-                  modified: latest.LastModified,
+                  modified: latest ? latest.LastModified : null,
                 })),
               ),
             ),
