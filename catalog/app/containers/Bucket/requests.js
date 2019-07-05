@@ -189,10 +189,19 @@ export const listPackages = ({ s3req, bucket }) =>
                     Bucket: bucket,
                     Prefix: `${p.Prefix}latest`,
                   },
-                }).then(({ Contents: [latest] }) => ({
-                  name: p.Prefix.slice(PACKAGES_PREFIX.length, -1),
-                  modified: latest ? latest.LastModified : null,
-                })),
+                }).then(({ Contents: [latest] }) => {
+                  const name = p.Prefix.slice(PACKAGES_PREFIX.length, -1)
+                  if (!latest) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                      `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
+                    )
+                  }
+                  return {
+                    name,
+                    modified: latest ? latest.LastModified : null,
+                  }
+                }),
               ),
             ),
           ),
