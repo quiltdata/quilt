@@ -94,7 +94,7 @@ export default ({
             </Message>
           ),
           R.pipe(
-            R.map(({ name, revisions: { latest: { modified } } }) => (
+            R.map(({ name, modified }) => (
               <Box component={Card} key={name} mt={1}>
                 <CardContent>
                   <Box display="flex" justifyContent="space-between">
@@ -103,7 +103,8 @@ export default ({
                         <Link to={urls.bucketPackageDetail(bucket, name)}>{name}</Link>
                       </Typography>
                       <Typography variant="body1">
-                        Updated on {modified.toLocaleString()}
+                        Updated on{' '}
+                        {modified ? modified.toLocaleString() : '[unknown: see console]'}
                       </Typography>
                     </Box>
                     {!!analyticsBucket && (
