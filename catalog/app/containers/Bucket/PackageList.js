@@ -94,7 +94,7 @@ export default ({
             </Message>
           ),
           R.pipe(
-            R.map(({ name, revisions: { latest: { modified } } }) => (
+            R.map(({ name, modified }) => (
               <Box component={Card} key={name} mt={1}>
                 <CardContent>
                   <Box display="flex" justifyContent="space-between">

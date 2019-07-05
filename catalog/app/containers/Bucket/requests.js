@@ -158,36 +158,48 @@ export const summarize = async ({ s3req, handle }) => {
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
 
-export const listPackages = async ({ s3req, bucket }) =>
+export const listPackages = ({ s3req, bucket }) =>
   s3req({
     bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
       Prefix: PACKAGES_PREFIX,
+      Delimiter: '/',
     },
   })
-    .then(
-      R.pipe(
-        R.prop('Contents'),
-        R.map(({ Key, LastModified }) => {
-          const i = Key.lastIndexOf('/')
-          const name = Key.substring(PACKAGES_PREFIX.length, i)
-          const revision = Key.substring(i + 1)
-          return { name, revision, key: Key, modified: LastModified }
-        }),
-        R.reduce(
-          (acc, { name, revision, key, modified }) => ({
-            ...acc,
-            [name]: { ...acc[name], [revision]: { key, modified } },
-          }),
-          {},
+    .then(({ CommonPrefixes: ownerPrefixes }) =>
+      Promise.all(
+        ownerPrefixes.map(({ Prefix }) =>
+          s3req({
+            bucket,
+            operation: 'listObjectsV2',
+            params: {
+              Bucket: bucket,
+              Prefix,
+              Delimiter: '/',
+            },
+          }).then(({ CommonPrefixes: namePrefixes }) =>
+            Promise.all(
+              namePrefixes.map((p) =>
+                s3req({
+                  bucket,
+                  operation: 'listObjectsV2',
+                  params: {
+                    Bucket: bucket,
+                    Prefix: `${p.Prefix}latest`,
+                  },
+                }).then(({ Contents: [latest] }) => ({
+                  name: p.Prefix.slice(PACKAGES_PREFIX.length, -1),
+                  modified: latest.LastModified,
+                })),
+              ),
+            ),
+          ),
         ),
-        R.toPairs,
-        R.map(([name, revisions]) => ({ name, revisions })),
-        R.filter(({ name }) => name.includes('/')),
       ),
     )
+    .then(R.unnest)
     .catch(catchErrors())
 
 const loadRevisionHash = ({ s3req, bucket, key }) =>
