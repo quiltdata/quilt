@@ -1,3 +1,4 @@
+import Ajv from 'ajv'
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
@@ -7,63 +8,35 @@ import AsyncResult from 'utils/AsyncResult'
 import * as Cache from 'utils/ResourceCache'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-import { conforms, isNullable, isArrayOf, oneOf } from 'utils/validate'
+
+import configSchema from '../../config-schema.json'
+import federationSchema from '../../federation-schema.json'
+
+const ajv = new Ajv({ allErrors: true, removeAdditional: true })
+
+ajv.addSchema(configSchema, 'Config')
+ajv.addSchema(federationSchema, 'Federation')
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
+}
+
+const pprint = (x) => JSON.stringify(x, null, 2)
+
+const validate = (schema, msg) => (input) => {
+  if (ajv.validate(schema, input)) return input
+  const printErrors = `Errors array:\n${pprint(ajv.errors)}`
+  const printInput = `Input:\n${pprint(input)}`
+  throw new ConfigError(`${msg}:\n${ajv.errorsText()}\n${printErrors}\n${printInput}`, {
+    errors: ajv.errors,
+    input,
+  })
 }
 
 const parseJSON = (msg = 'invalid JSON') =>
   R.tryCatch(JSON.parse, (e, src) => {
     throw new ConfigError(`${msg}:\n${src}`, { src, originalError: e })
   })
-
-const validateConfig = conforms({
-  registryUrl: R.is(String),
-  alwaysRequiresAuth: R.is(Boolean),
-  sentryDSN: isNullable(R.is(String)),
-  intercomAppId: isNullable(R.is(String)),
-  mixpanelToken: isNullable(R.is(String)),
-  apiGatewayEndpoint: R.is(String),
-  defaultBucket: R.is(String),
-  signInRedirect: R.is(String),
-  signOutRedirect: R.is(String),
-  passwordAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
-  ssoAuth: oneOf(['ENABLED', 'DISABLED', 'SIGN_IN_ONLY']),
-  ssoProviders: oneOf(['', 'google']),
-  s3Proxy: R.is(String),
-  suggestedBuckets: isArrayOf(R.is(String)),
-  federations: isArrayOf(R.is(String)),
-  googleClientId: isNullable(R.is(String)),
-})
-
-const validateBucket = conforms({
-  name: R.is(String),
-  title: isNullable(R.is(String)),
-  icon: isNullable(R.is(String)),
-  description: isNullable(R.is(String)),
-  searchEndpoint: isNullable(R.is(String)),
-  apiGatewayEndpoint: isNullable(R.is(String)),
-})
-
-const validateFederation = conforms({
-  buckets: isArrayOf(R.either(R.is(String), validateBucket)),
-})
-
-const fixConfig = (cfg) => {
-  const { passwordAuth, ssoAuth, ssoProviders, ...rest } = cfg
-  const authMap = {
-    ENABLED: true,
-    DISABLED: false,
-    SIGN_IN_ONLY: 'SIGN_IN_ONLY',
-  }
-  return {
-    passwordAuth: authMap[passwordAuth],
-    ssoAuth: authMap[ssoAuth],
-    ssoProviders: ssoProviders.length ? ssoProviders.split(' ') : [],
-    ...rest,
-  }
-}
 
 const fetchConfig = async (path) => {
   try {
@@ -77,13 +50,7 @@ const fetchConfig = async (path) => {
     }
     return R.pipe(
       parseJSON(`invalid config JSON at "${path}"`),
-      R.unless(validateConfig, (json) => {
-        throw new ConfigError(
-          `invalid config format at "${path}":\n${JSON.stringify(json, null, 2)}`,
-          { json },
-        )
-      }),
-      fixConfig,
+      validate('Config', `invalid config format at "${path}"`),
     )(text)
   } catch (e) {
     if (!(e instanceof ConfigError)) {
@@ -93,10 +60,19 @@ const fetchConfig = async (path) => {
   }
 }
 
+const AUTH_MAP = {
+  ENABLED: true,
+  DISABLED: false,
+  SIGN_IN_ONLY: 'SIGN_IN_ONLY',
+}
+
 const transformConfig = (cfg) => ({
   ...cfg,
   shouldSign: (bucket) => [cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
   shouldProxy: (bucket) => ![cfg.defaultBucket, cfg.analyticsBucket].includes(bucket),
+  passwordAuth: AUTH_MAP[cfg.passwordAuth],
+  ssoAuth: AUTH_MAP[cfg.ssoAuth],
+  ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
 })
 
 const fetchBucket = async (b) => {
@@ -111,12 +87,10 @@ const fetchBucket = async (b) => {
     }
     return R.pipe(
       parseJSON(`invalid bucket config JSON at "${b}"`),
-      R.unless(validateBucket, (json) => {
-        throw new ConfigError(
-          `invalid bucket config format at "${b}":\n${JSON.stringify(json, null, 2)}`,
-          { json },
-        )
-      }),
+      validate(
+        'Federation#/definitions/BucketConfig',
+        `invalid bucket config format at "${b}"`,
+      ),
     )(text)
   } catch (e) {
     // eslint-disable-next-line no-console
@@ -150,13 +124,7 @@ const fetchFederations = R.pipe(
         )
       }
       const json = parseJSON(`invalid federation config JSON at "${f}"`)(text)
-      if (!validateFederation(json)) {
-        throw new ConfigError(
-          // eslint-disable-next-line prefer-template
-          `invalid federation config format at "${f}":\n` + JSON.stringify(json, null, 2),
-          { json },
-        )
-      }
+      validate('Federation', `invalid federation config format at "${f}"`)
       return await Promise.all(json.buckets.map(R.when(R.is(String), fetchBucket)))
     } catch (e) {
       // eslint-disable-next-line no-console
