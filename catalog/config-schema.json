@@ -96,7 +96,7 @@
     "AuthMethodConfig": {
       "type": "string",
 	  "description": "must work for actual values AND template substitution",
-      "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY)|(\$\{\w+\}))$"
+      "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY)|(\\$\\{\\w+\\}))$"
     }
   }
 }
