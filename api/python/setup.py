@@ -58,11 +58,11 @@ setup(
         'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
         'pandas>=0.19.2',
-        'pyarrow>=0.9.0',
+        'pyarrow>=0.9.0,<0.14',             # as of 7/5/19: linux/circleci bugs on 0.14
         'requests>=2.12.4',
         'ruamel.yaml<=0.15.70',
         'tqdm>=4.26.0',
-        'urllib3<1.25,>=1.21.1',             # required by requests
+        'urllib3<1.25,>=1.21.1',            # required by requests
         'xattr>=0.9.6; platform_system!="Windows"',
         'humanize',
         'ipywidgets>=0.6.0'                 # required by tqdm.autonotebook
