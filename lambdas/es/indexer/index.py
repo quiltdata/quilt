@@ -8,7 +8,6 @@ import os
 from urllib.parse import unquote
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
-import botocore
 import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
@@ -35,15 +34,9 @@ class DocumentQueue:
         """constructor"""
         self.queue = []
         self.context = context
-        self.bucket_config = {}
 
-    def append(self, bucket, event_type, size, text, key, meta, version_id=''):
+    def append(self, event_type, size, text, key, meta, version_id=''):
         """format event as document and queue it up"""
-        # reduce requests to S3 by getting .quilt/config once per batch
-        #  per bucket
-        if bucket not in self.bucket_config:
-            self.bucket_config[bucket] = get_config(bucket)
-
         body = {
             # ES native keys
             '_index': ES_INDEX,
@@ -79,9 +72,11 @@ class DocumentQueue:
                 aws_service='es'
             )
 
+            time_remaining = get_time_remaining(self.context)
             es = Elasticsearch(
                 hosts=[{'host': elastic_host, 'port': 443}],
                 http_auth=awsauth,
+                max_backoff=time_remaining,
                 use_ssl=True,
                 verify_certs=True,
                 connection_class=RequestsHttpConnection
@@ -96,21 +91,20 @@ class DocumentQueue:
                 raise_on_error=False,
                 raise_on_exception=False
             )
-            print("succeeded on", success)
-            # TODO: process errors and retry on non-429
-            # the only error we can do anything about is mapping_exception?
-            # TODO: remove following two print statements
+            # TODO: remove print statements
             print('***debug***')
+            print("succeeded on", success)
             for e in errors:
                 print(e)
                 """
                 if e.error == 'mapper_parsing_exception':
                     # retry with just plaintext
                     print('Mapping exception. Retrying without user_meta and system_meta', e)
-                    TODO: zero out metadata on the correspoding doc
-                    maybe we don't need to zero out system_meta?
+                    # TODO: zero out metadata on the correspoding doc
+                    # maybe we don't need to zero out system_meta?
                     data['user_meta'] = {}
                     data['system_meta'] = {}
+
                     try:
                         res = es.index(index=ES_INDEX, doc_type='_doc', body=data)
                     except Exception as e:
@@ -118,23 +112,23 @@ class DocumentQueue:
                         print(e)
                         import traceback
                         traceback.print_tb(e.__traceback__)
-                # elif 429, do nothing and let library handle it?
-                # else: note fatal exception
                 else:
                     print("Unable to index a document", e)
                     import traceback
                     traceback.print_tb(e.__traceback__)
                 """
+
         except Exception as e:
-            print("Exception encountered when POSTing to ES")
-            print(e)
+            print("Fatal, unexpected Exception in send_all", e)
             import traceback
             traceback.print_tb(e.__traceback__)
 
 def get_config(bucket):
     """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
     # TODO - do not fetch from S3 for this; it's slow and we can get throttled
+    # e.g. a FixedResponse from the ELB might be better, with user overrides in the template
     try:
+        # WARNING: eventual consistency could hand us an outdated object
         loaded_object = S3_CLIENT.get_object(Bucket=bucket, Key='.quilt/config.json')
         loaded_config = json.load(loaded_object['Body'])
         return {**DEFAULT_CONFIG, **loaded_config}
@@ -145,6 +139,12 @@ def get_config(bucket):
         traceback.print_tb(e.__traceback__)
 
         return DEFAULT_CONFIG
+
+def get_extensions_to_index(bucket, configs):
+    if bucket not in configs:
+        configs[bucket] = get_config(bucket)
+    to_index = configs[bucket].get('to_index', [])
+    return (x.lower() for x in to_index)
 
 def get_markdown(bucket, key, version_id, etag, context):
     text = ''
@@ -240,6 +240,16 @@ def extract_text(notebook_str):
 
     return '\n'.join(text)
 
+def get_time_remaining(context):
+    time_remaining = floor(context.get_remaining_time_in_millis()/1000)
+    if time_remaining < 30:
+        print(
+            f"Warning: Lambda function has less than {time_remaining} seconds."
+            " Consider reducing bulk batch size."
+        )
+
+    return time_remaining
+
 def handler(event, context):
     """fetch the S3 object from event, extract relevant data and metadata,
     dispatch post_to_es
@@ -247,8 +257,9 @@ def handler(event, context):
     try:
         for msg in event['Records']:
             records = json.loads(json.loads(msg['body'])['Message'])['Records']
-            # TODO: we can't assume all records from same bucket
             batch_processor = DocumentQueue(context)
+            # reduce requests to S3: get .quilt/config.json once per batch per bucket
+            configs = {}
             for record in records:
                 try:
                     eventname = record['eventName']
@@ -260,19 +271,16 @@ def handler(event, context):
                     event_type = to_event_type(eventname)
 
                     if event_type == 'Delete':
-                        batch_processor.append(bucket, event_type, 0, '', key, {})
+                        batch_processor.append(event_type, 0, '', key, {})
                         continue
 
                     head = retry_s3('head', bucket, key, version_id, etag, context)
                     size = head['ContentLength']
                     meta = head['Metadata']
-
                     text = ''
-                    to_index = get_config(bucket).get('to_index', [])
-                    to_index = [x.lower() for x in to_index]
                     _, ext = os.path.splitext(key)
                     ext = ext.lower()
-                    if ext in to_index:
+                    if ext in get_extensions_to_index(bucket, configs):
                         # try to index data from the object itself
                         if ext in ['.md', '.rmd']:
                             text = get_markdown(bucket, key, version_id, etag, context)
@@ -287,13 +295,13 @@ def handler(event, context):
                     except (KeyError, json.JSONDecodeError):
                         print('decoding helium metadata failed')
 
-                    batch_processor.append(bucket, event_type, size, text, key, meta, version_id)
+                    batch_processor.append(event_type, size, text, key, meta, version_id)
                 except Exception as e:# pylint: disable=broad-except
-                    # do our best to process each result
                     print("Fatal exception for record.", record, e)
                     import traceback
                     traceback.print_tb(e.__traceback__)
                     print(msg)
+
             batch_processor.send_all()
 
     except Exception as e:# pylint: disable=broad-except
@@ -301,14 +309,14 @@ def handler(event, context):
         print("Exception encountered for whole Event", e)
         import traceback
         traceback.print_tb(e.__traceback__)
-        print(event)
+        print(event, msg)
         # Fail the lambda so the message is not dequeued
         raise e
 
 def retry_s3(operation, bucket, key, etag, version_id, context):
-    """retry head or get operation to S3 with; stop before we run out of time
-    we are forced to retry in since, due to eventual consistency, we may not
-    always get the desired version of the object
+    """retry head or get operation to S3 with; stop before we run out of time.
+    retry is necessary since, due to eventual consistency, we may not
+    always get the required version of the object.
     """
     if operation not in ['get', 'head']:
         raise ValueError(f"unexpected operation: {operation}")
@@ -318,12 +326,7 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
     else:
         function_ = S3_CLIENT.get_object
 
-    time_remaining = floor(context.get_remaining_time_in_millis()/1000)
-    if time_remaining < 30:
-        print(
-            "Lambda function has less than 30 seconds remaining;"
-            " developer should reduce bulk batch size"
-        )
+    time_remaining = get_time_remaining(context)
 
     @retry(
         stop=stop_after_delay(time_remaining),
