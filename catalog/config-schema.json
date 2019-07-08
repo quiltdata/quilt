@@ -64,7 +64,7 @@
     },
     "ssoProviders": {
       "type": "string",
-      "pattern": "^(google)|(\\$\\{\\w+\\}))$",
+      "pattern": "^(google)|(\\$\\{\\w+\\})$",
       "description": "Space-separated list of SSO providers (must support template substitution)."
     },
     "suggestedBuckets": {
@@ -95,7 +95,7 @@
     },
     "AuthMethodConfig": {
       "type": "string",
-	  "description": "must work for actual values AND template substitution",
+	    "description": "must work for actual values AND template substitution",
       "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY)|(\\$\\{\\w+\\}))$"
     }
   }
