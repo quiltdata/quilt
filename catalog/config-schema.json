@@ -64,8 +64,8 @@
     },
     "ssoProviders": {
       "type": "string",
-      "pattern": "^(google)?$",
-      "description": "Space-separated list of Single Sign-On providers (just 'google' for now)."
+      "pattern": "^(google)|(\\$\\{\\w+\\})$",
+      "description": "Space-separated list of SSO providers (must support template substitution)."
     },
     "suggestedBuckets": {
       "type": "array",
@@ -95,7 +95,8 @@
     },
     "AuthMethodConfig": {
       "type": "string",
-      "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY))$"
+	    "description": "must work for actual values AND template substitution",
+      "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY)|(\\$\\{\\w+\\}))$"
     }
   }
 }
