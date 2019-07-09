@@ -324,6 +324,7 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
     """
+    print("in retry_s3")
     if operation not in ['get', 'head']:
         raise ValueError(f"unexpected operation: {operation}")
 
@@ -339,9 +340,10 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
         wait=wait_exponential(multiplier=2, min=4, max=30)
     )
     def call():
+        print("in call routine")
         if version_id:
-            function_(Bucket=bucket, Key=key, VersionId=version_id)
+            return function_(Bucket=bucket, Key=key, VersionId=version_id)
         else:
-            function_(Bucket=bucket, Key=key, IfMatch=etag)
+            return function_(Bucket=bucket, Key=key, IfMatch=etag)
 
     return call()
