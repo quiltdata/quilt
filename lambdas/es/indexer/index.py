@@ -150,32 +150,48 @@ def get_extensions_to_index(bucket, configs):
     to_index = configs[bucket].get('to_index', [])
     return (x.lower() for x in to_index)
 
-def get_markdown(bucket, key, version_id, etag, context):
+def get_markdown(context, **kwargs):
+    _validate_kwargs(kwargs)
     text = ''
     try:
-        obj = retry_s3('get', bucket, key, version_id, etag, context)
+        obj = retry_s3(
+            'get',
+            context,
+            bucket=kwargs['bucket'],
+            key=kwargs['key'],
+            etag=kwargs['etag'],
+            version_id=kwargs['version_id']
+        )
         text = obj['Body'].read().decode('utf-8')
     except UnicodeDecodeError:
         print("Unicode decode error in .md file")
 
     return text
 
-def get_notebook_cells(bucket, key, version_id, etag, context):
+def get_notebook_cells(context, **kwargs):
+    _validate_kwargs(kwargs)
     text = ''
     try:
-        obj = retry_s3('get', bucket, key, version_id, etag, context)
+        obj = retry_s3(
+            'get',
+            context,
+            bucket=kwargs['bucket'],
+            key=kwargs['key'],
+            etag=kwargs['etag'],
+            version_id=kwargs['version_id']
+        )
         notebook = obj['Body'].read().decode('utf-8')
         text = extract_text(notebook)
     except UnicodeDecodeError as uni:
-        print("Unicode decode error in {}: {} ".format(key, uni))
+        print(f"Unicode decode error in {kwargs['key']}: {uni} ")
     except (json.JSONDecodeError, nbformat.reader.NotJSONError):
-        print("Invalid JSON in {}.".format(key))
+        print("Invalid JSON in {kwargs['key']}.")
     except (KeyError, AttributeError)  as err:
-        print("Missing key in {}: {}".format(key, err))
+        print(f"Missing key in {kwargs['key']}: {err}")
     # there might be more errors than covered by test_read_notebook
     # better not to fail altogether
     except Exception as exc:#pylint: disable=broad-except
-        print("Exception in file {}: {}".format(key, exc))
+        print(f"Exception in file {kwargs['key']}: {exc}")
 
     return text
 
@@ -280,7 +296,15 @@ def handler(event, context):
                         batch_processor.append(event_type, 0, '', key, {})
                         continue
 
-                    head = retry_s3('head', bucket, key, version_id, etag, context)
+                    head = retry_s3(
+                        'head',
+                        context,
+                        bucket=bucket,
+                        key=key,
+                        version_id=version_id,
+                        etag=etag
+                    )
+
                     size = head['ContentLength']
                     meta = head['Metadata']
                     text = ''
@@ -289,13 +313,25 @@ def handler(event, context):
                     if ext in get_extensions_to_index(bucket, configs):
                         # try to index data from the object itself
                         if ext in ['.md', '.rmd']:
-                            text = get_markdown(bucket, key, version_id, etag, context)
+                            text = get_markdown(
+                                context,
+                                bucket=bucket,
+                                key=key,
+                                etag=etag,
+                                version_id=version_id
+                            )
                         elif ext == '.ipynb':
-                            text = get_notebook_cells(bucket, key, version_id, etag, context)
+                            text = get_notebook_cells(
+                                context,
+                                bucket=bucket,
+                                key=key,
+                                etag=etag,
+                                version_id=version_id
+                            )
                         else:
                             # TODO: phone this into mixpanel
                             print(f"no logic to index {ext}")
-                    # decode helium metadata
+                    # decode Quilt-specific metadata
                     try:
                         meta['helium'] = json.loads(meta['helium'])
                     except (KeyError, json.JSONDecodeError):
@@ -319,24 +355,23 @@ def handler(event, context):
         # Fail the lambda so the message is not dequeued
         raise e
 
-def retry_s3(operation, bucket, key, etag, version_id, context):
+def retry_s3(operation, context, **kwargs):
     """retry head or get operation to S3 with; stop before we run out of time.
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
     """
+    _validate_kwargs(kwargs)
     print("in retry_s3")
-    print(operation, bucket, key, etag, version_id, context)
+    print(operation, context, kwargs)
     if operation not in ['get', 'head']:
         raise ValueError(f"unexpected operation: {operation}")
-
     if operation == 'head':
         function_ = S3_CLIENT.head_object
     else:
         function_ = S3_CLIENT.get_object
 
-    time_remaining = get_time_remaining(context)
-
     """
+    time_remaining = get_time_remaining(context)
     @retry(
         # debug
         stop=(stop_after_delay(time_remaining) | stop_after_attempt(3)),
@@ -345,13 +380,22 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
     """
     def call():
         print("in call routine")
-        if version_id:
-            result = function_(Bucket=bucket, Key=key, VersionId=version_id)
-            print(result)
-            return result
+        if kwargs['version_id']:
+            return function_(
+                Bucket=kwargs['bucket'],
+                Key=kwargs['key'],
+                VersionId=kwargs['version_id']
+            )
         else:
-            result = function_(Bucket=bucket, Key=key, IfMatch=etag)
-            print(result)
-            return result
+            return function_(
+                Bucket=kwargs['bucket'],
+                Key=kwargs['key'],
+                IfMatch=kwargs['etag']
+            )
 
     return call()
+
+def _validate_kwargs(kwargs):
+    for word in ['bucket', 'key', 'etag', 'version_id']:
+        if word not in kwargs:
+            raise TypeError(f"Missing required keyword argument: {kw}")
