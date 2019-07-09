@@ -7,7 +7,7 @@
       "items": {
         "anyOf": [
           { "type": "string" },
-          { "$ref": "#/definitions/bucket_config" }
+          { "$ref": "#/definitions/BucketConfig" }
         ]
       }
     }
@@ -15,7 +15,7 @@
   "required": [ "buckets" ],
   "additionalProperties": false,
   "definitions": {
-    "bucket_config": {
+    "BucketConfig": {
       "type": "object",
       "properties": {
         "name": {
@@ -37,14 +37,6 @@
         "searchEndpoint": {
           "type": "string",
           "description": "Endpoint for searching the bucket."
-        },
-        "apiGatewayEndpoint": {
-          "type": "string",
-          "description": "Endpoint for previewing objects in your bucket."
-        },
-        "region": {
-          "type": "string",
-          "description": "AWS region where your resources are located."
         }
       },
       "required": [
