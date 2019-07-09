@@ -325,6 +325,7 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
     always get the required version of the object.
     """
     print("in retry_s3")
+    print(operation, bucket, key, etag, version_id, context)
     if operation not in ['get', 'head']:
         raise ValueError(f"unexpected operation: {operation}")
 
