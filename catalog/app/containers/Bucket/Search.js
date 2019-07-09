@@ -4,6 +4,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
+import uuid from 'uuid/v1'
 import {
   Box,
   Button,
@@ -108,7 +109,12 @@ const Header = RT.composeComponent(
         <div className={classes.spacer} />
         {h.version ? (
           <span className={classes.buttonContainer}>
-            <IconButton className={classes.button} href={getUrl(h)} title="Download">
+            <IconButton
+              className={classes.button}
+              href={getUrl(h)}
+              title="Download"
+              download
+            >
               <Icon>arrow_downward</Icon>
             </IconButton>
           </span>
@@ -264,6 +270,11 @@ const PreviewBox = RT.composeComponent(
         marginLeft: 'auto',
         marginRight: 'auto',
       },
+      // workaround to speed-up notebook preview rendering:
+      // only show 2 first cells unless expanded
+      '&:not($expanded) .ipynb-preview .cell:nth-child(n+3)': {
+        display: 'none',
+      },
     },
     expanded: {
       maxHeight: 'none',
@@ -412,7 +423,7 @@ const Browse = RT.composeComponent(
 const SearchResource = Cache.createResource({
   name: 'Bucket.Search.results',
   fetch: requests.search,
-  key: ({ query }) => query,
+  key: ({ id, bucket, query }) => `${bucket}:${query}:${id}`,
 })
 
 const Results = RT.composeComponent(
@@ -421,6 +432,8 @@ const Results = RT.composeComponent(
     bucket: PT.string.isRequired,
     query: PT.string.isRequired,
     searchEndpoint: PT.string.isRequired,
+    id: PT.string.isRequired,
+    retry: PT.func.isRequired,
   }),
   withStyles(({ spacing: { unit } }) => ({
     heading: {
@@ -428,8 +441,8 @@ const Results = RT.composeComponent(
       marginTop: 2 * unit,
     },
   })),
-  ({ classes, bucket, query, searchEndpoint }) => {
-    const es = AWS.ES.use({ host: searchEndpoint })
+  ({ classes, bucket, query, searchEndpoint, id, retry }) => {
+    const es = AWS.ES.use({ host: searchEndpoint, bucket })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
@@ -437,7 +450,7 @@ const Results = RT.composeComponent(
     })
 
     try {
-      const { total, hits } = cache.get(SearchResource, { es, query })
+      const { total, hits } = cache.get(SearchResource, { es, id, bucket, query })
       return (
         <React.Fragment>
           <Typography variant="h5" className={classes.heading}>
@@ -480,12 +493,7 @@ const Results = RT.composeComponent(
           Something went wrong.
           <br />
           <br />
-          <Button
-            // TODO: fix retry
-            // onClick={fetch}
-            color="primary"
-            variant="contained"
-          >
+          <Button onClick={retry} color="primary" variant="contained">
             Retry
           </Button>
         </Message>
@@ -503,9 +511,11 @@ export default RT.composeComponent(
     },
   }) => {
     const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+    const [id, setId] = React.useState(() => uuid())
+    const retry = React.useCallback(() => setId(uuid()), [setId])
     return searchEndpoint ? (
       <React.Suspense fallback={<Working>Searching</Working>}>
-        <Results {...{ bucket: name, searchEndpoint, query }} />
+        <Results {...{ bucket: name, searchEndpoint, query, id, retry }} />
       </React.Suspense>
     ) : (
       <Message headline="Search Not Available">

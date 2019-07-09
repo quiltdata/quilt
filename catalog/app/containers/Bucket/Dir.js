@@ -12,6 +12,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
 
+import { docs } from 'constants/urls'
 import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
@@ -21,7 +22,7 @@ import Summary from './Summary'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const HELP_LINK = 'https://quiltdocs.gitbook.io/t4/walkthrough/working-with-a-bucket'
+const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
 
 const getCrumbs = R.compose(
   R.intersperse(Crumb.Sep(' / ')),
@@ -72,7 +73,7 @@ export default ({
   },
 }) => {
   const { urls } = NamedRoutes.use()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const code = dedent`
     import quilt3
     b = quilt3.Bucket("s3://${bucket}")
@@ -90,7 +91,7 @@ export default ({
         <Code>{code}</Code>
       </Section>
 
-      <Data fetch={requests.bucketListing} params={{ s3, bucket, path }}>
+      <Data fetch={requests.bucketListing} params={{ s3req, bucket, path }}>
         {AsyncResult.case({
           Err: displayError(),
           Ok: (res) => {

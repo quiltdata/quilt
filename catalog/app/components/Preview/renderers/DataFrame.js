@@ -21,6 +21,7 @@ const DataFrame = RT.composeComponent(
 
       '& table.dataframe': {
         border: 'none',
+        minWidth: '100%',
         width: 'auto',
 
         '& tr:nth-child(even)': {

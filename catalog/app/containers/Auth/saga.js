@@ -71,6 +71,10 @@ function* signUp(credentials) {
       if (e.status === 409 && e.json && e.json.message === 'Email already taken.') {
         throw new errors.EmailTaken({ originalError: e })
       }
+      if (HTTPError.is(e, 401, /domain \S+ is not allowed/i)) {
+        const domain = e.json.message.match(/domain (\S+) is/i)[1]
+        throw new errors.EmailDomainNotAllowed({ domain, originalError: e })
+      }
       if (e.status === 500 && e.json && e.json.message.match(/SMTP.*invalid/)) {
         throw new errors.SMTPError({ originalError: e })
       }
@@ -122,7 +126,10 @@ function* signIn(credentials) {
     })
     return { token, exp }
   } catch (e) {
-    if (e instanceof HTTPError && e.status === 401) {
+    if (HTTPError.is(e, 401, /user does not exist/i)) {
+      throw new errors.SSOUserNotFound()
+    }
+    if (HTTPError.is(e, 401, /login attempt failed/i)) {
       throw new errors.InvalidCredentials()
     }
 
@@ -363,12 +370,11 @@ const isExpired = (tokens, time) => {
  * @param {function} options.forgetTokens
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
- * @param {function} options.onAuthError
  *
  * @param {Action} action
  */
 function* handleCheck(
-  { latency, storeTokens, storeUser, onAuthError },
+  { latency, storeTokens, storeUser },
   { payload: { refetch }, meta: { resolve, reject } },
 ) {
   try {
@@ -394,11 +400,7 @@ function* handleCheck(
     if (resolve) yield call(resolve, payload)
   } catch (e) {
     yield put(actions.refresh.resolve(e))
-    if (e instanceof errors.InvalidToken) {
-      yield put(actions.authLost(e))
-    } else {
-      yield call(onAuthError, e)
-    }
+    yield put(actions.authLost(e))
     /* istanbul ignore else */
     if (reject) yield call(reject, e)
   }
@@ -487,7 +489,6 @@ function* handleGetCode({ meta: { resolve, reject } }) {
  * @param {function} options.storeUser
  * @param {function} options.forgetUser
  * @param {function} options.onAuthLost
- * @param {function} options.onAuthError
  */
 export default function*({
   latency,
@@ -497,7 +498,6 @@ export default function*({
   storeUser,
   forgetUser,
   onAuthLost,
-  onAuthError,
 }) {
   yield takeEvery(actions.signIn.type, handleSignIn, { latency, storeTokens, storeUser })
   yield takeEvery(actions.signOut.type, handleSignOut, { forgetTokens, forgetUser })
@@ -505,7 +505,6 @@ export default function*({
     latency,
     storeTokens,
     storeUser,
-    onAuthError,
   })
   yield takeEvery(actions.authLost.type, handleAuthLost, {
     forgetTokens,

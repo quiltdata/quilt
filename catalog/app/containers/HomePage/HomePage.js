@@ -25,7 +25,7 @@ export default () => {
               &nbsp;Join Slack
             </Button>
             <Box width="1em" />
-            <Button href={urls.t4Docs} color="inherit">
+            <Button href={urls.docs} color="inherit">
               <FAIcon type="book" />
               &nbsp;Read Docs
             </Button>

@@ -86,7 +86,7 @@ Note that this feature is currently only supported for buckets backed by a Quilt
 
 ```python
 # for example
-quilt3.config(navigator_url="https://allencell.quiltdata.com")
+quilt3.config(navigator_url="https://open.quiltdata.com")
 ```
 
 Quilt supports unstructured search:

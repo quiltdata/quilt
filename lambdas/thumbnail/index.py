@@ -47,6 +47,9 @@ SCHEMA = {
     'additionalProperties': False
 }
 
+SUPPORTED_BROWSER_FORMATS = {'JPEG', 'GIF', 'PNG'}
+
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -63,17 +66,24 @@ def lambda_handler(request):
         with Image.open(image_bytes) as image:
             orig_format = image.format
             orig_size = image.size
+
+            if orig_format in SUPPORTED_BROWSER_FORMATS:
+                thumnail_format = orig_format
+            else:
+                image = image.convert('RGBA')
+                thumnail_format = 'PNG'
+
             image.thumbnail(size)
             thumbnail_size = image.size
             thumbnail_bytes = BytesIO()
-            image.save(thumbnail_bytes, image.format)
+            image.save(thumbnail_bytes, thumnail_format)
 
         data = thumbnail_bytes.getvalue()
 
         info = {
             'original_format': orig_format,
             'original_size': orig_size,
-            'thumbnail_format': orig_format,
+            'thumbnail_format': thumnail_format,
             'thumbnail_size': thumbnail_size,
         }
 
@@ -85,7 +95,7 @@ def lambda_handler(request):
             return make_json_response(200, ret_val)
         else:
             headers = {
-                'Content-Type': Image.MIME[orig_format],
+                'Content-Type': Image.MIME[thumnail_format],
                 'X-Quilt-Info': json.dumps(info)
             }
             return 200, data, headers

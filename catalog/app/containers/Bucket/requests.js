@@ -32,14 +32,16 @@ const catchErrors = (pairs = []) =>
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(catchErrors(pairs))
 
-export const bucketListing = ({ s3, bucket, path = '' }) =>
-  s3
-    .listObjectsV2({
+export const bucketListing = ({ s3req, bucket, path = '' }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectsV2',
+    params: {
       Bucket: bucket,
       Delimiter: '/',
       Prefix: path,
-    })
-    .promise()
+    },
+  })
     .then(
       R.applySpec({
         dirs: R.pipe(
@@ -68,49 +70,57 @@ export const bucketListing = ({ s3, bucket, path = '' }) =>
     )
     .catch(catchErrors())
 
-export const objectVersions = ({ s3, bucket, path }) =>
-  s3
-    .listObjectVersions({ Bucket: bucket, Prefix: path })
-    .promise()
-    .then(
-      R.pipe(
-        R.prop('Versions'),
-        R.filter((v) => v.Key === path),
-        R.map((v) => ({
-          isLatest: v.IsLatest || false,
-          lastModified: v.LastModified,
-          size: v.Size,
-          id: v.VersionId,
-        })),
-      ),
-    )
+export const objectVersions = ({ s3req, bucket, path }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectVersions',
+    params: { Bucket: bucket, Prefix: path },
+  }).then(
+    R.pipe(
+      R.prop('Versions'),
+      R.filter((v) => v.Key === path),
+      R.map((v) => ({
+        isLatest: v.IsLatest || false,
+        lastModified: v.LastModified,
+        size: v.Size,
+        id: v.VersionId,
+      })),
+    ),
+  )
 
-export const objectMeta = ({ s3, bucket, path, version }) =>
-  s3
-    .headObject({ Bucket: bucket, Key: path, VersionId: version })
-    .promise()
-    .then(
-      R.pipe(
-        R.path(['Metadata', 'helium']),
-        R.when(Boolean, JSON.parse),
-      ),
-    )
+export const objectMeta = ({ s3req, bucket, path, version }) =>
+  s3req({
+    bucket,
+    operation: 'headObject',
+    params: {
+      Bucket: bucket,
+      Key: path,
+      VersionId: version,
+    },
+  }).then(
+    R.pipe(
+      R.path(['Metadata', 'helium']),
+      R.when(Boolean, JSON.parse),
+    ),
+  )
 
 const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
 
-export const summarize = async ({ s3, handle }) => {
+export const summarize = async ({ s3req, handle }) => {
   if (!handle) return null
 
   try {
-    const file = await s3
-      .getObject({
+    const file = await s3req({
+      bucket: handle.bucket,
+      operation: 'getObject',
+      params: {
         Bucket: handle.bucket,
         Key: handle.key,
         VersionId: handle.version,
         // TODO: figure out caching issues
         IfMatch: handle.etag,
-      })
-      .promise()
+      },
+    })
     const json = file.Body.toString('utf-8')
     const manifest = JSON.parse(json)
     if (!isValidManifest(manifest)) {
@@ -148,56 +158,80 @@ export const summarize = async ({ s3, handle }) => {
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
 
-export const listPackages = async ({ s3, bucket }) =>
-  s3
-    .listObjectsV2({
+export const listPackages = ({ s3req, bucket }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectsV2',
+    params: {
       Bucket: bucket,
       Prefix: PACKAGES_PREFIX,
-    })
-    .promise()
-    .then(
-      R.pipe(
-        R.prop('Contents'),
-        R.map(({ Key, LastModified }) => {
-          const i = Key.lastIndexOf('/')
-          const name = Key.substring(PACKAGES_PREFIX.length, i)
-          const revision = Key.substring(i + 1)
-          return { name, revision, key: Key, modified: LastModified }
-        }),
-        R.reduce(
-          (acc, { name, revision, key, modified }) => ({
-            ...acc,
-            [name]: { ...acc[name], [revision]: { key, modified } },
-          }),
-          {},
+      Delimiter: '/',
+    },
+  })
+    .then(({ CommonPrefixes: ownerPrefixes }) =>
+      Promise.all(
+        ownerPrefixes.map(({ Prefix }) =>
+          s3req({
+            bucket,
+            operation: 'listObjectsV2',
+            params: {
+              Bucket: bucket,
+              Prefix,
+              Delimiter: '/',
+            },
+          }).then(({ CommonPrefixes: namePrefixes }) =>
+            Promise.all(
+              namePrefixes.map((p) =>
+                s3req({
+                  bucket,
+                  operation: 'listObjectsV2',
+                  params: {
+                    Bucket: bucket,
+                    Prefix: `${p.Prefix}latest`,
+                  },
+                }).then(({ Contents: [latest] }) => {
+                  const name = p.Prefix.slice(PACKAGES_PREFIX.length, -1)
+                  if (!latest) {
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                      `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
+                    )
+                  }
+                  return {
+                    name,
+                    modified: latest ? latest.LastModified : null,
+                  }
+                }),
+              ),
+            ),
+          ),
         ),
-        R.toPairs,
-        R.map(([name, revisions]) => ({ name, revisions })),
-        R.filter(({ name }) => name.includes('/')),
       ),
     )
+    .then(R.unnest)
     .catch(catchErrors())
 
-const loadRevisionHash = ({ s3, bucket, key }) =>
-  s3
-    .getObject({ Bucket: bucket, Key: key })
-    .promise()
-    .then((res) => res.Body.toString('utf-8'))
+const loadRevisionHash = ({ s3req, bucket, key }) =>
+  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
+    (res) => res.Body.toString('utf-8'),
+  )
 
 const getRevisionIdFromKey = (key) => key.substring(key.lastIndexOf('/') + 1)
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
 export const getPackageRevisions = withErrorHandling(
-  async ({ s3, signer, endpoint, bucket, name }) => {
-    const res = await s3
-      .listObjectsV2({
+  async ({ s3req, signer, endpoint, bucket, name }) => {
+    const res = await s3req({
+      bucket,
+      operation: 'listObjectsV2',
+      params: {
         Bucket: bucket,
         Prefix: `${PACKAGES_PREFIX}${name}/`,
-      })
-      .promise()
+      },
+    })
 
     const loadRevision = async (key) => {
-      const hash = await loadRevisionHash({ s3, bucket, key })
+      const hash = await loadRevisionHash({ s3req, bucket, key })
       const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
       const loadInfo = async () => {
@@ -214,7 +248,11 @@ export const getPackageRevisions = withErrorHandling(
       }
 
       const loadModified = async () => {
-        const head = await s3.headObject({ Bucket: bucket, Key: manifestKey }).promise()
+        const head = await s3req({
+          bucket,
+          operation: 'headObject',
+          params: { Bucket: bucket, Key: manifestKey },
+        })
         return head.LastModified
       }
 
@@ -233,42 +271,43 @@ export const getPackageRevisions = withErrorHandling(
 )
 
 const s3Select = ({
-  s3,
+  s3req,
   ExpressionType = 'SQL',
   InputSerialization = { JSON: { Type: 'LINES' } },
   ...rest
 }) =>
-  s3
-    .selectObjectContent({
+  s3req({
+    bucket: rest.Bucket,
+    operation: 'selectObjectContent',
+    params: {
       ExpressionType,
       InputSerialization,
       OutputSerialization: { JSON: {} },
       ...rest,
-    })
-    .promise()
-    .then(
-      R.pipe(
-        R.prop('Payload'),
-        R.reduce((acc, evt) => {
-          if (!evt.Records) return acc
-          const s = evt.Records.Payload.toString()
-          return acc + s
-        }, ''),
-        R.trim,
-        R.split('\n'),
-        R.map(JSON.parse),
-      ),
-    )
+    },
+  }).then(
+    R.pipe(
+      R.prop('Payload'),
+      R.reduce((acc, evt) => {
+        if (!evt.Records) return acc
+        const s = evt.Records.Payload.toString()
+        return acc + s
+      }, ''),
+      R.trim,
+      R.split('\n'),
+      R.map(JSON.parse),
+    ),
+  )
 
 export const fetchPackageTree = withErrorHandling(
-  async ({ s3, bucket, name, revision }) => {
+  async ({ s3req, bucket, name, revision }) => {
     const hashKey = getRevisionKeyFromId(name, revision)
-    const hash = await loadRevisionHash({ s3, bucket, key: hashKey })
+    const hash = await loadRevisionHash({ s3req, bucket, key: hashKey })
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
     const [[{ total }], keys] = await Promise.all([
       s3Select({
-        s3,
+        s3req,
         Bucket: bucket,
         Key: manifestKey,
         Expression: `
@@ -278,7 +317,7 @@ export const fetchPackageTree = withErrorHandling(
         `,
       }),
       s3Select({
-        s3,
+        s3req,
         Bucket: bucket,
         Key: manifestKey,
         Expression: `
@@ -375,7 +414,7 @@ const sqlEscape = (arg) => arg.replace(/'/g, "''")
 const ACCESS_COUNTS_PREFIX = 'AccessCounts'
 
 const queryAccessCounts = async ({
-  s3,
+  s3req,
   analyticsBucket,
   type,
   query,
@@ -384,7 +423,7 @@ const queryAccessCounts = async ({
 }) => {
   try {
     const [{ counts: recordedCountsJson }] = await s3Select({
-      s3,
+      s3req,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
       Expression: query,
@@ -413,9 +452,9 @@ const queryAccessCounts = async ({
   }
 }
 
-export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today }) =>
+export const objectAccessCounts = ({ s3req, analyticsBucket, bucket, path, today }) =>
   queryAccessCounts({
-    s3,
+    s3req,
     analyticsBucket,
     type: 'Objects',
     query: `
@@ -428,9 +467,9 @@ export const objectAccessCounts = ({ s3, analyticsBucket, bucket, path, today })
     window: 365,
   })
 
-export const pkgAccessCounts = ({ s3, analyticsBucket, bucket, name, today }) =>
+export const pkgAccessCounts = ({ s3req, analyticsBucket, bucket, name, today }) =>
   queryAccessCounts({
-    s3,
+    s3req,
     analyticsBucket,
     type: 'Packages',
     query: `
@@ -444,7 +483,7 @@ export const pkgAccessCounts = ({ s3, analyticsBucket, bucket, name, today }) =>
   })
 
 export const pkgVersionAccessCounts = ({
-  s3,
+  s3req,
   analyticsBucket,
   bucket,
   name,
@@ -452,7 +491,7 @@ export const pkgVersionAccessCounts = ({
   today,
 }) =>
   queryAccessCounts({
-    s3,
+    s3req,
     analyticsBucket,
     type: 'PackageVersions',
     query: `

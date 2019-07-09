@@ -1,0 +1,27 @@
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>Unnamed: 0</th>
+      <th>URL</th>
+      <th>Name/Alias</th>
+      <th>Appearances</th>
+      <th>Current?</th>
+      <th>Gender</th>
+      <th>Probationary Introl</th>
+      <th>Full/Reserve Avengers Intro</th>
+      <th>Year</th>
+      <th>Years since joining</th>
+      <th>Honorary</th>
+      <th>Death1</th>
+      <th>Return1</th>
+      <th>Death2</th>
+      <th>Return2</th>
+      <th>Death3</th>
+      <th>Return3</th>
+      <th>Death4</th>
+      <th>Return4</th>
+      <th>Death5</th>
+      <th>Return5</th>
+      <th>Notes</th>
+    </tr>
+  </thead>

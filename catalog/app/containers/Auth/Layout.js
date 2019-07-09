@@ -2,10 +2,8 @@ import PT from 'prop-types'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import { mapProps, setPropTypes } from 'recompose'
-import Button from '@material-ui/core/Button'
-import TextField from '@material-ui/core/TextField'
+import * as M from '@material-ui/core'
 import { styled, withStyles } from '@material-ui/styles'
-
 import Layout from 'components/Layout'
 import Spinner from 'components/Spinner'
 import { composeComponent } from 'utils/reactTools'
@@ -36,7 +34,7 @@ export const Field = composeComponent(
     errors: PT.objectOf(PT.node),
   }),
   mapProps(({ input, meta, errors, floatingLabelText: label, ...rest }) => ({
-    error: meta.submitFailed && meta.error,
+    error: meta.submitFailed && !!meta.error,
     helperText:
       meta.submitFailed && meta.error
         ? errors[meta.error] || /* istanbul ignore next */ meta.error
@@ -47,7 +45,7 @@ export const Field = composeComponent(
     ...input,
     ...rest,
   })),
-  TextField,
+  M.TextField,
 )
 
 export const FieldErrorLink = styled(Link)(
@@ -115,10 +113,10 @@ export const Message = styled('p')(
   { name: 'Auth.Message' },
 )
 
-export const mkLayout = (heading) => ({ children }) => (
+export const mkLayout = (heading) => ({ children, ...props }) => (
   <Layout>
     <Container>
-      <Heading>{heading}</Heading>
+      <Heading>{typeof heading === 'function' ? heading(props) : heading}</Heading>
       {children}
     </Container>
   </Layout>
@@ -133,7 +131,7 @@ export const Submit = composeComponent(
     children: PT.node,
   }),
   ({ busy, label, children, ...rest }) => (
-    <Button color="primary" variant="contained" type="submit" {...rest}>
+    <M.Button color="primary" variant="contained" type="submit" {...rest}>
       {label}
       {children}
       {busy && (
@@ -149,6 +147,34 @@ export const Submit = composeComponent(
           />
         </React.Fragment>
       )}
-    </Button>
+    </M.Button>
+  ),
+)
+
+export const Or = composeComponent(
+  'Auth.Or',
+  withStyles((t) => ({
+    root: {
+      alignItems: 'center',
+      display: 'flex',
+      justifyContent: 'space-between',
+      paddingTop: t.spacing.unit * 4,
+    },
+    divider: {
+      flexGrow: 1,
+    },
+    text: {
+      paddingLeft: t.spacing.unit,
+      paddingRight: t.spacing.unit,
+    },
+  })),
+  ({ classes }) => (
+    <div className={classes.root}>
+      <M.Divider className={classes.divider} />
+      <M.Typography variant="button" className={classes.text}>
+        Or
+      </M.Typography>
+      <M.Divider className={classes.divider} />
+    </div>
   ),
 )

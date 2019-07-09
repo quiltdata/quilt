@@ -45,9 +45,6 @@ const useNotificationHandlers = () => {
       onAuthLost: () => {
         dispatch(notify(intl.formatMessage(msg.notificationAuthLost)))
       },
-      onAuthError: () => {
-        dispatch(notify(intl.formatMessage(msg.notificationAuthError)))
-      },
     }),
     [intl, dispatch],
   )

@@ -1,5 +1,5 @@
 import { withProps } from 'recompose'
-import { reducer } from 'redux-form/immutable'
+import { reducer } from 'redux-form/es/immutable'
 
 import { composeComponent } from 'utils/reactTools'
 import * as ReducerInjector from 'utils/ReducerInjector'

@@ -76,7 +76,7 @@ const VersionInfo = RT.composeComponent(
     version: PT.string,
   }),
   ({ bucket, path, version }) => {
-    const s3 = AWS.S3.use()
+    const s3req = AWS.S3.useRequest()
     const { urls } = NamedRoutes.use()
 
     const [anchor, setAnchor] = React.useState()
@@ -97,7 +97,7 @@ const VersionInfo = RT.composeComponent(
           )}{' '}
           <Icon>expand_more</Icon>
         </span>
-        <Data fetch={requests.objectVersions} params={{ s3, bucket, path }}>
+        <Data fetch={requests.objectVersions} params={{ s3req, bucket, path }}>
           {R.pipe(
             AsyncResult.case({
               Ok: (versions) => (
@@ -191,9 +191,9 @@ const AnnotationsBox = styled('div')(({ theme: t }) => ({
 }))
 
 const Annotations = ({ bucket, path, version }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   return (
-    <Data fetch={requests.objectMeta} params={{ s3, bucket, path, version }}>
+    <Data fetch={requests.objectMeta} params={{ s3req, bucket, path, version }}>
       {AsyncResult.case({
         Ok: (meta) =>
           !!meta &&
@@ -235,10 +235,9 @@ const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
   },
 }))
 
-const Analytics = ({ bucket, path }) => {
+const Analytics = ({ analyticsBucket, bucket, path }) => {
   const [cursor, setCursor] = React.useState(null)
-  const { analyticsBucket } = Config.useConfig()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const formatDate = (date) =>
     dateFns.format(
@@ -249,7 +248,7 @@ const Analytics = ({ bucket, path }) => {
     <Section icon="bar_charts" heading="Analytics" defaultExpanded>
       <Data
         fetch={requests.objectAccessCounts}
-        params={{ s3, analyticsBucket, bucket, path, today }}
+        params={{ s3req, analyticsBucket, bucket, path, today }}
       >
         {AsyncResult.case({
           Ok: ({ counts, total }) => (
@@ -300,6 +299,7 @@ export default ({
   const { version } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
+  const { analyticsBucket } = Config.useConfig()
 
   const code = dedent`
     import quilt3
@@ -320,7 +320,7 @@ export default ({
         </Typography>
         <div className={classes.spacer} />
         {withSignedUrl({ bucket, key: path, version }, (url) => (
-          <Button variant="outlined" href={url} className={classes.button}>
+          <Button variant="outlined" href={url} className={classes.button} download>
             <ButtonIcon position="left">arrow_downward</ButtonIcon> Download
           </Button>
         ))}
@@ -328,7 +328,7 @@ export default ({
       <Section icon="code" heading="Code">
         <Code>{code}</Code>
       </Section>
-      <Analytics {...{ bucket, path }} />
+      {!!analyticsBucket && <Analytics {...{ analyticsBucket, bucket, path }} />}
       <Section icon="remove_red_eye" heading="Contents" defaultExpanded>
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>

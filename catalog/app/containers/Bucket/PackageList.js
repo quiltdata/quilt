@@ -19,19 +19,19 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
 import { readableQuantity } from 'utils/string'
 
+import { docs } from 'constants/urls'
 import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const Counts = ({ bucket, name }) => {
-  const s3 = AWS.S3.use()
-  const { analyticsBucket } = Config.useConfig()
+const Counts = ({ analyticsBucket, bucket, name }) => {
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
     <Data
       fetch={requests.pkgAccessCounts}
-      params={{ s3, analyticsBucket, bucket, name, today }}
+      params={{ s3req, analyticsBucket, bucket, name, today }}
     >
       {AsyncResult.case({
         Ok: ({ counts, total }) => (
@@ -78,10 +78,11 @@ export default ({
     params: { bucket },
   },
 }) => {
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
+  const { analyticsBucket } = Config.useConfig()
   return (
-    <Data fetch={requests.listPackages} params={{ s3, bucket }}>
+    <Data fetch={requests.listPackages} params={{ s3req, bucket }}>
       {AsyncResult.case({
         _: () => <CircularProgress />,
         Err: displayError(),
@@ -89,14 +90,11 @@ export default ({
           R.isEmpty,
           () => (
             <Message headline="No packages">
-              <Link href="https://quiltdocs.gitbook.io/t4/walkthrough/creating-a-package">
-                Learn how to create a package
-              </Link>
-              .
+              <Link href={`${docs}/walkthrough/`}>Learn how to create a package</Link> .
             </Message>
           ),
           R.pipe(
-            R.map(({ name, revisions: { latest: { modified } } }) => (
+            R.map(({ name, modified }) => (
               <Box component={Card} key={name} mt={1}>
                 <CardContent>
                   <Box display="flex" justifyContent="space-between">
@@ -105,10 +103,13 @@ export default ({
                         <Link to={urls.bucketPackageDetail(bucket, name)}>{name}</Link>
                       </Typography>
                       <Typography variant="body1">
-                        Updated on {modified.toLocaleString()}
+                        Updated on{' '}
+                        {modified ? modified.toLocaleString() : '[unknown: see console]'}
                       </Typography>
                     </Box>
-                    <Counts {...{ bucket, name }} />
+                    {!!analyticsBucket && (
+                      <Counts {...{ analyticsBucket, bucket, name }} />
+                    )}
                   </Box>
                 </CardContent>
               </Box>

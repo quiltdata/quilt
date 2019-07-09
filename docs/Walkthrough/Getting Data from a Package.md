@@ -1,4 +1,4 @@
-The examples in this section use the `aleksey/hurdat` [demo package](https://allencell.quiltdata.com/b/quilt-example/tree/aleksey/hurdat/):
+The examples in this section use the `aleksey/hurdat` [demo package](https://open.quiltdata.com/b/quilt-example/tree/aleksey/hurdat/):
 
 ```python
 # import quilt3

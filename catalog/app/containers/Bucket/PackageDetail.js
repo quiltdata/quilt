@@ -44,15 +44,14 @@ const Field = RT.composeComponent(
   ),
 )
 
-const Counts = ({ bucket, name, hash }) => {
-  const s3 = AWS.S3.use()
-  const { analyticsBucket } = Config.useConfig()
+const Counts = ({ analyticsBucket, bucket, name, hash }) => {
+  const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
   return (
     <Data
       fetch={requests.pkgVersionAccessCounts}
-      params={{ s3, analyticsBucket, bucket, name, hash, today }}
+      params={{ s3req, analyticsBucket, bucket, name, hash, today }}
     >
       {AsyncResult.case({
         Ok: ({ counts, total }) => (
@@ -114,15 +113,15 @@ export default ({
 }) => {
   const { urls } = NamedRoutes.use()
   const classes = useStyles()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const signer = AWS.Signer.use()
-  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+  const { apiGatewayEndpoint: endpoint, analyticsBucket } = Config.useConfig()
   return (
     <>
       <Typography variant="h4">{name}: revisions</Typography>
       <Data
         fetch={requests.getPackageRevisions}
-        params={{ s3, signer, endpoint, bucket, name }}
+        params={{ s3req, signer, endpoint, bucket, name }}
       >
         {AsyncResult.case({
           _: () => <CircularProgress />,
@@ -143,11 +142,13 @@ export default ({
                       alignItems="center"
                     >
                       <Box>
-                        <Field label="Message:">{info.commit_message || '<empty>'}</Field>
+                        <Field label="Message:">{info.message || '<empty>'}</Field>
                         <Field label="Date:">{modified.toLocaleString()}</Field>
                         <Field label="Hash:">{hash}</Field>
                       </Box>
-                      <Counts {...{ bucket, name, hash }} />
+                      {!!analyticsBucket && (
+                        <Counts {...{ analyticsBucket, bucket, name, hash }} />
+                      )}
                     </Box>
                   </CardContent>
                 </Card>

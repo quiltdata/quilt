@@ -1,42 +1,40 @@
-import get from 'lodash/fp/get'
-import React from 'react'
+import * as React from 'react'
 import { FormattedMessage as FM } from 'react-intl'
-import { connect } from 'react-redux'
 import { Redirect } from 'react-router-dom'
-import { branch, renderComponent } from 'recompose'
-import { reduxForm, Field, SubmissionError } from 'redux-form/immutable'
-import { createStructuredSelector } from 'reselect'
+import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
+import * as reduxHook from 'redux-react-hook'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Sentry from 'utils/Sentry'
 import Link from 'utils/StyledLink'
 import defer from 'utils/defer'
+import parseSearch from 'utils/parseSearch'
 import { composeComponent } from 'utils/reactTools'
+import useMutex from 'utils/useMutex'
 import * as validators from 'utils/validators'
-import withParsedQuery from 'utils/withParsedQuery'
 
-import { signIn } from './actions'
+import * as Layout from './Layout'
+import SSOGoogle from './SSOGoogle'
+import * as actions from './actions'
 import * as errors from './errors'
 import msg from './messages'
 import * as selectors from './selectors'
-import * as Layout from './Layout'
 
 const Container = Layout.mkLayout(<FM {...msg.signInHeading} />)
 
-export default composeComponent(
-  'Auth.SignIn',
-  connect(
-    createStructuredSelector({
-      authenticated: selectors.authenticated,
-    }),
-  ),
+const MUTEX_ID = 'password'
+
+const PasswordSignIn = composeComponent(
+  'Auth.SignIn.Password',
   Sentry.inject(),
   reduxForm({
-    form: 'Auth.SignIn',
-    onSubmit: async (values, dispatch, { sentry }) => {
+    form: 'Auth.SignIn.Password',
+    onSubmit: async (values, dispatch, { sentry, mutex }) => {
+      if (mutex.current) return
+      mutex.claim(MUTEX_ID)
       const result = defer()
-      dispatch(signIn(values.toJS(), result.resolver))
+      dispatch(actions.signIn(values.toJS(), result.resolver))
       try {
         await result.promise
       } catch (e) {
@@ -45,87 +43,103 @@ export default composeComponent(
         }
         sentry('captureException', e)
         throw new SubmissionError({ _error: 'unexpected' })
+      } finally {
+        mutex.release(MUTEX_ID)
       }
     },
   }),
-  withParsedQuery,
-  branch(
-    get('authenticated'),
-    renderComponent(({ location: { query } }) => {
-      const cfg = Config.useConfig()
-      return <Redirect to={query.next || cfg.signInRedirect} />
-    }),
+  ({ mutex, handleSubmit, submitting, submitFailed, invalid, error }) => (
+    <form onSubmit={handleSubmit}>
+      <Field
+        component={Layout.Field}
+        name="username"
+        validate={[validators.required]}
+        disabled={!!mutex.current || submitting}
+        floatingLabelText={<FM {...msg.signInUsernameLabel} />}
+        errors={{
+          required: <FM {...msg.signInUsernameRequired} />,
+        }}
+      />
+      <Field
+        component={Layout.Field}
+        name="password"
+        type="password"
+        validate={[validators.required]}
+        disabled={!!mutex.current || submitting}
+        floatingLabelText={<FM {...msg.signInPassLabel} />}
+        errors={{
+          required: <FM {...msg.signInPassRequired} />,
+        }}
+      />
+      <Layout.Error
+        {...{ submitFailed, error }}
+        errors={{
+          invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
+          unexpected: <FM {...msg.signInErrorUnexpected} />,
+        }}
+      />
+      <Layout.Actions>
+        <Layout.Submit
+          label={<FM {...msg.signInSubmit} />}
+          disabled={!!mutex.current || submitting || (submitFailed && invalid)}
+          busy={submitting}
+        />
+      </Layout.Actions>
+    </form>
   ),
-  ({ handleSubmit, submitting, submitFailed, invalid, error }) => {
-    const cfg = Config.useConfig()
-    const { urls } = NamedRoutes.use()
-
-    return (
-      <Container>
-        <form onSubmit={handleSubmit}>
-          <Field
-            component={Layout.Field}
-            name="username"
-            validate={[validators.required]}
-            disabled={submitting}
-            floatingLabelText={<FM {...msg.signInUsernameLabel} />}
-            errors={{
-              required: <FM {...msg.signInUsernameRequired} />,
-            }}
-          />
-          <Field
-            component={Layout.Field}
-            name="password"
-            type="password"
-            validate={[validators.required]}
-            disabled={submitting}
-            floatingLabelText={<FM {...msg.signInPassLabel} />}
-            errors={{
-              required: <FM {...msg.signInPassRequired} />,
-            }}
-          />
-          <Layout.Error
-            {...{ submitFailed, error }}
-            errors={{
-              invalidCredentials: <FM {...msg.signInErrorInvalidCredentials} />,
-              unexpected: <FM {...msg.signInErrorUnexpected} />,
-            }}
-          />
-          <Layout.Actions>
-            <Layout.Submit
-              label={<FM {...msg.signInSubmit} />}
-              disabled={submitting || (submitFailed && invalid)}
-              busy={submitting}
-            />
-          </Layout.Actions>
-          {!cfg.disableSignUp && (
-            <Layout.Hint>
-              <FM
-                {...msg.signInHintSignUp}
-                values={{
-                  link: (
-                    <Link to={urls.signUp()}>
-                      <FM {...msg.signInHintSignUpLink} />
-                    </Link>
-                  ),
-                }}
-              />
-            </Layout.Hint>
-          )}
-          <Layout.Hint>
-            <FM
-              {...msg.signInHintReset}
-              values={{
-                link: (
-                  <Link to={urls.passReset()}>
-                    <FM {...msg.signInHintResetLink} />
-                  </Link>
-                ),
-              }}
-            />
-          </Layout.Hint>
-        </form>
-      </Container>
-    )
-  },
 )
+
+export default ({ location: { search } }) => {
+  const authenticated = reduxHook.useMappedState(selectors.authenticated)
+  const cfg = Config.useConfig()
+  const mutex = useMutex()
+  const { urls } = NamedRoutes.use()
+
+  const ssoEnabled = (provider) => {
+    if (!cfg.ssoAuth) return false
+    const { ssoProviders = [] } = cfg
+    return provider ? ssoProviders.includes(provider) : !!ssoProviders.length
+  }
+
+  const { next } = parseSearch(search)
+
+  if (authenticated) {
+    return <Redirect to={next || cfg.signInRedirect} />
+  }
+
+  return (
+    <Container>
+      {ssoEnabled('google') && <SSOGoogle mutex={mutex} next={next} />}
+      {!!cfg.passwordAuth && ssoEnabled() && <Layout.Or />}
+      {!!cfg.passwordAuth && <PasswordSignIn mutex={mutex} />}
+      {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintSignUp}
+            values={{
+              link: (
+                <Link to={urls.signUp(next)}>
+                  <FM {...msg.signInHintSignUpLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
+      )}
+      {!!cfg.passwordAuth && (
+        <Layout.Hint>
+          <FM
+            {...msg.signInHintReset}
+            values={{
+              link: (
+                <Link to={urls.passReset()}>
+                  <FM {...msg.signInHintResetLink} />
+                </Link>
+              ),
+            }}
+          />
+        </Layout.Hint>
+      )}
+    </Container>
+  )
+}

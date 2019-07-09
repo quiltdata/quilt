@@ -1,0 +1,102 @@
+{
+  "type": "object",
+  "properties": {
+    "alwaysRequiresAuth": {
+      "type": "boolean",
+      "description": "If true, then all routes will require the user to be signed in."
+    },
+    "analyticsBucket": {
+      "type": "string",
+      "description": "Bucket where object analytics data is stored"
+    },
+    "apiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+    },
+    "defaultBucket": {
+      "type": "string",
+      "description": "Default bucket users will see upon navigating to the catalog."
+    },
+    "federations": {
+      "type": "array",
+      "description": "List of links to federations you want your catalog to be aware of.",
+      "items": { "$ref": "#/definitions/Url" }
+    },
+    "googleClientId": {
+      "type": "string",
+      "description": "Client ID for Google Sign-In"
+    },
+    "intercomAppId": {
+      "type": "string",
+      "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
+    },
+    "mixpanelToken": {
+      "type": "string",
+      "description": "Token for Mixpanel analytics service"
+    },
+    "passwordAuth": {
+      "$ref": "#/definitions/AuthMethodConfig",
+      "description": "Whether Quilt password authentication is enabled for sign in and sign up."
+    },
+    "registryUrl": {
+      "$ref": "#/definitions/Url",
+      "description": "Registry your users will use to login and get credentials."
+    },
+    "s3Proxy": {
+      "$ref": "#/definitions/Url",
+      "description": "Proxy server to use to get around S3 buckets with no CORS policies."
+    },
+    "sentryDSN": {
+      "type": "string",
+      "description": "Token used for logging to Sentry."
+    },
+    "signInRedirect": {
+      "type": "string",
+      "description": "Where users will be redirected upon successful login."
+    },
+    "signOutRedirect": {
+      "type": "string",
+      "description": "Where users will be redirected upon successful logout."
+    },
+    "ssoAuth": {
+      "$ref": "#/definitions/AuthMethodConfig",
+      "description": "Whether Single Sign-On authentication is enabled for sign in and sign up."
+    },
+    "ssoProviders": {
+      "type": "string",
+      "pattern": "^(google)?|(\\$\\{\\w+\\})$",
+      "description": "Space-separated list of SSO providers (must support template substitution)."
+    },
+    "suggestedBuckets": {
+      "type": "array",
+      "description": "List of buckets you want to appear in the dropdown menu in your catalog."
+    }
+  },
+  "required": [
+    "alwaysRequiresAuth",
+    "apiGatewayEndpoint",
+    "defaultBucket",
+    "federations",
+    "mixpanelToken",
+    "passwordAuth",
+    "registryUrl",
+    "s3Proxy",
+    "signInRedirect",
+    "signOutRedirect",
+    "ssoAuth",
+    "ssoProviders",
+    "suggestedBuckets"
+  ],
+  "additionalProperties": false,
+  "definitions": {
+    "Url": {
+      "type": "string",
+      "pattern": "((^$)|(^.*[^/]$))"
+    },
+    "AuthMethodConfig": {
+      "type": "string",
+      "description": "must work for actual values AND template substitution",
+      "pattern": "^((ENABLED)|(DISABLED)|(SIGN_IN_ONLY)|(\\$\\{\\w+\\}))$"
+    }
+  }
+}

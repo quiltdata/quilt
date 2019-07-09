@@ -52,6 +52,32 @@ class TestThumbnail(TestCase):
         assert thumbnail_bytes == thumbnail.read_bytes()
 
     @responses.activate
+    def test_tiff(self):
+        url = 'https://example.com/banner.tiff'
+        image = BASE_DIR / 'banner.tiff'
+        thumbnail = BASE_DIR / 'banner-640.png'
+
+        responses.add(
+            responses.GET,
+            url,
+            body=image.read_bytes(),
+            status=200)
+
+        event = self._make_event({'url': url, 'size': 'w640h480'})
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        body = json.loads(resp['body'])
+
+        info = body['info']
+        assert info['original_format'] == 'TIFF'
+        assert info['original_size'] == [2048, 277]
+        assert info['thumbnail_format'] == 'PNG'
+        assert info['thumbnail_size'] == [640, 86]
+
+        thumbnail_bytes = base64.b64decode(body['thumbnail'])
+        assert thumbnail_bytes == thumbnail.read_bytes()
+
+    @responses.activate
     def test_invalid_size(self):
         url = 'https://example.com/foo.jpg'
 

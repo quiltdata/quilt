@@ -5,15 +5,16 @@
   "signOutRedirect": "/",
   "defaultBucket": "quilt-example",
   "apiGatewayEndpoint": "https://ozj6r9bglc.execute-api.us-east-1.amazonaws.com/prod",
-  "guestCredentials": {
-    "accessKeyId": "",
-    "secretAccessKey": ""
-  },
+  "s3Proxy": "https://open-proxy.quiltdata.com",
   "suggestedBuckets": [
     "quilt-example",
     "quilt-aics"
   ],
   "federations": [
     "/federation.json"
-  ]
+  ],
+  "passwordAuth": "ENABLED",
+  "ssoAuth": "SIGN_IN_ONLY",
+  "ssoProviders": "google",
+  "googleClientId": "414254601868-vlofcqbns27cd7v337k0v8kg6g11fukr.apps.googleusercontent.com"
 }

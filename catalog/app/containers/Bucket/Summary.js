@@ -32,7 +32,7 @@ import * as requests from './requests'
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
-const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif']
+const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
 
 const withSignedUrl = (handle, callback) => (
   <AWS.Signer.Inject>
@@ -46,7 +46,7 @@ const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),
   images: R.filter((f) =>
-    IMAGE_EXTS.some((ext) => (f.logicalKey || f.key).endsWith(ext)),
+    IMAGE_EXTS.some((ext) => (f.logicalKey || f.key).toLowerCase().endsWith(ext)),
   ),
 })
 
@@ -261,9 +261,9 @@ export default composeComponent(
         )}
         {!!images.length && <Thumbnails images={images} />}
         {summarize && (
-          <AWS.S3.Inject>
-            {(s3) => (
-              <Data fetch={requests.summarize} params={{ s3, handle: summarize }}>
+          <AWS.S3.InjectRequest>
+            {(s3req) => (
+              <Data fetch={requests.summarize} params={{ s3req, handle: summarize }}>
                 {AsyncResult.case({
                   Err: () => null,
                   _: () => <CircularProgress className={classes.progress} />,
@@ -278,7 +278,7 @@ export default composeComponent(
                 })}
               </Data>
             )}
-          </AWS.S3.Inject>
+          </AWS.S3.InjectRequest>
         )}
       </React.Fragment>
     )

@@ -157,7 +157,7 @@ export default ({
   },
 }) => {
   const classes = useStyles()
-  const s3 = AWS.S3.use()
+  const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
 
@@ -168,7 +168,7 @@ export default ({
   `
 
   return (
-    <Data params={{ s3, bucket, name, revision }} fetch={requests.fetchPackageTree}>
+    <Data params={{ s3req, bucket, name, revision }} fetch={requests.fetchPackageTree}>
       {withComputedTree({ bucket, name, revision, path }, (result) => (
         <React.Fragment>
           <div className={classes.topBar}>
@@ -182,6 +182,7 @@ export default ({
                       variant="outlined"
                       href={getSignedS3URL({ bucket, key, version })}
                       className={classes.button}
+                      download
                     >
                       Download file
                     </Button>

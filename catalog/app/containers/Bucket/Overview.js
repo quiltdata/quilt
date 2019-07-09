@@ -45,9 +45,9 @@ export default RT.composeComponent(
       params: { bucket },
     },
   }) => (
-    <AWS.S3.Inject>
-      {(s3) => (
-        <Data fetch={requests.bucketListing} params={{ s3, bucket }}>
+    <AWS.S3.InjectRequest>
+      {(s3req) => (
+        <Data fetch={requests.bucketListing} params={{ s3req, bucket }}>
           {AsyncResult.case({
             Ok: ({ files }) => <Summary files={files} whenEmpty={whenEmpty(bucket)} />,
             Err: displayError(),
@@ -55,6 +55,6 @@ export default RT.composeComponent(
           })}
         </Data>
       )}
-    </AWS.S3.Inject>
+    </AWS.S3.InjectRequest>
   ),
 )
