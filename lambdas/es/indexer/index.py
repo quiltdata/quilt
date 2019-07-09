@@ -56,11 +56,13 @@ class DocumentQueue:
 
         body['meta_text'] = ' '.join([body['meta_text'], key])
 
+        print("append: ", body)
         self.queue.append(body)
 
     def send_all(self):
         """attempt to flush self.queue in a bulk call"""
         elastic_host = os.environ['ES_HOST']
+        print("send_all")
         try:
             awsauth = AWSRequestsAuth(
                 # These environment variables are automatically set by Lambda
@@ -82,9 +84,11 @@ class DocumentQueue:
                 connection_class=RequestsHttpConnection
             )
 
+            print("calling bulk()")
             success, errors = bulk(
                 es,
                 iter(self.queue),
+                index=ES_INDEX,
                 # number of retries for 429 (too many requests only)
                 max_retries=RETRY_429,
                 # we'll process errors on our own
@@ -261,6 +265,8 @@ def handler(event, context):
             # reduce requests to S3: get .quilt/config.json once per batch per bucket
             configs = {}
             for record in records:
+                print("record")
+                print(record)
                 try:
                     eventname = record['eventName']
                     bucket = unquote(record['s3']['bucket']['name']) if records else None
