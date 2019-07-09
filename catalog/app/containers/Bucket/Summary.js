@@ -17,7 +17,7 @@ import { styled, withStyles } from '@material-ui/styles'
 
 import * as Pagination from 'components/Pagination'
 import * as Preview from 'components/Preview'
-import Thumbnail from 'components/Thumbnail'
+import Thumbnail, { SUPPORTED_EXTENSIONS } from 'components/Thumbnail'
 import * as AWS from 'utils/AWS'
 import AsyncResult from 'utils/AsyncResult'
 import Data from 'utils/Data'
@@ -30,7 +30,6 @@ import * as requests from './requests'
 
 const README_RE = /^readme\.md$/i
 const SUMMARIZE_RE = /^quilt_summarize\.json$/i
-const IMAGE_EXTS = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
 
 const withSignedUrl = (handle, callback) => (
   <AWS.Signer.Inject>
@@ -44,7 +43,9 @@ const extractSummary = R.applySpec({
   readme: findFile(README_RE),
   summarize: findFile(SUMMARIZE_RE),
   images: R.filter((f) =>
-    IMAGE_EXTS.some((ext) => (f.logicalKey || f.key).toLowerCase().endsWith(ext)),
+    SUPPORTED_EXTENSIONS.some((ext) =>
+      (f.logicalKey || f.key).toLowerCase().endsWith(ext),
+    ),
   ),
 })
 

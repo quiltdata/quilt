@@ -14,6 +14,17 @@ const SIZES = {
 
 const sizeStr = (s) => `w${SIZES[s].w}h${SIZES[s].h}`
 
+export const SUPPORTED_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.bmp',
+  '.tiff',
+  '.tif',
+]
+
 export default RT.composeComponent(
   'Thumbnail',
   RC.setPropTypes({
