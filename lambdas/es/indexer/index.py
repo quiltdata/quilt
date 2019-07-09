@@ -12,7 +12,7 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 import nbformat
-from tenacity import stop_after_delay, retry, wait_exponential
+from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
 
 DEFAULT_CONFIG = {
     'to_index': [
@@ -335,15 +335,22 @@ def retry_s3(operation, bucket, key, etag, version_id, context):
 
     time_remaining = get_time_remaining(context)
 
+    """
     @retry(
-        stop=stop_after_delay(time_remaining),
+        # debug
+        stop=(stop_after_delay(time_remaining) | stop_after_attempt(3)),
         wait=wait_exponential(multiplier=2, min=4, max=30)
     )
+    """
     def call():
         print("in call routine")
         if version_id:
-            return function_(Bucket=bucket, Key=key, VersionId=version_id)
+            result = function_(Bucket=bucket, Key=key, VersionId=version_id)
+            print(result)
+            return result
         else:
-            return function_(Bucket=bucket, Key=key, IfMatch=etag)
+            result = function_(Bucket=bucket, Key=key, IfMatch=etag)
+            print(result)
+            return result
 
     return call()
