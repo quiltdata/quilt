@@ -5,16 +5,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Divider from '@material-ui/core/Divider'
-import Input from '@material-ui/core/Input'
-import InputAdornment from '@material-ui/core/InputAdornment'
-import ListItemText from '@material-ui/core/ListItemText'
-import MenuItem from '@material-ui/core/MenuItem'
-import MenuList from '@material-ui/core/MenuList'
-import Paper from '@material-ui/core/Paper'
-import Popper from '@material-ui/core/Popper'
-import { ThemeProvider, makeStyles, withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -27,18 +18,17 @@ const DIVIDER = '<DIVIDER>'
 
 const NavInput = RT.composeComponent(
   'NavBar.BucketSelect.NavInput',
-  RT.wrap(ThemeProvider, () => ({ theme: style.themeInverted })),
-  withStyles(({ palette }) => ({
+  M.withStyles(({ palette }) => ({
     underline: {
       '&:after': {
-        borderBottomColor: palette.secondary.main,
+        borderBottomColor: palette.primary.main,
       },
     },
     input: {
       textOverflow: 'ellipsis',
     },
   })),
-  Input,
+  M.Input,
 )
 
 const normalizeBucket = R.pipe(
@@ -62,19 +52,18 @@ const getCycled = (getter = R.identity) => (arr, val, offset) => {
 
 const getBucketCycled = getCycled()
 
-const useStyles = makeStyles(({ spacing: { unit }, zIndex }) => ({
+const useStyles = M.makeStyles(({ spacing, zIndex }) => ({
   input: {
-    marginLeft: unit * 2,
+    marginLeft: spacing(2),
   },
   popper: {
     zIndex: zIndex.appBar + 1,
   },
   item: {
-    paddingBottom: 20,
-    paddingTop: 20,
+    minHeight: 60,
   },
   description: {
-    maxWidth: 50 * unit,
+    maxWidth: spacing(50),
   },
   icon: {
     height: 40,
@@ -83,7 +72,7 @@ const useStyles = makeStyles(({ spacing: { unit }, zIndex }) => ({
 }))
 
 // TODO: better placeholder styling
-const Placeholder = () => <Delay>{() => <CircularProgress />}</Delay>
+const Placeholder = () => <Delay>{() => <M.CircularProgress />}</Delay>
 
 export default RT.composeComponent(
   'NavBar.BucketSelect',
@@ -176,9 +165,9 @@ export default RT.composeComponent(
     }
 
     return (
-      <React.Fragment>
+      <>
         <NavInput
-          startAdornment={<InputAdornment>s3://</InputAdornment>}
+          startAdornment={<M.InputAdornment>s3://</M.InputAdornment>}
           value={value}
           className={classes.input}
           autoFocus={autoFocus}
@@ -188,42 +177,45 @@ export default RT.composeComponent(
           onBlur={handleBlur}
           placeholder=" Enter bucket name"
         />
-        <Popper
+        <M.Popper
           open={!!anchor}
           anchorEl={anchor}
           placement="bottom-end"
           className={classes.popper}
         >
-          <Paper>
-            <MenuList>
-              {suggestions.map((s, i) => {
-                // eslint-disable-next-line react/no-array-index-key
-                if (s === DIVIDER) return <Divider key={`${s}:${i}`} />
-                const b = bucketConfigs[s]
-                return (
-                  <MenuItem
-                    className={classes.item}
-                    key={s}
-                    onClick={() => handleSuggestion(s)}
-                    selected={s === value}
-                  >
-                    <img src={b.icon} alt={b.title} className={classes.icon} />
-                    <ListItemText
-                      primary={b.title}
-                      secondary={b.description}
-                      secondaryTypographyProps={{
-                        noWrap: true,
-                        className: classes.description,
-                      }}
-                      title={b.description}
-                    />
-                  </MenuItem>
-                )
-              })}
-            </MenuList>
-          </Paper>
-        </Popper>
-      </React.Fragment>
+          <M.MuiThemeProvider theme={style.appTheme}>
+            <M.Paper>
+              <M.MenuList>
+                {suggestions.map((s, i) => {
+                  // eslint-disable-next-line react/no-array-index-key
+                  if (s === DIVIDER) return <M.Divider key={`${s}:${i}`} />
+                  const b = bucketConfigs[s]
+                  return (
+                    <M.MenuItem
+                      className={classes.item}
+                      key={s}
+                      onClick={() => handleSuggestion(s)}
+                      selected={s === value}
+                    >
+                      <img src={b.icon} alt={b.title} className={classes.icon} />
+                      <M.Box pr={2} />
+                      <M.ListItemText
+                        primary={b.title}
+                        secondary={b.description}
+                        secondaryTypographyProps={{
+                          noWrap: true,
+                          className: classes.description,
+                        }}
+                        title={b.description}
+                      />
+                    </M.MenuItem>
+                  )
+                })}
+              </M.MenuList>
+            </M.Paper>
+          </M.MuiThemeProvider>
+        </M.Popper>
+      </>
     )
   },
 )

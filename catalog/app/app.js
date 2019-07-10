@@ -8,8 +8,10 @@ import '@babel/polyfill'
 import * as React from 'react'
 import ReactDOM from 'react-dom'
 import { createBrowserHistory as createHistory } from 'history'
-import 'sanitize.css/sanitize.css'
-import { ThemeProvider } from '@material-ui/styles'
+import * as M from '@material-ui/core'
+
+// side-effect: inject global css
+import 'sanitize.css'
 
 // Import root app
 import Error from 'components/Error'
@@ -98,6 +100,7 @@ const sentryUserSelector = (state) => {
 const render = (messages) => {
   ReactDOM.render(
     nest(
+      [M.MuiThemeProvider, { theme: style.appTheme }],
       WithGlobalStyles,
       FinalBoundary,
       Sentry.Provider,
@@ -108,7 +111,6 @@ const render = (messages) => {
       Data.Provider,
       Cache.Provider,
       [Config.Provider, { path: '/config.json' }],
-      [ThemeProvider, { theme: style.theme }],
       [React.Suspense, { fallback: <Placeholder /> }],
       [Sentry.Loader, { userSelector: sentryUserSelector }],
       ErrorBoundary,

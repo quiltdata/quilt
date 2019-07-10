@@ -18,35 +18,34 @@ import parse from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 import { useRoute } from 'utils/router'
 
-const useStyles = makeStyles(
-  ({ shape: { borderRadius }, spacing: { unit }, palette }) => ({
-    root: {
-      background: fade(palette.common.white, 0.9),
-      borderRadius,
-      marginLeft: 2 * unit,
-      minWidth: 240,
-      '&:not($disabled):hover': {
-        background: palette.common.white,
-      },
+const useStyles = makeStyles((t) => ({
+  root: {
+    background: fade(t.palette.common.white, 0.9),
+    color: t.palette.getContrastText(t.palette.common.white),
+    borderRadius: t.shape.borderRadius,
+    marginLeft: t.spacing(2),
+    minWidth: 240,
+    '&:not($disabled):hover': {
+      background: t.palette.common.white,
     },
-    disabled: {
-      opacity: 0.8,
-    },
-    focused: {
-      background: palette.common.white,
-    },
-    input: {
-      paddingLeft: 4 * unit,
-      textOverflow: 'ellipsis',
-    },
-    adornment: {
-      justifyContent: 'center',
-      pointerEvents: 'none',
-      position: 'absolute',
-      width: 4 * unit,
-    },
-  }),
-)
+  },
+  disabled: {
+    opacity: 0.8,
+  },
+  focused: {
+    background: t.palette.common.white,
+  },
+  input: {
+    paddingLeft: t.spacing(4),
+    textOverflow: 'ellipsis',
+  },
+  adornment: {
+    justifyContent: 'center',
+    pointerEvents: 'none',
+    position: 'absolute',
+    width: t.spacing(4),
+  },
+}))
 
 const SearchBox = ({ disabled, ...props }) => {
   const { adornment, disabled: disabledCls, ...classes } = useStyles()

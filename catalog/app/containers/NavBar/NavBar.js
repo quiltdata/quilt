@@ -7,9 +7,8 @@ import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
-import { useTheme } from '@material-ui/core/styles'
-import { withStyles } from '@material-ui/styles'
 
+import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
 import * as Config from 'utils/Config'
@@ -68,16 +67,18 @@ const NavMenu = () => {
         )}
         {user.name} <M.Icon>expand_more</M.Icon>
       </M.Button>
-      <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
-        {user.isAdmin && (
-          <Item to={urls.admin()} onClick={close} divider>
-            <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
+          {user.isAdmin && (
+            <Item to={urls.admin()} onClick={close} divider>
+              <M.Icon fontSize="small">security</M.Icon>&nbsp;Users and roles
+            </Item>
+          )}
+          <Item to={urls.signOut()} onClick={close}>
+            Sign Out
           </Item>
-        )}
-        <Item to={urls.signOut()} onClick={close}>
-          Sign Out
-        </Item>
-      </M.Menu>
+        </M.Menu>
+      </M.MuiThemeProvider>
     </>
   )
 }
@@ -89,7 +90,7 @@ const SignIn = composeComponent(
     waiting: PT.bool.isRequired,
   }),
   NamedRoutes.inject(),
-  withStyles(({ spacing: { unit } }) => ({
+  M.withStyles(({ spacing: { unit } }) => ({
     icon: {
       marginRight: unit,
     },
@@ -116,40 +117,34 @@ const SignIn = composeComponent(
   },
 )
 
+const AppBar = M.styled(M.AppBar)(({ theme: t }) => ({
+  background: `left / 64px url(${bg})`,
+  zIndex: t.zIndex.appBar + 1,
+}))
+
 export const Container = ({ children }) => {
-  const t = useTheme()
   const trigger = M.useScrollTrigger()
   return (
-    <M.Box>
-      <M.Toolbar />
-      <M.Slide appear={false} direction="down" in={!trigger}>
-        <M.AppBar
-          style={{
-            color: t.palette.getContrastText(t.palette.primary.dark),
-            background: `left / 64px url(${bg})`,
-          }}
-        >
-          <M.Toolbar disableGutters>
-            <M.Container maxWidth="lg" style={{ display: 'flex', alignItems: 'center' }}>
-              <Logo />
-              {children}
-            </M.Container>
-          </M.Toolbar>
-        </M.AppBar>
-      </M.Slide>
-    </M.Box>
+    <M.MuiThemeProvider theme={style.navTheme}>
+      <M.Box>
+        <M.Toolbar />
+        <M.Slide appear={false} direction="down" in={!trigger}>
+          <AppBar>
+            <M.Toolbar disableGutters>
+              <M.Container
+                maxWidth="lg"
+                style={{ display: 'flex', alignItems: 'center' }}
+              >
+                <Logo />
+                {children}
+              </M.Container>
+            </M.Toolbar>
+          </AppBar>
+        </M.Slide>
+      </M.Box>
+    </M.MuiThemeProvider>
   )
 }
-
-const Spacer = composeComponent(
-  'NavBar.Spacer',
-  withStyles(() => ({
-    root: {
-      flexGrow: 1,
-    },
-  })),
-  ({ classes }) => <div className={classes.root} />,
-)
 
 const whenNot = (path, fn) => (
   <Route path={path} exact>
@@ -196,14 +191,14 @@ export const NavBar = () => {
   )
   const { error, waiting, authenticated } = reduxHook.useMappedState(selector)
   const { paths } = NamedRoutes.use()
-  const t = useTheme()
+  const t = M.useTheme()
   const useDrawer = M.useMediaQuery(t.breakpoints.down('sm'))
   const [drawer, setDrawer] = React.useState(false)
   const toggleDrawer = React.useCallback(() => setDrawer((d) => !d), [setDrawer])
   return (
     <Container>
       {whenNot(paths.signIn, () => !useDrawer && <BucketControls />)}
-      <Spacer />
+      <M.Box flexGrow={1} />
       {!useDrawer && <Links />}
 
       {authenticated ? (
@@ -221,18 +216,20 @@ export const NavBar = () => {
       )}
 
       {useDrawer && (
-        <M.SwipeableDrawer
-          anchor="right"
-          open={drawer}
-          onClose={() => setDrawer(false)}
-          onOpen={() => setDrawer(true)}
-        >
-          {/* TODO: populate the drawer with necessary controls / nav */}
-          <M.Box px={1} width="calc(100vw - 4rem)" maxWidth={400}>
-            <BucketControls />
-            <Links />
-          </M.Box>
-        </M.SwipeableDrawer>
+        <M.MuiThemeProvider theme={style.appTheme}>
+          <M.SwipeableDrawer
+            anchor="right"
+            open={drawer}
+            onClose={() => setDrawer(false)}
+            onOpen={() => setDrawer(true)}
+          >
+            {/* TODO: populate the drawer with necessary controls / nav */}
+            <M.Box px={1} width="calc(100vw - 4rem)" maxWidth={400}>
+              <BucketControls />
+              <Links />
+            </M.Box>
+          </M.SwipeableDrawer>
+        </M.MuiThemeProvider>
       )}
     </Container>
   )

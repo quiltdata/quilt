@@ -1,13 +1,9 @@
 /* constants for use in CSS. prefer integers over strings so we can do math */
-import * as colors from '@material-ui/core/colors'
-import { createMuiTheme } from '@material-ui/core/styles'
+import { colors, createMuiTheme } from '@material-ui/core'
 
-// TODO: deprecate, mv to theme
-export const bodyColor = colors.grey[900]
-export const bodySize = '1em'
-export const headerColor = colors.grey[900]
+const defaultTheme = createMuiTheme()
 
-const palette = {
+const appPalette = {
   primary: {
     main: '#282b50',
     dark: '#1d2146',
@@ -17,33 +13,110 @@ const palette = {
   },
 }
 
-const typography = {
+const websitePalette = {
+  type: 'dark',
+  background: {
+    default: '#19163b',
+  },
+  primary: {
+    contrastText: colors.common.white,
+    light: '#fabdb3',
+    main: '#f38681',
+  },
+  secondary: {
+    main: '#5471f1',
+    dark: '#2d306d',
+  },
+  tertiary: {
+    main: '#6a93ff',
+  },
+  text: {
+    secondary: '#b2bddb',
+  },
+}
+
+const baseTypography = {
   monospace: {
     fontFamily: ['Roboto Mono', 'monospace'],
   },
 }
 
-const overrides = {
-  MuiAppBar: {
-    colorPrimary: {
-      backgroundColor: '#2d306d',
+const appTypography = {
+  ...baseTypography,
+}
+
+const websiteTypography = {
+  ...baseTypography,
+  h1: {
+    fontSize: '3rem',
+    lineHeight: '4rem',
+  },
+  h2: {
+    fontSize: '2.25rem',
+  },
+  h3: {
+    fontSize: '1.75rem',
+  },
+  h4: {
+    fontSize: '1.25rem',
+  },
+  h5: {
+    fontSize: '1rem',
+    lineHeight: 1.5,
+  },
+  body1: {
+    lineHeight: 2,
+  },
+  body2: {
+    lineHeight: 2,
+  },
+  button: {
+    fontWeight: defaultTheme.typography.fontWeightRegular,
+  },
+}
+
+const websiteOverrides = {
+  MuiButton: {
+    root: {
+      padding: [[8, 24]],
+      borderRadius: 2,
+    },
+    containedPrimary: {
+      backgroundImage: [
+        'linear-gradient(to left, #f1b39d, #f78881)',
+        'linear-gradient(to top, #000000, rgba(255, 255, 255, 0.7))',
+      ],
+    },
+    containedSecondary: {
+      backgroundImage: [
+        'linear-gradient(225deg, #5c83ea, #6752e6)',
+        'linear-gradient(to top, #000000, rgba(255, 255, 255, 0.7))',
+      ],
     },
   },
 }
 
-export const theme = createMuiTheme({
-  palette,
-  typography,
-  overrides,
+// default app theme
+export const appTheme = createMuiTheme({
+  palette: appPalette,
+  typography: appTypography,
 })
 
-// expose theme for development purposes
+// theme used for navbar and footer
+export const navTheme = createMuiTheme({
+  palette: websitePalette,
+  typography: appTypography,
+  overrides: websiteOverrides,
+})
+
+// theme used for marketing pages
+export const websiteTheme = createMuiTheme({
+  palette: websitePalette,
+  typography: websiteTypography,
+  overrides: websiteOverrides,
+})
+
+// expose themes for development purposes
 if (process.env.NODE_ENV === 'development') {
-  window.THEME = theme
+  window.THEMES = { appTheme, navTheme, websiteTheme }
 }
-
-export const themeInverted = createMuiTheme({
-  palette: { ...palette, type: 'dark' },
-  typography,
-  overrides,
-})
