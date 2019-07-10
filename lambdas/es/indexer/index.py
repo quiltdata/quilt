@@ -23,6 +23,7 @@ DEFAULT_CONFIG = {
 }
 # TODO: eliminate hardcoded index
 ES_INDEX = 'drive'
+MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 RETRY_429 = 5
 S3_CLIENT = boto3.client("s3")
@@ -95,7 +96,6 @@ class DocumentQueue:
                 raise_on_exception=False
             )
             # TODO: remove print statements
-            print('***debug***')
             print("succeeded on", success)
             for e in errors:
                 print(e)
@@ -280,8 +280,6 @@ def handler(event, context):
             # reduce requests to S3: get .quilt/config.json once per batch per bucket
             configs = {}
             for record in records:
-                print("record")
-                print(record)
                 try:
                     eventname = record['eventName']
                     bucket = unquote(record['s3']['bucket']['name']) if records else None
@@ -329,12 +327,13 @@ def handler(event, context):
                             )
                         else:
                             # TODO: phone this into mixpanel
-                            print(f"no logic to index {ext}")
+                            print(f"no logic to index .{ext} files")
                     # decode Quilt-specific metadata
                     try:
-                        meta['helium'] = json.loads(meta['helium'])
+                        if 'helium' in meta: 
+                            meta['helium'] = json.loads(meta['helium'])
                     except (KeyError, json.JSONDecodeError):
-                        print('decoding helium metadata failed')
+                        print('Unable to parse Quilt "helium" metadata', meta)
 
                     batch_processor.append(event_type, size, text, key, meta, version_id)
                 except Exception as e:# pylint: disable=broad-except
@@ -360,8 +359,6 @@ def retry_s3(operation, context, **kwargs):
     always get the required version of the object.
     """
     _validate_kwargs(kwargs)
-    print("in retry_s3")
-    print(operation, context, kwargs)
     if operation not in ['get', 'head']:
         raise ValueError(f"unexpected operation: {operation}")
     if operation == 'head':
@@ -369,14 +366,12 @@ def retry_s3(operation, context, **kwargs):
     else:
         function_ = S3_CLIENT.get_object
 
-    """
     time_remaining = get_time_remaining(context)
     @retry(
         # debug
-        stop=(stop_after_delay(time_remaining) | stop_after_attempt(3)),
+        stop=(stop_after_delay(time_remaining) | stop_after_attempt(MAX_RETRY)),
         wait=wait_exponential(multiplier=2, min=4, max=30)
     )
-    """
     def call():
         print("in call routine")
         if kwargs['version_id']:
