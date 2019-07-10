@@ -5,7 +5,7 @@ from datetime import datetime
 from math import floor
 import json
 import os
-from urllib.parse import unquote
+from urllib.parse import unquote, unquote_plus
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
@@ -88,7 +88,6 @@ class DocumentQueue:
             success, errors = bulk(
                 es,
                 iter(self.queue),
-                index=ES_INDEX,
                 # number of retries for 429 (too many requests only)
                 max_retries=RETRY_429,
                 # we'll process errors on our own
@@ -286,7 +285,7 @@ def handler(event, context):
                 try:
                     eventname = record['eventName']
                     bucket = unquote(record['s3']['bucket']['name']) if records else None
-                    key = unquote(record['s3']['object']['key'])
+                    key = unquote_plus(record['s3']['object']['key'])
                     version_id = record['s3']['object'].get('versionId')
                     version_id = unquote(version_id) if version_id else None
                     etag = unquote(record['s3']['object']['eTag'])
@@ -398,4 +397,4 @@ def retry_s3(operation, context, **kwargs):
 def _validate_kwargs(kwargs):
     for word in ['bucket', 'key', 'etag', 'version_id']:
         if word not in kwargs:
-            raise TypeError(f"Missing required keyword argument: {kw}")
+            raise TypeError(f"Missing required keyword argument: {word}")
