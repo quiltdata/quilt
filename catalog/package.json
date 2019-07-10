@@ -86,7 +86,7 @@
     "ip": "^1.1.5",
     "jss": "^10.0.0-alpha.22",
     "katex": "^0.10.2",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.14",
     "minimist": "^1.2.0",
     "mixpanel-browser": "^2.28.0",
     "prop-types": "^15.7.2",
