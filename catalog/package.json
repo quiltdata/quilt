@@ -96,7 +96,7 @@
     "react-google-login": "^5.0.4",
     "react-helmet": "^6.0.0-beta",
     "react-intl": "^2.9.0",
-    "react-redux": "^7.0.3",
+    "react-redux": "^7.1.0",
     "react-router-dom": "^5.0.0",
     "react-stripe-checkout": "^2.6.3",
     "recompose": "^0.30.0",
