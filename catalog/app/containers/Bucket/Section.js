@@ -32,21 +32,36 @@ const useStyles = makeStyles({
   },
 })
 
+const useExpandedState = ({ expandable, defaultExpanded }) => {
+  const [expandedState, setExpanded] = React.useState(null)
+  const expanded =
+    !expandable || (expandedState != null ? expandedState : defaultExpanded)
+
+  const onChange = React.useCallback(
+    (e, changedExpanded) => {
+      setExpanded(changedExpanded)
+    },
+    [setExpanded],
+  )
+
+  return { expanded, onChange }
+}
+
 export default ({
   icon,
   heading,
-  defaultExpanded,
+  defaultExpanded = false,
   expandable = true,
   gutterBottom = false,
   gutterTop = false,
   children,
 }) => {
   const classes = useStyles()
+  const expandedState = useExpandedState({ expandable, defaultExpanded })
 
   return (
     <ExpansionPanel
-      defaultExpanded={defaultExpanded}
-      expanded={expandable ? undefined : true}
+      {...expandedState}
       className={cx({
         [classes.gutterBottom]: gutterBottom,
         [classes.gutterTop]: gutterTop,

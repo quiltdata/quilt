@@ -244,49 +244,59 @@ const Analytics = ({ analyticsBucket, bucket, path }) => {
       date,
       today.getFullYear() === date.getFullYear() ? `D MMM` : `D MMM YYYY`,
     )
+
   return (
-    <Section icon="bar_charts" heading="Analytics" defaultExpanded>
-      <Data
-        fetch={requests.objectAccessCounts}
-        params={{ s3req, analyticsBucket, bucket, path, today }}
-      >
-        {AsyncResult.case({
-          Ok: ({ counts, total }) => (
-            <Box
-              display="flex"
-              width="100%"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Box>
-                <Typography variant="h5">Downloads</Typography>
-                <Typography variant="h4" component="div">
-                  {readableQuantity(cursor === null ? total : counts[cursor].value)}
-                </Typography>
-                <Typography variant="overline" component="span">
-                  {cursor === null
-                    ? `${counts.length} days`
-                    : formatDate(counts[cursor].date)}
-                </Typography>
-              </Box>
-              <Box width="calc(100% - 7rem)">
-                <Sparkline
-                  data={R.pluck('value', counts)}
-                  onCursor={setCursor}
-                  width={1000}
-                  height={60}
-                  color={colors.blueGrey[100]}
-                  color2={colors.blueGrey[800]}
-                  fill={false}
-                />
-              </Box>
-            </Box>
-          ),
-          Err: () => <Typography>No analytics available</Typography>,
-          _: () => <CircularProgress />,
-        })}
-      </Data>
-    </Section>
+    <Data
+      fetch={requests.objectAccessCounts}
+      params={{ s3req, analyticsBucket, bucket, path, today }}
+    >
+      {(res) => (
+        <Section
+          icon="bar_charts"
+          heading="Analytics"
+          defaultExpanded={AsyncResult.Ok.is(res)}
+        >
+          {AsyncResult.case(
+            {
+              Ok: ({ counts, total }) => (
+                <Box
+                  display="flex"
+                  width="100%"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <Box>
+                    <Typography variant="h5">Downloads</Typography>
+                    <Typography variant="h4" component="div">
+                      {readableQuantity(cursor === null ? total : counts[cursor].value)}
+                    </Typography>
+                    <Typography variant="overline" component="span">
+                      {cursor === null
+                        ? `${counts.length} days`
+                        : formatDate(counts[cursor].date)}
+                    </Typography>
+                  </Box>
+                  <Box width="calc(100% - 7rem)">
+                    <Sparkline
+                      data={R.pluck('value', counts)}
+                      onCursor={setCursor}
+                      width={1000}
+                      height={60}
+                      color={colors.blueGrey[100]}
+                      color2={colors.blueGrey[800]}
+                      fill={false}
+                    />
+                  </Box>
+                </Box>
+              ),
+              Err: () => <Typography>No analytics available</Typography>,
+              _: () => <CircularProgress />,
+            },
+            res,
+          )}
+        </Section>
+      )}
+    </Data>
   )
 }
 
