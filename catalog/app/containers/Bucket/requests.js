@@ -294,8 +294,14 @@ const s3Select = ({
         return acc + s
       }, ''),
       R.trim,
-      R.split('\n'),
-      R.map(JSON.parse),
+      R.ifElse(
+        R.isEmpty,
+        R.always([]),
+        R.pipe(
+          R.split('\n'),
+          R.map(JSON.parse),
+        ),
+      ),
     ),
   )
 
@@ -422,7 +428,7 @@ const queryAccessCounts = async ({
   window = 365,
 }) => {
   try {
-    const [{ counts: recordedCountsJson }] = await s3Select({
+    const records = await s3Select({
       s3req,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/${type}.csv`,
@@ -430,7 +436,7 @@ const queryAccessCounts = async ({
       InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
     })
 
-    const recordedCounts = JSON.parse(recordedCountsJson)
+    const recordedCounts = records.length ? JSON.parse(records[0].counts) : {}
 
     const counts = R.times((i) => {
       const date = dateFns.subDays(today, window - i - 1)
