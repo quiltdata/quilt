@@ -54,17 +54,19 @@ class DocumentQueue:
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
             # ES native keys
-            "_id": f"{bucket}/{key}:{etag}:{version_id}:{last_modified}",
+            "_id": f"{bucket}/{key}:{etag}:{version_id}",
             "_index": ES_INDEX,
             "_op_type": "index",
             "_type": "_doc",
             # Quilt keys
+            # Be VERY CAREFUL changing these values as a type change can cause
+            # mapper_parsing_exception that below code won't recover from
             "etag": etag,
             "type": event_type,
             "size": size,
             "text": text,
             "key": key,
-            "last_modified": str(last_modified),
+            "last_modified": last_modified.isoformat(),
             "updated": datetime.utcnow().isoformat(),
             "version_id": version_id
         }
