@@ -15,12 +15,8 @@ import boto3
 from boto3.s3.transfer import TransferConfig
 from s3transfer.utils import OSUtils, signal_transferring, signal_not_transferring
 
-import warnings
-with warnings.catch_warnings():
-    warnings.simplefilter("ignore")
-    from tqdm.autonotebook import tqdm
-
 import jsonlines
+from tqdm import tqdm
 
 from .session import create_botocore_session
 from .util import QuiltException, make_s3_url, parse_file_url, parse_s3_url

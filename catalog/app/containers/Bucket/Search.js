@@ -260,7 +260,6 @@ const PreviewBox = RT.composeComponent(
       maxHeight: unit * 30,
       marginTop: unit,
       minHeight: unit * 15,
-      overflow: 'hidden',
       padding: unit * 2,
       position: 'relative',
 
@@ -268,10 +267,17 @@ const PreviewBox = RT.composeComponent(
         marginLeft: 'auto',
         marginRight: 'auto',
       },
-      // workaround to speed-up notebook preview rendering:
-      // only show 2 first cells unless expanded
-      '&:not($expanded) .ipynb-preview .cell:nth-child(n+3)': {
-        display: 'none',
+
+      // workarounds to speed-up notebook preview rendering:
+      '&:not($expanded)': {
+        // hide overflow only when not expanded, using this while expanded
+        // slows down the page in chrome
+        overflow: 'hidden',
+
+        // only show 2 first cells unless expanded
+        '& .ipynb-preview .cell:nth-child(n+3)': {
+          display: 'none',
+        },
       },
     },
     expanded: {

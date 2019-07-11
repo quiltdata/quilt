@@ -25,7 +25,7 @@ const useStyles = makeStyles({
   root: {
     width: '100%',
     // workaround to speed-up browser rendering / compositing
-    '& div.input_area > div.highlight > pre': {
+    '& pre': {
       overflow: 'hidden',
       whiteSpace: 'pre-wrap',
     },
