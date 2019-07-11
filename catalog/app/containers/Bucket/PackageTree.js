@@ -11,6 +11,7 @@ import { makeStyles } from '@material-ui/styles'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
+import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up } from 'utils/s3paths'
@@ -162,6 +163,7 @@ export default ({
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
+  const { apiGatewayEndpoint: endpoint } = Config.useConfig()
 
   // TODO: handle revision / hash
   const code = dedent`
@@ -170,7 +172,10 @@ export default ({
   `
 
   return (
-    <Data params={{ s3req, bucket, name, revision }} fetch={requests.fetchPackageTree}>
+    <Data
+      fetch={requests.fetchPackageTree}
+      params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
+    >
       {withComputedTree({ bucket, name, revision, path }, (result) => (
         <React.Fragment>
           <div className={classes.topBar}>

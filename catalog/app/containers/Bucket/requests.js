@@ -305,41 +305,32 @@ const s3Select = ({
     ),
   )
 
+// TODO: Preview endpoint only allows up to 512 lines right now. Increase it to 1000.
+const MAX_PACKAGE_ENTRIES = 500
+
 export const fetchPackageTree = withErrorHandling(
-  async ({ s3req, bucket, name, revision }) => {
+  async ({ s3req, sign, endpoint, bucket, name, revision }) => {
     const hashKey = getRevisionKeyFromId(name, revision)
     const hash = await loadRevisionHash({ s3req, bucket, key: hashKey })
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
-    const [[{ total }], keys] = await Promise.all([
-      s3Select({
-        s3req,
-        Bucket: bucket,
-        Key: manifestKey,
-        Expression: `
-          SELECT COUNT(*) AS total
-          FROM S3Object[*] o
-          WHERE o.logical_key IS NOT MISSING
-        `,
-      }),
-      s3Select({
-        s3req,
-        Bucket: bucket,
-        Key: manifestKey,
-        Expression: `
-          SELECT
-            o.logical_key AS logicalKey,
-            o.physical_keys[0] AS physicalKey,
-            o."size" AS "size"
-          FROM S3Object[*] o
-          WHERE o.logical_key IS NOT MISSING
-          LIMIT 1000
-        `,
-      }),
-    ])
-
-    const truncated = total > keys.length
-
+    const maxLines = MAX_PACKAGE_ENTRIES + 1 // We skip the first line - it contains the manifest version, etc.
+    const url = sign({ bucket, key: manifestKey })
+    const encodedUrl = encodeURIComponent(url)
+    const r = await fetch(
+      `${endpoint}/preview?url=${encodedUrl}&input=txt&line_count=${maxLines}`,
+    )
+    const json = await r.json()
+    const lines = json.info.data.head
+    const truncated = lines.length > maxLines
+    const keys = lines.slice(1).map((line) => {
+      const {
+        logical_key: logicalKey,
+        physical_keys: [physicalKey],
+        size,
+      } = JSON.parse(line)
+      return { logicalKey, physicalKey, size }
+    })
     return { id: revision, hash, keys, truncated }
   },
 )
