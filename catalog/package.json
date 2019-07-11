@@ -108,7 +108,7 @@
     "redux-saga": "^1.0.2",
     "remarkable": "^1.7.1",
     "reselect": "^4.0.0",
-    "sanitize.css": "^8.0.0",
+    "sanitize.css": "^8.0.1",
     "styled-components": "^4.2.0",
     "uuid": "^3.3.2",
     "vega": "^5.4.0",
