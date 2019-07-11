@@ -31,13 +31,14 @@ S3_CLIENT = boto3.client("s3")
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
-    def __init__(self, context):
+    def __init__(self, context, retry_errors=True):
         """constructor"""
         self.queue = []
+        self.retry = retry_errors
         self.size = 0
         self.context = context
 
-    def append(self, event_type, size=0, meta=None, last_modified="", *, key, text, version_id):
+    def append(self, event_type, size=0, meta=None, last_modified="", *, bucket, key, text, etag, version_id):
         """format event as document and queue it up"""
         if text:
             # documents will dominate memory footprint, there is also a fixed
@@ -48,6 +49,7 @@ class DocumentQueue:
 
         body = {
             # ES native keys
+            "_id": f"{bucket}/{key}:{etag}:{version_id}:{last_modified}",
             "_index": ES_INDEX,
             "_op_type": "index",
             "_type": "_doc",
@@ -65,10 +67,20 @@ class DocumentQueue:
 
         body["meta_text"] = " ".join([body["meta_text"], key])
 
-        self.queue.append(body)
+        self.append_document(body)
+
+    def append_document(self, doc):
+        """append well-formed documents (used for retry or by append())"""
+        self.queue.append(doc)
+
+    def is_empty(self):
+        """is the queue empty?"""
+        return len(self.queue) == 0
 
     def send_all(self):
         """flush self.queue in a bulk call"""
+        if self.is_empty():
+            return
         elastic_host = os.environ["ES_HOST"]
         try:
             awsauth = AWSRequestsAuth(
@@ -95,41 +107,37 @@ class DocumentQueue:
                 elastic,
                 iter(self.queue),
                 # number of retries for 429 (too many requests only)
+                # all other errors handled by our code
                 max_retries=RETRY_429,
                 # we'll process errors on our own
                 raise_on_error=False,
                 raise_on_exception=False
             )
-            # TODO: remove print statements
-            for err in errors:
-                # TODO: error handling
-                print(err)
-                """
-                if e.error == 'mapper_parsing_exception':
-                    # retry with just plaintext
-                    print('Mapping exception. Retrying without user_meta and system_meta', e)
-                    # TODO: zero out metadata on the correspoding doc
-                    # maybe we don't need to zero out system_meta?
-                    data['user_meta'] = {}
-                    data['system_meta'] = {}
+            # Retry only if this is a first-generation queue
+            # (prevents infinite regress on failing documents)
+            if self.retry:
+                # this is a second genration queue, so don't keep retrying
+                error_queue = DocumentQueue(self.context, retry_errors=False)
+                for error in errors:
+                    print(error)
+                    error_body = error.get("index", {}).get("error", {})
+                    error_id = error_body.get("index", {}).get("_id")
+                    error_type = error_body.get("type")
+                    reason = error_body.get("reason")
+                    caused_by = error_body.get("caused_by")
 
-                    try:
-                        res = es.index(index=ES_INDEX, doc_type='_doc', body=data)
-                    except Exception as e:
-                        print('Failover failed. data: ' + json.dumps(data))
-                        print(e)
-                        import traceback
-                        traceback.print_tb(e.__traceback__)
-                else:
-                    print("Unable to index a document", e)
-                    import traceback
-                    traceback.print_tb(e.__traceback__)
-                """
+                    if error_type == 'mapper_parsing_exception':
+                        print(error_type, reason, caused_by)
+                        replay = next(doc for doc in self.queue if doc["_id"] == error_id)
+                        replay['user_meta'] = replay['system'] = {}
+                        error_queue.append_document(replay)
+                # semi-recursive but never goes more than one leve deep
+                error_queue.send_all()
 
         except Exception as ex:# pylint: disable=broad-except
             print("Fatal, unexpected Exception in send_all", ex)
             import traceback
-            traceback.print_tb(e.__traceback__)
+            traceback.print_tb(ex.__traceback__)
 
 def get_config(bucket):
     """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
@@ -144,7 +152,7 @@ def get_config(bucket):
     except ClientError as ex:
         # Eat NoSuchKey; pass all other exceptions on
         # NoSuchKey can happen if user has no .quilt/config.json (which is fine)
-        if ex.response['Error']['Code'] != "NoSuchKey":
+        if ex.response["Error"]["Code"] != "NoSuchKey":
             raise ex
     except Exception as ex:# pylint: disable=broad-except
         print("get_config", ex)
@@ -221,25 +229,25 @@ def transform_meta(meta):
     user_meta = {}
     comment = ""
     target = ""
-    meta_text = ""
+
     if helium:
         user_meta = helium.pop("user_meta", {})
         comment = helium.pop("comment", "") or ""
         target = helium.pop("target", "") or ""
+
     meta_text_parts = [comment, target]
+
     if helium:
         meta_text_parts.append(json.dumps(helium))
     if user_meta:
         meta_text_parts.append(json.dumps(user_meta))
-    if meta_text_parts:
-        meta_text = " ".join(meta_text_parts)
 
     return {
         "system_meta": helium,
         "user_meta": user_meta,
         "comment": comment,
         "target": target,
-        "meta_text": meta_text
+        "meta_text": " ".join(meta_text_parts)
     }
 
 def extract_text(notebook_str):
@@ -312,6 +320,8 @@ def handler(event, context):
                     if event_type == "Delete":
                         batch_processor.append(
                             event_type,
+                            bucket=bucket,
+                            etag=etag,
                             key=key,
                             text="",
                             version_id=version_id
@@ -360,8 +370,10 @@ def handler(event, context):
 
                     batch_processor.append(
                         event_type,
+                        bucket=bucket,
                         key=key,
                         meta=meta,
+                        etag=etag,
                         version_id=version_id,
                         last_modified=last_modified,
                         size=size,
