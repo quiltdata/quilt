@@ -282,7 +282,7 @@ const Analytics = ({ analyticsBucket, bucket, path }) => {
               </Box>
             </Box>
           ),
-          Err: () => <Typography>Couldn&apos;t fetch the data</Typography>,
+          Err: () => <Typography>No analytics available</Typography>,
           _: () => <CircularProgress />,
         })}
       </Data>
