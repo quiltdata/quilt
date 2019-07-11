@@ -1,9 +1,10 @@
 """
-phone data into elastic for supported file extensions
+phone data into elastic for supported file extensions.
+note: we truncated inbound documents to no more than DOC_SIZE_LIMIT characters
+(this bounds memory pressure and request size to elastic)
 """
-from datetime import datetime
-from dateutil.tz import tzutc
 
+from datetime import datetime
 from math import floor
 import json
 import os
@@ -24,6 +25,7 @@ DEFAULT_CONFIG = {
         ".rmd",
     ]
 }
+DOC_SIZE_LIMIT = 10_000_000 # 10MB (stay under 10MiB request size limit)
 # TODO: eliminate hardcoded index
 ELASTIC_TIMEOUT = 20
 ES_INDEX = "drive"
@@ -41,12 +43,24 @@ class DocumentQueue:
         self.size = 0
         self.context = context
 
-    def append(self, event_type, size=0, meta=None, last_modified="", *, bucket, key, text, etag, version_id):
+    def append(
+            self,
+            event_type,
+            size=0,
+            meta=None,
+            *,
+            last_modified,
+            bucket,
+            key,
+            text,
+            etag,
+            version_id
+    ):
         """format event as document and queue it up"""
         if text:
             # documents will dominate memory footprint, there is also a fixed
             # size for the rest of the doc that we do not account for
-            self.size += size
+            self.size += min(size, DOC_SIZE_LIMIT)
         if self.size > 5E8:# 500 MB
             print(f"Warning: Lambda may run out of memory. {self.size} bytes queued.")
 
@@ -116,6 +130,14 @@ class DocumentQueue:
             _, errors = bulk(
                 elastic,
                 iter(self.queue),
+                # Some magic numbers to avoid memory pressure
+                # e.g. see https://github.com/wagtail/wagtail/issues/4554
+                # The stated default is max_chunk_bytes=10485760, but with default
+                # ES will still return an exception stating that the very
+                # same request size limit has been exceeded
+                chunk_size=100,
+                # See https://amzn.to/2xJpngN
+                max_chunk_bytes=DOC_SIZE_LIMIT, # 10MB
                 # number of retries for 429 (too many requests only)
                 # all other errors handled by our code
                 max_retries=RETRY_429,
@@ -149,114 +171,6 @@ class DocumentQueue:
             import traceback
             traceback.print_tb(ex.__traceback__)
 
-def get_config(bucket):
-    """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
-    try:
-        # Warning: eventual consistency could return an outdated object
-        loaded_object = S3_CLIENT.get_object(Bucket=bucket, Key=".quilt/config.json")
-        loaded_config = json.load(loaded_object["Body"])
-        return {**DEFAULT_CONFIG, **loaded_config}
-    except ClientError as ex:
-        # Eat NoSuchKey; pass all other exceptions on
-        # NoSuchKey can happen if user has no .quilt/config.json (which is fine)
-        if ex.response["Error"]["Code"] != "NoSuchKey":
-            raise ex
-    except Exception as ex:# pylint: disable=broad-except
-        print("get_config", ex)
-        import traceback
-        traceback.print_tb(ex.__traceback__)
-
-    return DEFAULT_CONFIG
-
-def get_extensions_to_index(bucket, configs):
-    """returns: which file extensions should be plain-text indexed?"""
-    if bucket not in configs:
-        configs[bucket] = get_config(bucket)
-    to_index = configs[bucket].get("to_index", [])
-    return (x.lower() for x in to_index)
-
-def get_plain_text(context, **kwargs):
-    """get plain text object contents"""
-    _validate_kwargs(kwargs)
-    text = ""
-    try:
-        obj = retry_s3(
-            "get",
-            context,
-            bucket=kwargs["bucket"],
-            key=kwargs["key"],
-            etag=kwargs["etag"],
-            version_id=kwargs["version_id"]
-        )
-        text = obj["Body"].read().decode("utf-8")
-    except UnicodeDecodeError as ex:
-        print(f"Unicode decode error in {kwargs['key']}", ex)
-
-    return text
-
-def get_notebook_cells(context, **kwargs):
-    """extract cells for ipynb notebooks for indexing"""
-    _validate_kwargs(kwargs)
-    text = ""
-    try:
-        obj = retry_s3(
-            "get",
-            context,
-            bucket=kwargs["bucket"],
-            key=kwargs["key"],
-            etag=kwargs["etag"],
-            version_id=kwargs["version_id"]
-        )
-        notebook = obj["Body"].read().decode("utf-8")
-        text = extract_text(notebook)
-    except UnicodeDecodeError as uni:
-        print(f"Unicode decode error in {kwargs['key']}: {uni}")
-    except (json.JSONDecodeError, nbformat.reader.NotJSONError):
-        print(f"Invalid JSON in {kwargs['key']}.")
-    except (KeyError, AttributeError)  as err:
-        print(f"Missing key in {kwargs['key']}: {err}")
-    # there might be more errors than covered by test_read_notebook
-    # better not to fail altogether
-    except Exception as exc:#pylint: disable=broad-except
-        print(f"Exception in file {kwargs['key']}: {exc}")
-
-    return text
-
-def to_event_type(name):
-    """convert form S3 event types to Quilt Elastic event types"""
-    if name == "ObjectRemoved:Delete":
-        return "Delete"
-    if name == "ObjectCreated:Put":
-        return "Create"
-    return name
-
-def transform_meta(meta):
-    """ Reshapes metadata for indexing in ES """
-    helium = meta.get("helium")
-    user_meta = {}
-    comment = ""
-    target = ""
-
-    if helium:
-        user_meta = helium.pop("user_meta", {})
-        comment = helium.pop("comment", "") or ""
-        target = helium.pop("target", "") or ""
-
-    meta_text_parts = [comment, target]
-
-    if helium:
-        meta_text_parts.append(json.dumps(helium))
-    if user_meta:
-        meta_text_parts.append(json.dumps(user_meta))
-
-    return {
-        "system_meta": helium,
-        "user_meta": user_meta,
-        "comment": comment,
-        "target": target,
-        "meta_text": " ".join(meta_text_parts)
-    }
-
 def extract_text(notebook_str):
     """ Extract code and markdown
     Args:
@@ -288,6 +202,86 @@ def extract_text(notebook_str):
 
     return "\n".join(text)
 
+def get_config(bucket):
+    """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
+    try:
+        # Warning: eventual consistency could return an outdated object
+        loaded_object = S3_CLIENT.get_object(Bucket=bucket, Key=".quilt/config.json")
+        loaded_config = json.load(loaded_object["Body"])
+        return {**DEFAULT_CONFIG, **loaded_config}
+    except ClientError as ex:
+        # Eat NoSuchKey; pass all other exceptions on
+        # NoSuchKey can happen if user has no .quilt/config.json (which is fine)
+        if ex.response["Error"]["Code"] != "NoSuchKey":
+            raise ex
+    except Exception as ex:# pylint: disable=broad-except
+        print("get_config", ex)
+        import traceback
+        traceback.print_tb(ex.__traceback__)
+
+    return DEFAULT_CONFIG
+
+def get_extensions_to_index(bucket, configs):
+    """returns: which file extensions should be plain-text indexed?"""
+    if bucket not in configs:
+        configs[bucket] = get_config(bucket)
+    to_index = configs[bucket].get("to_index", [])
+    return (x.lower() for x in to_index)
+
+def get_notebook_cells(context, **kwargs):
+    """extract cells for ipynb notebooks for indexing"""
+    _validate_kwargs(kwargs)
+    text = ""
+    try:
+        obj = retry_s3(
+            "get",
+            context,
+            bucket=kwargs["bucket"],
+            key=kwargs["key"],
+            etag=kwargs["etag"],
+            version_id=kwargs["version_id"]
+        )
+        notebook = obj["Body"].read().decode("utf-8")
+        text = extract_text(notebook)[:DOC_SIZE_LIMIT]
+    except UnicodeDecodeError as uni:
+        print(f"Unicode decode error in {kwargs['key']}: {uni}")
+    except (json.JSONDecodeError, nbformat.reader.NotJSONError):
+        print(f"Invalid JSON in {kwargs['key']}.")
+    except (KeyError, AttributeError)  as err:
+        print(f"Missing key in {kwargs['key']}: {err}")
+    # there might be more errors than covered by test_read_notebook
+    # better not to fail altogether
+    except Exception as exc:#pylint: disable=broad-except
+        print(f"Exception in file {kwargs['key']}: {exc}")
+
+    return text
+
+def get_plain_text(context, **kwargs):
+    """get plain text object contents"""
+    _validate_kwargs(kwargs)
+    text = ""
+    try:
+        obj = retry_s3(
+            "get",
+            context,
+            bucket=kwargs["bucket"],
+            key=kwargs["key"],
+            etag=kwargs["etag"],
+            version_id=kwargs["version_id"]
+        )
+        text = obj["Body"].read().decode("utf-8")
+    except UnicodeDecodeError as ex:
+        print(f"Unicode decode error in {kwargs['key']}", ex)
+
+    return text[:DOC_SIZE_LIMIT]
+def to_event_type(name):
+    """convert form S3 event types to Quilt Elastic event types"""
+    if name == "ObjectRemoved:Delete":
+        return "Delete"
+    if name == "ObjectCreated:Put":
+        return "Create"
+    return name
+
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
     time_remaining = floor(context.get_remaining_time_in_millis()/1000)
@@ -299,14 +293,40 @@ def get_time_remaining(context):
 
     return time_remaining
 
+def transform_meta(meta):
+    """ Reshapes metadata for indexing in ES """
+    helium = meta.get("helium")
+    user_meta = {}
+    comment = ""
+    target = ""
+
+    if helium:
+        user_meta = helium.pop("user_meta", {})
+        comment = helium.pop("comment", "") or ""
+        target = helium.pop("target", "") or ""
+
+    meta_text_parts = [comment, target]
+
+    if helium:
+        meta_text_parts.append(json.dumps(helium))
+    if user_meta:
+        meta_text_parts.append(json.dumps(user_meta))
+
+    return {
+        "system_meta": helium,
+        "user_meta": user_meta,
+        "comment": comment,
+        "target": target,
+        "meta_text": " ".join(meta_text_parts)
+    }
+
 def handler(event, context):
     """enumerate S3 keys in event, extract relevant data and metadata,
     queue events, send to elastic via bulk() API
     """
     try:
-        # TODO: eliminate
         for msg in event["Records"]:
-            # TODO: eliminate
+            print(">msg<", msg)
             records = json.loads(json.loads(msg["body"])["Message"])["Records"]
             batch_processor = DocumentQueue(context)
             # reduce requests to S3: get .quilt/config.json once per batch per bucket
@@ -322,17 +342,6 @@ def handler(event, context):
                     etag = unquote(record["s3"]["object"]["eTag"])
                     event_type = to_event_type(eventname)
 
-                    if event_type == "Delete":
-                        batch_processor.append(
-                            event_type,
-                            bucket=bucket,
-                            etag=etag,
-                            key=key,
-                            text="",
-                            version_id=version_id
-                        )
-                        continue
-
                     head = retry_s3(
                         "head",
                         context,
@@ -346,6 +355,19 @@ def handler(event, context):
                     last_modified = head["LastModified"]
                     meta = head["Metadata"]
                     text = ""
+
+                    if event_type == "Delete":
+                        batch_processor.append(
+                            event_type,
+                            bucket=bucket,
+                            etag=etag,
+                            key=key,
+                            last_modified=last_modified,
+                            text=text,
+                            version_id=version_id
+                        )
+                        continue
+
                     _, ext = os.path.splitext(key)
                     ext = ext.lower()
                     if ext in get_extensions_to_index(bucket, configs):
