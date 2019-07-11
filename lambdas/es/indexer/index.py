@@ -2,6 +2,8 @@
 phone data into elastic for supported file extensions
 """
 from datetime import datetime
+from dateutil.tz import tzutc
+
 from math import floor
 import json
 import os
@@ -23,6 +25,7 @@ DEFAULT_CONFIG = {
     ]
 }
 # TODO: eliminate hardcoded index
+ELASTIC_TIMEOUT = 20
 ES_INDEX = "drive"
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
@@ -34,7 +37,7 @@ class DocumentQueue:
     def __init__(self, context, retry_errors=True):
         """constructor"""
         self.queue = []
-        self.retry = retry_errors
+        self.retry_errors = retry_errors
         self.size = 0
         self.context = context
 
@@ -47,6 +50,8 @@ class DocumentQueue:
         if self.size > 5E8:# 500 MB
             print(f"Warning: Lambda may run out of memory. {self.size} bytes queued.")
 
+        # On types and fields, see
+        # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
             # ES native keys
             "_id": f"{bucket}/{key}:{etag}:{version_id}:{last_modified}",
@@ -54,11 +59,12 @@ class DocumentQueue:
             "_op_type": "index",
             "_type": "_doc",
             # Quilt keys
+            "etag": etag,
             "type": event_type,
             "size": size,
             "text": text,
             "key": key,
-            "last_modified": last_modified,
+            "last_modified": str(last_modified),
             "updated": datetime.utcnow().isoformat(),
             "version_id": version_id
         }
@@ -98,6 +104,8 @@ class DocumentQueue:
                 hosts=[{"host": elastic_host, "port": 443}],
                 http_auth=awsauth,
                 max_backoff=time_remaining,
+                # Give ES time to repsond when under laod
+                timeout=ELASTIC_TIMEOUT,
                 use_ssl=True,
                 verify_certs=True,
                 connection_class=RequestsHttpConnection
@@ -115,23 +123,23 @@ class DocumentQueue:
             )
             # Retry only if this is a first-generation queue
             # (prevents infinite regress on failing documents)
-            if self.retry:
-                # this is a second genration queue, so don't keep retrying
+            if self.retry_errors:
+                # this is a second genration queue, so don't let it retry
                 error_queue = DocumentQueue(self.context, retry_errors=False)
                 for error in errors:
                     print(error)
-                    error_body = error.get("index", {}).get("error", {})
-                    error_id = error_body.get("index", {}).get("_id")
-                    error_type = error_body.get("type")
-                    reason = error_body.get("reason")
-                    caused_by = error_body.get("caused_by")
+                    # can be dict or string, sigh
+                    inner = error.get("index", {})
+                    error_info = inner.get("error")
+                    doc_id = inner.get("_id")
 
-                    if error_type == 'mapper_parsing_exception':
-                        print(error_type, reason, caused_by)
-                        replay = next(doc for doc in self.queue if doc["_id"] == error_id)
-                        replay['user_meta'] = replay['system'] = {}
-                        error_queue.append_document(replay)
-                # semi-recursive but never goes more than one leve deep
+                    if isinstance(error_info, dict):
+                        error_type = error_info.get("type", "")
+                        if 'mapper_parsing_exception' in error_type:
+                            replay = next(doc for doc in self.queue if doc["_id"] == doc_id)
+                            replay['user_meta'] = replay['system'] = {}
+                            error_queue.append_document(replay)
+                # recursive but never goes more than one level deep
                 error_queue.send_all()
 
         except Exception as ex:# pylint: disable=broad-except
@@ -141,9 +149,6 @@ class DocumentQueue:
 
 def get_config(bucket):
     """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
-    # TODO - do not fetch from S3 for this; it's slow and we can get throttled
-    # e.g. a FixedResponse from the ELB might be better, with user overrides in
-    # the CFN template
     try:
         # Warning: eventual consistency could return an outdated object
         loaded_object = S3_CLIENT.get_object(Bucket=bucket, Key=".quilt/config.json")
@@ -298,10 +303,8 @@ def handler(event, context):
     """
     try:
         # TODO: eliminate
-        print("event['Records']", event["Records"])
         for msg in event["Records"]:
             # TODO: eliminate
-            print("msg", msg)
             records = json.loads(json.loads(msg["body"])["Message"])["Records"]
             batch_processor = DocumentQueue(context)
             # reduce requests to S3: get .quilt/config.json once per batch per bucket
@@ -415,7 +418,6 @@ def retry_s3(operation, context, **kwargs):
         wait=wait_exponential(multiplier=2, min=4, max=30)
     )
     def call():
-        print("in call routine")
         if kwargs["version_id"]:
             return function_(
                 Bucket=kwargs["bucket"],
