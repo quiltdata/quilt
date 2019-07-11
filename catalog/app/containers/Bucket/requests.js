@@ -314,7 +314,10 @@ export const fetchPackageTree = withErrorHandling(
     const hash = await loadRevisionHash({ s3req, bucket, key: hashKey })
     const manifestKey = `${MANIFESTS_PREFIX}${hash}`
 
-    const maxLines = MAX_PACKAGE_ENTRIES + 1 // We skip the first line - it contains the manifest version, etc.
+    // We skip the first line - it contains the manifest version, etc.
+    // We also request one more line than we need to decide if the results are truncated.
+    const maxLines = MAX_PACKAGE_ENTRIES + 2
+
     const url = sign({ bucket, key: manifestKey })
     const encodedUrl = encodeURIComponent(url)
     const r = await fetch(
@@ -322,8 +325,8 @@ export const fetchPackageTree = withErrorHandling(
     )
     const json = await r.json()
     const lines = json.info.data.head
-    const truncated = lines.length > maxLines
-    const keys = lines.slice(1).map((line) => {
+    const truncated = lines.length >= maxLines
+    const keys = lines.slice(1, maxLines - 1).map((line) => {
       const {
         logical_key: logicalKey,
         physical_keys: [physicalKey],
