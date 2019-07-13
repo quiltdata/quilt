@@ -28,7 +28,9 @@ DEFAULT_CONFIG = {
     ]
 }
 DOC_SIZE_LIMIT_BYTES = 10_000_000# 10MB
+# TODO: eliminate hardcoded index
 ELASTIC_TIMEOUT = 20
+ES_INDEX = "drive"
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
@@ -75,7 +77,7 @@ class DocumentQueue:
             # : is a legal character for S3 keys, so look for its last occurrence
             # if you want to find the, potentially empty, version_id
             "_id": f"{key}:{version_id}",
-            "_index": bucket,
+            "_index": ES_INDEX,
             "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
             # Quilt keys
