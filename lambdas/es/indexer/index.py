@@ -18,6 +18,8 @@ from elasticsearch.helpers import bulk
 import nbformat
 from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
 
+# 10 MB, see https://amzn.to/2xJpngN
+CHUNK_LIMIT_BYTES = 10_000_000# 10MB
 DEFAULT_CONFIG = {
     "to_index": [
         ".ipynb",
@@ -25,12 +27,14 @@ DEFAULT_CONFIG = {
         ".rmd",
     ]
 }
-DOC_SIZE_LIMIT = 10_000_000 # 10MB (stay under 10MiB request size limit)
-# TODO: eliminate hardcoded index
+DOC_SIZE_LIMIT_BYTES = 10_000_000# 10MB
 ELASTIC_TIMEOUT = 20
-ES_INDEX = "drive"
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
+# signifies that the object is truly deleted, not to be confused with
+# s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
+# see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
+OBJECT_DELETE = "ObjectRemoved:Delete"
 RETRY_429 = 5
 S3_CLIENT = boto3.client("s3")
 
@@ -60,23 +64,25 @@ class DocumentQueue:
         if text:
             # documents will dominate memory footprint, there is also a fixed
             # size for the rest of the doc that we do not account for
-            self.size += min(size, DOC_SIZE_LIMIT)
+            self.size += min(size, DOC_SIZE_LIMIT_BYTES)
         if self.size > 5E8:# 500 MB
             print(f"Warning: Lambda may run out of memory. {self.size} bytes queued.")
 
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
-            # ES native keys
-            "_id": f"{bucket}/{key}:{etag}:{version_id}",
-            "_index": ES_INDEX,
-            "_op_type": "index",
+            # Elastic native keys
+            # : is a legal character for S3 keys, so look for its last occurrence
+            # if you want to find the, potentially empty, version_id
+            "_id": f"{key}:{version_id}",
+            "_index": bucket,
+            "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
             # Quilt keys
-            # Be VERY CAREFUL changing these values as a type change can cause
-            # mapper_parsing_exception that below code won't recover from
+            # Be VERY CAREFUL changing these values as a type change can cause a
+            # mapper_parsing_exception that below code won't handle
             "etag": etag,
-            "type": event_type,
+            "event": event_type,
             "size": size,
             "text": text,
             "key": key,
@@ -130,14 +136,13 @@ class DocumentQueue:
             _, errors = bulk(
                 elastic,
                 iter(self.queue),
-                # Some magic numbers to avoid memory pressure
+                # Some magic numbers to reduce memory pressure
                 # e.g. see https://github.com/wagtail/wagtail/issues/4554
                 # The stated default is max_chunk_bytes=10485760, but with default
                 # ES will still return an exception stating that the very
                 # same request size limit has been exceeded
                 chunk_size=100,
-                # See https://amzn.to/2xJpngN
-                max_chunk_bytes=DOC_SIZE_LIMIT, # 10MB
+                max_chunk_bytes=CHUNK_LIMIT_BYTES,
                 # number of retries for 429 (too many requests only)
                 # all other errors handled by our code
                 max_retries=RETRY_429,
@@ -242,7 +247,7 @@ def get_notebook_cells(context, **kwargs):
             version_id=kwargs["version_id"]
         )
         notebook = obj["Body"].read().decode("utf-8")
-        text = extract_text(notebook)[:DOC_SIZE_LIMIT]
+        text = extract_text(notebook)
     except UnicodeDecodeError as uni:
         print(f"Unicode decode error in {kwargs['key']}: {uni}")
     except (json.JSONDecodeError, nbformat.reader.NotJSONError):
@@ -254,7 +259,7 @@ def get_notebook_cells(context, **kwargs):
     except Exception as exc:#pylint: disable=broad-except
         print(f"Exception in file {kwargs['key']}: {exc}")
 
-    return text
+    return trim_to_bytes(text)
 
 def get_plain_text(context, **kwargs):
     """get plain text object contents"""
@@ -273,14 +278,7 @@ def get_plain_text(context, **kwargs):
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {kwargs['key']}", ex)
 
-    return text[:DOC_SIZE_LIMIT]
-def to_event_type(name):
-    """convert form S3 event types to Quilt Elastic event types"""
-    if name == "ObjectRemoved:Delete":
-        return "Delete"
-    if name == "ObjectCreated:Put":
-        return "Create"
-    return name
+    return trim_to_bytes(text)
 
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
@@ -333,14 +331,13 @@ def handler(event, context):
             configs = {}
             for record in records:
                 try:
-                    eventname = record["eventName"]
+                    event_name = record["eventName"]
                     bucket = unquote(record["s3"]["bucket"]["name"]) if records else None
                     # In the grand tradition of IE6, S3 events turn spaces into `+`
                     key = unquote_plus(record["s3"]["object"]["key"])
                     version_id = record["s3"]["object"].get("versionId")
                     version_id = unquote(version_id) if version_id else None
                     etag = unquote(record["s3"]["object"]["eTag"])
-                    event_type = to_event_type(eventname)
 
                     head = retry_s3(
                         "head",
@@ -356,9 +353,9 @@ def handler(event, context):
                     meta = head["Metadata"]
                     text = ""
 
-                    if event_type == "Delete":
+                    if event_name == OBJECT_DELETE:
                         batch_processor.append(
-                            event_type,
+                            event_name,
                             bucket=bucket,
                             etag=etag,
                             key=key,
@@ -396,7 +393,7 @@ def handler(event, context):
                         print("Unable to parse Quilt 'helium' metadata", meta)
 
                     batch_processor.append(
-                        event_type,
+                        event_name,
                         bucket=bucket,
                         key=key,
                         meta=meta,
@@ -456,6 +453,14 @@ def retry_s3(operation, context, **kwargs):
         )
 
     return call()
+
+def trim_to_bytes(string, limit=DOC_SIZE_LIMIT_BYTES):
+    """trim string to specified number of bytes"""
+    encoded = string.encode("utf-8")
+    size = len(encoded)
+    if size <= limit:
+        return string
+    return encoded[:limit].decode("utf-8", "ignore")
 
 def _validate_kwargs(kwargs, required=("bucket", "key", "etag", "version_id")):
     """check for the existence of necessary object metadata in kwargs dict"""
