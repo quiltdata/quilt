@@ -325,12 +325,13 @@ def handler(event, context):
     queue events, send to elastic via bulk() API
     """
     try:
+        print("n_messages", len(event["Records"]))
         for msg in event["Records"]:
-            print(">msg<", msg)
             records = json.loads(json.loads(msg["body"])["Message"])["Records"]
             batch_processor = DocumentQueue(context)
             # reduce requests to S3: get .quilt/config.json once per batch per bucket
             configs = {}
+            print("n_events", len(records))
             for record in records:
                 try:
                     event_name = record["eventName"]
@@ -413,10 +414,9 @@ def handler(event, context):
             batch_processor.send_all()
 
     except Exception as exc:# pylint: disable=broad-except
-        print("Exception encountered for event", exc)
+        print("Fatel exception for message", msg, record, exc)
         import traceback
         traceback.print_tb(exc.__traceback__)
-        print(event, msg)
         # Fail the lambda so the message is not dequeued
         raise exc
 
