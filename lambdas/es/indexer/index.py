@@ -30,7 +30,6 @@ DEFAULT_CONFIG = {
 DOC_SIZE_LIMIT_BYTES = 10_000_000# 10MB
 # TODO: eliminate hardcoded index
 ELASTIC_TIMEOUT = 20
-ES_INDEX = "drive"
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
@@ -77,7 +76,7 @@ class DocumentQueue:
             # : is a legal character for S3 keys, so look for its last occurrence
             # if you want to find the, potentially empty, version_id
             "_id": f"{key}:{version_id}",
-            "_index": ES_INDEX,
+            "_index": bucket,
             "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
             # Quilt keys
@@ -217,9 +216,11 @@ def get_config(bucket):
         loaded_config = json.load(loaded_object["Body"])
         return {**DEFAULT_CONFIG, **loaded_config}
     except ClientError as ex:
-        # Eat NoSuchKey; pass all other exceptions on
-        # NoSuchKey can happen if user has no .quilt/config.json (which is fine)
-        if ex.response["Error"]["Code"] != "NoSuchKey":
+        # 403 = NoSuchKey can happen if user has no .quilt/config.json (which is fine)
+        # 404 = AccessDenied; happens if file doesn't exist and lambda lacks list permission
+        response_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
+        if response_code != 403 and response_code != 404:
+            print("get_config", ex)
             raise ex
     except Exception as ex:# pylint: disable=broad-except
         print("get_config", ex)
