@@ -28,7 +28,6 @@ DEFAULT_CONFIG = {
     ]
 }
 DOC_SIZE_LIMIT_BYTES = 10_000_000# 10MB
-# TODO: eliminate hardcoded index
 ELASTIC_TIMEOUT = 20
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
@@ -37,6 +36,7 @@ NB_VERSION = 4 # default notebook version for nbformat
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
 OBJECT_DELETE = "ObjectRemoved:Delete"
 RETRY_429 = 5
+TEST_EVENT = "s3:TestEvent"
 S3_CLIENT = boto3.client("s3")
 
 class DocumentQueue:
@@ -77,6 +77,7 @@ class DocumentQueue:
             # if you want to find the, potentially empty, version_id
             "_id": f"{key}:{version_id}",
             "_index": bucket,
+            # index will upsert (and clobber existing equivalent _ids)
             "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
             # Quilt keys
@@ -123,6 +124,7 @@ class DocumentQueue:
             )
 
             time_remaining = get_time_remaining(self.context)
+
             elastic = Elasticsearch(
                 hosts=[{"host": elastic_host, "port": 443}],
                 http_auth=awsauth,
@@ -219,7 +221,7 @@ def get_config(bucket):
         # 403 = NoSuchKey can happen if user has no .quilt/config.json (which is fine)
         # 404 = AccessDenied; happens if file doesn't exist and lambda lacks list permission
         response_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
-        if response_code != 403 and response_code != 404:
+        if response_code not in ("403", "404"):
             print("get_config", ex)
             raise ex
     except Exception as ex:# pylint: disable=broad-except
@@ -326,22 +328,34 @@ def handler(event, context):
     queue events, send to elastic via bulk() API
     """
     try:
-        print("n_messages", len(event["Records"]))
-        for msg in event["Records"]:
-            records = json.loads(json.loads(msg["body"])["Message"])["Records"]
+        # message is a proper SQS message, which either contains a single event
+        # (from the bucket notification system) or batch-many events as determined
+        # by enterprise/**/bulk_loader.py
+        for message in event["Records"]:
+            body = json.loads(message["body"])
+            body_message = json.loads(body["Message"])
+            if "Records" not in body_message:
+                if body_message.get("Event") == TEST_EVENT:
+                    # Consume and ignore this event, which is an initial message from
+                    # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
+                    continue
+                else:
+                    print("Unexpected message['body']. No 'Records' key.", message)
             batch_processor = DocumentQueue(context)
-            # reduce requests to S3: get .quilt/config.json once per batch per bucket
+            # configs[BUCKET] := s3://BUCKET/.quilt/config.json so we only get the
+            # object once per batch per bucket
             configs = {}
-            print("n_events", len(records))
-            for record in records:
+            events = body_message.get("Records", [])
+            # event is a single S3 event
+            for event in events:
                 try:
-                    event_name = record["eventName"]
-                    bucket = unquote(record["s3"]["bucket"]["name"]) if records else None
-                    # In the grand tradition of IE6, S3 events turn spaces into `+`
-                    key = unquote_plus(record["s3"]["object"]["key"])
-                    version_id = record["s3"]["object"].get("versionId")
+                    event_name = event["eventName"]
+                    bucket = unquote(event["s3"]["bucket"]["name"])
+                    # In the grand tradition of IE6, S3 events turn spaces into '+'
+                    key = unquote_plus(event["s3"]["object"]["key"])
+                    version_id = event["s3"]["object"].get("versionId")
                     version_id = unquote(version_id) if version_id else None
-                    etag = unquote(record["s3"]["object"]["eTag"])
+                    etag = unquote(event["s3"]["object"]["eTag"])
 
                     head = retry_s3(
                         "head",
@@ -408,14 +422,14 @@ def handler(event, context):
                         text=text
                     )
                 except Exception as exc:# pylint: disable=broad-except
-                    print("Fatal exception for record", record, exc)
+                    print("Fatal exception for record", event, exc)
                     import traceback
                     traceback.print_tb(exc.__traceback__)
             # flush the queue
             batch_processor.send_all()
 
     except Exception as exc:# pylint: disable=broad-except
-        print("Fatel exception for message", msg, record, exc)
+        print("Fatal exception for message", message, event, exc)
         import traceback
         traceback.print_tb(exc.__traceback__)
         # Fail the lambda so the message is not dequeued
