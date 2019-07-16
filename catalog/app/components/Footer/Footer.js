@@ -1,13 +1,13 @@
 import * as React from 'react'
 import { FormattedMessage } from 'react-intl'
 import { Link } from 'react-router-dom'
-import { HashLink } from 'react-router-hash-link'
 import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
 import * as Intercom from 'components/Intercom'
 import * as URLS from 'constants/urls'
 import * as Config from 'utils/Config'
+import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 
 import logo from 'img/logo/horizontal-white.png'
