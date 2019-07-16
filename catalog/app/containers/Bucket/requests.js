@@ -379,11 +379,11 @@ const mergeHits = R.pipe(
   R.sortBy((h) => -h.score),
 )
 
-export const search = async ({ es, query }) => {
+export const search = async ({ es, bucket, query }) => {
   try {
     const result = await es.search({
       _source: SEARCH_FIELDS,
-      index: 'drive',
+      index: bucket,
       type: '_doc',
       requestTimeout: SEARCH_REQUEST_TIMEOUT,
       body: {
