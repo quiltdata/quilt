@@ -43,10 +43,22 @@ export const useRequest = (extra) => {
     s3ForcePathStyle: true,
     ...extra,
   })
+  const s3SelectClient = useS3({
+    endpoint: `${cfg.apiGatewayEndpoint}/s3select/`,
+    s3ForcePathStyle: true,
+    ...extra,
+  })
   const authenticated = reduxHook.useMappedState(Auth.selectors.authenticated)
   return React.useMemo(
     () => ({ bucket, operation, params }) => {
-      const client = cfg.shouldProxy(bucket) ? proxyingClient : regularClient
+      let client
+      if (!authenticated && operation === 'selectObjectContent') {
+        client = s3SelectClient
+      } else if (cfg.shouldProxy(bucket)) {
+        client = proxyingClient
+      } else {
+        client = regularClient
+      }
       const method =
         authenticated && cfg.shouldSign(bucket)
           ? 'makeRequest'
