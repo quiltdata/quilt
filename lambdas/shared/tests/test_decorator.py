@@ -1,7 +1,7 @@
 """
 Decorator tests
 """
-
+from base64 import b64decode, b64encode
 from unittest import TestCase
 
 from t4_lambda_shared.decorator import api, Request, validate
@@ -15,9 +15,11 @@ class TestDecorator(TestCase):
         return {
             'httpMethod': 'GET',
             'path': '/foo',
+            'pathParameters': {},
             'queryStringParameters': args or None,
             'headers': headers or None,
             'body': None,
+            'isBase64Encoded': False,
         }
 
     @classmethod
@@ -25,9 +27,11 @@ class TestDecorator(TestCase):
         return {
             'httpMethod': 'POST',
             'path': '/foo',
+            'pathParameters': {},
             'queryStringParameters': None,
             'headers': headers or None,
-            'body': body,
+            'body': b64encode(body),
+            'isBase64Encoded': True,
         }
 
     def test_api_get(self):
@@ -56,11 +60,11 @@ class TestDecorator(TestCase):
             assert request.path == '/foo'
             assert request.headers == {'content-length': '123'}
             assert request.args == {}
-            assert request.data == 'hello'
+            assert request.data == b'hello'
             return 200, 'foo', {'Content-Type': 'text/plain'}
 
         resp = handler(self._make_post(
-            'hello',
+            b'hello',
             {'content-length': '123'}
         ), None)
 
@@ -92,7 +96,7 @@ class TestDecorator(TestCase):
         # Request with a correct origin.
         resp = handler(self._make_get(
             {'foo': 'bar'},
-            {'origin': 'https://example.com'}
+            {'origin': 'https://example.com', 'access-control-request-headers': 'x-foo'}
         ), None)
 
         assert resp['statusCode'] == 200
@@ -100,8 +104,8 @@ class TestDecorator(TestCase):
         assert resp['headers'] == {
             'Content-Type': 'text/plain',
             'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'HEAD,GET,POST',
-            'access-control-allow-headers': '*',
+            'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
+            'access-control-allow-headers': 'x-foo',
             'access-control-max-age': 86400
         }
 
@@ -145,8 +149,8 @@ class TestDecorator(TestCase):
         assert resp['headers'] == {
             'Content-Type': 'text/plain',
             'access-control-allow-origin': '*',
-            'access-control-allow-methods': 'HEAD,GET,POST',
-            'access-control-allow-headers': '*',
+            'access-control-allow-methods': 'OPTIONS,HEAD,GET,POST',
+            'access-control-allow-headers': '',
             'access-control-max-age': 86400
         }
 
