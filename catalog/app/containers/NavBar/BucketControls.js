@@ -1,10 +1,9 @@
+import cx from 'classnames'
 import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
-import { Box, Button, Icon } from '@material-ui/core'
-import { withStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-import * as BucketConfig from 'utils/BucketConfig'
 import * as RT from 'utils/reactTools'
 
 import BucketSelect from './BucketSelect'
@@ -15,58 +14,91 @@ const BucketDisplay = RT.composeComponent(
   RC.setPropTypes({
     bucket: PT.string.isRequired,
     select: PT.func.isRequired,
+    locked: PT.bool,
   }),
-  withStyles(() => ({
+  M.withStyles((t) => ({
     root: {
       textTransform: 'none !important',
+      transition: ['opacity 200ms'],
+    },
+    locked: {
+      opacity: 0,
     },
     s3: {
       opacity: 0.7,
     },
     bucket: {
-      maxWidth: 320,
+      maxWidth: 160,
       overflow: 'hidden',
       textOverflow: 'ellipsis',
       whiteSpace: 'nowrap',
+      [t.breakpoints.down('xs')]: {
+        maxWidth: 'calc(100vw - 220px)',
+      },
     },
   })),
-  ({ classes, bucket, select }) => (
-    <Button color="inherit" className={classes.root} onClick={select}>
-      <span className={classes.s3}>s3://</span>
-      <span className={classes.bucket}>{bucket}</span>
-      <Icon>expand_more</Icon>
-    </Button>
+  ({ classes, bucket, select, locked = false, ...props }) => (
+    <M.Box position="relative" {...props}>
+      {locked && <M.Box position="absolute" top={0} bottom={0} left={0} right={0} />}
+      <M.Button
+        color="inherit"
+        className={cx(classes.root, { [classes.locked]: locked })}
+        onClick={select}
+      >
+        <span className={classes.s3}>s3://</span>
+        <span className={classes.bucket}>{bucket}</span>
+        <M.Icon>expand_more</M.Icon>
+      </M.Button>
+    </M.Box>
   ),
 )
 
-const BucketDisplaySelect = ({ bucket }) => {
-  const [selecting, setSelecting] = React.useState(false)
+const Container = (props) => (
+  <M.Box display="flex" alignItems="center" position="relative" flexGrow={1} {...props} />
+)
+
+const Controls = ({ bucket, iconized }) => {
+  const [state, setState] = React.useState(null)
   const select = React.useCallback(() => {
-    setSelecting(true)
-  }, [])
+    setState('select')
+  }, [setState])
+  const search = React.useCallback(() => {
+    setState('search')
+  }, [setState])
   const cancel = React.useCallback(() => {
-    setSelecting(false)
+    setState(null)
+  }, [setState])
+
+  const selectRef = React.useRef()
+  const focusSelect = React.useCallback(() => {
+    if (selectRef.current) selectRef.current.focus()
   }, [])
 
-  return selecting ? (
-    <BucketSelect autoFocus cancel={cancel} />
-  ) : (
-    <BucketDisplay bucket={bucket} select={select} />
+  return (
+    <Container>
+      <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
+      <Search
+        onFocus={search}
+        onBlur={cancel}
+        hidden={state === 'select'}
+        iconized={iconized}
+      />
+      <M.Fade in={state === 'select'} onEnter={focusSelect}>
+        <BucketSelect cancel={cancel} position="absolute" left={0} ref={selectRef} />
+      </M.Fade>
+    </Container>
   )
 }
 
-export default () => {
-  const bucket = BucketConfig.useCurrentBucket()
-  return (
-    <Box display="flex" alignItems="center">
-      {bucket ? (
-        <React.Fragment>
-          <BucketDisplaySelect bucket={bucket} />
-          <Search />
-        </React.Fragment>
-      ) : (
-        <BucketSelect />
-      )}
-    </Box>
+export default ({ bucket }) => {
+  const t = M.useTheme()
+  const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
+
+  return bucket ? (
+    <Controls {...{ bucket, iconized }} />
+  ) : (
+    <Container>
+      <BucketSelect />
+    </Container>
   )
 }

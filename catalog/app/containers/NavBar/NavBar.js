@@ -1,7 +1,7 @@
 import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link, Route } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
@@ -10,10 +10,12 @@ import * as M from '@material-ui/core'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import { composeComponent } from 'utils/reactTools'
+import { useRoute } from 'utils/router'
 
 import logo from 'img/logo/horizontal-white.png'
 import bg from './bg.png'
@@ -23,24 +25,47 @@ import BucketControls from './BucketControls'
 const Logo = (props) => {
   const { urls } = NamedRoutes.use()
   return (
-    <M.Box component={Link} height={36} mr={2} to={urls.home()} {...props}>
+    <M.Box
+      component={Link}
+      height={36}
+      mr={2}
+      to={urls.home()}
+      width={{ xs: 32, sm: 'auto' }}
+      overflow="hidden"
+      {...props}
+    >
       <M.Box component="img" alt="Quilt logo" src={logo} height="100%" />
     </M.Box>
   )
 }
 
-const Item = composeComponent(
-  'NavBar.MenuItem',
-  RC.withProps({ component: Link }),
-  M.MenuItem,
-)
+const Item = React.forwardRef((props, ref) => (
+  <M.MenuItem
+    // eslint-disable-next-line no-nested-ternary
+    component={props.to ? Link : props.href ? 'a' : undefined}
+    ref={ref}
+    {...props}
+  />
+))
 
 const selectUser = createStructuredSelector({
   name: authSelectors.username,
   isAdmin: authSelectors.isAdmin,
 })
 
-const NavMenu = () => {
+const userDisplay = (user) => (
+  <>
+    {user.isAdmin && (
+      <>
+        <M.Icon fontSize="small">security</M.Icon>
+        &nbsp;
+      </>
+    )}
+    {user.name}
+  </>
+)
+
+const UserDropdown = () => {
   const user = reduxHook.useMappedState(selectUser)
   const { urls } = NamedRoutes.use()
   const [anchor, setAnchor] = React.useState(null)
@@ -59,13 +84,7 @@ const NavMenu = () => {
   return (
     <>
       <M.Button variant="text" color="inherit" onClick={open}>
-        {user.isAdmin && (
-          <React.Fragment>
-            <M.Icon fontSize="small">security</M.Icon>
-            &nbsp;
-          </React.Fragment>
-        )}
-        {user.name} <M.Icon>expand_more</M.Icon>
+        {userDisplay(user)} <M.Icon>expand_more</M.Icon>
       </M.Button>
       <M.MuiThemeProvider theme={style.appTheme}>
         <M.Menu anchorEl={anchor} open={!!anchor} onClose={close}>
@@ -77,6 +96,83 @@ const NavMenu = () => {
           <Item to={urls.signOut()} onClick={close}>
             Sign Out
           </Item>
+        </M.Menu>
+      </M.MuiThemeProvider>
+    </>
+  )
+}
+
+const Hamburger = ({ authenticated, waiting, error }) => {
+  const user = reduxHook.useMappedState(selectUser)
+  const { urls } = NamedRoutes.use()
+  const [anchor, setAnchor] = React.useState(null)
+
+  const open = React.useCallback(
+    (evt) => {
+      setAnchor(evt.target)
+    },
+    [setAnchor],
+  )
+
+  const close = React.useCallback(() => {
+    setAnchor(null)
+  }, [setAnchor])
+
+  return (
+    <>
+      <M.IconButton onClick={open} aria-label="Menu" edge="end">
+        <M.Icon>menu</M.Icon>
+      </M.IconButton>
+      <M.MuiThemeProvider theme={style.appTheme}>
+        <M.Menu
+          anchorEl={anchor}
+          open={!!anchor}
+          onClose={close}
+          MenuListProps={{
+            component: 'nav',
+            style: { minWidth: 120 },
+          }}
+        >
+          {/* eslint-disable-next-line no-nested-ternary */}
+          {authenticated ? (
+            [
+              <M.MenuItem key="user" component="div">
+                {userDisplay(user)}
+              </M.MenuItem>,
+              user.isAdmin && (
+                <Item key="admin" to={urls.admin()} onClick={close}>
+                  <M.Box component="span" pr={2} />
+                  <M.Icon fontSize="small">security</M.Icon>
+                  &nbsp;Users and roles
+                </Item>
+              ),
+              <Item key="signout" to={urls.signOut()} onClick={close}>
+                <M.Box component="span" pr={2} />
+                Sign Out
+              </Item>,
+            ]
+          ) : waiting ? (
+            <Item onClick={close}>
+              <M.CircularProgress />
+            </Item>
+          ) : (
+            <Item to={urls.signIn()} onClick={close}>
+              {error && (
+                <>
+                  <M.Icon>error_outline</M.Icon>{' '}
+                </>
+              )}
+              Sign In
+            </Item>
+          )}
+          <M.Divider />
+          <Links>
+            {R.map(({ label, ...rest }) => (
+              <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
+                {label}
+              </Item>
+            ))}
+          </Links>
         </M.Menu>
       </M.MuiThemeProvider>
     </>
@@ -146,43 +242,34 @@ export const Container = ({ children }) => {
   )
 }
 
-const whenNot = (path, fn) => (
-  <Route path={path} exact>
-    {({ match }) => !match && fn()}
-  </Route>
-)
-
 const NavLink = (props) => (
   <M.Box
     component={props.to ? HashLink : 'a'}
-    mr={3}
+    mr={2}
     color="text.secondary"
     fontSize="body2.fontSize"
     {...props}
   />
 )
 
-const Links = () => {
+const Links = ({ children }) => {
   const { urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
-  return (
-    <M.Box component="nav" display="flex" alignItems="center">
-      <NavLink href={URLS.docs}>Docs</NavLink>
-      {!!cfg.enableMarketingPages && (
-        <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
-      )}
-      <NavLink href={URLS.jobs}>Jobs</NavLink>
-      <NavLink href={URLS.blog}>Blog</NavLink>
-      {/*
-      <NavLink to={urls.personas()}>Personas</NavLink>
-      <NavLink to={urls.product()}>Product</NavLink>
-      */}
-      {!!cfg.enableMarketingPages && <NavLink to={urls.about()}>About</NavLink>}
-    </M.Box>
+  return children(
+    [
+      { href: URLS.docs, label: 'Docs' },
+      !!cfg.enableMarketingPages && { to: `${urls.home()}#pricing`, label: 'Pricing' },
+      { href: URLS.jobs, label: 'Jobs' },
+      { href: URLS.blog, label: 'Blog' },
+      !!cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
+    ].filter(Boolean),
   )
 }
 
 export const NavBar = () => {
+  const bucket = BucketConfig.useCurrentBucket()
+  const { paths } = NamedRoutes.use()
+  const notSignIn = !useRoute(paths.signIn, { exact: true }).match
   const selector = React.useCallback(
     createStructuredSelector(
       R.pick(['error', 'waiting', 'authenticated'], authSelectors),
@@ -190,47 +277,31 @@ export const NavBar = () => {
     [],
   )
   const { error, waiting, authenticated } = reduxHook.useMappedState(selector)
-  const { paths } = NamedRoutes.use()
   const t = M.useTheme()
-  const useDrawer = M.useMediaQuery(t.breakpoints.down('sm'))
-  const [drawer, setDrawer] = React.useState(false)
-  const toggleDrawer = React.useCallback(() => setDrawer((d) => !d), [setDrawer])
+  const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <Container>
-      {whenNot(paths.signIn, () => !useDrawer && <BucketControls />)}
-      <M.Box flexGrow={1} />
-      {!useDrawer && <Links />}
-
-      {authenticated ? (
-        <NavMenu />
-      ) : (
-        whenNot(paths.signIn, () => <SignIn error={error} waiting={waiting} />)
-      )}
-
-      {useDrawer && (
-        <M.Box ml={1}>
-          <M.IconButton onClick={toggleDrawer} aria-label="Menu" edge="end">
-            <M.Icon>menu</M.Icon>
-          </M.IconButton>
+      <BucketControls bucket={bucket} />
+      {!useHamburger && (
+        <M.Box component="nav" display="flex" alignItems="center" ml={3}>
+          <Links>
+            {R.map(({ label, ...rest }) => (
+              <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
+                {label}
+              </NavLink>
+            ))}
+          </Links>
         </M.Box>
       )}
 
-      {useDrawer && (
-        <M.MuiThemeProvider theme={style.appTheme}>
-          <M.SwipeableDrawer
-            anchor="right"
-            open={drawer}
-            onClose={() => setDrawer(false)}
-            onOpen={() => setDrawer(true)}
-          >
-            {/* TODO: populate the drawer with necessary controls / nav */}
-            <M.Box px={1} width="calc(100vw - 4rem)" maxWidth={400}>
-              <BucketControls />
-              <Links />
-            </M.Box>
-          </M.SwipeableDrawer>
-        </M.MuiThemeProvider>
-      )}
+      {!useHamburger &&
+        (authenticated ? (
+          <UserDropdown />
+        ) : (
+          notSignIn && <SignIn error={error} waiting={waiting} />
+        ))}
+
+      {useHamburger && <Hamburger {...{ authenticated, error, waiting }} />}
     </Container>
   )
 }

@@ -4,11 +4,7 @@ import PT from 'prop-types'
 import * as React from 'react'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
-import CircularProgress from '@material-ui/core/CircularProgress'
-import Icon from '@material-ui/core/Icon'
-import InputAdornment from '@material-ui/core/InputAdornment'
-import InputBase from '@material-ui/core/InputBase'
-import { makeStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
 import * as BucketConfig from 'utils/BucketConfig'
@@ -18,28 +14,47 @@ import parse from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
 import { useRoute } from 'utils/router'
 
-const useStyles = makeStyles((t) => ({
+const useStyles = M.makeStyles((t) => ({
   root: {
-    background: fade(t.palette.common.white, 0.9),
-    color: t.palette.getContrastText(t.palette.common.white),
+    background: fade(t.palette.common.white, 0),
     borderRadius: t.shape.borderRadius,
-    marginLeft: t.spacing(2),
-    minWidth: 240,
-    '&:not($disabled):hover': {
-      background: t.palette.common.white,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    transition: ['background-color 200ms', 'opacity 200ms', 'width 200ms'],
+    width: t.spacing(24),
+    '&:not($iconized)': {
+      background: fade(t.palette.common.white, 0.1),
     },
+    '&:not($disabled):not($iconized):hover': {
+      background: fade(t.palette.common.white, 0.2),
+    },
+  },
+  iconized: {
+    width: t.spacing(4),
   },
   disabled: {
     opacity: 0.8,
   },
+  hidden: {
+    opacity: 0,
+  },
   focused: {
-    background: t.palette.common.white,
+    background: `${fade(t.palette.common.white, 0.2)} !important`,
+    width: '100%',
   },
   input: {
     paddingLeft: t.spacing(4),
+    paddingTop: 8,
+    paddingBottom: 9,
     textOverflow: 'ellipsis',
+    transition: ['opacity 200ms'],
+    '$iconized:not($focused) &': {
+      opacity: 0,
+    },
   },
   adornment: {
+    cursor: 'pointer',
     justifyContent: 'center',
     pointerEvents: 'none',
     position: 'absolute',
@@ -47,18 +62,28 @@ const useStyles = makeStyles((t) => ({
   },
 }))
 
-const SearchBox = ({ disabled, ...props }) => {
-  const { adornment, disabled: disabledCls, ...classes } = useStyles()
+const SearchBox = ({ bucket, disabled, iconized, hidden, focused, ...props }) => {
+  const {
+    adornment,
+    disabled: disabledCls,
+    iconized: iconizedCls,
+    hidden: hiddenCls,
+    ...classes
+  } = useStyles()
   return (
-    <InputBase
+    <M.InputBase
       startAdornment={
-        <InputAdornment className={adornment}>
-          <Icon>search</Icon>
-        </InputAdornment>
+        <M.InputAdornment className={adornment}>
+          <M.Icon>search</M.Icon>
+        </M.InputAdornment>
       }
       classes={classes}
-      className={cx({ [disabledCls]: disabled })}
-      placeholder="Search"
+      className={cx({
+        [disabledCls]: disabled,
+        [iconizedCls]: iconized,
+        [hiddenCls]: hidden,
+      })}
+      placeholder={focused ? `Search s3://${bucket}` : 'Search'}
       disabled={disabled}
       {...props}
     />
@@ -71,13 +96,14 @@ const State = RT.composeComponent(
     children: PT.func.isRequired,
     bucket: PT.string.isRequired,
   }),
-  ({ bucket, children }) => {
+  ({ bucket, children, onFocus, onBlur }) => {
     const { paths, urls } = NamedRoutes.use()
     const { location: l, match } = useRoute(paths.bucketSearch)
     const query = (match && parse(l.search).q) || ''
     const dispatch = reduxHook.useDispatch()
 
     const [value, change] = React.useState(null)
+    const [focused, setFocused] = React.useState(false)
 
     const onChange = React.useCallback((evt) => {
       change(evt.target.value)
@@ -103,33 +129,40 @@ const State = RT.composeComponent(
       [dispatch, urls, bucket, value, query],
     )
 
-    const onFocus = React.useCallback(() => {
+    const handleFocus = React.useCallback(() => {
       change(query)
+      setFocused(true)
+      if (onFocus) onFocus()
     }, [query])
 
-    const onBlur = React.useCallback(() => {
+    const handleBlur = React.useCallback(() => {
       change(null)
+      setFocused(false)
+      if (onBlur) onBlur()
     }, [])
 
     return children({
       value: value === null ? query : value,
       onChange,
       onKeyDown,
-      onFocus,
-      onBlur,
+      onFocus: handleFocus,
+      onBlur: handleBlur,
+      focused,
     })
   },
 )
 
 export default RT.composeComponent(
   'NavBar.Search',
-  RT.withSuspense(() => <Delay>{() => <CircularProgress />}</Delay>),
-  () => {
-    const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+  RT.withSuspense(() => <Delay>{() => <M.CircularProgress />}</Delay>),
+  ({ onFocus, onBlur, iconized, ...props }) => {
+    const { name: bucket, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
     return searchEndpoint ? (
-      <State bucket={name}>{(state) => <SearchBox {...state} />}</State>
+      <State {...{ bucket, onFocus, onBlur }}>
+        {(state) => <SearchBox {...{ iconized, bucket, ...state, ...props }} />}
+      </State>
     ) : (
-      <SearchBox disabled value="Search not available" />
+      <SearchBox iconized={iconized} disabled value="Search not available" {...props} />
     )
   },
 )

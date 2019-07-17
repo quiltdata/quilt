@@ -52,20 +52,35 @@ const getCycled = (getter = R.identity) => (arr, val, offset) => {
 
 const getBucketCycled = getCycled()
 
-const useStyles = M.makeStyles(({ spacing, zIndex }) => ({
+const useStyles = M.makeStyles((t) => ({
+  inputRoot: {
+    width: '100%',
+  },
   input: {
-    marginLeft: spacing(2),
+    fontSize: t.typography.button.fontSize,
+    fontWeight: t.typography.button.fontWeight,
+    height: 18,
+    letterSpacing: t.typography.button.letterSpacing,
+    lineHeight: 18,
+    paddingBottom: 7,
+    paddingTop: 7,
   },
   popper: {
-    zIndex: zIndex.appBar + 1,
+    zIndex: t.zIndex.appBar + 1,
+  },
+  paper: {
+    maxHeight: 'calc(100vh - 80px)',
+    maxWidth: 'calc(100vw - 8px)',
+    overflowY: 'auto',
   },
   item: {
     minHeight: 60,
   },
   description: {
-    maxWidth: spacing(50),
+    maxWidth: t.spacing(50),
   },
   icon: {
+    flexShrink: 0,
     height: 40,
     width: 40,
   },
@@ -74,148 +89,192 @@ const useStyles = M.makeStyles(({ spacing, zIndex }) => ({
 // TODO: better placeholder styling
 const Placeholder = () => <Delay>{() => <M.CircularProgress />}</Delay>
 
-export default RT.composeComponent(
-  'NavBar.BucketSelect',
-  RC.setPropTypes({
-    autoFocus: PT.bool,
-    cancel: PT.func,
-  }),
-  RT.withSuspense(() => <Placeholder />),
-  ({ autoFocus = false, cancel }) => {
-    const currentBucket = BucketConfig.useCurrentBucket()
-    const bucketConfigs = BucketConfig.useBucketConfigs()
-    const { suggestedBuckets } = Config.useConfig()
-    const classes = useStyles()
-    const dispatch = reduxHook.useDispatch()
-    const { urls } = NamedRoutes.use()
+const Adornment = ({ children }) => {
+  const t = M.useTheme()
+  return (
+    <M.InputAdornment disableTypography>
+      <M.Box
+        fontSize="button.fontSize"
+        fontWeight="button.fontWeight"
+        letterSpacing={t.typography.button.letterSpacing}
+      >
+        {children}
+      </M.Box>
+    </M.InputAdornment>
+  )
+}
 
-    const [value, setValue] = React.useState('')
-    const [anchor, setAnchor] = React.useState()
+const withForwardedRef = (prop = 'forwardedRef') => (Component) =>
+  React.forwardRef((props, ref) => <Component {...props} {...{ [prop]: ref }} />)
 
-    const suggestions = React.useMemo(
-      () => suggestedBuckets.filter((s) => s === DIVIDER || !!bucketConfigs[s]),
-      [suggestedBuckets, bucketConfigs],
-    )
+export default withForwardedRef()(
+  RT.composeComponent(
+    'NavBar.BucketSelect',
+    RC.setPropTypes({
+      autoFocus: PT.bool,
+      cancel: PT.func,
+    }),
+    RT.withSuspense(() => <Placeholder />),
+    ({ autoFocus = false, cancel, forwardedRef, ...props }) => {
+      const currentBucket = BucketConfig.useCurrentBucket()
+      const bucketConfigs = BucketConfig.useBucketConfigs()
+      const { suggestedBuckets } = Config.useConfig()
+      const classes = useStyles()
+      const dispatch = reduxHook.useDispatch()
+      const { urls } = NamedRoutes.use()
 
-    const buckets = React.useMemo(
-      () => suggestedBuckets.filter((s) => !!bucketConfigs[s]),
-      [suggestedBuckets, bucketConfigs],
-    )
+      const [value, setValue] = React.useState('')
+      const [popper, setPopper] = React.useState(false)
+      const inputRef = React.useRef()
+      const anchorRef = React.useRef()
 
-    const nextSuggestion = React.useCallback(() => {
-      setValue(getBucketCycled(buckets, value, 1) || '')
-    }, [buckets, value])
+      React.useImperativeHandle(forwardedRef, () => ({
+        focus: () => {
+          inputRef.current.focus()
+        },
+      }))
 
-    const prevSuggestion = React.useCallback(() => {
-      setValue(getBucketCycled(buckets, value, -1) || '')
-    }, [buckets, value])
+      const suggestions = React.useMemo(
+        () => suggestedBuckets.filter((s) => s === DIVIDER || !!bucketConfigs[s]),
+        [suggestedBuckets, bucketConfigs],
+      )
 
-    const go = React.useCallback(
-      (to) => {
-        if (to && currentBucket !== to) {
-          dispatch(push(urls.bucketRoot(to)))
-        }
-        if (cancel) cancel()
-      },
-      [currentBucket, urls, dispatch, cancel],
-    )
+      const buckets = React.useMemo(
+        () => suggestedBuckets.filter((s) => !!bucketConfigs[s]),
+        [suggestedBuckets, bucketConfigs],
+      )
 
-    const handleChange = React.useCallback((evt) => {
-      setValue(normalizeBucket(evt.target.value))
-    }, [])
+      const nextSuggestion = React.useCallback(() => {
+        setValue(getBucketCycled(buckets, value, 1) || '')
+      }, [buckets, value])
 
-    const handleFocus = React.useCallback((evt) => {
-      setAnchor(evt.target)
-    }, [])
+      const prevSuggestion = React.useCallback(() => {
+        setValue(getBucketCycled(buckets, value, -1) || '')
+      }, [buckets, value])
 
-    const handleBlur = React.useCallback(() => {
-      setTimeout(() => {
-        setAnchor(null)
-        if (cancel) cancel()
-      }, 300)
-    }, [cancel])
+      const go = React.useCallback(
+        (to) => {
+          if (to && currentBucket !== to) {
+            dispatch(push(urls.bucketRoot(to)))
+          }
+          if (cancel) cancel()
+        },
+        [currentBucket, urls, dispatch, cancel],
+      )
 
-    const handleKey = React.useCallback(
-      (evt) => {
-        // eslint-disable-next-line default-case
-        switch (evt.key) {
-          case 'Enter':
-            go(value)
-            break
-          case 'Escape':
-            if (anchor) anchor.blur()
-            break
-          case 'ArrowUp':
-            prevSuggestion()
-            break
-          case 'ArrowDown':
-          case 'Tab':
-            // prevent Tab from switching focus
-            evt.preventDefault()
-            nextSuggestion()
-            break
-        }
-      },
-      [anchor, go, value, nextSuggestion, prevSuggestion],
-    )
+      const handleChange = React.useCallback(
+        (evt) => {
+          setValue(normalizeBucket(evt.target.value))
+        },
+        [setValue],
+      )
 
-    const handleSuggestion = (s) => {
-      setValue(s)
-      go(s)
-    }
+      const handleFocus = React.useCallback(() => {
+        setValue('')
+        setPopper(true)
+      }, [setValue, setPopper])
 
-    return (
-      <>
-        <NavInput
-          startAdornment={<M.InputAdornment>s3://</M.InputAdornment>}
-          value={value}
-          className={classes.input}
-          autoFocus={autoFocus}
-          onKeyDown={handleKey}
-          onChange={handleChange}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          placeholder=" Enter bucket name"
-        />
-        <M.Popper
-          open={!!anchor}
-          anchorEl={anchor}
-          placement="bottom-end"
-          className={classes.popper}
-        >
-          <M.MuiThemeProvider theme={style.appTheme}>
-            <M.Paper>
-              <M.MenuList>
-                {suggestions.map((s, i) => {
-                  // eslint-disable-next-line react/no-array-index-key
-                  if (s === DIVIDER) return <M.Divider key={`${s}:${i}`} />
-                  const b = bucketConfigs[s]
-                  return (
-                    <M.MenuItem
-                      className={classes.item}
-                      key={s}
-                      onClick={() => handleSuggestion(s)}
-                      selected={s === value}
-                    >
-                      <img src={b.icon} alt={b.title} className={classes.icon} />
-                      <M.Box pr={2} />
-                      <M.ListItemText
-                        primary={b.title}
-                        secondary={b.description}
-                        secondaryTypographyProps={{
-                          noWrap: true,
-                          className: classes.description,
-                        }}
-                        title={b.description}
-                      />
-                    </M.MenuItem>
-                  )
-                })}
-              </M.MenuList>
-            </M.Paper>
-          </M.MuiThemeProvider>
-        </M.Popper>
-      </>
-    )
-  },
+      const handleBlur = React.useCallback(() => {
+        // without timeout popover click gets ignored
+        setTimeout(() => {
+          setPopper(false)
+          if (cancel) cancel()
+        }, 100)
+      }, [cancel])
+
+      const handleKey = React.useCallback(
+        (evt) => {
+          // eslint-disable-next-line default-case
+          switch (evt.key) {
+            case 'Enter':
+              go(value)
+              break
+            case 'Escape':
+              if (inputRef.current) inputRef.current.blur()
+              break
+            case 'ArrowUp':
+              prevSuggestion()
+              break
+            case 'ArrowDown':
+            case 'Tab':
+              // prevent Tab from switching focus
+              evt.preventDefault()
+              nextSuggestion()
+              break
+          }
+        },
+        [inputRef.current, go, value, nextSuggestion, prevSuggestion],
+      )
+
+      const handleSuggestion = (s) => {
+        setValue(s)
+        go(s)
+      }
+
+      return (
+        <>
+          <M.Box {...props} ref={anchorRef}>
+            <NavInput
+              startAdornment={<Adornment>s3://</Adornment>}
+              value={value}
+              className={classes.inputRoot}
+              classes={{ input: classes.input }}
+              autoFocus={autoFocus}
+              onKeyDown={handleKey}
+              onChange={handleChange}
+              onFocus={handleFocus}
+              onBlur={handleBlur}
+              placeholder=" Enter bucket name"
+              inputRef={inputRef}
+            />
+          </M.Box>
+          <M.Popper
+            open={popper}
+            anchorEl={anchorRef.current}
+            placement="bottom-start"
+            className={classes.popper}
+            transition
+          >
+            {({ TransitionProps }) => (
+              <M.MuiThemeProvider theme={style.appTheme}>
+                <M.Fade {...TransitionProps} timeout={350}>
+                  <M.Paper className={classes.paper}>
+                    <M.MenuList>
+                      {suggestions.map((s, i) => {
+                        if (s === DIVIDER) {
+                          // eslint-disable-next-line react/no-array-index-key
+                          return <M.Divider key={`${s}:${i}`} component="li" />
+                        }
+                        const b = bucketConfigs[s]
+                        return (
+                          <M.MenuItem
+                            className={classes.item}
+                            key={s}
+                            onClick={() => handleSuggestion(s)}
+                            selected={s === value}
+                          >
+                            <img src={b.icon} alt={b.title} className={classes.icon} />
+                            <M.Box pr={2} />
+                            <M.ListItemText
+                              primary={b.title}
+                              secondary={b.description}
+                              secondaryTypographyProps={{
+                                noWrap: true,
+                                className: classes.description,
+                              }}
+                              title={b.description}
+                            />
+                          </M.MenuItem>
+                        )
+                      })}
+                    </M.MenuList>
+                  </M.Paper>
+                </M.Fade>
+              </M.MuiThemeProvider>
+            )}
+          </M.Popper>
+        </>
+      )
+    },
+  ),
 )
