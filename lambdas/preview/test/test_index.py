@@ -27,9 +27,11 @@ class TestIndex():
         return {
             'httpMethod': 'POST',
             'path': '/foo',
+            'pathParameters': {},
             'queryStringParameters': query or None,
             'headers': headers or None,
             'body': None,
+            'isBase64Encoded': False,
         }
 
     def test_bad(self):

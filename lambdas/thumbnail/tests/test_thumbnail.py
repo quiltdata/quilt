@@ -20,9 +20,11 @@ class TestThumbnail(TestCase):
         return {
             'httpMethod': 'POST',
             'path': '/foo',
+            'pathParameters': {},
             'queryStringParameters': query or None,
             'headers': headers or None,
             'body': None,
+            'isBase64Encoded': False,
         }
 
     @responses.activate
