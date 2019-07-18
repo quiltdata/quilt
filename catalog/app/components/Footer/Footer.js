@@ -3,14 +3,13 @@ import { FormattedMessage } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import * as style from 'constants/style'
 import * as Intercom from 'components/Intercom'
+import Logo from 'components/Logo'
+import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as Config from 'utils/Config'
 import HashLink from 'utils/HashLink'
 import * as NamedRoutes from 'utils/NamedRoutes'
-
-import logo from 'img/logo/horizontal-white.png'
 
 import messages from './messages'
 
@@ -96,8 +95,8 @@ export default () => {
             display="flex"
             justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
-            <M.Box component={Link} to={urls.home()} display="block" height={36}>
-              <M.Box component="img" height="100%" alt="Quilt logo" src={logo} />
+            <M.Box component={Link} to={urls.home()} display="block">
+              <Logo />
             </M.Box>
           </M.Box>
 

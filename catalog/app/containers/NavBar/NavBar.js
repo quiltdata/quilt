@@ -7,6 +7,7 @@ import * as reduxHook from 'redux-react-hook'
 import { createStructuredSelector } from 'reselect'
 import * as M from '@material-ui/core'
 
+import Logo from 'components/Logo'
 import * as style from 'constants/style'
 import * as URLS from 'constants/urls'
 import * as authSelectors from 'containers/Auth/selectors'
@@ -17,24 +18,15 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import { composeComponent } from 'utils/reactTools'
 import { useRoute } from 'utils/router'
 
-import logo from 'img/logo/horizontal-white.png'
 import bg from './bg.png'
 
 import BucketControls from './BucketControls'
 
-const Logo = (props) => {
+const LogoLink = (props) => {
   const { urls } = NamedRoutes.use()
   return (
-    <M.Box
-      component={Link}
-      height={36}
-      mr={2}
-      to={urls.home()}
-      width={{ xs: 32, sm: 'auto' }}
-      overflow="hidden"
-      {...props}
-    >
-      <M.Box component="img" alt="Quilt logo" src={logo} height="100%" />
+    <M.Box component={Link} mr={2} to={urls.home()} {...props}>
+      <Logo responsive />
     </M.Box>
   )
 }
@@ -231,7 +223,7 @@ export const Container = ({ children }) => {
                 maxWidth="lg"
                 style={{ display: 'flex', alignItems: 'center' }}
               >
-                <Logo />
+                <LogoLink />
                 {children}
               </M.Container>
             </M.Toolbar>
