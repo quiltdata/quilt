@@ -39,6 +39,7 @@ const Footer = M.styled('footer')(({ theme: t }) => ({
 }))
 
 const Container = M.styled(M.Container)(({ theme: t }) => ({
+  alignItems: 'center',
   display: 'grid',
   [t.breakpoints.up('sm')]: {
     gridRowGap: t.spacing(6),
