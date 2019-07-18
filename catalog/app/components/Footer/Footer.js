@@ -30,10 +30,9 @@ const Footer = M.styled('footer')(({ theme: t }) => ({
   paddingTop: t.spacing(6),
   position: 'relative',
   [t.breakpoints.down('xs')]: {
-    backgroundSize: 92,
-    height: 'auto',
-    paddingTop: t.spacing(4),
-    paddingBottom: t.spacing(4),
+    alignItems: 'center',
+    display: 'flex',
+    paddingTop: 0,
   },
 }))
 
@@ -62,7 +61,7 @@ const Container = M.styled(M.Container)(({ theme: t }) => ({
   },
 }))
 
-const NavLink = M.styled((props) => (
+const NavLink = (props) => (
   <M.Link
     variant="button"
     underline="none"
@@ -70,11 +69,9 @@ const NavLink = M.styled((props) => (
     component={props.to ? HashLink : undefined}
     {...props}
   />
-))(({ theme: t }) => ({
-  [t.breakpoints.up('sm')]: {
-    marginLeft: t.spacing(3),
-  },
-}))
+)
+
+const NavSpacer = () => <M.Box ml={{ xs: 2, sm: 3 }} />
 
 const NavIcon = ({ icon, ...props }) => (
   <M.Box component="a" {...props}>
@@ -104,24 +101,32 @@ export default () => {
             component="nav"
             display="flex"
             alignItems="center"
-            justifyContent="flex-end"
-            flexDirection={{ xs: 'column', sm: 'row' }}
-            height={{ xs: 'auto', sm: 36 }}
+            justifyContent={{ xs: 'center', sm: 'flex-end' }}
             style={{ gridArea: 'links' }}
           >
             <NavLink href={URLS.docs} target="_blank">
               Docs
             </NavLink>
             {!!cfg.enableMarketingPages && (
-              <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+              <>
+                <NavSpacer />
+                <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+              </>
             )}
+            <NavSpacer />
             <NavLink href={URLS.blog} target="_blank">
               Blog
             </NavLink>
+            <NavSpacer />
             <NavLink href={URLS.jobs} target="_blank">
               Jobs
             </NavLink>
-            {!!cfg.enableMarketingPages && <NavLink to={urls.about()}>About</NavLink>}
+            {!!cfg.enableMarketingPages && (
+              <>
+                <NavSpacer />
+                <NavLink to={urls.about()}>About</NavLink>
+              </>
+            )}
           </M.Box>
 
           <M.Box
