@@ -32,6 +32,9 @@ def lambda_handler(request):
     """
     Sign the request and forward it to S3.
     """
+    if not (request.method == 'POST' and 'select' in request.args):
+        return requests.codes.bad_request, 'Not an S3 select', {'content-type': 'text/plain'}
+
     bucket, key = request.pathParameters['proxy'].split('/', 1)
     host = f'{bucket}.s3.amazonaws.com'
 
@@ -60,10 +63,9 @@ def lambda_handler(request):
 
     headers.update(aws_request.headers)
 
-    response = session.request(
-        method=request.method,
+    response = session.post(
         url=url,
-        data=request.data,
+        data=request.data,  # Forward the POST data.
         headers=headers,
     )
 

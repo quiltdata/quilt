@@ -73,6 +73,17 @@ class TestS3Select(TestCase):
             url,
             status=403)
 
-        event = self._make_event('bucket/object.csv', {}, {}, b'test')
+        event = self._make_event('bucket/object.csv', {'select': None}, {}, b'test')
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 403
+
+    @responses.activate
+    def test_bad_request(self):
+        event = self._make_event('bucket/object.csv', {}, {}, b'test')
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 400
+
+        event = self._make_event('bucket/object.csv', {'select': None}, {}, b'test')
+        event['httpMethod'] = 'PUT'
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 400
