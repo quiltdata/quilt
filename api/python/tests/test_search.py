@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from quilt3 import Bucket, search
 
 from quilt3.search_util import get_search_schema
+from quilt3.util import get_from_config
 
 from .utils import QuiltTestCase
 
@@ -130,35 +131,69 @@ def mock_find_bucket_config(bucket_name, catalog_config_url):
 class SearchTestCase(QuiltTestCase):
 
     def test_all_bucket_search(self):
-        with patch('quilt3.search_util._create_es') as create_es_mock:
-            es_mock = MagicMock()
-            es_mock.search.return_value = {
-                'hits': {
-                    'hits': [{
-                        '_source': {
-                            'key': 'asdf',
-                            'version_id': 'asdf',
-                            'type': 'asdf',
-                            'user_meta': {},
-                            'size': 0,
-                            'text': '',
-                            'updated': '0'
+        with patch('quilt3.util.requests') as requests_mock:
+            navigator_url = get_from_config('navigator_url')
+            FEDERATION_URL = 'https://example.com/federation.json'
+            mock_federation = {
+                    'buckets': [
+                        {
+                            'name': 'test-bucket',
+                            'searchEndpoint': 'test',
+                            'region': 'test-aws-region'
                         }
-                    }]
+                    ]
                 }
-            }
-            create_es_mock.return_value = es_mock
-            results = search('*')
-            assert es_mock.search.called_with('*', 'test')
-            assert len(results) == 1
+            CONFIG_URL = navigator_url + '/config.json'
+            mock_config = {
+                    'federations': [
+                        '/federation.json'
+                    ]
+                }
+            def makeResponse(text):
+                mock_response = ResponseMock()
+                setattr(mock_response, 'text', text)
+                setattr(mock_response, 'ok', True)
+                return mock_response
 
-            query = {
-                'query': {
-                    'term': {
-                        'key': '*'
+            def mock_get(url):
+                if url == CONFIG_URL:
+                    return makeResponse(json.dumps(mock_config))
+                elif url == FEDERATION_URL:
+                    return makeResponse(json.dumps(mock_federation))
+                else:
+                    raise Exception
+
+            requests_mock.get = mock_get
+
+            with patch('quilt3.search_util._create_es') as create_es_mock:
+                es_mock = MagicMock()
+                es_mock.search.return_value = {
+                    'hits': {
+                        'hits': [{
+                            '_source': {
+                                'key': 'asdf',
+                                'version_id': 'asdf',
+                                'type': 'asdf',
+                                'user_meta': {},
+                                'size': 0,
+                                'text': '',
+                                'updated': '0'
+                            }
+                        }]
                     }
                 }
-            }
-            results = search(query)
-            assert es_mock.search.called_with('*', 'test')
-            assert len(results) == 1
+                create_es_mock.return_value = es_mock
+                results = search('*')
+                assert es_mock.search.called_with('*', 'test')
+                assert len(results) == 1
+
+                query = {
+                    'query': {
+                        'term': {
+                            'key': '*'
+                        }
+                    }
+                }
+                results = search(query)
+                assert es_mock.search.called_with('*', 'test')
+                assert len(results) == 1

@@ -95,18 +95,16 @@ def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     raw_response = es_client.search(index=_bucket_index_name(bucket), body=payload)
 
     try:
-        results = []
-        for result in raw_response['hits']['hits']:
-            results.append({
-                'key': result['_source']['key'],
-                'version_id': result['_source']['version_id'],
-                'operation': result['_source'].get('event'),
-                'meta': json.dumps(result['_source']['user_meta']),
-                'size': str(result['_source']['size']),
-                'text': result['_source']['text'],
-                'source': result['_source'],
-                'time': str(result['_source']['updated'])
-            })
+        results = [{
+            'key': result['_source']['key'],
+            'version_id': result['_source']['version_id'],
+            'operation': result['_source'].get('event'),
+            'meta': json.dumps(result['_source']['user_meta']),
+            'size': str(result['_source']['size']),
+            'text': result['_source']['text'],
+            'source': result['_source'],
+            'time': str(result['_source']['updated'])
+            } for result in raw_response['hits']['hits']]
         results = list(sorted(results, key=lambda x: x['time'], reverse=True))
         return results
     except KeyError:
