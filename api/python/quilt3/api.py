@@ -511,9 +511,8 @@ def search(query, limit=10):
     default_bucket = get_from_config('defaultBucket')
     navigator_url = get_from_config('navigator_url')
     config_url = navigator_url + '/config.json'
-    search_endpoint = get_from_config('elastic_search_url')
-
-    # TODO: we can maybe get this from searchEndpoint or apiGatewayEndpoint
-    region = get_from_config('region')
+    default_config = find_bucket_config(default_bucket, config_url)
+    search_endpoint = default_config['searchEndpoint']
+    region = default_config['region']
 
     return util_search(query, search_endpoint, limit=limit, aws_region=region)
