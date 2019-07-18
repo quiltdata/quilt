@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
-from base64 import b64decode
+from base64 import b64decode, b64encode
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import sys
 from urllib.parse import urlparse, parse_qsl, unquote
@@ -17,8 +17,8 @@ class Handler(BaseHTTPRequestHandler):
         parsed_url = urlparse(self.path)
         path = unquote(parsed_url.path)
 
-        if path == LAMBDA_PATH:
-            query = dict(parse_qsl(parsed_url.query))
+        if path == LAMBDA_PATH or path.startswith(LAMBDA_PATH + '/'):
+            query = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
             # BaseHTTPRequestHandler API gives us a case-insensitive dict
             # of headers, while the lambda API uses lowercase header names.
             # So change the keys to lowercase to match the lambda API.
@@ -27,9 +27,13 @@ class Handler(BaseHTTPRequestHandler):
             args = {
                 'httpMethod': self.command,
                 'path': path,
+                'pathParameters': {
+                    'proxy': path[len(LAMBDA_PATH) + 1:]
+                },
                 'queryStringParameters': query or None,
                 'headers': headers or None,
-                'body': req_body,
+                'body': b64encode(req_body),
+                'isBase64Encoded': True
             }
 
             result = lambda_handler(args, None)
@@ -64,6 +68,9 @@ class Handler(BaseHTTPRequestHandler):
         size = int(self.headers.get('Content-Length', '0'))
         body = self.rfile.read(size)
         self._handle_request(body)
+
+    def do_OPTIONS(self):
+        self._handle_request(None)
 
 
 def main(argv):
