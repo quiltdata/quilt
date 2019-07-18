@@ -20,7 +20,49 @@ import iconGithub from './icon-github.svg'
 import iconTwitter from './icon-twitter.svg'
 import iconMedium from './icon-medium.svg'
 
-const NavLink = (props) => (
+const Footer = M.styled('footer')(({ theme: t }) => ({
+  background: `left / 64px url(${bg})`,
+  boxShadow: [
+    '0px -12px 24px 0px rgba(25, 22, 59, 0.05)',
+    '0px -16px 40px 0px rgba(25, 22, 59, 0.07)',
+    '0px -24px 88px 0px rgba(25, 22, 59, 0.16)',
+  ],
+  height: 230,
+  paddingTop: t.spacing(6),
+  position: 'relative',
+  [t.breakpoints.down('xs')]: {
+    backgroundSize: 92,
+    height: 'auto',
+    paddingTop: t.spacing(4),
+    paddingBottom: t.spacing(4),
+  },
+}))
+
+const Container = M.styled(M.Container)(({ theme: t }) => ({
+  display: 'grid',
+  [t.breakpoints.up('sm')]: {
+    gridRowGap: t.spacing(6),
+    gridTemplateColumns: 'auto 1fr auto',
+    gridTemplateRows: '36px auto',
+    gridTemplateAreas: `
+      "logo . links"
+      "copy . icons"
+    `,
+  },
+  [t.breakpoints.down('xs')]: {
+    gridRowGap: t.spacing(3),
+    gridTemplateColumns: '1fr',
+    gridTemplateRows: '36px auto auto auto',
+    gridTemplateAreas: `
+      "logo"
+      "links"
+      "icons"
+      "copy"
+    `,
+  },
+}))
+
+const NavLink = M.styled((props) => (
   <M.Link
     variant="button"
     underline="none"
@@ -28,7 +70,11 @@ const NavLink = (props) => (
     component={props.to ? HashLink : undefined}
     {...props}
   />
-)
+))(({ theme: t }) => ({
+  [t.breakpoints.up('sm')]: {
+    marginLeft: t.spacing(3),
+  },
+}))
 
 const NavIcon = ({ icon, ...props }) => (
   <M.Box component="a" {...props}>
@@ -42,98 +88,69 @@ export default () => {
   const intercom = Intercom.use()
   return (
     <M.MuiThemeProvider theme={style.navTheme}>
-      <M.Box
-        component="footer"
-        position="relative"
-        style={{
-          background: `left / 64px url(${bg})`,
-          boxShadow: `
-            0px -12px 24px 0px rgba(25, 22, 59, 0.05),
-            0px -16px 40px 0px rgba(25, 22, 59, 0.07),
-            0px -24px 88px 0px rgba(25, 22, 59, 0.16)
-          `,
-        }}
-        height={{ xs: 'auto', sm: 230 }}
-        pt={{ xs: 4, sm: 6 }}
-        pb={{ xs: 4, sm: 0 }}
-      >
-        <M.Container
-          maxWidth="lg"
-          style={{ display: 'flex', justifyContent: 'space-between' }}
-        >
+      <Footer>
+        <Container maxWidth="lg">
           <M.Box
+            style={{ gridArea: 'logo' }}
             display="flex"
-            alignItems={{ xs: 'flex-end', sm: 'flex-start' }}
-            flexDirection={{ xs: 'row', sm: 'column' }}
-            justifyContent="space-between"
-            width={{ xs: '100%', sm: 'auto' }}
+            justifyContent={{ xs: 'center', sm: 'flex-start' }}
           >
-            <M.Box
-              component={Link}
-              to={urls.home()}
-              display="block"
-              height={36}
-              mb={{ xs: 0, sm: 6 }}
-            >
+            <M.Box component={Link} to={urls.home()} display="block" height={36}>
               <M.Box component="img" height="100%" alt="Quilt logo" src={logo} />
             </M.Box>
+          </M.Box>
 
+          <M.Box
+            component="nav"
+            display="flex"
+            alignItems="center"
+            justifyContent="flex-end"
+            flexDirection={{ xs: 'column', sm: 'row' }}
+            height={{ xs: 'auto', sm: 36 }}
+            style={{ gridArea: 'links' }}
+          >
+            <NavLink href={URLS.docs} target="_blank">
+              Docs
+            </NavLink>
+            {!!cfg.enableMarketingPages && (
+              <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
+            )}
+            <NavLink href={URLS.blog} target="_blank">
+              Blog
+            </NavLink>
+            <NavLink href={URLS.jobs} target="_blank">
+              Jobs
+            </NavLink>
+            {!!cfg.enableMarketingPages && <NavLink to={urls.about()}>About</NavLink>}
+          </M.Box>
+
+          <M.Box
+            style={{ gridArea: 'copy' }}
+            display="flex"
+            justifyContent={{ xs: 'center', sm: 'flex-start' }}
+          >
             <M.Typography color="textSecondary">
               &copy;&nbsp;
               <FormattedMessage {...messages.copy} />
             </M.Typography>
-
-            {!intercom.dummy && <M.Box width={60} />}
           </M.Box>
 
-          <M.Box>
-            <M.Box
-              component="nav"
-              display={{ xs: 'none', sm: 'flex' }}
-              alignItems="center"
-              justifyContent="flex-end"
-              height={36}
-              mb={6}
-            >
-              <NavLink href={URLS.docs} target="_blank">
-                Docs
-              </NavLink>
-              {!!cfg.enableMarketingPages && (
-                <>
-                  <M.Box ml={3} />
-                  <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
-                </>
-              )}
-              <M.Box ml={3} />
-              <NavLink href={URLS.blog} target="_blank">
-                Blog
-              </NavLink>
-              <M.Box ml={3} />
-              <NavLink href={URLS.jobs} target="_blank">
-                Jobs
-              </NavLink>
-              {!!cfg.enableMarketingPages && (
-                <>
-                  <M.Box ml={3} />
-                  <NavLink to={urls.about()}>About</NavLink>
-                </>
-              )}
-            </M.Box>
-
-            <M.Box
-              component="nav"
-              display={{ xs: 'none', sm: 'flex' }}
-              justifyContent="flex-end"
-            >
-              <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
-              <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
-              <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
-              <NavIcon icon={iconMedium} href={URLS.blog} target="_blank" ml={4} />
-              {!intercom.dummy && <M.Box ml={4} width={60} />}
-            </M.Box>
+          <M.Box
+            component="nav"
+            display="flex"
+            justifyContent={{ xs: 'center', sm: 'flex-end' }}
+            style={{ gridArea: 'icons' }}
+          >
+            <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
+            <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
+            <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
+            <NavIcon icon={iconMedium} href={URLS.blog} target="_blank" ml={4} />
+            {!intercom.dummy && (
+              <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
+            )}
           </M.Box>
-        </M.Container>
-      </M.Box>
+        </Container>
+      </Footer>
     </M.MuiThemeProvider>
   )
 }
