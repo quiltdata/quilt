@@ -225,7 +225,12 @@ Select `Submit` and your search domain should now be open to the public.
 
 ### Use Google to sign into Quilt
 
-You can configure your Quilt stack to authenticate with Google. Follow these [instructions](https://developers.google.com/identity/protocols/OAuth2UserAgent) to (1) enable Gmail APIs and (2) create authorization credentials to identify your Quilt stack to Google's OAuth 2.0 server.
+You can enable users on your Google domain to sign in to Quilt.
+Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
+and complete the following steps:
+
+1. Enable Gmail APIs
+1. Create authorization credentials to identify your Quilt stack to Google's OAuth 2.0 server.
 
 ![](./imgs/google_console.png)
 
