@@ -19,7 +19,7 @@ from t4_lambda_shared.utils import get_default_origins
 SERVICE = 's3'
 REGION = os.environ.get('AWS_REGION', '')
 
-REQUEST_HEADERS_TO_FORWARD = {'content-type', 'x-amz-content-sha256', 'x-amz-user-agent'}
+REQUEST_HEADERS_TO_FORWARD = {'content-type', 'cache-control', 'pragma', 'x-amz-content-sha256', 'x-amz-user-agent'}
 REQUEST_HEADERS_TO_SIGN = {'host', 'x-amz-content-sha256', 'x-amz-user-agent'}
 RESPONSE_HEADERS_TO_FORWARD = {'content-type'}
 

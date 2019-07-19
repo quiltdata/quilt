@@ -40,6 +40,10 @@ class TestS3Select(TestCase):
         def _callback(request):
             assert 'X-Amz-Date' in request.headers
             assert 'Authorization' in request.headers
+            assert request.headers['content-type'] == 'application/octet-stream'
+            assert request.headers['cache-control'] == 'no-cache'
+            assert request.headers['pragma'] == 'no-cache'
+            assert 'referer' not in request.headers
             return 200, {}, b'results'
 
         responses.add_callback(
@@ -55,6 +59,9 @@ class TestS3Select(TestCase):
             'content-type': 'application/octet-stream',
             'x-amz-content-sha256': '123456',
             'x-amz-user-agent': 'test',
+            'cache-control': 'no-cache',
+            'pragma': 'no-cache',
+            'referer': 'http://example.com'
         }
         body = b's3 select request body'
 
