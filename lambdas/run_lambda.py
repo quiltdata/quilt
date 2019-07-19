@@ -32,7 +32,7 @@ class Handler(BaseHTTPRequestHandler):
                 },
                 'queryStringParameters': query or None,
                 'headers': headers or None,
-                'body': b64encode(req_body),
+                'body': b64encode(req_body or b''),
                 'isBase64Encoded': True
             }
 
