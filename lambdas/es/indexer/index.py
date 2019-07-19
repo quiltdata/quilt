@@ -12,22 +12,24 @@ from urllib.parse import unquote, unquote_plus
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 import boto3
-from botocore.exceptions import ClientError
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 import nbformat
 from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
 
+CONTENT_INDEX_EXTS = [
+    ".csv",
+    ".html",
+    ".ipynb",
+    ".json",
+    ".md",
+    ".rmd",
+    ".txt",
+    ".xml"
+]
 # 10 MB, see https://amzn.to/2xJpngN
-CHUNK_LIMIT_BYTES = 10_000_000# 10MB
-DEFAULT_CONFIG = {
-    "to_index": [
-        ".ipynb",
-        ".md",
-        ".rmd",
-    ]
-}
-DOC_SIZE_LIMIT_BYTES = 10_000_000# 10MB
+CHUNK_LIMIT_BYTES = 10_000_000
+DOC_SIZE_LIMIT_BYTES = 10_000
 ELASTIC_TIMEOUT = 20
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
@@ -35,6 +37,7 @@ NB_VERSION = 4 # default notebook version for nbformat
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
 OBJECT_DELETE = "ObjectRemoved:Delete"
+QUEUE_LIMIT_BYTES = 100_000_000# 100MB
 RETRY_429 = 5
 TEST_EVENT = "s3:TestEvent"
 S3_CLIENT = boto3.client("s3")
@@ -56,6 +59,7 @@ class DocumentQueue:
             *,
             last_modified,
             bucket,
+            ext,
             key,
             text,
             etag,
@@ -66,9 +70,6 @@ class DocumentQueue:
             # documents will dominate memory footprint, there is also a fixed
             # size for the rest of the doc that we do not account for
             self.size += min(size, DOC_SIZE_LIMIT_BYTES)
-        if self.size > 5E8:# 500 MB
-            print(f"Warning: Lambda may run out of memory. {self.size} bytes queued.")
-
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -84,6 +85,7 @@ class DocumentQueue:
             # Be VERY CAREFUL changing these values as a type change can cause a
             # mapper_parsing_exception that below code won't handle
             "etag": etag,
+            "ext": ext,
             "event": event_type,
             "size": size,
             "text": text,
@@ -98,6 +100,9 @@ class DocumentQueue:
         body["meta_text"] = " ".join([body["meta_text"], key])
 
         self.append_document(body)
+
+        if self.size > QUEUE_LIMIT_BYTES:
+            self.send_all()
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
@@ -153,14 +158,17 @@ class DocumentQueue:
                 raise_on_error=False,
                 raise_on_exception=False
             )
+            # reset the size count
+            self.size = 0
             # Retry only if this is a first-generation queue
             # (prevents infinite regress on failing documents)
             if self.retry_errors:
                 # this is a second genration queue, so don't let it retry
+                # anything other than 429s
                 error_queue = DocumentQueue(self.context, retry_errors=False)
                 for error in errors:
                     print(error)
-                    # can be dict or string, sigh
+                    # can be dict or string *sigh*
                     inner = error.get("index", {})
                     error_info = inner.get("error")
                     doc_id = inner.get("_id")
@@ -178,6 +186,35 @@ class DocumentQueue:
             print("Fatal, unexpected Exception in send_all", ex)
             import traceback
             traceback.print_tb(ex.__traceback__)
+
+def get_contents(context, bucket, key, ext, *, etag, version_id, size):
+    """get the byte contents of a file"""
+    content = ""
+    if ext in CONTENT_INDEX_EXTS:
+        # we treat notebooks separately because we need to parse them in
+        # this lambda, which means we need the whole object
+        if ext == ".ipynb":
+            # Ginormous notebooks could still cause a problem here
+            content = get_notebook_cells(
+                context,
+                bucket,
+                key,
+                size,
+                etag=etag,
+                version_id=version_id
+            )
+            content = trim_to_bytes(content)
+        else:
+            content = get_plain_text(
+                context,
+                bucket,
+                key,
+                size,
+                etag=etag,
+                version_id=version_id
+            )
+
+    return content
 
 def extract_text(notebook_str):
     """ Extract code and markdown
@@ -210,80 +247,52 @@ def extract_text(notebook_str):
 
     return "\n".join(text)
 
-def get_config(bucket):
-    """return a dict of DEFAULT_CONFIG merged the user's config (if available)"""
-    try:
-        # Warning: eventual consistency could return an outdated object
-        loaded_object = S3_CLIENT.get_object(Bucket=bucket, Key=".quilt/config.json")
-        loaded_config = json.load(loaded_object["Body"])
-        return {**DEFAULT_CONFIG, **loaded_config}
-    except ClientError as ex:
-        # 403 = NoSuchKey can happen if user has no .quilt/config.json (which is fine)
-        # 404 = AccessDenied; happens if file doesn't exist and lambda lacks list permission
-        response_code = ex.response["ResponseMetadata"]["HTTPStatusCode"]
-        if response_code not in ("403", "404"):
-            print("get_config", ex)
-            raise ex
-    except Exception as ex:# pylint: disable=broad-except
-        print("get_config", ex)
-        import traceback
-        traceback.print_tb(ex.__traceback__)
-
-    return DEFAULT_CONFIG
-
-def get_extensions_to_index(bucket, configs):
-    """returns: which file extensions should be plain-text indexed?"""
-    if bucket not in configs:
-        configs[bucket] = get_config(bucket)
-    to_index = configs[bucket].get("to_index", [])
-    return (x.lower() for x in to_index)
-
-def get_notebook_cells(context, **kwargs):
+def get_notebook_cells(context, bucket, key, size, *, etag, version_id):
     """extract cells for ipynb notebooks for indexing"""
-    _validate_kwargs(kwargs)
     text = ""
     try:
         obj = retry_s3(
             "get",
             context,
-            bucket=kwargs["bucket"],
-            key=kwargs["key"],
-            etag=kwargs["etag"],
-            version_id=kwargs["version_id"]
+            bucket,
+            key,
+            size,
+            etag=etag,
+            version_id=version_id
         )
         notebook = obj["Body"].read().decode("utf-8")
         text = extract_text(notebook)
     except UnicodeDecodeError as uni:
-        print(f"Unicode decode error in {kwargs['key']}: {uni}")
+        print(f"Unicode decode error in {key}: {uni}")
     except (json.JSONDecodeError, nbformat.reader.NotJSONError):
-        print(f"Invalid JSON in {kwargs['key']}.")
+        print(f"Invalid JSON in {key}.")
     except (KeyError, AttributeError)  as err:
-        print(f"Missing key in {kwargs['key']}: {err}")
+        print(f"Missing key in {key}: {err}")
     # there might be more errors than covered by test_read_notebook
     # better not to fail altogether
     except Exception as exc:#pylint: disable=broad-except
-        print(f"Exception in file {kwargs['key']}: {exc}")
+        print(f"Exception in file {key}: {exc}")
 
-    return trim_to_bytes(text)
+    return text
 
-def get_plain_text(context, **kwargs):
+def get_plain_text(context, bucket, key, size, *, etag, version_id):
     """get plain text object contents"""
-    _validate_kwargs(kwargs)
     text = ""
     try:
         obj = retry_s3(
             "get",
             context,
-            bucket=kwargs["bucket"],
-            key=kwargs["key"],
-            etag=kwargs["etag"],
-            version_id=kwargs["version_id"]
+            bucket,
+            key,
+            size,
+            etag=etag,
+            version_id=version_id
         )
         text = obj["Body"].read().decode("utf-8")
     except UnicodeDecodeError as ex:
-        print(f"Unicode decode error in {kwargs['key']}", ex)
+        print(f"Unicode decode error in {key}", ex)
 
-    return trim_to_bytes(text)
+    return text
 
 def get_time_remaining(context):
     """returns time remaining in seconds before lambda context is shut down"""
@@ -342,26 +351,26 @@ def handler(event, context):
                 else:
                     print("Unexpected message['body']. No 'Records' key.", message)
             batch_processor = DocumentQueue(context)
-            # configs[BUCKET] := s3://BUCKET/.quilt/config.json so we only get the
-            # object once per batch per bucket
-            configs = {}
             events = body_message.get("Records", [])
             # event is a single S3 event
-            for event in events:
+            for event_ in events:
                 try:
-                    event_name = event["eventName"]
-                    bucket = unquote(event["s3"]["bucket"]["name"])
+                    event_name = event_["eventName"]
+                    bucket = unquote(event_["s3"]["bucket"]["name"])
                     # In the grand tradition of IE6, S3 events turn spaces into '+'
-                    key = unquote_plus(event["s3"]["object"]["key"])
-                    version_id = event["s3"]["object"].get("versionId")
+                    key = unquote_plus(event_["s3"]["object"]["key"])
+                    version_id = event_["s3"]["object"].get("versionId")
                     version_id = unquote(version_id) if version_id else None
-                    etag = unquote(event["s3"]["object"]["eTag"])
+                    etag = unquote(event_["s3"]["object"]["eTag"])
+                    _, ext = os.path.splitext(key)
+                    ext = ext.lower()
 
                     head = retry_s3(
                         "head",
                         context,
-                        bucket=bucket,
-                        key=key,
+                        bucket,
+                        key,
+                        size,
                         version_id=version_id,
                         etag=etag
                     )
@@ -375,6 +384,7 @@ def handler(event, context):
                         batch_processor.append(
                             event_name,
                             bucket=bucket,
+                            ext=ext,
                             etag=etag,
                             key=key,
                             last_modified=last_modified,
@@ -385,24 +395,15 @@ def handler(event, context):
 
                     _, ext = os.path.splitext(key)
                     ext = ext.lower()
-                    if ext in get_extensions_to_index(bucket, configs):
-                        # try to index data from the object itself
-                        if ext == ".ipynb":
-                            text = get_notebook_cells(
-                                context,
-                                bucket=bucket,
-                                key=key,
-                                etag=etag,
-                                version_id=version_id
-                            )
-                        # else treat as plain_text (including .rmd, .md)
-                        text = get_plain_text(
-                            context,
-                            bucket=bucket,
-                            key=key,
-                            etag=etag,
-                            version_id=version_id
-                        )
+                    text = get_contents(
+                        context,
+                        bucket,
+                        key,
+                        ext,
+                        etag=etag,
+                        version_id=version_id,
+                        size=size
+                    )
                     # decode Quilt-specific metadata
                     try:
                         if "helium" in meta:
@@ -414,6 +415,7 @@ def handler(event, context):
                         event_name,
                         bucket=bucket,
                         key=key,
+                        ext=ext,
                         meta=meta,
                         etag=etag,
                         version_id=version_id,
@@ -422,25 +424,34 @@ def handler(event, context):
                         text=text
                     )
                 except Exception as exc:# pylint: disable=broad-except
-                    print("Fatal exception for record", event, exc)
+                    print("Fatal exception for record", event_, exc)
                     import traceback
                     traceback.print_tb(exc.__traceback__)
             # flush the queue
             batch_processor.send_all()
 
     except Exception as exc:# pylint: disable=broad-except
-        print("Fatal exception for message", message, event, exc)
+        print("Fatal exception for message", message, event_, exc)
         import traceback
         traceback.print_tb(exc.__traceback__)
         # Fail the lambda so the message is not dequeued
         raise exc
 
-def retry_s3(operation, context, **kwargs):
+def retry_s3(
+        operation,
+        context,
+        bucket,
+        key,
+        size,
+        limit=DOC_SIZE_LIMIT_BYTES,
+        *,
+        etag,
+        version_id
+):
     """retry head or get operation to S3 with; stop before we run out of time.
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
     """
-    _validate_kwargs(kwargs)
     if operation not in ["get", "head"]:
         raise ValueError(f"unexpected operation: {operation}")
     if operation == "head":
@@ -456,17 +467,37 @@ def retry_s3(operation, context, **kwargs):
         wait=wait_exponential(multiplier=2, min=4, max=30)
     )
     def call():
-        if kwargs["version_id"]:
+        # we can't use Range= if size == 0 because byte 0 doesn't exist
+        # and we'll get an exception
+        if size == 0:
+            if version_id:
+                return function_(
+                    Bucket=bucket,
+                    Key=key,
+                    VersionId=version_id
+                )
+            # else
             return function_(
-                Bucket=kwargs["bucket"],
-                Key=kwargs["key"],
-                VersionId=kwargs["version_id"]
+                Bucket=bucket,
+                Key=key,
+                IfMatch=etag
+            )
+
+        if version_id:
+            return function_(
+                Bucket=bucket,
+                Key=key,
+                # it's OK if limit > size
+                # but it's not OK if to request byte 0 of an empty file
+                Range=f"bytes=0-{limit}",
+                VersionId=version_id
             )
         # else
         return function_(
-            Bucket=kwargs["bucket"],
-            Key=kwargs["key"],
-            IfMatch=kwargs["etag"]
+            Bucket=bucket,
+            Key=key,
+            Range=f"0-{limit}",
+            IfMatch=etag
         )
 
     return call()
