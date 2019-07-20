@@ -387,7 +387,6 @@ def handler(event, context):
                         context,
                         bucket,
                         key,
-                        size,
                         s3_client=s3_client,
                         version_id=version_id,
                         etag=etag
@@ -461,7 +460,7 @@ def retry_s3(
         context,
         bucket,
         key,
-        size,
+        size=None,
         limit=DOC_SIZE_LIMIT_BYTES,
         *,
         etag,
