@@ -352,108 +352,100 @@ def handler(event, context):
     """enumerate S3 keys in event, extract relevant data and metadata,
     queue events, send to elastic via bulk() API
     """
-    try:
-        # message is a proper SQS message, which either contains a single event
-        # (from the bucket notification system) or batch-many events as determined
-        # by enterprise/**/bulk_loader.py
-        for message in event["Records"]:
-            body = json.loads(message["body"])
-            body_message = json.loads(body["Message"])
-            if "Records" not in body_message:
-                if body_message.get("Event") == TEST_EVENT:
-                    # Consume and ignore this event, which is an initial message from
-                    # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
-                    continue
-                else:
-                    print("Unexpected message['body']. No 'Records' key.", message)
-            batch_processor = DocumentQueue(context)
-            events = body_message.get("Records", [])
-            s3_client = make_s3_client()
-            # event is a single S3 event
-            for event_ in events:
-                try:
-                    event_name = event_["eventName"]
-                    bucket = unquote(event_["s3"]["bucket"]["name"])
-                    # In the grand tradition of IE6, S3 events turn spaces into '+'
-                    key = unquote_plus(event_["s3"]["object"]["key"])
-                    version_id = event_["s3"]["object"].get("versionId")
-                    version_id = unquote(version_id) if version_id else None
-                    etag = unquote(event_["s3"]["object"]["eTag"])
-                    _, ext = os.path.splitext(key)
-                    ext = ext.lower()
+    # message is a proper SQS message, which either contains a single event
+    # (from the bucket notification system) or batch-many events as determined
+    # by enterprise/**/bulk_loader.py
+    for message in event["Records"]:
+        body = json.loads(message["body"])
+        body_message = json.loads(body["Message"])
+        if "Records" not in body_message:
+            if body_message.get("Event") == TEST_EVENT:
+                # Consume and ignore this event, which is an initial message from
+                # SQS; see https://forums.aws.amazon.com/thread.jspa?threadID=84331
+                continue
+            else:
+                print("Unexpected message['body']. No 'Records' key.", message)
+        batch_processor = DocumentQueue(context)
+        events = body_message.get("Records", [])
+        s3_client = make_s3_client()
+        # event is a single S3 event
+        for event_ in events:
+            try:
+                event_name = event_["eventName"]
+                bucket = unquote(event_["s3"]["bucket"]["name"])
+                # In the grand tradition of IE6, S3 events turn spaces into '+'
+                key = unquote_plus(event_["s3"]["object"]["key"])
+                version_id = event_["s3"]["object"].get("versionId")
+                version_id = unquote(version_id) if version_id else None
+                etag = unquote(event_["s3"]["object"]["eTag"])
+                _, ext = os.path.splitext(key)
+                ext = ext.lower()
 
-                    head = retry_s3(
-                        "head",
-                        context,
-                        bucket,
-                        key,
-                        s3_client=s3_client,
-                        version_id=version_id,
-                        etag=etag
-                    )
+                head = retry_s3(
+                    "head",
+                    context,
+                    bucket,
+                    key,
+                    s3_client=s3_client,
+                    version_id=version_id,
+                    etag=etag
+                )
 
-                    size = head["ContentLength"]
-                    last_modified = head["LastModified"]
-                    meta = head["Metadata"]
-                    text = ""
+                size = head["ContentLength"]
+                last_modified = head["LastModified"]
+                meta = head["Metadata"]
+                text = ""
 
-                    if event_name == OBJECT_DELETE:
-                        batch_processor.append(
-                            event_name,
-                            bucket=bucket,
-                            ext=ext,
-                            etag=etag,
-                            key=key,
-                            last_modified=last_modified,
-                            text=text,
-                            version_id=version_id
-                        )
-                        continue
-
-                    _, ext = os.path.splitext(key)
-                    ext = ext.lower()
-                    text = get_contents(
-                        context,
-                        bucket,
-                        key,
-                        ext,
-                        etag=etag,
-                        version_id=version_id,
-                        s3_client=s3_client,
-                        size=size
-                    )
-                    # decode Quilt-specific metadata
-                    try:
-                        if "helium" in meta:
-                            meta["helium"] = json.loads(meta["helium"])
-                    except (KeyError, json.JSONDecodeError):
-                        print("Unable to parse Quilt 'helium' metadata", meta)
-
+                if event_name == OBJECT_DELETE:
                     batch_processor.append(
                         event_name,
                         bucket=bucket,
-                        key=key,
                         ext=ext,
-                        meta=meta,
                         etag=etag,
-                        version_id=version_id,
+                        key=key,
                         last_modified=last_modified,
-                        size=size,
-                        text=text
+                        text=text,
+                        version_id=version_id
                     )
-                except Exception as exc:# pylint: disable=broad-except
-                    print("Fatal exception for record", event_, exc)
-                    import traceback
-                    traceback.print_tb(exc.__traceback__)
-            # flush the queue
-            batch_processor.send_all()
+                    continue
 
-    except Exception as exc:# pylint: disable=broad-except
-        print("Fatal exception for message", message, event_, exc)
-        import traceback
-        traceback.print_tb(exc.__traceback__)
-        # Fail the lambda so the message is not dequeued
-        raise exc
+                _, ext = os.path.splitext(key)
+                ext = ext.lower()
+                text = get_contents(
+                    context,
+                    bucket,
+                    key,
+                    ext,
+                    etag=etag,
+                    version_id=version_id,
+                    s3_client=s3_client,
+                    size=size
+                )
+                # decode Quilt-specific metadata
+                try:
+                    if "helium" in meta:
+                        meta["helium"] = json.loads(meta["helium"])
+                except (KeyError, json.JSONDecodeError):
+                    print("Unable to parse Quilt 'helium' metadata", meta)
+
+                batch_processor.append(
+                    event_name,
+                    bucket=bucket,
+                    key=key,
+                    ext=ext,
+                    meta=meta,
+                    etag=etag,
+                    version_id=version_id,
+                    last_modified=last_modified,
+                    size=size,
+                    text=text
+                )
+            except Exception as exc:# pylint: disable=broad-except
+                print("Fatal exception for record", event_, exc)
+                import traceback
+                traceback.print_tb(exc.__traceback__)
+        # flush the queue
+        batch_processor.send_all()
 
 def retry_s3(
         operation,
