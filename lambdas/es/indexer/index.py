@@ -31,7 +31,7 @@ CONTENT_INDEX_EXTS = [
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
 DOC_LIMIT_BYTES = 10_000
-ELASTIC_TIMEOUT = 20
+ELASTIC_TIMEOUT = 30
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
@@ -88,7 +88,7 @@ class DocumentQueue:
             etag,
             version_id
     ):
-        """format event as document and queue it up"""
+        """format event as a document and then queue the document"""
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -99,7 +99,7 @@ class DocumentQueue:
             "_op_type": "delete" if event_type == OBJECT_DELETE else "index",
             "_type": "_doc",
             # Quilt keys
-            # Be VERY CAREFUL changing these values as a type change can cause a
+            # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
             "etag": etag,
             "ext": ext,
