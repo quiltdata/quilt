@@ -89,16 +89,10 @@ class DocumentQueue:
             version_id
     ):
         """format event as document and queue it up"""
-        if text:
-            # documents will dominate memory footprint, there is also a fixed
-            # size for the rest of the doc that we do not account for
-            self.size += min(size, DOC_SIZE_LIMIT_BYTES)
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
             # Elastic native keys
-            # : is a legal character for S3 keys, so look for its last occurrence
-            # if you want to find the, potentially empty, version_id
             "_id": f"{key}:{version_id}",
             "_index": bucket,
             # index will upsert (and clobber existing equivalent _ids)
@@ -124,11 +118,15 @@ class DocumentQueue:
 
         self.append_document(body)
 
-        if self.size > QUEUE_LIMIT_BYTES:
+        if self.size >= QUEUE_LIMIT_BYTES:
             self.send_all()
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
+        if doc["text"]:
+            # documents will dominate memory footprint, there is also a fixed
+            # size for the rest of the doc that we do not account for
+            self.size += min(doc["size"], DOC_SIZE_LIMIT_BYTES)
         self.queue.append(doc)
 
     def is_empty(self):
@@ -136,7 +134,7 @@ class DocumentQueue:
         return len(self.queue) == 0
 
     def send_all(self):
-        """flush self.queue in a bulk call"""
+        """flush self.queue in 1-2 bulk calls"""
         if self.is_empty():
             return
         elastic_host = os.environ["ES_HOST"]
@@ -174,8 +172,8 @@ class DocumentQueue:
                 if isinstance(info, dict):
                     type_ = info.get("type", "")
                     if 'mapper_parsing_exception' in type_:
-                        id_ = inner["_id"]
-                        doc = id_to_doc[id_]
+                        doc = id_to_doc[inner["id_"]]
+                        # zero out structured metadata and try again
                         doc['user_meta'] = doc['system'] = {}
                         send_again.append(doc)
         # we won't retry after this (elasticsearch might retry 429s tho)
