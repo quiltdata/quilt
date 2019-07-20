@@ -46,12 +46,31 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT = "quilt3-python"
 
+def _bulk_send(elastic, queue):
+    """make a bulk() call to elastic"""
+    return bulk(
+        elastic,
+        iter(queue),
+        # Some magic numbers to reduce memory pressure
+        # e.g. see https://github.com/wagtail/wagtail/issues/4554
+        # The stated default is max_chunk_bytes=10485760, but with default
+        # ES will still return an exception stating that the very
+        # same request size limit has been exceeded
+        chunk_size=100,
+        max_chunk_bytes=CHUNK_LIMIT_BYTES,
+        # number of retries for 429 (too many requests only)
+        # all other errors handled by our code
+        max_retries=RETRY_429,
+        # we'll process errors on our own
+        raise_on_error=False,
+        raise_on_exception=False
+    )
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
-    def __init__(self, context, retry_errors=True):
+    def __init__(self, context):
         """constructor"""
         self.queue = []
-        self.retry_errors = retry_errors
         self.size = 0
         self.context = context
 
@@ -121,77 +140,49 @@ class DocumentQueue:
         if self.is_empty():
             return
         elastic_host = os.environ["ES_HOST"]
-        try:
-            session = boto3.session.Session()
-            credentials = session.get_credentials().get_frozen_credentials()
-            awsauth = AWSRequestsAuth(
-                # These environment variables are automatically set by Lambda
-                aws_access_key=credentials.access_key,
-                aws_secret_access_key=credentials.secret_key,
-                aws_token=credentials.token,
-                aws_host=elastic_host,
-                aws_region=session.region_name,
-                aws_service="es"
-            )
+        session = boto3.session.Session()
+        credentials = session.get_credentials().get_frozen_credentials()
+        awsauth = AWSRequestsAuth(
+            # These environment variables are automatically set by Lambda
+            aws_access_key=credentials.access_key,
+            aws_secret_access_key=credentials.secret_key,
+            aws_token=credentials.token,
+            aws_host=elastic_host,
+            aws_region=session.region_name,
+            aws_service="es"
+        )
 
-            time_remaining = get_time_remaining(self.context)
+        elastic = Elasticsearch(
+            hosts=[{"host": elastic_host, "port": 443}],
+            http_auth=awsauth,
+            max_backoff=get_time_remaining(self.context),
+            # Give ES time to respond when under load
+            timeout=ELASTIC_TIMEOUT,
+            use_ssl=True,
+            verify_certs=True,
+            connection_class=RequestsHttpConnection
+        )
 
-            elastic = Elasticsearch(
-                hosts=[{"host": elastic_host, "port": 443}],
-                http_auth=awsauth,
-                max_backoff=time_remaining,
-                # Give ES time to respond when under load
-                timeout=ELASTIC_TIMEOUT,
-                use_ssl=True,
-                verify_certs=True,
-                connection_class=RequestsHttpConnection
-            )
-
-            _, errors = bulk(
-                elastic,
-                iter(self.queue),
-                # Some magic numbers to reduce memory pressure
-                # e.g. see https://github.com/wagtail/wagtail/issues/4554
-                # The stated default is max_chunk_bytes=10485760, but with default
-                # ES will still return an exception stating that the very
-                # same request size limit has been exceeded
-                chunk_size=100,
-                max_chunk_bytes=CHUNK_LIMIT_BYTES,
-                # number of retries for 429 (too many requests only)
-                # all other errors handled by our code
-                max_retries=RETRY_429,
-                # we'll process errors on our own
-                raise_on_error=False,
-                raise_on_exception=False
-            )
-            # reset the size count
-            self.size = 0
-            # Retry only if this is a first-generation queue
-            # (prevents infinite regress on failing documents)
-            if self.retry_errors:
-                # this is a second genration queue, so don't let it retry
-                # anything other than 429s
-                error_queue = DocumentQueue(self.context, retry_errors=False)
-                for error in errors:
-                    print(error)
-                    # can be dict or string *sigh*
-                    inner = error.get("index", {})
-                    error_info = inner.get("error")
-                    doc_id = inner.get("_id")
-
-                    if isinstance(error_info, dict):
-                        error_type = error_info.get("type", "")
-                        if 'mapper_parsing_exception' in error_type:
-                            replay = next(doc for doc in self.queue if doc["_id"] == doc_id)
-                            replay['user_meta'] = replay['system'] = {}
-                            error_queue.append_document(replay)
-                # recursive but never goes more than one level deep
-                error_queue.send_all()
-
-        except Exception as ex:# pylint: disable=broad-except
-            print("Fatal, unexpected Exception in send_all", ex)
-            import traceback
-            traceback.print_tb(ex.__traceback__)
+        _, errors = _bulk_send(elastic, self.queue)
+        id_to_doc = {d["_id"]: d for d in self.queue}
+        send_again = []
+        for error in errors:
+            # only retry index call errors, not delete errors
+            if "index" in error:
+                inner = error["index"]
+                info = inner.get("error")
+                if isinstance(info, dict):
+                    type_ = info.get("type", "")
+                    if 'mapper_parsing_exception' in type_:
+                        id_ = inner["_id"]
+                        doc = id_to_doc[id_]
+                        doc['user_meta'] = doc['system'] = {}
+                        send_again.append(doc)
+        # we won't retry after this (elasticsearch might retry 429s tho)
+        _bulk_send(elastic, send_again)
+        # empty the queue
+        self.size = 0
+        self.queue = []
 
 def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
