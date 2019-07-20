@@ -306,7 +306,7 @@ def get_time_remaining(context):
 def make_s3_client():
     """make a client with a custom user agent string so that we can
     filter the present lambda's requests to S3 from object analytics"""
-    configuration = botocore.config.Config(user_agent_name="quilt-python")
+    configuration = botocore.config.Config(user_agent_name=USER_AGENT)
     return boto3.client("s3", configuration)
 
 def transform_meta(meta):
