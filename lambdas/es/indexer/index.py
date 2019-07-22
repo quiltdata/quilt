@@ -50,7 +50,7 @@ def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     return bulk(
         elastic,
-        iter(list_),
+        list_,
         # Some magic numbers to reduce memory pressure
         # e.g. see https://github.com/wagtail/wagtail/issues/4554
         chunk_size=100,# max number of documents sent in one chunk
@@ -129,13 +129,9 @@ class DocumentQueue:
             self.size += min(doc["size"], DOC_LIMIT_BYTES)
         self.queue.append(doc)
 
-    def is_empty(self):
-        """is the queue empty?"""
-        return len(self.queue) == 0
-
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
-        if self.is_empty():
+        if  not self.queue:
             return
         elastic_host = os.environ["ES_HOST"]
         session = boto3.session.Session()
@@ -176,7 +172,8 @@ class DocumentQueue:
                         doc["user_meta"] = doc["system"] = {}
                         send_again.append(doc)
         # we won't retry after this (elasticsearch might retry 429s tho)
-        bulk_send(elastic, send_again)
+        if send_again:
+            bulk_send(elastic, send_again)
         # empty the queue
         self.size = 0
         self.queue = []
