@@ -448,14 +448,13 @@ def retry_s3(
     retry is necessary since, due to eventual consistency, we may not
     always get the required version of the object.
     """
-    if operation not in ["get", "head"]:
-        raise ValueError(f"unexpected operation: {operation}")
     if operation == "head":
         function_ = s3_client.head_object
-    else:
+    elif operation == "get":
         function_ = s3_client.get_object
-
-    # Keyword Arguments that will go to function_
+    else:
+        raise ValueError(f"unexpected operation: {operation}")
+    # Keyword arguments to function_
     arguments = {
         "Bucket": bucket,
         "Key": key
