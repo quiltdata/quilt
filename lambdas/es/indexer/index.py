@@ -288,7 +288,8 @@ def get_plain_text(context, bucket, key, size, *, etag, s3_client, version_id):
             limit=DOC_LIMIT_BYTES,
             version_id=version_id
         )
-        text = obj["Body"].read().decode("utf-8")
+        # ignore because limit might break a long character midstream
+        text = obj["Body"].read().decode("utf-8", "ignore")
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)
 
