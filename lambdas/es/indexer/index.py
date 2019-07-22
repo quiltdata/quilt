@@ -1,7 +1,7 @@
 """
 phone data into elastic for supported file extensions.
-note: we truncated inbound documents to no more than DOC_SIZE_LIMIT characters
-(this bounds memory pressure and request size to elastic)
+note: we truncate outbound documents to DOC_SIZE_LIMIT characters
+(to bound memory pressure and request size to elastic)
 """
 
 from datetime import datetime
