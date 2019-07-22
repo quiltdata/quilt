@@ -446,7 +446,7 @@ const Results = RT.composeComponent(
     },
   })),
   ({ classes, bucket, query, searchEndpoint, id, retry }) => {
-    const es = AWS.ES.use({ host: searchEndpoint, bucket })
+    const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
