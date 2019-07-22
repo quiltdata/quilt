@@ -158,23 +158,25 @@ class DocumentQueue:
         )
 
         _, errors = bulk_send(elastic, self.queue)
-        id_to_doc = {d["_id"]: d for d in self.queue}
-        send_again = []
-        for error in errors:
-            # only retry index call errors, not delete errors
-            if "index" in error:
-                inner = error["index"]
-                info = inner.get("error")
-                if isinstance(info, dict):
-                    if "mapper_parsing_exception" in info.get("type", ""):
-                        doc = id_to_doc[inner["id_"]]
-                        # zero out structured metadata and try again
-                        doc["user_meta"] = doc["system"] = {}
-                        send_again.append(doc)
-        # we won't retry after this (elasticsearch might retry 429s tho)
-        if send_again:
-            bulk_send(elastic, send_again)
-        # empty the queue
+        if errors:
+            id_to_doc = {d["_id"]: d for d in self.queue}
+            send_again = []
+            for error in errors:
+                # only retry index call errors, not delete errors
+                if "index" in error:
+                    inner = error["index"]
+                    info = inner.get("error")
+                    # because error.error might be a string *sigh*
+                    if isinstance(info, dict):
+                        if "mapper_parsing_exception" in info.get("type", ""):
+                            doc = id_to_doc[inner["id_"]]
+                            # zero out structured metadata and try again
+                            doc["user_meta"] = doc["system"] = {}
+                            send_again.append(doc)
+            # we won't retry after this (elasticsearch might retry 429s tho)
+            if send_again:
+                bulk_send(elastic, send_again)
+            # empty the queue
         self.size = 0
         self.queue = []
 
