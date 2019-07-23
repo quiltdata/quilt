@@ -25,6 +25,7 @@ CONTENT_INDEX_EXTS = [
     ".json",
     ".md",
     ".rmd",
+    ".tsv",
     ".txt",
     ".xml"
 ]
@@ -170,6 +171,7 @@ class DocumentQueue:
                     # because error.error might be a string *sigh*
                     if isinstance(info, dict):
                         if "mapper_parsing_exception" in info.get("type", ""):
+                            print("mapper_parsing_exception", error, inner)
                             doc = id_to_doc[inner["id_"]]
                             # zero out structured metadata and try again
                             doc["user_meta"] = doc["system"] = {}
