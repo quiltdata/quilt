@@ -92,7 +92,10 @@ def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     if limit:
         payload['size'] = limit
 
-    raw_response = es_client.search(index=_bucket_index_name(bucket), body=payload)
+    raw_response = es_client.search(
+            index=_bucket_index_name(bucket),
+            body=payload,
+            ignore_unavailable=True)
 
     try:
         results = [{
@@ -137,7 +140,9 @@ def get_raw_mapping_unpacked(endpoint, aws_region, return_full_response=False, b
     type is one of 'long', 'text', 'keyword', etc.
     """
     es_client = _create_es(endpoint, aws_region)
-    raw_response = es_client.indices.get_mapping(index=_bucket_index_name(bucket))
+    raw_response = es_client.indices.get_mapping(
+            index=_bucket_index_name(bucket),
+            ignore_unavailable=True)
     if return_full_response:
         return raw_response
     return raw_response['drive']['mappings']['_doc']
