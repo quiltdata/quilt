@@ -347,7 +347,6 @@ def handler(event, context):
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
     for message in event["Records"]:
-        print("message: ", message)
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
         if "Records" not in body_message:
@@ -362,7 +361,6 @@ def handler(event, context):
         s3_client = make_s3_client()
         # event is a single S3 event
         for event_ in events:
-            print("event: ", event_)
             try:
                 event_name = event_["eventName"]
                 bucket = unquote(event_["s3"]["bucket"]["name"])
