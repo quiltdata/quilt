@@ -13,8 +13,6 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from .session import create_botocore_session
 from .util import QuiltException
 
-ES_INDEX = 'drive'
-
 def _create_es(search_endpoint, aws_region):
     """
     search_endpoint: url for search endpoint
@@ -50,9 +48,16 @@ def _create_es(search_endpoint, aws_region):
 
     return es_client
 
-def search(query, search_endpoint, limit, aws_region='us-east-1'):
+def _bucket_index_name(bucket_name):
+    if bucket_name is None:
+        return '_all'
+    else:
+        es_index = ", ".join([bucket_name, 'drive'])
+        return es_index
+
+def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     """
-    Searches your bucket. Query may contain plaintext and clauses of the 
+    Searches your bucket. Query may contain plaintext and clauses of the
         form $key:"$value" that search for exact matches on specific keys.
 
     Arguments:
@@ -87,38 +92,28 @@ def search(query, search_endpoint, limit, aws_region='us-east-1'):
     if limit:
         payload['size'] = limit
 
-    raw_response = es_client.search(index=ES_INDEX, body=payload)
+    raw_response = es_client.search(index=_bucket_index_name(bucket), body=payload)
 
     try:
-        results = []
-        for result in raw_response['hits']['hits']:
-            key = result['_source']['key']
-            vid = result['_source']['version_id']
-            operation = result['_source']['type']
-            meta = json.dumps(result['_source']['user_meta'])
-            size = str(result['_source']['size'])
-            text = result['_source']['text']
-
-            time = str(result['_source']['updated'])
-            results.append({
-                'key': key,
-                'version_id': vid,
-                'operation': operation,
-                'meta': meta,
-                'size': size,
-                'text': text,
-                'source': result['_source'],
-                'time': time
-            })
+        results = [{
+            'key': result['_source']['key'],
+            'version_id': result['_source']['version_id'],
+            'operation': result['_source'].get('event'),
+            'meta': json.dumps(result['_source']['user_meta']),
+            'size': str(result['_source']['size']),
+            'text': result['_source']['text'],
+            'source': result['_source'],
+            'time': str(result['_source']['updated'])
+            } for result in raw_response['hits']['hits']]
         results = list(sorted(results, key=lambda x: x['time'], reverse=True))
         return results
     except KeyError:
-        exception =  QuiltException("Query failed unexpectedly due to either a "
-                                    "bad query or a misconfigured search service.")
+        exception = QuiltException("Query failed unexpectedly due to either a "
+                                   "bad query or a misconfigured search service.")
         setattr(exception, 'raw_response', raw_response)
         raise exception
 
-def get_raw_mapping_unpacked(endpoint, aws_region, return_full_response=False):
+def get_raw_mapping_unpacked(endpoint, aws_region, return_full_response=False, bucket=None):
     """
     Gets raw mapping from Elasticsearch
 
@@ -142,7 +137,7 @@ def get_raw_mapping_unpacked(endpoint, aws_region, return_full_response=False):
     type is one of 'long', 'text', 'keyword', etc.
     """
     es_client = _create_es(endpoint, aws_region)
-    raw_response = es_client.indices.get_mapping(index=ES_INDEX)
+    raw_response = es_client.indices.get_mapping(index=_bucket_index_name(bucket))
     if return_full_response:
         return raw_response
     return raw_response['drive']['mappings']['_doc']

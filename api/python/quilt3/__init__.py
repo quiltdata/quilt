@@ -10,7 +10,8 @@ from .api import (
     get,
     list_packages,
     config,
-    delete_package
+    delete_package,
+    search
 )
 
 from .session import login, logout

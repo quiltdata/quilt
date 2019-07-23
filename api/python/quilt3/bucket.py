@@ -103,8 +103,8 @@ class Bucket(object):
             self.config()
         if self._region:
             return search(
-                query, self._search_endpoint, limit=limit, aws_region=self._region)
-        return search(query, self._search_endpoint, limit=limit)
+                query, self._search_endpoint, limit=limit, aws_region=self._region, bucket=self._bucket)
+        return search(query, self._search_endpoint, limit=limit, bucket=self._bucket)
 
     def deserialize(self, key):
         """
