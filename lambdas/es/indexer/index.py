@@ -162,6 +162,7 @@ class DocumentQueue:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
+                handled = False
                 # only retry index call errors, not delete errors
                 if "index" in error:
                     inner = error["index"]
@@ -172,7 +173,10 @@ class DocumentQueue:
                             doc = id_to_doc[inner["id_"]]
                             # zero out structured metadata and try again
                             doc["user_meta"] = doc["system"] = {}
+                            handled = True
                             send_again.append(doc)
+                if not handled:
+                    print("unhandled indexer error:", error)
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
                 bulk_send(elastic, send_again)
