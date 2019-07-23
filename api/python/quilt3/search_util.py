@@ -52,7 +52,7 @@ def _bucket_index_name(bucket_name):
     if bucket_name is None:
         return '_all'
     else:
-        es_index = ", ".join([bucket_name, 'drive'])
+        es_index = ",".join([bucket_name, 'drive'])
         return es_index
 
 def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
