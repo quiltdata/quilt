@@ -172,8 +172,8 @@ class DocumentQueue:
                     if isinstance(info, dict):
                         if "mapper_parsing_exception" in info.get("type", ""):
                             print("mapper_parsing_exception", error, inner)
-                            doc = id_to_doc[inner["id_"]]
-                            # zero out structured metadata and try again
+                            doc = id_to_doc[inner["_id"]]
+                            # clear out structured metadata and try again
                             doc["user_meta"] = doc["system"] = {}
                             handled = True
                             send_again.append(doc)
