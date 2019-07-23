@@ -223,41 +223,17 @@ In the row of buttons at the top of the pane, select `Modify Access Policy`. Add
 
 Select `Submit` and your search domain should now be open to the public.
 
-### Federations and bucket config
+### Use Google to sign into Quilt
 
-In this section we will discuss how you can configure your catalog instance using _federations_ and _bucket config_.
+You can enable users on your Google domain to sign in to Quilt.
+Refer to [Google's instructions on OAuth2 user agents](https://developers.google.com/identity/protocols/OAuth2UserAgent)
+and create authorization credentials to identify your Quilt stack to Google's OAuth 2.0 server.
 
-When you create your Quilt stack, you specify a *ConfigBucketName* in your stack parameters. This bucket will be created and populated with two files -- `config.json` and `federation.json`. `config.json` is the main navigator config file, and contains things that are specific to your navigator, like `defaultBucket` and `signInRedirect`. It also includes one or more references to federations, including your `federation.json`. `federation.json` is your default federation. It includes an inline bucket config for your Quilt bucket.
+![](./imgs/google_console.png)
 
-A **federation** is just a list of bucket configurations. Your catalog will specify one or more federations from which it sources its bucket configs. Federations are a convenient way to manage collections of buckets that are useful in groups, like all the Quilt buckets owned by a specific group or all public Quilt buckets pertaining to a certain field. Each bucket configuration in a federation can be either a hyperlink (possibly relative) to a JSON file containing the bucket config, or an object containing the bucket config itself. 
+In the template menu (CloudFormation or Service Catalog), select Google under *User authentication to Quilt*. Enter the domain or domains of your Google apps account under *SingleSignOnDomains*. Enter the *Client ID* of the OAuth 2.0 credentials you created into the field labeled *GoogleClientId*
 
-An example:
-
-```json
-{
-  "buckets": [
-    {
-      "... inline bucket config ..."
-    },
-    "link/to/bucket/config.json",
-    "..."
-  ]
-}
-```
-
-A **bucket config**, meanwhile, is a JSON object that describes metadata associated with a Quilt bucket. It is of the following form:
-
-```json
-{
-  "name": "name of s3 bucket",
-  "title": "friendly title to be displayed in the catalog drop-down",
-  "icon": "square icon to be displayed in the catalog drop-down",
-  "description": "short description of the bucket to be displayed in the catalog drop-down",
-  "searchEndpoint": "url of the search endpoint for your Quilt bucket"
-}
-```
-
-A bucket config can be included inline in a federation, or it can be a standalone JSON file that is linked from a federation.
+![](./imgs/google_auth.png)
 
 ### Preparing an AWS Role for use with Quilt
 
