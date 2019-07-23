@@ -1,20 +1,12 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { styled } from '@material-ui/styles'
 
 import Bar from 'website/components/Bar'
 import Bullet from 'website/components/Bullet'
 import Illustration from 'website/components/Illustration'
 import * as Personas from 'website/components/Personas'
 
-import amazon from './amazon.svg'
-
-const Amazon = styled((props) => <img alt="Amazon logo" src={amazon} {...props} />)({
-  width: 74,
-  height: 74,
-  objectFit: 'contain',
-  opacity: 0.3,
-})
+import partnerBadge from './partner.png'
 
 const Section = (props) => (
   <M.Box
@@ -52,7 +44,12 @@ export default () => (
           their data with confidence.
         </M.Typography>
       </M.Box>
-      <Amazon />
+      <M.Box
+        component="img"
+        alt="APN Standard Technology Partner Badge"
+        src={partnerBadge}
+        width={200}
+      />
     </M.Box>
 
     <Section mt={{ xs: 15, md: 3 }}>
