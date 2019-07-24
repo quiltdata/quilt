@@ -163,6 +163,7 @@ export const summarize = async ({ s3req, handle }) => {
 
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
+const MAX_REVISIONS = 100
 
 export const listPackages = ({ s3req, bucket }) =>
   s3req({
@@ -188,26 +189,40 @@ export const listPackages = ({ s3req, bucket }) =>
           }).then(({ CommonPrefixes: namePrefixes }) =>
             Promise.all(
               namePrefixes.map((p) =>
-                s3req({
-                  bucket,
-                  operation: 'listObjectsV2',
-                  params: {
-                    Bucket: bucket,
-                    Prefix: `${p.Prefix}latest`,
-                  },
-                }).then(({ Contents: [latest] }) => {
-                  const name = p.Prefix.slice(PACKAGES_PREFIX.length, -1)
-                  if (!latest) {
-                    // eslint-disable-next-line no-console
-                    console.warn(
-                      `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
-                    )
-                  }
-                  return {
-                    name,
-                    modified: latest ? latest.LastModified : null,
-                  }
-                }),
+                Promise.all([
+                  s3req({
+                    bucket,
+                    operation: 'listObjectsV2',
+                    params: {
+                      Bucket: bucket,
+                      Prefix: `${p.Prefix}latest`,
+                    },
+                  }).then(({ Contents: [latest] }) => {
+                    const name = p.Prefix.slice(PACKAGES_PREFIX.length, -1)
+                    if (!latest) {
+                      // eslint-disable-next-line no-console
+                      console.warn(
+                        `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
+                      )
+                    }
+                    return {
+                      name,
+                      modified: latest ? latest.LastModified : null,
+                    }
+                  }),
+                  s3req({
+                    bucket,
+                    operation: 'listObjectsV2',
+                    params: {
+                      Bucket: bucket,
+                      Prefix: `${p.Prefix}`,
+                      MaxKeys: MAX_REVISIONS + 1, // 1 for `latest`
+                    },
+                  }).then(({ Contents, IsTruncated }) => ({
+                    revisions: Contents.length - 1,
+                    revisionsTruncated: IsTruncated,
+                  })),
+                ]).then(R.mergeAll),
               ),
             ),
           ),
