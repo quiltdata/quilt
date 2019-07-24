@@ -181,7 +181,9 @@ class DocumentQueue:
                     print("unhandled indexer error:", error)
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
-                bulk_send(elastic, send_again)
+                _, errors = bulk_send(elastic, send_again)
+                if errors:
+                    raise Exception("Failed to load messages into Elastic on second retry.")                    
             # empty the queue
         self.size = 0
         self.queue = []
@@ -356,6 +358,7 @@ def handler(event, context):
                 continue
             else:
                 print("Unexpected message['body']. No 'Records' key.", message)
+                raise Exception("Unexpected message['body']. No 'Records' key.")
         batch_processor = DocumentQueue(context)
         events = body_message.get("Records", [])
         s3_client = make_s3_client()
@@ -435,6 +438,7 @@ def handler(event, context):
                 print("Fatal exception for record", event_, exc)
                 import traceback
                 traceback.print_tb(exc.__traceback__)
+                raise exc
         # flush the queue
         batch_processor.send_all()
 
