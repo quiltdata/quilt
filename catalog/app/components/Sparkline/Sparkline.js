@@ -9,7 +9,7 @@ import {
   withStateHandlers,
 } from 'recompose'
 import uuid from 'uuid/v1'
-import { colors } from '@material-ui/core'
+import * as M from '@material-ui/core'
 
 import { composeComponent } from 'utils/reactTools'
 
@@ -55,7 +55,7 @@ export default composeComponent(
     fill: true,
     width: 200,
     height: 20,
-    color: colors.grey[900],
+    color: M.colors.grey[900],
     contourThickness: 1,
     cursorLineThickness: 1,
     cursorCircleR: 1.5,
@@ -131,13 +131,16 @@ export default composeComponent(
     onCursor,
     showCursor,
     hideCursor,
+    boxProps,
     ...props
   }) => (
-    <svg
+    <M.Box
+      component="svg"
       viewBox={`0 0 ${width} ${height}`}
       onMouseLeave={handleLeave}
       onMouseMove={handleMove}
       {...props}
+      {...boxProps}
     >
       <defs>
         <linearGradient
@@ -192,6 +195,6 @@ export default composeComponent(
           fill="none"
         />
       </g>
-    </svg>
+    </M.Box>
   ),
 )
