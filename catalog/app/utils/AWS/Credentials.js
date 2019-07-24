@@ -26,14 +26,16 @@ class RegistryCredentials extends AWS.Credentials {
         })
         .catch((e) => {
           delete this.refreshing
-          if (callback) callback(e)
-          throw e
+          this.error = new Error(`Unable to fetch AWS credentials: ${e}`)
+          if (callback) callback(this.error)
+          throw this.error
         })
     }
     return this.refreshing
   }
 
   suspend() {
+    if (this.error) throw this.error
     if (this.needsRefresh()) throw this.refresh()
     return this
   }

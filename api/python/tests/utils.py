@@ -31,6 +31,7 @@ class QuiltTestCase(TestCase):
             default_local_registry=pathlib.Path('.').resolve().as_uri() + '/local_registry',
             default_remote_registry='s3://example/',
             default_install_location=None,
+            defaultBucket='test-bucket',
             registryUrl='https://registry.example.com'
         )
 
