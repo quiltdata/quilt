@@ -18,6 +18,10 @@ const useGlobalStyles = makeStyles({
     'code, kbd, pre, samp': {
       fontFamily: "'Roboto Mono', monospace",
     },
+    h1: {
+      // reset margin set by sanitize.css
+      margin: 0,
+    },
   },
 })
 
