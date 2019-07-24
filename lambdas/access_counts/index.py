@@ -41,6 +41,7 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
             json_extract_scalar(requestparameters, '$.bucketName') AS bucket,
             json_extract_scalar(requestparameters, '$.key') AS key
         FROM cloudtrail
+        WHERE useragent != 'athena.amazonaws.com' AND useragent NOT LIKE '%quilt3-lambdas-es-indexer%'
     )
     -- Filter out non-S3 events, or S3 events like ListBucket that have no object
     WHERE bucket IS NOT NULL AND key IS NOT NULL
