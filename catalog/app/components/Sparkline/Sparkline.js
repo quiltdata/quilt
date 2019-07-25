@@ -1,139 +1,101 @@
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
-import {
-  defaultProps,
-  setPropTypes,
-  withHandlers,
-  withPropsOnChange,
-  withStateHandlers,
-} from 'recompose'
-import uuid from 'uuid/v1'
 import * as M from '@material-ui/core'
 
-import { composeComponent } from 'utils/reactTools'
+import * as SVG from 'utils/SVG'
 
-const dataToPoints = (data, { width = 1, height = 1, padding = 0 } = {}) => {
-  const max = Math.max(...data) || 1
+export default function Sparkline({
+  data, // PT.arrayOf(PT.number).isRequired,
+  onCursor,
+  width = 200,
+  height = 20,
+  stroke = SVG.Paint.Color('currentColor'),
+  fill = SVG.Paint.None(),
+  contourThickness = 1,
+  contourStroke = stroke,
+  extendL = false,
+  extendR = false,
+  cursorLineThickness = contourThickness,
+  cursorLineExtendUp = true,
+  cursorLineExtendDown = true,
+  cursorLineStroke = stroke,
+  cursorCircleThickness = cursorLineThickness,
+  cursorCircleR = cursorCircleThickness,
+  cursorCircleFill = SVG.Paint.None(),
+  cursorCircleStroke = stroke,
+  padding = 3,
+  px = padding,
+  py = padding,
+  pt = py,
+  pb = py,
+  pl = px,
+  pr = px,
+  boxProps,
+  ...props
+}) {
+  const [cursor, showCursor] = React.useState(null)
+  const hideCursor = React.useCallback(() => showCursor(null), [showCursor])
 
-  const vfactor = (height - padding * 2) / max
-  const hfactor = (width - padding * 2) / (data.length - 1)
-
-  return data.map((d, i) => ({
-    x: padding + i * hfactor,
-    y: padding + (max - d) * vfactor,
-  }))
-}
-
-const pointsToSVG = (points) => points.map(({ x, y }) => `${x} ${y}`).join(' ')
-
-const getMousePos = (e, { padding = 0 } = {}) => {
-  const rect = e.currentTarget.getBoundingClientRect()
-  const relativePos = e.clientX - rect.x - padding
-  const adjustedWidth = rect.width - padding * 2
-  return relativePos / adjustedWidth
-}
-
-// TODO: migrate to hooks
-export default composeComponent(
-  'Sparkline',
-  setPropTypes({
-    data: PT.arrayOf(PT.number).isRequired,
-    fill: PT.bool,
-    width: PT.number,
-    height: PT.number,
-    color: PT.string,
-    color2: PT.string,
-    contourThickness: PT.number,
-    cursorLineThickness: PT.number,
-    cursorCircleR: PT.number,
-    cursorCircleThickness: PT.number,
-    padding: PT.number,
-    onCursor: PT.func,
-  }),
-  defaultProps({
-    fill: true,
-    width: 200,
-    height: 20,
-    color: M.colors.grey[900],
-    contourThickness: 1,
-    cursorLineThickness: 1,
-    cursorCircleR: 1.5,
-    cursorCircleThickness: 1.5,
-    padding: 3,
-  }),
-  withStateHandlers(() => ({ cursor: null }), {
-    showCursor: () => (cursor) => ({ cursor }),
-    hideCursor: () => () => ({ cursor: null }),
-  }),
-  withHandlers({
-    handleMove: ({ showCursor, onCursor, data, padding }) => (e) => {
-      const pos = getMousePos(e, { padding })
+  const handleMove = React.useCallback(
+    (e) => {
+      const rect = e.currentTarget.getBoundingClientRect()
+      const pos = (e.clientX - rect.x - pl) / (rect.width - pl - pr)
       const step = 1 / (data.length - 1)
       const idx = R.clamp(0, data.length - 1, Math.round(pos / step))
       showCursor(idx)
       if (onCursor) onCursor(idx)
     },
-    handleLeave: ({ hideCursor, onCursor }) => () => {
-      hideCursor()
-      if (onCursor) onCursor(null)
-    },
-  }),
-  withPropsOnChange(
-    ['data', 'cursor', 'width', 'height', 'padding'],
-    // eslint-disable-next-line object-curly-newline
-    ({ data, fill, cursor, width, height, padding }) => {
-      const contour = dataToPoints(data, { width, height, padding })
+    [showCursor, onCursor, data, pl, pr],
+  )
 
-      const fillShape = fill
-        ? [
-            ...contour,
-            { ...contour[contour.length - 1], y: height },
-            { ...contour[0], y: height },
-            contour[0],
-          ]
-        : null
+  const handleLeave = React.useCallback(() => {
+    hideCursor()
+    if (onCursor) onCursor(null)
+  }, [hideCursor, onCursor])
 
-      const cursorPos = cursor === null ? null : contour[cursor]
-      return { contour, fill: fillShape, cursorPos }
-    },
-  ),
-  withPropsOnChange(
-    ['color', 'color2', 'width', 'height', 'padding'],
-    ({ color, color2 = color }) => {
-      const gradientId = `gradient-${uuid()}`
-      return {
-        color2,
-        gradientId,
-        gradient: `url(#${gradientId})`,
-      }
-    },
-  ),
-  ({
-    width,
-    height,
-    padding,
-    handleMove,
-    handleLeave,
-    contour,
-    fill,
-    cursorPos,
-    color,
-    color2,
-    gradient,
-    gradientId,
-    contourThickness,
-    cursorLineThickness,
-    cursorCircleR,
-    cursorCircleThickness,
-    // not used here:
-    data,
-    onCursor,
-    showCursor,
-    hideCursor,
-    boxProps,
-    ...props
-  }) => (
+  const contourShape = React.useMemo(() => {
+    const max = Math.max(...data) || 1
+
+    const vfactor = (height - pt - pb) / max
+    const hfactor = (width - pl - pr) / (data.length - 1)
+
+    const dataPoints = data.map((d, i) => ({
+      x: pl + i * hfactor,
+      y: pt + (max - d) * vfactor,
+    }))
+    return [
+      ...(extendL ? [{ ...dataPoints[0], x: 0 }] : []),
+      ...dataPoints,
+      ...(extendR ? [{ ...dataPoints[data.length - 1], x: width }] : []),
+    ]
+  }, [data, width, height, pt, pb, pl, pr, extendR, extendL])
+
+  const contourStrokePaint = SVG.usePaint(contourStroke)
+  const cursorLineStrokePaint = SVG.usePaint(cursorLineStroke)
+  const cursorCircleFillPaint = SVG.usePaint(cursorCircleFill)
+  const cursorCircleStrokePaint = SVG.usePaint(cursorCircleStroke)
+  const fillPaint = SVG.usePaint(fill)
+
+  const fillShape = React.useMemo(
+    () =>
+      SVG.Paint.case(
+        {
+          None: () => null,
+          _: () => [
+            ...contourShape,
+            { ...contourShape[contourShape.length - 1], y: height },
+            { ...contourShape[0], y: height },
+            contourShape[0],
+          ],
+        },
+        fill,
+      ),
+    [fill, contourShape, height],
+  )
+
+  const cursorPos = cursor === null ? null : contourShape[cursor + (extendL ? 1 : 0)]
+
+  return (
     <M.Box
       component="svg"
       viewBox={`0 0 ${width} ${height}`}
@@ -143,58 +105,53 @@ export default composeComponent(
       {...boxProps}
     >
       <defs>
-        <linearGradient
-          id={gradientId}
-          x1="0"
-          y1={height - 2 * padding}
-          x2="0"
-          y2={padding}
-          gradientUnits="userSpaceOnUse"
-        >
-          <stop offset="0%" stopColor={color} />
-          <stop offset="100%" stopColor={color2} />
-        </linearGradient>
+        {contourStrokePaint.def}
+        {cursorLineStrokePaint.def}
+        {cursorCircleFillPaint.def}
+        {cursorCircleStrokePaint.def}
+        {fillPaint.def}
       </defs>
       <g>
-        {!!cursorPos && !!onCursor && (
-          <g>
-            <line
-              x1={cursorPos.x}
-              y1={0}
-              x2={cursorPos.x}
-              y2={height}
-              stroke={gradient}
-              strokeWidth={cursorLineThickness}
-            />
-            <circle
-              cx={cursorPos.x}
-              cy={cursorPos.y}
-              r={cursorCircleR}
-              stroke={gradient}
-              strokeWidth={cursorCircleThickness}
-              fill="none"
-            />
-          </g>
-        )}
-        {fill && (
+        {fillShape && (
           <polyline
-            points={pointsToSVG(fill)}
-            fill={gradient}
-            fillOpacity=".1"
+            points={SVG.pointsToSVG(fillShape)}
+            fill={fillPaint.ref}
             pointerEvents="auto"
             stroke="none"
             strokeWidth="0"
           />
         )}
         <polyline
-          points={pointsToSVG(contour)}
-          stroke={gradient}
+          points={SVG.pointsToSVG(contourShape)}
+          stroke={contourStrokePaint.ref}
           strokeWidth={contourThickness}
           strokeLinecap="round"
           strokeLinejoin="miter"
           fill="none"
         />
+        {!!cursorPos && !!onCursor && (
+          <g>
+            {(cursorLineExtendUp || cursorLineExtendDown) && (
+              <line
+                x1={cursorPos.x}
+                y1={cursorLineExtendUp ? 0 : cursorPos.y}
+                x2={cursorPos.x}
+                y2={cursorLineExtendDown ? height : cursorPos.y}
+                stroke={cursorLineStrokePaint.ref}
+                strokeWidth={cursorLineThickness}
+              />
+            )}
+            <circle
+              cx={cursorPos.x}
+              cy={cursorPos.y}
+              r={cursorCircleR}
+              stroke={cursorCircleStrokePaint.ref}
+              strokeWidth={cursorCircleThickness}
+              fill={cursorCircleFillPaint.ref}
+            />
+          </g>
+        )}
       </g>
     </M.Box>
-  ),
-)
+  )
+}
