@@ -132,7 +132,7 @@ class DocumentQueue:
 
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
-        if  not self.queue:
+        if not self.queue:
             return
         elastic_host = os.environ["ES_HOST"]
         session = boto3.session.Session()
@@ -163,22 +163,30 @@ class DocumentQueue:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
-                handled = False
                 # only retry index call errors, not delete errors
                 if "index" in error:
                     inner = error["index"]
                     info = inner.get("error")
+                    doc = id_to_doc[inner["_id"]]
                     # because error.error might be a string *sigh*
                     if isinstance(info, dict):
                         if "mapper_parsing_exception" in info.get("type", ""):
                             print("mapper_parsing_exception", error, inner)
-                            doc = id_to_doc[inner["_id"]]
                             # clear out structured metadata and try again
                             doc["user_meta"] = doc["system"] = {}
-                            handled = True
-                            send_again.append(doc)
-                if not handled:
+                        else:
+                            print("unhandled indexer error:", error)
+                    # Always retry, regardless of whether we know to handle and clean the request
+                    # or not. This can catch temporary 403 on index write blocks and other
+                    # transcient issues.
+                    send_again.append(doc)
+                else:
+                    # If index not in error, then retry the whole batch. Unclear what would cause
+                    # that, but if there's an error without an id we need to assume it applies to
+                    # the batch.
+                    send_again = self.queue
                     print("unhandled indexer error:", error)
+
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
