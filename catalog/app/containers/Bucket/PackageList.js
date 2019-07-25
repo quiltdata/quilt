@@ -4,6 +4,7 @@ import * as React from 'react'
 import { FormattedRelative, FormattedPlural } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
@@ -12,6 +13,7 @@ import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as SVG from 'utils/SVG'
 import { readableQuantity } from 'utils/string'
 
 import { docs } from 'constants/urls'
@@ -89,8 +91,25 @@ const Counts = ({ analyticsBucket, bucket, name }) => {
                         onCursor={setCursor}
                         width={320}
                         height={40}
-                        color={M.colors.blue[100]}
-                        color2={M.colors.blue[800]}
+                        pb={8}
+                        pt={5}
+                        px={10}
+                        extendL
+                        extendR
+                        stroke={SVG.Paint.Color(M.colors.blue[500])}
+                        fill={SVG.Paint.Server(
+                          <linearGradient>
+                            <stop offset="0" stopColor={fade(M.colors.blue[500], 0)} />
+                            <stop
+                              offset="30%"
+                              stopColor={fade(M.colors.blue[500], 0.3)}
+                            />
+                          </linearGradient>,
+                        )}
+                        contourThickness={1.5}
+                        cursorLineExtendUp={false}
+                        cursorCircleR={3}
+                        cursorCircleFill={SVG.Paint.Color(M.colors.common.white)}
                       />
                     </>
                   ),
