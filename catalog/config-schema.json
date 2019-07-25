@@ -17,11 +17,6 @@
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
     },
-    "federations": {
-      "type": "array",
-      "description": "List of links to federations you want your catalog to be aware of.",
-      "items": { "$ref": "#/definitions/Url" }
-    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
@@ -76,7 +71,6 @@
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
     "defaultBucket",
-    "federations",
     "mixpanelToken",
     "passwordAuth",
     "registryUrl",
