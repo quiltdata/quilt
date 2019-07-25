@@ -32,6 +32,7 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
 import * as RT from 'utils/reactTools'
@@ -282,9 +283,12 @@ const Analytics = ({ analyticsBucket, bucket, path }) => {
                       onCursor={setCursor}
                       width={1000}
                       height={60}
-                      color={colors.blueGrey[100]}
-                      color2={colors.blueGrey[800]}
-                      fill={false}
+                      stroke={SVG.Paint.Server(
+                        <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
+                          <stop offset="0" stopColor={colors.blueGrey[800]} />
+                          <stop offset="100%" stopColor={colors.blueGrey[100]} />
+                        </linearGradient>,
+                      )}
                     />
                   </Box>
                 </Box>
