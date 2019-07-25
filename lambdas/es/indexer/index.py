@@ -427,7 +427,7 @@ def handler(event, context):
                 if meta and "helium" in meta:
                     try:
                         decoded_helium = json.loads(meta["helium"])
-                        meta["helium"] = decoded_helium if decoded_helium else {}
+                        meta["helium"] = decoded_helium or {}
                     except (KeyError, json.JSONDecodeError):
                         print("Unable to parse Quilt 'helium' metadata", meta)
 
