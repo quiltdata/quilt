@@ -21,6 +21,7 @@ from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponenti
 CONTENT_INDEX_EXTS = [
     ".csv",
     ".html",
+    ".htm",
     ".ipynb",
     ".json",
     ".md",
@@ -31,7 +32,7 @@ CONTENT_INDEX_EXTS = [
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = 10_000
+DOC_LIMIT_BYTES = 2_000
 ELASTIC_TIMEOUT = 30
 MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
