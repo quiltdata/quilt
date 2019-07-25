@@ -424,11 +424,12 @@ def handler(event, context):
                     size=size
                 )
                 # decode Quilt-specific metadata
-                try:
-                    if "helium" in meta:
-                        meta["helium"] = json.loads(meta["helium"])
-                except (KeyError, json.JSONDecodeError):
-                    print("Unable to parse Quilt 'helium' metadata", meta)
+                if meta and "helium" in meta:
+                    try:
+                        decoded_helium = json.loads(meta["helium"])
+                        meta["helium"] = decoded_helium if decoded_helium else {}
+                    except (KeyError, json.JSONDecodeError):
+                        print("Unable to parse Quilt 'helium' metadata", meta)
 
                 batch_processor.append(
                     event_name,
