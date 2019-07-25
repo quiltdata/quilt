@@ -102,6 +102,27 @@ export default (variants) => {
      */
     case: doCase,
 
+    mapCase: (cases, ...args) => {
+      invariant(
+        !Object.keys(cases).includes('_') && !Object.keys(cases).includes('__'),
+        `${scope}/mapCase: cases should not include placeholders (_ and __)`,
+      )
+      return doCase(
+        {
+          ...R.mapObjIndexed(
+            (fn, variant) =>
+              R.pipe(
+                fn,
+                constructors[variant],
+              ),
+            cases,
+          ),
+          _: R.identity,
+        },
+        ...args,
+      )
+    },
+
     /**
      *
      */
