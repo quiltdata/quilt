@@ -185,7 +185,7 @@ class DocumentQueue:
                     # that, but if there's an error without an id we need to assume it applies to
                     # the batch.
                     send_again = self.queue
-                    print("unhandled indexer error:", error)
+                    print("unhandled indexer error (missing index field):", error)
 
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
