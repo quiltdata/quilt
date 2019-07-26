@@ -68,6 +68,14 @@ def bulk_send(elastic, list_):
         raise_on_exception=False
     )
 
+def make_fulltext_string(text, key):
+    """make a string for fulltext indexing of text and file name"""
+    base, ext = os.path.splitext(key)
+    key_parts = base.split("/")
+    key_parts.append(ext[1:])
+
+    return f"{text} {key} {' '.join(key_parts)}"
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -107,7 +115,7 @@ class DocumentQueue:
             "ext": ext,
             "event": event_type,
             "size": size,
-            "text": text,
+            "text": make_fulltext_string(text, key),
             "key": key,
             "last_modified": last_modified.isoformat(),
             "updated": datetime.utcnow().isoformat(),
@@ -192,7 +200,7 @@ class DocumentQueue:
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
-                    raise Exception("Failed to load messages into Elastic on second retry.")                    
+                    raise Exception("Failed to load messages into Elastic on second retry.")
             # empty the queue
         self.size = 0
         self.queue = []
