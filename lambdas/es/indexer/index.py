@@ -70,9 +70,10 @@ def bulk_send(elastic, list_):
 def make_fulltext_string(text, key):
     """make a string for fulltext indexing"""
     base, ext = os.path.splitext(key)
-    key_parts = base.split("/").append(ext[1:])
+    key_parts = base.split("/")
+    key_parts.append(ext[1:])
 
-    return f"{text} {key} {key_parts.join(' ')}"
+    return f"{text} {key} {' '.join(key_parts)}"
 
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
