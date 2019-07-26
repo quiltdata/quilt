@@ -331,9 +331,9 @@ def make_s3_client():
 def transform_meta(meta):
     """ Reshapes metadata for indexing in ES """
     helium = meta.get("helium", {})
-    user_meta = helium.pop("user_meta", {})
-    comment = helium.pop("comment", "")
-    target = helium.pop("target", "")
+    user_meta = helium.pop("user_meta", {}) or {}
+    comment = helium.pop("comment", "") or ""
+    target = helium.pop("target", "") or ""
 
     meta_text_parts = [comment, target]
 
