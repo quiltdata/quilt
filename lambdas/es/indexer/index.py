@@ -16,7 +16,7 @@ import botocore
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 import nbformat
-from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 CONTENT_INDEX_EXTS = [
     ".csv",
@@ -34,7 +34,7 @@ CONTENT_INDEX_EXTS = [
 CHUNK_LIMIT_BYTES = 20_000_000
 DOC_LIMIT_BYTES = 2_000
 ELASTIC_TIMEOUT = 30
-MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
+MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
@@ -487,13 +487,19 @@ def retry_s3(
     else:
         arguments['IfMatch'] = etag
 
-    time_remaining = get_time_remaining(context)
+    def not_known_exception(exception):
+        error_code = exception.response.get(['Error'], {}).get(['Code'], 218)
+        return error_code not in ["402", "403", "404"]
+
     @retry(
         # debug
-        stop=(stop_after_delay(time_remaining) | stop_after_attempt(MAX_RETRY)),
-        wait=wait_exponential(multiplier=2, min=4, max=30)
+        reraise=True,
+        stop=stop_after_attempt(MAX_RETRY),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=(retry_if_exception(not_known_exception))
     )
     def call():
+        # TODO: remove all this, stop_after_delay is not dynamically loaded anymore
         """local function so we can set stop_after_delay dynamically"""
         return function_(**arguments)
 
