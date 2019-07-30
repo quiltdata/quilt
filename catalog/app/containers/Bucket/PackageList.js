@@ -25,6 +25,12 @@ const Counts = ({ analyticsBucket, bucket, name }) => {
   const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const [cursor, setCursor] = React.useState(null)
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const sm = M.useMediaQuery(t.breakpoints.down('sm'))
+  // eslint-disable-next-line no-nested-ternary
+  const sparklineW = xs ? 176 : sm ? 300 : 400
+  const sparklineH = xs ? 32 : 40
   return (
     <Data
       fetch={requests.pkgAccessCounts}
@@ -84,13 +90,13 @@ const Counts = ({ analyticsBucket, bucket, name }) => {
                           position: 'absolute',
                           right: 0,
                           bottom: 0,
-                          width: 320,
-                          height: 40,
+                          width: sparklineW,
+                          height: sparklineH,
                         }}
                         data={R.pluck('value', counts)}
                         onCursor={setCursor}
-                        width={320}
-                        height={40}
+                        width={sparklineW}
+                        height={sparklineH}
                         pb={8}
                         pt={5}
                         px={10}
@@ -129,9 +135,31 @@ const usePackageStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
 
-    '& + &': {
-      marginTop: t.spacing(1),
+    [t.breakpoints.down('xs')]: {
+      borderRadius: 0,
     },
+
+    [t.breakpoints.up('sm')]: {
+      '& + &': {
+        marginTop: t.spacing(1),
+      },
+    },
+  },
+  handle: {
+    fontSize: t.typography.pxToRem(16),
+    fontWeight: t.typography.fontWeightMedium,
+    lineHeight: t.typography.pxToRem(20),
+  },
+  handleContainer: {
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: 2,
+    display: '-webkit-box',
+    overflow: 'hidden',
+    overflowWrap: 'break-word',
+    paddingLeft: t.spacing(2),
+    paddingRight: t.spacing(21),
+    paddingTop: t.spacing(2),
+    textOverflow: 'ellipsis',
   },
 }))
 
@@ -139,26 +167,28 @@ const Package = ({ name, modified, revisions, revisionsTruncated, bucket }) => {
   const { analyticsBucket } = Config.useConfig()
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <M.Paper className={classes.root}>
-      <M.Box pl={2} pt={2}>
-        <M.Typography
-          variant="h6"
-          component={Link}
-          to={urls.bucketPackageDetail(bucket, name)}
-        >
+      <div className={classes.handleContainer}>
+        <Link className={classes.handle} to={urls.bucketPackageDetail(bucket, name)}>
           {name}
-        </M.Typography>
-      </M.Box>
+        </Link>
+      </div>
       <M.Box pl={2} pb={2} pt={1}>
         <M.Typography variant="subtitle2" color="textSecondary" component="span">
           {revisions}
           {revisionsTruncated && '+'}{' '}
-          <FormattedPlural one="Revision" other="Revisions" value={revisions} />
+          {xs ? (
+            'Rev.'
+          ) : (
+            <FormattedPlural one="Revision" other="Revisions" value={revisions} />
+          )}
         </M.Typography>
         <M.Box mr={2} component="span" />
         <M.Typography variant="body2" color="textSecondary" component="span">
-          Updated{' '}
+          {xs ? 'Upd. ' : 'Updated '}
           {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
         </M.Typography>
       </M.Box>
@@ -173,6 +203,8 @@ export default ({
   },
 }) => {
   const s3req = AWS.S3.useRequest()
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   return (
     <Data fetch={requests.listPackages} params={{ s3req, bucket }}>
       {AsyncResult.case({
@@ -184,7 +216,7 @@ export default ({
         Err: displayError(),
         Ok: (pkgs) =>
           pkgs.length ? (
-            <M.Box pt={2} pb={5}>
+            <M.Box pt={2} pb={5} mx={xs ? -2 : 0}>
               {pkgs.map((pkg) => (
                 <Package key={pkg.name} {...pkg} bucket={bucket} />
               ))}
