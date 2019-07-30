@@ -16,7 +16,7 @@ import botocore
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 import nbformat
-from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 CONTENT_INDEX_EXTS = [
     ".csv",
@@ -34,7 +34,7 @@ CONTENT_INDEX_EXTS = [
 CHUNK_LIMIT_BYTES = 20_000_000
 DOC_LIMIT_BYTES = 2_000
 ELASTIC_TIMEOUT = 30
-MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
+MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
@@ -197,7 +197,7 @@ class DocumentQueue:
         self.size = 0
         self.queue = []
 
-def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size):
+def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
     content = ""
     if ext in CONTENT_INDEX_EXTS:
@@ -206,8 +206,7 @@ def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size
                 # we have no choice but to fetch the entire notebook, because we
                 # are going to parse it
                 # warning: huge notebooks could spike memory here
-                get_notebook_cells(
-                    context,
+                get_notebook_cells(                    
                     bucket,
                     key,
                     size,
@@ -219,7 +218,6 @@ def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size
             content = trim_to_bytes(content)
         else:
             content = get_plain_text(
-                context,
                 bucket,
                 key,
                 size,
@@ -260,13 +258,12 @@ def extract_text(notebook_str):
 
     return "\n".join(text)
 
-def get_notebook_cells(context, bucket, key, size, *, etag, s3_client, version_id):
+def get_notebook_cells(bucket, key, size, *, etag, s3_client, version_id):
     """extract cells for ipynb notebooks for indexing"""
     text = ""
     try:
         obj = retry_s3(
             "get",
-            context,
             bucket,
             key,
             size,
@@ -289,13 +286,12 @@ def get_notebook_cells(context, bucket, key, size, *, etag, s3_client, version_i
 
     return text
 
-def get_plain_text(context, bucket, key, size, *, etag, s3_client, version_id):
+def get_plain_text(bucket, key, size, *, etag, s3_client, version_id):
     """get plain text object contents"""
     text = ""
     try:
         obj = retry_s3(
             "get",
-            context,
             bucket,
             key,
             size,
@@ -386,7 +382,6 @@ def handler(event, context):
 
                 head = retry_s3(
                     "head",
-                    context,
                     bucket,
                     key,
                     s3_client=s3_client,
@@ -415,7 +410,6 @@ def handler(event, context):
                 _, ext = os.path.splitext(key)
                 ext = ext.lower()
                 text = get_contents(
-                    context,
                     bucket,
                     key,
                     ext,
@@ -454,7 +448,6 @@ def handler(event, context):
 
 def retry_s3(
         operation,
-        context,
         bucket,
         key,
         size=None,
@@ -487,14 +480,20 @@ def retry_s3(
     else:
         arguments['IfMatch'] = etag
 
-    time_remaining = get_time_remaining(context)
+    def not_known_exception(exception):
+        error_code = exception.response.get(['Error'], {}).get(['Code'], 218)
+        return error_code not in ["402", "403", "404"]
+
     @retry(
         # debug
-        stop=(stop_after_delay(time_remaining) | stop_after_attempt(MAX_RETRY)),
-        wait=wait_exponential(multiplier=2, min=4, max=30)
+        reraise=True,
+        stop=stop_after_attempt(MAX_RETRY),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=(retry_if_exception(not_known_exception))
     )
     def call():
         """local function so we can set stop_after_delay dynamically"""
+        # TODO: remove all this, stop_after_delay is not dynamically loaded anymore
         return function_(**arguments)
 
     return call()
