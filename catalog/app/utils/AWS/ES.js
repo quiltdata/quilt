@@ -1,15 +1,14 @@
-import { stringify } from 'querystring'
-
 import AWS from 'aws-sdk/lib/core'
-import es from 'elasticsearch-browser'
-import invariant from 'invariant'
+import * as React from 'react'
 import * as R from 'ramda'
 
 import { useConfig } from 'utils/Config'
-import useMemoEq from 'utils/useMemoEq'
+import { mkSearch } from 'utils/NamedRoutes'
 
-import * as Config from './Config'
 import * as Signer from './Signer'
+
+const REQUEST_TIMEOUT = 120000
+const DEFAULT_SEARCH_SIZE = 1000
 
 const getRegion = R.pipe(
   R.prop('hostname'),
@@ -18,71 +17,70 @@ const getRegion = R.pipe(
   R.defaultTo('us-east-1'),
 )
 
-// TODO: use injected `fetch` instead of xhr
-class SignedConnector extends es.ConnectionPool.connectionClasses.xhr {
-  constructor(host, config) {
-    super(host, config)
-    invariant(
-      config.signRequest,
-      'SignedConnector: config must include signRequest method',
-    )
-    invariant(config.awsConfig, 'SignedConnector: config must include awsConfig object')
-    this.sign = (req) => config.signRequest(req, 'es')
-    this.awsConfig = config.awsConfig
-    this.endpoint = new AWS.Endpoint(host.host)
-    if (host.protocol) this.endpoint.protocol = host.protocol.replace(/:?$/, ':')
-    if (host.port) this.endpoint.port = host.port
-    this.httpOptions = config.httpOptions || this.awsConfig.httpOptions
-  }
-
-  request(params, cb) {
-    const request = new AWS.HttpRequest(this.endpoint, getRegion(this.endpoint))
-
-    if (params.body) {
-      request.body = params.body
-    }
-
-    request.headers = {
-      ...request.headers,
-      ...params.headers,
-      Host: this.endpoint.host,
-    }
-    delete request.headers['X-Amz-User-Agent']
-    request.method = params.method
-    request.path = params.path
-    const qs = stringify(params.query)
-    if (qs) request.path += `?${qs}`
-
-    this.sign(request)
-
-    delete request.headers.Host
-
-    const patchedParams = {
-      method: request.method,
-      path: request.path,
-      headers: request.headers,
-      body: request.body,
-    }
-
-    return super.request(patchedParams, cb)
-  }
-}
-
 const noop = () => {}
 
-export const useES = ({ bucket, ...props }) => {
+export const useES = ({ endpoint: ep, bucket }) => {
   const { shouldSign } = useConfig()
-  const awsConfig = Config.use()
   const requestSigner = Signer.useRequestSigner()
   const signRequest = shouldSign(bucket) ? requestSigner : noop
-  return useMemoEq(
-    { awsConfig, signRequest, ...props },
-    (cfg) =>
-      new es.Client({
-        ...cfg,
-        connectionClass: SignedConnector,
-      }),
+
+  const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
+  const region = React.useMemo(() => getRegion(endpoint), [ep])
+
+  const search = React.useCallback(
+    (query, { _source, size = DEFAULT_SEARCH_SIZE }) => {
+      const request = new AWS.HttpRequest(endpoint, region)
+      delete request.headers['X-Amz-User-Agent']
+
+      const path = `${bucket}/_doc/_search${mkSearch({ _source, size })}`
+
+      request.method = 'GET'
+      request.path += path
+      request.headers.Host = endpoint.hostname
+      request.headers['Content-Type'] = 'application/json'
+
+      signRequest(request, 'es')
+
+      delete request.headers.Host
+
+      return new Promise((resolve, reject) => {
+        let timedOut = false
+        const timeoutId = setTimeout(() => {
+          timedOut = true
+          reject(new Error(`Timed out after ${REQUEST_TIMEOUT}ms`))
+        }, REQUEST_TIMEOUT)
+
+        AWS.HttpClient.getInstance().handleRequest(
+          request,
+          {},
+          (response) => {
+            let body = ''
+            response.on('data', (chunk) => {
+              if (timedOut) return
+              body += chunk
+            })
+            response.on('end', () => {
+              if (timedOut) return
+              clearTimeout(timeoutId)
+              if (response.statusCode !== 200) {
+                reject(new Error(`ES Error: ${body}`))
+                return
+              }
+              try {
+                resolve(JSON.parse(body))
+              } catch (e) {
+                reject(e)
+              }
+            })
+          },
+          reject,
+        )
+      })
+    },
+    [endpoint, region, bucket],
   )
+
+  return search
 }
 
 export const use = useES

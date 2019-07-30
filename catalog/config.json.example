@@ -10,9 +10,6 @@
     "quilt-example",
     "quilt-aics"
   ],
-  "federations": [
-    "/federation.json"
-  ],
   "passwordAuth": "ENABLED",
   "ssoAuth": "SIGN_IN_ONLY",
   "ssoProviders": "google",

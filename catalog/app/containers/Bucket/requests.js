@@ -344,10 +344,6 @@ export const fetchPackageTree = withErrorHandling(
   },
 )
 
-const SEARCH_SIZE = 1000
-const SEARCH_REQUEST_TIMEOUT = 120000
-const SEARCH_FIELDS = ['key', 'size', 'type', 'updated', 'user_meta', 'version_id']
-
 const takeR = (l, r) => r
 
 const mkMerger = (cases) => (key, l, r) => (cases[key] || takeR)(l, r)
@@ -385,27 +381,13 @@ const mergeHits = R.pipe(
   R.sortBy((h) => -h.score),
 )
 
-export const search = async ({ es, bucket, query }) => {
+export const search = async ({ es, query }) => {
   try {
-    const result = await es.search({
-      _source: SEARCH_FIELDS,
-      index: bucket,
-      type: '_doc',
-      requestTimeout: SEARCH_REQUEST_TIMEOUT,
-      body: {
-        query: {
-          query_string: {
-            default_field: 'content',
-            query,
-          },
-        },
-        size: SEARCH_SIZE,
-      },
+    const result = await es(query, {
+      _source: 'key,size,type,updated,user_meta,version_id',
     })
-
     const hits = mergeHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
-
     return { total, hits }
   } catch (e) {
     // TODO: handle errors

@@ -16,11 +16,12 @@ import botocore
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 import nbformat
-from tenacity import stop_after_attempt, stop_after_delay, retry, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 CONTENT_INDEX_EXTS = [
     ".csv",
     ".html",
+    ".htm",
     ".ipynb",
     ".json",
     ".md",
@@ -31,9 +32,9 @@ CONTENT_INDEX_EXTS = [
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = 10_000
+DOC_LIMIT_BYTES = 2_000
 ELASTIC_TIMEOUT = 30
-MAX_RETRY = 10 # prevent long-running lambdas due to malformed calls
+MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
 # signifies that the object is truly deleted, not to be confused with
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
@@ -132,7 +133,7 @@ class DocumentQueue:
 
     def send_all(self):
         """flush self.queue in 1-2 bulk calls"""
-        if  not self.queue:
+        if not self.queue:
             return
         elastic_host = os.environ["ES_HOST"]
         session = boto3.session.Session()
@@ -163,30 +164,40 @@ class DocumentQueue:
             id_to_doc = {d["_id"]: d for d in self.queue}
             send_again = []
             for error in errors:
-                handled = False
                 # only retry index call errors, not delete errors
                 if "index" in error:
                     inner = error["index"]
                     info = inner.get("error")
+                    doc = id_to_doc[inner["_id"]]
                     # because error.error might be a string *sigh*
                     if isinstance(info, dict):
                         if "mapper_parsing_exception" in info.get("type", ""):
                             print("mapper_parsing_exception", error, inner)
-                            doc = id_to_doc[inner["_id"]]
                             # clear out structured metadata and try again
                             doc["user_meta"] = doc["system"] = {}
-                            handled = True
-                            send_again.append(doc)
-                if not handled:
-                    print("unhandled indexer error:", error)
+                        else:
+                            print("unhandled indexer error:", error)
+                    # Always retry, regardless of whether we know to handle and clean the request
+                    # or not. This can catch temporary 403 on index write blocks and other
+                    # transcient issues.
+                    send_again.append(doc)
+                else:
+                    # If index not in error, then retry the whole batch. Unclear what would cause
+                    # that, but if there's an error without an id we need to assume it applies to
+                    # the batch.
+                    send_again = self.queue
+                    print("unhandled indexer error (missing index field):", error)
+
             # we won't retry after this (elasticsearch might retry 429s tho)
             if send_again:
-                bulk_send(elastic, send_again)
+                _, errors = bulk_send(elastic, send_again)
+                if errors:
+                    raise Exception("Failed to load messages into Elastic on second retry.")                    
             # empty the queue
         self.size = 0
         self.queue = []
 
-def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size):
+def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
     content = ""
     if ext in CONTENT_INDEX_EXTS:
@@ -195,8 +206,7 @@ def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size
                 # we have no choice but to fetch the entire notebook, because we
                 # are going to parse it
                 # warning: huge notebooks could spike memory here
-                get_notebook_cells(
-                    context,
+                get_notebook_cells(                    
                     bucket,
                     key,
                     size,
@@ -208,7 +218,6 @@ def get_contents(context, bucket, key, ext, *, etag, version_id, s3_client, size
             content = trim_to_bytes(content)
         else:
             content = get_plain_text(
-                context,
                 bucket,
                 key,
                 size,
@@ -249,13 +258,12 @@ def extract_text(notebook_str):
 
     return "\n".join(text)
 
-def get_notebook_cells(context, bucket, key, size, *, etag, s3_client, version_id):
+def get_notebook_cells(bucket, key, size, *, etag, s3_client, version_id):
     """extract cells for ipynb notebooks for indexing"""
     text = ""
     try:
         obj = retry_s3(
             "get",
-            context,
             bucket,
             key,
             size,
@@ -278,13 +286,12 @@ def get_notebook_cells(context, bucket, key, size, *, etag, s3_client, version_i
 
     return text
 
-def get_plain_text(context, bucket, key, size, *, etag, s3_client, version_id):
+def get_plain_text(bucket, key, size, *, etag, s3_client, version_id):
     """get plain text object contents"""
     text = ""
     try:
         obj = retry_s3(
             "get",
-            context,
             bucket,
             key,
             size,
@@ -320,9 +327,9 @@ def make_s3_client():
 def transform_meta(meta):
     """ Reshapes metadata for indexing in ES """
     helium = meta.get("helium", {})
-    user_meta = helium.pop("user_meta", {})
-    comment = helium.pop("comment", "")
-    target = helium.pop("target", "")
+    user_meta = helium.pop("user_meta", {}) or {}
+    comment = helium.pop("comment", "") or ""
+    target = helium.pop("target", "") or ""
 
     meta_text_parts = [comment, target]
 
@@ -356,6 +363,7 @@ def handler(event, context):
                 continue
             else:
                 print("Unexpected message['body']. No 'Records' key.", message)
+                raise Exception("Unexpected message['body']. No 'Records' key.")
         batch_processor = DocumentQueue(context)
         events = body_message.get("Records", [])
         s3_client = make_s3_client()
@@ -374,7 +382,6 @@ def handler(event, context):
 
                 head = retry_s3(
                     "head",
-                    context,
                     bucket,
                     key,
                     s3_client=s3_client,
@@ -403,7 +410,6 @@ def handler(event, context):
                 _, ext = os.path.splitext(key)
                 ext = ext.lower()
                 text = get_contents(
-                    context,
                     bucket,
                     key,
                     ext,
@@ -413,11 +419,12 @@ def handler(event, context):
                     size=size
                 )
                 # decode Quilt-specific metadata
-                try:
-                    if "helium" in meta:
-                        meta["helium"] = json.loads(meta["helium"])
-                except (KeyError, json.JSONDecodeError):
-                    print("Unable to parse Quilt 'helium' metadata", meta)
+                if meta and "helium" in meta:
+                    try:
+                        decoded_helium = json.loads(meta["helium"])
+                        meta["helium"] = decoded_helium or {}
+                    except (KeyError, json.JSONDecodeError):
+                        print("Unable to parse Quilt 'helium' metadata", meta)
 
                 batch_processor.append(
                     event_name,
@@ -435,12 +442,12 @@ def handler(event, context):
                 print("Fatal exception for record", event_, exc)
                 import traceback
                 traceback.print_tb(exc.__traceback__)
+                raise exc
         # flush the queue
         batch_processor.send_all()
 
 def retry_s3(
         operation,
-        context,
         bucket,
         key,
         size=None,
@@ -473,14 +480,20 @@ def retry_s3(
     else:
         arguments['IfMatch'] = etag
 
-    time_remaining = get_time_remaining(context)
+    def not_known_exception(exception):
+        error_code = exception.response.get(['Error'], {}).get(['Code'], 218)
+        return error_code not in ["402", "403", "404"]
+
     @retry(
         # debug
-        stop=(stop_after_delay(time_remaining) | stop_after_attempt(MAX_RETRY)),
-        wait=wait_exponential(multiplier=2, min=4, max=30)
+        reraise=True,
+        stop=stop_after_attempt(MAX_RETRY),
+        wait=wait_exponential(multiplier=2, min=4, max=30),
+        retry=(retry_if_exception(not_known_exception))
     )
     def call():
         """local function so we can set stop_after_delay dynamically"""
+        # TODO: remove all this, stop_after_delay is not dynamically loaded anymore
         return function_(**arguments)
 
     return call()
