@@ -68,6 +68,14 @@ def bulk_send(elastic, list_):
         raise_on_exception=False
     )
 
+def key_to_parts(key):
+    """make a string for fulltext indexing of file name"""
+    base, ext = os.path.splitext(key)
+    key_parts = base.split("/")
+    key_parts.append(ext[1:])
+
+    return f"{key} {' '.join(key_parts)}"
+
 class DocumentQueue:
     """transient in-memory queue for documents to be indexed"""
     def __init__(self, context):
@@ -109,6 +117,7 @@ class DocumentQueue:
             "event": event_type,
             "size": size,
             "key": key,
+            "key_text": key_to_parts(key),
             "last_modified": last_modified.isoformat(),
             "updated": datetime.utcnow().isoformat(),
             "version_id": version_id
