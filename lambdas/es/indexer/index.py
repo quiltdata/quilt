@@ -107,8 +107,8 @@ class DocumentQueue:
             "comment": derived_meta["comment"],
             "content": text,# field for full-text search
             "etag": etag,
-            "ext": ext,
             "event": event_type,
+            "ext": ext,
             "key": key,
             #"key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
