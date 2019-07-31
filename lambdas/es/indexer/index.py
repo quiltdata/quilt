@@ -103,11 +103,11 @@ class DocumentQueue:
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
+            "content": text,# field for full-text search
             "etag": etag,
             "ext": ext,
             "event": event_type,
             "size": size,
-            "text": text,
             "key": key,
             "last_modified": last_modified.isoformat(),
             "updated": datetime.utcnow().isoformat(),
@@ -192,7 +192,7 @@ class DocumentQueue:
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
-                    raise Exception("Failed to load messages into Elastic on second retry.")                    
+                    raise Exception("Failed to load messages into Elastic on second retry.")
             # empty the queue
         self.size = 0
         self.queue = []
@@ -206,7 +206,7 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 # we have no choice but to fetch the entire notebook, because we
                 # are going to parse it
                 # warning: huge notebooks could spike memory here
-                get_notebook_cells(                    
+                get_notebook_cells(
                     bucket,
                     key,
                     size,
