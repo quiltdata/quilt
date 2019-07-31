@@ -91,7 +91,7 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
-        more_meta = transform_meta(meta or {})
+        derived_meta = transform_meta(meta or {})
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -104,7 +104,7 @@ class DocumentQueue:
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
-            "comment": more_meta["comment"],
+            "comment": derived_meta["comment"],
             "content": text,# field for full-text search
             "etag": etag,
             "ext": ext,
@@ -112,12 +112,12 @@ class DocumentQueue:
             "key": key,
             #"key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
-            "meta_text": more_meta["meta_text"],
+            "meta_text": derived_meta["meta_text"],
             "size": size,
-            "system_meta": more_meta["system_meta"],
-            "target": more_meta["target"],
+            "system_meta": derived_meta["system_meta"],
+            "target": derived_meta["target"],
             "updated": datetime.utcnow().isoformat(),
-            "user_meta": more_meta["user_meta"],
+            "user_meta": derived_meta["user_meta"],
             "version_id": version_id
         }
 
