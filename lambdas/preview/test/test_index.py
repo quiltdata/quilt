@@ -280,10 +280,30 @@ class TestIndex():
         event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
         resp = index.lambda_handler(event, None)
         body = json.loads(resp['body'])
-        assert resp['statusCode'] == 200, 'preview lambda failed on long.txt'
+        assert resp['statusCode'] == 200, 'preview lambda failed on two-line.txt'
         data = body['info']['data']
         assert len(data['head']) == 1, 'failed to truncate bytes'
         assert data['head'][0] == '1234😊', 'failed to truncate bytes'
+        assert not data['tail'], 'expected empty tail'
+
+    @responses.activate
+    @patch(__name__ + '.index.MAX_BYTES', 8)
+    @patch(__name__ + '.index.CHUNK', 10)
+    def test_txt_max_bytes_one_line(self):
+        """test truncation to MAX_BYTES"""
+        txt = BASE_DIR / 'one-line.txt'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=txt.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview lambda failed on one-line.txt'
+        data = body['info']['data']
+        assert len(data['head']) == 1, 'failed to truncate bytes'
+        assert data['head'][0] == '🚷🚯', 'failed to truncate bytes'
         assert not data['tail'], 'expected empty tail'
 
     @responses.activate
