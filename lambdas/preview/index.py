@@ -355,6 +355,9 @@ def _from_stream(response, compression, max_lines, max_bytes):
     # Drop any lines over the max.
     del lines[max_lines:]
 
+    # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
+    # but we don't really care.
+
     return [l.decode('utf-8', 'ignore') for l in lines]
 
 def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
