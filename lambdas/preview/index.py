@@ -286,7 +286,6 @@ def extract_vcf(head):
             data.append(columns)
     info = {
         'data': {
-            # ignore b/c we might snap a multi-byte unicode character in two
             'meta': meta,
             'header': header,
             'data': data
@@ -319,36 +318,47 @@ def extract_txt(head):
 
     return '', info
 
-def _from_stream(response, compression, line_count, max_bytes):
+def _from_stream(response, compression, max_lines, max_bytes):
     """
     for files we can read in a streaming manner
     """
     buffer = []
     size = 0
+    line_count = 0
+
     if compression:
         assert compression == 'gz', 'only gzip compression is supported'
         dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
-        for chunk in response.iter_content(chunk_size=CHUNK):
-            piece = dec.decompress(chunk)
-            # if piece is not ready for decode, zlib will return falsy and
-            # push bytes back into buffer for future calls
-            if piece:
-                buffer.append(piece)
-                size += len(piece)
-            # TODO why are we hitting dec.eof after ~65kb of large gz files?
-            # not >= since we might get lucky and complete a line if we wait
-            if size > max_bytes or dec.eof:
-                break
-        # drop the very last line since it might not be complete
-        buffer = b''.join(buffer).split(b'\n', line_count)[:-1]
     else:
-        for i, line in enumerate(response.iter_lines()):
-            if i >= line_count or size >= max_bytes:
-                break
-            buffer.append(line)
-            size += len(line)
+        dec = None
 
-    return [l.decode('utf-8', 'ignore') for l in buffer]
+    for chunk in response.iter_content(chunk_size=CHUNK):
+        if dec:
+            chunk = dec.decompress(chunk)
+
+        buffer.append(chunk)
+        size += len(chunk)
+        line_count += chunk.count(b'\n')
+
+        # TODO why are we hitting dec.eof after ~65kb of large gz files?
+        # not >= since we might get lucky and complete a line if we wait
+        if size > max_bytes or line_count > max_lines or (dec and dec.eof):
+            break
+
+    lines = b''.join(buffer).splitlines()
+
+    # If we stopped because of max_bytes, then drop the last, possibly incomplete line -
+    # as long as we have more than one line.
+    if size > max_bytes and len(lines) > 1:
+        lines.pop()
+
+    # Drop any lines over the max.
+    del lines[max_lines:]
+
+    # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
+    # but we don't really care.
+
+    return [l.decode('utf-8', 'ignore') for l in lines]
 
 def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
     """
