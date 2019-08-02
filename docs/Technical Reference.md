@@ -130,14 +130,14 @@ your CloudFormation stack.
     ![](./imgs/outputs.png)
 
     In a separate browser window, open the DNS settings for your domain.
-    Create the following two `CNAME` records. **Replace italics** with the
+    Create the following `CNAME` records. **Replace italics** with the
     corresponding stack Outputs.
 
     | CNAME | Value |
     |------|-------|
-    | _QuiltWebHost_  | _CloudfrontDomain_ | 
-    | _RegistryHostName_  | _LoadBalancerDNSName_ |
-    | _S3ProxyHost_  | _LoadBalancerDNSName_ | 
+    | _QuiltWebHost Key_  | _CloudfrontDomain_ | 
+    | _RegistryHostName Key_  | _LoadBalancerDNSName_ |
+    | _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
 
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
