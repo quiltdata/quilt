@@ -64,7 +64,7 @@ Installing Quilt will modify the following Bucket characteristics:
 Email [contact@quiltdata.io](mailto:contact@quiltdata.io), with the subodomain that you wish to access Quilt on
 (e.g. https://quilt.example.com) to obtain a license key.
 
-1. An **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
+1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
@@ -136,7 +136,8 @@ your CloudFormation stack.
     | CNAME | Value |
     |------|-------|
     | _QuiltWebHost_  | _CloudfrontDomain_ | 
-    | _RegistryHostName_  | _LoadBalancerDNSName_ | 
+    | _RegistryHostName_  | _LoadBalancerDNSName_ |
+    | _S3ProxyHost_  | _LoadBalancerDNSName_ | 
 
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
