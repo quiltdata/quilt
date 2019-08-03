@@ -183,33 +183,45 @@ def lambda_handler(request):
     """
     Generate thumbnails for images in S3
     """
+    # Parse request info
     url = request.args['url']
     size = SIZE_PARAMETER_MAP[request.args['size']]
     output = request.args.get('output', 'json')
 
+    # Handle request
     resp = requests.get(url)
     if resp.ok:
+        # Read image data
         img = AICSImage(resp.content)
         orig_size = list(img.reader.data.shape)
-        img = format_ndarray(img)
 
-        image = Image.fromarray(img)
-        image = image.convert('RGBA')
-        thumbnail_format = 'PNG'
+        # Generate a formatted ndarray using the image data
+        # Makes some assumptions for n-dim data
+        img = format_aicsimage_to_prepped(img)
 
-        image.thumbnail(size)
-        thumbnail_size = image.size
+        # Send to Image object for thumbnail generation and saving to bytes
+        img = Image.fromarray(img)
+
+        # Generate thumbnail
+        img.thumbnail(size)
+        thumbnail_size = img.size
+
+        # Store the bytes
+        thumbnail_format = "PNG"
         thumbnail_bytes = BytesIO()
-        image.save(thumbnail_bytes, thumbnail_format)
+        img.save(thumbnail_bytes, thumbnail_format)
 
+        # Get bytes data
         data = thumbnail_bytes.getvalue()
 
+        # Create metadata object
         info = {
             'original_size': orig_size,
             'thumbnail_format': thumbnail_format,
             'thumbnail_size': thumbnail_size,
         }
 
+        # Store data
         if output == 'json':
             ret_val = {
                 'info': info,
@@ -223,6 +235,7 @@ def lambda_handler(request):
             }
             return 200, data, headers
 
+    # Handle error
     else:
         ret_val = {
             'error': resp.reason
