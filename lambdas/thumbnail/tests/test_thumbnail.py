@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import responses
-from aicsimageio import imread
+from aicsimageio import AICSImage
 
 from ..index import lambda_handler
 
@@ -74,6 +74,6 @@ def test_generate_thumbnail(
     assert body["info"]["thumbnail_size"] == expected_thumb_size
 
     # Assert the produced image is the same as the expected
-    actual = imread(base64.b64decode(body['thumbnail']))
-    expected = imread(data_dir / expected_thumb)
+    actual = AICSImage(base64.b64decode(body['thumbnail'])).reader.data
+    expected = AICSImage(data_dir / expected_thumb).reader.data
     assert np.array_equal(actual, expected)
