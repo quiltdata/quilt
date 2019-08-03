@@ -16,6 +16,7 @@ import numpy as np
 import requests
 from aicsimageio import AICSImage, readers
 from PIL import Image
+
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -97,7 +98,7 @@ def norm_img(img: np.ndarray) -> np.ndarray:
     imax = np.iinfo(np.uint16).max + 1  # eg imax = 256 for uint8
     img = img * imax
     img[img == imax] = imax - 1
-    img = img.astype(np.uint16)
+    img = img.astype(np.int32)
 
     return img
 
