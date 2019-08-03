@@ -179,7 +179,7 @@ class TestIndex():
         assert 'SVD of Minute-Market-Data' in body_html, 'missing expected contents'
         assert 'Preprocessing' in body_html, 'missing expected contents'
         assert '<pre>[&#39;SEE&#39;, &#39;SE&#39;, &#39;SHW&#39;, &#39;SIG&#39;,' not in body_html, \
-            'Unexpected output cell; exclude_output:true was given' 
+            'Unexpected output cell; exclude_output:true was given'
         assert '<span class="n">batch_size</span><span class="o">=</span><span class="mi">100</span><span class="p">' in body_html, \
             'Last cell output missing'
         assert len(body_html.encode()) < 19_000, \
@@ -216,7 +216,7 @@ class TestIndex():
         event = self._make_event({'url': self.FILE_URL, 'input': 'csv', 'sep': '\t'})
         resp = index.lambda_handler(event, None)
         body = json.loads(resp['body'])
-        assert resp['statusCode'] == 200, 'preview failed on sample.csv'
+        assert resp['statusCode'] == 200, f'preview failed on {csv}'
         body_html = body['html']
         assert body_html.count('<table') == 1, 'expected one HTML table'
         assert body_html.count('</table>') == 1, 'expected one HTML table'
@@ -232,6 +232,33 @@ class TestIndex():
             assert head in body_html, 'unexpected first columns'
 
     @responses.activate
+    def test_tsv_as_csv(self):
+        """test returning HTML previews of mislabeled or problematic CSVs (via pandas)"""
+        csv = BASE_DIR / 'tsv_mixed_types.csv'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=csv.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'csv'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, f'preview failed on {csv}'
+        body_html = body['html']
+        assert body_html.count('<table') == 1, 'expected one HTML table'
+        assert body_html.count('</table>') == 1, 'expected one HTML table'
+        assert body_html.count('<thead>') == 1, 'expected one HTML table head'
+        assert body_html.count('</thead>') == 1, 'expected one HTML table head'
+        assert body_html.count('<p>') == body_html.count('</p>'), 'malformed HTML'
+        assert '<td>Taiwan Strait, Taiwan (general), Taiwan</td>' in body_html, \
+            'Missing a cell on the Taiwan Strait'
+        assert not re.match(r'\d+ rows × \d+ columns', body_html), \
+            'table dimensions should be removed'
+        with open(BASE_DIR / 'tsv_mixed_types_html_response_head.txt') as expected:
+            head = expected.read()
+            assert head in body_html, 'unexpected first columns'
+
+    @responses.activate
     def test_no_meta_parquet(self):
         """test a parquet file with no meta.metadata"""
         no_meta_parquet = BASE_DIR / 'no_meta.parquet'
@@ -242,7 +269,7 @@ class TestIndex():
             status=200)
         event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
         resp = index.lambda_handler(event, None)
-        
+
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
 
     @responses.activate

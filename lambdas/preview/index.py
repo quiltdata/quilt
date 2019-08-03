@@ -28,6 +28,12 @@ MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.s3.amazonaws.com'
 
+FILE_EXTENSIONS = ["csv", "excel", "ipynb", "parquet", "vcf"]
+TEXT_TYPES = ["bed", "txt"]
+FILE_EXTENSIONS.extend(TEXT_TYPES)
+
+# BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
+
 SCHEMA = {
     'type': 'object',
     'properties': {
@@ -49,7 +55,7 @@ SCHEMA = {
             'type': 'string',
         },
         'input': {
-            'enum': ['csv', 'excel', 'ipynb', 'parquet', 'txt', 'vcf']
+            'enum': FILE_EXTENSIONS
         },
         'exclude_output': {
             'enum': ['true', 'false']
@@ -113,7 +119,7 @@ def lambda_handler(request):
             html, info = extract_parquet(_to_memory(resp, compression))
         elif input_type == 'vcf':
             html, info = extract_vcf(_from_stream(resp, compression, line_count, max_bytes))
-        elif input_type == 'txt':
+        elif input_type in TEXT_TYPES:
             html, info = extract_txt(_from_stream(resp, compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
@@ -146,10 +152,19 @@ def extract_csv(head, separator):
     import pandas
     import re
     # this shouldn't balloon memory because head is limited in size by _from_stream
-    data = pandas.read_csv(
-        io.StringIO('\n'.join(head)),
-        sep=separator
-    )
+    try:
+        data = pandas.read_csv(
+            io.StringIO('\n'.join(head)),
+            sep=separator
+        )
+    # ParserError happens when TSVs are labeled CSVs and/or columns have mixed types
+    except pandas.errors.ParserError:
+        data = pandas.read_csv(
+            io.StringIO('\n'.join(head)),
+            # this slower (doesn't use C) but deduces the separator
+            sep=None
+        )
+
     html = data._repr_html_() # pylint: disable=protected-access
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
