@@ -164,12 +164,12 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
     # No Channel data, either max project Z or just return an Image object of the 2D data
     else:
         if "Z" in img.reader.dims:
-            return norm_img(img.data[0, 0, 0, :, :, :].max(axis=0))
+            return Image.from_array(norm_img(img.data[0, 0, 0, :, :, :].max(axis=0)))
 
         return norm_img(img.data[0, 0, 0, 0, :, :])
 
 
-def format_ndarray(img: AICSImage) -> np.ndarray:
+def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
     # These readers are specific for n dimensional images
     if isinstance(img.reader, (readers.CziReader, readers.OmeTiffReader, readers.TiffReader)):
         return _format_n_dim_ndarray(img)
