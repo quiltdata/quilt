@@ -444,7 +444,7 @@ const queryAccessCounts = async ({
       }
     }, window)
 
-    const total = counts.reduce((sum, { value }) => sum + value, 0)
+    const total = Object.values(recordedCounts).reduce(R.add, 0)
 
     return { counts, total }
   } catch (e) {
