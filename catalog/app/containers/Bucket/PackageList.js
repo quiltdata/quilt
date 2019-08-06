@@ -358,6 +358,8 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
   const classes = usePackagesStyles()
 
+  const scrollRef = React.useRef(null)
+
   const actualSort = getSort(sort)
   const actualPage = page || 1
   const actualFilter = filter || ''
@@ -414,9 +416,15 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
     [sorted, actualPage],
   )
 
+  usePrevious(actualPage, (prev) => {
+    if (prev && actualPage !== prev && scrollRef.current) {
+      scrollRef.current.scrollIntoView()
+    }
+  })
+
   return packages.length ? (
     <M.Box pb={xs ? 0 : 5} mx={xs ? -2 : 0}>
-      <M.Box display="flex" mt={{ xs: 0, sm: 3 }}>
+      <M.Box display="flex" mt={{ xs: 0, sm: 3 }} ref={scrollRef}>
         <M.Box
           component={M.Paper}
           className={classes.paper}
