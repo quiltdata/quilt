@@ -260,14 +260,8 @@ const mapAllP = (fn) => (list) => Promise.all(list.map(fn))
 
 const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 
-export const listPackages = async ({
-  s3req,
-  analyticsBucket,
-  bucket,
-  today,
-  analyticsWindow = 30,
-}) => {
-  try {
+export const listPackages = withErrorHandling(
+  async ({ s3req, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {
     const countsP =
       analyticsBucket &&
       fetchPackagesAccessCounts({
@@ -294,10 +288,8 @@ export const listPackages = async ({
     if (!countsP) return packages
     const counts = await countsP
     return packages.map((p) => ({ ...p, views: counts[p.name] }))
-  } catch (e) {
-    return catchErrors()(e)
-  }
-}
+  },
+)
 
 const loadRevisionHash = ({ s3req, bucket, key }) =>
   s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
