@@ -1,8 +1,10 @@
+aicsimageio==3.0.0
 attrs==19.1.0
 certifi==2018.11.29
 chardet==3.0.4
 idna==2.8
 jsonschema==3.0.1
+numpy==1.16.0
 Pillow==6.1.0
 pyrsistent==0.14.11
 requests==2.21.0

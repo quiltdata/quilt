@@ -1,88 +1,79 @@
 import base64
 import json
-import pathlib
-from unittest import TestCase
+from pathlib import Path
 
+import numpy as np
+import pytest
 import responses
+from aicsimageio import AICSImage
 
 from ..index import lambda_handler
 
 
-BASE_DIR = pathlib.Path(__file__).parent / 'data'
+@pytest.fixture
+def data_dir():
+    return Path(__file__).parent / 'data'
 
 
-# pylint: disable=invalid-sequence-index
-class TestThumbnail(TestCase):
-    """Tests image thumbnails"""
+def _make_event(query, headers=None):
+    return {
+        'httpMethod': 'POST',
+        'path': '/foo',
+        'pathParameters': {},
+        'queryStringParameters': query or None,
+        'headers': headers or None,
+        'body': None,
+        'isBase64Encoded': False,
+    }
 
-    @classmethod
-    def _make_event(cls, query, headers=None):
-        return {
-            'httpMethod': 'POST',
-            'path': '/foo',
-            'pathParameters': {},
-            'queryStringParameters': query or None,
-            'headers': headers or None,
-            'body': None,
-            'isBase64Encoded': False,
-        }
 
-    @responses.activate
-    def test_thumbnail(self):
-        url = 'https://example.com/penguin.jpg'
-        image = BASE_DIR / 'penguin.jpg'
-        thumbnail = BASE_DIR / 'penguin-256.jpg'
+@responses.activate
+@pytest.mark.parametrize("input_file, thumb_size, expected_thumb, expected_original_size, expected_thumb_size", [
+    ("penguin.jpg", "w256h256", "penguin-256.png", [1526, 1290, 3], [217, 256]),
+    ("cell.tiff", "w640h480", "cell-480.png", [15, 1, 158, 100], [514, 480]),
+    ("cell.png", "w64h64", "cell-64.png", [168, 104, 3], [39, 64]),
+    ("sat_greyscale.tiff", "w640h480",  "sat_greyscale-480.png", [512, 512], [480, 480]),
+    ("sat_rgb.tiff", "w1024h768", "sat_rgb-768.png", [2048, 2048, 3], [768, 768]),
+    # Test for statusCode error
+    pytest.param("cell.png", "w1h1", None, None, None, marks=pytest.mark.raises(exception=AssertionError))
+])
+def test_generate_thumbnail(
+    data_dir,
+    input_file,
+    thumb_size,
+    expected_thumb,
+    expected_original_size,
+    expected_thumb_size
+):
+    # Resolve the input file path
+    input_file = data_dir / input_file
 
-        responses.add(
-            responses.GET,
-            url,
-            body=image.read_bytes(),
-            status=200)
+    # Mock the request
+    url = f"https://example.com/{input_file}"
+    responses.add(
+        responses.GET,
+        url=url,
+        body=input_file.read_bytes(),
+        status=200
+    )
 
-        event = self._make_event({'url': url, 'size': 'w256h256'})
-        resp = lambda_handler(event, None)
-        assert resp['statusCode'] == 200
-        body = json.loads(resp['body'])
+    # Create the lambda request event
+    event = _make_event({"url": url, "size": thumb_size})
 
-        info = body['info']
-        assert info['original_format'] == 'JPEG'
-        assert info['original_size'] == [1290, 1526]
-        assert info['thumbnail_format'] == 'JPEG'
-        assert info['thumbnail_size'] == [217, 256]
+    # Get the response
+    response = lambda_handler(event, None)
 
-        thumbnail_bytes = base64.b64decode(body['thumbnail'])
-        assert thumbnail_bytes == thumbnail.read_bytes()
+    # Assert the request was handled with no errors
+    assert response["statusCode"] == 200
 
-    @responses.activate
-    def test_tiff(self):
-        url = 'https://example.com/banner.tiff'
-        image = BASE_DIR / 'banner.tiff'
-        thumbnail = BASE_DIR / 'banner-640.png'
+    # Parse the body / the returned thumbnail
+    body = json.loads(response["body"])
 
-        responses.add(
-            responses.GET,
-            url,
-            body=image.read_bytes(),
-            status=200)
+    # Assert basic metadata was fill properly
+    assert body["info"]["original_size"] == expected_original_size
+    assert body["info"]["thumbnail_size"] == expected_thumb_size
 
-        event = self._make_event({'url': url, 'size': 'w640h480'})
-        resp = lambda_handler(event, None)
-        assert resp['statusCode'] == 200
-        body = json.loads(resp['body'])
-
-        info = body['info']
-        assert info['original_format'] == 'TIFF'
-        assert info['original_size'] == [2048, 277]
-        assert info['thumbnail_format'] == 'PNG'
-        assert info['thumbnail_size'] == [640, 86]
-
-        thumbnail_bytes = base64.b64decode(body['thumbnail'])
-        assert thumbnail_bytes == thumbnail.read_bytes()
-
-    @responses.activate
-    def test_invalid_size(self):
-        url = 'https://example.com/foo.jpg'
-
-        event = self._make_event({'url': url, 'size': 'w100h100'})
-        resp = lambda_handler(event, None)
-        assert resp['statusCode'] == 400
+    # Assert the produced image is the same as the expected
+    actual = AICSImage(base64.b64decode(body['thumbnail'])).reader.data
+    expected = AICSImage(data_dir / expected_thumb).reader.data
+    assert np.array_equal(actual, expected)
