@@ -15,7 +15,6 @@ import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
-import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import parseSearch from 'utils/parseSearch'
@@ -27,9 +26,7 @@ import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
-const Counts = ({ analyticsBucket, bucket, name }) => {
-  const s3req = AWS.S3.useRequest()
-  const today = React.useMemo(() => new Date(), [])
+const Counts = ({ counts, total }) => {
   const [cursor, setCursor] = React.useState(null)
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -38,103 +35,65 @@ const Counts = ({ analyticsBucket, bucket, name }) => {
   const sparklineW = xs ? 176 : sm ? 300 : 400
   const sparklineH = xs ? 32 : 40
   return (
-    <Data
-      fetch={requests.pkgAccessCounts}
-      params={{ s3req, analyticsBucket, bucket, name, today }}
-    >
-      {(res) => (
-        <>
-          <M.Fade in={AsyncResult.Pending.is(res)}>
-            <M.Box position="absolute" right={16} bottom={16}>
-              <Delay>
-                {() => (
-                  <M.Fade in appear>
-                    <M.CircularProgress />
-                  </M.Fade>
-                )}
-              </Delay>
-            </M.Box>
-          </M.Fade>
-
-          <M.Fade in={AsyncResult.Ok.is(res)}>
-            <M.Box position="absolute" right={0} top={0} bottom={0}>
-              {AsyncResult.case(
-                {
-                  Ok: ({ counts, total }) => (
-                    <>
-                      <M.Box position="absolute" right={16} top={16}>
-                        <M.Typography
-                          variant="body2"
-                          color={cursor === null ? 'textSecondary' : 'textPrimary'}
-                          component="span"
-                          noWrap
-                        >
-                          {cursor === null
-                            ? 'Total views'
-                            : dateFns.format(counts[cursor].date, `MMM Do`)}
-                          :
-                        </M.Typography>
-                        <M.Box
-                          component="span"
-                          textAlign="right"
-                          ml={1}
-                          minWidth={30}
-                          display="inline-block"
-                        >
-                          <M.Typography
-                            variant="subtitle2"
-                            color={cursor === null ? 'textSecondary' : 'textPrimary'}
-                            component="span"
-                          >
-                            {readableQuantity(
-                              cursor === null ? total : counts[cursor].value,
-                            )}
-                          </M.Typography>
-                        </M.Box>
-                      </M.Box>
-                      <Sparkline
-                        boxProps={{
-                          position: 'absolute',
-                          right: 0,
-                          bottom: 0,
-                          width: sparklineW,
-                          height: sparklineH,
-                        }}
-                        data={R.pluck('value', counts)}
-                        onCursor={setCursor}
-                        width={sparklineW}
-                        height={sparklineH}
-                        pb={8}
-                        pt={5}
-                        px={10}
-                        extendL
-                        extendR
-                        stroke={SVG.Paint.Color(M.colors.blue[500])}
-                        fill={SVG.Paint.Server(
-                          <linearGradient>
-                            <stop offset="0" stopColor={fade(M.colors.blue[500], 0)} />
-                            <stop
-                              offset="30%"
-                              stopColor={fade(M.colors.blue[500], 0.3)}
-                            />
-                          </linearGradient>,
-                        )}
-                        contourThickness={1.5}
-                        cursorLineExtendUp={false}
-                        cursorCircleR={3}
-                        cursorCircleFill={SVG.Paint.Color(M.colors.common.white)}
-                      />
-                    </>
-                  ),
-                  _: () => null,
-                },
-                res,
-              )}
-            </M.Box>
-          </M.Fade>
-        </>
-      )}
-    </Data>
+    <M.Box position="absolute" right={0} top={0} bottom={0}>
+      <M.Box position="absolute" right={16} top={16}>
+        <M.Typography
+          variant="body2"
+          color={cursor === null ? 'textSecondary' : 'textPrimary'}
+          component="span"
+          noWrap
+        >
+          {cursor === null
+            ? 'Total views'
+            : dateFns.format(counts[cursor].date, `MMM Do`)}
+          :
+        </M.Typography>
+        <M.Box
+          component="span"
+          textAlign="right"
+          ml={1}
+          minWidth={30}
+          display="inline-block"
+        >
+          <M.Typography
+            variant="subtitle2"
+            color={cursor === null ? 'textSecondary' : 'textPrimary'}
+            component="span"
+          >
+            {readableQuantity(cursor === null ? total : counts[cursor].value)}
+          </M.Typography>
+        </M.Box>
+      </M.Box>
+      <Sparkline
+        boxProps={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: sparklineW,
+          height: sparklineH,
+        }}
+        data={R.pluck('value', counts)}
+        onCursor={setCursor}
+        width={sparklineW}
+        height={sparklineH}
+        pb={8}
+        pt={5}
+        px={10}
+        extendL
+        extendR
+        stroke={SVG.Paint.Color(M.colors.blue[500])}
+        fill={SVG.Paint.Server(
+          <linearGradient>
+            <stop offset="0" stopColor={fade(M.colors.blue[500], 0)} />
+            <stop offset="30%" stopColor={fade(M.colors.blue[500], 0.3)} />
+          </linearGradient>,
+        )}
+        contourThickness={1.5}
+        cursorLineExtendUp={false}
+        cursorCircleR={3}
+        cursorCircleFill={SVG.Paint.Color(M.colors.common.white)}
+      />
+    </M.Box>
   )
 }
 
@@ -168,8 +127,7 @@ const usePackageStyles = M.makeStyles((t) => ({
   },
 }))
 
-const Package = ({ name, modified, revisions, revisionsTruncated, bucket }) => {
-  const { analyticsBucket } = Config.useConfig()
+const Package = ({ name, modified, revisions, revisionsTruncated, bucket, views }) => {
   const { urls } = NamedRoutes.use()
   const classes = usePackageStyles()
   const t = M.useTheme()
@@ -197,15 +155,14 @@ const Package = ({ name, modified, revisions, revisionsTruncated, bucket }) => {
           {modified ? <FormattedRelative value={modified} /> : '[unknown: see console]'}
         </M.Typography>
       </M.Box>
-      {!!analyticsBucket && <Counts {...{ analyticsBucket, bucket, name }} />}
+      {!!views && <Counts {...views} />}
     </M.Paper>
   )
 }
 
 const SORT_OPTIONS = [
   { key: 'name', label: 'Name', by: R.prop('name') },
-  // TODO: make this work after moving counts fetching to the package listing function
-  { key: 'views', label: 'Views', by: () => 1 },
+  { key: 'views', label: 'Views', by: (p) => (p.views && -p.views.total) || 0 },
   { key: 'modified', label: 'Updated', by: (p) => -p.modified },
 ]
 
@@ -238,7 +195,7 @@ const SortDropdown = ({ value, options, makeSortUrl }) => {
     setAnchor(null)
   }, [setAnchor])
 
-  const selected = SORT_OPTIONS.find((o) => o.key === value)
+  const selected = getSort(value)
 
   return (
     <>
@@ -529,8 +486,13 @@ export default ({
   const { filter, sort, p } = parseSearch(location.search)
   const page = p && parseInt(p, 10)
   const s3req = AWS.S3.useRequest()
+  const { analyticsBucket } = Config.useConfig()
+  const today = React.useMemo(() => new Date(), [])
   return (
-    <Data fetch={requests.listPackages} params={{ s3req, bucket }}>
+    <Data
+      fetch={requests.listPackages}
+      params={{ s3req, analyticsBucket, bucket, today }}
+    >
       {AsyncResult.case({
         _: () => (
           <M.Box display="flex" pt={5} justifyContent="center">
