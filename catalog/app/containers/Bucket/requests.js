@@ -530,21 +530,6 @@ export const objectAccessCounts = ({ s3req, analyticsBucket, bucket, path, today
     window: 365,
   })
 
-export const pkgAccessCounts = ({ s3req, analyticsBucket, bucket, name, today }) =>
-  queryAccessCounts({
-    s3req,
-    analyticsBucket,
-    type: 'Packages',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND name = '${sqlEscape(name)}'
-    `,
-    today,
-    window: 30,
-  })
-
 export const pkgVersionAccessCounts = ({
   s3req,
   analyticsBucket,
