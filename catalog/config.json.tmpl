@@ -1,0 +1,19 @@
+"suggestedBuckets": [
+            "${QuiltBucketName}"
+        ],
+        "apiGatewayEndpoint": "https://${Api}.execute-api.${AWS::Region}.amazonaws.com/prod",
+        "alwaysRequiresAuth": True,
+        "defaultBucket": "${QuiltBucketName}",
+        "s3Proxy": "https://${S3ProxyHost}",
+        "intercomAppId": "${IntercomAppId}",
+        "registryUrl": "https://${RegistryHost}",
+        "signInRedirect": "/",
+        "signOutRedirect": "/",
+        "passwordAuth": "${PasswordAuth}",
+        "ssoAuth": "${SsoAuth}",
+        "ssoProviders": "${SsoProviders}",
+        "googleClientId": "${GoogleClientId}",
+        "sentryDSN": "${SentryDSN}",
+        "mixpanelToken": "${MixPanelToken}",
+        "analyticsBucket": "${AnalyticsBucket}"
+    }
