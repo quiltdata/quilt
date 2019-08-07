@@ -27,5 +27,14 @@ RUN npm install
 COPY . .
 COPY config.json.example static/config.json
 COPY federation.json.example static/federation.json
-RUN npm run build:dll
+RUN npm run build
 CMD npm start
+
+# Set up nginx
+COPY nginx-web.conf /etc/nginx/sites-available/default
+RUN rm -rf /usr/share/nginx/html
+RUN cp -r /opt/app/build/ /usr/share/nginx/html/
+
+# Substitute environment variables into config.js before starting nginx.
+# Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
+CMD envsubst < config.js.tmpl > /usr/share/nginx/html/config.js && exec nginx -g 'daemon off;'
