@@ -21,6 +21,8 @@ from .util import (
     parse_s3_url, validate_package_name, quiltignore_filter, validate_key
 )
 
+DO_NOT_HASH = "DO_NOT_HASH"
+
 
 def hash_file(readable_file):
     """ Returns SHA256 hash of readable file-like object """
@@ -124,6 +126,8 @@ class PackageEntry(object):
         """
         if self.hash is None:
             raise QuiltException("Hash missing - need to build the package")
+        if self.hash.get('type') == DO_NOT_HASH:
+            return
         if self.hash.get('type') != 'SHA256':
             raise NotImplementedError
         digest = hashlib.sha256(read_bytes).hexdigest()
@@ -572,6 +576,8 @@ class Package(object):
             path(string): path to scan for files to add to package.
                 If None, lkey will be substituted in as the path.
             meta(dict): user level metadata dict to attach to lkey directory entry.
+            hash({'type': string, 'value': string}): hash object applied to every entry in the dir.
+                Intended to flag fields as unhashable with {'type': 'DO_NOT_HASH', 'value': ''}}
 
         Returns:
             self
@@ -609,7 +615,7 @@ class Package(object):
             for f in files:
                 if not f.is_file():
                     continue
-                entry = PackageEntry([f.as_uri()], f.stat().st_size, None, None)
+                entry = PackageEntry([f.as_uri()], f.stat().st_size, hash, None)
                 logical_key = f.relative_to(src_path).as_posix()
                 root.set(logical_key, entry)
         elif url.scheme == 's3':
@@ -623,7 +629,7 @@ class Package(object):
                 if not obj['IsLatest']:
                     continue
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
-                entry = PackageEntry([obj_url], obj['Size'], None, None)
+                entry = PackageEntry([obj_url], obj['Size'], hash, None)
                 logical_key = obj['Key'][len(src_key):]
                 root.set(logical_key, entry)
         else:
@@ -834,7 +840,7 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None):
+    def set(self, logical_key, entry=None, meta=None, hash=None):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -844,6 +850,9 @@ class Package(object):
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
             meta(dict): user level metadata dict to attach to entry
+            hash({'type': string, 'value': string}): hash object applied to every entry
+                Intended to flag fields as unhashable with {'type': 'DO_NOT_HASH', 'value': ''}}
+                Can also be used to explicitly pass a known hash to avoid rehashing
 
         Returns:
             self
@@ -871,7 +880,7 @@ class Package(object):
                 bucket, key, current_version = parse_s3_url(parsed_url)
                 if not current_version and version:
                     url = make_s3_url(bucket, key, version)
-            entry = PackageEntry([url], size, None, orig_meta)
+            entry = PackageEntry([url], size, hash, orig_meta)
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
         else:
