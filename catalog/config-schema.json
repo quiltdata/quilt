@@ -61,10 +61,6 @@
       "type": "string",
       "pattern": "^(google)?|(\\$\\{\\w+\\})$",
       "description": "Space-separated list of SSO providers (must support template substitution)."
-    },
-    "suggestedBuckets": {
-      "type": "array",
-      "description": "List of buckets you want to appear in the dropdown menu in your catalog."
     }
   },
   "required": [
@@ -78,8 +74,7 @@
     "signInRedirect",
     "signOutRedirect",
     "ssoAuth",
-    "ssoProviders",
-    "suggestedBuckets"
+    "ssoProviders"
   ],
   "additionalProperties": false,
   "definitions": {

@@ -6,7 +6,6 @@ import * as React from 'react'
 import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import CircularProgress from '@material-ui/core/CircularProgress'
-import Divider from '@material-ui/core/Divider'
 import Input from '@material-ui/core/Input'
 import InputAdornment from '@material-ui/core/InputAdornment'
 import ListItemText from '@material-ui/core/ListItemText'
@@ -18,12 +17,9 @@ import { ThemeProvider, makeStyles, withStyles } from '@material-ui/styles'
 
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
-
-const DIVIDER = '<DIVIDER>'
 
 const NavInput = RT.composeComponent(
   'NavBar.BucketSelect.NavInput',
@@ -95,7 +91,6 @@ export default RT.composeComponent(
   ({ autoFocus = false, cancel }) => {
     const currentBucket = BucketConfig.useCurrentBucket()
     const bucketConfigs = BucketConfig.useBucketConfigs()
-    const { suggestedBuckets } = Config.useConfig()
     const classes = useStyles()
     const dispatch = reduxHook.useDispatch()
     const { urls } = NamedRoutes.use()
@@ -103,15 +98,7 @@ export default RT.composeComponent(
     const [value, setValue] = React.useState('')
     const [anchor, setAnchor] = React.useState()
 
-    const suggestions = React.useMemo(
-      () => suggestedBuckets.filter((s) => s === DIVIDER || !!bucketConfigs[s]),
-      [suggestedBuckets, bucketConfigs],
-    )
-
-    const buckets = React.useMemo(
-      () => suggestedBuckets.filter((s) => !!bucketConfigs[s]),
-      [suggestedBuckets, bucketConfigs],
-    )
+    const buckets = Object.keys(bucketConfigs)
 
     const nextSuggestion = React.useCallback(() => {
       setValue(getBucketCycled(buckets, value, 1) || '')
@@ -196,9 +183,7 @@ export default RT.composeComponent(
         >
           <Paper>
             <MenuList>
-              {suggestions.map((s, i) => {
-                // eslint-disable-next-line react/no-array-index-key
-                if (s === DIVIDER) return <Divider key={`${s}:${i}`} />
+              {buckets.map((s) => {
                 const b = bucketConfigs[s]
                 return (
                   <MenuItem
