@@ -363,7 +363,6 @@ const mergeHits = R.pipe(
               score,
               updated: new Date(src.updated),
               size: src.size,
-              type: src.type,
               meta: src.user_meta,
             },
           ],
@@ -377,8 +376,10 @@ const mergeHits = R.pipe(
 
 export const search = async ({ es, query }) => {
   try {
-    const result = await es(query, {
-      _source: 'key,size,type,updated,user_meta,version_id',
+    const result = await es({
+      query,
+      fields: ['content', 'comment', 'key_text', 'meta_text'],
+      _source: ['key', 'version_id', 'updated', 'size', 'user_meta'],
     })
     const hits = mergeHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
