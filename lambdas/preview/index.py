@@ -26,7 +26,7 @@ MAX_BYTES = 1024*1024
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
-S3_DOMAIN_SUFFIX = '.s3.amazonaws.com'
+S3_DOMAIN_SUFFIX = '.amazonaws.com'
 
 FILE_EXTENSIONS = ["csv", "excel", "ipynb", "parquet", "vcf"]
 # BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
