@@ -26,7 +26,7 @@ RUN npm install
 
 # Install the app
 COPY . .
-COPY config.json.example config.json.tmpl
+COPY config.json.tmpl config.json.tmpl
 COPY federation.json.example static/federation.json
 RUN npm run build
 CMD npm start
