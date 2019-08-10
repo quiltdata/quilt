@@ -1,6 +1,5 @@
 import * as React from 'react'
-import { unstable_Box as Box } from '@material-ui/core/Box'
-import CircularProgress from '@material-ui/core/CircularProgress'
+import { Box, CircularProgress } from '@material-ui/core'
 
 import Delay from 'utils/Delay'
 

@@ -20,6 +20,8 @@ export class AccessDenied extends BucketError {}
 
 export class CORSError extends BucketError {}
 
+export class NoSuchBucket extends BucketError {}
+
 const WhenAuth = connect(
   createStructuredSelector({
     authenticated: Auth.selectors.authenticated,
@@ -61,6 +63,12 @@ const defaultHandlers = [
         </StyledLink>
         .
       </Message>
+    ),
+  ],
+  [
+    R.is(NoSuchBucket),
+    () => (
+      <Message headline="No Such Bucket">The specified bucket does not exist.</Message>
     ),
   ],
   [

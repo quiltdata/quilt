@@ -9,6 +9,7 @@ import Spinner from 'components/Spinner'
 import messages from './messages'
 
 const Faint = styled('h1')({
+  fontWeight: 'lighter',
   opacity: 0.6,
 })
 

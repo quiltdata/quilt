@@ -9,8 +9,8 @@ import {
   withStateHandlers,
 } from 'recompose'
 import uuid from 'uuid/v1'
+import { colors } from '@material-ui/core'
 
-import { bodyColor } from 'constants/style'
 import { composeComponent } from 'utils/reactTools'
 
 const dataToPoints = (data, { width = 1, height = 1, padding = 0 } = {}) => {
@@ -55,7 +55,7 @@ export default composeComponent(
     fill: true,
     width: 200,
     height: 20,
-    color: bodyColor,
+    color: colors.grey[900],
     contourThickness: 1,
     cursorLineThickness: 1,
     cursorCircleR: 1.5,

@@ -3,13 +3,13 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link } from 'react-router-dom'
 import {
+  Box,
   Card,
   CardContent,
   CircularProgress,
   Typography,
   colors,
 } from '@material-ui/core'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 import { makeStyles, withStyles } from '@material-ui/styles'
 
 import Sparkline from 'components/Sparkline'

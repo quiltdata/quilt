@@ -20,6 +20,12 @@ const catchErrors = (pairs = []) =>
         throw new errors.AccessDenied()
       },
     ],
+    [
+      R.propEq('code', 'NoSuchBucket'),
+      () => {
+        throw new errors.NoSuchBucket()
+      },
+    ],
     ...pairs,
     [
       R.T,

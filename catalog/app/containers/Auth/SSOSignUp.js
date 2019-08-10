@@ -5,7 +5,6 @@ import { Redirect } from 'react-router-dom'
 import { reduxForm, Field, SubmissionError } from 'redux-form/es/immutable'
 import * as reduxHook from 'redux-react-hook'
 import * as M from '@material-ui/core'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import { push as notify } from 'containers/Notifications/actions'
 import * as Config from 'utils/Config'
@@ -157,7 +156,7 @@ export default ({ location: { search } }) => {
               <M.Button onClick={back} variant="outlined" disabled={submitting}>
                 <FM {...msg.ssoSignUpCancel} />
               </M.Button>
-              <Box mr={2} />
+              <M.Box mr={2} />
               <Layout.Submit
                 label={<FM {...msg.signUpSubmit} />}
                 disabled={submitting || (submitFailed && invalid)}
