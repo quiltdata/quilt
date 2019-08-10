@@ -41,7 +41,6 @@ const versionShape = PT.shape({
   id: PT.string.isRequired,
   updated: PT.instanceOf(Date).isRequired,
   size: PT.number.isRequired,
-  type: PT.string.isRequired,
   meta: PT.any,
 })
 

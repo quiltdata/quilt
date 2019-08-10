@@ -9,12 +9,9 @@ import * as M from '@material-ui/core'
 
 import * as style from 'constants/style'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as Config from 'utils/Config'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
-
-const DIVIDER = '<DIVIDER>'
 
 const NavInput = RT.composeComponent(
   'NavBar.BucketSelect.NavInput',
@@ -118,7 +115,6 @@ export default withForwardedRef()(
     ({ autoFocus = false, cancel, forwardedRef, ...props }) => {
       const currentBucket = BucketConfig.useCurrentBucket()
       const bucketConfigs = BucketConfig.useBucketConfigs()
-      const { suggestedBuckets } = Config.useConfig()
       const classes = useStyles()
       const dispatch = reduxHook.useDispatch()
       const { urls } = NamedRoutes.use()
@@ -134,15 +130,7 @@ export default withForwardedRef()(
         },
       }))
 
-      const suggestions = React.useMemo(
-        () => suggestedBuckets.filter((s) => s === DIVIDER || !!bucketConfigs[s]),
-        [suggestedBuckets, bucketConfigs],
-      )
-
-      const buckets = React.useMemo(
-        () => suggestedBuckets.filter((s) => !!bucketConfigs[s]),
-        [suggestedBuckets, bucketConfigs],
-      )
+      const buckets = Object.keys(bucketConfigs)
 
       const nextSuggestion = React.useCallback(() => {
         setValue(getBucketCycled(buckets, value, 1) || '')
@@ -240,11 +228,7 @@ export default withForwardedRef()(
                 <M.Fade {...TransitionProps} timeout={350}>
                   <M.Paper className={classes.paper}>
                     <M.MenuList>
-                      {suggestions.map((s, i) => {
-                        if (s === DIVIDER) {
-                          // eslint-disable-next-line react/no-array-index-key
-                          return <M.Divider key={`${s}:${i}`} component="li" />
-                        }
+                      {buckets.map((s) => {
                         const b = bucketConfigs[s]
                         return (
                           <M.MenuItem

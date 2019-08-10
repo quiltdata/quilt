@@ -1,0 +1,62 @@
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>0</th>
+      <th>19790101</th>
+      <th>197901</th>
+      <th>1979</th>
+      <th>1979.0027</th>
+      <th>Unnamed: 5</th>
+      <th>Unnamed: 6</th>
+      <th>Unnamed: 7</th>
+      <th>Unnamed: 8</th>
+      <th>Unnamed: 9</th>
+      <th>Unnamed: 10</th>
+      <th>Unnamed: 11</th>
+      <th>Unnamed: 12</th>
+      <th>Unnamed: 13</th>
+      <th>Unnamed: 14</th>
+      <th>AFR</th>
+      <th>AFRICA</th>
+      <th>AFR.1</th>
+      <th>Unnamed: 18</th>
+      <th>Unnamed: 19</th>
+      <th>Unnamed: 20</th>
+      <th>Unnamed: 21</th>
+      <th>Unnamed: 22</th>
+      <th>Unnamed: 23</th>
+      <th>Unnamed: 24</th>
+      <th>1</th>
+      <th>040</th>
+      <th>040.1</th>
+      <th>04</th>
+      <th>1.1</th>
+      <th>1.2</th>
+      <th>9</th>
+      <th>1.3</th>
+      <th>9.1</th>
+      <th>5.52631578947368</th>
+      <th>Unnamed: 35</th>
+      <th>Unnamed: 36</th>
+      <th>Unnamed: 37</th>
+      <th>Unnamed: 38</th>
+      <th>0.1</th>
+      <th>0.2</th>
+      <th>0.3</th>
+      <th>Unnamed: 42</th>
+      <th>Unnamed: 43</th>
+      <th>Unnamed: 44</th>
+      <th>Unnamed: 45</th>
+      <th>0.4</th>
+      <th>0.5</th>
+      <th>0.6</th>
+      <th>Unnamed: 49</th>
+      <th>Unnamed: 50</th>
+      <th>Unnamed: 51</th>
+      <th>Unnamed: 52</th>
+      <th>0.7</th>
+      <th>0.8</th>
+      <th>Unnamed: 55</th>
+      <th>20130203</th>
+    </tr>
+  </thead>

@@ -16,7 +16,7 @@ $ pip install quilt3
 If you wish to use AWS resources, such as S3 buckets, you will need valid AWS credentials. If this is your first time using the AWS CLI, run the following:
 
 ```bash
-$ pip install aws-cli
+$ pip install awscli
 $ aws configure
 ```
 

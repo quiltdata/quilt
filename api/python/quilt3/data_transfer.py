@@ -7,6 +7,7 @@ import platform
 import shutil
 from threading import Lock
 from urllib.parse import quote, unquote, urlparse
+import warnings
 
 from botocore import UNSIGNED
 from botocore.client import Config

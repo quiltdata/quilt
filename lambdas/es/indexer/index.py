@@ -91,6 +91,7 @@ class DocumentQueue:
             version_id
     ):
         """format event as a document and then queue the document"""
+        derived_meta = transform_meta(meta or {})
         # On types and fields, see
         # https://www.elastic.co/guide/en/elasticsearch/reference/master/mapping.html
         body = {
@@ -103,20 +104,22 @@ class DocumentQueue:
             # Quilt keys
             # Be VERY CAREFUL changing these values, as a type change can cause a
             # mapper_parsing_exception that below code won't handle
+            "comment": derived_meta["comment"],
+            "content": text,# field for full-text search
             "etag": etag,
-            "ext": ext,
             "event": event_type,
-            "size": size,
-            "text": text,
+            "ext": ext,
             "key": key,
+            #"key_text": created by mappings copy_to
             "last_modified": last_modified.isoformat(),
+            "meta_text": derived_meta["meta_text"],
+            "size": size,
+            "system_meta": derived_meta["system_meta"],
+            "target": derived_meta["target"],
             "updated": datetime.utcnow().isoformat(),
+            "user_meta": derived_meta["user_meta"],
             "version_id": version_id
         }
-
-        body = {**body, **transform_meta(meta or {})}
-
-        body["meta_text"] = " ".join([body["meta_text"], key])
 
         self.append_document(body)
 
@@ -125,7 +128,7 @@ class DocumentQueue:
 
     def append_document(self, doc):
         """append well-formed documents (used for retry or by append())"""
-        if doc["text"]:
+        if doc["content"]:
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
             self.size += min(doc["size"], DOC_LIMIT_BYTES)
@@ -192,7 +195,7 @@ class DocumentQueue:
             if send_again:
                 _, errors = bulk_send(elastic, send_again)
                 if errors:
-                    raise Exception("Failed to load messages into Elastic on second retry.")                    
+                    raise Exception("Failed to load messages into Elastic on second retry.")
             # empty the queue
         self.size = 0
         self.queue = []
@@ -206,7 +209,7 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                 # we have no choice but to fetch the entire notebook, because we
                 # are going to parse it
                 # warning: huge notebooks could spike memory here
-                get_notebook_cells(                    
+                get_notebook_cells(
                     bucket,
                     key,
                     size,

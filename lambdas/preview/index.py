@@ -26,7 +26,12 @@ MAX_BYTES = 1024*1024
 MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
-S3_DOMAIN_SUFFIX = '.s3.amazonaws.com'
+S3_DOMAIN_SUFFIX = '.amazonaws.com'
+
+FILE_EXTENSIONS = ["csv", "excel", "ipynb", "parquet", "vcf"]
+# BED https://genome.ucsc.edu/FAQ/FAQformat.html#format1
+TEXT_TYPES = ["bed", "txt"]
+FILE_EXTENSIONS.extend(TEXT_TYPES)
 
 SCHEMA = {
     'type': 'object',
@@ -49,7 +54,7 @@ SCHEMA = {
             'type': 'string',
         },
         'input': {
-            'enum': ['csv', 'excel', 'ipynb', 'parquet', 'txt', 'vcf']
+            'enum': FILE_EXTENSIONS
         },
         'exclude_output': {
             'enum': ['true', 'false']
@@ -113,7 +118,7 @@ def lambda_handler(request):
             html, info = extract_parquet(_to_memory(resp, compression))
         elif input_type == 'vcf':
             html, info = extract_vcf(_from_stream(resp, compression, line_count, max_bytes))
-        elif input_type == 'txt':
+        elif input_type in TEXT_TYPES:
             html, info = extract_txt(_from_stream(resp, compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
@@ -146,10 +151,19 @@ def extract_csv(head, separator):
     import pandas
     import re
     # this shouldn't balloon memory because head is limited in size by _from_stream
-    data = pandas.read_csv(
-        io.StringIO('\n'.join(head)),
-        sep=separator
-    )
+    try:
+        data = pandas.read_csv(
+            io.StringIO('\n'.join(head)),
+            sep=separator
+        )
+    # ParserError happens when TSVs are labeled CSVs and/or columns have mixed types
+    except pandas.errors.ParserError:
+        data = pandas.read_csv(
+            io.StringIO('\n'.join(head)),
+            # this slower (doesn't use C) but deduces the separator
+            sep=None
+        )
+
     html = data._repr_html_() # pylint: disable=protected-access
     html = re.sub(
         r'(</table>\n<p>)\d+ rows × \d+ columns(</p>\n</div>)$',
@@ -286,7 +300,6 @@ def extract_vcf(head):
             data.append(columns)
     info = {
         'data': {
-            # ignore b/c we might snap a multi-byte unicode character in two
             'meta': meta,
             'header': header,
             'data': data
@@ -319,36 +332,47 @@ def extract_txt(head):
 
     return '', info
 
-def _from_stream(response, compression, line_count, max_bytes):
+def _from_stream(response, compression, max_lines, max_bytes):
     """
     for files we can read in a streaming manner
     """
     buffer = []
     size = 0
+    line_count = 0
+
     if compression:
         assert compression == 'gz', 'only gzip compression is supported'
         dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
-        for chunk in response.iter_content(chunk_size=CHUNK):
-            piece = dec.decompress(chunk)
-            # if piece is not ready for decode, zlib will return falsy and
-            # push bytes back into buffer for future calls
-            if piece:
-                buffer.append(piece)
-                size += len(piece)
-            # TODO why are we hitting dec.eof after ~65kb of large gz files?
-            # not >= since we might get lucky and complete a line if we wait
-            if size > max_bytes or dec.eof:
-                break
-        # drop the very last line since it might not be complete
-        buffer = b''.join(buffer).split(b'\n', line_count)[:-1]
     else:
-        for i, line in enumerate(response.iter_lines()):
-            if i >= line_count or size >= max_bytes:
-                break
-            buffer.append(line)
-            size += len(line)
+        dec = None
 
-    return [l.decode('utf-8', 'ignore') for l in buffer]
+    for chunk in response.iter_content(chunk_size=CHUNK):
+        if dec:
+            chunk = dec.decompress(chunk)
+
+        buffer.append(chunk)
+        size += len(chunk)
+        line_count += chunk.count(b'\n')
+
+        # TODO why are we hitting dec.eof after ~65kb of large gz files?
+        # not >= since we might get lucky and complete a line if we wait
+        if size > max_bytes or line_count > max_lines or (dec and dec.eof):
+            break
+
+    lines = b''.join(buffer).splitlines()
+
+    # If we stopped because of max_bytes, then drop the last, possibly incomplete line -
+    # as long as we have more than one line.
+    if size > max_bytes and len(lines) > 1:
+        lines.pop()
+
+    # Drop any lines over the max.
+    del lines[max_lines:]
+
+    # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
+    # but we don't really care.
+
+    return [l.decode('utf-8', 'ignore') for l in lines]
 
 def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
     """
