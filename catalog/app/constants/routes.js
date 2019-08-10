@@ -86,7 +86,8 @@ export const bucketOverview = {
 }
 export const bucketPackageList = {
   path: '/b/:bucket/packages/',
-  url: (bucket) => `/b/${bucket}/packages/`,
+  url: (bucket, { filter, sort, p } = {}) =>
+    `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
