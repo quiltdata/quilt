@@ -369,7 +369,6 @@ def list_packages(registry=None):
                     pkg_hashes.append(pkg_hash)
                     pkg_display_names.append(pkg_display_name)
 
-                    print(f"SINDELARTEST: pkg_name: {pkg_name} pkg_display_name: {pkg_display_name} ")
                     pkg = Package.browse(
                         pkg_name, top_hash=pkg_hash, registry='s3://' + bucket_name
                     )
