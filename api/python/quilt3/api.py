@@ -304,8 +304,9 @@ def list_packages(registry=None):
                     {'pkg_name': pkg_display_name, 'top_hash': top_hash,
                      'ctime': ctime, 'size': size}
                 )
-
     elif registry_scheme == 's3':
+        print("sindelarTest")
+
         bucket_name, bucket_registry_path, _ = parse_s3_url(named_packages_urlparse)
         bucket_registry_path = bucket_registry_path + '/'
 
@@ -322,7 +323,7 @@ def list_packages(registry=None):
             raw_pkg_names = [pkg_name['Prefix'] for pkg_name in raw_pkg_names]
 
             # go through packages to get package hash files
-            for pkg_name in raw_pkg_names:
+            for raw_pkg_name in raw_pkg_names:
                 pkg_hashes = []
                 pkg_sizes = []
                 pkg_ctimes = []
@@ -330,9 +331,12 @@ def list_packages(registry=None):
 
                 _, pkg_hashfiles = list_objects(
                     bucket_name,
-                    pkg_name,
+                    raw_pkg_name,
                     recursive=False
                 )
+
+                # Trim registry prefix from path
+                pkg_name = raw_pkg_name[len(bucket_registry_path):].strip('/')
 
                 latest_hashfile = next(hf for hf in pkg_hashfiles if '/latest' in hf['Key'])['Key']
                 latest_hashfile_fullpath = f's3://{bucket_name}/{latest_hashfile}'
@@ -356,7 +360,7 @@ def list_packages(registry=None):
 
                 # go through manifest files to get package info
                 for pkg_hash_path in pkg_hash_paths:
-                    pkg_display_name = pkg_name[len(bucket_registry_path):].strip('/')
+                    pkg_display_name = pkg_name # pkg_name[len(bucket_registry_path):].strip('/')
 
                     pkg_hash, _ = get_bytes('s3://' + bucket_name + '/' + pkg_hash_path)
                     pkg_hash = pkg_hash.decode()
@@ -367,6 +371,7 @@ def list_packages(registry=None):
                     pkg_hashes.append(pkg_hash)
                     pkg_display_names.append(pkg_display_name)
 
+                    print(f"SINDELARTEST: pkg_name: {pkg_name} pkg_display_name: {pkg_display_name} ")
                     pkg = Package.browse(
                         pkg_name, top_hash=pkg_hash, registry='s3://' + bucket_name
                     )
