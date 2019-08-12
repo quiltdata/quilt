@@ -305,8 +305,6 @@ def list_packages(registry=None):
                      'ctime': ctime, 'size': size}
                 )
     elif registry_scheme == 's3':
-        print("sindelarTest")
-
         bucket_name, bucket_registry_path, _ = parse_s3_url(named_packages_urlparse)
         bucket_registry_path = bucket_registry_path + '/'
 
@@ -360,7 +358,7 @@ def list_packages(registry=None):
 
                 # go through manifest files to get package info
                 for pkg_hash_path in pkg_hash_paths:
-                    pkg_display_name = pkg_name # pkg_name[len(bucket_registry_path):].strip('/')
+                    pkg_display_name = pkg_name
 
                     pkg_hash, _ = get_bytes('s3://' + bucket_name + '/' + pkg_hash_path)
                     pkg_hash = pkg_hash.decode()
