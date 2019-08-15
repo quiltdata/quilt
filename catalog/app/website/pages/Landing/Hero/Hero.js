@@ -62,12 +62,19 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="h1" color="textPrimary">
-          Trust your data and models.
+          {
+            // Drive your team with data
+            // Be driven by data
+            // Become data driven
+            // Now your team is data-driven
+            // Become a data-driven team
+          }
+          Drive your team with data
         </M.Typography>
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          Quilt is continuous integration and deployment for data science.
+          Quilt is infrastructure for teams to make informed decisions
         </M.Typography>
       </M.Box>
       <M.Box mt={5}>

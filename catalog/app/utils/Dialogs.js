@@ -40,7 +40,7 @@ export const useDialogs = () => {
       onClose={close}
       onExited={cleanup}
       {...props}
-      {...dialog && dialog.props}
+      {...(dialog && dialog.props)}
     >
       {dialog ? dialog.render({ close }) : ''}
     </Dialog>
