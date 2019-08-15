@@ -12,18 +12,12 @@ import zlib
 import requests
 
 from t4_lambda_shared.decorator import api, validate
+from t4_lambda_shared.preview import get_preview_lines, MAX_BYTES, MAX_LINES
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
 # response.content.iter_content()
 CHUNK = 1024*8
-# MAX_BYTES is bytes scanned, so functions as an upper bound on bytes returned
-# in practice we will hit MAX_LINES first
-# we need a largish number for things like VCF where we will discard many bytes
-# Only applied to _from_stream() types. _to_memory types are size limited either
-# by pandas or by exclude_output='true'
-MAX_BYTES = 1024*1024
-MAX_LINES = 512 # must be positive int
 MIN_VCF_COLS = 8 # per 4.2 spec on header and data lines
 
 S3_DOMAIN_SUFFIX = '.amazonaws.com'
@@ -107,7 +101,7 @@ def lambda_handler(request):
     if resp.ok:
         if input_type == 'csv':
             html, info = extract_csv(
-                _from_stream(resp, compression, line_count, max_bytes),
+                get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes),
                 separator
             )
         elif input_type == 'excel':
@@ -117,9 +111,9 @@ def lambda_handler(request):
         elif input_type == 'parquet':
             html, info = extract_parquet(_to_memory(resp, compression))
         elif input_type == 'vcf':
-            html, info = extract_vcf(_from_stream(resp, compression, line_count, max_bytes))
+            html, info = extract_vcf(get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes))
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(_from_stream(resp, compression, line_count, max_bytes))
+            html, info = extract_txt(get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -150,7 +144,7 @@ def extract_csv(head, separator):
     # doing this locally because it might be slow
     import pandas
     import re
-    # this shouldn't balloon memory because head is limited in size by _from_stream
+    # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
         data = pandas.read_csv(
             io.StringIO('\n'.join(head)),
@@ -331,48 +325,6 @@ def extract_txt(head):
     }
 
     return '', info
-
-def _from_stream(response, compression, max_lines, max_bytes):
-    """
-    for files we can read in a streaming manner
-    """
-    buffer = []
-    size = 0
-    line_count = 0
-
-    if compression:
-        assert compression == 'gz', 'only gzip compression is supported'
-        dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
-    else:
-        dec = None
-
-    for chunk in response.iter_content(chunk_size=CHUNK):
-        if dec:
-            chunk = dec.decompress(chunk)
-
-        buffer.append(chunk)
-        size += len(chunk)
-        line_count += chunk.count(b'\n')
-
-        # TODO why are we hitting dec.eof after ~65kb of large gz files?
-        # not >= since we might get lucky and complete a line if we wait
-        if size > max_bytes or line_count > max_lines or (dec and dec.eof):
-            break
-
-    lines = b''.join(buffer).splitlines()
-
-    # If we stopped because of max_bytes, then drop the last, possibly incomplete line -
-    # as long as we have more than one line.
-    if size > max_bytes and len(lines) > 1:
-        lines.pop()
-
-    # Drop any lines over the max.
-    del lines[max_lines:]
-
-    # We may still be over max_bytes at this point, up to max_bytes + CHUNK,
-    # but we don't really care.
-
-    return [l.decode('utf-8', 'ignore') for l in lines]
 
 def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
     """
