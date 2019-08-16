@@ -36,7 +36,12 @@ class TestIndex(TestCase):
         self.s3_stubber = Stubber(self.s3_client)
         self.s3_stubber.activate()
 
-        self.env_patcher = patch.dict(os.environ, {'ES_HOST': 'example.com'})
+        self.env_patcher = patch.dict(os.environ, {
+            'ES_HOST': 'example.com',
+            'AWS_ACCESS_KEY_ID': 'test_key',
+            'AWS_SECRET_ACCESS_KEY': 'test_secret',
+            'AWS_DEFAULT_REGION': 'ng-north-1',
+        })
         self.env_patcher.start()
 
     def tearDown(self):
