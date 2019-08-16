@@ -74,7 +74,9 @@ export default () => (
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          Quilt is infrastructure for teams to make informed decisions
+          Quilt is a team data hub for blob storage. Quilt consists of a web catalog, a
+          Python client (both open source), and backend services. You can search,
+          visualize, and version data of any size in any format with Quilt.
         </M.Typography>
       </M.Box>
       <M.Box mt={5}>

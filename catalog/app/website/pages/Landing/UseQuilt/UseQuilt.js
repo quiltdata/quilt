@@ -47,7 +47,7 @@ export default () => (
             account. (Services like AWS S3, Fargate, ElasticSearch, Lambda, Athena, and
             CloudTrail.) These services form the Quilt backend that powers the Quilt web
             catalog and <code>quilt3</code> Python client. Every file in Quilt is a
-            versioned S3 object protected by IAM roles.
+            versioned S3 object secured by IAM.
           </p>
         </M.Typography>
       </M.Box>

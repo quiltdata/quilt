@@ -10,7 +10,7 @@ import Layout from 'website/components/Layout'
 
 import headAneeshKarve from './team-aneesh-karve.jpg'
 import headBenGolub from './team-ben-golub.png'
-import headCalvinCochran from './team-calvin-cochran.png'
+import headMichaelSindelar from './team-michael-sindelar.jpg'
 import headDanWebster from './team-dan-webster.jpeg'
 import headDimaRyazanov from './team-dima-ryazanov.jpg'
 import headEliCollins from './team-eli-collins.jpg'
@@ -85,10 +85,19 @@ const Team = (props) => (
     <M.Container maxWidth="lg" style={{ position: 'relative' }}>
       <Heading>Team</Heading>
       <M.Box maxWidth={480} mt={3} mx="auto">
-        <M.Typography variant="body1" color="textSecondary" align="center">
-          Quilt was founded by Kevin Moore and Aneesh Karve. They have been fast friends
-          ever since they met in 2005 as graduate students in Computer Science at
-          UW-Madison.
+        <M.Typography variant="body1" color="textSecondary">
+          <p>
+            Quilt was founded by Kevin Moore and Aneesh Karve. They have been fast friends
+            ever since they met in 2005 as graduate students in Computer Science at
+            UW-Madison.
+          </p>
+          <p>
+            Quilt is seeded by Y Combinator and some of the Valley&apos;s{' '}
+            <a href="https://www.crunchbase.com/organization/quilt-data">
+              leading investors
+            </a>
+            .
+          </p>
         </M.Typography>
       </M.Box>
       <TeamMember name="Kevin Moore, CEO" head={headKevinMoore}>
@@ -121,20 +130,23 @@ const Team = (props) => (
 
       <TeamMember name="Dima Ryazanov, Sr. Software Engineer" head={headDimaRyazanov}>
         <P>
-          <A href="https://www.linkedin.com/in/dimaryazanov/">Dima</A> is a full-stack
-          engineer. He kept Gmail and Google Apps running smoothly as a Site Reliability
-          Engineer at Google. Dima went on to contribute to the developer API at Dropbox,
-          where he also worked on user growth initiatives and optimized web performance.
-          In his spare time Dima flies planes.
+          Dima is a full-stack engineer. He kept Gmail and Google Apps running smoothly as
+          a Site Reliability Engineer at Google. Dima went on to contribute to the
+          developer API at Dropbox, where he also worked on user growth initiatives and
+          optimized web performance. In his spare time Dima flies planes.
         </P>
       </TeamMember>
-      <TeamMember name="Calvin Cochran, Software Engineer" head={headCalvinCochran}>
+      <TeamMember
+        name="Michael Sindelar, Directory of Engineering"
+        head={headMichaelSindelar}
+      >
         <P>
-          Calvin is a full-stack engineer with a background in programming languages,
-          runtimes, compilers, and distributed systems. At LogDNA he built a
-          high-performance parsing framework for semi-structured strings, and helped
-          design a high-throughput, persistent, distributed message transform system. In
-          his free time Calvin plays Super Smash Bros. Melee.
+          Michael Sindelar is Director of Engineering. Before joining Quilt Data, Michael
+          developed machine learning data pipelines to predict mobility and traffic
+          patterns in cities at Sidewalk Labs, worked on core marketplace infrastructure
+          at Uber including
+          <A href="https://github.com/uber/zanzibar">Zanzibar</A>, and built systems for
+          user modeling and personalization at Google.
         </P>
       </TeamMember>
     </M.Container>

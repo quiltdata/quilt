@@ -57,7 +57,7 @@ export default () => (
         <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary" align="center">
-            Align your team around information
+            Make informed decisions as a team
           </M.Typography>
           <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
             <M.Typography variant="body1" color="textSecondary">

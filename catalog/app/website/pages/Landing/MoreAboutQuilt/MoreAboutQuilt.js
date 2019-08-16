@@ -108,7 +108,7 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5}>
         <M.Typography variant="h1" color="textPrimary">
-          More about Quilt
+          Learn more about Quilt
         </M.Typography>
       </M.Box>
     </M.Box>
