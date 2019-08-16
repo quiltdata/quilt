@@ -54,6 +54,9 @@ class TestIndex(TestCase):
         self.requests_mock.stop()
 
     def test_test_event(self):
+        """
+        Check that the indexer doesn't do anything when it gets S3 test notification.
+        """
         event = {
             "Records": [{
                 "body": json.dumps({
@@ -67,6 +70,9 @@ class TestIndex(TestCase):
         index.handler(event, None)
 
     def test_index(self):
+        """
+        Index a single text file.
+        """
         event = {
             "Records": [{
                 "body": json.dumps({
