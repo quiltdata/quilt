@@ -62,21 +62,17 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="h1" color="textPrimary">
-          {
-            // Drive your team with data
-            // Be driven by data
-            // Become data driven
-            // Now your team is data-driven
-            // Become a data-driven team
-          }
           Drive your team with data
         </M.Typography>
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          Quilt is a team data hub for blob storage. Quilt consists of a web catalog, a
-          Python client (both open source), and backend services. You can search,
-          visualize, and version data of any size in any format with Quilt.
+          <p>Quilt is a team data hub for S3</p>
+          <p>Search, visualize, version, and share data of any size.</p>
+          <p>
+            Quilt consists of a web catalog, a Python client, and cloud native backend
+            services.
+          </p>
         </M.Typography>
       </M.Box>
       <M.Box mt={5}>

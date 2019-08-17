@@ -93,9 +93,9 @@ const Team = (props) => (
           </p>
           <p>
             Quilt is seeded by Y Combinator and some of the Valley&apos;s{' '}
-            <a href="https://www.crunchbase.com/organization/quilt-data">
+            <A href="https://www.crunchbase.com/organization/quilt-data">
               leading investors
-            </a>
+            </A>
             .
           </p>
         </M.Typography>
@@ -144,9 +144,8 @@ const Team = (props) => (
           Michael Sindelar is Director of Engineering. Before joining Quilt Data, Michael
           developed machine learning data pipelines to predict mobility and traffic
           patterns in cities at Sidewalk Labs, worked on core marketplace infrastructure
-          at Uber including
-          <A href="https://github.com/uber/zanzibar">Zanzibar</A>, and built systems for
-          user modeling and personalization at Google.
+          at Uber including <A href="https://github.com/uber/zanzibar">Zanzibar</A>, and
+          built systems for user modeling and personalization at Google.
         </P>
       </TeamMember>
     </M.Container>
@@ -160,12 +159,12 @@ const Advisors = (props) => (
       <Heading>Advisors</Heading>
       <TeamMember name="Eli Collins" head={headEliCollins}>
         <P>
-          <A href="https://www.linkedin.com/in/elidcollins">Eli</A> is Cloudera’s Chief
-          Technologist and Vice President of Engineering responsible for Cloudera’s data
-          platform (CDH). Prior to joining Cloudera in 2009 he was an engineer at VMware.
-          Eli is an active advisor and investor in analytics startups, and holds
-          Bachelor’s and Master’s degrees in Computer Science from New York University and
-          the University of Wisconsin-Madison, respectively.
+          Eli is technologist-in-residence at Accel, where he evaluates new technologies
+          and advises portfolio companies. Prior to Accel, Eli was an early employee at
+          Cloudera, where he served as Chief Technologist and Vice President in
+          Engineering. Prior to Cloudera, he was an engineer at VMware. Eli has an
+          undergraduate and graduate degrees in Computer Science from New York University
+          and the University of Wisconsin Madison.
         </P>
       </TeamMember>
       <TeamMember name="Ben Golub" head={headBenGolub}>

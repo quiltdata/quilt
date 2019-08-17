@@ -33,7 +33,7 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5}>
         <M.Typography variant="h1" color="textPrimary">
-          Become a cloud native
+          Get your data to the cloud
         </M.Typography>
       </M.Box>
       <M.Box mt={4} mb={5} maxWidth={570}>
@@ -101,8 +101,8 @@ export default () => (
         </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">
-            Back up your Jupyter notebooks and all of their data dependencies at a scale
-            that git can&apos;t handle.
+            Store and version your Jupyter notebooks, and all of their data dependencies,
+            at a scale that git can&apos;t handle.
           </Bullet>
           <Bullet color="tertiary">
             Share notebooks, analyses, and data sets in a beautiful, documented format
