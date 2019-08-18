@@ -19,6 +19,7 @@ APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
 CONFIG_PATH = BASE_PATH / 'config.yml'
+USER_CONFIG_PATH = pathlib.Path.home() / '.quilt/config.yml'
 
 PACKAGE_NAME_FORMAT = r"[\w-]+/[\w-]+$"
 
@@ -303,11 +304,12 @@ def get_package_registry(path=None):
 
 def load_config():
     # For user-facing config, use api.config()
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        config_template = read_yaml(CONFIG_TEMPLATE)
-        local_config = config_template
+    local_config = read_yaml(CONFIG_TEMPLATE)
+
+    for file in (CONFIG_PATH, USER_CONFIG_PATH):
+        if file.exists():
+            local_config.update(read_yaml(file))
+
     return local_config
 
 def get_from_config(key):
@@ -320,7 +322,7 @@ def get_install_location():
     return loc
 
 def quiltignore_filter(paths, ignore, url_scheme):
-    """Given a list of paths, filter out the paths which are captured by the 
+    """Given a list of paths, filter out the paths which are captured by the
     given ignore rules.
 
     Args:

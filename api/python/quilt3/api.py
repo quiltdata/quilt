@@ -10,7 +10,7 @@ from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_
 from .formats import FormatRegistry
 from .packages import Package
 from .search_util import search as util_search
-from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
+from .util import (QuiltConfig, QuiltException, CONFIG_PATH, load_config,
                    CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
                    get_package_registry, parse_file_url, parse_s3_url, read_yaml,
                    validate_url, validate_package_name, write_yaml)
@@ -465,10 +465,7 @@ def config(*catalog_url, **config_values):
         return QuiltConfig(CONFIG_PATH, config_template)
 
     # Use local configuration (or defaults)
-    if CONFIG_PATH.exists():
-        local_config = read_yaml(CONFIG_PATH)
-    else:
-        local_config = read_yaml(CONFIG_TEMPLATE)
+    local_config = load_config()
 
     # Write to config if needed
     if config_values:
