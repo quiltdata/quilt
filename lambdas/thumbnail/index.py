@@ -1,8 +1,9 @@
 """
 Generate thumbnails for n-dimensional images in S3.
 
-Uses `aicsimageio.AICSImage` to read common imaging formats + some supported n-dimensional imaging formats.
-Stong assumptions as to the shape of the n-dimensional data are made, specifically that dimension order is STCZYX, or,
+Uses `aicsimageio.AICSImage` to read common imaging formats + some supported
+n-dimensional imaging formats. Stong assumptions as to the shape of the
+n-dimensional data are made, specifically that dimension order is STCZYX, or,
 Scene-Timepoint-Channel-SpacialZ-SpacialY-SpacialX.
 """
 import base64
@@ -54,21 +55,28 @@ SCHEMA = {
 }
 
 
-def generate_factor_pairs(n: int) -> List[Tuple[int]]:
-    # Generate all factor pairs of an integer n.
-    step = 2 if n % 2 else 1
+def generate_factor_pairs(x: int) -> List[Tuple[int]]:
+    """
+    Generate tuples of integer pairs that are factors for the provided x integer value.
+    """
+    # Generate all factor pairs for an integer x.
+    step = 2 if x % 2 else 1
     pairs = []
 
-    for i in range(1, int(sqrt(n) + 1), step):
-        if n % i == 0:
-            pairs.append((i, n//i))
+    for i in range(1, int(sqrt(x) + 1), step):
+        if x % i == 0:
+            pairs.append((i, x//i))
 
     return pairs
 
 
-def choose_min_grid(n: int) -> Tuple[int]:
+def choose_min_grid(x: int) -> Tuple[int]:
+    """
+    Choose a minimum grid size based off the distance between two values that form
+    a factor pair of the provided x amount of objects to create a grid off.
+    """
     # Chose a minimum grid size. (The smallest distance between a factor pair.)
-    factor_pairs = generate_factor_pairs(n)
+    factor_pairs = generate_factor_pairs(x)
     min_grid_shape = None
     min_distance = sys.maxsize
     for pair in factor_pairs:
@@ -79,6 +87,10 @@ def choose_min_grid(n: int) -> Tuple[int]:
 
 
 def norm_img(img: np.ndarray) -> np.ndarray:
+    """
+    Normalize an image. This clips the upper and lower 0.01 intensities and
+    then rescales the intensities to fit on a int32 range.
+    """
     # Set to float64 for futher correction math
     img = img.astype(np.float64)
 
@@ -107,12 +119,10 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
     if len(img.reader.data.shape) == 2:
         return img.reader.data
 
-    # Even the the reader was n-dim, check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
-    if (
-        len(img.reader.data.shape) == 3 and (
-            img.reader.data.shape[2] == 3 or img.reader.data.shape[2] == 4
-        )
-    ):
+    # Even the the reader was n-dim,
+    # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
+    if (len(img.reader.data.shape) == 3 and (
+            img.reader.data.shape[2] == 3 or img.reader.data.shape[2] == 4)):
         return img.reader.data
 
     # Check which dimensions are available
@@ -132,11 +142,19 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         for i in range(img.data.shape[2]):
             if "Z" in img.reader.dims:
                 # Add padding to the top and left of the projection
-                padded = np.pad(norm_img(img.data[0, 0, i, :, :, :].max(axis=0)), ((5, 0), (5, 0)), mode="constant")
+                padded = np.pad(
+                    norm_img(img.data[0, 0, i, :, :, :].max(axis=0)),
+                    ((5, 0), (5, 0)),
+                    mode="constant"
+                )
                 projections.append(padded)
             else:
                 # Add padding to the top and the left of the projection
-                padded = np.pad(norm_img(img.data[0, 0, i, 0, :, :]), ((5, 0), (5, 0)), mode="constant")
+                padded = np.pad(
+                    norm_img(img.data[0, 0, i, 0, :, :]),
+                    ((5, 0), (5, 0)),
+                    mode="constant"
+                )
                 projections.append(padded)
 
         # Get min grid shape
@@ -160,20 +178,22 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         # Add padding on the entire bottom and entire right side of the thumbnail
         return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
 
-    # No Channel data, either max project Z or just return an Image object of the 2D data
-    else:
-        if "Z" in img.reader.dims:
-            return Image.from_array(norm_img(img.data[0, 0, 0, :, :, :].max(axis=0)))
+    if "Z" in img.reader.dims:
+        return Image.fromarray(norm_img(img.data[0, 0, 0, :, :, :].max(axis=0)))
 
-        return norm_img(img.data[0, 0, 0, 0, :, :])
+    return norm_img(img.data[0, 0, 0, 0, :, :])
 
 
 def format_aicsimage_to_prepped(img: AICSImage) -> np.ndarray:
+    """
+    Simple wrapper around the format n-dim array function to
+    determine if we need to format or not.
+    """
     # These readers are specific for n dimensional images
     if isinstance(img.reader, (readers.CziReader, readers.OmeTiffReader, readers.TiffReader)):
         return _format_n_dim_ndarray(img)
-    else:
-        return img.reader.data
+
+    return img.reader.data
 
 
 @api(cors_origins=get_default_origins())
@@ -227,16 +247,16 @@ def lambda_handler(request):
                 'thumbnail': base64.b64encode(data).decode(),
             }
             return make_json_response(200, ret_val)
-        else:
-            headers = {
-                'Content-Type': Image.MIME[thumbnail_format],
-                'X-Quilt-Info': json.dumps(info)
-            }
-            return 200, data, headers
 
-    # Handle error
-    else:
-        ret_val = {
-            'error': resp.reason
+        # Not json response
+        headers = {
+            'Content-Type': Image.MIME[thumbnail_format],
+            'X-Quilt-Info': json.dumps(info)
         }
-        return make_json_response(resp.status_code, ret_val)
+        return 200, data, headers
+
+    # Errored, return error code
+    ret_val = {
+        'error': resp.reason
+    }
+    return make_json_response(resp.status_code, ret_val)
