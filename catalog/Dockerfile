@@ -27,7 +27,6 @@ RUN npm install
 # Install the app
 COPY . .
 RUN npm run build
-CMD npm start
 COPY config.json.tmpl config.json.tmpl
 
 # Set up nginx
