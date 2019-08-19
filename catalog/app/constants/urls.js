@@ -19,3 +19,4 @@ export const icon256 = 'https://d1zvn9rasera71.cloudfront.net/q-256-square.png'
 export const tutorial =
   'https://github.com/quiltdata/quilt/blob/master/README.md#tutorial'
 export const twitter = 'https://twitter.com/quiltdata'
+export const facebook = 'https://www.facebook.com/quiltdata/'

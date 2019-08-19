@@ -34,7 +34,7 @@ export const useES = ({ endpoint: ep, bucket }) => {
 
       const path = `${bucket}/_search${mkSearch({
         size,
-        _source: _source.join(','),
+        _source: _source && _source.join(','),
         source: JSON.stringify({ query: { multi_match: queryOpts } }),
         source_content_type: 'application/json',
       })}`

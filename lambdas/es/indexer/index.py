@@ -484,7 +484,7 @@ def retry_s3(
         arguments['IfMatch'] = etag
 
     def not_known_exception(exception):
-        error_code = exception.response.get(['Error'], {}).get(['Code'], 218)
+        error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
         return error_code not in ["402", "403", "404"]
 
     @retry(

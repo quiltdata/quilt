@@ -3,10 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import { Link, Route, Switch, matchPath } from 'react-router-dom'
 import * as RC from 'recompose'
-import AppBar from '@material-ui/core/AppBar'
-import Tab from '@material-ui/core/Tab'
-import Tabs from '@material-ui/core/Tabs'
-import { withStyles } from '@material-ui/core/styles'
+import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
 import Placeholder from 'components/Placeholder'
@@ -57,14 +54,14 @@ const getBucketSection = (paths) =>
 
 const NavTab = RT.composeComponent(
   'Bucket.Layout.Tab',
-  withStyles(({ spacing: { unit } }) => ({
+  M.withStyles(({ spacing: { unit } }) => ({
     root: {
       minHeight: 8 * unit,
       minWidth: 120,
     },
   })),
   RC.withProps({ component: Link }),
-  Tab,
+  M.Tab,
 )
 
 const BucketLayout = RT.composeComponent(
@@ -74,7 +71,7 @@ const BucketLayout = RT.composeComponent(
     section: PT.oneOf([...Object.keys(sections), false]),
   }),
   NamedRoutes.inject(),
-  withStyles(({ palette }) => ({
+  M.withStyles(({ palette }) => ({
     appBar: {
       backgroundColor: palette.common.white,
       color: palette.getContrastText(palette.common.white),
@@ -83,24 +80,29 @@ const BucketLayout = RT.composeComponent(
   ({ classes, bucket, section = false, children, urls }) => (
     <Layout
       pre={
-        <AppBar position="static" className={classes.appBar}>
-          <Tabs value={section} centered>
-            <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
-            <NavTab
-              label="Packages"
-              value="packages"
-              to={urls.bucketPackageList(bucket)}
-            />
-            <NavTab label="Overview" value="overview" to={urls.bucketOverview(bucket)} />
-            {section === 'search' && (
-              <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
-            )}
-          </Tabs>
-        </AppBar>
+        <>
+          <M.AppBar position="static" className={classes.appBar}>
+            <M.Tabs value={section} centered>
+              <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
+              <NavTab
+                label="Packages"
+                value="packages"
+                to={urls.bucketPackageList(bucket)}
+              />
+              <NavTab
+                label="Overview"
+                value="overview"
+                to={urls.bucketOverview(bucket)}
+              />
+              {section === 'search' && (
+                <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />
+              )}
+            </M.Tabs>
+          </M.AppBar>
+          <M.Container maxWidth="lg">{children}</M.Container>
+        </>
       }
-    >
-      {children}
-    </Layout>
+    />
   ),
 )
 

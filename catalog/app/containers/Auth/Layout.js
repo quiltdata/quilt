@@ -19,12 +19,7 @@ export const Container = styled('div')(
   { name: 'Auth.Container' },
 )
 
-export const Heading = styled('h1')(
-  {
-    textAlign: 'center',
-  },
-  { name: 'Auth.Heading' },
-)
+export const Heading = (props) => <M.Typography variant="h4" align="center" {...props} />
 
 export const Field = composeComponent(
   'Auth.Field',
