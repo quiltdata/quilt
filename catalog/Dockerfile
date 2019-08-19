@@ -26,10 +26,9 @@ RUN npm install
 
 # Install the app
 COPY . .
-COPY config.json.tmpl config.json.tmpl
-COPY federation.json.example static/federation.json
 RUN npm run build
 CMD npm start
+COPY config.json.tmpl config.json.tmpl
 
 # Set up nginx
 COPY nginx-web.conf /etc/nginx/sites-available/default
