@@ -17,6 +17,15 @@
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
     },
+    "enableMarketingPages": {
+      "type": "boolean",
+      "description": "Enable marketing pages."
+    },
+    "federations": {
+      "type": "array",
+      "description": "List of links to federations you want your catalog to be aware of.",
+      "items": { "$ref": "#/definitions/Url" }
+    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
@@ -61,10 +70,6 @@
       "type": "string",
       "pattern": "^(google)?|(\\$\\{\\w+\\})$",
       "description": "Space-separated list of SSO providers (must support template substitution)."
-    },
-    "suggestedBuckets": {
-      "type": "array",
-      "description": "List of buckets you want to appear in the dropdown menu in your catalog."
     }
   },
   "required": [
@@ -78,8 +83,7 @@
     "signInRedirect",
     "signOutRedirect",
     "ssoAuth",
-    "ssoProviders",
-    "suggestedBuckets"
+    "ssoProviders"
   ],
   "additionalProperties": false,
   "definitions": {

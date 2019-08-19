@@ -5,7 +5,6 @@ import GoogleLogin from 'react-google-login'
 import { FormattedMessage as FM } from 'react-intl'
 import * as reduxHook from 'redux-react-hook'
 import * as M from '@material-ui/core'
-import { unstable_Box as Box } from '@material-ui/core/Box'
 
 import { useIntl } from 'containers/LanguageProvider'
 import * as Notifications from 'containers/Notifications'
@@ -20,7 +19,7 @@ import googleLogo from './google-logo.svg'
 import msg from './messages'
 import * as Layout from './Layout'
 
-const GoogleLogo = (props) => <Box component="img" src={googleLogo} alt="" {...props} />
+const GoogleLogo = (props) => <M.Box component="img" src={googleLogo} alt="" {...props} />
 
 const MUTEX_POPUP = 'sso:google:popup'
 const MUTEX_REQUEST = 'sso:google:request'
@@ -95,7 +94,7 @@ export default ({ mutex, next }) => {
             ) : (
               <GoogleLogo />
             )}
-            <Box mr={1} />
+            <M.Box mr={1} />
             <FM {...msg.ssoGoogleUse} />
           </M.Button>
         )}
