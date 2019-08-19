@@ -7,6 +7,22 @@ export const home = {
   url: () => '/',
 }
 
+// marketing
+export const about = {
+  path: '/about',
+  url: () => '/about',
+}
+
+export const personas = {
+  path: '/personas',
+  url: () => '/personas',
+}
+
+export const product = {
+  path: '/product',
+  url: () => '/product',
+}
+
 export const activate = {
   path: '/activate/:token',
   url: ({ registryUrl, token }) => `${registryUrl}/activate/${token}`,
@@ -70,7 +86,8 @@ export const bucketOverview = {
 }
 export const bucketPackageList = {
   path: '/b/:bucket/packages/',
-  url: (bucket) => `/b/${bucket}/packages/`,
+  url: (bucket, { filter, sort, p } = {}) =>
+    `/b/${bucket}/packages/${mkSearch({ filter, sort, p })}`,
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,

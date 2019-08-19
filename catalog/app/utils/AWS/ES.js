@@ -28,17 +28,20 @@ export const useES = ({ endpoint: ep, bucket }) => {
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    (query, { _source, size = DEFAULT_SEARCH_SIZE }) => {
+    ({ _source, size = DEFAULT_SEARCH_SIZE, ...queryOpts }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `${bucket}/_doc/_search${mkSearch({ _source, size })}`
+      const path = `${bucket}/_search${mkSearch({
+        size,
+        _source: _source && _source.join(','),
+        source: JSON.stringify({ query: { multi_match: queryOpts } }),
+        source_content_type: 'application/json',
+      })}`
 
       request.method = 'GET'
       request.path += path
       request.headers.Host = endpoint.hostname
-      request.headers['Content-Type'] = 'application/json'
-
       signRequest(request, 'es')
 
       delete request.headers.Host

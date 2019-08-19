@@ -6,10 +6,6 @@
   "defaultBucket": "quilt-example",
   "apiGatewayEndpoint": "https://ozj6r9bglc.execute-api.us-east-1.amazonaws.com/prod",
   "s3Proxy": "https://open-proxy.quiltdata.com",
-  "suggestedBuckets": [
-    "quilt-example",
-    "quilt-aics"
-  ],
   "passwordAuth": "ENABLED",
   "ssoAuth": "SIGN_IN_ONLY",
   "ssoProviders": "google",
