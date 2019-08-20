@@ -19,20 +19,15 @@ EXPOSE 3000
 RUN mkdir /opt/app
 WORKDIR /opt/app
 
-# Install dependencies
-COPY package.json .
-COPY internals internals
-RUN npm install
-
-# Install the app
-COPY . .
-RUN npm run build
-COPY config.json.tmpl config.json.tmpl
-
 # Set up nginx
 COPY nginx-web.conf /etc/nginx/sites-available/default
 RUN rm -rf /usr/share/nginx/html
-RUN cp -r /opt/app/build/ /usr/share/nginx/html/
+
+# Copy pre-built catalog assets to nginx
+COPY build /usr/share/nginx/html
+
+# Copy config file
+COPY config.json.tmpl config.json.tmpl
 
 # Substitute environment variables into config.js before starting nginx.
 # Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
