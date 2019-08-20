@@ -24,7 +24,7 @@ CONTENT_INDEX_EXTS = [
     ".md",
     ".rmd",
     ".tsv",
-    ".txt",
+    ".txt"
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
