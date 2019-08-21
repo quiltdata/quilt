@@ -11,14 +11,11 @@ RUN apt-get update && apt-get install -y \
 
 EXPOSE 3000
 
-RUN mkdir /opt/app
-WORKDIR /opt/app
-
 # Set up nginx
 COPY nginx-web.conf /etc/nginx/sites-available/default
-RUN rm -rf /usr/share/nginx/html
 
 # Copy pre-built catalog assets to nginx
+RUN rm -rf /usr/share/nginx/html
 COPY build /usr/share/nginx/html
 
 # Copy config file
