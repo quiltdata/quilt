@@ -6,7 +6,7 @@ import pathlib
 import re
 import os
 
-from unittest.mock import patch
+from unittest.mock import ANY, patch
 import responses
 
 from .. import index
@@ -273,110 +273,42 @@ class TestIndex():
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
 
     @responses.activate
-    def test_txt_long(self):
-        """test sending txt bytes"""
-        txt = BASE_DIR / 'long.txt'
-        responses.add(
-            responses.GET,
-            self.FILE_URL,
-            body=txt.read_bytes(),
-            status=200)
-        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
-        resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
-        assert resp['statusCode'] == 200, 'preview failed on long.txt'
-        headlist = body['info']['data']['head']
-        assert len(headlist) == index.MAX_LINES, 'unexpected number of lines in head'
-        assert headlist[0] == 'Line 1', 'unexpected first line in head'
-        assert headlist[-1] == f'Line {len(headlist)}', 'unexpected last line in head'
-        taillist = body['info']['data']['tail']
-        assert not taillist, 'expected empty tail'
-        assert headlist[0] == f'Line 1', 'unexpected first line in head'
-        assert headlist[-1] == f'Line {index.MAX_LINES}', 'unexpected last line in head'
-
-    @responses.activate
-    @patch(__name__ + '.index.MAX_BYTES', 5)
-    def test_txt_max_bytes(self):
-        """test truncation to MAX_BYTES"""
-        txt = BASE_DIR / 'two-line.txt'
-        responses.add(
-            responses.GET,
-            self.FILE_URL,
-            body=txt.read_bytes(),
-            status=200)
-        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
-        resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
-        assert resp['statusCode'] == 200, 'preview lambda failed on two-line.txt'
-        data = body['info']['data']
-        assert len(data['head']) == 1, 'failed to truncate bytes'
-        assert data['head'][0] == '1234😊', 'failed to truncate bytes'
-        assert not data['tail'], 'expected empty tail'
-
-    @responses.activate
-    @patch(__name__ + '.index.MAX_BYTES', 8)
-    @patch(__name__ + '.index.CHUNK', 10)
-    def test_txt_max_bytes_one_line(self):
-        """test truncation to MAX_BYTES"""
-        txt = BASE_DIR / 'one-line.txt'
-        responses.add(
-            responses.GET,
-            self.FILE_URL,
-            body=txt.read_bytes(),
-            status=200)
-        event = self._make_event({'url': self.FILE_URL, 'input': 'txt'})
-        resp = index.lambda_handler(event, None)
-        body = json.loads(resp['body'])
-        assert resp['statusCode'] == 200, 'preview lambda failed on one-line.txt'
-        data = body['info']['data']
-        assert len(data['head']) == 1, 'failed to truncate bytes'
-        assert data['head'][0] == '🚷🚯', 'failed to truncate bytes'
-        assert not data['tail'], 'expected empty tail'
-
-    @responses.activate
-    def test_txt_max_count(self):
+    @patch(__name__ + '.index.get_preview_lines')
+    def test_txt_max_count(self, get_preview_lines):
         """test truncation to line_count"""
-        txt = BASE_DIR / 'long.txt'
         responses.add(
             responses.GET,
             self.FILE_URL,
-            body=txt.read_bytes(),
+            body='foo',
             status=200)
         for count in (1, 44, 19):
+            get_preview_lines.reset_mock()
+            get_preview_lines.return_value = []
             event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'line_count': str(count)})
             resp = index.lambda_handler(event, None)
-            body = json.loads(resp['body'])
-            assert resp['statusCode'] == 200, 'preview lambda failed on long.txt'
-            data = body['info']['data']
-            headlist = body['info']['data']['head']
-            assert len(headlist) == count, 'failed to respect line_count'
-            assert headlist[0] == f'Line 1', 'unexpected first line in head'
-            assert headlist[-1] == f'Line {count}', 'unexpected last line in head'
-            assert not data['tail'], 'expected empty tail'
+            assert resp['statusCode'] == 200, 'preview lambda failed'
+            get_preview_lines.assert_called_with(ANY, None, count, index.MAX_BYTES)
 
     @responses.activate
-    def test_txt_count_gz(self):
+    @patch(__name__ + '.index.get_preview_lines')
+    def test_txt_count_gz(self, get_preview_lines):
         """test truncation to line_count for a zipped file"""
-        txt = BASE_DIR / 'long.txt.gz'
         responses.add(
             responses.GET,
             self.FILE_URL,
-            body=txt.read_bytes(),
+            body='foo',
             status=200)
         for count in (9, 232, 308):
+            get_preview_lines.reset_mock()
+            get_preview_lines.return_value = []
             event = self._make_event({
                 'url': self.FILE_URL,
                 'input': 'txt', 'line_count': str(count),
                 'compression': 'gz'})
             resp = index.lambda_handler(event, None)
-            body = json.loads(resp['body'])
-            assert resp['statusCode'] == 200, 'preview lambda failed on long.txt'
-            data = body['info']['data']
-            headlist = body['info']['data']['head']
-            assert len(headlist) == count, 'failed to respect line_count'
-            assert headlist[0] == f'Line 1', 'unexpected first line in head'
-            assert headlist[-1] == f'Line {count}', 'unexpected last line in head'
-            assert not data['tail'], 'expected empty tail'
+            assert resp['statusCode'] == 200, 'preview lambda failed'
+            get_preview_lines.assert_called_with(ANY, 'gz', count, index.MAX_BYTES)
+
 
     @responses.activate
     def test_txt_short(self):

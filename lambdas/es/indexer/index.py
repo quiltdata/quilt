@@ -18,6 +18,9 @@ from elasticsearch.helpers import bulk
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
+from t4_lambda_shared.preview import get_preview_lines, MAX_BYTES, MAX_LINES
+
+
 CONTENT_INDEX_EXTS = [
     ".csv",
     ".ipynb",
@@ -28,7 +31,6 @@ CONTENT_INDEX_EXTS = [
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = 100_000
 ELASTIC_TIMEOUT = 30
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
@@ -127,7 +129,7 @@ class DocumentQueue:
         if doc["content"]:
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
-            self.size += min(doc["size"], DOC_LIMIT_BYTES)
+            self.size += min(doc["size"], MAX_BYTES)
         self.queue.append(doc)
 
     def send_all(self):
@@ -296,11 +298,11 @@ def get_plain_text(bucket, key, size, *, etag, s3_client, version_id):
             size,
             etag=etag,
             s3_client=s3_client,
-            limit=DOC_LIMIT_BYTES,
+            limit=MAX_BYTES,
             version_id=version_id
         )
-        # ignore because limit might break a long character midstream
-        text = obj["Body"].read().decode("utf-8", "ignore")
+        lines = get_preview_lines(obj["Body"], None, MAX_LINES, MAX_BYTES)
+        text = ''.join(lines)
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)
 
@@ -497,7 +499,7 @@ def retry_s3(
 
     return call()
 
-def trim_to_bytes(string, limit=DOC_LIMIT_BYTES):
+def trim_to_bytes(string, limit=MAX_BYTES):
     """trim string to specified number of bytes"""
     encoded = string.encode("utf-8")
     size = len(encoded)
