@@ -5,27 +5,22 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 RUN apt-get update && apt-get install -y \
-    curl \
+    nginx \
     gettext \
-    libssl-dev \
-    build-essential \
-    libpng-dev
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash -
-RUN apt-get install -y nodejs
+    curl
 
 EXPOSE 3000
 
-RUN mkdir /opt/app
-WORKDIR /opt/app
+# Set up nginx
+COPY nginx-web.conf /etc/nginx/sites-available/default
 
-# Install dependencies
-COPY package.json .
-COPY internals internals
-RUN npm install
+# Copy pre-built catalog assets to nginx
+RUN rm -rf /usr/share/nginx/html
+COPY build /usr/share/nginx/html
 
-# Install the app
-COPY . .
-COPY config.json.example static/config.json
-COPY federation.json.example static/federation.json
-RUN npm run build:dll
-CMD npm start
+# Copy config file
+COPY config.json.tmpl config.json.tmpl
+
+# Substitute environment variables into config.js before starting nginx.
+# Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
+CMD envsubst < config.json.tmpl > /usr/share/nginx/html/config.json && exec nginx -g 'daemon off;'
