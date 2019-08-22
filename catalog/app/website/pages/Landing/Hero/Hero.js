@@ -62,16 +62,20 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="h1" color="textPrimary">
-          Drive your team with data
+          A versioned data portal for AWS
+          {
+            // A visual data portal for AWS
+            // A versioned data portal for AWS
+            // Drive your team with data
+          }
         </M.Typography>
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          <p>Quilt is a team data hub for S3</p>
-          <p>Search, visualize, version, and share data of any size.</p>
+          <p>Search, visualize, and version private data at scale.</p>
           <p>
-            Quilt consists of a web catalog, a Python client, and cloud native backend
-            services.
+            Quilt is a web catalog and Python client powered by AWS services
+            in your private cloud.
           </p>
         </M.Typography>
       </M.Box>
