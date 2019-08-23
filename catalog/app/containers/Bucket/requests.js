@@ -20,6 +20,12 @@ const catchErrors = (pairs = []) =>
         throw new errors.AccessDenied()
       },
     ],
+    [
+      R.propEq('code', 'NoSuchBucket'),
+      () => {
+        throw new errors.NoSuchBucket()
+      },
+    ],
     ...pairs,
     [
       R.T,
@@ -157,118 +163,239 @@ export const summarize = async ({ s3req, handle }) => {
 
 const PACKAGES_PREFIX = '.quilt/named_packages/'
 const MANIFESTS_PREFIX = '.quilt/packages/'
+const MAX_REVISIONS = 100
 
-export const listPackages = ({ s3req, bucket }) =>
+const fetchPackagesAccessCounts = async ({
+  s3req,
+  analyticsBucket,
+  bucket,
+  today,
+  window,
+}) => {
+  try {
+    const records = await s3Select({
+      s3req,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/Packages.csv`,
+      Expression: `
+        SELECT name, counts FROM s3object
+        WHERE eventname = 'GetObject'
+        AND bucket = '${sqlEscape(bucket)}'
+      `,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
+
+    return records.reduce((acc, r) => {
+      const recordedCounts = JSON.parse(r.counts)
+
+      const counts = R.times((i) => {
+        const date = dateFns.subDays(today, window - i - 1)
+        return {
+          date,
+          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        }
+      }, window)
+
+      const total = Object.values(recordedCounts).reduce(R.add, 0)
+
+      return { ...acc, [r.name]: { counts, total } }
+    }, {})
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('fetchPackagesAccessCounts : error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return {}
+  }
+}
+
+const listPackageOwnerPrefixes = ({ s3req, bucket }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectsV2',
+    params: { Bucket: bucket, Prefix: PACKAGES_PREFIX, Delimiter: '/' },
+  }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
+
+const listPackagePrefixes = ({ s3req, bucket, ownerPrefix }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectsV2',
+    params: { Bucket: bucket, Prefix: ownerPrefix, Delimiter: '/' },
+  }).then((r) => r.CommonPrefixes.map((p) => p.Prefix))
+
+const fetchPackageLatest = ({ s3req, bucket, prefix }) =>
+  s3req({
+    bucket,
+    operation: 'listObjectsV2',
+    params: { Bucket: bucket, Prefix: `${prefix}latest` },
+  }).then(({ Contents: [latest] }) => {
+    const name = prefix.slice(PACKAGES_PREFIX.length, -1)
+    if (!latest) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
+      )
+    }
+    return {
+      name,
+      modified: latest ? latest.LastModified : null,
+    }
+  })
+
+const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
   s3req({
     bucket,
     operation: 'listObjectsV2',
     params: {
       Bucket: bucket,
-      Prefix: PACKAGES_PREFIX,
-      Delimiter: '/',
+      Prefix: prefix,
+      MaxKeys: MAX_REVISIONS + 1, // 1 for `latest`
     },
-  })
-    .then(({ CommonPrefixes: ownerPrefixes }) =>
-      Promise.all(
-        ownerPrefixes.map(({ Prefix }) =>
-          s3req({
-            bucket,
-            operation: 'listObjectsV2',
-            params: {
-              Bucket: bucket,
-              Prefix,
-              Delimiter: '/',
-            },
-          }).then(({ CommonPrefixes: namePrefixes }) =>
-            Promise.all(
-              namePrefixes.map((p) =>
-                s3req({
-                  bucket,
-                  operation: 'listObjectsV2',
-                  params: {
-                    Bucket: bucket,
-                    Prefix: `${p.Prefix}latest`,
-                  },
-                }).then(({ Contents: [latest] }) => {
-                  const name = p.Prefix.slice(PACKAGES_PREFIX.length, -1)
-                  if (!latest) {
-                    // eslint-disable-next-line no-console
-                    console.warn(
-                      `Unable to get latest revision: missing 'latest' file under the '${PACKAGES_PREFIX}${name}/' prefix`,
-                    )
-                  }
-                  return {
-                    name,
-                    modified: latest ? latest.LastModified : null,
-                  }
-                }),
+  }).then(({ Contents, IsTruncated }) => ({
+    revisions: Contents.length - 1,
+    revisionsTruncated: IsTruncated,
+  }))
+
+const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
+
+const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
+
+export const listPackages = withErrorHandling(
+  async ({ s3req, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {
+    const countsP =
+      analyticsBucket &&
+      fetchPackagesAccessCounts({
+        s3req,
+        analyticsBucket,
+        bucket,
+        today,
+        window: analyticsWindow,
+      })
+    const packages = await listPackageOwnerPrefixes({ s3req, bucket })
+      .then(
+        mapAllP((ownerPrefix) =>
+          listPackagePrefixes({ s3req, bucket, ownerPrefix }).then(
+            mapAllP((prefix) =>
+              mergeAllP(
+                fetchPackageLatest({ s3req, bucket, prefix }),
+                fetchPackageRevisions({ s3req, bucket, prefix }),
               ),
             ),
           ),
         ),
-      ),
-    )
-    .then(R.unnest)
-    .catch(catchErrors())
-
-const loadRevisionHash = ({ s3req, bucket, key }) =>
-  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
-    (res) => res.Body.toString('utf-8'),
-  )
+      )
+      .then(R.unnest)
+    if (!countsP) return packages
+    const counts = await countsP
+    return packages.map((p) => ({ ...p, views: counts[p.name] }))
+  },
+)
 
 const getRevisionIdFromKey = (key) => key.substring(key.lastIndexOf('/') + 1)
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
+const fetchRevisionsAccessCounts = async ({
+  s3req,
+  analyticsBucket,
+  bucket,
+  name,
+  today,
+  window,
+}) => {
+  try {
+    const records = await s3Select({
+      s3req,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/PackageVersions.csv`,
+      Expression: `
+        SELECT hash, counts FROM s3object
+        WHERE eventname = 'GetObject'
+        AND bucket = '${sqlEscape(bucket)}'
+        AND name = '${sqlEscape(name)}'
+      `,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
+
+    return records.reduce((acc, r) => {
+      const recordedCounts = JSON.parse(r.counts)
+
+      const counts = R.times((i) => {
+        const date = dateFns.subDays(today, window - i - 1)
+        return {
+          date,
+          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        }
+      }, window)
+
+      const total = Object.values(recordedCounts).reduce(R.add, 0)
+
+      return { ...acc, [r.hash]: { counts, total } }
+    }, {})
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('fetchRevisionsAccessCounts : error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return {}
+  }
+}
+
 export const getPackageRevisions = withErrorHandling(
-  async ({ s3req, signer, endpoint, bucket, name }) => {
-    const res = await s3req({
+  async ({ s3req, analyticsBucket, bucket, name, today, analyticsWindow = 30 }) => {
+    const countsP = analyticsBucket
+      ? fetchRevisionsAccessCounts({
+          s3req,
+          analyticsBucket,
+          bucket,
+          name,
+          today,
+          window: analyticsWindow,
+        })
+      : Promise.resolve({})
+    // TODO: handle 1k+ revisions (check if truncated and drain til it's not)
+    const revisions = await s3req({
       bucket,
       operation: 'listObjectsV2',
       params: {
         Bucket: bucket,
         Prefix: `${PACKAGES_PREFIX}${name}/`,
       },
-    })
-
-    const loadRevision = async (key) => {
-      const hash = await loadRevisionHash({ s3req, bucket, key })
-      const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-
-      const loadInfo = async () => {
-        const url = signer.getSignedS3URL({ bucket, key: manifestKey })
-        const r = await fetch(
-          `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=1`,
-        )
-        const json = await r.json()
-        try {
-          return JSON.parse(json.info.data.head[0])
-        } catch (e) {
-          return {}
-        }
-      }
-
-      const loadModified = async () => {
-        const head = await s3req({
-          bucket,
-          operation: 'headObject',
-          params: { Bucket: bucket, Key: manifestKey },
-        })
-        return head.LastModified
-      }
-
-      return {
-        id: getRevisionIdFromKey(key),
-        hash,
-        info: await loadInfo(),
-        modified: await loadModified(),
-      }
-    }
-
-    const revisions = await Promise.all(res.Contents.map((i) => loadRevision(i.Key)))
-    const sorted = R.sortBy((r) => -r.modified, revisions)
-    return sorted
+    }).then((r) =>
+      r.Contents.reduce((acc, { Key: key }) => {
+        const id = getRevisionIdFromKey(key)
+        if (id === 'latest') return acc
+        return [{ id, key }].concat(acc)
+      }, []),
+    )
+    return { revisions, counts: await countsP }
   },
 )
+
+const loadRevisionHash = ({ s3req, bucket, key }) =>
+  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
+    (res) => res.Body.toString('utf-8'),
+  )
+
+export const getRevisionData = async ({ s3req, endpoint, signer, bucket, key }) => {
+  const hash = await loadRevisionHash({ s3req, bucket, key })
+  const manifestKey = `${MANIFESTS_PREFIX}${hash}`
+  const url = signer.getSignedS3URL({ bucket, key: manifestKey })
+  const maxLines = MAX_PACKAGE_ENTRIES + 2 // 1 for the meta and 1 for checking overflow
+  const r = await fetch(
+    `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
+  )
+  const [info, ...entries] = await r
+    .json()
+    .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
+  const files = Math.min(MAX_PACKAGE_ENTRIES, entries.length)
+  const bytes = entries.slice(0, MAX_PACKAGE_ENTRIES).reduce((sum, i) => sum + i.size, 0)
+  const truncated = entries.length > MAX_PACKAGE_ENTRIES
+  return {
+    hash,
+    stats: { files, bytes, truncated },
+    ...info,
+  }
+}
 
 const s3Select = ({
   s3req,
@@ -379,6 +506,7 @@ export const search = async ({ es, query }) => {
     const result = await es({
       query,
       fields: ['content', 'comment', 'key_text', 'meta_text'],
+      type: 'cross_fields',
       _source: ['key', 'version_id', 'updated', 'size', 'user_meta'],
     })
     const hits = mergeHits(result.hits.hits)
@@ -423,7 +551,7 @@ const queryAccessCounts = async ({
       }
     }, window)
 
-    const total = counts.reduce((sum, { value }) => sum + value, 0)
+    const total = Object.values(recordedCounts).reduce(R.add, 0)
 
     return { counts, total }
   } catch (e) {
@@ -448,42 +576,4 @@ export const objectAccessCounts = ({ s3req, analyticsBucket, bucket, path, today
     `,
     today,
     window: 365,
-  })
-
-export const pkgAccessCounts = ({ s3req, analyticsBucket, bucket, name, today }) =>
-  queryAccessCounts({
-    s3req,
-    analyticsBucket,
-    type: 'Packages',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND name = '${sqlEscape(name)}'
-    `,
-    today,
-    window: 30,
-  })
-
-export const pkgVersionAccessCounts = ({
-  s3req,
-  analyticsBucket,
-  bucket,
-  name,
-  hash,
-  today,
-}) =>
-  queryAccessCounts({
-    s3req,
-    analyticsBucket,
-    type: 'PackageVersions',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND name = '${sqlEscape(name)}'
-      AND hash = '${sqlEscape(hash)}'
-    `,
-    today,
-    window: 30,
   })

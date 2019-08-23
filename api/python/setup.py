@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.0.5"
+VERSION = "3.0.6"
 
 def readme():
     readme_short = """
@@ -69,7 +69,7 @@ setup(
     extras_require={
         'tests': [
             'codecov',
-            'pytest',
+            'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',
             'tox',
