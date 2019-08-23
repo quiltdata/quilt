@@ -289,7 +289,7 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
   const actualSort = getSort(sort)
   const actualPage = page || 1
   const actualFilter = filter || ''
-  const filtering = useDebouncedInput(actualFilter)
+  const filtering = useDebouncedInput(actualFilter, 200)
 
   const filtered = React.useMemo(
     () =>
