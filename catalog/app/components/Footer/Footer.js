@@ -17,7 +17,6 @@ import bg from './bg.png'
 import iconFacebook from './icon-facebook.svg'
 import iconGithub from './icon-github.svg'
 import iconTwitter from './icon-twitter.svg'
-import iconMedium from './icon-medium.svg'
 
 const Footer = M.styled('footer')(({ theme: t }) => ({
   background: `left / 64px url(${bg})`,
@@ -149,7 +148,6 @@ export default () => {
             <NavIcon icon={iconFacebook} href={URLS.facebook} target="_blank" />
             <NavIcon icon={iconTwitter} href={URLS.twitter} target="_blank" ml={4} />
             <NavIcon icon={iconGithub} href={URLS.gitWeb} target="_blank" ml={4} />
-            <NavIcon icon={iconMedium} href={URLS.blog} target="_blank" ml={4} />
             {!intercom.dummy && (
               <M.Box ml={4} width={60} display={{ xs: 'none', sm: 'block' }} />
             )}
