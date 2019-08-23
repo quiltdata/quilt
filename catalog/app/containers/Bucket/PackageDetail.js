@@ -279,13 +279,13 @@ const Revision = ({ bucket, name, id, hash, stats, message, counts }) => {
           {
             Ok: ({ files, bytes, truncated }) => (
               <>
-                <M.Icon>storage</M.Icon>
+                <M.Icon color="disabled">storage</M.Icon>
                 &nbsp;&nbsp;
                 <M.Typography component="span" variant="body2">
                   {readableBytes(bytes, truncated && '+')}
                 </M.Typography>
                 <M.Box pr={2} />
-                <M.Icon>insert_drive_file</M.Icon>
+                <M.Icon color="disabled">insert_drive_file</M.Icon>
                 &nbsp;
                 <M.Typography component="span" variant="body2">
                   {readableQuantity(files)}
