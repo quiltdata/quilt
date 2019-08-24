@@ -1,6 +1,7 @@
 """
 Shared helper functions for generating previews for the preview lambda and the ES indexer.
 """
+from io import BytesIO
 import zlib
 
 # MAX_BYTES is bytes scanned, so functions as an upper bound on bytes returned
@@ -12,6 +13,31 @@ MAX_BYTES = 1024*1024
 MAX_LINES = 512 # must be positive int
 
 
+class NoopDecompressObj():
+    @property
+    def eof(self):
+        return False
+
+    def decompress(self, chunk):
+        return chunk
+
+
+def decompress_stream(chunk_iterator, compression):
+    if compression is None:
+        dec = NoopDecompressObj()
+    elif compression == 'gz':
+        dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
+    else:
+        raise ValueError('Only gzip compression is supported')
+
+    for chunk in chunk_iterator:
+        yield dec.decompress(chunk)
+        if dec.eof:
+            # gzip'ed files can contain arbitrary data after the end of the archive,
+            # so we might be done early.
+            break
+
+
 def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
     """
     Read a (possibly compressed) text file, and return up to `max_lines` lines and `max_bytes` bytes.
@@ -20,23 +46,13 @@ def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
     size = 0
     line_count = 0
 
-    if compression:
-        assert compression == 'gz', 'only gzip compression is supported'
-        dec = zlib.decompressobj(zlib.MAX_WBITS + 32)
-    else:
-        dec = None
-
-    for chunk in chunk_iterator:
-        if dec:
-            chunk = dec.decompress(chunk)
-
+    for chunk in decompress_stream(chunk_iterator, compression):
         buffer.append(chunk)
         size += len(chunk)
         line_count += chunk.count(b'\n')
 
-        # TODO why are we hitting dec.eof after ~65kb of large gz files?
         # not >= since we might get lucky and complete a line if we wait
-        if size > max_bytes or line_count > max_lines or (dec and dec.eof):
+        if size > max_bytes or line_count > max_lines:
             break
 
     lines = b''.join(buffer).splitlines()
@@ -53,3 +69,16 @@ def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
     # but we don't really care.
 
     return [l.decode('utf-8', 'ignore') for l in lines]
+
+
+def get_bytes(chunk_iterator, compression):
+    """
+    Read a (possibly compressed) file and return a BytesIO object with the contents.
+    """
+    buffer = BytesIO()
+
+    for chunk in decompress_stream(chunk_iterator, compression):
+        buffer.write(chunk)
+
+    buffer.seek(0)
+    return buffer

@@ -2,9 +2,11 @@
 Tests for the ES indexer
 """
 from datetime import datetime
+from gzip import compress
 from io import BytesIO
 import json
 import os
+import pathlib
 from unittest import TestCase
 from unittest.mock import ANY, patch
 
@@ -20,6 +22,9 @@ from .. import index
 class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
+
+
+BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
 
 class TestIndex(TestCase):
@@ -178,3 +183,88 @@ class TestIndex(TestCase):
         )
 
         index.handler(event, MockContext())
+
+    def test_unsupported_contents(self):
+        contents = index.get_contents('test-bucket', 'foo.exe', '.exe', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert contents == ""
+
+        contents = index.get_contents('test-bucket', 'foo.exe.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert contents == ""
+
+    def test_text_contents(self):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(b'Hello World!'),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.txt',
+                'IfMatch': 'etag',
+                'Range': f'bytes=0-{index.MAX_BYTES}',
+            }
+        )
+
+        contents = index.get_contents('test-bucket', 'foo.txt', '.txt', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert contents == "Hello World!"
+
+    def test_gzipped_text_contents(self):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(compress(b'Hello World!')),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.txt.gz',
+                'IfMatch': 'etag',
+                'Range': f'bytes=0-{index.MAX_BYTES}',
+            }
+        )
+
+        contents = index.get_contents('test-bucket', 'foo.txt.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert contents == "Hello World!"
+
+    def test_notebook_contents(self):
+        notebook = (BASE_DIR / 'normal.ipynb').read_bytes()
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(notebook),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.ipynb',
+                'IfMatch': 'etag',
+            }
+        )
+
+        contents = index.get_contents('test-bucket', 'foo.ipynb', '.ipynb', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert "model.fit" in contents
+
+    def test_gzipped_notebook_contents(self):
+        notebook = compress((BASE_DIR / 'normal.ipynb').read_bytes())
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(notebook),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.ipynb.gz',
+                'IfMatch': 'etag',
+            }
+        )
+
+        contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        assert "model.fit" in contents

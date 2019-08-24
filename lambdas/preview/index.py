@@ -12,7 +12,7 @@ import zlib
 import requests
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.preview import get_preview_lines, MAX_BYTES, MAX_LINES
+from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_BYTES, MAX_LINES
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
@@ -99,21 +99,22 @@ def lambda_handler(request):
     # stream=True saves memory almost equal to file size
     resp = requests.get(url, stream=True)
     if resp.ok:
+        content_iter = resp.iter_content(CHUNK)
         if input_type == 'csv':
             html, info = extract_csv(
-                get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes),
+                get_preview_lines(content_iter, compression, line_count, max_bytes),
                 separator
             )
         elif input_type == 'excel':
-            html, info = extract_excel(_to_memory(resp, compression))
+            html, info = extract_excel(get_bytes(content_iter, compression))
         elif input_type == 'ipynb':
-            html, info = extract_ipynb(_to_memory(resp, compression), exclude_output)
+            html, info = extract_ipynb(get_bytes(content_iter, compression), exclude_output)
         elif input_type == 'parquet':
-            html, info = extract_parquet(_to_memory(resp, compression))
+            html, info = extract_parquet(get_bytes(content_iter, compression))
         elif input_type == 'vcf':
-            html, info = extract_vcf(get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes))
+            html, info = extract_vcf(get_preview_lines(content_iter, compression, line_count, max_bytes))
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(get_preview_lines(resp.iter_content(CHUNK), compression, line_count, max_bytes))
+            html, info = extract_txt(get_preview_lines(content_iter, compression, line_count, max_bytes))
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -337,15 +338,3 @@ def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
         raise ValueError(f'{integer} out of range: [{lower}, {upper}]')
 
     return integer
-
-def _to_memory(response, compression):
-    """
-    for file-types where we don't support streaming read;
-    drop the entire file into memory
-    """
-    if compression:
-        assert compression == 'gz', 'only gzip compression is supported'
-        # +32 => automatically accepts zlib or gzip
-        # https://docs.python.org/2/library/zlib.html#zlib.decompress
-        return io.BytesIO(zlib.decompress(response.content, zlib.MAX_WBITS + 32))
-    return io.BytesIO(response.content)

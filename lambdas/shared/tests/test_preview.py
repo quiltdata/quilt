@@ -6,7 +6,7 @@ import os
 import pathlib
 from unittest import TestCase
 
-from t4_lambda_shared.preview import get_preview_lines
+from t4_lambda_shared.preview import get_bytes, get_preview_lines
 
 BASE_DIR = pathlib.Path(__file__).parent / 'data'
 
@@ -62,3 +62,11 @@ class TestPreview(TestCase):
             lines = get_preview_lines(iterate_chunks(file_obj, chunk_size), None, max_lines, max_bytes)
         assert len(lines) == 1, 'failed to truncate bytes'
         assert lines[0] == '🚷🚯', 'failed to truncate bytes'
+
+    def test_bytes(self):
+        txt = BASE_DIR / 'long.txt.gz'
+        with open(txt, 'rb') as file_obj:
+            buffer = get_bytes(file_obj, 'gz')
+        lines = buffer.getvalue().splitlines()
+        assert lines[0] == b'Line 1'
+        assert lines[-1] == b'Line 999'
