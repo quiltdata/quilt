@@ -91,7 +91,7 @@ export const bucketPackageList = {
 }
 export const bucketPackageDetail = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})`,
-  url: (bucket, name) => `/b/${bucket}/packages/${name}`,
+  url: (bucket, name, { p } = {}) => `/b/${bucket}/packages/${name}${mkSearch({ p })}`,
 }
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,

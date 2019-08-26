@@ -20,13 +20,14 @@ const splitNumber = (n) => {
   return [coeff, suffixes[index]]
 }
 
-export function readableBytes(bytes) {
+export function readableBytes(bytes, extra) {
   if (!Number.isInteger(bytes)) return '?'
   // https://en.wikipedia.org/wiki/Kilobyte
   const [coeff, suffix] = splitNumber(bytes)
   return (
     <span>
       <FormattedNumber value={coeff} />
+      {extra}
       &nbsp;{suffix}B
     </span>
   )
