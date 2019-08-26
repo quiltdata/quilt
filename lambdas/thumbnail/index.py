@@ -13,6 +13,7 @@ from io import BytesIO
 from math import sqrt
 from typing import List, Tuple
 
+import imageio
 import numpy as np
 import requests
 from aicsimageio import AICSImage, readers
@@ -36,6 +37,13 @@ SUPPORTED_SIZES = [
 ]
 # Map URL parameters to actual sizes, e.g. 'w128h128' -> (128, 128)
 SIZE_PARAMETER_MAP = {f'w{w}h{h}': (w, h) for w, h in SUPPORTED_SIZES}
+
+# If the image is one of these formats, retain the format after formatting
+SUPPORTED_BROWSER_FORMATS = {
+    imageio.plugins.pillow.JPEGFormat.Reader: "JPG",
+    imageio.plugins.pillow.PNGFormat.Reader: "PNG",
+    imageio.plugins.pillow.GIFFormat.Reader: "GIF"
+}
 
 SCHEMA = {
     'type': 'object',
@@ -211,6 +219,10 @@ def lambda_handler(request):
     # Handle request
     resp = requests.get(url)
     if resp.ok:
+        # Get the original reader / format
+        # If the original reader isn't in the supported formats map, use PNG as default presentation format
+        thumbnail_format = SUPPORTED_BROWSER_FORMATS.get(imageio.get_reader(resp.content), "PNG")
+
         # Read image data
         img = AICSImage(resp.content)
         orig_size = list(img.reader.data.shape)
@@ -227,7 +239,6 @@ def lambda_handler(request):
         thumbnail_size = img.size
 
         # Store the bytes
-        thumbnail_format = "PNG"
         thumbnail_bytes = BytesIO()
         img.save(thumbnail_bytes, thumbnail_format)
 
