@@ -174,9 +174,7 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
             rows.append(row)
 
         # Concatenate each row then concatenate all rows together into a single 2D image
-        merged = []
-        for row in rows:
-            merged.append(np.concatenate(row, axis=1))
+        merged = [np.concatenate(row, axis=1) for row in rows]
 
         # Add padding on the entire bottom and entire right side of the thumbnail
         return np.pad(np.concatenate(merged, axis=0), ((0, 5), (0, 5)), mode="constant")
