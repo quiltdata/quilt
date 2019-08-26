@@ -119,7 +119,7 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
     if len(img.reader.data.shape) == 2:
         return img.reader.data
 
-    # Even the the reader was n-dim,
+    # Even though the reader was n-dim,
     # check if the actual data is similar to YXC ("YX-RGBA" or "YX-RGB") and return
     if (len(img.reader.data.shape) == 3 and (
             img.reader.data.shape[2] == 3 or img.reader.data.shape[2] == 4)):
@@ -162,15 +162,18 @@ def _format_n_dim_ndarray(img: AICSImage) -> np.ndarray:
         min_grid_shape = choose_min_grid(len(projections))
 
         # Make rows of images
+        # Use a counter so that we don't have to use `projections.pop` which is O(N)
         rows = []
+        proj_counter = 0
         for y_i in range(min_grid_shape[0]):
             row = []
             for x_i in range(min_grid_shape[1]):
-                row.append(projections.pop(0))
+                row.append(projections[proj_counter])
+                proj_counter += 1
 
             rows.append(row)
 
-        # Concatinate each row then concatinate all rows together into a single 2D image
+        # Concatenate each row then concatenate all rows together into a single 2D image
         merged = []
         for row in rows:
             merged.append(np.concatenate(row, axis=1))
