@@ -2,6 +2,7 @@ import base64
 import json
 from pathlib import Path
 
+import imageio
 import numpy as np
 import pytest
 import responses
@@ -29,7 +30,7 @@ def _make_event(query, headers=None):
 
 @responses.activate
 @pytest.mark.parametrize("input_file, thumb_size, expected_thumb, expected_original_size, expected_thumb_size", [
-    ("penguin.jpg", "w256h256", "penguin-256.png", [1526, 1290, 3], [217, 256]),
+    ("penguin.jpg", "w256h256", "penguin-256.jpg", [1526, 1290, 3], [217, 256]),
     ("cell.tiff", "w640h480", "cell-480.png", [15, 1, 158, 100], [514, 480]),
     ("cell.png", "w64h64", "cell-64.png", [168, 104, 3], [39, 64]),
     ("sat_greyscale.tiff", "w640h480",  "sat_greyscale-480.png", [512, 512], [480, 480]),
