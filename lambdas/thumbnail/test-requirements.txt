@@ -3,4 +3,5 @@ more-itertools==6.0.0
 pluggy==0.9.0
 py==1.8.0
 pytest==4.3.0
+pytest-raises==0.10
 responses==0.10.5
