@@ -8,6 +8,7 @@ from datetime import datetime
 from math import floor
 import json
 import os
+import pathlib
 from urllib.parse import unquote, unquote_plus
 
 from aws_requests_auth.aws_auth import AWSRequestsAuth
@@ -18,7 +19,7 @@ from elasticsearch.helpers import bulk
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from t4_lambda_shared.preview import get_preview_lines, MAX_LINES
+from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_LINES
 
 
 CONTENT_INDEX_EXTS = [
@@ -31,7 +32,7 @@ CONTENT_INDEX_EXTS = [
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 2_000)
+DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_TIMEOUT = 30
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat
@@ -201,6 +202,12 @@ class DocumentQueue:
 
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
+    if ext == '.gz':
+        compression = 'gz'
+        ext = pathlib.PurePosixPath(key[:-len(ext)]).suffix.lower()
+    else:
+        compression = None
+
     content = ""
     if ext in CONTENT_INDEX_EXTS:
         if ext == ".ipynb":
@@ -212,17 +219,18 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     bucket,
                     key,
                     size,
+                    compression,
                     etag=etag,
                     s3_client=s3_client,
                     version_id=version_id
                 )
             )
-            content = trim_to_bytes(content)
         else:
             content = get_plain_text(
                 bucket,
                 key,
                 size,
+                compression,
                 etag=etag,
                 s3_client=s3_client,
                 version_id=version_id
@@ -260,7 +268,7 @@ def extract_text(notebook_str):
 
     return "\n".join(text)
 
-def get_notebook_cells(bucket, key, size, *, etag, s3_client, version_id):
+def get_notebook_cells(bucket, key, size, compression, *, etag, s3_client, version_id):
     """extract cells for ipynb notebooks for indexing"""
     text = ""
     try:
@@ -273,22 +281,24 @@ def get_notebook_cells(bucket, key, size, *, etag, s3_client, version_id):
             s3_client=s3_client,
             version_id=version_id
         )
-        notebook = obj["Body"].read().decode("utf-8")
-        text = extract_text(notebook)
+        data = get_bytes(obj["Body"], compression)
+        notebook = data.getvalue().decode("utf-8")
+        try:
+            text = extract_text(notebook)
+        except (json.JSONDecodeError, nbformat.reader.NotJSONError):
+            print(f"Invalid JSON in {key}.")
+        except (KeyError, AttributeError)  as err:
+            print(f"Missing key in {key}: {err}")
+        # there might be more errors than covered by test_read_notebook
+        # better not to fail altogether
+        except Exception as exc:#pylint: disable=broad-except
+            print(f"Exception in file {key}: {exc}")
     except UnicodeDecodeError as uni:
         print(f"Unicode decode error in {key}: {uni}")
-    except (json.JSONDecodeError, nbformat.reader.NotJSONError):
-        print(f"Invalid JSON in {key}.")
-    except (KeyError, AttributeError)  as err:
-        print(f"Missing key in {key}: {err}")
-    # there might be more errors than covered by test_read_notebook
-    # better not to fail altogether
-    except Exception as exc:#pylint: disable=broad-except
-        print(f"Exception in file {key}: {exc}")
 
     return text
 
-def get_plain_text(bucket, key, size, *, etag, s3_client, version_id):
+def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_id):
     """get plain text object contents"""
     text = ""
     try:
@@ -302,7 +312,7 @@ def get_plain_text(bucket, key, size, *, etag, s3_client, version_id):
             limit=DOC_LIMIT_BYTES,
             version_id=version_id
         )
-        lines = get_preview_lines(obj["Body"], None, MAX_LINES, DOC_LIMIT_BYTES)
+        lines = get_preview_lines(obj["Body"], compression, MAX_LINES, DOC_LIMIT_BYTES)
         text = ''.join(lines)
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)
@@ -379,8 +389,8 @@ def handler(event, context):
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
                 etag = unquote(event_["s3"]["object"]["eTag"])
-                _, ext = os.path.splitext(key)
-                ext = ext.lower()
+
+                ext = pathlib.PurePosixPath(key).suffix.lower()
 
                 head = retry_s3(
                     "head",
@@ -409,8 +419,6 @@ def handler(event, context):
                     )
                     continue
 
-                _, ext = os.path.splitext(key)
-                ext = ext.lower()
                 text = get_contents(
                     bucket,
                     key,
@@ -474,7 +482,7 @@ def retry_s3(
         "Bucket": bucket,
         "Key": key
     }
-    if operation == 'get' and size:
+    if operation == 'get' and size and limit:
         # can only request range if file is not empty
         arguments['Range'] = f"bytes=0-{limit}"
     if version_id:
