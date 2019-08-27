@@ -504,9 +504,13 @@ const mergeHits = R.pipe(
 export const search = async ({ es, query }) => {
   try {
     const result = await es({
-      query,
-      fields: ['content', 'comment', 'key_text', 'meta_text'],
-      type: 'cross_fields',
+      query: {
+        multi_match: {
+          query,
+          fields: ['content', 'comment', 'key_text', 'meta_text'],
+          type: 'cross_fields',
+        },
+      },
       _source: ['key', 'version_id', 'updated', 'size', 'user_meta'],
     })
     const hits = mergeHits(result.hits.hits)
