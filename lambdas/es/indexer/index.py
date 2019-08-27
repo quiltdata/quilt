@@ -32,7 +32,7 @@ CONTENT_INDEX_EXTS = [
 ]
 # 10 MB, see https://amzn.to/2xJpngN
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 2_000)
+DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_TIMEOUT = 30
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 NB_VERSION = 4 # default notebook version for nbformat

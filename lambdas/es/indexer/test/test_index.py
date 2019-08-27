@@ -203,7 +203,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.MAX_BYTES}',
+                'Range': f'bytes=0-{index.DOC_LIMIT_BYTES}',
             }
         )
 
@@ -222,7 +222,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.MAX_BYTES}',
+                'Range': f'bytes=0-{index.DOC_LIMIT_BYTES}',
             }
         )
 
@@ -267,4 +267,4 @@ class TestIndex(TestCase):
         )
 
         contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
-        assert "model.fit" in contents
+        assert "Model results visualization" in contents
