@@ -19,7 +19,7 @@ from elasticsearch.helpers import bulk
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from t4_lambda_shared.preview import get_preview_lines, MAX_LINES
+from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_LINES
 
 
 CONTENT_INDEX_EXTS = [
@@ -312,8 +312,7 @@ def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_i
             limit=DOC_LIMIT_BYTES,
             version_id=version_id
         )
-
-        lines = get_preview_lines(obj["Body"], None, MAX_LINES, DOC_LIMIT_BYTES)
+        lines = get_preview_lines(obj["Body"], compression, MAX_LINES, DOC_LIMIT_BYTES)
         text = ''.join(lines)
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)
