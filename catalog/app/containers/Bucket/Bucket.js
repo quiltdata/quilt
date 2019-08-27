@@ -83,16 +83,16 @@ const BucketLayout = RT.composeComponent(
         <>
           <M.AppBar position="static" className={classes.appBar}>
             <M.Tabs value={section} centered>
+              <NavTab
+                label="Overview"
+                value="overview"
+                to={urls.bucketOverview(bucket)}
+              />
               <NavTab label="Files" value="tree" to={urls.bucketDir(bucket)} />
               <NavTab
                 label="Packages"
                 value="packages"
                 to={urls.bucketPackageList(bucket)}
-              />
-              <NavTab
-                label="Overview"
-                value="overview"
-                to={urls.bucketOverview(bucket)}
               />
               {section === 'search' && (
                 <NavTab label="Search" value="search" to={urls.bucketSearch(bucket)} />

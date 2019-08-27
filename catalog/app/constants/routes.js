@@ -67,6 +67,7 @@ export const bucketRoot = {
   path: '/b/:bucket',
   url: (bucket) => `/b/${bucket}`,
 }
+export const bucketOverview = bucketRoot
 export const bucketSearch = {
   path: '/b/:bucket/search',
   url: (bucket, q) => `/b/${bucket}/search${mkSearch({ q })}`,
@@ -76,13 +77,8 @@ export const bucketFile = {
   url: (bucket, path, version) => `/b/${bucket}/tree/${path}${mkSearch({ version })}`,
 }
 export const bucketDir = {
-  path: [bucketRoot.path, '/b/:bucket/tree/:path(.+/)?'],
-  url: (bucket, path = '') =>
-    path ? `/b/${bucket}/tree/${path}` : bucketRoot.url(bucket),
-}
-export const bucketOverview = {
-  path: '/b/:bucket/overview',
-  url: (bucket) => `/b/${bucket}/overview`,
+  path: '/b/:bucket/tree/:path(.+/)?',
+  url: (bucket, path = '') => `/b/${bucket}/tree/${path}`,
 }
 export const bucketPackageList = {
   path: '/b/:bucket/packages/',
