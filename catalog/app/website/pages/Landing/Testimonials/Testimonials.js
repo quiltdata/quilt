@@ -183,25 +183,12 @@ export default () => (
         </Testimonial>
         <Testimonial
           color="tertiary"
-          initial="AP"
-          name="Anonymous PhD, Awesome company with powerful legal department"
+          initial="GP"
+          name="Guenevere Prawiroatmodjo, Data Scientist, Perfect Day"
         >
-          <strong>Efficient prototyping and sharing with Jupyter</strong>
           <p>
-            Before Quilt, I had been serializing and saving data locally while prototyping
-            for data analysis not yet ready to be stored in a database. The process of
-            sharing a Jupyter notebook with such analysis with colleagues was particularly
-            cumbersome, because it involved sending the serialized data along with the
-            code, as well as a set of parameters used to acquire it.
-          </p>
-          <p>
-            Quilt was a game changer. I can now save this data in a safe place, version
-            controlled, along with metadata which can be used to perform smart searches
-            and reliable imports into an analysis notebook.
-          </p>
-          <p>
-            Prototyping data analysis in Jupyter notebooks and Quilt has become much more
-            efficient and reliable.
+            Quilt is a great way for our team to find, inspect and share their datasets
+            via the web.
           </p>
         </Testimonial>
       </M.Box>

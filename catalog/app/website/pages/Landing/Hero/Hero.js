@@ -74,7 +74,8 @@ export default () => (
         <M.Typography variant="body1" color="textSecondary">
           <p>Search, visualize, and version private data at scale.</p>
           <p>
-            Quilt is a web catalog and Python client powered by AWS services in your private cloud.
+            Quilt is a web catalog and Python client powered by AWS services in your
+            private cloud.
           </p>
         </M.Typography>
       </M.Box>
