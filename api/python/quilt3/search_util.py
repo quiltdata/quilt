@@ -83,7 +83,7 @@ def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
         payload = query
     elif isinstance(query, str):
         payload = {'query': {'query_string': {
-            'default_field': 'content',
+            'fields': ['content', 'meta_text'],
             'query': query,
         }}}
     else:
@@ -104,7 +104,7 @@ def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
             'operation': result['_source'].get('event'),
             'meta': json.dumps(result['_source']['user_meta']),
             'size': str(result['_source']['size']),
-            'text': result['_source']['text'],
+            'content': result['_source'].get('content'),
             'source': result['_source'],
             'time': str(result['_source']['updated'])
             } for result in raw_response['hits']['hits']]
