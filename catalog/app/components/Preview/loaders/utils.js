@@ -161,6 +161,8 @@ export const objectGetter = (process) => {
 const previewUrl = (endpoint, query) =>
   `${endpoint}/preview${NamedRoutes.mkSearch(query)}`
 
+class PreviewFetchError extends Error {}
+
 const fetchPreview = async ({ endpoint, type, handle, signer, query }) => {
   const signed = signer.getSignedS3URL(handle)
   const compression = getCompression(handle.key)
@@ -168,6 +170,7 @@ const fetchPreview = async ({ endpoint, type, handle, signer, query }) => {
     previewUrl(endpoint, { url: signed, input: type, compression, ...query }),
   )
   const json = await r.json()
+  if (json.error) throw new PreviewFetchError(json.error)
   return json
 }
 
@@ -204,7 +207,10 @@ export const previewFetcher = (type, process) => {
               AsyncResult.case({
                 _: callback,
                 Err: (e, ...args) => {
-                  const pe = PreviewError.Unexpected({ handle, originalError: e })
+                  let pe = PreviewError.Unexpected({ handle, originalError: e })
+                  if (e instanceof PreviewFetchError && e.message === 'Not Found') {
+                    pe = PreviewError.DoesNotExist({ handle })
+                  }
                   return callback(AsyncResult.Err(pe), ...args)
                 },
               }),
