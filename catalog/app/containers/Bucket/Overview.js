@@ -20,9 +20,9 @@ const whenEmpty = (bucket) => () => (
   <NamedRoutes.Inject>
     {({ urls }) => (
       <Message headline="Getting Started">
-        Welcome to the Quilt T4 catalog for the <strong>{bucket}</strong> bucket.
+        Welcome to the Quilt catalog for the <strong>{bucket}</strong> bucket.
         <br />
-        For help getting started with T4 check out{' '}
+        For help getting started with Quilt check out{' '}
         <Link to={urls.bucketRoot(EXAMPLE_BUCKET)}>the demo bucket</Link>.
         <br />
         To overwrite this landing page with your own, create a new{' '}
