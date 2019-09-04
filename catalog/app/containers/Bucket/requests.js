@@ -22,6 +22,12 @@ const catchErrors = (pairs = []) =>
       },
     ],
     [
+      R.propEq('code', 'Forbidden'),
+      () => {
+        throw new errors.AccessDenied()
+      },
+    ],
+    [
       R.propEq('code', 'NoSuchBucket'),
       () => {
         throw new errors.NoSuchBucket()
@@ -188,7 +194,7 @@ const extractLatestVersion = (hits) => {
 
 const MAX_IMGS = 100
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
-const MAX_OTHER = 20
+const MAX_OTHER = 10
 const OTHER_EXTS = [
   '.parquet',
   '.csv',

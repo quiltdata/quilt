@@ -541,6 +541,7 @@ function StatDisplay({ value, label, format = R.identity }) {
 
 const useHeadStyles = M.makeStyles((t) => ({
   root: {
+    overflow: 'hidden',
     position: 'relative',
     [t.breakpoints.down('xs')]: {
       borderRadius: 0,
@@ -560,6 +561,18 @@ const useHeadStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       padding: t.spacing(4),
     },
+  },
+  lock: {
+    alignItems: 'center',
+    background: fade(t.palette.grey[500], 0.7),
+    bottom: 0,
+    color: t.palette.common.white,
+    display: 'flex',
+    justifyContent: 'center',
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
 }))
 
@@ -630,6 +643,7 @@ function Head({ bucket, description, searchEndpoint }) {
             p={{ xs: 2, sm: 4 }}
             display="flex"
             flexDirection={{ xs: 'column', md: 'row' }}
+            position="relative"
           >
             <ObjectsByExt
               data={AsyncResult.prop('exts', res)}
@@ -657,6 +671,18 @@ function Head({ bucket, description, searchEndpoint }) {
               cursor={cursor}
               onCursor={setCursor}
             />
+            {AsyncResult.Err.is(res) && (
+              <div className={classes.lock}>
+                <M.Typography variant="h5" align="center">
+                  This bucket contains billions of objects.
+                  <br />
+                  Indexing in progress.
+                  <br />
+                  <br />
+                  <M.CircularProgress color="inherit" size={64} />
+                </M.Typography>
+              </div>
+            )}
           </M.Box>
         </M.Paper>
       )}
@@ -701,14 +727,13 @@ function Section({ heading, children, ...props }) {
 }
 
 function GettingStarted({ bucket }) {
-  // TODO: revise this section
   const { urls } = NamedRoutes.use()
   return (
     <Section heading="Getting Started">
       <M.Typography>
-        Welcome to the Quilt T4 catalog for the <strong>{bucket}</strong> bucket.
+        Welcome to the Quilt 3 catalog for the <strong>{bucket}</strong> bucket.
         <br />
-        For help getting started with T4 check out{' '}
+        For help getting started with Quilt 3 check out{' '}
         <Link to={urls.bucketRoot(EXAMPLE_BUCKET)}>the demo bucket</Link>.
         <br />
         To overwrite this landing page with your own, create a new{' '}
@@ -780,59 +805,62 @@ function FilePreview({ handle, bucket, headingOverride, fallback }) {
     </span>
   )
 
-  return (
-    <Section heading={headingOverride != null ? headingOverride : renderCrumbs()}>
-      {Preview.load(
-        handle,
-        AsyncResult.case({
-          Ok: AsyncResult.case({
-            Init: (_, { fetch }) => (
-              <>
-                <M.Typography variant="body1" gutterBottom>
-                  Large files are not previewed automatically
-                </M.Typography>
-                <M.Button variant="outlined" onClick={fetch}>
-                  Load preview
-                </M.Button>
-              </>
-            ),
-            Pending: () => <ContentSkel />,
-            Err: (_, { fetch }) => (
-              <>
-                <M.Typography variant="body1" gutterBottom>
-                  Error loading preview
-                </M.Typography>
-                <M.Button variant="outlined" onClick={fetch}>
-                  Retry
-                </M.Button>
-              </>
-            ),
-            Ok: (data) => <M.Box mx="auto">{Preview.render(data)}</M.Box>,
-          }),
-          Err: Preview.PreviewError.case({
-            DoesNotExist: (...args) =>
-              fallback ? (
-                fallback(...args)
-              ) : (
-                <M.Typography variant="body1" gutterBottom>
-                  File does not exist
-                </M.Typography>
-              ),
-            _: (_, { fetch }) => (
-              <>
-                <M.Typography variant="body1" gutterBottom>
-                  Error loading preview
-                </M.Typography>
-                <M.Button variant="outlined" onClick={fetch}>
-                  Retry
-                </M.Button>
-              </>
-            ),
-          }),
-          _: () => <ContentSkel />,
-        }),
-      )}
-    </Section>
+  const heading = headingOverride != null ? headingOverride : renderCrumbs()
+
+  return Preview.load(
+    handle,
+    AsyncResult.case({
+      Ok: AsyncResult.case({
+        Init: (_, { fetch }) => (
+          <Section heading={heading}>
+            <M.Typography variant="body1" gutterBottom>
+              Large files are not previewed automatically
+            </M.Typography>
+            <M.Button variant="outlined" onClick={fetch}>
+              Load preview
+            </M.Button>
+          </Section>
+        ),
+        Pending: () => (
+          <Section heading={heading}>
+            <ContentSkel />
+          </Section>
+        ),
+        Err: (_, { fetch }) => (
+          <Section heading={heading}>
+            <M.Typography variant="body1" gutterBottom>
+              Error loading preview
+            </M.Typography>
+            <M.Button variant="outlined" onClick={fetch}>
+              Retry
+            </M.Button>
+          </Section>
+        ),
+        Ok: (data) => (
+          <Section heading={heading}>
+            <M.Box mx="auto">{Preview.render(data)}</M.Box>
+          </Section>
+        ),
+      }),
+      Err: Preview.PreviewError.case({
+        DoesNotExist: (...args) => (fallback ? fallback(...args) : null),
+        _: (_, { fetch }) => (
+          <Section heading={heading}>
+            <M.Typography variant="body1" gutterBottom>
+              Error loading preview
+            </M.Typography>
+            <M.Button variant="outlined" onClick={fetch}>
+              Retry
+            </M.Button>
+          </Section>
+        ),
+      }),
+      _: () => (
+        <Section heading={heading}>
+          <ContentSkel />
+        </Section>
+      ),
+    }),
   )
 }
 
@@ -918,7 +946,7 @@ const FilePreviewSkel = () => (
   </Section>
 )
 
-const MAX_PREVIEWS = 20
+const MAX_PREVIEWS = 10
 
 function Summarize({ summarize, other, children }) {
   const s3req = AWS.S3.useRequest()
@@ -960,64 +988,91 @@ function Files({ bucket, searchEndpoint }) {
   const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
   return (
     <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
-      {AsyncResult.case({
-        Err: displayError(),
-        _: R.juxt([
-          AsyncResult.case({
-            Ok: ({ readmes }) =>
-              readmes.length ? (
-                readmes.map((h) => (
-                  <FilePreview
-                    key={`readme:${h.bucket}/${h.key}`}
-                    handle={h}
-                    bucket={bucket}
-                  />
-                ))
-              ) : (
-                <FilePreview
-                  key="readme:configured"
-                  headingOverride={false}
-                  handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
-                  bucket={bucket}
-                  fallback={() => <GettingStarted bucket={bucket} />}
-                />
-              ),
-            _: () => <FilePreviewSkel key="readme:skeleton" />,
-          }),
-          AsyncResult.case({
-            Ok: ({ images }) => {
-              if (!images.length) return null
-              return <Thumbnails key="thumbs" images={images} />
+      {(res) => (
+        <>
+          <FilePreview
+            key="readme:configured"
+            headingOverride={false}
+            handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
+            bucket={bucket}
+            fallback={() =>
+              AsyncResult.case(
+                {
+                  Ok: ({ readmes }) =>
+                    !readmes.length && <GettingStarted bucket={bucket} />,
+                  // only show error if there's nothing more to show
+                  Err: displayError([
+                    [
+                      R.T,
+                      () => (
+                        // TODO: proper copy
+                        <Message headline="Error">Unable to load bucket summary</Message>
+                      ),
+                    ],
+                  ]),
+                  _: () => null,
+                },
+                res,
+              )
+            }
+          />
+          {AsyncResult.case(
+            {
+              Err: () => null,
+              _: R.juxt([
+                AsyncResult.case({
+                  Ok: ({ readmes }) =>
+                    readmes.map((h) => (
+                      <FilePreview
+                        key={`readme:${h.bucket}/${h.key}`}
+                        handle={h}
+                        bucket={bucket}
+                      />
+                    )),
+                  _: () => <FilePreviewSkel key="readme:skeleton" />,
+                }),
+                AsyncResult.case({
+                  Ok: ({ images }) => {
+                    if (!images.length) return null
+                    return <Thumbnails key="thumbs" images={images} />
+                  },
+                  _: () => (
+                    <Section key="thumbs:skel" heading={<HeadingSkel />}>
+                      <ImageGrid>
+                        {R.times(
+                          (i) => (
+                            // eslint-disable-next-line react/no-array-index-key
+                            <Skeleton key={i} height={200} />
+                          ),
+                          9,
+                        )}
+                      </ImageGrid>
+                    </Section>
+                  ),
+                }),
+                () => (
+                  <Summarize
+                    key="summarize"
+                    {...AsyncResult.props(['summarize', 'other'], res)}
+                  >
+                    {AsyncResult.case({
+                      Ok: R.map((h) => (
+                        <FilePreview
+                          key={`${h.bucket}/${h.key}`}
+                          handle={h}
+                          bucket={bucket}
+                        />
+                      )),
+                      _: () => <FilePreviewSkel />,
+                    })}
+                  </Summarize>
+                ),
+              ]),
             },
-            _: () => (
-              <Section key="thumbs:skel" heading={<HeadingSkel />}>
-                <ImageGrid>
-                  {R.times(
-                    (i) => (
-                      // eslint-disable-next-line react/no-array-index-key
-                      <Skeleton key={i} height={200} />
-                    ),
-                    9,
-                  )}
-                </ImageGrid>
-              </Section>
-            ),
-          }),
-          (res) => (
-            <Summarize
-              key="summarize"
-              {...AsyncResult.props(['summarize', 'other'], res)}
-            >
-              {AsyncResult.case({
-                Ok: R.map((h) => (
-                  <FilePreview key={`${h.bucket}/${h.key}`} handle={h} bucket={bucket} />
-                )),
-                _: () => <FilePreviewSkel />,
-              })}
-            </Summarize>
-          ),
-        ]),
-      })}
+            res,
+          )}
+        </>
+      )}
     </Data>
   )
 }

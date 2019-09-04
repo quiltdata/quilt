@@ -54,12 +54,12 @@ const defaultHandlers = [
     R.is(CORSError),
     () => (
       <Message headline="Error">
-        Seems like this bucket is not configured for T4.
+        Seems like this bucket is not configured for Quilt 3.
         <br />
         <StyledLink
           href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
         >
-          Learn how to configure the bucket for T4
+          Learn how to configure the bucket for Quilt 3
         </StyledLink>
         .
       </Message>
@@ -81,7 +81,7 @@ const defaultHandlers = [
           <StyledLink
             href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
           >
-            Learn about access control in T4
+            Learn about access control in Quilt 3
           </StyledLink>
           .
         </Message>
