@@ -95,6 +95,12 @@ export const bucketPackageTree = {
     `/b/${bucket}/packages/${name}/tree/${revision}/${path}`,
 }
 
+// legacy stuff
+export const legacyPackages = {
+  path: `/package/:path+`,
+  url: (root, { pathname, search, hash }) => `${root}${pathname}${search}${hash}`,
+}
+
 // admin
 export const admin = {
   path: '/admin',
