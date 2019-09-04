@@ -15,16 +15,19 @@ import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import parseSearch from 'utils/parseSearch'
 import { readableQuantity } from 'utils/string'
 import usePrevious from 'utils/usePrevious'
 
-import { docs } from 'constants/urls'
 import Message from './Message'
 import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
+
+const EXAMPLE_PACKAGE_URL =
+  'https://open.quiltdata.com/b/quilt-example/packages/aleksey/hurdat/tree/latest/'
 
 const Counts = ({ counts, total }) => {
   const [cursor, setCursor] = React.useState(null)
@@ -406,7 +409,7 @@ const Packages = ({ packages, bucket, filter, sort, page }) => {
     </M.Box>
   ) : (
     <Message headline="No packages">
-      <Link href={`${docs}/walkthrough/`}>Learn how to create a package</Link>
+      Learn how to <StyledLink href={EXAMPLE_PACKAGE_URL}>create a package</StyledLink>
     </Message>
   )
 }
