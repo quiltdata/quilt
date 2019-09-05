@@ -49,7 +49,7 @@ TEST_EVENT = "s3:TestEvent"
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 # Key prefixes that can be ignored if 403 responses are returned when accessing
-FORBIDDEN_PREFIXES = tuple(filter(None, os.environ.get('FORBIDDEN_PREFIX', "").split(" ")))
+FORBIDDEN_PREFIXES = tuple(filter(None, os.environ.get('FORBIDDEN_PREFIXES', "").split(" ")))
 
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
