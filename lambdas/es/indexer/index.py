@@ -49,7 +49,7 @@ TEST_EVENT = "s3:TestEvent"
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
-def not_known_exception(exception):
+def should_retry_exception(exception):
     error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
     return error_code not in ["402", "403", "404"]
 
@@ -454,7 +454,7 @@ def handler(event, context):
                     text=text
                 )
             except botocore.exceptions.ClientError as boto_exc:
-                if not not_known_exception(boto_exc):
+                if not should_retry_exception(boto_exc):
                     continue
 
                 print("Fatal exception for record", event_, boto_exc)
@@ -508,7 +508,7 @@ def retry_s3(
         reraise=True,
         stop=stop_after_attempt(MAX_RETRY),
         wait=wait_exponential(multiplier=2, min=4, max=30),
-        retry=(retry_if_exception(not_known_exception))
+        retry=(retry_if_exception(should_retry_exception))
     )
     def call():
         """local function so we can set stop_after_delay dynamically"""
