@@ -623,9 +623,10 @@ class Package(object):
             for obj in objects:
                 if not obj['IsLatest']:
                     continue
-                # Skip S3 pseduo directory files
-                if obj['Key'].endswith('/') and obj['Size'] == 0:
-                    warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
+                # Skip S3 pseduo directory files and Keys that end in /
+                if obj['Key'].endswith('/'):
+                    if obj['Size'] != 0:
+                        warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)
