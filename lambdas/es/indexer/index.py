@@ -48,6 +48,9 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
+# Key prefixes that can be ignored if 403 responses are returned when accessing
+FORBIDDEN_PREFIXES = tuple(filter(None, os.environ.get('FORBIDDEN_PREFIX', "").split(" ")))
+
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     return bulk(
@@ -448,6 +451,16 @@ def handler(event, context):
                     size=size,
                     text=text
                 )
+            except botocore.exceptions.ClientError as boto_exc:# pylint: disable=broad-except
+                if key.startswith(FORBIDDEN_PREFIXES) and \
+                        boto_exc.response['Error']['Code'] == 'Forbidden':
+                    # Don't raise an error and continue to the next event_ in events
+                    continue
+
+                print("Fatal exception for record", event_, boto_exc)
+                import traceback
+                traceback.print_tb(boto_exc.__traceback__)
+                raise boto_exc
             except Exception as exc:# pylint: disable=broad-except
                 print("Fatal exception for record", event_, exc)
                 import traceback
