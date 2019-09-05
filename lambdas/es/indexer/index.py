@@ -48,6 +48,11 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
+
+def should_retry_exception(exception):
+    error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
+    return error_code not in ["402", "403", "404"]
+
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
     return bulk(
@@ -392,14 +397,30 @@ def handler(event, context):
 
                 ext = pathlib.PurePosixPath(key).suffix.lower()
 
-                head = retry_s3(
-                    "head",
-                    bucket,
-                    key,
-                    s3_client=s3_client,
-                    version_id=version_id,
-                    etag=etag
-                )
+                try:
+                    head = retry_s3(
+                        "head",
+                        bucket,
+                        key,
+                        s3_client=s3_client,
+                        version_id=version_id,
+                        etag=etag
+                    )
+                except botocore.exceptions.ClientError as exception:
+                    # "null" version sometimes results in 403s for buckets
+                    # that have changed versioning, retry without it
+                    if (exception.response.get('Error', {}).get('HTTPStatusCode') == 403
+                            and version_id == "null"):
+                        head = retry_s3(
+                            "head",
+                            bucket,
+                            key,
+                            s3_client=s3_client,
+                            version_id=None,
+                            etag=etag
+                        )
+                    else:
+                        raise exception
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
@@ -448,6 +469,14 @@ def handler(event, context):
                     size=size,
                     text=text
                 )
+            except botocore.exceptions.ClientError as boto_exc:
+                if not should_retry_exception(boto_exc):
+                    continue
+
+                print("Fatal exception for record", event_, boto_exc)
+                import traceback
+                traceback.print_tb(boto_exc.__traceback__)
+                raise boto_exc
             except Exception as exc:# pylint: disable=broad-except
                 print("Fatal exception for record", event_, exc)
                 import traceback
@@ -490,16 +519,12 @@ def retry_s3(
     else:
         arguments['IfMatch'] = etag
 
-    def not_known_exception(exception):
-        error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
-        return error_code not in ["402", "403", "404"]
-
     @retry(
         # debug
         reraise=True,
         stop=stop_after_attempt(MAX_RETRY),
         wait=wait_exponential(multiplier=2, min=4, max=30),
-        retry=(retry_if_exception(not_known_exception))
+        retry=(retry_if_exception(should_retry_exception))
     )
     def call():
         """local function so we can set stop_after_delay dynamically"""
