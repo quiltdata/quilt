@@ -2,7 +2,6 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as R from 'ramda'
 
-import { useConfig } from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 
 import * as Signer from './Signer'
@@ -19,20 +18,19 @@ const getRegion = R.pipe(
 
 const noop = () => {}
 
-export const useES = ({ endpoint: ep, bucket }) => {
-  const { shouldSign } = useConfig()
+export const useES = ({ endpoint: ep, sign = false }) => {
   const requestSigner = Signer.useRequestSigner()
-  const signRequest = shouldSign(bucket) ? requestSigner : noop
+  const signRequest = sign ? requestSigner : noop
 
   const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    ({ _source, size = DEFAULT_SEARCH_SIZE, ...source }) => {
+    ({ _source, index = '_all', size = DEFAULT_SEARCH_SIZE, ...source }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `${bucket}/_search${mkSearch({
+      const path = `${index}/_search${mkSearch({
         size,
         _source: _source && _source.join(','),
         source: JSON.stringify(source),
@@ -80,7 +78,7 @@ export const useES = ({ endpoint: ep, bucket }) => {
         )
       })
     },
-    [endpoint, region, bucket],
+    [endpoint, region, signRequest],
   )
 
   return search

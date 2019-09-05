@@ -25,17 +25,18 @@ import Working from 'components/Working'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
+import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as Cache from 'utils/ResourceCache'
 import StyledLink, { linkStyle } from 'utils/StyledLink'
 import * as RT from 'utils/reactTools'
 import { getBreadCrumbs } from 'utils/s3paths'
+import search from 'utils/search'
 import { readableBytes } from 'utils/string'
 import withParsedQuery from 'utils/withParsedQuery'
 
 import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Message from './Message'
-import * as requests from './requests'
 
 const versionShape = PT.shape({
   id: PT.string.isRequired,
@@ -427,7 +428,7 @@ const Browse = RT.composeComponent(
 
 const SearchResource = Cache.createResource({
   name: 'Bucket.Search.results',
-  fetch: requests.search,
+  fetch: search,
   key: ({ id, bucket, query }) => `${bucket}:${query}:${id}`,
 })
 
@@ -447,7 +448,8 @@ const Results = RT.composeComponent(
     },
   })),
   ({ classes, bucket, query, searchEndpoint, id, retry }) => {
-    const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+    const cfg = Config.useConfig()
+    const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
@@ -455,7 +457,12 @@ const Results = RT.composeComponent(
     })
 
     try {
-      const { total, hits } = cache.get(SearchResource, { es, id, bucket, query })
+      const { total, hits } = cache.get(SearchResource, {
+        es,
+        id,
+        buckets: [bucket],
+        query,
+      })
       return (
         <React.Fragment>
           <Typography variant="h5" className={classes.heading}>

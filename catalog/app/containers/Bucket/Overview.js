@@ -577,11 +577,12 @@ const useHeadStyles = M.makeStyles((t) => ({
 }))
 
 function Head({ bucket, description, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+  const cfg = Config.useConfig()
+  const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
-    <Data fetch={requests.bucketStats} params={{ es, maxExts: MAX_EXTS }}>
+    <Data fetch={requests.bucketStats} params={{ es, bucket, maxExts: MAX_EXTS }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -985,7 +986,8 @@ function Summarize({ summarize, other, children }) {
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
 function Files({ bucket, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+  const cfg = Config.useConfig()
+  const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
   return (
     <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
       {(res) => (
