@@ -145,7 +145,6 @@ export const bucketStats = async ({ es, maxExts }) => {
     query: { match_all: {} },
     size: 0,
     aggs: {
-      totalObjects: { cardinality: { field: 'key' } },
       totalBytes: { sum: { field: 'size' } },
       exts: {
         terms: { field: 'ext' },
@@ -166,7 +165,7 @@ export const bucketStats = async ({ es, maxExts }) => {
   )(r.aggregations.exts.buckets)
 
   return {
-    totalObjects: r.aggregations.totalObjects.value,
+    totalObjects: r.hits.total,
     totalVersions: r.hits.total,
     totalBytes: r.aggregations.totalBytes.value,
     updated: parseDate(r.aggregations.updated.value_as_string),
