@@ -27,12 +27,9 @@ const useStyles = makeStyles((t) => ({
   cell: {
     border: 'none',
     whiteSpace: 'nowrap',
-
     '&, &:last-child': {
-      paddingLeft: t.spacing.unit * 2,
-      paddingRight: 0,
+      padding: [[0, 0, 0, t.spacing.unit * 2]],
     },
-
     '&:first-child': {
       paddingLeft: 0,
     },
