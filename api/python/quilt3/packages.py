@@ -1,3 +1,4 @@
+from collections import deque
 import copy
 import hashlib
 import io
@@ -6,7 +7,7 @@ import pathlib
 import os
 import time
 from urllib.parse import quote, urlparse, unquote
-from collections import deque
+import warnings
 
 import jsonlines
 
@@ -624,6 +625,7 @@ class Package(object):
                     continue
                 # Skip S3 pseduo directory files
                 if obj['Key'].endswith('/') and obj['Size'] == 0:
+                    warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)
