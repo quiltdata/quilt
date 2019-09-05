@@ -397,14 +397,31 @@ def handler(event, context):
 
                 ext = pathlib.PurePosixPath(key).suffix.lower()
 
-                head = retry_s3(
-                    "head",
-                    bucket,
-                    key,
-                    s3_client=s3_client,
-                    version_id=version_id,
-                    etag=etag
-                )
+                try: 
+                    head = retry_s3(
+                        "head",
+                        bucket,
+                        key,
+                        s3_client=s3_client,
+                        version_id=version_id,
+                        etag=etag
+                    )
+                except botocore.exceptions.ClientError as exception: 
+                    # "null" version sometimes results in 403s for buckets
+                    # that have changed versioning, retry without it
+
+                    if (exception.response.get('Error', {}).get('HTTPStatusCode') == 403 
+                            and version_id == "null"):
+                        head = retry_s3(
+                            "head",
+                            bucket,
+                            key,
+                            s3_client=s3_client,
+                            version_id=None,
+                            etag=etag
+                        )
+                    else:
+                        raise exception
 
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
