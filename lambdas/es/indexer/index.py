@@ -48,8 +48,10 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
-# Key prefixes that can be ignored if 403 responses are returned when accessing
-FORBIDDEN_PREFIXES = tuple(filter(None, os.environ.get('FORBIDDEN_PREFIXES', "").split(" ")))
+
+def not_known_exception(exception):
+    error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
+    return error_code not in ["402", "403", "404"]
 
 def bulk_send(elastic, list_):
     """make a bulk() call to elastic"""
@@ -451,10 +453,8 @@ def handler(event, context):
                     size=size,
                     text=text
                 )
-            except botocore.exceptions.ClientError as boto_exc:# pylint: disable=broad-except
-                if key.startswith(FORBIDDEN_PREFIXES) and \
-                        boto_exc.response['Error']['Code'] == 'Forbidden':
-                    # Don't raise an error and continue to the next event_ in events
+            except botocore.exceptions.ClientError as boto_exc:
+                if not not_known_exception(boto_exc):
                     continue
 
                 print("Fatal exception for record", event_, boto_exc)
@@ -502,10 +502,6 @@ def retry_s3(
         arguments['VersionId'] = version_id
     else:
         arguments['IfMatch'] = etag
-
-    def not_known_exception(exception):
-        error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
-        return error_code not in ["402", "403", "404"]
 
     @retry(
         # debug
