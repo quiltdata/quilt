@@ -472,11 +472,11 @@ def handler(event, context):
             except botocore.exceptions.ClientError as boto_exc:
                 if not should_retry_exception(boto_exc):
                     continue
-
-                print("Fatal exception for record", event_, boto_exc)
-                import traceback
-                traceback.print_tb(boto_exc.__traceback__)
-                raise boto_exc
+                else:
+                    print("Fatal exception for record", event_, boto_exc)
+                    import traceback
+                    traceback.print_tb(boto_exc.__traceback__)
+                    raise boto_exc
             except Exception as exc:# pylint: disable=broad-except
                 print("Fatal exception for record", event_, exc)
                 import traceback
