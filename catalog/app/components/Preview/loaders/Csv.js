@@ -14,7 +14,10 @@ const fetcher = utils.previewFetcher('csv', (json) =>
   AsyncResult.Ok(PreviewData.DataFrame({ preview: json.html })),
 )
 
-const isTsv = utils.extIs('.tsv')
+const isTsv = R.pipe(
+  utils.stripCompression,
+  utils.extIs('.tsv'),
+)
 
 export const load = (handle, callback) =>
   fetcher(handle, callback, isTsv(handle.key) ? { query: { sep: '\t' } } : undefined)
