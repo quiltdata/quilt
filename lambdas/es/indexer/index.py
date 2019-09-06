@@ -50,7 +50,7 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
 def should_retry_exception(exception):
-    error_code = exception.response.get('Error', {}).get('HTTPStatusCode', 218)
+    error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
 
 def bulk_send(elastic, list_):
@@ -409,7 +409,7 @@ def handler(event, context):
                 except botocore.exceptions.ClientError as exception:
                     # "null" version sometimes results in 403s for buckets
                     # that have changed versioning, retry without it
-                    if (exception.response.get('Error', {}).get('HTTPStatusCode') == 403
+                    if (exception.response.get('Error', {}).get('Code') == "403"
                             and version_id == "null"):
                         head = retry_s3(
                             "head",
