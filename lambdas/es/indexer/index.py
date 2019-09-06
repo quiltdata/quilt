@@ -14,9 +14,8 @@ import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_LINES
-from .document_queue import (DocumentQueue, CHUNK_LIMIT_BYTES, CONTENT_INDEX_EXTS, DOC_LIMIT_BYTES,
-                             ELASTIC_TIMEOUT, MAX_RETRY, OBJECT_DELETE, QUEUE_LIMIT_BYTES,
-                             RETRY_429)
+from .document_queue import (DocumentQueue, CONTENT_INDEX_EXTS, DOC_LIMIT_BYTES, MAX_RETRY,
+                             OBJECT_DELETE)
 
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4 # default notebook version for nbformat
