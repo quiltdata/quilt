@@ -16,7 +16,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   root: {
     animation: '$wave 3s infinite',
-    backgroundColor: t.palette.action.hover,
     backgroundImage: `linear-gradient(
       90deg,
       ${fade(t.palette.common.white, 0)},
@@ -30,5 +29,12 @@ const useStyles = M.makeStyles((t) => ({
 
 export default React.forwardRef(function Skeleton({ className, ...props }, ref) {
   const classes = useStyles()
-  return <M.Box className={cx(className, classes.root)} {...props} ref={ref} />
+  return (
+    <M.Box
+      className={cx(className, classes.root)}
+      bgcolor="action.hover"
+      {...props}
+      ref={ref}
+    />
+  )
 })

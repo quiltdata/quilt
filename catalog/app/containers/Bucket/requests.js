@@ -1,6 +1,7 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { resolveKey } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
@@ -16,6 +17,12 @@ const catchErrors = (pairs = []) =>
     ],
     [
       R.propEq('message', 'Access Denied'),
+      () => {
+        throw new errors.AccessDenied()
+      },
+    ],
+    [
+      R.propEq('code', 'Forbidden'),
       () => {
         throw new errors.AccessDenied()
       },
@@ -75,6 +82,272 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
       }),
     )
     .catch(catchErrors())
+
+export const bucketAccessCounts = async ({
+  s3req,
+  analyticsBucket,
+  bucket,
+  today,
+  window,
+}) => {
+  if (!analyticsBucket) return {}
+  try {
+    const records = await s3Select({
+      s3req,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
+      Expression: `
+        SELECT ext, counts FROM s3object
+        WHERE eventname = 'GetObject'
+        AND bucket = '${sqlEscape(bucket)}'
+      `,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
+
+    return records.reduce((acc, r) => {
+      const recordedCounts = JSON.parse(r.counts)
+
+      const counts = R.times((i) => {
+        const date = dateFns.subDays(today, window - i - 1)
+        return {
+          date,
+          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        }
+      }, window)
+
+      return { ...acc, [r.ext]: counts }
+    }, {})
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('fetchBucketAccessCounts: error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return {}
+  }
+}
+
+const parseDate = (d) => d && new Date(d)
+
+export const bucketExists = ({ s3req, bucket }) =>
+  s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } }).catch(
+    catchErrors([
+      [
+        R.propEq('code', 'NotFound'),
+        () => {
+          throw new errors.NoSuchBucket()
+        },
+      ],
+    ]),
+  )
+
+export const bucketStats = async ({ es, maxExts }) => {
+  const r = await es({
+    query: { match_all: {} },
+    size: 0,
+    aggs: {
+      totalBytes: { sum: { field: 'size' } },
+      exts: {
+        terms: { field: 'ext' },
+        aggs: { size: { sum: { field: 'size' } } },
+      },
+      updated: { max: { field: 'updated' } },
+    },
+  })
+
+  const exts = R.pipe(
+    R.map((i) => ({
+      ext: i.key,
+      objects: i.doc_count,
+      bytes: i.size.value,
+    })),
+    R.sort(R.descend(R.prop('bytes'))),
+    R.slice(0, maxExts),
+  )(r.aggregations.exts.buckets)
+
+  return {
+    totalObjects: r.hits.total,
+    totalVersions: r.hits.total,
+    totalBytes: r.aggregations.totalBytes.value,
+    updated: parseDate(r.aggregations.updated.value_as_string),
+    exts,
+  }
+}
+
+const parseVersion = R.when(R.equals('null'), () => undefined)
+
+const DELETED = Symbol('DELETED')
+
+const extractLatestVersion = (hits) => {
+  const totalVersions = hits.total
+  // eslint-disable-next-line no-underscore-dangle
+  const latestVersion = parseVersion(hits.hits[0]._source.version_id)
+  return (
+    latestVersion ||
+    (totalVersions === 1
+      ? // single version and it's null -> versioning disabled
+        undefined
+      : // latest version is null -> object deleted
+        DELETED)
+  )
+}
+
+const MAX_IMGS = 100
+const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
+const MAX_OTHER = 10
+const OTHER_EXTS = [
+  '.parquet',
+  '.csv',
+  '.tsv',
+  '.txt',
+  '.vcf',
+  '.xls',
+  '.xlsx',
+  '.ipynb',
+  '.md',
+  '.json',
+]
+const SUMMARIZE_KEY = 'quilt_summarize.json'
+
+export const bucketSummary = ({ es, bucket }) =>
+  es({
+    query: { match_all: {} },
+    aggs: {
+      readmes: {
+        terms: {
+          field: 'key',
+          include: README_KEYS,
+        },
+        aggs: {
+          latestVersion: {
+            top_hits: {
+              sort: [{ last_modified: { order: 'desc' } }],
+              _source: ['version_id'],
+              size: 1,
+            },
+          },
+        },
+      },
+      images: {
+        filter: {
+          terms: { ext: IMG_EXTS },
+        },
+        aggs: {
+          keys: {
+            terms: {
+              field: 'key',
+              size: MAX_IMGS,
+              order: { 'lastModified.value': 'desc' },
+            },
+            aggs: {
+              latestVersion: {
+                top_hits: {
+                  sort: [{ last_modified: { order: 'desc' } }],
+                  _source: ['version_id'],
+                  size: 1,
+                },
+              },
+              lastModified: { max: { field: 'last_modified' } },
+            },
+          },
+        },
+      },
+      other: {
+        filter: {
+          bool: {
+            filter: [{ terms: { ext: OTHER_EXTS } }],
+            must_not: [
+              { terms: { key: [...README_KEYS, SUMMARIZE_KEY] } },
+              { wildcard: { key: `*/${SUMMARIZE_KEY}` } },
+            ],
+          },
+        },
+        aggs: {
+          keys: {
+            terms: {
+              field: 'key',
+              size: MAX_OTHER,
+              order: { 'lastModified.value': 'desc' },
+            },
+            aggs: {
+              latestVersion: {
+                top_hits: {
+                  sort: [{ last_modified: { order: 'desc' } }],
+                  _source: ['version_id', 'ext'],
+                  size: 1,
+                },
+              },
+              lastModified: { max: { field: 'last_modified' } },
+            },
+          },
+        },
+      },
+      summarize: {
+        filter: {
+          term: { key: SUMMARIZE_KEY },
+        },
+        aggs: {
+          latestVersion: {
+            top_hits: {
+              sort: [{ last_modified: { order: 'desc' } }],
+              _source: ['version_id'],
+              size: 1,
+            },
+          },
+        },
+      },
+    },
+    size: 0,
+  }).then(
+    R.applySpec({
+      readmes: R.pipe(
+        R.path(['aggregations', 'readmes', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
+      ),
+      images: R.pipe(
+        R.path(['aggregations', 'images', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+      ),
+      other: R.pipe(
+        R.path(['aggregations', 'other', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+          lastModified: parseDate(b.lastModified),
+          // eslint-disable-next-line no-underscore-dangle
+          ext: b.latestVersion.hits.hits[0]._source.ext,
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sortWith([
+          R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+          R.descend(R.prop('lastModified')),
+        ]),
+      ),
+      summarize: ({
+        aggregations: {
+          summarize: {
+            latestVersion: { hits },
+          },
+        },
+      }) => {
+        if (!hits.total) return null
+        const version = extractLatestVersion(hits)
+        if (version === DELETED) return null
+        return { bucket, key: SUMMARIZE_KEY, version }
+      },
+    }),
+  )
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
@@ -488,7 +761,8 @@ const mergeHits = R.pipe(
             {
               id: src.version_id,
               score,
-              updated: new Date(src.updated),
+              updated: parseDate(src.updated),
+              lastModified: parseDate(src.last_modified),
               size: src.size,
               meta: src.user_meta,
             },
@@ -504,10 +778,14 @@ const mergeHits = R.pipe(
 export const search = async ({ es, query }) => {
   try {
     const result = await es({
-      query,
-      fields: ['content', 'comment', 'key_text', 'meta_text'],
-      type: 'cross_fields',
-      _source: ['key', 'version_id', 'updated', 'size', 'user_meta'],
+      query: {
+        multi_match: {
+          query,
+          fields: ['content', 'comment', 'key_text', 'meta_text'],
+          type: 'cross_fields',
+        },
+      },
+      _source: ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta'],
     })
     const hits = mergeHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
