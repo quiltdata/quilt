@@ -5,14 +5,13 @@ import { Route, Link } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 
+import Message from 'components/Message'
 import * as Auth from 'containers/Auth'
 import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-
-import Message from './Message'
 
 export class BucketError extends BaseError {}
 

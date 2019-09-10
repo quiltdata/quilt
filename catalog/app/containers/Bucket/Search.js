@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import * as SearchResults from 'components/SearchResults'
 import Working from 'components/Working'
@@ -12,8 +13,6 @@ import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
-
-import Message from './Message'
 
 function Browse({ bucket }) {
   const { urls } = NamedRoutes.use()

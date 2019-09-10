@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -24,7 +25,6 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 import useMemoEq from 'utils/useMemoEq'
 
-import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
