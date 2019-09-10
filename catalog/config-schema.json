@@ -11,7 +11,11 @@
     },
     "apiGatewayEndpoint": {
       "type": "string",
-      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+      "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
+    },
+    "binaryApiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
     "defaultBucket": {
       "type": "string",
@@ -79,6 +83,7 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
+    "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
     "passwordAuth",
