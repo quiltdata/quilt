@@ -168,7 +168,8 @@ def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_i
             version_id=version_id
         )
         lines = get_preview_lines(
-            obj["Body"], compression,
+            obj["Body"],
+            compression,
             ELASTIC_LIMIT_LINES,
             ELASTIC_LIMIT_BYTES
         )
