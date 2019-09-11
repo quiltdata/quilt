@@ -14,28 +14,28 @@ const merger = mkMerger({
 
 const parseDate = (d) => d && new Date(d)
 
-// TODO: expose bucket (use index name?)
 const mergeHits = R.pipe(
-  R.reduce(
-    (acc, { _score: score, _source: src }) =>
-      R.mergeDeepWithKey(merger, acc, {
-        [src.key]: {
-          path: src.key,
-          score,
-          versions: [
-            {
-              id: src.version_id,
-              score,
-              updated: parseDate(src.updated),
-              lastModified: parseDate(src.last_modified),
-              size: src.size,
-              meta: src.user_meta,
-            },
-          ],
-        },
-      }),
-    {},
-  ),
+  R.reduce((acc, { _score: score, _source: src, _index: idx }) => {
+    const i = idx.lastIndexOf('-reindex')
+    const bucket = i === -1 ? idx : idx.slice(0, i)
+    return R.mergeDeepWithKey(merger, acc, {
+      [`${bucket}/${src.key}`]: {
+        path: src.key,
+        bucket,
+        score,
+        versions: [
+          {
+            id: src.version_id,
+            score,
+            updated: parseDate(src.updated),
+            lastModified: parseDate(src.last_modified),
+            size: src.size,
+            meta: src.user_meta,
+          },
+        ],
+      },
+    })
+  }, {}),
   R.values,
   R.sortBy((h) => -h.score),
 )
@@ -43,7 +43,7 @@ const mergeHits = R.pipe(
 export default async function search({ es, query, buckets }) {
   try {
     const result = await es({
-      index: buckets ? buckets.join(',') : '_all',
+      index: (buckets && buckets.join(',')) || '_all',
       query: {
         multi_match: {
           query,
