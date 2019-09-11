@@ -1,8 +1,6 @@
 """
 Preview helper functions
 """
-import json
-import os
 import pathlib
 from unittest import TestCase
 
@@ -43,7 +41,7 @@ class TestPreview(TestCase):
         assert lines[-1] == f'Line {max_lines}', 'unexpected last line'
 
     def test_txt_max_bytes(self):
-        """test truncation to MAX_BYTES"""
+        """test truncation to CATALOG_LIMIT_BYTES"""
         txt = BASE_DIR / 'two-line.txt'
         max_lines = 500
         max_bytes = 5
@@ -53,13 +51,18 @@ class TestPreview(TestCase):
         assert lines[0] == '1234😊', 'failed to truncate bytes'
 
     def test_txt_max_bytes_one_line(self):
-        """test truncation to MAX_BYTES"""
+        """test truncation to CATALOG_LIMIT_BYTES"""
         txt = BASE_DIR / 'one-line.txt'
         max_lines = 500
         max_bytes = 8
         chunk_size = 10
         with open(txt, 'rb') as file_obj:
-            lines = get_preview_lines(iterate_chunks(file_obj, chunk_size), None, max_lines, max_bytes)
+            lines = get_preview_lines(
+                iterate_chunks(file_obj, chunk_size),
+                None,
+                max_lines,
+                max_bytes
+            )
         assert len(lines) == 1, 'failed to truncate bytes'
         assert lines[0] == '🚷🚯', 'failed to truncate bytes'
 

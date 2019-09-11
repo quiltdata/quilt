@@ -14,11 +14,11 @@ import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 from t4_lambda_shared.preview import (
-    DOC_LIMIT_BYTES,
+    ELASTIC_LIMIT_BYTES,
+    ELASTIC_LIMIT_LINES,
     extract_parquet,
     get_bytes,
     get_preview_lines,
-    MAX_LINES,
     trim_to_bytes
 )
 
@@ -39,6 +39,7 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
 def should_retry_exception(exception):
+    """don't retry certain 40X errors"""
     error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
 
@@ -65,7 +66,8 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     etag=etag,
                     s3_client=s3_client,
                     version_id=version_id
-                )
+                ),
+                ELASTIC_LIMIT_BYTES
             )
         elif ext == ".parquet":
             obj = retry_s3(
@@ -162,10 +164,14 @@ def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_i
             size,
             etag=etag,
             s3_client=s3_client,
-            limit=DOC_LIMIT_BYTES,
+            limit=ELASTIC_LIMIT_BYTES,
             version_id=version_id
         )
-        lines = get_preview_lines(obj["Body"], compression, MAX_LINES, DOC_LIMIT_BYTES)
+        lines = get_preview_lines(
+            obj["Body"], compression,
+            ELASTIC_LIMIT_LINES,
+            ELASTIC_LIMIT_BYTES
+        )
         text = ''.join(lines)
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)

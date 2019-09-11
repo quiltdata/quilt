@@ -6,15 +6,18 @@ import os
 import json
 import zlib
 
-# number of bytes we take from each document before sending to elastic-search
-DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
-# MAX_BYTES is bytes scanned, so functions as an upper bound on bytes returned
-# in practice we will hit MAX_LINES first
+# CATALOG_LIMIT_BYTES is bytes scanned, so acts as an upper bound on bytes returned
 # we need a largish number for things like VCF where we will discard many bytes
 # Only applied to _from_stream() types. _to_memory types are size limited either
 # by pandas or by exclude_output='true'
-MAX_BYTES = 1024*1024
-MAX_LINES = 512 # must be positive int
+CATALOG_LIMIT_BYTES = 1024*1024
+CATALOG_LIMIT_LINES = 512 # must be positive int
+# number of bytes we take from each document before sending to elastic-search
+# DOC_LIMIT_BYTES is the legacy variable name; leave as-is for now; requires
+# change to CloudFormation templates to use the new name
+ELASTIC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
+ELASTIC_LIMIT_LINES = 100_000
+
 
 
 class NoopDecompressObj():
@@ -91,11 +94,11 @@ def extract_parquet(file_, as_html=True):
     # convert to str since FileMetaData is not JSON.dumps'able (below)
     dataframe = row_group.to_pandas()
     if as_html:
-        html = dataframe._repr_html_()# pylint: disable=protected-access
+        body = dataframe._repr_html_()# pylint: disable=protected-access
     else:
-        html = trim_to_bytes(dataframe.to_string())
+        body = trim_to_bytes(dataframe.to_string(), ELASTIC_LIMIT_BYTES)
 
-    return html, info
+    return body, info
 
 
 def get_preview_lines(chunk_iterator, compression, max_lines, max_bytes):
@@ -142,7 +145,7 @@ def get_bytes(chunk_iterator, compression):
     buffer.seek(0)
     return buffer
 
-def trim_to_bytes(string, limit=DOC_LIMIT_BYTES):
+def trim_to_bytes(string, limit):
     """trim string to specified number of bytes"""
     encoded = string.encode("utf-8")
     size = len(encoded)

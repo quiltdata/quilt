@@ -5,19 +5,17 @@ disk and RAM pressure.
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
-import json
 from urllib.parse import urlparse
-import zlib
 
 import requests
 
 from t4_lambda_shared.decorator import api, validate
 from t4_lambda_shared.preview import (
+    CATALOG_LIMIT_BYTES,
+    CATALOG_LIMIT_LINES,
     extract_parquet,
     get_bytes,
-    get_preview_lines,
-    MAX_BYTES,
-    MAX_LINES
+    get_preview_lines
 )
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
@@ -82,7 +80,8 @@ def lambda_handler(request):
     compression = request.args.get('compression')
     separator = request.args.get('sep') or ','
     exclude_output = request.args.get('exclude_output') == 'true'
-    max_bytes = request.args.get('max_bytes', MAX_BYTES)
+    max_bytes = request.args.get('max_bytes', CATALOG_LIMIT_BYTES)
+
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
@@ -94,7 +93,7 @@ def lambda_handler(request):
         })
 
     try:
-        line_count = _str_to_line_count(request.args.get('line_count', str(MAX_LINES)))
+        line_count = _str_to_line_count(request.args.get('line_count', str(CATALOG_LIMIT_LINES)))
     except ValueError as error:
         # format https://jsonapi.org/format/1.1/#error-objects
         return make_json_response(400, {
@@ -118,9 +117,13 @@ def lambda_handler(request):
         elif input_type == 'parquet':
             html, info = extract_parquet(get_bytes(content_iter, compression))
         elif input_type == 'vcf':
-            html, info = extract_vcf(get_preview_lines(content_iter, compression, line_count, max_bytes))
+            html, info = extract_vcf(
+                get_preview_lines(content_iter, compression, line_count, max_bytes)
+            )
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(get_preview_lines(content_iter, compression, line_count, max_bytes))
+            html, info = extract_txt(
+                get_preview_lines(content_iter, compression, line_count, max_bytes)
+            )
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -263,13 +266,7 @@ def extract_vcf(head):
 
 def extract_txt(head):
     """
-    Display first N lines of a potentially large file.
-
-    Args:
-        file_ - file-like object opened in binary mode (+b)
-    Returns:
-        dict - head and tail. tail may be empty. returns at most MAX_LINES
-        lines that occupy a total of MAX_BYTES bytes.
+    dummy formatting function
     """
     info = {
         'data': {
@@ -281,7 +278,7 @@ def extract_txt(head):
 
     return '', info
 
-def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
+def _str_to_line_count(int_string, lower=1, upper=CATALOG_LIMIT_LINES):
     """
     validates an integer string
 

@@ -1,4 +1,4 @@
-""" core logic for fetching documents from S3 and cueing them locally before
+""" core logic for fetching documents from S3 and queueing them locally before
 sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from math import floor
@@ -10,7 +10,7 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
-from t4_lambda_shared.preview import DOC_LIMIT_BYTES
+from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
 
 
 CONTENT_INDEX_EXTS = [
@@ -121,7 +121,7 @@ class DocumentQueue:
         if doc["content"]:
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
-            self.size += min(doc["size"], DOC_LIMIT_BYTES)
+            self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)
         self.queue.append(doc)
 
     def send_all(self):
