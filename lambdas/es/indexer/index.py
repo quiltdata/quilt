@@ -13,9 +13,21 @@ import botocore
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_LINES
-from .document_queue import (DocumentQueue, CONTENT_INDEX_EXTS, DOC_LIMIT_BYTES, MAX_RETRY,
-                             OBJECT_DELETE)
+from t4_lambda_shared.preview import (
+    DOC_LIMIT_BYTES,
+    extract_parquet,
+    get_bytes,
+    get_preview_lines,
+    MAX_LINES,
+    trim_to_bytes
+)
+
+from .document_queue import (
+    DocumentQueue,
+    CONTENT_INDEX_EXTS,
+    MAX_RETRY,
+    OBJECT_DELETE
+)
 
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4 # default notebook version for nbformat
@@ -55,6 +67,17 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     version_id=version_id
                 )
             )
+        elif ext == ".parquet":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
         else:
             content = get_plain_text(
                 bucket,
@@ -324,11 +347,3 @@ def retry_s3(
         return function_(**arguments)
 
     return call()
-
-def trim_to_bytes(string, limit=DOC_LIMIT_BYTES):
-    """trim string to specified number of bytes"""
-    encoded = string.encode("utf-8")
-    size = len(encoded)
-    if size <= limit:
-        return string
-    return encoded[:limit].decode("utf-8", "ignore")

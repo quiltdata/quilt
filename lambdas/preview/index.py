@@ -12,7 +12,13 @@ import zlib
 import requests
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_BYTES, MAX_LINES
+from t4_lambda_shared.preview import (
+    extract_parquet,
+    get_bytes,
+    get_preview_lines,
+    MAX_BYTES,
+    MAX_LINES
+)
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
@@ -172,7 +178,6 @@ def extract_csv(head, separator):
         )
     }
 
-
 def extract_excel(file_):
     """
     excel file => data frame => html
@@ -212,57 +217,6 @@ def extract_ipynb(file_, exclude_output):
     html, _ = html_exporter.from_notebook_node(notebook)
 
     return html, {}
-
-def extract_parquet(file_):
-    """
-    parse and extract key metadata from parquet files
-
-    Args:
-        file_ - file-like object opened in binary mode (+b)
-
-    Returns:
-        dict
-            html - html summary of main contents (if applicable)
-            info - metdata for user consumption
-    """
-    # TODO: generalize to datasets, multipart files
-    # As written, only works for single files, and metadata
-    # is slanted towards the first row_group
-
-    # local import reduces amortized latency, saves memory
-    import pyarrow.parquet as pq
-
-    meta = pq.read_metadata(file_)
-
-    info = {}
-    info['created_by'] = meta.created_by
-    info['format_version'] = meta.format_version
-    info['metadata'] = {
-        # seems silly but sets up a simple json.dumps(info) below
-        k.decode():json.loads(meta.metadata[k])
-        for k in meta.metadata
-    } if meta.metadata is not None else {}
-    info['num_row_groups'] = meta.num_row_groups
-    info['schema'] = {
-        name: {
-            'logical_type': meta.schema.column(i).logical_type,
-            'max_definition_level': meta.schema.column(i).max_definition_level,
-            'max_repetition_level': meta.schema.column(i).max_repetition_level,
-            'path': meta.schema.column(i).path,
-            'physical_type': meta.schema.column(i).physical_type,
-        }
-        for i, name in enumerate(meta.schema.names)
-    }
-    info['serialized_size'] = meta.serialized_size
-    info['shape'] = [meta.num_rows, meta.num_columns]
-
-    file_.seek(0)
-    # TODO: make this faster with n_threads > 1?
-    row_group = pq.ParquetFile(file_).read_row_group(0)
-    # convert to str since FileMetaData is not JSON.dumps'able (below)
-    html = row_group.to_pandas()._repr_html_() # pylint: disable=protected-access
-
-    return html, info
 
 def extract_vcf(head):
     """
