@@ -1085,7 +1085,7 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { searchEndpoint, description } = BucketConfig.useCurrentBucketConfig()
+  const { searchEndpoint, description } = BucketConfig.useCurrentBucketConfig() || {}
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
       {AsyncResult.case({
