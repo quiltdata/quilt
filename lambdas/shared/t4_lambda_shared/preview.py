@@ -54,7 +54,7 @@ def extract_parquet(file_, as_html=True):
 
     Returns:
         dict
-            html - summary of main contents (if applicable)
+            body - summary of main contents (if applicable)
             info - metdata for user consumption
     """
     # TODO: generalize to datasets, multipart files
