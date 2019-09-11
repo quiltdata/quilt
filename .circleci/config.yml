@@ -90,6 +90,7 @@ jobs:
           command: |
             virtualenv venv
             . venv/bin/activate
+            pip install lambdas/shared/
             pip install lambdas/s3select
             pip install -r lambdas/s3select/requirements.txt
             pip install -r lambdas/s3select/test-requirements.txt
