@@ -62,6 +62,12 @@ export const activationError = {
   url: () => '/activation_error',
 }
 
+// global search
+export const search = {
+  path: '/search',
+  url: ({ q, buckets, p }) => `/search${mkSearch({ q, buckets, p })}`,
+}
+
 // bucket
 export const bucketRoot = {
   path: '/b/:bucket',
@@ -70,6 +76,7 @@ export const bucketRoot = {
 export const bucketOverview = bucketRoot
 export const bucketSearch = {
   path: '/b/:bucket/search',
+  // TODO: page
   url: (bucket, q) => `/b/${bucket}/search${mkSearch({ q })}`,
 }
 export const bucketFile = {
@@ -98,7 +105,7 @@ export const bucketPackageTree = {
 // legacy stuff
 export const legacyPackages = {
   path: `/package/:path+`,
-  url: (root, { pathname, search, hash }) => `${root}${pathname}${search}${hash}`,
+  url: (root, loc) => `${root}${loc.pathname}${loc.search}${loc.hash}`,
 }
 
 // admin

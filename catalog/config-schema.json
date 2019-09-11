@@ -54,6 +54,10 @@
       "$ref": "#/definitions/Url",
       "description": "Proxy server to use to get around S3 buckets with no CORS policies."
     },
+    "searchEndpoint": {
+      "type": "string",
+      "description": "ElasticSearch endpoint for multi-bucket (global) search"
+    },
     "sentryDSN": {
       "type": "string",
       "description": "Token used for logging to Sentry."

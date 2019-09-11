@@ -47,6 +47,7 @@ const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
 const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
 const HomePage = mkLazy(() => import('containers/HomePage'))
+const Search = mkLazy(() => import('containers/Search'))
 
 const MLanding = mkLazy(() => import('website/pages/Landing'))
 const MAbout = mkLazy(() => import('website/pages/About'))
@@ -74,6 +75,8 @@ export default () => {
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
+
+        {!!cfg.searchEndpoint && <Route path={paths.search} component={Search} exact />}
 
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />
