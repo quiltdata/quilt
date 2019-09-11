@@ -12,33 +12,37 @@ import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-function Crumbs({ bucket, path, version }) {
+function Crumbs({ handle: { bucket, key, version }, showBucket = false }) {
   const { urls } = NamedRoutes.use()
-  const items = R.intersperse(
-    Crumb.Sep(' / '),
-    getBreadCrumbs(path).map(({ label, path: segPath }) =>
-      Crumb.Segment({
-        label,
-        to:
-          // eslint-disable-next-line no-nested-ternary
-          segPath === path
-            ? version
-              ? urls.bucketFile(bucket, segPath, version)
-              : undefined
-            : urls.bucketDir(bucket, segPath),
-      }),
-    ),
+  const crumbs = getBreadCrumbs(key).map(({ label, path: segPath }) =>
+    Crumb.Segment({
+      label,
+      to:
+        // eslint-disable-next-line no-nested-ternary
+        segPath === key
+          ? version
+            ? urls.bucketFile(bucket, segPath, version)
+            : undefined
+          : urls.bucketDir(bucket, segPath),
+    }),
   )
+  if (showBucket) {
+    crumbs.unshift(Crumb.Segment({ label: bucket, to: urls.bucketRoot(bucket) }))
+  }
+
+  // TODO: remove space when copying path
+  const items = R.intersperse(Crumb.Sep(' / '), crumbs)
   return <BreadCrumbs items={items} />
 }
 
-function Header({ handle: h }) {
+function Header({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
+  // TODO: handle null version
   return (
     <M.Box display="flex" mb={1}>
-      <Crumbs bucket={h.bucket} path={h.key} version={h.version} />
+      <Crumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {h.version ? (
+      {handle.version ? (
         <M.Box
           alignItems="center"
           display="flex"
@@ -46,7 +50,7 @@ function Header({ handle: h }) {
           justifyContent="center"
           width={24}
         >
-          <M.IconButton href={getUrl(h)} title="Download" download>
+          <M.IconButton href={getUrl(handle)} title="Download" download>
             <M.Icon>arrow_downward</M.Icon>
           </M.IconButton>
         </M.Box>
@@ -286,12 +290,12 @@ function Meta({ meta }) {
 
 const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions[0]
 
-export function Hit({ bucket, hit: { path, versions } }) {
+export function Hit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
   return (
     <M.Box component={M.Card} mb={2}>
       <M.CardContent>
-        <Header handle={{ bucket, key: path, version: v.id }} />
+        <Header handle={{ bucket, key: path, version: v.id }} showBucket={showBucket} />
         <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
         <Meta meta={v.meta} />
         <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />

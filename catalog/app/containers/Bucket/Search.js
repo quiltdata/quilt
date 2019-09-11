@@ -60,7 +60,7 @@ function Results({ bucket, query, searchEndpoint }) {
             {({ paginated, ...props }) => (
               <>
                 {paginated.map((hit) => (
-                  <SearchResults.Hit key={hit.path} bucket={bucket} hit={hit} />
+                  <SearchResults.Hit key={hit.path} hit={hit} />
                 ))}
                 {props.pages > 1 && (
                   <M.Box mt={2}>
