@@ -1,3 +1,5 @@
+""" core logic for fetching documents from S3 and queueing them locally before
+sending to elastic search in memory-limited batches"""
 from datetime import datetime
 from math import floor
 import json
@@ -8,19 +10,21 @@ import boto3
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 from elasticsearch.helpers import bulk
 
+from t4_lambda_shared.preview import ELASTIC_LIMIT_BYTES
+
 
 CONTENT_INDEX_EXTS = [
     ".csv",
     ".ipynb",
     ".md",
+    ".parquet",
     ".rmd",
     ".tsv",
     ".txt"
 ]
 
- # 10 MB, see https://amzn.to/2xJpngN
+# See https://amzn.to/2xJpngN for chunk size as a function of container size
 CHUNK_LIMIT_BYTES = 20_000_000
-DOC_LIMIT_BYTES = int(os.getenv('DOC_LIMIT_BYTES') or 10_000)
 ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360 #seconds
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
@@ -117,7 +121,7 @@ class DocumentQueue:
         if doc["content"]:
             # document text dominates memory footprint; OK to neglect the
             # small fixed size for the JSON metadata
-            self.size += min(doc["size"], DOC_LIMIT_BYTES)
+            self.size += min(doc["size"], ELASTIC_LIMIT_BYTES)
         self.queue.append(doc)
 
     def send_all(self):

@@ -5,14 +5,18 @@ disk and RAM pressure.
 Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 """
 import io
-import json
 from urllib.parse import urlparse
-import zlib
 
 import requests
 
 from t4_lambda_shared.decorator import api, validate
-from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_BYTES, MAX_LINES
+from t4_lambda_shared.preview import (
+    CATALOG_LIMIT_BYTES,
+    CATALOG_LIMIT_LINES,
+    extract_parquet,
+    get_bytes,
+    get_preview_lines
+)
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 # Number of bytes for read routines like decompress() and
@@ -76,7 +80,8 @@ def lambda_handler(request):
     compression = request.args.get('compression')
     separator = request.args.get('sep') or ','
     exclude_output = request.args.get('exclude_output') == 'true'
-    max_bytes = request.args.get('max_bytes', MAX_BYTES)
+    max_bytes = request.args.get('max_bytes', CATALOG_LIMIT_BYTES)
+
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
@@ -88,7 +93,7 @@ def lambda_handler(request):
         })
 
     try:
-        line_count = _str_to_line_count(request.args.get('line_count', str(MAX_LINES)))
+        line_count = _str_to_line_count(request.args.get('line_count', str(CATALOG_LIMIT_LINES)))
     except ValueError as error:
         # format https://jsonapi.org/format/1.1/#error-objects
         return make_json_response(400, {
@@ -112,9 +117,13 @@ def lambda_handler(request):
         elif input_type == 'parquet':
             html, info = extract_parquet(get_bytes(content_iter, compression))
         elif input_type == 'vcf':
-            html, info = extract_vcf(get_preview_lines(content_iter, compression, line_count, max_bytes))
+            html, info = extract_vcf(
+                get_preview_lines(content_iter, compression, line_count, max_bytes)
+            )
         elif input_type in TEXT_TYPES:
-            html, info = extract_txt(get_preview_lines(content_iter, compression, line_count, max_bytes))
+            html, info = extract_txt(
+                get_preview_lines(content_iter, compression, line_count, max_bytes)
+            )
         else:
             assert False, f'unexpected input_type: {input_type}'
 
@@ -172,7 +181,6 @@ def extract_csv(head, separator):
         )
     }
 
-
 def extract_excel(file_):
     """
     excel file => data frame => html
@@ -212,57 +220,6 @@ def extract_ipynb(file_, exclude_output):
     html, _ = html_exporter.from_notebook_node(notebook)
 
     return html, {}
-
-def extract_parquet(file_):
-    """
-    parse and extract key metadata from parquet files
-
-    Args:
-        file_ - file-like object opened in binary mode (+b)
-
-    Returns:
-        dict
-            html - html summary of main contents (if applicable)
-            info - metdata for user consumption
-    """
-    # TODO: generalize to datasets, multipart files
-    # As written, only works for single files, and metadata
-    # is slanted towards the first row_group
-
-    # local import reduces amortized latency, saves memory
-    import pyarrow.parquet as pq
-
-    meta = pq.read_metadata(file_)
-
-    info = {}
-    info['created_by'] = meta.created_by
-    info['format_version'] = meta.format_version
-    info['metadata'] = {
-        # seems silly but sets up a simple json.dumps(info) below
-        k.decode():json.loads(meta.metadata[k])
-        for k in meta.metadata
-    } if meta.metadata is not None else {}
-    info['num_row_groups'] = meta.num_row_groups
-    info['schema'] = {
-        name: {
-            'logical_type': meta.schema.column(i).logical_type,
-            'max_definition_level': meta.schema.column(i).max_definition_level,
-            'max_repetition_level': meta.schema.column(i).max_repetition_level,
-            'path': meta.schema.column(i).path,
-            'physical_type': meta.schema.column(i).physical_type,
-        }
-        for i, name in enumerate(meta.schema.names)
-    }
-    info['serialized_size'] = meta.serialized_size
-    info['shape'] = [meta.num_rows, meta.num_columns]
-
-    file_.seek(0)
-    # TODO: make this faster with n_threads > 1?
-    row_group = pq.ParquetFile(file_).read_row_group(0)
-    # convert to str since FileMetaData is not JSON.dumps'able (below)
-    html = row_group.to_pandas()._repr_html_() # pylint: disable=protected-access
-
-    return html, info
 
 def extract_vcf(head):
     """
@@ -309,13 +266,7 @@ def extract_vcf(head):
 
 def extract_txt(head):
     """
-    Display first N lines of a potentially large file.
-
-    Args:
-        file_ - file-like object opened in binary mode (+b)
-    Returns:
-        dict - head and tail. tail may be empty. returns at most MAX_LINES
-        lines that occupy a total of MAX_BYTES bytes.
+    dummy formatting function
     """
     info = {
         'data': {
@@ -327,7 +278,7 @@ def extract_txt(head):
 
     return '', info
 
-def _str_to_line_count(int_string, lower=1, upper=MAX_LINES):
+def _str_to_line_count(int_string, lower=1, upper=CATALOG_LIMIT_LINES):
     """
     validates an integer string
 

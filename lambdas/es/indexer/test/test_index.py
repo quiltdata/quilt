@@ -137,7 +137,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'hello world.txt',
                 'IfMatch': '123456',
-                'Range': f'bytes=0-{index.DOC_LIMIT_BYTES}',
+                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
             }
         )
 
@@ -203,7 +203,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.DOC_LIMIT_BYTES}',
+                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
             }
         )
 
@@ -222,7 +222,7 @@ class TestIndex(TestCase):
                 'Bucket': 'test-bucket',
                 'Key': 'foo.txt.gz',
                 'IfMatch': 'etag',
-                'Range': f'bytes=0-{index.DOC_LIMIT_BYTES}',
+                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
             }
         )
 
@@ -268,3 +268,29 @@ class TestIndex(TestCase):
 
         contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert "Model results visualization" in contents
+
+    def test_parquet_contents(self):
+        parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
+
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(parquet),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.parquet',
+                'IfMatch': 'etag',
+            }
+        )
+
+        contents = index.get_contents('test-bucket', 'foo.parquet', '.parquet', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        size = len(contents.encode('utf-8', 'ignore'))
+        # we know the file is bigger than the limit
+        assert size == index.ELASTIC_LIMIT_BYTES
+        # spot check for contents
+        assert "This is a great handy reference tool for all" in contents
+        assert "I recieved a Marvel the Mustang for Christmas" in contents
+        assert "40643586" in contents
