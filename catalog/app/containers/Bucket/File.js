@@ -117,7 +117,7 @@ const VersionInfo = RT.composeComponent(
                           <span>
                             <FormattedRelative value={v.lastModified} />
                             {' | '}
-                            {readableBytes(v.size)}
+                            {v.size != null ? readableBytes(v.size) : 'DELETED'}
                             {v.isLatest && ' | latest'}
                           </span>
                         }
@@ -129,13 +129,15 @@ const VersionInfo = RT.composeComponent(
                           </span>
                         }
                       />
-                      <ListItemSecondaryAction>
-                        {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                          <IconButton href={url}>
-                            <Icon>arrow_downward</Icon>
-                          </IconButton>
-                        ))}
-                      </ListItemSecondaryAction>
+                      {!v.deleteMarker && (
+                        <ListItemSecondaryAction>
+                          {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                            <IconButton href={url}>
+                              <Icon>arrow_downward</Icon>
+                            </IconButton>
+                          ))}
+                        </ListItemSecondaryAction>
+                      )}
                     </ListItem>
                   ))}
                 </List>

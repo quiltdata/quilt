@@ -358,14 +358,16 @@ export const objectVersions = ({ s3req, bucket, path }) =>
     params: { Bucket: bucket, Prefix: path },
   }).then(
     R.pipe(
-      R.prop('Versions'),
+      ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
       R.filter((v) => v.Key === path),
       R.map((v) => ({
         isLatest: v.IsLatest || false,
         lastModified: v.LastModified,
         size: v.Size,
         id: v.VersionId,
+        deleteMarker: v.Size == null,
       })),
+      R.sort(R.descend(R.prop('lastModified'))),
     ),
   )
 
