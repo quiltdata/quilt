@@ -1,4 +1,3 @@
-from base64 import b64decode
 import json
 import os
 from unittest import TestCase
