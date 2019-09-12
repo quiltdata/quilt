@@ -50,7 +50,7 @@ export default function useEditableValue(externalValue, onCommit) {
         state,
       )
     },
-    [externalValue, onCommit, cancel, state],
+    [externalValue, onCommit, cancel, State.Edited.is(state)],
   )
 
   const value = useMemoEq([state, externalValue], () =>
