@@ -22,7 +22,7 @@ from t4_lambda_shared.preview import (
     trim_to_bytes
 )
 
-from .document_queue import (
+from document_queue import (
     DocumentQueue,
     CONTENT_INDEX_EXTS,
     MAX_RETRY,
