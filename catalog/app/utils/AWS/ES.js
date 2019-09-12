@@ -12,15 +12,15 @@ const DEFAULT_SEARCH_SIZE = 1000
 
 const getRegion = R.pipe(
   R.prop('hostname'),
-  R.match(/\.([a-z]{2}-[a-z]+-\d)\.es\.amazonaws\.com$/),
+  R.match(/\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$/),
   R.nth(1),
   R.defaultTo('us-east-1'),
 )
 
 const noop = () => {}
 
-export const useES = ({ endpoint: ep, bucket }) => {
-  const { shouldSign } = useConfig()
+export const useES = ({ bucket }) => {
+  const { shouldSign, apiGatewayEndpoint: ep } = useConfig()
   const requestSigner = Signer.useRequestSigner()
   const signRequest = shouldSign(bucket) ? requestSigner : noop
 
@@ -32,7 +32,7 @@ export const useES = ({ endpoint: ep, bucket }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `${bucket}/_search${mkSearch({
+      const path = `/search/${bucket}${mkSearch({
         size,
         _source: _source && _source.join(','),
         source: JSON.stringify(source),
@@ -42,7 +42,7 @@ export const useES = ({ endpoint: ep, bucket }) => {
       request.method = 'GET'
       request.path += path
       request.headers.Host = endpoint.hostname
-      signRequest(request, 'es')
+      signRequest(request, 'execute-api')
 
       delete request.headers.Host
 

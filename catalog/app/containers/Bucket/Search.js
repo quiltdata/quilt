@@ -436,7 +436,6 @@ const Results = RT.composeComponent(
   RC.setPropTypes({
     bucket: PT.string.isRequired,
     query: PT.string.isRequired,
-    searchEndpoint: PT.string.isRequired,
     id: PT.string.isRequired,
     retry: PT.func.isRequired,
   }),
@@ -446,8 +445,8 @@ const Results = RT.composeComponent(
       marginTop: 2 * unit,
     },
   })),
-  ({ classes, bucket, query, searchEndpoint, id, retry }) => {
-    const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+  ({ classes, bucket, query, id, retry }) => {
+    const es = AWS.ES.use({ bucket })
     const cache = Cache.use()
     const scrollRef = React.useRef(null)
     const scroll = React.useCallback((prev) => {
@@ -520,7 +519,7 @@ export default RT.composeComponent(
     const retry = React.useCallback(() => setId(uuid()), [setId])
     return searchEndpoint ? (
       <React.Suspense fallback={<Working>Searching</Working>}>
-        <Results {...{ bucket: name, searchEndpoint, query, id, retry }} />
+        <Results {...{ bucket: name, query, id, retry }} />
       </React.Suspense>
     ) : (
       <Message headline="Search Not Available">

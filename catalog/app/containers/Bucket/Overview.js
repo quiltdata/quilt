@@ -576,8 +576,8 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ bucket, description, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+function Head({ bucket, description }) {
+  const es = AWS.ES.use({ bucket })
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
@@ -984,8 +984,8 @@ function Summarize({ summarize, other, children }) {
 
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
-function Files({ bucket, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+function Files({ bucket }) {
+  const es = AWS.ES.use({ bucket })
   return (
     <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
       {(res) => (
@@ -1090,8 +1090,8 @@ export default function Overview({
         Ok: () =>
           searchEndpoint ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description, searchEndpoint }} />
-              <Files {...{ bucket, searchEndpoint }} />
+              <Head {...{ bucket, description }} />
+              <Files {...{ bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
