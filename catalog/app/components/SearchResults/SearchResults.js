@@ -40,27 +40,22 @@ function Crumbs({ handle: { bucket, key, version }, showBucket = false }) {
 
 function Header({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
-  // TODO: handle null version
   return (
     <Heading display="flex" mb={1}>
       <Crumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
-      {handle.version ? (
-        <M.Box
-          alignItems="center"
-          display="flex"
-          height={32}
-          justifyContent="center"
-          width={24}
-          my={{ xs: -0.25, md: 0 }}
-        >
-          <M.IconButton href={getUrl(handle)} title="Download" download>
-            <M.Icon>arrow_downward</M.Icon>
-          </M.IconButton>
-        </M.Box>
-      ) : (
-        <M.Chip label="DELETED" />
-      )}
+      <M.Box
+        alignItems="center"
+        display="flex"
+        height={32}
+        justifyContent="center"
+        width={24}
+        my={{ xs: -0.25, md: 0 }}
+      >
+        <M.IconButton href={getUrl(handle)} title="Download" download>
+          <M.Icon>arrow_downward</M.Icon>
+        </M.IconButton>
+      </M.Box>
     </Heading>
   )
 }
@@ -118,28 +113,20 @@ function VersionInfo({ bucket, path, version, versions }) {
   return (
     <>
       <M.Typography variant="subtitle1" className={classes.versionContainer}>
-        {version.id ? (
-          <>
-            <Nowrap>
-              Version{' '}
-              <StyledLink
-                to={urls.bucketFile(bucket, path, version.id)}
-                className={classes.version}
-              >
-                {version.id}
-              </StyledLink>
-            </Nowrap>{' '}
-            <Nowrap>
-              from <Bold>{version.updated.toLocaleString()}</Bold>
-            </Nowrap>
-            {' | '}
-            <Bold>{readableBytes(version.size)}</Bold>
-          </>
-        ) : (
-          <span>
-            <Bold>Deleted</Bold> on <Bold>{version.updated.toLocaleString()}</Bold>
-          </span>
-        )}
+        <Nowrap>
+          Version{' '}
+          <StyledLink
+            to={urls.bucketFile(bucket, path, version.id)}
+            className={classes.version}
+          >
+            {version.id}
+          </StyledLink>
+        </Nowrap>{' '}
+        <Nowrap>
+          from <Bold>{version.updated.toLocaleString()}</Bold>
+        </Nowrap>
+        {' | '}
+        <Bold>{readableBytes(version.size)}</Bold>
       </M.Typography>
       {versions.length > 1 && (
         <M.Typography>
@@ -158,26 +145,16 @@ function VersionInfo({ bucket, path, version, versions }) {
               variant="body2"
               className={classes.versionContainer}
             >
-              {v.id ? (
-                <span>
-                  <StyledLink
-                    to={urls.bucketFile(bucket, path, v.id)}
-                    className={classes.version}
-                  >
-                    {v.id}
-                  </StyledLink>
-                  {' from '}
-                  <span className={classes.bold}>{v.updated.toLocaleString()}</span>
-                  {' | '}
-                  <span className={classes.bold}>{readableBytes(v.size)}</span>
-                </span>
-              ) : (
-                <span>
-                  <span className={classes.bold}>Deleted</span>
-                  {' on '}
-                  <span className={classes.bold}>{v.updated.toLocaleString()}</span>
-                </span>
-              )}
+              <StyledLink
+                to={urls.bucketFile(bucket, path, v.id)}
+                className={classes.version}
+              >
+                {v.id}
+              </StyledLink>
+              {' from '}
+              <Bold>{v.updated.toLocaleString()}</Bold>
+              {' | '}
+              <Bold>{readableBytes(v.size)}</Bold>
             </M.Typography>
           ))}
         </SmallerSection>
@@ -221,6 +198,7 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
     background: `linear-gradient(to top,
       rgba(255, 255, 255, 1),
       rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.1),
       rgba(255, 255, 255, 0.1)
     )`,
     bottom: 0,
