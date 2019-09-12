@@ -32,16 +32,19 @@ const useBreadCrumbsStyles = M.makeStyles((t) => ({
   },
 }))
 
+export const render = (items) =>
+  items.map(
+    Crumb.case({
+      Segment: (s, i) => <Segment key={`${i}:${s.label}`} {...s} />,
+      Sep: (s, i) => <span key={`__sep${i}`}>{s}</span>,
+    }),
+  )
+
 export default function BreadCrumbs({ className, variant = 'h6', items }) {
   const classes = useBreadCrumbsStyles()
   return (
     <M.Typography variant={variant} className={cx(className, classes.root)}>
-      {items.map(
-        Crumb.case({
-          Segment: (s, i) => <Segment key={`${i}:${s.label}`} {...s} />,
-          Sep: (s, i) => <span key={`__sep${i}`}>{s}</span>,
-        }),
-      )}
+      {render(items)}
     </M.Typography>
   )
 }
