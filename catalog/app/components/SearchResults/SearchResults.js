@@ -3,8 +3,9 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
+import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Preview from 'components/Preview'
+import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -15,7 +16,7 @@ import { readableBytes } from 'utils/string'
 function Crumbs({ handle: { bucket, key, version }, showBucket = false }) {
   const { urls } = NamedRoutes.use()
   const crumbs = getBreadCrumbs(key).map(({ label, path: segPath }) =>
-    Crumb.Segment({
+    BreadCrumbs.Crumb.Segment({
       label,
       to:
         // eslint-disable-next-line no-nested-ternary
@@ -27,19 +28,21 @@ function Crumbs({ handle: { bucket, key, version }, showBucket = false }) {
     }),
   )
   if (showBucket) {
-    crumbs.unshift(Crumb.Segment({ label: bucket, to: urls.bucketRoot(bucket) }))
+    crumbs.unshift(
+      BreadCrumbs.Crumb.Segment({ label: bucket, to: urls.bucketRoot(bucket) }),
+    )
   }
 
   // TODO: remove space when copying path
-  const items = R.intersperse(Crumb.Sep(' / '), crumbs)
-  return <BreadCrumbs items={items} />
+  const items = R.intersperse(BreadCrumbs.Crumb.Sep(' / '), crumbs)
+  return <M.Box>{BreadCrumbs.render(items)}</M.Box>
 }
 
 function Header({ handle, showBucket }) {
   const getUrl = AWS.Signer.useS3Signer()
   // TODO: handle null version
   return (
-    <M.Box display="flex" mb={1}>
+    <Heading display="flex" mb={1}>
       <Crumbs {...{ handle, showBucket }} />
       <M.Box flexGrow={1} />
       {handle.version ? (
@@ -49,6 +52,7 @@ function Header({ handle, showBucket }) {
           height={32}
           justifyContent="center"
           width={24}
+          my={{ xs: -0.25, md: 0 }}
         >
           <M.IconButton href={getUrl(handle)} title="Download" download>
             <M.Icon>arrow_downward</M.Icon>
@@ -57,17 +61,28 @@ function Header({ handle, showBucket }) {
       ) : (
         <M.Chip label="DELETED" />
       )}
-    </M.Box>
+    </Heading>
   )
 }
 
-const Section = ({ children }) => <M.Box mt={2}>{children}</M.Box>
+const SmallerSection = ({ children }) => <M.Box mt={2}>{children}</M.Box>
 
 const SectionHeading = ({ children, ...props }) => (
   <M.Typography variant="h6" {...props}>
     {children}
   </M.Typography>
 )
+
+const Bold = ({ ...props }) => (
+  <M.Box
+    color="text.primary"
+    fontWeight="fontWeightRegular"
+    component="span"
+    {...props}
+  />
+)
+
+const Nowrap = M.styled('span')({ whiteSpace: 'nowrap' })
 
 const useVersionInfoStyles = M.makeStyles((t) => ({
   versionContainer: {
@@ -77,10 +92,13 @@ const useVersionInfoStyles = M.makeStyles((t) => ({
   version: {
     fontFamily: t.typography.monospace.fontFamily,
     fontWeight: t.typography.fontWeightMedium,
-  },
-  bold: {
-    color: t.palette.text.primary,
-    fontWeight: t.typography.fontWeightRegular,
+    [t.breakpoints.down('xs')]: {
+      display: 'inline-block',
+      maxWidth: 240,
+      overflow: 'hidden',
+      textOverflow: 'ellipsis',
+      verticalAlign: 'top',
+    },
   },
   seeOther: {
     borderBottom: '1px dashed',
@@ -101,24 +119,25 @@ function VersionInfo({ bucket, path, version, versions }) {
     <>
       <M.Typography variant="subtitle1" className={classes.versionContainer}>
         {version.id ? (
-          <span>
-            {'Version '}
-            <StyledLink
-              to={urls.bucketFile(bucket, path, version.id)}
-              className={classes.version}
-            >
-              {version.id}
-            </StyledLink>
-            {' from '}
-            <span className={classes.bold}>{version.updated.toLocaleString()}</span>
+          <>
+            <Nowrap>
+              Version{' '}
+              <StyledLink
+                to={urls.bucketFile(bucket, path, version.id)}
+                className={classes.version}
+              >
+                {version.id}
+              </StyledLink>
+            </Nowrap>{' '}
+            <Nowrap>
+              from <Bold>{version.updated.toLocaleString()}</Bold>
+            </Nowrap>
             {' | '}
-            <span className={classes.bold}>{readableBytes(version.size)}</span>
-          </span>
+            <Bold>{readableBytes(version.size)}</Bold>
+          </>
         ) : (
           <span>
-            <span className={classes.bold}>Deleted</span>
-            {' on '}
-            <span className={classes.bold}>{version.updated.toLocaleString()}</span>
+            <Bold>Deleted</Bold> on <Bold>{version.updated.toLocaleString()}</Bold>
           </span>
         )}
       </M.Typography>
@@ -131,7 +150,7 @@ function VersionInfo({ bucket, path, version, versions }) {
         </M.Typography>
       )}
       {versions.length > 1 && versionsShown && (
-        <Section>
+        <SmallerSection>
           <SectionHeading gutterBottom>Versions ordered by relevance</SectionHeading>
           {versions.map((v) => (
             <M.Typography
@@ -161,7 +180,7 @@ function VersionInfo({ bucket, path, version, versions }) {
               )}
             </M.Typography>
           ))}
-        </Section>
+        </SmallerSection>
       )}
     </>
   )
@@ -199,11 +218,14 @@ const usePreviewBoxStyles = M.makeStyles((t) => ({
   },
   fade: {
     alignItems: 'flex-end',
-    background:
-      'linear-gradient(to top, rgba(255,255,255,1), rgba(255,255,255,0.9), rgba(255,255,255,0))',
+    background: `linear-gradient(to top,
+      rgba(255, 255, 255, 1),
+      rgba(255, 255, 255, 0.9),
+      rgba(255, 255, 255, 0.1)
+    )`,
     bottom: 0,
     display: 'flex',
-    height: t.spacing(10),
+    height: '100%',
     justifyContent: 'center',
     left: 0,
     padding: t.spacing(1),
@@ -236,7 +258,7 @@ function PreviewBox({ data }) {
 function PreviewDisplay({ handle }) {
   if (!handle.version) return null
   return (
-    <Section>
+    <SmallerSection>
       <SectionHeading>Preview</SectionHeading>
       {Preview.load(
         handle,
@@ -265,14 +287,14 @@ function PreviewDisplay({ handle }) {
           _: () => <M.CircularProgress />,
         }),
       )}
-    </Section>
+    </SmallerSection>
   )
 }
 
 function Meta({ meta }) {
   if (!meta || R.isEmpty(meta)) return null
   return (
-    <Section>
+    <SmallerSection>
       <SectionHeading>Metadata</SectionHeading>
       <M.Box
         component="pre"
@@ -284,7 +306,7 @@ function Meta({ meta }) {
       >
         {JSON.stringify(meta, null, 2)}
       </M.Box>
-    </Section>
+    </SmallerSection>
   )
 }
 
@@ -293,13 +315,11 @@ const getDefaultVersion = (versions) => versions.find((v) => !!v.id) || versions
 export function Hit({ showBucket, hit: { path, versions, bucket } }) {
   const v = getDefaultVersion(versions)
   return (
-    <M.Box component={M.Card} mb={2}>
-      <M.CardContent>
-        <Header handle={{ bucket, key: path, version: v.id }} showBucket={showBucket} />
-        <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
-        <Meta meta={v.meta} />
-        <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
-      </M.CardContent>
-    </M.Box>
+    <Section>
+      <Header handle={{ bucket, key: path, version: v.id }} showBucket={showBucket} />
+      <VersionInfo bucket={bucket} path={path} version={v} versions={versions} />
+      <Meta meta={v.meta} />
+      <PreviewDisplay handle={{ bucket, key: path, version: v.id }} />
+    </Section>
   )
 }
