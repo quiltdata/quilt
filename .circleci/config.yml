@@ -100,6 +100,26 @@ jobs:
             . venv/bin/activate
             cd lambdas/s3select && pytest --cov=./
 
+  test-lambdas-search:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install lambdas/search/
+            pip install -r lambdas/search/requirements.txt
+            pip install -r lambdas/search/test-requirements.txt
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/search && pytest --cov=./
+
   test-lambdas-shared:
     docker:
       - image: circleci/python:3.6-jessie
