@@ -12,8 +12,8 @@ import UseQuilt from './UseQuilt'
 export default () => (
   <Layout>
     <Hero />
-    <UseQuilt />
     <Highlights />
+    <UseQuilt />
     <Testimonials />
     <Pricing />
     <MoreAboutQuilt />

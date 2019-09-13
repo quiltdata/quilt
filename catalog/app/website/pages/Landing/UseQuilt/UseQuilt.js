@@ -33,15 +33,22 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5}>
         <M.Typography variant="h1" color="textPrimary">
-          Why use Quilt?
+          Get your data to the cloud
         </M.Typography>
       </M.Box>
       <M.Box mt={4} mb={5} maxWidth={570}>
-        <M.Typography variant="body1" color="textSecondary" align="center">
-          Quilt makes machine learning data reproducible, auditable, and discoverable by
-          providing a central hub for the continuous integration and deployment of data.
-          Teams that use Quilt experiment faster, experience less downtime, and deploy
-          their data with confidence.
+        <M.Typography variant="body1" color="textSecondary">
+          <p>
+            Quilt runs in a virtual private cloud in your AWS account. Your data reside in
+            secure services that are only accessible to individuals whom you designate.
+          </p>
+          <p>
+            Quilt runs as a CloudFormation stack that orchestrates services in your AWS
+            account. (Services like AWS S3, Fargate, ElasticSearch, Lambda, Athena, and
+            CloudTrail.) These services form the Quilt backend that powers the Quilt web
+            catalog and <code>quilt3</code> Python client. Every file in Quilt is a
+            versioned S3 object secured by IAM.
+          </p>
         </M.Typography>
       </M.Box>
       <M.Box
@@ -56,38 +63,57 @@ export default () => (
       <Illustration {...Personas.DataScientists} dir="left" />
       <SectionContents pb={{ xs: 0, md: 15 }} pt={{ xs: 6, md: 24 }}>
         <M.Typography variant="h2" color="textPrimary">
-          Data scientists
+          Data engineers & IT
         </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">
-            Find any Jupyter notebook you&apos;ve ever touched with powerful search
+            Get everyone on your team using S3, so that{' '}
+            <em>
+              all of your critical data is in one secure, audit-able, and compliant
+              location
+            </em>
+            .
           </Bullet>
           <Bullet color="tertiary">
-            Version and back up everything, including large data that doesn&apos;t fit on
-            GitHub
+            Spin up Quilt so that your core infrastructure is done and your users
+            &mdash;from data scientists to executives&mdash; can self serve from
+            high-performance data formats like Parquet, using nothing more than a simple
+            web URL to your private Quilt catalog. Now you are free to focus on advanced
+            infrastructure (instead of one-off requests for data dumps, ETL jobs, or
+            temporary S3 buckets).
           </Bullet>
-          <Bullet color="secondary">Ensure data quality with data unit tests</Bullet>
+          <Bullet color="secondary">
+            Create and distribute read-only, immutable data sets that one can mess up, and
+            that allow you to diagnose and recover from errors via automatic data version
+            control.
+          </Bullet>
         </M.Box>
         <M.Button variant="contained" color="primary" href="">
           Learn more
         </M.Button>
       </SectionContents>
     </Section>
-
     <Section mt={{ xs: 20, md: 0 }}>
       <Illustration {...Personas.DataEngineers} dir="right" order={{ xs: 0, md: 1 }} />
       <SectionContents pb={{ xs: 0, md: 20 }} pt={{ xs: 6, md: 32 }}>
         <M.Typography variant="h2" color="textPrimary">
-          Data engineers
+          Data scientists
         </M.Typography>
         <M.Box mt={6} mb={3}>
           <Bullet color="primary">
-            Data science infrastructure in a box&mdash;no more data busy work for you
+            Store and version your Jupyter notebooks, and all of their data dependencies,
+            at a scale that git can&apos;t handle.
           </Bullet>
           <Bullet color="tertiary">
-            Insulate code from unintended data changes by building from immutable blocks
+            Share notebooks, analyses, and data sets in a beautiful, documented format
+            that anyone can read an understand. Instead of making PowerPoint presentations
+            to summarize your work, send links to notebooks and READMEs on the web and be
+            done.
           </Bullet>
-          <Bullet color="secondary">Ensure data quality with data unit tests</Bullet>
+          <Bullet color="secondary">
+            Share notebooks and complex machine learning projects with colleagues in a
+            reusable format that they can extend, modify, and contribute back to Quilt.
+          </Bullet>
         </M.Box>
         <M.Button variant="contained" color="secondary" href="">
           Learn more
@@ -99,13 +125,25 @@ export default () => (
       <Illustration {...Personas.HeadOfDataScience} dir="left" />
       <SectionContents pb={{ xs: 0, md: 30 }} pt={{ xs: 6, md: 25 }}>
         <M.Typography variant="h2" color="textPrimary">
-          Head of data science
+          Heads of data, executives
         </M.Typography>
         <M.Box mt={6} mb={3}>
-          <Bullet color="primary">Central hub for all data and models</Bullet>
-          <Bullet color="tertiary">Audit every data access ever</Bullet>
           <Bullet color="secondary">
-            Run your data through a rigorous approval and testing process
+            Create a data-driven organization where everyone on the team has access to the
+            latest, most accurate data, and can discover new data as questions arise.
+          </Bullet>
+          <Bullet color="primary">
+            Empower your team to build smarter models faster by arming them with
+            Quilt&apos;s advanced infrastructure for experimentation and decision support.
+          </Bullet>
+          <Bullet color="tertiary">
+            Easily participate in the decision-making process by using the Quilt web
+            catalog to view and understand the same data, visualizations, documentation,
+            and notebooks that the data scientists and engineers are using every day.
+          </Bullet>
+          <Bullet color="secondary">
+            Improve security, audit-ability, and compliance by centralizing your data in
+            the worlds most advanced and popular cloud storage formats.
           </Bullet>
         </M.Box>
         <M.Button variant="contained" color="primary" href="">

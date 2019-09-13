@@ -108,7 +108,7 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5}>
         <M.Typography variant="h1" color="textPrimary">
-          More about Quilt
+          Learn more about Quilt
         </M.Typography>
       </M.Box>
     </M.Box>
@@ -123,11 +123,23 @@ export default () => (
       flexDirection={{ xs: 'column', lg: 'row' }}
       alignItems="center"
     >
-      <Tile icon={[iconDocs, iconDocs2x]} href="" title="Docs" />
+      <Tile
+        icon={[iconDocs, iconDocs2x]}
+        href="https://docs.quiltdata.com/"
+        title="Docs"
+      />
       <WaveLeft top={108} right={815} />
-      <Tile icon={[iconGithub, iconGithub2x]} href="" title="Github" />
+      <Tile
+        icon={[iconGithub, iconGithub2x]}
+        href="https://github.com/quiltdata/quilt"
+        title="Github"
+      />
       <WaveCenter top={108} left={352} />
-      <Tile icon={[iconBlog, iconBlog2x]} href="" title="Blog" />
+      <Tile
+        icon={[iconBlog, iconBlog2x]}
+        href="https://blog.quiltdata.com"
+        title="Blog"
+      />
       <WaveRight top={124} left={907} />
     </M.Box>
   </M.Container>

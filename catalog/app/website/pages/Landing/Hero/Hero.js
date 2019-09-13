@@ -35,14 +35,6 @@ const Art = styled(M.Box)(({ theme: t }) => ({
   },
 }))
 
-const Arrow = styled((props) => <M.Icon {...props}>arrow_forward</M.Icon>)(
-  ({ theme: t }) => ({
-    color: t.palette.common.white,
-    marginLeft: '0.5em',
-    verticalAlign: 'top',
-  }),
-)
-
 export default () => (
   <M.Container maxWidth="lg">
     <Backlight1 />
@@ -62,12 +54,21 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="h1" color="textPrimary">
-          Trust your data and models.
+          A versioned data portal for AWS
+          {
+            // A visual data portal for AWS
+            // A versioned data portal for AWS
+            // Drive your team with data
+          }
         </M.Typography>
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          Quilt is continuous integration and deployment for data science.
+          <p>Share, understand, discover, and model data at scale.</p>
+          <p>
+            Quilt is a web catalog and Python client powered by AWS services in your
+            private cloud.
+          </p>
         </M.Typography>
       </M.Box>
       <M.Box mt={5}>
@@ -78,17 +79,6 @@ export default () => (
         <M.Button variant="contained" color="secondary" href="">
           Request Demo
         </M.Button>
-      </M.Box>
-      <M.Box mt={{ xs: 8, md: 16 }}>
-        <M.Typography color="textSecondary">
-          <i>install &amp; sync your first project:</i>
-        </M.Typography>
-      </M.Box>
-      <M.Box mt={2}>
-        <M.Link href="TBD" color="primary" variant="button" underline="none">
-          Get Started
-          <Arrow />
-        </M.Link>
       </M.Box>
     </M.Box>
   </M.Container>

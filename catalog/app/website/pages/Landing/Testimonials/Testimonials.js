@@ -55,29 +55,141 @@ export default () => (
       <Bar color="primary" />
       <M.Box mt={5}>
         <M.Typography variant="h1" color="textPrimary">
-          Testimonials
+          Industry endorsements for Quilt
         </M.Typography>
       </M.Box>
       <M.Box>
-        <Testimonial color="primary" initial="A" name="Allen Institute for Cell Science">
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
-          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-          nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-          Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-          fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in
-          culpa qui officia deserunt mollit anim id est laborum.
+        <Testimonial
+          color="primary"
+          initial="JB"
+          name="Jackson Brown, Research Engineer, Allen Institute for Cell Science"
+        >
+          <strong>Global collaboration at terabyte scale</strong>
+          <p>
+            Quilt helps us maximize the dissemination of our data to the scientific
+            community by simplifying downloads, allowing data versioning, and seamless
+            integration with Jupyter Notebooks.
+          </p>
         </Testimonial>
-        <Testimonial color="secondary" initial="B" name="Bastille Networks">
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
-          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-          nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+        <Testimonial
+          color="secondary"
+          initial="KJ"
+          name="Krzysztof Jackowski, Deputy Mobile Engineering Manager, Netguru"
+        >
+          <strong>Incredible tool for complex ML projects</strong>
+          <p>
+            CarLens was the most challenging project I&apos;ve ever worked on. I&apos;ve
+            done all the DON&apos;Ts of managing an R&D ML project, learning how
+            complicated it is to recognize a car and distinguish which model it is.
+          </p>
+          <p>
+            We&apos;ve learned how important a quality data set us and the way it is
+            managed. That&apos;s why we integrated an amazing tool Quilt, which is like
+            Github for data. Thanks for presenting this tool to the world.
+          </p>
+          <p>
+            <a href="https://www.linkedin.com/feed/update/urn:li:activity:6522466636694458368">
+              [Read more on LinkedIn]
+            </a>
+          </p>
         </Testimonial>
-        <Testimonial color="tertiary" initial="K" name="Karr Lab">
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor
-          incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
-          nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-          Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu
-          fugiat nulla pariatur.
+        <Testimonial
+          color="secondary"
+          initial="EK"
+          name="Eli Knaap, Center for Geospatial Sciences"
+        >
+          <strong>Distribute large, bespoke data</strong>
+          <p>
+            Quilt has been an incredibly useful addition to our stack. It lets us focus on
+            developing novel spatial analytics while providing a wealth of data for our
+            users to apply them on. It also lets us distribute bespoke data products along
+            with our code, which is a game changer particularly for academic and research
+            software.
+          </p>
+        </Testimonial>
+        <Testimonial
+          color="secondary"
+          initial="GM"
+          name="Grzegorz M., Quality Assurance Specialist, Netguru"
+        >
+          <strong>Missing tool in the ML flow</strong>
+          <p>
+            Quilt simplified our flow in data maintenance and versioning. It became
+            extremely easy to keep track of changes in a dataset and refer in a
+            reproducible manner to a specific revision without worrying if someone
+            overwrites the data.
+          </p>
+          <p>
+            We have Quilt integrated into our flow, so the dataset updates interfere with
+            model building no more.
+          </p>
+          <p>
+            At this moment we use Quilt for versioning models (especially that we generate
+            models in a bunch of formats each time) and Jupyter Notebooks (for which Git
+            isn&apos;t the best option).
+          </p>
+          <p>
+            What we love most about Quilt is the caching feature. We reduced data transfer
+            costs while keeping low complexity of scripts. Overall grade is 5/5 since that
+            tool was missing heavily in the flow we had for Machine Learning. At this
+            moment we use it also for versioning models (especially that we generate
+            models in a bunch of formats each time) and Jupyter Notebooks (for which Git
+            isn&apos;t the best option)
+          </p>
+        </Testimonial>
+        <Testimonial
+          color="tertiary"
+          initial="BB"
+          name="Bob Baxley, Chief Engineer, Bastille Labs"
+        >
+          <strong>Data set versioning, tracking, discovery</strong>
+          <p>
+            Quilt has been extremely useful in helping Bastille organize our data sets for
+            model training. Before Quilt, we used a hodgepodge of S3 buckets and local NAS
+            drive locations to store data. But we had issues with versioning and tracking
+            data set changes. By referencing data sets through Quilt versions and hashes,
+            it is much easier to make immutable analysis notebooks that don&apos;t break
+            as data sets evolve.
+          </p>
+          <p>
+            We also love the Quilt web interface, which makes it much easier for the
+            entire organization to discover data sets. Before Quilt, our only mechanism to
+            dataset discovery was listing S3 buckets.
+          </p>
+        </Testimonial>
+        <Testimonial
+          color="tertiary"
+          initial="JK"
+          name="Jonathan Karr, Fellow, Icahn Institute for Data Science at Mount Sinai"
+        >
+          <strong>Essential for data collaboration</strong>
+          <p>
+            Along with Git and Docker, Quilt is an essential tool that enables us to
+            collaboratively model entire cells.
+          </p>
+        </Testimonial>
+        <Testimonial color="tertiary" initial="CG" name="Casey Goldman, CEO, Dataland">
+          <strong>Great tool for sharing and versioning data sets</strong>
+          <p>
+            Quilt has been incredibly useful to us in sharing data sets with our clients
+            and managing access to them. Quilt handles versioning and packaging with no
+            effort on our part, which allows us to be able to share our analysis
+            externally with ease.
+          </p>
+          <p>
+            Clients are able to import the transformed data sets into their workflow with
+            full portability. Definitely worth trying out!
+          </p>
+        </Testimonial>
+        <Testimonial
+          color="tertiary"
+          initial="GP"
+          name="Guenevere Prawiroatmodjo, Data Scientist, Perfect Day"
+        >
+          <p>
+            Quilt is a great way for our team to find, inspect and share their datasets
+            via the web.
+          </p>
         </Testimonial>
       </M.Box>
     </M.Box>

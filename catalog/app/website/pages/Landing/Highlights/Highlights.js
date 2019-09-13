@@ -57,52 +57,101 @@ export default () => (
         <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary" align="center">
-            Product Highlights
+            Make informed decisions as a team
           </M.Typography>
+          <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
+            <M.Typography variant="body1" color="textSecondary">
+              Bring your team together around a visual data repository that is accessible
+              to everyone on the team&mdash;
+              <em>from business users, to analysts, to developers</em>.
+            </M.Typography>
+            <M.Typography variant="body1" color="textSecondary">
+              Share, understand, discover, model, and decide with Quilt.
+            </M.Typography>
+          </M.Box>
         </M.Box>
       </M.Box>
       <Grid mx="auto">
         <Highlight
-          img={{ srcs: [search, search2x], offset: 42, width: 307 }}
-          heading="Search"
+          img={{ srcs: [catalog, catalog2x], offset: 60, width: 310 }}
+          heading="Share unlimited data"
         >
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-          temporincididunt
+          <p>Work with huge files that don&apos; fit on GitHub.</p>
+          <p>
+            Turn informal projects into beautiful data sets that contain Jupyter
+            notebooks, models, images, visualizations, and markdown.
+          </p>
+          <p>
+            Make sense of existing S3 buckets and data lakes, or let the Quilt backend
+            manage S3 for you.
+          </p>
+        </Highlight>
+        <Highlight
+          img={{ srcs: [search, search2x], offset: 42, width: 307 }}
+          heading="Understand your data"
+        >
+          <p>Visualize your data with more than 25 pre-made charts.</p>
+          <p>Automatically summarize the contents of S3 buckets.</p>
+          <p>
+            Preview large files without downloading them (Parquet, VCF, Excel, gzips, and
+            more).
+          </p>
         </Highlight>
         <Highlight
           img={{ srcs: [versioning, versioning2x], offset: 84, width: 334 }}
-          heading="Versioning"
+          heading="Discover related data"
         >
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-          temporincididunt
-        </Highlight>
-        <Highlight
-          img={{ srcs: [preview, preview2x], offset: 87, width: 315 }}
-          heading="Preview"
-        >
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-          temporincididunt
+          <p>
+            Search through every file your team has. Find all files relevant to the
+            question at hand.
+          </p>
+          <p>Discover new connections between data sets.</p>
+          <p>
+            Enrich model training and analysis with petabytes of public data on
+            open.quiltdata.com.
+          </p>
         </Highlight>
         <Highlight
           img={{ srcs: [python, python2x], offset: 84, width: 334 }}
-          heading="Python API"
+          heading="Model your data"
         >
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-          temporincididunt
+          <p>
+            Version notebooks, models, and training sets so that you can travel time,
+            reproduce past results, diagnose and recover from errors.
+          </p>
+          <p>
+            Run experiments faster by capturing notebooks and all of their data in the
+            form of reusable, modifiable data packages.
+          </p>
+          <p>
+            Enrich model training with petabytes of public data on open.quiltdata.com.
+          </p>
         </Highlight>
         <Highlight
-          img={{ srcs: [catalog, catalog2x], offset: 60, width: 310 }}
-          heading="Web Catalog"
+          img={{ srcs: [preview, preview2x], offset: 87, width: 315 }}
+          heading="Decide faster"
         >
-          Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
-          temporincididunt
+          <p>
+            Executives and team leads&mdash;anyone with a web browser&mdash; can use Quilt
+            to view, search, and visualize the same data, visualizations, and notebooks
+            that data scientists and data engineers use for modeling.
+          </p>
+          <p>
+            Data analysts can stop making decks and stop emailing files. Instead, invite
+            stakeholders to view data, charts, and notebooks in Quilt&mdash; and be done.
+          </p>
+          <p>
+            Get access to more of your company&apos;s data. Grant access to stakeholders
+            with a simple email. Armed with more information, your team can make smarter
+            decisions.
+          </p>
+          <p>
+            Document every decision with charts, notebooks, and tables. Audit past
+            decisions with automatic data versioning.
+          </p>
         </Highlight>
       </Grid>
-      <M.Box pt={12} pb={10} textAlign="center">
-        <M.Button variant="contained" color="secondary" href="">
-          Try demo
-        </M.Button>
-      </M.Box>
+      <M.Box pt={12} pb={10} textAlign="center"></M.Box>
     </M.Container>
   </>
 )
