@@ -11,12 +11,16 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
+
+MAX_QUERY_DURATION = '15s'
+
+
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
     """
     Proxy the request to the elastic search.
     """
-    es_host = os.environ["ES_HOST"]
+    es_host = os.environ['ES_HOST']
     region = os.environ['AWS_REGION']
 
     auth = BotoAWSRequestsAuth(
@@ -38,6 +42,6 @@ def lambda_handler(request):
     _source = request.args.get('_source')
     size = request.args.get('size', '1000')
 
-    result = es_client.search(index, body, _source=_source, size=size)
+    result = es_client.search(index, body, _source=_source, size=size, timeout=MAX_QUERY_DURATION)
 
     return make_json_response(200, result)

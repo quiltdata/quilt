@@ -41,7 +41,7 @@ class TestS3Select(TestCase):
         }
 
     def test_search(self):
-        url = 'https://www.example.com:443/bucket/_search?size=10'
+        url = 'https://www.example.com:443/bucket/_search?size=10&timeout=15s'
 
         def _callback(request):
             payload = json.loads(request.body)
