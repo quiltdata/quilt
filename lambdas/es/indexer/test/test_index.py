@@ -6,7 +6,7 @@ from gzip import compress
 from io import BytesIO
 import json
 import os
-import pathlib
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import ANY, patch
 
@@ -14,6 +14,7 @@ import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
 from botocore.stub import Stubber
+import pytest
 import responses
 
 from .. import index
@@ -24,7 +25,7 @@ class MockContext():
         return 30000
 
 
-BASE_DIR = pathlib.Path(__file__).parent / 'data'
+BASE_DIR = Path(__file__).parent / 'data'
 
 
 class TestIndex(TestCase):
@@ -271,7 +272,7 @@ class TestIndex(TestCase):
 
     def test_parquet_contents(self):
         parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
-
+        
         self.s3_stubber.add_response(
             method='get_object',
             service_response={
@@ -293,3 +294,39 @@ class TestIndex(TestCase):
         assert "This is not even worth the money." in contents
         assert "As for results; I felt relief almost immediately." in contents
         assert "R2LO11IPLTDQDX" in contents
+
+    # see PRE conditions in conftest.py
+    @pytest.mark.extended
+    def test_parquet_extended(self):
+        directory = Path.cwd() / 'extended-data'
+        files = directory.glob('**/*.parquet')
+        for f in files:
+            print(f"Testing {f}")
+            parquet = f.read_bytes()
+            
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': {},
+                    'ContentLength': 123,
+                    'Body': BytesIO(parquet),
+                },
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': 'foo.parquet',
+                    'IfMatch': 'etag',
+                }
+            )
+
+            contents = index.get_contents(
+                'test-bucket',
+                'foo.parquet',
+                '.parquet',
+                etag='etag',
+                version_id=None,
+                s3_client=self.s3_client,
+                size=123
+            )
+            size = len(contents.encode('utf-8', 'ignore'))
+            print(index.ELASTIC_LIMIT_BYTES)
+            assert size <= index.ELASTIC_LIMIT_BYTES

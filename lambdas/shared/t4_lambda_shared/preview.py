@@ -100,7 +100,8 @@ def extract_parquet(file_, as_html=True):
         size = 0
         done = False
         for _, row in dataframe.iterrows():
-            for encoded in row.astype(bytes):
+            for column in row.astype(str):
+                encoded = column.encode()
                 # +1 for \t
                 encoded_size = len(encoded) + 1
                 if (size + encoded_size) < ELASTIC_LIMIT_BYTES:
