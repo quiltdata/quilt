@@ -1,12 +1,11 @@
 import cx from 'classnames'
 import { push } from 'connected-react-router/esm/immutable'
-import PT from 'prop-types'
 import * as React from 'react'
-import * as RC from 'recompose'
 import * as reduxHook from 'redux-react-hook'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles/colorManipulator'
 
+import * as Config from 'utils/Config'
 import * as BucketConfig from 'utils/BucketConfig'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -83,86 +82,101 @@ const SearchBox = ({ bucket, disabled, iconized, hidden, focused, ...props }) =>
         [iconizedCls]: iconized,
         [hiddenCls]: hidden,
       })}
-      placeholder={focused ? `Search s3://${bucket}` : 'Search'}
+      placeholder={
+        focused ? `Search ${bucket ? `s3://${bucket}` : 'all buckets'}` : 'Search'
+      }
       disabled={disabled}
       {...props}
     />
   )
 }
 
-const State = RT.composeComponent(
-  'NavBar.Search.State',
-  RC.setPropTypes({
-    children: PT.func.isRequired,
-    bucket: PT.string.isRequired,
-  }),
-  ({ bucket, children, onFocus, onBlur }) => {
-    const { paths, urls } = NamedRoutes.use()
-    const { location: l, match } = useRoute(paths.bucketSearch)
-    const query = (match && parse(l.search).q) || ''
-    const dispatch = reduxHook.useDispatch()
+function State({ query, makeUrl, children, onFocus, onBlur }) {
+  const dispatch = reduxHook.useDispatch()
 
-    const [value, change] = React.useState(null)
-    const [focused, setFocused] = React.useState(false)
+  const [value, change] = React.useState(null)
+  const [focused, setFocused] = React.useState(false)
 
-    const onChange = React.useCallback((evt) => {
-      change(evt.target.value)
-    }, [])
+  const onChange = React.useCallback((evt) => {
+    change(evt.target.value)
+  }, [])
 
-    const onKeyDown = React.useCallback(
-      (evt) => {
-        // eslint-disable-next-line default-case
-        switch (evt.key) {
-          case 'Enter':
-            /* suppress onSubmit (didn't actually find this to be a problem tho) */
-            evt.preventDefault()
-            if (query !== value) {
-              dispatch(push(urls.bucketSearch(bucket, value)))
-            }
-            evt.target.blur()
-            break
-          case 'Escape':
-            evt.target.blur()
-            break
-        }
-      },
-      [dispatch, urls, bucket, value, query],
-    )
+  const onKeyDown = React.useCallback(
+    (evt) => {
+      // eslint-disable-next-line default-case
+      switch (evt.key) {
+        case 'Enter':
+          /* suppress onSubmit (didn't actually find this to be a problem tho) */
+          evt.preventDefault()
+          if (query !== value) {
+            dispatch(push(makeUrl(value)))
+          }
+          evt.target.blur()
+          break
+        case 'Escape':
+          evt.target.blur()
+          break
+      }
+    },
+    [dispatch, makeUrl, value, query],
+  )
 
-    const handleFocus = React.useCallback(() => {
-      change(query)
-      setFocused(true)
-      if (onFocus) onFocus()
-    }, [query])
+  const handleFocus = React.useCallback(() => {
+    change(query)
+    setFocused(true)
+    if (onFocus) onFocus()
+  }, [query])
 
-    const handleBlur = React.useCallback(() => {
-      change(null)
-      setFocused(false)
-      if (onBlur) onBlur()
-    }, [])
+  const handleBlur = React.useCallback(() => {
+    change(null)
+    setFocused(false)
+    if (onBlur) onBlur()
+  }, [])
 
-    return children({
-      value: value === null ? query : value,
-      onChange,
-      onKeyDown,
-      onFocus: handleFocus,
-      onBlur: handleBlur,
-      focused,
-    })
-  },
-)
+  return children({
+    value: value === null ? query : value,
+    onChange,
+    onKeyDown,
+    onFocus: handleFocus,
+    onBlur: handleBlur,
+    focused,
+  })
+}
 
-export default RT.composeComponent(
-  'NavBar.Search',
-  RT.withSuspense(() => <Delay>{() => <M.CircularProgress />}</Delay>),
-  ({ onFocus, onBlur, iconized, ...props }) => {
-    const { name: bucket, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
-    return searchEndpoint ? (
-      <State {...{ bucket, onFocus, onBlur }}>
-        {(state) => <SearchBox {...{ iconized, bucket, ...state, ...props }} />}
-      </State>
-    ) : (
-      <SearchBox iconized={iconized} disabled value="Search not available" {...props} />
-    )
-  },
-)
+function BucketSearch({ bucket, onFocus, onBlur, iconized, ...props }) {
+  const cfg = BucketConfig.useBucketConfigs()[bucket]
+  const { paths, urls } = NamedRoutes.use()
+  const { location: l, match } = useRoute(paths.bucketSearch)
+  const query = (match && parse(l.search).q) || ''
+  const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, q), [urls, bucket])
+  return cfg && cfg.searchEndpoint ? (
+    <State {...{ query, makeUrl, onFocus, onBlur }}>
+      {(state) => <SearchBox {...{ iconized, bucket, ...state, ...props }} />}
+    </State>
+  ) : (
+    <SearchBox iconized={iconized} disabled value="Search not available" {...props} />
+  )
+}
+
+function GlobalSearch({ onFocus, onBlur, iconized, ...props }) {
+  const cfg = Config.useConfig()
+  const { paths, urls } = NamedRoutes.use()
+  const { location: l, match } = useRoute(paths.search)
+  const { q: query = '', buckets } = match ? parse(l.search) : {}
+  const makeUrl = React.useCallback((q) => urls.search({ q, buckets }), [urls, buckets])
+  return !cfg.searchEndpoint ? null : (
+    <State {...{ query, makeUrl, onFocus, onBlur }}>
+      {(state) => <SearchBox {...{ iconized, ...state, ...props }} />}
+    </State>
+  )
+}
+
+export default RT.withSuspense(() => (
+  <Delay alwaysRender>
+    {(ready) => (
+      <M.Fade in={ready}>
+        <M.CircularProgress />
+      </M.Fade>
+    )}
+  </Delay>
+))((props) => (props.bucket ? <BucketSearch {...props} /> : <GlobalSearch {...props} />))
