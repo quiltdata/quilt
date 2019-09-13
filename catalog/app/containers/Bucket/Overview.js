@@ -766,7 +766,7 @@ function ContentSkel({ lines = 15, ...props }) {
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-function FilePreview({ handle, bucket, headingOverride, fallback }) {
+function FilePreview({ handle, headingOverride, fallback }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -780,7 +780,7 @@ function FilePreview({ handle, bucket, headingOverride, fallback }) {
       children: R.last(all).label,
     }
     return { dirs, file }
-  }, [handle, bucket, urls])
+  }, [handle, urls])
 
   const handleCopy = React.useCallback((e) => {
     if (typeof document === 'undefined') return
@@ -996,7 +996,6 @@ function Files({ bucket, searchEndpoint }) {
             key="readme:configured"
             headingOverride={false}
             handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
-            bucket={bucket}
             fallback={() =>
               AsyncResult.case(
                 {
@@ -1025,11 +1024,7 @@ function Files({ bucket, searchEndpoint }) {
                 AsyncResult.case({
                   Ok: ({ readmes }) =>
                     readmes.map((h) => (
-                      <FilePreview
-                        key={`readme:${h.bucket}/${h.key}`}
-                        handle={h}
-                        bucket={bucket}
-                      />
+                      <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
                     )),
                   _: () => <FilePreviewSkel key="readme:skeleton" />,
                 }),
@@ -1059,11 +1054,7 @@ function Files({ bucket, searchEndpoint }) {
                   >
                     {AsyncResult.case({
                       Ok: R.map((h) => (
-                        <FilePreview
-                          key={`${h.bucket}/${h.key}`}
-                          handle={h}
-                          bucket={bucket}
-                        />
+                        <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
                       )),
                       _: () => <FilePreviewSkel />,
                     })}
