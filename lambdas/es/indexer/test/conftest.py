@@ -1,5 +1,5 @@
 # PRE: you must do the following for this test to work
-# aws s3 cp s3://amazon-reviews-pds/ ./data/amazon-reviews-pds/ --recursive
+# aws s3 cp s3://amazon-reviews-pds/parquet/ ./data/amazon-reviews-pds/parquet/ --recursive
 def pytest_addoption(parser):
     parser.addoption(
         '--extended',

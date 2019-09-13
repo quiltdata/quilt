@@ -298,7 +298,7 @@ class TestIndex(TestCase):
     # see PRE conditions in conftest.py
     @pytest.mark.extended
     def test_parquet_extended(self):
-        directory = Path.cwd() / 'extended-data'
+        directory = (BASE_DIR / 'amazon-reviews-pds')
         files = directory.glob('**/*.parquet')
         for f in files:
             print(f"Testing {f}")
