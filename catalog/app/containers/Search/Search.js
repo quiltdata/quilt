@@ -2,7 +2,6 @@ import { push } from 'connected-react-router/esm/immutable'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as redux from 'react-redux'
-// import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Layout from 'components/Layout'
@@ -20,15 +19,6 @@ import useEditableValue from 'utils/useEditableValue'
 import usePrevious from 'utils/usePrevious'
 
 const PER_PAGE = 10
-
-function Browse() {
-  // const { urls } = NamedRoutes.use()
-  // TODO: figure out placeholder link / text
-  return (
-    // <M.Button component={Link} to={urls.bucketRoot(bucket)} variant="outlined">
-    <M.Button>Browse smth</M.Button>
-  )
-}
 
 function Alt({ ...props }) {
   return (
@@ -113,8 +103,6 @@ function Results({ buckets, query, page, scrollRef, makePageUrl }) {
           <M.Typography variant="body1">
             We have not found anything matching your query
           </M.Typography>
-          <br />
-          <Browse />
         </Alt>
       ),
   })
