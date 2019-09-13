@@ -98,22 +98,24 @@ def extract_parquet(file_, as_html=True):
     else:
         buffer = []
         size = 0
+        done = False
         for _, row in dataframe.iterrows():
-            for column in row.astype(str):
-                encoded = column.encode(column)
-                # + 2 = \t + \n
-                if (size + encoded + 2) <= ELASTIC_LIMIT_BYTES:
+            for column in row.astype(bytes):
+                encoded = column
+                # +1 for \t
+                encoded_size = len(encoded) + 1
+                if (size + encoded_size) < ELASTIC_LIMIT_BYTES:
                     buffer.append(encoded)
-                    buffer.append("\t")
-                    size += len(encoded) + 1
+                    buffer.append(b"\t")
+                    size += encoded_size
                 else:
                     done = True
                     break
-            buffer.append("\n")
+            buffer.append(b"\n")
             size += 1
             if done:
                 break
-        body = "".join(buffer)
+        body = b"".join(buffer).decode()
 
     return body, info
 
