@@ -35,14 +35,6 @@ const Art = styled(M.Box)(({ theme: t }) => ({
   },
 }))
 
-const Arrow = styled((props) => <M.Icon {...props}>arrow_forward</M.Icon>)(
-  ({ theme: t }) => ({
-    color: t.palette.common.white,
-    marginLeft: '0.5em',
-    verticalAlign: 'top',
-  }),
-)
-
 export default () => (
   <M.Container maxWidth="lg">
     <Backlight1 />
@@ -72,7 +64,7 @@ export default () => (
       </M.Box>
       <M.Box mt={4} textAlign={{ xs: 'center', md: 'unset' }}>
         <M.Typography variant="body1" color="textSecondary">
-          <p>Search, visualize, and version private data at scale.</p>
+          <p>Share, understand, discover, and model data at scale.</p>
           <p>
             Quilt is a web catalog and Python client powered by AWS services in your
             private cloud.
@@ -87,17 +79,6 @@ export default () => (
         <M.Button variant="contained" color="secondary" href="">
           Request Demo
         </M.Button>
-      </M.Box>
-      <M.Box mt={{ xs: 8, md: 16 }}>
-        <M.Typography color="textSecondary">
-          <i>install &amp; sync your first project:</i>
-        </M.Typography>
-      </M.Box>
-      <M.Box mt={2}>
-        <M.Link href="TBD" color="primary" variant="button" underline="none">
-          Get Started
-          <Arrow />
-        </M.Link>
       </M.Box>
     </M.Box>
   </M.Container>

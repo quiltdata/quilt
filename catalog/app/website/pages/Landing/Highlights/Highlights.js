@@ -61,12 +61,12 @@ export default () => (
           </M.Typography>
           <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
             <M.Typography variant="body1" color="textSecondary">
-              <p>
-                Bring your team together around a visual data repository that is
-                accessible to everyone on the team&mdash;
-                <em>from business users, to analysts, to developers</em>.
-              </p>
-              <p>Share, understand, discover, model, and decide with Quilt.</p>
+              Bring your team together around a visual data repository that is accessible
+              to everyone on the team&mdash;
+              <em>from business users, to analysts, to developers</em>.
+            </M.Typography>
+            <M.Typography variant="body1" color="textSecondary">
+              Share, understand, discover, model, and decide with Quilt.
             </M.Typography>
           </M.Box>
         </M.Box>
