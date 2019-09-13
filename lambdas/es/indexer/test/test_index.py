@@ -288,9 +288,8 @@ class TestIndex(TestCase):
 
         contents = index.get_contents('test-bucket', 'foo.parquet', '.parquet', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         size = len(contents.encode('utf-8', 'ignore'))
-        # we know the file is bigger than the limit
-        assert size == index.ELASTIC_LIMIT_BYTES
+        assert size <= index.ELASTIC_LIMIT_BYTES
         # spot check for contents
-        assert "This is a great handy reference tool for all" in contents
-        assert "I recieved a Marvel the Mustang for Christmas" in contents
-        assert "40643586" in contents
+        assert "This is not even worth the money." in contents
+        assert "As for results; I felt relief almost immediately." in contents
+        assert "R2LO11IPLTDQDX" in contents
