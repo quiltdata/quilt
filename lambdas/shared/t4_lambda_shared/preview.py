@@ -102,13 +102,15 @@ def extract_parquet(file_, as_html=True):
             for column in row.astype(str):
                 encoded = column.encode(column)
                 # + 2 = \t + \n
-                if size + encoded + 2 <= ELASTIC_LIMIT_BYTES:
+                if (size + encoded + 2) <= ELASTIC_LIMIT_BYTES:
                     buffer.append(encoded)
                     buffer.append("\t")
+                    size += len(encoded) + 1
                 else:
                     done = True
                     break
             buffer.append("\n")
+            size += 1
             if done:
                 break
         body = "".join(buffer)
