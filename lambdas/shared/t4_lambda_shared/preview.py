@@ -96,7 +96,22 @@ def extract_parquet(file_, as_html=True):
     if as_html:
         body = dataframe._repr_html_()# pylint: disable=protected-access
     else:
-        body = trim_to_bytes(dataframe.to_string(), ELASTIC_LIMIT_BYTES)
+        buffer = []
+        size = 0
+        for _, row in dataframe.iterrows():
+            for column in row.astype(str):
+                encoded = column.encode(column)
+                # + 2 = \t + \n
+                if size + encoded + 2 <= ELASTIC_LIMIT_BYTES:
+                    buffer.append(encoded)
+                    buffer.append("\t")
+                else:
+                    done = True
+                    break
+            buffer.append("\n")
+            if done:
+                break
+        body = "".join(buffer)
 
     return body, info
 
