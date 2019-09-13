@@ -151,11 +151,7 @@ export default () => (
           </p>
         </Highlight>
       </Grid>
-      <M.Box pt={12} pb={10} textAlign="center">
-        <M.Button variant="contained" color="secondary" href="">
-          Try demo
-        </M.Button>
-      </M.Box>
+      <M.Box pt={12} pb={10} textAlign="center"></M.Box>
     </M.Container>
   </>
 )

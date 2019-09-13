@@ -86,18 +86,16 @@ const Team = (props) => (
       <Heading>Team</Heading>
       <M.Box maxWidth={480} mt={3} mx="auto">
         <M.Typography variant="body1" color="textSecondary">
-          <p>
-            Quilt was founded by Kevin Moore and Aneesh Karve. They have been fast friends
-            ever since they met in 2005 as graduate students in Computer Science at
-            UW-Madison.
-          </p>
-          <p>
-            Quilt is seeded by Y Combinator and some of the Valley&apos;s{' '}
-            <A href="https://www.crunchbase.com/organization/quilt-data">
-              leading investors
-            </A>
-            .
-          </p>
+          Quilt was founded by Kevin Moore and Aneesh Karve. They have been fast friends
+          ever since they met in 2005 as graduate students in Computer Science at
+          UW-Madison.
+        </M.Typography>
+        <M.Typography variant="body1" color="textSecondary">
+          Quilt is seeded by Y Combinator and some of the Valley&apos;s{' '}
+          <A href="https://www.crunchbase.com/organization/quilt-data">
+            leading investors
+          </A>
+          .
         </M.Typography>
       </M.Box>
       <TeamMember name="Kevin Moore, CEO" head={headKevinMoore}>
