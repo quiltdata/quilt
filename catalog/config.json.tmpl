@@ -1,6 +1,6 @@
 {
     "apiGatewayEndpoint": "${API_GATEWAY}",
-    "binaryApiGatewayEndpoint": "${BINARY_API_GATEWAY}",
+    "binaryApiGatewayEndpoint": "${BINARY_API_GATEWAY}"
     "alwaysRequiresAuth": false,
     "defaultBucket": "${BUCKET_NAME}",
     "s3Proxy": "${S3_PROXY_URL}",
@@ -8,11 +8,12 @@
     "registryUrl": "${REGISTRY_URL}",
     "signInRedirect": "/",
     "signOutRedirect": "/",
-    "passwordAuth": "ENABLED",
-    "ssoAuth": "DISABLED",
-    "ssoProviders": "",
+    "passwordAuth": "${PASSWORD_AUTH}",
+    "ssoAuth": "${PASSWORD_AUTH}",
+    "ssoProviders": "${SSO_PROVIDERS}",
     "googleClientId": "${GOOGLE_CLIENT_ID}",
-    "sentryDSN": "",
-    "mixpanelToken": "e3385877c980efdce0a7eaec5a8a8277",
-    "analyticsBucket": ""
+    "sentryDSN": "${SENTRY_DSN}",
+    "mixpanelToken": "${MIXPANEL_TOKEN}",
+    "analyticsBucket": "${ANALYTICS_BUCKET}"
 }   
+
