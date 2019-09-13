@@ -272,7 +272,6 @@ class TestIndex(TestCase):
 
     def test_parquet_contents(self):
         parquet = (BASE_DIR / 'amazon-reviews-1000.snappy.parquet').read_bytes()
-        
         self.s3_stubber.add_response(
             method='get_object',
             service_response={
