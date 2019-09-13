@@ -335,9 +335,6 @@ export default function Search({ location: l }) {
     [q, dispatch],
   )
 
-  const t = M.useTheme()
-  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
-
   const makePageUrl = React.useCallback(
     (newP) =>
       urls.search({
@@ -352,7 +349,7 @@ export default function Search({ location: l }) {
     <Layout
       pre={
         <M.Container maxWidth="lg">
-          <M.Box pb={xs ? 0 : 5} mx={xs ? -2 : 0}>
+          <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
             <M.Box display="flex" mt={{ xs: 0, sm: 3 }} ref={scrollRef}>
               <M.Box
                 component={M.Paper}
