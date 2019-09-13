@@ -326,4 +326,3 @@ class TestIndex(TestCase):
                 s3_client=self.s3_client,
                 size=123
             )
-            size = len(contents.encode('utf-8', 'ignore'))
