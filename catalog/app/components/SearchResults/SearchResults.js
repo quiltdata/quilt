@@ -3,7 +3,6 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as BreadCrumbs from 'components/BreadCrumbs'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
@@ -13,29 +12,59 @@ import StyledLink, { linkStyle } from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes } from 'utils/string'
 
-function Crumbs({ handle: { bucket, key, version }, showBucket = false }) {
-  const { urls } = NamedRoutes.use()
-  const crumbs = getBreadCrumbs(key).map(({ label, path: segPath }) =>
-    BreadCrumbs.Crumb.Segment({
-      label,
-      to:
-        // eslint-disable-next-line no-nested-ternary
-        segPath === key
-          ? version
-            ? urls.bucketFile(bucket, segPath, version)
-            : undefined
-          : urls.bucketDir(bucket, segPath),
-    }),
-  )
-  if (showBucket) {
-    crumbs.unshift(
-      BreadCrumbs.Crumb.Segment({ label: bucket, to: urls.bucketRoot(bucket) }),
-    )
-  }
+const CrumbLink = M.styled(StyledLink)({ wordBreak: 'break-word' })
 
-  // TODO: remove space when copying path
-  const items = R.intersperse(BreadCrumbs.Crumb.Sep(' / '), crumbs)
-  return <M.Box>{BreadCrumbs.render(items)}</M.Box>
+function Crumbs({ handle, showBucket = false }) {
+  const { urls } = NamedRoutes.use()
+
+  const crumbs = React.useMemo(() => {
+    const all = getBreadCrumbs(handle.key)
+    const dirs = R.init(all).map(({ label, path }) => ({
+      to: urls.bucketFile(handle.bucket, path),
+      children: label,
+    }))
+    const file = {
+      to: urls.bucketFile(handle.bucket, handle.key, handle.version),
+      children: R.last(all).label,
+    }
+    const bucket = showBucket
+      ? {
+          to: urls.bucketRoot(handle.bucket),
+          children: handle.bucket,
+        }
+      : null
+    return { bucket, dirs, file }
+  }, [handle, urls, showBucket])
+
+  const handleCopy = React.useCallback((e) => {
+    if (typeof document === 'undefined') return
+    e.clipboardData.setData(
+      'text/plain',
+      document
+        .getSelection()
+        .toString()
+        .replace(/\s*\/\s*/g, '/'),
+    )
+    e.preventDefault()
+  }, [])
+
+  return (
+    <span onCopy={handleCopy}>
+      {crumbs.bucket && (
+        <>
+          <CrumbLink {...crumbs.bucket} />
+          &nbsp;/{' '}
+        </>
+      )}
+      {crumbs.dirs.map((c) => (
+        <React.Fragment key={`crumb:${c.to}`}>
+          <CrumbLink {...c} />
+          &nbsp;/{' '}
+        </React.Fragment>
+      ))}
+      <CrumbLink {...crumbs.file} />
+    </span>
+  )
 }
 
 function Header({ handle, showBucket }) {
@@ -87,13 +116,6 @@ const useVersionInfoStyles = M.makeStyles((t) => ({
   version: {
     fontFamily: t.typography.monospace.fontFamily,
     fontWeight: t.typography.fontWeightMedium,
-    [t.breakpoints.down('xs')]: {
-      display: 'inline-block',
-      maxWidth: 240,
-      overflow: 'hidden',
-      textOverflow: 'ellipsis',
-      verticalAlign: 'top',
-    },
   },
   seeOther: {
     borderBottom: '1px dashed',
@@ -110,6 +132,10 @@ function VersionInfo({ bucket, path, version, versions }) {
     setVersionsShown(!versionsShown)
   }, [setVersionsShown, versionsShown])
 
+  const t = M.useTheme()
+  const xs = M.useMediaQuery(t.breakpoints.down('xs'))
+  const clip = (str, len) => (xs ? str.substring(0, len) : str)
+
   return (
     <>
       <M.Typography variant="subtitle1" className={classes.versionContainer}>
@@ -119,14 +145,14 @@ function VersionInfo({ bucket, path, version, versions }) {
             to={urls.bucketFile(bucket, path, version.id)}
             className={classes.version}
           >
-            {version.id}
+            {clip(version.id, 24)}
           </StyledLink>
         </Nowrap>{' '}
         <Nowrap>
           from <Bold>{version.updated.toLocaleString()}</Bold>
+          {' | '}
+          <Bold>{readableBytes(version.size)}</Bold>
         </Nowrap>
-        {' | '}
-        <Bold>{readableBytes(version.size)}</Bold>
       </M.Typography>
       {versions.length > 1 && (
         <M.Typography>
@@ -149,7 +175,7 @@ function VersionInfo({ bucket, path, version, versions }) {
                 to={urls.bucketFile(bucket, path, v.id)}
                 className={classes.version}
               >
-                {v.id}
+                {clip(v.id, 6)}
               </StyledLink>
               {' from '}
               <Bold>{v.updated.toLocaleString()}</Bold>
