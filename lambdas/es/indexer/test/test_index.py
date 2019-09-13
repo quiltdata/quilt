@@ -327,5 +327,3 @@ class TestIndex(TestCase):
                 size=123
             )
             size = len(contents.encode('utf-8', 'ignore'))
-            print(index.ELASTIC_LIMIT_BYTES)
-            assert size <= index.ELASTIC_LIMIT_BYTES
