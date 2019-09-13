@@ -1,7 +1,9 @@
 {
   "extends": [
     "config:base",
-    "schedule:earlyMondays"
+    "schedule:earlyMondays",
+    ":maintainLockFilesWeekly",
+    ":prHourlyLimitNone"
   ],
   "enabledManagers": ["npm"],
   "rangeStrategy": "bump",

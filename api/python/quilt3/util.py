@@ -258,14 +258,12 @@ def find_bucket_config(bucket_name, catalog_config_url):
     if not config_request.ok:
         raise QuiltException("Failed to get catalog config")
     config_json = json.loads(config_request.text)
-    if 'federations' not in config_json:
-        # try old config format
-        try:
-            return config_json['configs'][bucket_name]
-        except KeyError:
-            raise QuiltException("Catalog config malformed")
+    if 'federations' in config_json:
+        federations = config_json['federations']
+    else:
+        registry_url = config_json['registryUrl']
+        federations = ["{reg_url}/api/federation.json".format(reg_url=registry_url)]
 
-    federations = config_json['federations']
     federations.reverse() # want to get results from last federation first
     for federation in federations:
         parsed = urlparse(federation)
@@ -291,9 +289,9 @@ def find_bucket_config(bucket_name, catalog_config_url):
     raise QuiltException("Failed to find a config for the chosen bucket")
 
 def validate_package_name(name):
-    """ Verify that a package name is two alphanumerics strings separated by a slash."""
+    """ Verify that a package name is two alphanumeric strings separated by a slash."""
     if not re.match(PACKAGE_NAME_FORMAT, name):
-        raise QuiltException("Invalid package name, must contain exactly one /.")
+        raise QuiltException(f"Invalid package name: {name}.")
 
 def get_package_registry(path=None):
     """ Returns the package registry root for a given path """

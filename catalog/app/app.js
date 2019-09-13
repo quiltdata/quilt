@@ -158,11 +158,19 @@ if (module.hot) {
 }
 */
 
+const polyfills = []
+
 // Chunked polyfill for browsers without Intl support
-if (!window.Intl) {
-  import('intl')
-    .then(() => Promise.all([import('intl/locale-data/jsonp/en.js')]))
-    .then(() => render(translationMessages))
-} else {
-  render(translationMessages)
-}
+if (!window.Intl)
+  polyfills.push(
+    import('intl').then(() => Promise.all([import('intl/locale-data/jsonp/en.js')])),
+  )
+
+if (!window.ResizeObserver)
+  polyfills.push(
+    import('resize-observer-polyfill').then(({ default: RO }) => {
+      window.ResizeObserver = RO
+    }),
+  )
+
+Promise.all(polyfills).then(() => render(translationMessages))

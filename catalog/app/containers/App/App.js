@@ -28,6 +28,12 @@ const Activate = ({
   return <AbsRedirect url={urls.activate({ registryUrl, token })} />
 }
 
+const LegacyPackages = ({ location: l }) => {
+  const { legacyPackagesRedirect } = Config.useConfig()
+  const { urls } = NamedRoutes.use()
+  return <AbsRedirect url={urls.legacyPackages(legacyPackagesRedirect, l)} />
+}
+
 const mkLazy = (load) => loadable(load, { fallback: () => <Placeholder /> })
 
 const Admin = mkLazy(() => import('containers/Admin'))
@@ -64,6 +70,10 @@ export default () => {
           component={protect(cfg.enableMarketingPages ? MLanding : HomePage)}
           exact
         />
+
+        {!!cfg.legacyPackagesRedirect && (
+          <Route path={paths.legacyPackages} component={LegacyPackages} />
+        )}
 
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />

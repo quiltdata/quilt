@@ -11,7 +11,11 @@
     },
     "apiGatewayEndpoint": {
       "type": "string",
-      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+      "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
+    },
+    "binaryApiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
     "defaultBucket": {
       "type": "string",
@@ -33,6 +37,10 @@
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
+    },
+    "legacyPackagesRedirect": {
+      "type": "string",
+      "description": "Requests to /package/$owner/[$package/] will be redirected there (must not end in slash)."
     },
     "mixpanelToken": {
       "type": "string",
@@ -75,6 +83,7 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
+    "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
     "passwordAuth",

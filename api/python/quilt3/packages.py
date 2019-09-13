@@ -1,3 +1,4 @@
+from collections import deque
 import copy
 import hashlib
 import io
@@ -6,7 +7,7 @@ import pathlib
 import os
 import time
 from urllib.parse import quote, urlparse, unquote
-from collections import deque
+import warnings
 
 import jsonlines
 
@@ -621,6 +622,11 @@ class Package(object):
             objects, _ = list_object_versions(src_bucket, src_key)
             for obj in objects:
                 if not obj['IsLatest']:
+                    continue
+                # Skip S3 pseduo directory files and Keys that end in /
+                if obj['Key'].endswith('/'):
+                    if obj['Size'] != 0:
+                        warnings.warn(f'Logical keys cannot end in "/", skipping: {obj["Key"]}')
                     continue
                 obj_url = make_s3_url(src_bucket, obj['Key'], obj.get('VersionId'))
                 entry = PackageEntry([obj_url], obj['Size'], None, None)

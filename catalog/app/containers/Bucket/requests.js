@@ -1,6 +1,7 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { resolveKey } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
@@ -16,6 +17,12 @@ const catchErrors = (pairs = []) =>
     ],
     [
       R.propEq('message', 'Access Denied'),
+      () => {
+        throw new errors.AccessDenied()
+      },
+    ],
+    [
+      R.propEq('code', 'Forbidden'),
       () => {
         throw new errors.AccessDenied()
       },
@@ -75,6 +82,272 @@ export const bucketListing = ({ s3req, bucket, path = '' }) =>
       }),
     )
     .catch(catchErrors())
+
+export const bucketAccessCounts = async ({
+  s3req,
+  analyticsBucket,
+  bucket,
+  today,
+  window,
+}) => {
+  if (!analyticsBucket) return {}
+  try {
+    const records = await s3Select({
+      s3req,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
+      Expression: `
+        SELECT ext, counts FROM s3object
+        WHERE eventname = 'GetObject'
+        AND bucket = '${sqlEscape(bucket)}'
+      `,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
+
+    return records.reduce((acc, r) => {
+      const recordedCounts = JSON.parse(r.counts)
+
+      const counts = R.times((i) => {
+        const date = dateFns.subDays(today, window - i - 1)
+        return {
+          date,
+          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        }
+      }, window)
+
+      return { ...acc, [r.ext]: counts }
+    }, {})
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('fetchBucketAccessCounts: error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return {}
+  }
+}
+
+const parseDate = (d) => d && new Date(d)
+
+export const bucketExists = ({ s3req, bucket }) =>
+  s3req({ bucket, operation: 'headBucket', params: { Bucket: bucket } }).catch(
+    catchErrors([
+      [
+        R.propEq('code', 'NotFound'),
+        () => {
+          throw new errors.NoSuchBucket()
+        },
+      ],
+    ]),
+  )
+
+export const bucketStats = async ({ es, maxExts }) => {
+  const r = await es({
+    query: { match_all: {} },
+    size: 0,
+    aggs: {
+      totalBytes: { sum: { field: 'size' } },
+      exts: {
+        terms: { field: 'ext' },
+        aggs: { size: { sum: { field: 'size' } } },
+      },
+      updated: { max: { field: 'updated' } },
+    },
+  })
+
+  const exts = R.pipe(
+    R.map((i) => ({
+      ext: i.key,
+      objects: i.doc_count,
+      bytes: i.size.value,
+    })),
+    R.sort(R.descend(R.prop('bytes'))),
+    R.slice(0, maxExts),
+  )(r.aggregations.exts.buckets)
+
+  return {
+    totalObjects: r.hits.total,
+    totalVersions: r.hits.total,
+    totalBytes: r.aggregations.totalBytes.value,
+    updated: parseDate(r.aggregations.updated.value_as_string),
+    exts,
+  }
+}
+
+const parseVersion = R.when(R.equals('null'), () => undefined)
+
+const DELETED = Symbol('DELETED')
+
+const extractLatestVersion = (hits) => {
+  const totalVersions = hits.total
+  // eslint-disable-next-line no-underscore-dangle
+  const latestVersion = parseVersion(hits.hits[0]._source.version_id)
+  return (
+    latestVersion ||
+    (totalVersions === 1
+      ? // single version and it's null -> versioning disabled
+        undefined
+      : // latest version is null -> object deleted
+        DELETED)
+  )
+}
+
+const MAX_IMGS = 100
+const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
+const MAX_OTHER = 10
+const OTHER_EXTS = [
+  '.parquet',
+  '.csv',
+  '.tsv',
+  '.txt',
+  '.vcf',
+  '.xls',
+  '.xlsx',
+  '.ipynb',
+  '.md',
+  '.json',
+]
+const SUMMARIZE_KEY = 'quilt_summarize.json'
+
+export const bucketSummary = ({ es, bucket }) =>
+  es({
+    query: { match_all: {} },
+    aggs: {
+      readmes: {
+        terms: {
+          field: 'key',
+          include: README_KEYS,
+        },
+        aggs: {
+          latestVersion: {
+            top_hits: {
+              sort: [{ last_modified: { order: 'desc' } }],
+              _source: ['version_id'],
+              size: 1,
+            },
+          },
+        },
+      },
+      images: {
+        filter: {
+          terms: { ext: IMG_EXTS },
+        },
+        aggs: {
+          keys: {
+            terms: {
+              field: 'key',
+              size: MAX_IMGS,
+              order: { 'lastModified.value': 'desc' },
+            },
+            aggs: {
+              latestVersion: {
+                top_hits: {
+                  sort: [{ last_modified: { order: 'desc' } }],
+                  _source: ['version_id'],
+                  size: 1,
+                },
+              },
+              lastModified: { max: { field: 'last_modified' } },
+            },
+          },
+        },
+      },
+      other: {
+        filter: {
+          bool: {
+            filter: [{ terms: { ext: OTHER_EXTS } }],
+            must_not: [
+              { terms: { key: [...README_KEYS, SUMMARIZE_KEY] } },
+              { wildcard: { key: `*/${SUMMARIZE_KEY}` } },
+            ],
+          },
+        },
+        aggs: {
+          keys: {
+            terms: {
+              field: 'key',
+              size: MAX_OTHER,
+              order: { 'lastModified.value': 'desc' },
+            },
+            aggs: {
+              latestVersion: {
+                top_hits: {
+                  sort: [{ last_modified: { order: 'desc' } }],
+                  _source: ['version_id', 'ext'],
+                  size: 1,
+                },
+              },
+              lastModified: { max: { field: 'last_modified' } },
+            },
+          },
+        },
+      },
+      summarize: {
+        filter: {
+          term: { key: SUMMARIZE_KEY },
+        },
+        aggs: {
+          latestVersion: {
+            top_hits: {
+              sort: [{ last_modified: { order: 'desc' } }],
+              _source: ['version_id'],
+              size: 1,
+            },
+          },
+        },
+      },
+    },
+    size: 0,
+  }).then(
+    R.applySpec({
+      readmes: R.pipe(
+        R.path(['aggregations', 'readmes', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
+      ),
+      images: R.pipe(
+        R.path(['aggregations', 'images', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+      ),
+      other: R.pipe(
+        R.path(['aggregations', 'other', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+          lastModified: parseDate(b.lastModified),
+          // eslint-disable-next-line no-underscore-dangle
+          ext: b.latestVersion.hits.hits[0]._source.ext,
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sortWith([
+          R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+          R.descend(R.prop('lastModified')),
+        ]),
+      ),
+      summarize: ({
+        aggregations: {
+          summarize: {
+            latestVersion: { hits },
+          },
+        },
+      }) => {
+        if (!hits.total) return null
+        const version = extractLatestVersion(hits)
+        if (version === DELETED) return null
+        return { bucket, key: SUMMARIZE_KEY, version }
+      },
+    }),
+  )
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
@@ -256,7 +529,7 @@ const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
     revisionsTruncated: IsTruncated,
   }))
 
-const mapAllP = (fn) => (list) => Promise.all(list.map(fn))
+const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
 
 const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 
@@ -291,64 +564,111 @@ export const listPackages = withErrorHandling(
   },
 )
 
-const loadRevisionHash = ({ s3req, bucket, key }) =>
-  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
-    (res) => res.Body.toString('utf-8'),
-  )
-
 const getRevisionIdFromKey = (key) => key.substring(key.lastIndexOf('/') + 1)
 const getRevisionKeyFromId = (name, id) => `${PACKAGES_PREFIX}${name}/${id}`
 
+const fetchRevisionsAccessCounts = async ({
+  s3req,
+  analyticsBucket,
+  bucket,
+  name,
+  today,
+  window,
+}) => {
+  try {
+    const records = await s3Select({
+      s3req,
+      Bucket: analyticsBucket,
+      Key: `${ACCESS_COUNTS_PREFIX}/PackageVersions.csv`,
+      Expression: `
+        SELECT hash, counts FROM s3object
+        WHERE eventname = 'GetObject'
+        AND bucket = '${sqlEscape(bucket)}'
+        AND name = '${sqlEscape(name)}'
+      `,
+      InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
+    })
+
+    return records.reduce((acc, r) => {
+      const recordedCounts = JSON.parse(r.counts)
+
+      const counts = R.times((i) => {
+        const date = dateFns.subDays(today, window - i - 1)
+        return {
+          date,
+          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
+        }
+      }, window)
+
+      const total = Object.values(recordedCounts).reduce(R.add, 0)
+
+      return { ...acc, [r.hash]: { counts, total } }
+    }, {})
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.log('fetchRevisionsAccessCounts : error caught')
+    // eslint-disable-next-line no-console
+    console.error(e)
+    return {}
+  }
+}
+
 export const getPackageRevisions = withErrorHandling(
-  async ({ s3req, signer, endpoint, bucket, name }) => {
-    const res = await s3req({
+  async ({ s3req, analyticsBucket, bucket, name, today, analyticsWindow = 30 }) => {
+    const countsP = analyticsBucket
+      ? fetchRevisionsAccessCounts({
+          s3req,
+          analyticsBucket,
+          bucket,
+          name,
+          today,
+          window: analyticsWindow,
+        })
+      : Promise.resolve({})
+    // TODO: handle 1k+ revisions (check if truncated and drain til it's not)
+    const revisions = await s3req({
       bucket,
       operation: 'listObjectsV2',
       params: {
         Bucket: bucket,
         Prefix: `${PACKAGES_PREFIX}${name}/`,
       },
-    })
-
-    const loadRevision = async (key) => {
-      const hash = await loadRevisionHash({ s3req, bucket, key })
-      const manifestKey = `${MANIFESTS_PREFIX}${hash}`
-
-      const loadInfo = async () => {
-        const url = signer.getSignedS3URL({ bucket, key: manifestKey })
-        const r = await fetch(
-          `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=1`,
-        )
-        const json = await r.json()
-        try {
-          return JSON.parse(json.info.data.head[0])
-        } catch (e) {
-          return {}
-        }
-      }
-
-      const loadModified = async () => {
-        const head = await s3req({
-          bucket,
-          operation: 'headObject',
-          params: { Bucket: bucket, Key: manifestKey },
-        })
-        return head.LastModified
-      }
-
-      return {
-        id: getRevisionIdFromKey(key),
-        hash,
-        info: await loadInfo(),
-        modified: await loadModified(),
-      }
-    }
-
-    const revisions = await Promise.all(res.Contents.map((i) => loadRevision(i.Key)))
-    const sorted = R.sortBy((r) => -r.modified, revisions)
-    return sorted
+    }).then((r) =>
+      r.Contents.reduce((acc, { Key: key }) => {
+        const id = getRevisionIdFromKey(key)
+        if (id === 'latest') return acc
+        return [{ id, key }].concat(acc)
+      }, []),
+    )
+    return { revisions, counts: await countsP }
   },
 )
+
+const loadRevisionHash = ({ s3req, bucket, key }) =>
+  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
+    (res) => res.Body.toString('utf-8'),
+  )
+
+export const getRevisionData = async ({ s3req, endpoint, signer, bucket, key }) => {
+  const hash = await loadRevisionHash({ s3req, bucket, key })
+  const manifestKey = `${MANIFESTS_PREFIX}${hash}`
+  const url = signer.getSignedS3URL({ bucket, key: manifestKey })
+  const maxLines = MAX_PACKAGE_ENTRIES + 2 // 1 for the meta and 1 for checking overflow
+  const r = await fetch(
+    `${endpoint}/preview?url=${encodeURIComponent(url)}&input=txt&line_count=${maxLines}`,
+  )
+  const [info, ...entries] = await r
+    .json()
+    .then((json) => json.info.data.head.map((l) => JSON.parse(l)))
+  const files = Math.min(MAX_PACKAGE_ENTRIES, entries.length)
+  const bytes = entries.slice(0, MAX_PACKAGE_ENTRIES).reduce((sum, i) => sum + i.size, 0)
+  const truncated = entries.length > MAX_PACKAGE_ENTRIES
+  return {
+    hash,
+    stats: { files, bytes, truncated },
+    ...info,
+  }
+}
 
 const s3Select = ({
   s3req,
@@ -441,7 +761,8 @@ const mergeHits = R.pipe(
             {
               id: src.version_id,
               score,
-              updated: new Date(src.updated),
+              updated: parseDate(src.updated),
+              lastModified: parseDate(src.last_modified),
               size: src.size,
               meta: src.user_meta,
             },
@@ -457,9 +778,14 @@ const mergeHits = R.pipe(
 export const search = async ({ es, query }) => {
   try {
     const result = await es({
-      query,
-      fields: ['content', 'comment', 'key_text', 'meta_text'],
-      _source: ['key', 'version_id', 'updated', 'size', 'user_meta'],
+      query: {
+        multi_match: {
+          query,
+          fields: ['content', 'comment', 'key_text', 'meta_text'],
+          type: 'cross_fields',
+        },
+      },
+      _source: ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta'],
     })
     const hits = mergeHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)
@@ -528,27 +854,4 @@ export const objectAccessCounts = ({ s3req, analyticsBucket, bucket, path, today
     `,
     today,
     window: 365,
-  })
-
-export const pkgVersionAccessCounts = ({
-  s3req,
-  analyticsBucket,
-  bucket,
-  name,
-  hash,
-  today,
-}) =>
-  queryAccessCounts({
-    s3req,
-    analyticsBucket,
-    type: 'PackageVersions',
-    query: `
-      SELECT counts FROM s3object
-      WHERE eventname = 'GetObject'
-      AND bucket = '${sqlEscape(bucket)}'
-      AND name = '${sqlEscape(name)}'
-      AND hash = '${sqlEscape(hash)}'
-    `,
-    today,
-    window: 30,
   })
