@@ -22,4 +22,4 @@ s3transfer==0.1.13
 six==1.12.0
 tenacity==5.0.3
 traitlets==4.3.2
-urllib3==1.23
+urllib3==1.24.2
