@@ -5,11 +5,11 @@ import * as M from '@material-ui/core'
 import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import * as SearchResults from 'components/SearchResults'
-import Working from 'components/Working'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as Config from 'utils/Config'
 import * as Data from 'utils/Data'
+import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
@@ -34,7 +34,28 @@ function Results({ bucket, query, searchEndpoint }) {
   const data = Data.use(search, { es, buckets: [bucket], query })
 
   return data.case({
-    _: () => <Working>Searching</Working>,
+    _: () => (
+      <Delay alwaysRender>
+        {(ready) => (
+          <M.Fade in={ready}>
+            <M.Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              px={{ xs: 2, sm: 0 }}
+              pt={{ xs: 2, sm: 4 }}
+            >
+              <M.Box pr={2}>
+                <M.CircularProgress size={24} />
+              </M.Box>
+              <M.Typography variant="body1">
+                Searching s3://{bucket} for &quot;{query}&quot;
+              </M.Typography>
+            </M.Box>
+          </M.Fade>
+        )}
+      </Delay>
+    ),
     Err: () => (
       <Message headline="Server Error">
         Something went wrong.
@@ -47,7 +68,7 @@ function Results({ bucket, query, searchEndpoint }) {
     ),
     Ok: ({ total, hits }) => (
       <>
-        <M.Box mb={2} mt={1}>
+        <M.Box pt={{ xs: 2, sm: 3 }} pb={{ xs: 2, sm: 1 }} px={{ xs: 2, sm: 0 }}>
           <M.Typography variant="h5">
             {total
               ? `Search results for "${query}" (${total} hits, ${hits.length} files)`
@@ -71,13 +92,13 @@ function Results({ bucket, query, searchEndpoint }) {
             )}
           </Pagination.Paginate>
         ) : (
-          <>
+          <M.Box px={{ xs: 2, sm: 0 }} pt={{ xs: 0, sm: 1 }}>
             <M.Typography variant="body1">
               We have not found anything matching your query
             </M.Typography>
             <br />
             <Browse bucket={bucket} />
-          </>
+          </M.Box>
         )}
       </>
     ),
@@ -88,7 +109,7 @@ export default function Search({ location: l }) {
   const { q: query = '' } = parseSearch(l.search)
   const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
   return (
-    <M.Box py={2}>
+    <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       {searchEndpoint ? (
         <Results {...{ bucket: name, searchEndpoint, query }} />
       ) : (
