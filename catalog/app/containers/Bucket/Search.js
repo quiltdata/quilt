@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
 import Message from 'components/Message'
-import * as Pagination from 'components/Pagination'
+import Pagination from 'components/Pagination2'
 import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
 import * as BucketConfig from 'utils/BucketConfig'
@@ -13,6 +13,9 @@ import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import parseSearch from 'utils/parseSearch'
 import search from 'utils/search'
+import usePrevious from 'utils/usePrevious'
+
+const PER_PAGE = 10
 
 function Browse({ bucket }) {
   const { urls } = NamedRoutes.use()
@@ -23,13 +26,36 @@ function Browse({ bucket }) {
   )
 }
 
-function Results({ bucket, query, searchEndpoint }) {
+function Hits({ hits, page, scrollRef, makePageUrl }) {
+  const actualPage = page || 1
+  const pages = Math.ceil(hits.length / PER_PAGE)
+
+  const paginated = React.useMemo(
+    () =>
+      pages === 1 ? hits : hits.slice((actualPage - 1) * PER_PAGE, actualPage * PER_PAGE),
+    [hits, actualPage],
+  )
+
+  usePrevious(actualPage, (prev) => {
+    if (prev && actualPage !== prev && scrollRef.current) {
+      scrollRef.current.scrollIntoView()
+    }
+  })
+
+  return (
+    <>
+      {paginated.map((hit) => (
+        <SearchResults.Hit key={hit.path} hit={hit} showBucket />
+      ))}
+      {pages > 1 && <Pagination {...{ pages, page: actualPage, makePageUrl }} />}
+    </>
+  )
+}
+
+function Results({ bucket, query, searchEndpoint, page, makePageUrl }) {
   const cfg = Config.useConfig()
   const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
   const scrollRef = React.useRef(null)
-  const scroll = React.useCallback((prev) => {
-    if (prev && scrollRef.current) scrollRef.current.scrollIntoView()
-  })
 
   const data = Data.use(search, { es, buckets: [bucket], query })
 
@@ -77,20 +103,7 @@ function Results({ bucket, query, searchEndpoint }) {
         </M.Box>
         <div ref={scrollRef} />
         {total ? (
-          <Pagination.Paginate items={hits} onChange={scroll}>
-            {({ paginated, ...props }) => (
-              <>
-                {paginated.map((hit) => (
-                  <SearchResults.Hit key={hit.path} hit={hit} />
-                ))}
-                {props.pages > 1 && (
-                  <M.Box mt={2}>
-                    <Pagination.Controls {...props} />
-                  </M.Box>
-                )}
-              </>
-            )}
-          </Pagination.Paginate>
+          <Hits {...{ hits, page, scrollRef, makePageUrl }} />
         ) : (
           <M.Box px={{ xs: 2, sm: 0 }} pt={{ xs: 0, sm: 1 }}>
             <M.Typography variant="body1">
@@ -106,12 +119,18 @@ function Results({ bucket, query, searchEndpoint }) {
 }
 
 export default function Search({ location: l }) {
-  const { q: query = '' } = parseSearch(l.search)
   const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+  const { urls } = NamedRoutes.use()
+  const { q: query = '', p } = parseSearch(l.search)
+  const page = p && parseInt(p, 10)
+  const makePageUrl = React.useCallback(
+    (newP) => urls.bucketSearch(name, query, newP !== 1 ? newP : undefined),
+    [urls, name, query],
+  )
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
       {searchEndpoint ? (
-        <Results {...{ bucket: name, searchEndpoint, query }} />
+        <Results {...{ bucket: name, searchEndpoint, query, page, makePageUrl }} />
       ) : (
         <Message headline="Search Not Available">
           This bucket has no configured search endpoint.

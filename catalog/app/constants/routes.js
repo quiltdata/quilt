@@ -76,8 +76,7 @@ export const bucketRoot = {
 export const bucketOverview = bucketRoot
 export const bucketSearch = {
   path: '/b/:bucket/search',
-  // TODO: page
-  url: (bucket, q) => `/b/${bucket}/search${mkSearch({ q })}`,
+  url: (bucket, q, p) => `/b/${bucket}/search${mkSearch({ q, p })}`,
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path+',
