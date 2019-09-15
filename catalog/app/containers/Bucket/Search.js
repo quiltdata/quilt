@@ -52,9 +52,9 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
   )
 }
 
-function Results({ bucket, query, searchEndpoint, page, makePageUrl }) {
+function Results({ bucket, query, page, makePageUrl }) {
   const cfg = Config.useConfig()
-  const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
+  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
   const scrollRef = React.useRef(null)
 
   const data = Data.use(search, { es, buckets: [bucket], query })
@@ -118,23 +118,21 @@ function Results({ bucket, query, searchEndpoint, page, makePageUrl }) {
   })
 }
 
-export default function Search({ location: l }) {
-  const { name, searchEndpoint } = BucketConfig.useCurrentBucketConfig()
+export default function Search({ params: { bucket }, location: l }) {
+  const cfg = BucketConfig.useCurrentBucketConfig()
   const { urls } = NamedRoutes.use()
   const { q: query = '', p } = parseSearch(l.search)
   const page = p && parseInt(p, 10)
   const makePageUrl = React.useCallback(
-    (newP) => urls.bucketSearch(name, query, newP !== 1 ? newP : undefined),
-    [urls, name, query],
+    (newP) => urls.bucketSearch(bucket, query, newP !== 1 ? newP : undefined),
+    [urls, bucket, query],
   )
   return (
     <M.Box pb={{ xs: 0, sm: 5 }} mx={{ xs: -2, sm: 0 }}>
-      {searchEndpoint ? (
-        <Results {...{ bucket: name, searchEndpoint, query, page, makePageUrl }} />
+      {cfg ? (
+        <Results {...{ bucket, query, page, makePageUrl }} />
       ) : (
-        <Message headline="Search Not Available">
-          This bucket has no configured search endpoint.
-        </Message>
+        <M.Typography variant="body1">Search unavailable</M.Typography>
       )}
     </M.Box>
   )

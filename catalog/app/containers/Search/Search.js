@@ -9,7 +9,7 @@ import Message from 'components/Message'
 import Pagination from 'components/Pagination2'
 import * as SearchResults from 'components/SearchResults'
 import * as AWS from 'utils/AWS'
-import * as Config from 'utils/Config'
+import * as BucketConfig from 'utils/BucketConfig'
 import * as Data from 'utils/Data'
 import Delay from 'utils/Delay'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -59,11 +59,8 @@ function Hits({ hits, page, scrollRef, makePageUrl }) {
 }
 
 function Results({ buckets, query, page, scrollRef, makePageUrl }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ endpoint: cfg.searchEndpoint, sign: true })
-
+  const es = AWS.ES.use({ sign: true })
   const data = Data.use(search, { es, buckets, query })
-
   return data.case({
     _: () => (
       <Alt>
@@ -205,8 +202,7 @@ function BucketSelectDropdown({ buckets, onChange }) {
   const classes = useBucketSelectDropdownStyles()
   const state = useEditableValue(buckets, onChange)
 
-  const cfg = Config.use()
-  const options = cfg.federations.filter((b) => b.searchEndpoint === cfg.searchEndpoint)
+  const options = BucketConfig.useBucketConfigs()
 
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
@@ -359,7 +355,10 @@ export default function Search({ location: l }) {
             {q ? (
               <Results {...{ query: q, buckets, page, scrollRef, makePageUrl }} />
             ) : (
-              <div>TODO: some help text or smth</div>
+              // TODO: revise copy
+              <Alt>
+                <M.Typography variant="body1">Search for anything</M.Typography>
+              </Alt>
             )}
           </M.Box>
         </M.Container>

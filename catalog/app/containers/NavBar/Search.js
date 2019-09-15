@@ -144,12 +144,12 @@ function State({ query, makeUrl, children, onFocus, onBlur }) {
 }
 
 function BucketSearch({ bucket, onFocus, onBlur, iconized, ...props }) {
-  const cfg = BucketConfig.useBucketConfigs()[bucket]
+  const cfg = BucketConfig.useCurrentBucketConfig()
   const { paths, urls } = NamedRoutes.use()
   const { location: l, match } = useRoute(paths.bucketSearch)
   const query = (match && parse(l.search).q) || ''
   const makeUrl = React.useCallback((q) => urls.bucketSearch(bucket, q), [urls, bucket])
-  return cfg && cfg.searchEndpoint ? (
+  return cfg ? (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
       {(state) => <SearchBox {...{ iconized, bucket, ...state, ...props }} />}
     </State>
@@ -164,7 +164,7 @@ function GlobalSearch({ onFocus, onBlur, iconized, ...props }) {
   const { location: l, match } = useRoute(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}
   const makeUrl = React.useCallback((q) => urls.search({ q, buckets }), [urls, buckets])
-  return !cfg.searchEndpoint ? null : (
+  return !cfg.globalSearch ? null : (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
       {(state) => <SearchBox {...{ iconized, ...state, ...props }} />}
     </State>

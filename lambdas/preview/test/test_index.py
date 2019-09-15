@@ -287,7 +287,7 @@ class TestIndex():
             event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'line_count': str(count)})
             resp = index.lambda_handler(event, None)
             assert resp['statusCode'] == 200, 'preview lambda failed'
-            get_preview_lines.assert_called_with(ANY, None, count, index.MAX_BYTES)
+            get_preview_lines.assert_called_with(ANY, None, count, index.CATALOG_LIMIT_BYTES)
 
     @responses.activate
     @patch(__name__ + '.index.get_preview_lines')
@@ -307,7 +307,7 @@ class TestIndex():
                 'compression': 'gz'})
             resp = index.lambda_handler(event, None)
             assert resp['statusCode'] == 200, 'preview lambda failed'
-            get_preview_lines.assert_called_with(ANY, 'gz', count, index.MAX_BYTES)
+            get_preview_lines.assert_called_with(ANY, 'gz', count, index.CATALOG_LIMIT_BYTES)
 
 
     @responses.activate
@@ -358,7 +358,7 @@ class TestIndex():
         _check_vcf(resp)
 
     # 513 = 128*4 + 1 => ensure there's a partial chunk in play
-    @patch(__name__ + '.index.MAX_BYTES', 513)
+    @patch(__name__ + '.index.CATALOG_LIMIT_BYTES', 513)
     @patch(__name__ + '.index.CHUNK', 128)
     @responses.activate
     def test_vcf_gz_partial(self):

@@ -576,9 +576,9 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ bucket, description, searchEndpoint }) {
+function Head({ bucket, description }) {
   const cfg = Config.useConfig()
-  const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
+  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
@@ -985,9 +985,9 @@ function Summarize({ summarize, other, children }) {
 
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
-function Files({ bucket, searchEndpoint }) {
+function Files({ bucket }) {
   const cfg = Config.useConfig()
-  const es = AWS.ES.use({ endpoint: searchEndpoint, sign: cfg.shouldSign(bucket) })
+  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
   return (
     <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
       {(res) => (
@@ -1076,21 +1076,19 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { searchEndpoint, description } = BucketConfig.useCurrentBucketConfig() || {}
+  const cfg = BucketConfig.useCurrentBucketConfig()
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
       {AsyncResult.case({
         Ok: () =>
-          searchEndpoint ? (
+          cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description, searchEndpoint }} />
-              <Files {...{ bucket, searchEndpoint }} />
+              <Head {...{ bucket, description: cfg.description }} />
+              <Files {...{ bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
-            <Message headline="Error">
-              ElasticSearch is not configured for this bucket
-            </Message>
+            <Message headline="Error">Overview unavailable for this bucket</Message>
           ),
         Err: displayError(),
         _: () => <Placeholder />,

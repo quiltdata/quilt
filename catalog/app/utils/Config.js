@@ -10,12 +10,10 @@ import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
 
 import configSchema from '../../config-schema.json'
-import federationSchema from '../../federation-schema.json'
 
 const ajv = new Ajv({ allErrors: true, removeAdditional: true })
 
 ajv.addSchema(configSchema, 'Config')
-ajv.addSchema(federationSchema, 'Federation')
 
 export class ConfigError extends BaseError {
   static displayName = 'ConfigError'
@@ -75,62 +73,9 @@ const transformConfig = (cfg) => ({
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
 })
 
-const fetchBucket = async (b) => {
-  try {
-    const res = await fetch(b)
-    const text = await res.text()
-    if (!res.ok) {
-      throw new ConfigError(
-        `error fetching bucket config from "${b}" (${res.status}):\n${text}`,
-        { path: b, response: res, text },
-      )
-    }
-    return R.pipe(
-      parseJSON(`invalid bucket config JSON at "${b}"`),
-      validate(
-        'Federation#/definitions/BucketConfig',
-        `invalid bucket config format at "${b}"`,
-      ),
-    )(text)
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn(`Error fetching bucket config from "${b}"`)
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return undefined
-  }
-}
-
-const fetchFederation = async (f) => {
-  try {
-    const res = await fetch(f)
-    const text = await res.text()
-    if (!res.ok) {
-      throw new ConfigError(
-        `error fetching federation config from "${f}" (${res.status}):\n${text}`,
-        { path: f, response: res, text },
-      )
-    }
-    const json = parseJSON(`invalid federation config JSON at "${f}"`)(text)
-    validate('Federation', `invalid federation config format at "${f}"`)
-    return await Promise.all(json.buckets.map(R.when(R.is(String), fetchBucket)))
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn(`Error fetching federation config from "${f}"`)
-    // eslint-disable-next-line no-console
-    console.error(e)
-    return []
-  }
-}
-
 const ConfigResource = Cache.createResource({
   name: 'Config.config',
   fetch: R.pipeWith(R.then)([fetchConfig, transformConfig]),
-})
-
-const FederationsResource = Cache.createResource({
-  name: 'Config.federations',
-  fetch: fetchFederation,
 })
 
 const Ctx = React.createContext()
@@ -146,14 +91,6 @@ export const Provider = RT.composeComponent(
 export const useConfig = ({ suspend = true } = {}) =>
   Cache.useData(ConfigResource, React.useContext(Ctx), { suspend })
 
-export const useFederations = () =>
-  Cache.use().get(FederationsResource, `${useConfig().registryUrl}/api/federation.json`)
-
-const useAll = () => ({
-  ...useConfig(),
-  federations: useFederations(),
-})
-
-export const use = useAll
+export const use = useConfig
 
 export const Inject = ({ children }) => children(AsyncResult.Ok(use()))

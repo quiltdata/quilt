@@ -27,7 +27,7 @@ const PLANS = {
   },
   hosted: {
     bg: [pricingHosted, pricingHosted2x],
-    name: 'Hosted',
+    name: 'AWS Marketplace',
     price: 550,
     features: [
       'Unlimited public packages',
@@ -39,8 +39,8 @@ const PLANS = {
   },
   vpc: {
     bg: [pricingVpc, pricingVpc2x],
-    name: 'VPC in AWS',
-    price: 900,
+    name: 'Enterprise',
+    price: 999,
     features: [
       'Unlimited public packages',
       'Admin and auditing features',
@@ -161,7 +161,10 @@ const Plan = ({ bg, name, price, features, plus, featured = false }) => {
           </M.Typography>
         ))}
       </div>
-      <Plus variant={plus} href="TBD" />
+      <Plus
+        variant={plus}
+        href="https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536"
+      />
     </div>
   )
 }

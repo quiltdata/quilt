@@ -76,7 +76,7 @@ export default () => {
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!!cfg.searchEndpoint && <Route path={paths.search} component={Search} exact />}
+        {!!cfg.globalSearch && <Route path={paths.search} component={Search} exact />}
 
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />

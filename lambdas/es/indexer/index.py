@@ -13,9 +13,21 @@ import botocore
 import nbformat
 from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
-from t4_lambda_shared.preview import get_bytes, get_preview_lines, MAX_LINES
-from .document_queue import (DocumentQueue, CONTENT_INDEX_EXTS, DOC_LIMIT_BYTES, MAX_RETRY,
-                             OBJECT_DELETE)
+from t4_lambda_shared.preview import (
+    ELASTIC_LIMIT_BYTES,
+    ELASTIC_LIMIT_LINES,
+    extract_parquet,
+    get_bytes,
+    get_preview_lines,
+    trim_to_bytes
+)
+
+from document_queue import (
+    DocumentQueue,
+    CONTENT_INDEX_EXTS,
+    MAX_RETRY,
+    OBJECT_DELETE
+)
 
 # 10 MB, see https://amzn.to/2xJpngN
 NB_VERSION = 4 # default notebook version for nbformat
@@ -27,6 +39,7 @@ USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
 
 def should_retry_exception(exception):
+    """don't retry certain 40X errors"""
     error_code = exception.response.get('Error', {}).get('Code', 218)
     return error_code not in ["402", "403", "404"]
 
@@ -53,8 +66,20 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     etag=etag,
                     s3_client=s3_client,
                     version_id=version_id
-                )
+                ),
+                ELASTIC_LIMIT_BYTES
             )
+        elif ext == ".parquet":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
         else:
             content = get_plain_text(
                 bucket,
@@ -139,10 +164,15 @@ def get_plain_text(bucket, key, size, compression, *, etag, s3_client, version_i
             size,
             etag=etag,
             s3_client=s3_client,
-            limit=DOC_LIMIT_BYTES,
+            limit=ELASTIC_LIMIT_BYTES,
             version_id=version_id
         )
-        lines = get_preview_lines(obj["Body"], compression, MAX_LINES, DOC_LIMIT_BYTES)
+        lines = get_preview_lines(
+            obj["Body"],
+            compression,
+            ELASTIC_LIMIT_LINES,
+            ELASTIC_LIMIT_BYTES
+        )
         text = ''.join(lines)
     except UnicodeDecodeError as ex:
         print(f"Unicode decode error in {key}", ex)
@@ -324,11 +354,3 @@ def retry_s3(
         return function_(**arguments)
 
     return call()
-
-def trim_to_bytes(string, limit=DOC_LIMIT_BYTES):
-    """trim string to specified number of bytes"""
-    encoded = string.encode("utf-8")
-    size = len(encoded)
-    if size <= limit:
-        return string
-    return encoded[:limit].decode("utf-8", "ignore")

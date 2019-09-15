@@ -11,7 +11,11 @@
     },
     "apiGatewayEndpoint": {
       "type": "string",
-      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+      "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
+    },
+    "binaryApiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
     "defaultBucket": {
       "type": "string",
@@ -21,10 +25,9 @@
       "type": "boolean",
       "description": "Enable marketing pages."
     },
-    "federations": {
-      "type": "array",
-      "description": "List of links to federations you want your catalog to be aware of.",
-      "items": { "$ref": "#/definitions/Url" }
+    "globalSearch": {
+      "type": "boolean",
+      "description": "Enable global (aka universal) search."
     },
     "googleClientId": {
       "type": "string",
@@ -54,10 +57,6 @@
       "$ref": "#/definitions/Url",
       "description": "Proxy server to use to get around S3 buckets with no CORS policies."
     },
-    "searchEndpoint": {
-      "type": "string",
-      "description": "ElasticSearch endpoint for multi-bucket (global) search"
-    },
     "sentryDSN": {
       "type": "string",
       "description": "Token used for logging to Sentry."
@@ -83,6 +82,7 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
+    "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
     "passwordAuth",

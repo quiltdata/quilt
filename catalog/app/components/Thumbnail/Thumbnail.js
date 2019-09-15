@@ -35,7 +35,7 @@ export default RT.composeComponent(
     size: 'sm',
   }),
   ({ handle, size, alt = '', ...props }) => {
-    const api = useConfig().apiGatewayEndpoint
+    const api = useConfig().binaryApiGatewayEndpoint
     const sign = AWS.Signer.useS3Signer()
     const url = React.useMemo(() => sign(handle), [handle])
     const search = mkSearch({ url, size: sizeStr(size), output: 'raw' })

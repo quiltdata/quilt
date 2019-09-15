@@ -23,7 +23,6 @@ REQUEST_HEADERS_TO_FORWARD = {'content-type', 'cache-control', 'pragma', 'x-amz-
 REQUEST_HEADERS_TO_SIGN = {'host', 'x-amz-content-sha256', 'x-amz-user-agent'}
 RESPONSE_HEADERS_TO_FORWARD = {'content-type'}
 
-credentials = Session().get_credentials()
 session = requests.Session()
 
 
@@ -58,6 +57,7 @@ def lambda_handler(request):
         data=request.data,
         headers={ k: v for k, v in headers.items() if k in REQUEST_HEADERS_TO_SIGN }
     )
+    credentials = Session().get_credentials()
     auth = SigV4Auth(credentials, SERVICE, REGION)
     auth.add_auth(aws_request)
 

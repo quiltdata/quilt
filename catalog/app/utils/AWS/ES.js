@@ -2,6 +2,7 @@ import AWS from 'aws-sdk/lib/core'
 import * as React from 'react'
 import * as R from 'ramda'
 
+import { useConfig } from 'utils/Config'
 import { mkSearch } from 'utils/NamedRoutes'
 
 import * as Signer from './Signer'
@@ -11,14 +12,15 @@ const DEFAULT_SEARCH_SIZE = 1000
 
 const getRegion = R.pipe(
   R.prop('hostname'),
-  R.match(/\.([a-z]{2}-[a-z]+-\d)\.es\.amazonaws\.com$/),
+  R.match(/\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$/),
   R.nth(1),
   R.defaultTo('us-east-1'),
 )
 
 const noop = () => {}
 
-export const useES = ({ endpoint: ep, sign = false }) => {
+export const useES = ({ sign = false }) => {
+  const { apiGatewayEndpoint: ep } = useConfig()
   const requestSigner = Signer.useRequestSigner()
   const signRequest = sign ? requestSigner : noop
 
@@ -30,7 +32,7 @@ export const useES = ({ endpoint: ep, sign = false }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `${index}/_search${mkSearch({
+      const path = `/search/${index}${mkSearch({
         size,
         _source: _source && _source.join(','),
         source: JSON.stringify(source),
@@ -40,7 +42,7 @@ export const useES = ({ endpoint: ep, sign = false }) => {
       request.method = 'GET'
       request.path += path
       request.headers.Host = endpoint.hostname
-      signRequest(request, 'es')
+      signRequest(request, 'execute-api')
 
       delete request.headers.Host
 

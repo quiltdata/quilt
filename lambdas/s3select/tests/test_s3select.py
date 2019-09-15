@@ -1,18 +1,30 @@
 from base64 import b64decode
 import json
+import os
 from unittest import TestCase
 from unittest.mock import patch
 
-from botocore.credentials import Credentials
 import responses
 
 from ..index import lambda_handler
 
 
-@patch('index.credentials', Credentials('ACCESS-KEY', 'SECRET-KEY'))
 @patch('index.REGION', 'us-east-1')
 class TestS3Select(TestCase):
     """Tests S3 Select"""
+    def setUp(self):
+        self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
+        self.requests_mock.start()
+
+        self.env_patcher = patch.dict(os.environ, {
+            'AWS_ACCESS_KEY_ID': 'test_key',
+            'AWS_SECRET_ACCESS_KEY': 'test_secret',
+        })
+        self.env_patcher.start()
+
+    def tearDown(self):
+        self.env_patcher.stop()
+        self.requests_mock.stop()
 
     @classmethod
     def _make_event(cls, path, query, headers, body):
@@ -28,11 +40,10 @@ class TestS3Select(TestCase):
             'isBase64Encoded': False,
         }
 
-    @responses.activate
     def test_signature(self):
         url = 'https://bucket.s3.amazonaws.com/object.csv'
 
-        responses.add(
+        self.requests_mock.add(
             responses.HEAD,
             url,
             status=200)
@@ -46,7 +57,7 @@ class TestS3Select(TestCase):
             assert 'referer' not in request.headers
             return 200, {}, b'results'
 
-        responses.add_callback(
+        self.requests_mock.add_callback(
             responses.POST,
             url,
             _callback)
@@ -71,11 +82,10 @@ class TestS3Select(TestCase):
         assert resp['isBase64Encoded']
         assert b64decode(resp['body']) == b'results'
 
-    @responses.activate
     def test_not_public(self):
         url = 'https://bucket.s3.amazonaws.com/object.csv'
 
-        responses.add(
+        self.requests_mock.add(
             responses.HEAD,
             url,
             status=403)
@@ -84,7 +94,6 @@ class TestS3Select(TestCase):
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 403
 
-    @responses.activate
     def test_bad_request(self):
         event = self._make_event('bucket/object.csv', {}, {}, b'test')
         resp = lambda_handler(event, None)
