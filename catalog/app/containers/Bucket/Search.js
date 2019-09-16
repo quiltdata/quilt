@@ -118,7 +118,12 @@ function Results({ bucket, query, page, makePageUrl }) {
   })
 }
 
-export default function Search({ params: { bucket }, location: l }) {
+export default function Search({
+  match: {
+    params: { bucket },
+  },
+  location: l,
+}) {
   const cfg = BucketConfig.useCurrentBucketConfig()
   const { urls } = NamedRoutes.use()
   const { q: query = '', p } = parseSearch(l.search)
