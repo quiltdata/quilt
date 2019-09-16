@@ -24,7 +24,7 @@ CONTENT_INDEX_EXTS = [
 ]
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
-CHUNK_LIMIT_BYTES = 9_500_000
+CHUNK_LIMIT_BYTES = 99_000_000# 99MB to stay under 100MiB limit
 ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360 #seconds
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
