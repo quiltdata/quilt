@@ -44,7 +44,7 @@ export const useRequest = (extra) => {
     ...extra,
   })
   const s3SelectClient = useS3({
-    endpoint: `${cfg.apiGatewayEndpoint}/s3select/`,
+    endpoint: `${cfg.binaryApiGatewayEndpoint}/s3select/`,
     s3ForcePathStyle: true,
     ...extra,
   })
