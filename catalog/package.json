@@ -145,7 +145,7 @@
     "copy-webpack-plugin": "^5.0.4",
     "coveralls": "^3.0.6",
     "css-loader": "^3.2.0",
-    "eslint": "^6.1.0",
+    "eslint": "^6.4.0",
     "eslint-config-airbnb": "^17.1.1",
     "eslint-config-airbnb-base": "^13.2.0",
     "eslint-config-prettier": "^6.3.0",
