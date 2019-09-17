@@ -4,8 +4,7 @@ import * as Cache from 'utils/ResourceCache'
 import { useRoute } from 'utils/router'
 
 const fetchBuckets = async ({ registryUrl }) => {
-  // TODO: use api/buckets endpoint once it's working
-  const res = await fetch(`${registryUrl}/api/federation.json`)
+  const res = await fetch(`${registryUrl}/api/buckets`)
   const text = await res.text()
   if (!res.ok) {
     throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
