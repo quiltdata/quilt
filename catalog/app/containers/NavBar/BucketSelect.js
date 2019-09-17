@@ -237,7 +237,7 @@ export default withForwardedRef()(
                           onClick={() => handleSuggestion(b.name)}
                           selected={b.name === value}
                         >
-                          <img src={b.icon} alt={b.title} className={classes.icon} />
+                          <img src={b.icon_url} alt={b.title} className={classes.icon} />
                           <M.Box pr={2} />
                           <M.ListItemText
                             primary={b.title}
