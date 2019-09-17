@@ -20,7 +20,7 @@ import { useRoute } from 'utils/router'
 
 import bg from './bg.png'
 
-import BucketControls from './BucketControls'
+import Controls from './Controls'
 
 const LogoLink = (props) => {
   const { urls } = NamedRoutes.use()
@@ -273,7 +273,7 @@ export const NavBar = () => {
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <Container>
-      <BucketControls bucket={bucket} />
+      <Controls bucket={bucket} />
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
           <Links>

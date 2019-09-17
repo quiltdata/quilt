@@ -29,7 +29,6 @@ import * as AWSConfig from 'utils/AWS/Config'
 import * as AWSSigner from 'utils/AWS/Signer'
 import * as APIConnector from 'utils/APIConnector'
 import * as Config from 'utils/Config'
-import * as Data from 'utils/Data'
 import { createBoundary } from 'utils/ErrorBoundary'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import FormProvider from 'utils/ReduxFormProvider'
@@ -108,7 +107,6 @@ const render = (messages) => {
       [LanguageProvider, { messages }],
       [NamedRoutes.Provider, { routes }],
       [RouterProvider, { history }],
-      Data.Provider,
       Cache.Provider,
       [Config.Provider, { path: '/config.json' }],
       [React.Suspense, { fallback: <Placeholder /> }],

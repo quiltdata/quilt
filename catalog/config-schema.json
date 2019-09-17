@@ -25,10 +25,9 @@
       "type": "boolean",
       "description": "Enable marketing pages."
     },
-    "federations": {
-      "type": "array",
-      "description": "List of links to federations you want your catalog to be aware of.",
-      "items": { "$ref": "#/definitions/Url" }
+    "globalSearch": {
+      "type": "boolean",
+      "description": "Enable global (aka universal) search."
     },
     "googleClientId": {
       "type": "string",

@@ -1,16 +1,38 @@
-import * as React from 'react'
-
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Cache from 'utils/ResourceCache'
 import { useRoute } from 'utils/router'
 
-export const useBucketConfigs = () => {
-  const { federations } = Config.use()
-  return React.useMemo(
-    () => federations.reduce((acc, f) => ({ ...acc, [f.name]: f }), {}),
-    [federations],
-  )
+const fetchBuckets = async ({ registryUrl }) => {
+  const res = await fetch(`${registryUrl}/api/buckets`)
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
+  }
+  const json = JSON.parse(text)
+  // console.log('json', json)
+  /*
+  TODO: new shape:
+  {
+    name
+    icon
+    title
+    description
+    overviewUrl *new
+    tags *new
+    relevance *new
+  }
+  */
+  return json.buckets
 }
+
+const BucketsResource = Cache.createResource({
+  name: 'BucketConfig.buckets',
+  fetch: fetchBuckets,
+})
+
+export const useBucketConfigs = ({ suspend = true } = {}) =>
+  Cache.useData(BucketsResource, { registryUrl: Config.use().registryUrl }, { suspend })
 
 export const useCurrentBucket = () => {
   const { paths } = NamedRoutes.use()
@@ -20,6 +42,6 @@ export const useCurrentBucket = () => {
 
 export const useCurrentBucketConfig = () => {
   const bucket = useCurrentBucket()
-  const buckets = useBucketConfigs()
-  return bucket && (buckets[bucket] || { name: bucket })
+  const bucketConfigs = useBucketConfigs()
+  return bucket && bucketConfigs.find((i) => i.name === bucket)
 }

@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -24,7 +25,6 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 import useMemoEq from 'utils/useMemoEq'
 
-import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
@@ -577,11 +577,12 @@ const useHeadStyles = M.makeStyles((t) => ({
 }))
 
 function Head({ bucket, description }) {
-  const es = AWS.ES.use({ bucket })
+  const cfg = Config.useConfig()
+  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
-    <Data fetch={requests.bucketStats} params={{ es, maxExts: MAX_EXTS }}>
+    <Data fetch={requests.bucketStats} params={{ es, bucket, maxExts: MAX_EXTS }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -765,7 +766,7 @@ function ContentSkel({ lines = 15, ...props }) {
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-function FilePreview({ handle, bucket, headingOverride, fallback }) {
+function FilePreview({ handle, headingOverride, fallback }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -779,7 +780,7 @@ function FilePreview({ handle, bucket, headingOverride, fallback }) {
       children: R.last(all).label,
     }
     return { dirs, file }
-  }, [handle, bucket, urls])
+  }, [handle, urls])
 
   const handleCopy = React.useCallback((e) => {
     if (typeof document === 'undefined') return
@@ -985,7 +986,8 @@ function Summarize({ summarize, other, children }) {
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
 function Files({ bucket }) {
-  const es = AWS.ES.use({ bucket })
+  const cfg = Config.useConfig()
+  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
   return (
     <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
       {(res) => (
@@ -994,7 +996,6 @@ function Files({ bucket }) {
             key="readme:configured"
             headingOverride={false}
             handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
-            bucket={bucket}
             fallback={() =>
               AsyncResult.case(
                 {
@@ -1023,11 +1024,7 @@ function Files({ bucket }) {
                 AsyncResult.case({
                   Ok: ({ readmes }) =>
                     readmes.map((h) => (
-                      <FilePreview
-                        key={`readme:${h.bucket}/${h.key}`}
-                        handle={h}
-                        bucket={bucket}
-                      />
+                      <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
                     )),
                   _: () => <FilePreviewSkel key="readme:skeleton" />,
                 }),
@@ -1057,11 +1054,7 @@ function Files({ bucket }) {
                   >
                     {AsyncResult.case({
                       Ok: R.map((h) => (
-                        <FilePreview
-                          key={`${h.bucket}/${h.key}`}
-                          handle={h}
-                          bucket={bucket}
-                        />
+                        <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
                       )),
                       _: () => <FilePreviewSkel />,
                     })}
@@ -1083,21 +1076,19 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { searchEndpoint, description } = BucketConfig.useCurrentBucketConfig()
+  const cfg = BucketConfig.useCurrentBucketConfig()
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
       {AsyncResult.case({
         Ok: () =>
-          searchEndpoint ? (
+          cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description }} />
+              <Head {...{ bucket, description: cfg.description }} />
               <Files {...{ bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
-            <Message headline="Error">
-              ElasticSearch is not configured for this bucket
-            </Message>
+            <Message headline="Error">Overview unavailable for this bucket</Message>
           ),
         Err: displayError(),
         _: () => <Placeholder />,
