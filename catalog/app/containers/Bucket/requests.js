@@ -140,8 +140,9 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-export const bucketStats = async ({ es, maxExts }) => {
+export const bucketStats = async ({ es, bucket, maxExts }) => {
   const r = await es({
+    index: bucket,
     query: { match_all: {} },
     size: 0,
     aggs: {
@@ -210,6 +211,7 @@ const SUMMARIZE_KEY = 'quilt_summarize.json'
 
 export const bucketSummary = ({ es, bucket }) =>
   es({
+    index: bucket,
     query: { match_all: {} },
     aggs: {
       readmes: {
@@ -356,14 +358,16 @@ export const objectVersions = ({ s3req, bucket, path }) =>
     params: { Bucket: bucket, Prefix: path },
   }).then(
     R.pipe(
-      R.prop('Versions'),
+      ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
       R.filter((v) => v.Key === path),
       R.map((v) => ({
         isLatest: v.IsLatest || false,
         lastModified: v.LastModified,
         size: v.Size,
         id: v.VersionId,
+        deleteMarker: v.Size == null,
       })),
+      R.sort(R.descend(R.prop('lastModified'))),
     ),
   )
 
@@ -737,66 +741,6 @@ export const fetchPackageTree = withErrorHandling(
     return { id: revision, hash, keys, truncated }
   },
 )
-
-const takeR = (l, r) => r
-
-const mkMerger = (cases) => (key, l, r) => (cases[key] || takeR)(l, r)
-
-const merger = mkMerger({
-  score: R.max,
-  versions: R.pipe(
-    R.concat,
-    R.sortBy((v) => -v.score),
-  ),
-})
-
-const mergeHits = R.pipe(
-  R.reduce(
-    (acc, { _score: score, _source: src }) =>
-      R.mergeDeepWithKey(merger, acc, {
-        [src.key]: {
-          path: src.key,
-          score,
-          versions: [
-            {
-              id: src.version_id,
-              score,
-              updated: parseDate(src.updated),
-              lastModified: parseDate(src.last_modified),
-              size: src.size,
-              meta: src.user_meta,
-            },
-          ],
-        },
-      }),
-    {},
-  ),
-  R.values,
-  R.sortBy((h) => -h.score),
-)
-
-export const search = async ({ es, query }) => {
-  try {
-    const result = await es({
-      query: {
-        multi_match: {
-          query,
-          fields: ['content', 'comment', 'key_text', 'meta_text'],
-          type: 'cross_fields',
-        },
-      },
-      _source: ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta'],
-    })
-    const hits = mergeHits(result.hits.hits)
-    const total = Math.min(result.hits.total, result.hits.hits.length)
-    return { total, hits }
-  } catch (e) {
-    // TODO: handle errors
-    // eslint-disable-next-line no-console
-    console.log('search error', e)
-    throw e
-  }
-}
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 

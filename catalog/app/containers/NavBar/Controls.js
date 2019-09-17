@@ -57,7 +57,24 @@ const Container = (props) => (
   <M.Box display="flex" alignItems="center" position="relative" flexGrow={1} {...props} />
 )
 
-const Controls = ({ bucket, iconized }) => {
+function GlobalControls({ iconized }) {
+  const [state, setState] = React.useState(null)
+  const search = React.useCallback(() => {
+    setState('search')
+  }, [setState])
+  const cancel = React.useCallback(() => {
+    setState(null)
+  }, [setState])
+
+  return (
+    <Container pr={{ xs: 6, sm: 0 }}>
+      <BucketSelect display={state === 'search' ? 'none' : undefined} />
+      <Search onFocus={search} onBlur={cancel} iconized={iconized} />
+    </Container>
+  )
+}
+
+function BucketControls({ bucket, iconized }) {
   const [state, setState] = React.useState(null)
   const select = React.useCallback(() => {
     setState('select')
@@ -78,6 +95,7 @@ const Controls = ({ bucket, iconized }) => {
     <Container>
       <BucketDisplay bucket={bucket} select={select} locked={!!state} ml={-1} />
       <Search
+        bucket={bucket}
         onFocus={search}
         onBlur={cancel}
         hidden={state === 'select'}
@@ -90,15 +108,12 @@ const Controls = ({ bucket, iconized }) => {
   )
 }
 
-export default ({ bucket }) => {
+export default function Controls({ bucket }) {
   const t = M.useTheme()
   const iconized = M.useMediaQuery(t.breakpoints.down('xs'))
-
   return bucket ? (
-    <Controls {...{ bucket, iconized }} />
+    <BucketControls {...{ bucket, iconized }} />
   ) : (
-    <Container>
-      <BucketSelect />
-    </Container>
+    <GlobalControls {...{ iconized }} />
   )
 }

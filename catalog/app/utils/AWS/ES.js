@@ -19,20 +19,20 @@ const getRegion = R.pipe(
 
 const noop = () => {}
 
-export const useES = ({ bucket }) => {
-  const { shouldSign, apiGatewayEndpoint: ep } = useConfig()
+export const useES = ({ sign = false }) => {
+  const { apiGatewayEndpoint: ep } = useConfig()
   const requestSigner = Signer.useRequestSigner()
-  const signRequest = shouldSign(bucket) ? requestSigner : noop
+  const signRequest = sign ? requestSigner : noop
 
   const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    ({ _source, size = DEFAULT_SEARCH_SIZE, ...source }) => {
+    ({ _source, index = '_all', size = DEFAULT_SEARCH_SIZE, ...source }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `/search/${bucket}${mkSearch({
+      const path = `/search/${index}${mkSearch({
         size,
         _source: _source && _source.join(','),
         source: JSON.stringify(source),
@@ -80,7 +80,7 @@ export const useES = ({ bucket }) => {
         )
       })
     },
-    [endpoint, region, bucket],
+    [endpoint, region, signRequest],
   )
 
   return search

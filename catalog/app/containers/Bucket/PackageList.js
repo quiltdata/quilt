@@ -5,23 +5,22 @@ import * as React from 'react'
 import { FormattedRelative, FormattedPlural } from 'react-intl'
 import * as redux from 'react-redux'
 import { Link } from 'react-router-dom'
-import { useDebounce } from 'use-debounce'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
+import Message from 'components/Message'
 import Sparkline from 'components/Sparkline'
-import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
-import Data from 'utils/Data'
+import * as Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import * as SVG from 'utils/SVG'
 import parseSearch from 'utils/parseSearch'
 import { readableQuantity } from 'utils/string'
+import useDebouncedInput from 'utils/useDebouncedInput'
 import usePrevious from 'utils/usePrevious'
 
-import Message from './Message'
 import Pagination from './Pagination'
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -232,28 +231,6 @@ const SortDropdown = ({ value, options, makeSortUrl }) => {
   )
 }
 
-const useDebouncedInput = (init, timeout = 500) => {
-  const [value, setValue] = React.useState(init)
-  const [debouncedValue] = useDebounce(value, timeout)
-
-  usePrevious(init, (prevInit) => {
-    if (init !== prevInit) setValue(init)
-  })
-
-  const onChange = React.useCallback(
-    (e) => {
-      setValue(e.target.value)
-    },
-    [setValue],
-  )
-
-  return {
-    input: { value, onChange },
-    value: debouncedValue,
-    set: setValue,
-  }
-}
-
 const usePackagesStyles = M.makeStyles((t) => ({
   paper: {
     [t.breakpoints.down('xs')]: {
@@ -425,20 +402,14 @@ export default ({
   const s3req = AWS.S3.useRequest()
   const { analyticsBucket } = Config.useConfig()
   const today = React.useMemo(() => new Date(), [])
-  return (
-    <Data
-      fetch={requests.listPackages}
-      params={{ s3req, analyticsBucket, bucket, today }}
-    >
-      {AsyncResult.case({
-        _: () => (
-          <M.Box display="flex" pt={5} justifyContent="center">
-            <M.CircularProgress />
-          </M.Box>
-        ),
-        Err: displayError(),
-        Ok: (packages) => <Packages {...{ packages, bucket, filter, sort, page }} />,
-      })}
-    </Data>
-  )
+  const data = Data.use(requests.listPackages, { s3req, analyticsBucket, bucket, today })
+  return data.case({
+    _: () => (
+      <M.Box display="flex" pt={5} justifyContent="center">
+        <M.CircularProgress />
+      </M.Box>
+    ),
+    Err: displayError(),
+    Ok: (packages) => <Packages {...{ packages, bucket, filter, sort, page }} />,
+  })
 }
