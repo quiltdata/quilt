@@ -20,7 +20,7 @@ CONTENT_INDEX_EXTS = [
     ".parquet",
     ".rmd",
     ".tsv",
-    ".txt
+    ".txt"
 ]
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
