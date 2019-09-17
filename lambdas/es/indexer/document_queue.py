@@ -20,11 +20,11 @@ CONTENT_INDEX_EXTS = [
     ".parquet",
     ".rmd",
     ".tsv",
-    ".txt"
+    ".txt
 ]
 
 # See https://amzn.to/2xJpngN for chunk size as a function of container size
-CHUNK_LIMIT_BYTES = 99_000_000# 99MB to stay under 100MiB limit
+CHUNK_LIMIT_BYTES = int(os.getenv('CHUNK_LIMIT_BYTES') or 9_500_000)
 ELASTIC_TIMEOUT = 30
 MAX_BACKOFF = 360 #seconds
 MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
