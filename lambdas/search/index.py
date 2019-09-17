@@ -20,6 +20,40 @@ def lambda_handler(request):
     """
     Proxy the request to the elastic search.
     """
+    action = request.args.get('action')
+    index = request.args.get('index')
+
+    if action == 'search':
+        query = request.args.get('query', '')
+        body = {
+            "query": {
+                "simple_query_string" : {
+                    "query": query,
+                    "fields": ['content', 'comment', 'key_text', 'meta_text'],
+                    "default_operator": "or"
+                }
+            }
+        }
+        # TODO: should be user settable; we should proably forbid `content` (can be huge)
+        _source = ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']
+        size = 1000
+    elif action == 'stats':
+        body = {
+            "query": { "match_all": {} },
+            "aggs": {
+                "totalBytes": { "sum": { "field": 'size' } },
+                "exts": {
+                    "terms": { "field": 'ext' },
+                    "aggs": { "size": { "sum": { "field": 'size' } } },
+                },
+                "updated": { "max": { "field": 'updated' } },
+            }
+        }
+        size = 0
+        _source = []
+    else:
+        return make_json_response(400, {"title": "Invalid action"})
+
     es_host = os.environ['ES_HOST']
     region = os.environ['AWS_REGION']
 
@@ -36,11 +70,6 @@ def lambda_handler(request):
         verify_certs=True,
         connection_class=RequestsHttpConnection
     )
-
-    index = request.pathParameters['proxy']
-    body = request.args.get('source')
-    _source = request.args.get('_source')
-    size = request.args.get('size', '1000')
 
     result = es_client.search(index, body, _source=_source, size=size, timeout=MAX_QUERY_DURATION)
 
