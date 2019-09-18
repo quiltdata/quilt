@@ -1,5 +1,6 @@
 import datetime
 import pathlib
+import re
 from urllib.parse import urlparse, unquote
 
 import pytz
@@ -516,9 +517,10 @@ def search(query, limit=10):
     if not config_request.ok:
         raise QuiltException(f"Failed to load config from: {navigator_url}")
     default_config = config_request.json()
-    region = 'us-east-1'
     api_gateway = default_config['apiGatewayEndpoint']
     api_gateway_host = urlparse(api_gateway).hostname
+    match = re.match("https://(w+=)\.execute-api\.(w+)\.amazonaws.com/prod", api_gateway_host)
+    region = match.groups(1)
     auth = search_credentials(api_gateway_host, region, 'execute-api')
     response = requests.get(
         f"{api_gateway}/search",
