@@ -675,9 +675,7 @@ function Head({ bucket, description }) {
             {AsyncResult.Err.is(res) && (
               <div className={classes.lock}>
                 <M.Typography variant="h5" align="center">
-                  This bucket contains billions of objects.
-                  <br />
-                  Indexing in progress.
+                  Indexing in progress
                   <br />
                   <br />
                   <M.CircularProgress color="inherit" size={64} />
