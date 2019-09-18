@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import Layout from 'website/components/Layout'
 
+import Buckets from './Buckets'
 import Search from './Search'
 import Showcase from './Showcase'
 
@@ -10,10 +11,9 @@ export default function OpenLanding() {
     <Layout>
       <Search />
       <Showcase />
+      <Buckets />
     </Layout>
   )
-
-  // bucket grid w/ filtering and pagination
 
   // quilt is different text block (bullets)
   // picture
