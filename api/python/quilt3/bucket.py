@@ -51,6 +51,8 @@ class Bucket(object):
             navigator_url.rstrip('/') # remove trailing / if present
             config_url = navigator_url + '/config.json'
 
+        # Look for search endpoint in stack config
+        # Only fall back on bucket config for old stacks
         bucket_config = find_bucket_config(self._bucket, config_url)
         if 'searchEndpoint' in bucket_config:
             self._search_endpoint = bucket_config['searchEndpoint']

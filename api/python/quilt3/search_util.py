@@ -13,6 +13,26 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from .session import create_botocore_session
 from .util import QuiltException
 
+
+def search_credentials(host, region, service):
+    credentials = create_botocore_session().get_credentials()
+    if credentials:
+        # use registry-provided credentials
+        creds = credentials.get_frozen_credentials()
+        auth = AWSRequestsAuth(aws_access_key=creds.access_key,
+                               aws_secret_access_key=creds.secret_key,
+                               aws_host=host,
+                               aws_region=region,
+                               aws_service=service,
+                               aws_token=creds.token,
+                               )
+    else:
+        assert False
+        auth = BotoAWSRequestsAuth(aws_host=es_url.hostname,
+                                   aws_region=aws_region,
+                                   aws_service='es')
+    return auth
+
 def _create_es(search_endpoint, aws_region):
     """
     search_endpoint: url for search endpoint
@@ -20,21 +40,7 @@ def _create_es(search_endpoint, aws_region):
     """
     es_url = urlparse(search_endpoint)
 
-    credentials = create_botocore_session().get_credentials()
-    if credentials:
-        # use registry-provided credentials
-        creds = credentials.get_frozen_credentials()
-        auth = AWSRequestsAuth(aws_access_key=creds.access_key,
-                               aws_secret_access_key=creds.secret_key,
-                               aws_host=es_url.hostname,
-                               aws_region=aws_region,
-                               aws_service='es',
-                               aws_token=creds.token,
-                               )
-    else:
-        auth = BotoAWSRequestsAuth(aws_host=es_url.hostname,
-                                   aws_region=aws_region,
-                                   aws_service='es')
+    Auth = search_credentials(es_url.hostname, aws_region, 'es')
 
     port = es_url.port or (443 if es_url.scheme == 'https' else 80)
 

@@ -9,7 +9,7 @@ import humanize
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import Package
-from .search_util import search as util_search
+from .search_util import search as util_search, search_credentials
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
                    get_package_registry, parse_file_url, parse_s3_url, read_yaml,
@@ -510,11 +510,19 @@ def search(query, limit=10):
         }...]
         ```
     """
-    default_bucket = get_from_config('defaultBucket')
     navigator_url = get_from_config('navigator_url')
     config_url = navigator_url + '/config.json'
-    default_config = find_bucket_config(default_bucket, config_url)
-    search_endpoint = default_config['searchEndpoint']
-    region = default_config['region']
+    config_request = requests.get(config_url)
+    if not config_request.ok:
+        raise QuiltException(f"Failed to load config from: {navigator_url}")
+    default_config = config_request.json()
+    region = 'us-east-1'
+    api_gateway = default_config['apiGatewayEndpoint']
+    api_gateway_host = urlparse(api_gateway).hostname
+    auth = search_credentials(api_gateway_host, region, 'execute-api')
+    response = requests.get(
+        f"{api_gateway}/search",
+        params=dict(index='_all', action='search', query=query),
+        auth=auth)
+    return response
 
-    return util_search(query, search_endpoint, limit=limit, aws_region=region)
