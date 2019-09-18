@@ -2,6 +2,7 @@ import json
 import os
 from unittest import TestCase
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 import responses
 
@@ -27,13 +28,11 @@ class TestS3Select(TestCase):
         self.requests_mock.stop()
 
     @classmethod
-    def _make_event(cls, path, query):
+    def _make_event(cls, query):
         return {
             'httpMethod': 'GET',
-            'path': f'/lambda/{path}',
-            'pathParameters': {
-                'proxy': path
-            },
+            'path': '/lambda',
+            'pathParameters': {},
             'queryStringParameters': query or None,
             'headers': None,
             'body': None,
@@ -41,11 +40,27 @@ class TestS3Select(TestCase):
         }
 
     def test_search(self):
-        url = 'https://www.example.com:443/bucket/_search?size=10&timeout=15s'
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
+            timeout='15s',
+            size=1000,
+            _source = ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
+        ))
 
         def _callback(request):
             payload = json.loads(request.body)
-            assert payload == {'q': 123}
+            assert payload == {
+                'query': {
+                    'simple_query_string': {
+                        'fields': [
+                            'content',
+                            'comment',
+                            'key_text',
+                            'meta_text'
+                        ],
+                        'query': '123'
+                    }
+                }
+            }
             return 200, {}, json.dumps({'results': 'blah'})
 
         self.requests_mock.add_callback(
@@ -57,11 +72,52 @@ class TestS3Select(TestCase):
         )
 
         query = {
-            'source': {'q': 123},
-            'size': '10',
+            'action': 'search',
+            'index': 'bucket',
+            'query': '123',
         }
 
-        event = self._make_event('bucket', query)
+        event = self._make_event(query)
+        resp = lambda_handler(event, None)
+        assert resp['statusCode'] == 200
+        assert json.loads(resp['body']) == {'results': 'blah'}
+
+    def test_stats(self):
+        url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
+            timeout='15s',
+            size=0,
+            _source = '',
+        ))
+
+        def _callback(request):
+            payload = json.loads(request.body)
+            assert payload == {
+                "query": { "match_all": {} },
+                "aggs": {
+                    "totalBytes": { "sum": { "field": 'size' } },
+                    "exts": {
+                        "terms": { "field": 'ext' },
+                        "aggs": { "size": { "sum": { "field": 'size' } } },
+                    },
+                    "updated": { "max": { "field": 'updated' } },
+                }
+            }
+            return 200, {}, json.dumps({'results': 'blah'})
+
+        self.requests_mock.add_callback(
+            responses.GET,
+            url,
+            callback=_callback,
+            content_type='application/json',
+            match_querystring=True
+        )
+
+        query = {
+            'action': 'stats',
+            'index': 'bucket',
+        }
+
+        event = self._make_event(query)
         resp = lambda_handler(event, None)
         assert resp['statusCode'] == 200
         assert json.loads(resp['body']) == {'results': 'blah'}

@@ -142,17 +142,8 @@ export const bucketExists = ({ s3req, bucket }) =>
 
 export const bucketStats = async ({ es, bucket, maxExts }) => {
   const r = await es({
+    action: 'stats',
     index: bucket,
-    query: { match_all: {} },
-    size: 0,
-    aggs: {
-      totalBytes: { sum: { field: 'size' } },
-      exts: {
-        terms: { field: 'ext' },
-        aggs: { size: { sum: { field: 'size' } } },
-      },
-      updated: { max: { field: 'updated' } },
-    },
   })
 
   const exts = R.pipe(
