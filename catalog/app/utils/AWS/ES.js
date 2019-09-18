@@ -31,7 +31,7 @@ export const useES = ({ sign = false }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = mkSearch({ index, action, query })
+      const path = `/search${mkSearch({ index, action, query })}`
 
       request.method = 'GET'
       request.path += path
