@@ -3,16 +3,15 @@ import * as React from 'react'
 import Layout from 'website/components/Layout'
 
 import Search from './Search'
+import Showcase from './Showcase'
 
 export default function OpenLanding() {
   return (
     <Layout>
       <Search />
+      <Showcase />
     </Layout>
   )
-
-  // publish and discover text block
-  // carousel (screenshots) with backlight
 
   // bucket grid w/ filtering and pagination
 
