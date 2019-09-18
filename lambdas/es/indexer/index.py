@@ -53,12 +53,36 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
 
     content = ""
     if ext in CONTENT_INDEX_EXTS:
-        if ext == ".ipynb":
-            content = trim_to_bytes(
-                # we have no choice but to fetch the entire notebook, because we
-                # are going to parse it
-                # warning: huge notebooks could spike memory here
-                get_notebook_cells(
+        try:
+            if ext == ".ipynb":
+                content = trim_to_bytes(
+                    # we have no choice but to fetch the entire notebook, because we
+                    # are going to parse it
+                    # warning: huge notebooks could spike memory here
+                    get_notebook_cells(
+                        bucket,
+                        key,
+                        size,
+                        compression,
+                        etag=etag,
+                        s3_client=s3_client,
+                        version_id=version_id
+                    ),
+                    ELASTIC_LIMIT_BYTES
+                )
+            elif ext == ".parquet":
+                obj = retry_s3(
+                    "get",
+                    bucket,
+                    key,
+                    size,
+                    etag=etag,
+                    s3_client=s3_client,
+                    version_id=version_id
+                )
+                content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
+            else:
+                content = get_plain_text(
                     bucket,
                     key,
                     size,
@@ -66,30 +90,10 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     etag=etag,
                     s3_client=s3_client,
                     version_id=version_id
-                ),
-                ELASTIC_LIMIT_BYTES
-            )
-        elif ext == ".parquet":
-            obj = retry_s3(
-                "get",
-                bucket,
-                key,
-                size,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
-            content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
-        else:
-            content = get_plain_text(
-                bucket,
-                key,
-                size,
-                compression,
-                etag=etag,
-                s3_client=s3_client,
-                version_id=version_id
-            )
+                )
+        # It's OK to catch "everything here"
+        except Exception as exc:#pylint: disable=broad-except
+            print("Content extraction failed", exc, bucket, key, etag, version_id)
 
     return content
 
