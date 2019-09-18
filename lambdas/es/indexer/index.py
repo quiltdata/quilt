@@ -91,7 +91,6 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     s3_client=s3_client,
                     version_id=version_id
                 )
-        # It's OK to catch "everything here"
         except Exception as exc:#pylint: disable=broad-except
             print("Content extraction failed", exc, bucket, key, etag, version_id)
 
