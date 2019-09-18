@@ -10,15 +10,25 @@
 
 > Below is the documentation for [Quilt 3](https://quiltdata.com/). See [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master) from Quilt 2.
 
-## Overview
+## Quilt is a versioned data portal for AWS.
 
-* Quilt is a versioned data portal for AWS.
-* Quilt is for data-driven teams of both technical
-and non-technical members (executives, data scientists, data engineers, sales, product, etc.)
-* Quilt adds search, visual content preview, and
-versioning to every file in S3
-* Quilt consists of a Python client, Web catalog, and a suite of backend services
-controlled by CloudFormation.
+### Who is Quilt for?
+Quilt is for data-driven teams of both technical
+and non-technical members (executives, data scientists,
+data engineers, sales, product, etc.).
+
+### What does Quilt do?
+Quilt adds search, visual content preview, and
+versioning to every file in S3.
+
+### How does Quilt work?
+Quilt consists of a Python client, web catalog, lambda
+functions&mdash;all of which are open source&mdash;plus
+a suite of backend services and Docker containers
+orchestrated by CloudFormation.
+The latter are available under a paid license for
+private use on [quiltdata.com](https://quiltdata.com).
+
 
 ## Use cases
 
@@ -36,12 +46,6 @@ versions for objects and data sets (a.k.a. "Quilt Packages")
 and supporting the documentation of decision
 processes through audit-able versioning and inline
 documentation
-
-## Which code is open source?
-The web catalog, Python client, and all lambda functions
-are open source under the Apache v2 license.
-The CloudFormation templates
-and containers that run the services can be licensed for private use on [quiltdata.com](https://quiltdata.com).
 
 ## Roadmap
 
