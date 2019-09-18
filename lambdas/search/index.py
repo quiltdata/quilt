@@ -29,8 +29,7 @@ def lambda_handler(request):
             "query": {
                 "simple_query_string" : {
                     "query": query,
-                    "fields": ['content', 'comment', 'key_text', 'meta_text'],
-                    "default_operator": "or"
+                    "fields": ['content', 'comment', 'key_text', 'meta_text']
                 }
             }
         }
