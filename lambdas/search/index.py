@@ -11,7 +11,7 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-
+INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
 MAX_QUERY_DURATION = '15s'
 
 
@@ -21,7 +21,7 @@ def lambda_handler(request):
     Proxy the request to the elastic search.
     """
     action = request.args.get('action')
-    index = request.args.get('index')
+    indexes = request.args.get('index')
 
     if action == 'search':
         query = request.args.get('query', '')
@@ -70,6 +70,13 @@ def lambda_handler(request):
         connection_class=RequestsHttpConnection
     )
 
-    result = es_client.search(index, body, _source=_source, size=size, timeout=MAX_QUERY_DURATION)
+    to_search = f"{indexes},{INDEX_OVERRIDES}" if INDEX_OVERRIDES else indexes
+    result = es_client.search(
+        to_search,
+        body,
+        _source=_source,
+        size=size,
+        timeout=MAX_QUERY_DURATION
+    )
 
     return make_json_response(200, result)
