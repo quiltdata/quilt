@@ -6,40 +6,59 @@
 [![docs on_gitbook](https://img.shields.io/badge/docs-on_gitbook-blue.svg?style=flat-square)](https://docs.quiltdata.com/)
 [![chat on_slack](https://img.shields.io/badge/chat-on_slack-blue.svg?style=flat-square)](https://slack.quiltdata.com/)
 [![codecov](https://codecov.io/gh/quiltdata/quilt/branch/master/graph/badge.svg)](https://codecov.io/gh/quiltdata/quilt)
-[![pypi](https://img.shields.io/pypi/v/quilt.svg?style=flat-square)](https://pypi.org/project/quilt3/)
+[![pypi](https://img.shields.io/pypi/v/quilt3.svg?style=flat-square)](https://pypi.org/project/quilt3/)
 
-*Note: this is the documentation for [Quilt 3](https://blog.quiltdata.com/rethinking-s3-announcing-t4-a-team-data-hub-8e63ce7ec988). For Quilt 2 see [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master).*
+> Below is the documentation for [Quilt 3](https://quiltdata.com/). See [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master) from Quilt 2.
 
 ## Overview
 
-Quilt is a collaboration tool for creating, managing, and sharing
-datasets in S3. Quilt users transform raw, messy data in S3 buckets
-into immutable datasets--reusable, trusted building blocks that are
-easy to version, test, share and catalog. Working with datasets in
-Quilt speeds up model creation, accelerates experimentation, reduces
-downtime, and increases the productivity of data science teams.
+* Quilt is a versioned data portal for AWS.
+* Quilt is for data-driven teams of both technical
+and non-technical members (executives, data scientists, data engineers, sales, product, etc.)
+* Quilt adds search, visual content preview, and
+versioning to every file in S3
+* Quilt consists of a Python client, Web catalog, and a suite of backend services
+controlled by CloudFormation.
 
-## Collaborate in S3
+## Use cases
 
-* Quilt adds search, content preview, versioning, and a Python API to any S3 bucket
-* Every file in Quilt is versioned and searchable
-* Quilt is for data scientists, data engineers, and data-driven teams
+Quilt handles five key use cases:
+* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to
+create an IAM role).
+* **Understand** data better through inline documentation
+(Jupyter notebooks, markdown) and visualizations (Vega, 
+Vega Lite)
+* **Discover** related data by indexing objects in 
+ElasticSearch
+* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable
+versions for objects and data sets (a.k.a. "Quilt Packages")
+* **Decide** by broadening data access within the organization
+and supporting the documentation of decision
+processes through audit-able versioning and inline
+documentation
 
-![](https://github.com/quiltdata/quilt/blob/master/docs/imgs/quilt.gif?raw=true)
+## Which code is open source?
+The web catalog, Python client, and all lambda functions
+are open source under the Apache v2 license.
+The CloudFormation templates
+and containers that run the services can be licensed for private use on [quiltdata.com](https://quiltdata.com).
 
-### Use cases
-* Collaborate - get everyone on the same page by pointing them all to the same immutable data version
-* Experiment faster - blob storage is schemaless and scalable, so iterations are quick
-* Recover, rollback, and reproduce with immutable packages
-* Understand what's in S3 - plaintext and faceted search over S3
+## Roadmap
 
-### Key features
-* Browse, search any S3 bucket
-* Preview images, Jupyter notebooks, [Vega visualizations](https://vega.github.io/) - without downloading
-* Read/write Python objects to and from S3
-* Immutable versions for objects, immutable packages for collections of objects
+### I - Performance and core services
+* [ ] Address performance issues with push (e.g. re-hash)
+* [ ] Refactor `bucket/.quilt` for improved listing
+and delete performance
 
-## Components
+### II - CI/CD for data
+* [ ] Ability to fork/merge packages (via manifests in git)
+* [ ] Automated data quality monitoring
 
-* `/catalog` (JavaScript) - Search, browse, and preview your data in S3
-* `/api/python` - Read, write, and annotate Python objects in S3
+### III - Storage agnostic (support Azure, GCP buckets)
+* [ ] evaluate min.io and ceph.io
+* [ ] evaluate feasibility of local storage (e.g. NAS)
+
+### IV - Cloud agnostic
+* [ ] K8s deployment for Azure, GCP
+* [ ] Shim lambdas via serverless.com?
+* [ ] Shim ElasticSearch via SOLR?
