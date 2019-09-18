@@ -10,18 +10,18 @@
 
 > Below is the documentation for [Quilt 3](https://quiltdata.com/). See [here](https://docs.quiltdata.com/v/quilt-2-master/) and [here](https://github.com/quiltdata/quilt/tree/quilt-2-master) from Quilt 2.
 
-## Quilt is a versioned data portal for AWS.
+# Quilt is a versioned data portal for AWS
 
-### Who is Quilt for?
+## Who is Quilt for?
 Quilt is for data-driven teams of both technical
 and non-technical members (executives, data scientists,
 data engineers, sales, product, etc.).
 
-### What does Quilt do?
+## What does Quilt do?
 Quilt adds search, visual content preview, and
 versioning to every file in S3.
 
-### How does Quilt work?
+## How does Quilt work?
 Quilt consists of a Python client, web catalog, lambda
 functions&mdash;all of which are open source&mdash;plus
 a suite of backend services and Docker containers
@@ -32,7 +32,7 @@ private use on [quiltdata.com](https://quiltdata.com).
 
 ## Use cases
 
-Quilt handles five key use cases:
+Quilt addresses five key use cases:
 * **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to
 create an IAM role).
 * **Understand** data better through inline documentation
