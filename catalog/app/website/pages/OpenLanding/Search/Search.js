@@ -6,11 +6,16 @@ import * as M from '@material-ui/core'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
+import Dots from 'website/components/Backgrounds/Dots'
+
 import bg from './search-bg.png'
 import bg2x from './search-bg@2x.png'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    position: 'relative',
+  },
+  container: {
     position: 'relative',
     '&::before': {
       background: `center -260px / 1120px no-repeat url(${img2x(bg, bg2x)})`,
@@ -79,7 +84,7 @@ const useStyles = M.makeStyles((t) => ({
     fontSize: t.typography.pxToRem(48),
     fontWeight: t.typography.fontWeightBold,
     lineHeight: 1,
-    [t.breakpoints.down('xs')]: {
+    [t.breakpoints.down('sm')]: {
       fontSize: t.typography.pxToRem(36),
     },
   },
@@ -88,7 +93,7 @@ const useStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightRegular,
     lineHeight: 1.5,
     opacity: 0.8,
-    [t.breakpoints.down('xs')]: {
+    [t.breakpoints.down('sm')]: {
       fontSize: t.typography.pxToRem(16),
     },
   },
@@ -121,34 +126,37 @@ export default function Search() {
   )
 
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
-      <div className={classes.inner}>
-        <M.InputBase
-          {...{ value, onChange, onKeyDown }}
-          startAdornment={
-            <M.InputAdornment className={classes.adornment}>
-              <M.Icon fontSize="large">search</M.Icon>
-            </M.InputAdornment>
-          }
-          classes={{ root: classes.inputRoot, input: classes.inputInput }}
-          placeholder="Search"
-          // TODO: bucket select dropdown
-        />
-        <div className={classes.stats}>
-          <div className={classes.stat}>
-            <div className={classes.statValue}>10 Billion</div>
-            <div className={classes.statDesc}>Objects</div>
-          </div>
-          <div className={classes.stat}>
-            <div className={classes.statValue}>1.4 Petabytes</div>
-            <div className={classes.statDesc}>Of Data</div>
-          </div>
-          <div className={classes.stat}>
-            <div className={classes.statValue}>100</div>
-            <div className={classes.statDesc}>S3 Buckets</div>
+    <div className={classes.root}>
+      <Dots />
+      <M.Container maxWidth="lg" className={classes.container}>
+        <div className={classes.inner}>
+          <M.InputBase
+            {...{ value, onChange, onKeyDown }}
+            startAdornment={
+              <M.InputAdornment className={classes.adornment}>
+                <M.Icon fontSize="large">search</M.Icon>
+              </M.InputAdornment>
+            }
+            classes={{ root: classes.inputRoot, input: classes.inputInput }}
+            placeholder="Search"
+            // TODO: bucket select dropdown
+          />
+          <div className={classes.stats}>
+            <div className={classes.stat}>
+              <div className={classes.statValue}>10 Billion</div>
+              <div className={classes.statDesc}>Objects</div>
+            </div>
+            <div className={classes.stat}>
+              <div className={classes.statValue}>1.4 Petabytes</div>
+              <div className={classes.statDesc}>Of Data</div>
+            </div>
+            <div className={classes.stat}>
+              <div className={classes.statValue}>100</div>
+              <div className={classes.statDesc}>S3 Buckets</div>
+            </div>
           </div>
         </div>
-      </div>
-    </M.Container>
+      </M.Container>
+    </div>
   )
 }
