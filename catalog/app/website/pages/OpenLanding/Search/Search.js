@@ -3,6 +3,7 @@ import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
 
+import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 
@@ -104,6 +105,9 @@ export default function Search() {
 
   const dispatch = redux.useDispatch()
   const { urls } = NamedRoutes.use()
+
+  const bucketCount = BucketConfig.useRelevantBucketConfigs().length
+
   const [value, change] = React.useState('')
 
   const onChange = React.useCallback((evt) => {
@@ -143,15 +147,15 @@ export default function Search() {
           />
           <div className={classes.stats}>
             <div className={classes.stat}>
-              <div className={classes.statValue}>10 Billion</div>
+              <div className={classes.statValue}>10.2 Billion</div>
               <div className={classes.statDesc}>Objects</div>
             </div>
             <div className={classes.stat}>
-              <div className={classes.statValue}>1.4 Petabytes</div>
+              <div className={classes.statValue}>3.7 Petabytes</div>
               <div className={classes.statDesc}>Of Data</div>
             </div>
             <div className={classes.stat}>
-              <div className={classes.statValue}>100</div>
+              <div className={classes.statValue}>{bucketCount}</div>
               <div className={classes.statDesc}>S3 Buckets</div>
             </div>
           </div>
