@@ -2,6 +2,7 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
+import scrollIntoView from 'utils/scrollIntoView'
 
 import Bullet from 'website/components/Bullet'
 
@@ -65,7 +66,7 @@ export default function QuiltIsDifferent() {
   const classes = useStyles()
 
   return (
-    <div className={classes.root} id="quilt-is-different">
+    <div className={classes.root} id="quilt-is-different" ref={scrollIntoView()}>
       <div className={classes.bg}>
         <M.Container maxWidth="lg" className={classes.container}>
           <div className={classes.inner}>

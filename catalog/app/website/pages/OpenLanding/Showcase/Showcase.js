@@ -84,15 +84,14 @@ export default function Showcase() {
           </M.Box>
           <M.Box mt={4}>
             <M.Typography variant="body1" color="textSecondary">
-              {/* TODO: copy */}
-              Quilt is a web catalog and Python client powered by AWS services in your
-              private cloud. Quilt is a web catalog and Python client powered by AWS
-              services in your private cloud. Quilt is a web catalog and Python client
-              powered by AWS services in your private cloud.
+              Quilt is a versioned data portal for blob storage. Quilt is a web catalog, a
+              Python client, and backend services that run in a private cloud. You can
+              search, visualize, version, and share data of any size in any format with
+              Quilt.
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <M.Link color="textPrimary" underline="none" href="TODO">
+            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
               Learn more
               <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
                 chevron_right
