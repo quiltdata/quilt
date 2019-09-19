@@ -251,6 +251,7 @@ const Links = ({ children }) => {
     [
       { href: URLS.docs, label: 'Docs' },
       !!cfg.enableMarketingPages && { to: `${urls.home()}#pricing`, label: 'Pricing' },
+      !!cfg.openLanding && { href: "URL HERE", label: 'Pricing' },
       { href: URLS.jobs, label: 'Jobs' },
       { href: URLS.blog, label: 'Blog' },
       !!cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
