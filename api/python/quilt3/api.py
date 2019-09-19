@@ -519,12 +519,15 @@ def search(query, limit=10):
     default_config = config_request.json()
     api_gateway = default_config['apiGatewayEndpoint']
     api_gateway_host = urlparse(api_gateway).hostname
-    match = re.match("https://(w+=)\.execute-api\.(w+)\.amazonaws.com/prod", api_gateway_host)
-    region = match.groups(1)
+    match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
+    region = match.groups()[0]
     auth = search_credentials(api_gateway_host, region, 'execute-api')
     response = requests.get(
         f"{api_gateway}/search",
-        params=dict(index='_all', action='search', query=query),
+        params=dict(index='*', action='search', source=query, size=limit),
         auth=auth)
-    return response
+    if not response.ok:
+        raise QuiltException(response.text)
+
+    return response.json()
 
