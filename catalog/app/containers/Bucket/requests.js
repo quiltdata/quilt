@@ -139,11 +139,15 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-export const bucketStats = async ({ es, bucket, maxExts }) => {
-  const r = await es({
-    action: 'stats',
-    index: bucket,
+export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
+  const { bucket: statsBucket, path: statsPath } = overviewUrl.match(S3_REGEXP).groups
+  const statsKey = `${unescape(statsPath)}/stats.json`
+  const r = await s3req({
+    statsBucket,
+    operation: 'getObject',
+    params: { Bucket: statsBucket, Key: statsKey },
   })
+  const stats = JSON.parse(r.Body.toString('utf-8'))
 
   const exts = R.pipe(
     R.map((i) => ({
@@ -153,13 +157,13 @@ export const bucketStats = async ({ es, bucket, maxExts }) => {
     })),
     R.sort(R.descend(R.prop('bytes'))),
     R.slice(0, maxExts),
-  )(r.aggregations.exts.buckets)
+  )(stats.aggregations.exts.buckets)
 
   return {
-    totalObjects: r.hits.total,
-    totalVersions: r.hits.total,
-    totalBytes: r.aggregations.totalBytes.value,
-    updated: parseDate(r.aggregations.updated.value_as_string),
+    totalObjects: stats.hits.total,
+    totalVersions: stats.hits.total,
+    totalBytes: stats.aggregations.totalBytes.value,
+    updated: parseDate(stats.aggregations.updated.value_as_string),
     exts,
   }
 }
