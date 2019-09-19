@@ -19,10 +19,11 @@ const bulletColors = {
   },
 }
 
-export default styled(({ color, ...props }) => (
+export default styled(({ color, dense, ...props }) => (
   <Typography variant="body1" color="textSecondary" {...props} />
 ))({
-  marginBottom: '2em',
+  lineHeight: styledBy('dense', (d = false) => (d ? 1.5 : 2)),
+  marginBottom: styledBy('dense', (d = false) => (d ? '1em' : '2em')),
   paddingLeft: 32,
   position: 'relative',
 
@@ -37,7 +38,7 @@ export default styled(({ color, ...props }) => (
     display: 'inline-flex',
     height: 8,
     position: 'absolute',
-    top: 12,
+    top: styledBy('dense', (d = false) => (d ? 8 : 12)),
     left: 0,
     width: 8,
   },

@@ -45,6 +45,10 @@
       "type": "string",
       "description": "Token for Mixpanel analytics service"
     },
+    "openLanding": {
+      "type": "boolean",
+      "description": "Whether to display open data landing page."
+    },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
       "description": "Whether Quilt password authentication is enabled for sign in and sign up."

@@ -202,7 +202,7 @@ function BucketSelectDropdown({ buckets, onChange }) {
   const classes = useBucketSelectDropdownStyles()
   const state = useEditableValue(buckets, onChange)
 
-  const options = BucketConfig.useBucketConfigs()
+  const options = BucketConfig.useRelevantBucketConfigs()
 
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))
