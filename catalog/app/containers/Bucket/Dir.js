@@ -81,8 +81,8 @@ export default ({
   `
 
   return (
-    <React.Fragment>
-      <Box display="flex" alignItems="flex-start" mb={2} mt={1}>
+    <Box pt={2} pb={4}>
+      <Box display="flex" alignItems="flex-start" mb={2}>
         <BreadCrumbs items={getCrumbs({ bucket, path, urls })} />
         <Box flexGrow={1} />
       </Box>
@@ -126,6 +126,6 @@ export default ({
           Init: () => null,
         })}
       </Data>
-    </React.Fragment>
+    </Box>
   )
 }
