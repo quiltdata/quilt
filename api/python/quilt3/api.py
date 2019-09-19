@@ -10,7 +10,7 @@ import humanize
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import Package
-from .search_util import search as util_search, search_credentials
+from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
                    get_package_registry, parse_file_url, parse_s3_url, read_yaml,
@@ -496,7 +496,6 @@ def search(query, limit=10):
         The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
     Returns:
-        either the request object (in case of an error) or
         a list of objects with the following structure:
         ```
         [{
@@ -511,23 +510,6 @@ def search(query, limit=10):
         }...]
         ```
     """
-    navigator_url = get_from_config('navigator_url')
-    config_url = navigator_url + '/config.json'
-    config_request = requests.get(config_url)
-    if not config_request.ok:
-        raise QuiltException(f"Failed to load config from: {navigator_url}")
-    default_config = config_request.json()
-    api_gateway = default_config['apiGatewayEndpoint']
-    api_gateway_host = urlparse(api_gateway).hostname
-    match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
-    region = match.groups()[0]
-    auth = search_credentials(api_gateway_host, region, 'execute-api')
-    response = requests.get(
-        f"{api_gateway}/search",
-        params=dict(index='*', action='search', query=query),
-        auth=auth)
-    if not response.ok:
-        raise QuiltException(response.text)
-
-    return response.json()
+    raw_results = search_api(query, '*', limit)
+    return raw_results['hits']['hits']
 

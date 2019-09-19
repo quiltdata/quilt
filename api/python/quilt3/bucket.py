@@ -11,7 +11,7 @@ from .data_transfer import (copy_file, delete_object, get_bytes,
                             get_size_and_meta, list_object_versions,
                             list_objects, put_bytes, select)
 from .formats import FormatRegistry
-from .search_util import get_search_schema, search
+from .search_util import get_search_schema, search_api
 from .util import QuiltException, find_bucket_config, fix_url, get_from_config, parse_s3_url
 
 
@@ -86,7 +86,6 @@ class Bucket(object):
             The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
         Returns:
-            either the request object (in case of an error) or
             a list of objects with the following structure:
             ```
             [{
@@ -101,12 +100,7 @@ class Bucket(object):
             }...]
             ```
         """
-        if not self._search_endpoint:
-            self.config()
-        if self._region:
-            return search(
-                query, self._search_endpoint, limit=limit, aws_region=self._region, bucket=self._bucket)
-        return search(query, self._search_endpoint, limit=limit, bucket=self._bucket)
+        return search_api(query, index=self._bucket, limit=limit)
 
     def deserialize(self, key):
         """

@@ -4,14 +4,16 @@ search_util.py
 Contains search-related glue code
 """
 import json
+import re
 from urllib.parse import urlparse
 
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_requests_auth.aws_auth import AWSRequestsAuth
 from elasticsearch import Elasticsearch, RequestsHttpConnection
+import requests
 
 from .session import create_botocore_session
-from .util import QuiltException
+from .util import QuiltException, get_from_config
 
 
 def search_credentials(host, region, service):
@@ -38,10 +40,8 @@ def _create_es(search_endpoint, aws_region):
     search_endpoint: url for search endpoint
     aws_region: name of aws region endpoint is hosted in
     """
+    auth = search_credentials(es_url.hostname, aws_region, 'es')
     es_url = urlparse(search_endpoint)
-
-    Auth = search_credentials(es_url.hostname, aws_region, 'es')
-
     port = es_url.port or (443 if es_url.scheme == 'https' else 80)
 
     es_client = Elasticsearch(
@@ -61,7 +61,26 @@ def _bucket_index_name(bucket_name):
         es_index = ",".join([bucket_name, 'drive'])
         return es_index
 
-def search(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
+def search_api(query, index, limit=10):
+    """
+    Sends a query to the search API (supports simple search
+    queries only)
+    """
+    api_gateway = get_from_config('apiGatewayEndpoint')
+    api_gateway_host = urlparse(api_gateway).hostname
+    match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
+    region = match.groups()[0]
+    auth = search_credentials(api_gateway_host, region, 'execute-api')
+    response = requests.get(
+        f"{api_gateway}/search",
+        params=dict(index=index, action='search', query=query),
+        auth=auth)
+    if not response.ok:
+        raise QuiltException(response.text)
+
+    return response.json()
+    
+def search_elastic(query, search_endpoint, limit, aws_region='us-east-1', bucket=None):
     """
     Searches your bucket. Query may contain plaintext and clauses of the
         form $key:"$value" that search for exact matches on specific keys.
