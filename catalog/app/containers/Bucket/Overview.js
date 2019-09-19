@@ -576,13 +576,11 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ bucket, description }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
+function Head({ s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
-    <Data fetch={requests.bucketStats} params={{ es, bucket, maxExts: MAX_EXTS }}>
+    <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -1074,7 +1072,14 @@ export default function Overview({
         Ok: () =>
           cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description: cfg.description }} />
+              <Head
+                {...{
+                  s3req,
+                  overviewUrl: cfg.overviewUrl,
+                  bucket,
+                  description: cfg.description,
+                }}
+              />
               <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
             </M.Box>
           ) : (
