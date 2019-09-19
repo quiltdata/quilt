@@ -12,6 +12,12 @@
 
 # Quilt is a versioned data portal for AWS
 
+* [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open
+data portal that runs on Quilt
+* [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos,
+and information on how you can run a private Quilt instance
+
+
 ## Who is Quilt for?
 Quilt is for data-driven teams of both technical
 and non-technical members (executives, data scientists,
