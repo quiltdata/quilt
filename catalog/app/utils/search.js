@@ -44,7 +44,7 @@ export default async function search({ es, query, buckets }) {
   try {
     const result = await es({
       action: 'search',
-      index: (buckets && buckets.join(',')) || '_all',
+      index: (buckets && buckets.join(',')) || '*',
       query,
     })
     const hits = mergeHits(result.hits.hits)

@@ -27,7 +27,7 @@ export const useES = ({ sign = false }) => {
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    ({ index = '_all', action, query }) => {
+    ({ index = '*', action, query }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
