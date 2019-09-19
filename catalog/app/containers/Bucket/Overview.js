@@ -978,11 +978,9 @@ function Summarize({ summarize, other, children }) {
 
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
-function Files({ bucket }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
+function Files({ s3req, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
+    <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
       {(res) => (
         <>
           <FilePreview
@@ -1077,7 +1075,7 @@ export default function Overview({
           cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
               <Head {...{ bucket, description: cfg.description }} />
-              <Files {...{ bucket }} />
+              <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
