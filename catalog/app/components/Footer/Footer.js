@@ -112,6 +112,12 @@ export default () => {
                 <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
               </>
             )}
+            {!!cfg.openLanding && (
+              <>
+                <NavSpacer />
+                <NavLink href="URL HERE">Pricing</NavLink>
+              </>
+            )}
             <NavSpacer />
             <NavLink href={URLS.blog} target="_blank">
               Blog
