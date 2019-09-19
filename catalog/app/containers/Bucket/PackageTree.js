@@ -170,64 +170,69 @@ export default ({
   `
 
   return (
-    <Data
-      fetch={requests.fetchPackageTree}
-      params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
-    >
-      {withComputedTree({ bucket, name, revision, path }, (result) => (
-        <React.Fragment>
-          <div className={classes.topBar}>
-            <Crumbs {...{ bucket, name, revision, path }} />
-            <div className={classes.spacer} />
+    <Box pt={1} pb={4}>
+      <Data
+        fetch={requests.fetchPackageTree}
+        params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
+      >
+        {withComputedTree({ bucket, name, revision, path }, (result) => (
+          <React.Fragment>
+            <div className={classes.topBar}>
+              <Crumbs {...{ bucket, name, revision, path }} />
+              <div className={classes.spacer} />
+              {AsyncResult.case(
+                {
+                  Ok: TreeDisplay.case({
+                    File: ({ key, version }) => (
+                      <Button
+                        variant="outlined"
+                        href={getSignedS3URL({ bucket, key, version })}
+                        className={classes.button}
+                        download
+                      >
+                        Download file
+                      </Button>
+                    ),
+                    _: () => null,
+                  }),
+                  _: () => null,
+                },
+                result,
+              )}
+            </div>
+
+            <Section icon="code" heading="Code">
+              <Code>{code}</Code>
+            </Section>
+
             {AsyncResult.case(
               {
                 Ok: TreeDisplay.case({
-                  File: ({ key, version }) => (
-                    <Button
-                      variant="outlined"
-                      href={getSignedS3URL({ bucket, key, version })}
-                      className={classes.button}
-                      download
-                    >
-                      Download file
-                    </Button>
+                  File: (handle) => (
+                    <Section icon="remove_red_eye" heading="Contents" expandable={false}>
+                      <FilePreview handle={handle} />
+                    </Section>
                   ),
-                  _: () => null,
+                  Dir: ({ truncated, ...dir }) => (
+                    <Box mt={2}>
+                      <Listing
+                        items={formatListing({ urls }, dir)}
+                        truncated={truncated}
+                      />
+                      {/* TODO: use proper versions */}
+                      <Summary files={dir.files} />
+                    </Box>
+                  ),
+                  NotFound: ThrowNotFound,
                 }),
-                _: () => null,
+                Err: displayError(),
+                _: () => <CircularProgress />,
               },
               result,
             )}
-          </div>
-
-          <Section icon="code" heading="Code">
-            <Code>{code}</Code>
-          </Section>
-
-          {AsyncResult.case(
-            {
-              Ok: TreeDisplay.case({
-                File: (handle) => (
-                  <Section icon="remove_red_eye" heading="Contents" expandable={false}>
-                    <FilePreview handle={handle} />
-                  </Section>
-                ),
-                Dir: ({ truncated, ...dir }) => (
-                  <Box mt={2}>
-                    <Listing items={formatListing({ urls }, dir)} truncated={truncated} />
-                    {/* TODO: use proper versions */}
-                    <Summary files={dir.files} />
-                  </Box>
-                ),
-                NotFound: ThrowNotFound,
-              }),
-              Err: displayError(),
-              _: () => <CircularProgress />,
-            },
-            result,
-          )}
-        </React.Fragment>
-      ))}
-    </Data>
+          </React.Fragment>
+        ))}
+      </Data>
+    </Box>
   )
 }
