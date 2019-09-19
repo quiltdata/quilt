@@ -630,11 +630,6 @@ function Head({ bucket, description }) {
                 label="Objects"
               />
               <StatDisplay
-                value={AsyncResult.prop('totalVersions', res)}
-                format={readableQuantity}
-                label="Versions"
-              />
-              <StatDisplay
                 value={AsyncResult.prop('totalBytes', res)}
                 format={readableBytes}
               />
