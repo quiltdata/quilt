@@ -114,7 +114,7 @@ export default withForwardedRef()(
     RT.withSuspense(() => <Placeholder />),
     ({ autoFocus = false, cancel, forwardedRef, ...props }) => {
       const currentBucket = BucketConfig.useCurrentBucket()
-      const bucketConfigs = BucketConfig.useBucketConfigs()
+      const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
       const classes = useStyles()
       const dispatch = reduxHook.useDispatch()
       const { urls } = NamedRoutes.use()
@@ -237,7 +237,8 @@ export default withForwardedRef()(
                           onClick={() => handleSuggestion(b.name)}
                           selected={b.name === value}
                         >
-                          <img src={b.icon} alt={b.title} className={classes.icon} />
+                          {/* TODO: show text avatar or smth when iconUrl is empty */}
+                          <img src={b.iconUrl} alt={b.title} className={classes.icon} />
                           <M.Box pr={2} />
                           <M.ListItemText
                             primary={b.title}

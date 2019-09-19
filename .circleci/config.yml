@@ -8,6 +8,7 @@ workflows:
       - test-lambdas-indexer
       - test-lambdas-preview
       - test-lambdas-s3select
+      - test-lambdas-search
       - test-lambdas-shared
   build_and_deploy:
     jobs:

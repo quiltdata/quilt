@@ -43,15 +43,9 @@ const mergeHits = R.pipe(
 export default async function search({ es, query, buckets }) {
   try {
     const result = await es({
-      index: (buckets && buckets.join(',')) || '_all',
-      query: {
-        multi_match: {
-          query,
-          fields: ['content', 'comment', 'key_text', 'meta_text'],
-          type: 'cross_fields',
-        },
-      },
-      _source: ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta'],
+      action: 'search',
+      index: (buckets && buckets.join(',')) || '*',
+      query,
     })
     const hits = mergeHits(result.hits.hits)
     const total = Math.min(result.hits.total, result.hits.hits.length)

@@ -324,7 +324,7 @@ export default ({
   `
 
   return (
-    <React.Fragment>
+    <Box pt={2} pb={4}>
       <BreadCrumbs variant="subtitle1" items={getCrumbs({ bucket, path, urls })} />
       <div className={classes.topBar}>
         <Typography variant="h6" className={classes.nameAndVersion}>
@@ -349,6 +349,6 @@ export default ({
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>
       <Annotations bucket={bucket} path={path} version={version} />
-    </React.Fragment>
+    </Box>
   )
 }

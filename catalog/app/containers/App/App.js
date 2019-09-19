@@ -54,6 +54,8 @@ const MAbout = mkLazy(() => import('website/pages/About'))
 const MPersonas = mkLazy(() => import('website/pages/Personas'))
 const MProduct = mkLazy(() => import('website/pages/Product'))
 
+const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
+
 export default () => {
   const cfg = Config.useConfig()
   const protect = React.useMemo(
@@ -63,14 +65,19 @@ export default () => {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
 
+  const Landing = React.useMemo(
+    () =>
+      protect(
+        // eslint-disable-next-line no-nested-ternary
+        cfg.openLanding ? OpenLanding : cfg.enableMarketingPages ? MLanding : HomePage,
+      ),
+    [protect, cfg.openLanding, cfg.enableMarketingPages],
+  )
+
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route
-          path={paths.home}
-          component={protect(cfg.enableMarketingPages ? MLanding : HomePage)}
-          exact
-        />
+        <Route path={paths.home} component={Landing} exact />
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />

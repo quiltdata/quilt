@@ -8,7 +8,6 @@ import { mkSearch } from 'utils/NamedRoutes'
 import * as Signer from './Signer'
 
 const REQUEST_TIMEOUT = 120000
-const DEFAULT_SEARCH_SIZE = 1000
 
 const getRegion = R.pipe(
   R.prop('hostname'),
@@ -28,16 +27,11 @@ export const useES = ({ sign = false }) => {
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    ({ _source, index = '_all', size = DEFAULT_SEARCH_SIZE, ...source }) => {
+    ({ index = '*', action, query }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `/search/${index}${mkSearch({
-        size,
-        _source: _source && _source.join(','),
-        source: JSON.stringify(source),
-        source_content_type: 'application/json',
-      })}`
+      const path = `/search${mkSearch({ index, action, query })}`
 
       request.method = 'GET'
       request.path += path
