@@ -524,7 +524,7 @@ def search(query, limit=10):
     auth = search_credentials(api_gateway_host, region, 'execute-api')
     response = requests.get(
         f"{api_gateway}/search",
-        params=dict(index='*', action='search', source=query, size=limit),
+        params=dict(index='*', action='search', query=query),
         auth=auth)
     if not response.ok:
         raise QuiltException(response.text)
