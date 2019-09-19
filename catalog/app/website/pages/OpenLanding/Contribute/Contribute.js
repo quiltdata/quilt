@@ -111,7 +111,7 @@ export default function Contribute() {
         </div>
         <div className={classes.col}>
           <Panel color="secondary">Run your own quilt</Panel>
-          <Link href="TODO">Learn more</Link>
+          <Link href="https://quiltdata.com">Learn more</Link>
         </div>
       </div>
       <M.Box display="flex" pt={10} pb={13} flexDirection={{ xs: 'column', sm: 'row' }}>
@@ -122,7 +122,7 @@ export default function Contribute() {
           </M.Typography>
           <M.Box pt={4} />
           <M.Typography variant="body1" color="textSecondary">
-            Quilt is evolving! Join our{' '}
+            Quilt is evolving Join our{' '}
             <M.Link
               href="https://groups.google.com/forum/#!forum/quilt-data-dev/"
               color="secondary"
@@ -131,7 +131,7 @@ export default function Contribute() {
               <b>developer mailing list</b>
             </M.Link>
             {' or '}
-            <M.Link color="secondary" underline="always" href="TODO">
+            <M.Link color="secondary" underline="always" href="http://eepurl.com/bOyxRz">
               <b>general mailing list</b>
             </M.Link>{' '}
             to discuss new features, ask questions, and stay in the loop.

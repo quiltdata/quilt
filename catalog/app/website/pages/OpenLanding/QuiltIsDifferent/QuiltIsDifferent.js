@@ -77,18 +77,19 @@ export default function QuiltIsDifferent() {
               </M.Typography>
               <M.Box mt={4}>
                 <Bullet color="primary" dense>
-                  Unlimited scale
+                  <strong>Unlimited scale</strong>, backed by AWS S3
                 </Bullet>
                 <Bullet color="primary" dense>
-                  Privacy and control&mdash;Connect Quilt on your S3 buckets, run Quilt on
-                  private data
+                  <strong>Privacy and control</strong>&mdash;data in Quilt can remain in
+                  buckets that you control
                 </Bullet>
                 <Bullet color="primary" dense>
-                  Quilt pledges to never make money from advertising
+                  <strong>Quilt does not advertise</strong> against your data or your
+                  metadata
                 </Bullet>
                 <Bullet color="primary" dense>
-                  Performance&mdash;if you are using AWS, Quilt is the fastest, cheapest
-                  way to run compute services over your data
+                  <strong>Performance</strong>&mdash;if you are computing in AWS, Quilt is
+                  the fastest, cheapest way access data
                 </Bullet>
               </M.Box>
             </div>

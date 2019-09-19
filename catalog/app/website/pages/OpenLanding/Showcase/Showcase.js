@@ -7,27 +7,37 @@ import Overlay2 from 'website/components/Backgrounds/Overlay2'
 
 import Carousel from './Carousel'
 
-import slide1 from './slide1.png'
-import slide2 from './slide2.png'
-import slide3 from './slide3.png'
-import slide4 from './slide4.png'
+import slide1 from './chloropleth.png'
+import slide2 from './overview.png'
+import slide3 from './genomes-images.png'
+import slide4 from './terrain-tiles.png'
+import slide5 from './versions.png'
+import slide6 from './packages.png'
 
 const slides = [
   {
     src: slide1,
-    caption: 'Choose from one of 25 visualizations',
+    caption: 'Choose from more than 25 visualizations',
   },
   {
     src: slide2,
-    caption: 'Lorem ipsum dolor sit amet',
+    caption: 'Summarize massive data collections',
+  },
+  {
+    src: slide5,
+    caption: 'Version every file',
+  },
+  {
+    src: slide6,
+    caption: 'Create versioned data sets from buckets or folders',
   },
   {
     src: slide3,
-    caption: 'Choose from one of 25 visualizations',
+    caption: 'Generate summary images',
   },
   {
     src: slide4,
-    caption: 'Choose from one of 25 visualizations',
+    caption: 'Browse image collections',
   },
 ]
 
@@ -84,10 +94,12 @@ export default function Showcase() {
           </M.Box>
           <M.Box mt={4}>
             <M.Typography variant="body1" color="textSecondary">
-              Quilt is a versioned data portal for blob storage. Quilt is a web catalog, a
-              Python client, and backend services that run in a private cloud. You can
-              search, visualize, version, and share data of any size in any format with
-              Quilt.
+              Quilt is a versioned data portal for AWS. open.quiltdata.com offers access
+              to the world&apos;s public data in S3, including Amazon&apos;s Registry of
+              Open Data.
+            </M.Typography>
+            <M.Typography variant="body1" color="textSecondary">
+              You can contribute code or data to Quilt. Or you can run your own Quilt.
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
