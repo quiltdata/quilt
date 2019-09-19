@@ -5,6 +5,7 @@ import Layout from 'website/components/Layout'
 import Buckets from './Buckets'
 import Search from './Search'
 import Showcase from './Showcase'
+import QuiltIsDifferent from './QuiltIsDifferent'
 
 export default function OpenLanding() {
   return (
@@ -12,12 +13,9 @@ export default function OpenLanding() {
       <Search />
       <Showcase />
       <Buckets />
+      <QuiltIsDifferent />
     </Layout>
   )
-
-  // quilt is different text block (bullets)
-  // picture
-  // gradient background
 
   // contribute heading + subtitle
   // link boxes with fancy gradients
