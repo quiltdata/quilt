@@ -70,5 +70,5 @@ and delete performance
 
 ### IV - Cloud agnostic
 * [ ] K8s deployment for Azure, GCP
-* [ ] Shim lambdas via serverless.com?
-* [ ] Shim ElasticSearch via SOLR?
+* [ ] Shim lambdas (consider serverless.com)
+* [ ] Shim ElasticSearch (consider SOLR)
