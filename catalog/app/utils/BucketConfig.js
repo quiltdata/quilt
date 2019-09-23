@@ -1,4 +1,5 @@
 import * as R from 'ramda'
+import * as React from 'react'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -28,8 +29,17 @@ const BucketsResource = Cache.createResource({
 export const useBucketConfigs = ({ suspend = true } = {}) =>
   Cache.useData(BucketsResource, { registryUrl: Config.use().registryUrl }, { suspend })
 
-export const useRelevantBucketConfigs = () =>
-  useBucketConfigs().filter((b) => b.relevance == null || b.relevance >= 0)
+export const useRelevantBucketConfigs = () => {
+  const bs = useBucketConfigs()
+  return React.useMemo(
+    () =>
+      R.pipe(
+        R.filter((b) => b.relevance == null || b.relevance >= 0),
+        R.sort(R.descend(R.prop('relevance'))),
+      )(bs),
+    [bs],
+  )
+}
 
 export const useCurrentBucket = () => {
   const { paths } = NamedRoutes.use()
