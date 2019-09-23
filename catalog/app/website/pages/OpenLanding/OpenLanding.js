@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
+import Videos from 'website/components/Videos'
 
 import Buckets from './Buckets'
 import Search from './Search'
@@ -12,6 +13,7 @@ export default function OpenLanding() {
   return (
     <Layout>
       <Search />
+      <Videos />
       <Showcase />
       <Buckets />
       <QuiltIsDifferent />

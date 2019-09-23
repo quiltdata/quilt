@@ -11,6 +11,10 @@ import Screenshots from 'website/components/Screenshots'
 const useStyles = M.makeStyles((t) => ({
   root: {
     position: 'relative',
+    marginTop: t.spacing(8),
+    [t.breakpoints.up('md')]: {
+      marginTop: t.spacing(12),
+    },
   },
   container: {
     display: 'grid',

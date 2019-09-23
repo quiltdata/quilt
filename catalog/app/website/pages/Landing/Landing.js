@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import Layout from 'website/components/Layout'
 import Contribute from 'website/components/Contribute'
+import Videos from 'website/components/Videos'
 
 import CaseStudies from './CaseStudies'
 import Highlights from './Highlights'
@@ -10,7 +11,6 @@ import Pricing from './Pricing'
 import Showcase from './Showcase'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
-import Videos from './Videos'
 
 export default () => (
   <Layout>
