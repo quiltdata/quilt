@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import Layout from 'website/components/Layout'
+import Contribute from 'website/components/Contribute'
 
 import CaseStudies from './CaseStudies'
 import Platform from './Platform'
@@ -15,5 +16,6 @@ export default () => (
     <Platform />
     <CaseStudies />
     <Testimonials />
+    <Contribute />
   </Layout>
 )
