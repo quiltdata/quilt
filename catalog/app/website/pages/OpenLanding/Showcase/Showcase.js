@@ -29,7 +29,7 @@ const useStyles = M.makeStyles((t) => ({
       gridTemplateColumns: '1fr 640px',
     },
     [t.breakpoints.down('sm')]: {
-      gridRowGap: t.spacing(4),
+      gridRowGap: t.spacing(8),
       gridTemplateRows: 'auto auto',
       gridTemplateAreas: `
         "text"
@@ -69,12 +69,16 @@ export default function Showcase() {
               to the world&apos;s public data in S3, including Amazon&apos;s Registry of
               Open Data.
             </M.Typography>
-            <M.Typography variant="body1" color="textSecondary">
-              You can contribute code or data to Quilt. Or you can run your own Quilt.
-            </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <ChevronLink href="#quilt-is-different">Learn more</ChevronLink>
+            <ChevronLink href="#quilt-is-different">
+              Learn about Quilt for open data
+            </ChevronLink>
+          </M.Box>
+          <M.Box mt={2}>
+            <ChevronLink href="https://quiltdata.com">
+              Learn about Quilt for private data
+            </ChevronLink>
           </M.Box>
         </div>
         <Screenshots className={classes.carousel} />
