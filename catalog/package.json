@@ -109,7 +109,7 @@
     "redux-form": "^8.2.4",
     "redux-immutable": "^4.0.0",
     "redux-react-hook": "^3.3.2",
-    "redux-saga": "^1.0.5",
+    "redux-saga": "^1.1.1",
     "remarkable": "^1.7.1",
     "reselect": "^4.0.0",
     "resize-observer-polyfill": "^1.5.1",
