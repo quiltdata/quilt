@@ -89,9 +89,8 @@ export default function Videos() {
 
   const slideRenderer = React.useCallback(
     ({ index: i, key }) => (
-      <div className={classes.slide}>
+      <div className={classes.slide} key={key}>
         <iframe
-          key={key}
           frameBorder="0"
           allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
