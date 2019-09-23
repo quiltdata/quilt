@@ -6,7 +6,41 @@ import { mod } from 'react-swipeable-views-core'
 import { autoPlay, virtualize } from 'react-swipeable-views-utils'
 import * as M from '@material-ui/core'
 
+import slide1 from './chloropleth.png'
+import slide2 from './overview.png'
+import slide3 from './genomes-images.png'
+import slide4 from './terrain-tiles.png'
+import slide5 from './versions.png'
+import slide6 from './packages.png'
+
 const Swipeable = autoPlay(virtualize(SwipeableViews))
+
+const slides = [
+  {
+    src: slide1,
+    caption: 'Choose from more than 25 visualizations',
+  },
+  {
+    src: slide2,
+    caption: 'Summarize massive data collections',
+  },
+  {
+    src: slide5,
+    caption: 'Version every file',
+  },
+  {
+    src: slide6,
+    caption: 'Create versioned data sets from buckets or folders',
+  },
+  {
+    src: slide3,
+    caption: 'Generate summary images',
+  },
+  {
+    src: slide4,
+    caption: 'Browse image collections',
+  },
+]
 
 const SLIDE_COUNT_FACTOR = 1000000
 
@@ -69,7 +103,7 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default function Carousel({ className, slides }) {
+export default function Screenshots(props) {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
   const onChangeIndex = React.useCallback(R.unary(setIndex), [])
@@ -91,7 +125,7 @@ export default function Carousel({ className, slides }) {
   )
 
   return (
-    <div className={className}>
+    <div {...props}>
       <div className={classes.overflow}>
         <Swipeable
           disableLazyLoading

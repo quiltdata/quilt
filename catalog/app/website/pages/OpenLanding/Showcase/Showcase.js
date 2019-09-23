@@ -2,44 +2,11 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Bar from 'website/components/Bar'
+import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
 
-import Carousel from './Carousel'
-
-import slide1 from './chloropleth.png'
-import slide2 from './overview.png'
-import slide3 from './genomes-images.png'
-import slide4 from './terrain-tiles.png'
-import slide5 from './versions.png'
-import slide6 from './packages.png'
-
-const slides = [
-  {
-    src: slide1,
-    caption: 'Choose from more than 25 visualizations',
-  },
-  {
-    src: slide2,
-    caption: 'Summarize massive data collections',
-  },
-  {
-    src: slide5,
-    caption: 'Version every file',
-  },
-  {
-    src: slide6,
-    caption: 'Create versioned data sets from buckets or folders',
-  },
-  {
-    src: slide3,
-    caption: 'Generate summary images',
-  },
-  {
-    src: slide4,
-    caption: 'Browse image collections',
-  },
-]
+import Screenshots from 'website/components/Screenshots'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -103,15 +70,10 @@ export default function Showcase() {
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
-              Learn more
-              <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
-                chevron_right
-              </M.Icon>
-            </M.Link>
+            <ChevronLink href="#quilt-is-different">Learn more</ChevronLink>
           </M.Box>
         </div>
-        <Carousel className={classes.carousel} slides={slides} />
+        <Screenshots className={classes.carousel} />
       </M.Container>
     </div>
   )
