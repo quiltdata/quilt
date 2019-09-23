@@ -137,11 +137,10 @@ const AuthHamburger = ({ authenticated, waiting, error }) => {
   const { urls } = NamedRoutes.use()
   const ham = useHam()
 
-  return ham.render(
-    <>
-      {/* eslint-disable-next-line no-nested-ternary */}
-      {authenticated ? (
-        [
+  return ham.render([
+    ...// eslint-disable-next-line no-nested-ternary
+    (authenticated
+      ? [
           <M.MenuItem key="user" component="div">
             {userDisplay(user)}
           </M.MenuItem>,
@@ -157,30 +156,31 @@ const AuthHamburger = ({ authenticated, waiting, error }) => {
             Sign Out
           </Item>,
         ]
-      ) : waiting ? (
-        <Item onClick={ham.close}>
-          <M.CircularProgress />
+      : waiting
+      ? [
+          <Item onClick={ham.close} key="progress">
+            <M.CircularProgress />
+          </Item>,
+        ]
+      : [
+          <Item to={urls.signIn()} onClick={ham.close} key="sign-in">
+            {error && (
+              <>
+                <M.Icon>error_outline</M.Icon>{' '}
+              </>
+            )}
+            Sign In
+          </Item>,
+        ]),
+    <M.Divider key="divider" />,
+    <Links key="links">
+      {R.map(({ label, ...rest }) => (
+        <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
+          {label}
         </Item>
-      ) : (
-        <Item to={urls.signIn()} onClick={ham.close}>
-          {error && (
-            <>
-              <M.Icon>error_outline</M.Icon>{' '}
-            </>
-          )}
-          Sign In
-        </Item>
-      )}
-      <M.Divider />
-      <Links>
-        {R.map(({ label, ...rest }) => (
-          <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
-            {label}
-          </Item>
-        ))}
-      </Links>
-    </>,
-  )
+      ))}
+    </Links>,
+  ])
 }
 
 const LinksHamburger = () =>
