@@ -132,8 +132,8 @@ export default function Contribute() {
               color="secondary"
               underline="always"
             >
-              <b>and developer forums</b>
-            </M.Link>
+              <b>developer forums</b>
+            </M.Link>{' '}
             to discuss new features, ask questions, and stay in the loop.
           </M.Typography>
         </M.Box>

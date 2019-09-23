@@ -108,7 +108,7 @@ export default function Showcase() {
             </M.Link>
           </M.Box>
           <M.Box mt={2}>
-            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
+            <M.Link color="textPrimary" underline="none" href="https://quiltdata.com">
               Explore Quilt for private data
               <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
                 chevron_right
