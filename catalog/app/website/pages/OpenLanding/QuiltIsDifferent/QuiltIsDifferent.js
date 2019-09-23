@@ -66,13 +66,18 @@ export default function QuiltIsDifferent() {
   const classes = useStyles()
 
   return (
-    <div className={classes.root} id="quilt-is-different" ref={scrollIntoView()}>
+    <div className={classes.root}>
       <div className={classes.bg}>
         <M.Container maxWidth="lg" className={classes.container}>
           <div className={classes.inner}>
             <img src={img2x(art, art2x)} className={classes.art} alt="" />
             <div className={classes.text}>
-              <M.Typography variant="h1" color="textPrimary">
+              <M.Typography
+                id="quilt-is-different"
+                variant="h1"
+                color="textPrimary"
+                ref={scrollIntoView()}
+              >
                 Quilt is different
               </M.Typography>
               <M.Box mt={4}>

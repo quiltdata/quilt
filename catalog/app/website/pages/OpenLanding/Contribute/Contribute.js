@@ -102,7 +102,7 @@ export default function Contribute() {
       </M.Box>
       <div className={classes.grid}>
         <div className={classes.col}>
-          <Panel color="tertiary">Curate data</Panel>
+          <Panel color="tertiary">Curate open data</Panel>
           <Link href="https://forms.gle/oNoiRYDxnkZEnppq7">Apply now</Link>
         </div>
         <div className={classes.col}>
@@ -110,7 +110,7 @@ export default function Contribute() {
           <Link href="https://github.com/quiltdata/quilt">View on GitHub</Link>
         </div>
         <div className={classes.col}>
-          <Panel color="secondary">Run your own quilt</Panel>
+          <Panel color="secondary">Get private Quilt</Panel>
           <Link href="https://quiltdata.com">Learn more</Link>
         </div>
       </div>
@@ -122,18 +122,18 @@ export default function Contribute() {
           </M.Typography>
           <M.Box pt={4} />
           <M.Typography variant="body1" color="textSecondary">
-            Quilt is evolving Join our{' '}
+            Quilt is evolving. Join the{' '}
+            <M.Link color="secondary" underline="always" href="http://eepurl.com/bOyxRz">
+              <b>general mailing list</b>
+            </M.Link>{' '}
+            {' or '}
             <M.Link
               href="https://groups.google.com/forum/#!forum/quilt-data-dev/"
               color="secondary"
               underline="always"
             >
-              <b>developer mailing list</b>
+              <b>and developer forums</b>
             </M.Link>
-            {' or '}
-            <M.Link color="secondary" underline="always" href="http://eepurl.com/bOyxRz">
-              <b>general mailing list</b>
-            </M.Link>{' '}
             to discuss new features, ask questions, and stay in the loop.
           </M.Typography>
         </M.Box>

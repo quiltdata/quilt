@@ -98,13 +98,18 @@ export default function Showcase() {
               to the world&apos;s public data in S3, including Amazon&apos;s Registry of
               Open Data.
             </M.Typography>
-            <M.Typography variant="body1" color="textSecondary">
-              You can contribute code or data to Quilt. Or you can run your own Quilt.
-            </M.Typography>
           </M.Box>
           <M.Box mt={4}>
             <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
-              Learn more
+              Learn more about open data
+              <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
+                chevron_right
+              </M.Icon>
+            </M.Link>
+          </M.Box>
+          <M.Box mt={2}>
+            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
+              Explore Quilt for private data
               <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
                 chevron_right
               </M.Icon>
