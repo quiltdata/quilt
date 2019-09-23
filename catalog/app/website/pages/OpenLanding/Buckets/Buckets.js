@@ -73,7 +73,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   bucketTags: {
     marginRight: t.spacing(-1),
-    paddingRight: t.spacing(1),
   },
   bucketTag: {
     ...t.typography.body2,
