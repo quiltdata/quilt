@@ -16,23 +16,8 @@ const SLIDE_COUNT_FACTOR = 1000000
 const videos = [
   {
     title: 'Overview',
-    src: 'https://www.youtube.com/embed/4AS_36-m2X4',
-  },
-  {
-    title: 'Machine Learning',
-    src: 'https://www.youtube.com/embed/4AS_36-m2X4',
-  },
-  {
-    title: 'Visualization',
-    src: 'https://www.youtube.com/embed/4AS_36-m2X4',
-  },
-  {
-    title: 'Versioning',
-    src: 'https://www.youtube.com/embed/4AS_36-m2X4',
-  },
-  {
-    title: 'Search',
-    src: 'https://www.youtube.com/embed/4AS_36-m2X4',
+    src:
+      'https://www.youtube.com/embed/videoseries?list=PLmXfD6KoA_vArp85tMod7apo2UTeC3khq',
   },
 ]
 
@@ -45,6 +30,7 @@ const useStyles = M.makeStyles((t) => ({
     alignItems: 'center',
     display: 'flex',
     flexDirection: 'column',
+    paddingBottom: t.spacing(5),
     paddingTop: t.spacing(12),
     position: 'relative',
   },
@@ -69,7 +55,6 @@ const useStyles = M.makeStyles((t) => ({
   },
   btns: {
     marginRight: t.spacing(-1),
-    paddingBottom: t.spacing(5),
     paddingTop: t.spacing(1),
     textAlign: 'center',
   },
@@ -141,27 +126,32 @@ export default function Videos() {
           className={classes.container}
         />
       </div>
-      <M.Box mt={5} mb={4}>
-        <Bar color="secondary" />
-      </M.Box>
-      <M.Typography variant="body1" color="textSecondary" align="center">
-        Quilt covers dozens of data-driven use cases. Select a topic below for a video.
-      </M.Typography>
-      <div className={classes.btns}>
-        {videos.map((v, i) => (
-          <button
-            key={v.title}
-            className={cx(
-              classes.btn,
-              i === mod(index, videos.length) && classes.btnCurrent,
-            )}
-            type="button"
-            onClick={() => goToNearestIndex(i)}
-          >
-            {v.title}
-          </button>
-        ))}
-      </div>
+      {videos.length > 1 && (
+        <>
+          <M.Box mt={5} mb={4}>
+            <Bar color="secondary" />
+          </M.Box>
+          <M.Typography variant="body1" color="textSecondary" align="center">
+            Quilt covers dozens of data-driven use cases. Select a topic below for a
+            video.
+          </M.Typography>
+          <div className={classes.btns}>
+            {videos.map((v, i) => (
+              <button
+                key={v.title}
+                className={cx(
+                  classes.btn,
+                  i === mod(index, videos.length) && classes.btnCurrent,
+                )}
+                type="button"
+                onClick={() => goToNearestIndex(i)}
+              >
+                {v.title}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </M.Container>
   )
 }
