@@ -71,9 +71,12 @@ export default function Showcase() {
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <ChevronLink href="#quilt-is-different">
-              Learn about Quilt for open data
-            </ChevronLink>
+            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
+              What makes Quilt different?
+              <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
+                chevron_right
+              </M.Icon>
+            </M.Link>
           </M.Box>
           <M.Box mt={2}>
             <ChevronLink href="https://quiltdata.com">

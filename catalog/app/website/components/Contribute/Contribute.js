@@ -110,7 +110,7 @@ export default function Contribute() {
           <Link href="https://github.com/quiltdata/quilt">View on GitHub</Link>
         </div>
         <div className={classes.col}>
-          <Panel color="secondary">Get private Quilt</Panel>
+          <Panel color="secondary">Run a private Quilt</Panel>
           <Link href="https://quiltdata.com">Learn more</Link>
         </div>
       </div>
