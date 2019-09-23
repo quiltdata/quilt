@@ -1,10 +1,11 @@
-import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
 import SwipeableViews from 'react-swipeable-views'
 import { mod } from 'react-swipeable-views-core'
 import { autoPlay, virtualize } from 'react-swipeable-views-utils'
 import * as M from '@material-ui/core'
+
+import DotPagination from 'website/components/DotPagination'
 
 import slide1 from './chloropleth.png'
 import slide2 from './overview.png'
@@ -64,53 +65,20 @@ const useStyles = M.makeStyles((t) => ({
     position: 'absolute',
     width: '100%',
   },
-  dots: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginTop: t.spacing(4),
-  },
-  dot: {
-    background: M.colors.blueGrey[500],
-    border: 'none',
-    borderRadius: '50%',
-    cursor: 'pointer',
-    height: 12,
-    outline: 'none',
-    padding: 0,
-    position: 'relative',
-    width: 12,
-    '&::before': {
-      background: `linear-gradient(to top, #5c83ea, #6752e6)`,
-      borderRadius: '50%',
-      bottom: 0,
-      boxShadow: [[0, 0, 16, 0, '#6072e9']],
-      content: '""',
-      left: 0,
-      opacity: 0,
-      position: 'absolute',
-      right: 0,
-      top: 0,
-      transition: 'opacity 400ms',
-    },
-    '& + &': {
-      marginLeft: t.spacing(2),
-    },
-  },
-  current: {
-    '&::before': {
-      opacity: 1,
-    },
-  },
 }))
 
 export default function Screenshots(props) {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
   const onChangeIndex = React.useCallback(R.unary(setIndex), [])
-  const current = slides[mod(index, slides.length)]
+  const actualIndex = mod(index, slides.length)
+  const current = slides[actualIndex]
   const maxSlides = slides.length * SLIDE_COUNT_FACTOR
   const nearestZero = Math.floor(index / slides.length) * slides.length
-  const goToNearestIndex = (i) => setIndex(nearestZero + i)
+
+  const goToNearestIndex = React.useCallback((i) => setIndex(nearestZero + i), [
+    nearestZero,
+  ])
 
   const slideRenderer = React.useCallback(
     ({ index: i, key }) => (
@@ -153,17 +121,12 @@ export default function Screenshots(props) {
           </M.Fade>
         ))}
       </div>
-      <div className={classes.dots}>
-        {slides.map((s, i) => (
-          <button
-            type="button"
-            // eslint-disable-next-line react/no-array-index-key
-            key={i}
-            onClick={() => goToNearestIndex(i)}
-            className={cx(classes.dot, current === s && classes.current)}
-          />
-        ))}
-      </div>
+      <DotPagination
+        mt={4}
+        total={slides.length}
+        current={actualIndex}
+        onChange={goToNearestIndex}
+      />
     </div>
   )
 }
