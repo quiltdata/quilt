@@ -24,6 +24,7 @@ const PLANS = {
     price: 0,
     features: ['Unlimited public packages'],
     plus: 'tertiary',
+    href: 'https://open.quiltdata.com',
   },
   hosted: {
     bg: [pricingHosted, pricingHosted2x],
@@ -36,6 +37,7 @@ const PLANS = {
       'Dedicated web catalog',
     ],
     plus: 'primary',
+    href: 'https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536',
   },
   vpc: {
     bg: [pricingVpc, pricingVpc2x],
@@ -49,6 +51,7 @@ const PLANS = {
       'Custom SSO (LDAP, Active Directory, etc.)',
     ],
     plus: 'secondary',
+    href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',
   },
 }
 
@@ -130,7 +133,7 @@ const usePlanStyles = makeStyles((t) => ({
   },
 }))
 
-const Plan = ({ bg, name, price, features, plus, featured = false }) => {
+const Plan = ({ bg, name, price, features, plus, href, featured = false }) => {
   const classes = usePlanStyles({ featured })
   return (
     <div className={classes.root}>
@@ -161,10 +164,7 @@ const Plan = ({ bg, name, price, features, plus, featured = false }) => {
           </M.Typography>
         ))}
       </div>
-      <Plus
-        variant={plus}
-        href="https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536"
-      />
+      <Plus variant={plus} href={href} />
     </div>
   )
 }

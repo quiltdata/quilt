@@ -12,16 +12,18 @@ import Showcase from './Showcase'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
-export default () => (
-  <Layout>
-    <Showcase />
-    <Videos />
-    <Platform />
-    <CaseStudies />
-    <Testimonials />
-    <UseQuilt />
-    <Highlights />
-    <Pricing />
-    <Contribute />
-  </Layout>
-)
+export default function Landing() {
+  return (
+    <Layout>
+      <Showcase />
+      <Videos />
+      <Platform />
+      <CaseStudies />
+      <Testimonials />
+      <UseQuilt />
+      <Highlights />
+      <Pricing />
+      <Contribute />
+    </Layout>
+  )
+}
