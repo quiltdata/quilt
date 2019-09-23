@@ -125,7 +125,7 @@ export default function Contribute() {
             Quilt is evolving. Join the{' '}
             <M.Link color="secondary" underline="always" href="http://eepurl.com/bOyxRz">
               <b>general mailing list</b>
-            </M.Link>{' '}
+            </M.Link>
             {' or '}
             <M.Link
               href="https://groups.google.com/forum/#!forum/quilt-data-dev/"
