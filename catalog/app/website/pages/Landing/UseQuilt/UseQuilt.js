@@ -6,8 +6,6 @@ import Bullet from 'website/components/Bullet'
 import Illustration from 'website/components/Illustration'
 import * as Personas from 'website/components/Personas'
 
-import partnerBadge from './partner.png'
-
 const Section = (props) => (
   <M.Box
     display="flex"
@@ -51,21 +49,15 @@ export default () => (
           </p>
         </M.Typography>
       </M.Box>
-      <M.Box
-        component="img"
-        alt="APN Standard Technology Partner Badge"
-        src={partnerBadge}
-        width={200}
-      />
     </M.Box>
 
     <Section mt={{ xs: 15, md: 3 }}>
       <Illustration {...Personas.DataScientists} dir="left" />
       <SectionContents pb={{ xs: 0, md: 15 }} pt={{ xs: 6, md: 24 }}>
         <M.Typography variant="h2" color="textPrimary">
-          Data engineers & IT
+          Data engineers &amp; IT
         </M.Typography>
-        <M.Box mt={6} mb={3}>
+        <M.Box mt={6}>
           <Bullet color="primary">
             Get everyone on your team using S3, so that{' '}
             <em>
@@ -75,8 +67,8 @@ export default () => (
             .
           </Bullet>
           <Bullet color="tertiary">
-            Spin up Quilt so that your core infrastructure is done and your users
-            &mdash;from data scientists to executives&mdash; can self serve from
+            Spin up Quilt so that your core infrastructure is done and your
+            users&mdash;from data scientists to executives&mdash;can self serve from
             high-performance data formats like Parquet, using nothing more than a simple
             web URL to your private Quilt catalog. Now you are free to focus on advanced
             infrastructure (instead of one-off requests for data dumps, ETL jobs, or
@@ -88,9 +80,6 @@ export default () => (
             control.
           </Bullet>
         </M.Box>
-        <M.Button variant="contained" color="primary" href="">
-          Learn more
-        </M.Button>
       </SectionContents>
     </Section>
     <Section mt={{ xs: 20, md: 0 }}>
@@ -99,7 +88,7 @@ export default () => (
         <M.Typography variant="h2" color="textPrimary">
           Data scientists
         </M.Typography>
-        <M.Box mt={6} mb={3}>
+        <M.Box mt={6}>
           <Bullet color="primary">
             Store and version your Jupyter notebooks, and all of their data dependencies,
             at a scale that git can&apos;t handle.
@@ -115,9 +104,6 @@ export default () => (
             reusable format that they can extend, modify, and contribute back to Quilt.
           </Bullet>
         </M.Box>
-        <M.Button variant="contained" color="secondary" href="">
-          Learn more
-        </M.Button>
       </SectionContents>
     </Section>
 
@@ -127,7 +113,7 @@ export default () => (
         <M.Typography variant="h2" color="textPrimary">
           Heads of data, executives
         </M.Typography>
-        <M.Box mt={6} mb={3}>
+        <M.Box mt={6}>
           <Bullet color="secondary">
             Create a data-driven organization where everyone on the team has access to the
             latest, most accurate data, and can discover new data as questions arise.
@@ -146,9 +132,6 @@ export default () => (
             the worlds most advanced and popular cloud storage formats.
           </Bullet>
         </M.Box>
-        <M.Button variant="contained" color="primary" href="">
-          Learn more
-        </M.Button>
       </SectionContents>
     </Section>
 
