@@ -262,7 +262,7 @@ def find_bucket_config(bucket_name, catalog_config_url):
         federations = config_json['federations']
     else:
         registry_url = config_json['registryUrl']
-        federations = ["{reg_url}/api/federation.json".format(reg_url=registry_url)]
+        federations = ["{reg_url}/api/buckets".format(reg_url=registry_url)]
 
     federations.reverse() # want to get results from last federation first
     for federation in federations:

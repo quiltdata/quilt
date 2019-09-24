@@ -9,7 +9,7 @@ import humanize
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import Package
-from .search_util import search as util_search
+from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
                    get_package_registry, parse_file_url, parse_s3_url, read_yaml,
@@ -495,7 +495,6 @@ def search(query, limit=10):
         The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
     Returns:
-        either the request object (in case of an error) or
         a list of objects with the following structure:
         ```
         [{
@@ -510,11 +509,6 @@ def search(query, limit=10):
         }...]
         ```
     """
-    default_bucket = get_from_config('defaultBucket')
-    navigator_url = get_from_config('navigator_url')
-    config_url = navigator_url + '/config.json'
-    default_config = find_bucket_config(default_bucket, config_url)
-    search_endpoint = default_config['searchEndpoint']
-    region = default_config['region']
+    raw_results = search_api(query, '*', limit)
+    return raw_results['hits']['hits']
 
-    return util_search(query, search_endpoint, limit=limit, aws_region=region)
