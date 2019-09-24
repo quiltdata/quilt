@@ -81,7 +81,7 @@ export default () => (
           img={{ srcs: [search, search2x], offset: 42, width: 307 }}
           heading="Understand your data"
         >
-          <p>Visualize your data with more than 25 pre-made charts.</p>
+          <p>Visualize your data with more than 25 visualizations.</p>
           <p>Automatically summarize the contents of S3 buckets.</p>
           <p>
             Preview large files without downloading them (Parquet, VCF, Excel, gzips, and
@@ -97,10 +97,7 @@ export default () => (
             question at hand.
           </p>
           <p>Discover new connections between data sets.</p>
-          <p>
-            Enrich model training and analysis with petabytes of public data on
-            open.quiltdata.com.
-          </p>
+          <p>Enrich analysis with petabytes of public data on open.quiltdata.com.</p>
         </Highlight>
         <Highlight
           img={{ srcs: [python, python2x], offset: 84, width: 334 }}
@@ -114,9 +111,6 @@ export default () => (
             Run experiments faster by capturing notebooks and all of their data in the
             form of reusable, modifiable data packages.
           </p>
-          <p>
-            Enrich model training with petabytes of public data on open.quiltdata.com.
-          </p>
         </Highlight>
         <Highlight
           img={{ srcs: [preview, preview2x], offset: 87, width: 315 }}
@@ -129,7 +123,7 @@ export default () => (
           </p>
           <p>
             Data analysts can stop making decks and stop emailing files. Instead, invite
-            stakeholders to view data, charts, and notebooks in Quilt&mdash; and be done.
+            stakeholders to view data, charts, and notebooks directly in Quilt.
           </p>
           <p>
             Get access to more of your company&apos;s data. Grant access to stakeholders

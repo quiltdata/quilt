@@ -2,7 +2,6 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import Bar from 'website/components/Bar'
-import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
 
@@ -71,17 +70,12 @@ export default function Showcase() {
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <M.Link color="textPrimary" underline="none" href="#quilt-is-different">
-              What makes Quilt different?
+            <M.Link color="textPrimary" underline="none" href="#demo-video">
+              Learn more
               <M.Icon color="primary" style={{ verticalAlign: 'middle' }}>
                 chevron_right
               </M.Icon>
             </M.Link>
-          </M.Box>
-          <M.Box mt={2}>
-            <ChevronLink href="https://quiltdata.com">
-              Learn about Quilt for private data
-            </ChevronLink>
           </M.Box>
         </div>
         <Screenshots className={classes.carousel} />

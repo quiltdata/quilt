@@ -13,9 +13,9 @@ export default function OpenLanding() {
   return (
     <Layout>
       <Search />
-      <Videos />
       <Showcase />
       <Buckets />
+      <Videos />
       <QuiltIsDifferent />
       <Contribute />
     </Layout>

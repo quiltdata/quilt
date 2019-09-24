@@ -8,6 +8,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Bar from 'website/components/Bar'
+import scrollIntoView from 'utils/scrollIntoView'
 
 const Swipeable = virtualize(SwipeableViews)
 
@@ -105,13 +106,19 @@ export default function Videos() {
 
   return (
     <M.Container maxWidth="lg" className={classes.root}>
-      <M.Typography variant="h1" color="textPrimary" align="center">
+      <M.Typography
+        variant="h1"
+        color="textPrimary"
+        align="center"
+        id="demo-video"
+        ref={scrollIntoView()}
+      >
         Drive every decision with data
       </M.Typography>
       <M.Box mt={3} mb={5} maxWidth={720}>
         <M.Typography variant="body1" color="textSecondary" align="center">
-          Bring your team together around a visual portal that is accessible to everyone
-          on the team&mdash;from business users, to analysts, to developers.
+          Bring your team together around a data portal that is accessible to everyone
+          &mdash;from business users, to analysts, to developers.
         </M.Typography>
       </M.Box>
       <div className={classes.overflow}>
