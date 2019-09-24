@@ -67,7 +67,7 @@ export default () => (
           img={{ srcs: [catalog, catalog2x], offset: 60, width: 310 }}
           heading="Share unlimited data"
         >
-          <p>Work with huge files that don&apos; fit on GitHub.</p>
+          <p>Work with huge files that don&apos;t fit on GitHub.</p>
           <p>
             Turn informal projects into beautiful data sets that contain Jupyter
             notebooks, models, images, visualizations, and markdown.
