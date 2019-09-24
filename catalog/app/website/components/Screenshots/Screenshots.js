@@ -23,7 +23,7 @@ const slides = [
   },
   {
     src: slide2,
-    caption: 'Summarize massive data collections',
+    caption: 'Summarize S3 buckets',
   },
   {
     src: slide5,
@@ -35,7 +35,7 @@ const slides = [
   },
   {
     src: slide3,
-    caption: 'Generate summary images',
+    caption: 'Preview bucket contents',
   },
   {
     src: slide4,

@@ -20,7 +20,7 @@ import pricingVpc2x from './pricing-vpc@2x.png'
 const PLANS = {
   free: {
     bg: [pricingFree, pricingFree2x],
-    name: 'Free',
+    name: 'open.quiltdata.com',
     price: 0,
     features: ['Unlimited public packages'],
     plus: 'tertiary',
@@ -29,13 +29,8 @@ const PLANS = {
   hosted: {
     bg: [pricingHosted, pricingHosted2x],
     name: 'AWS Marketplace',
-    price: 550,
-    features: [
-      'Unlimited public packages',
-      '1TB and up of private packages',
-      'Admin and auditing features',
-      'Dedicated web catalog',
-    ],
+    price: 600,
+    features: ['Unlimited data', 'Unlimited users', 'One S3 bucket'],
     plus: 'primary',
     href: 'https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536',
   },
@@ -44,11 +39,12 @@ const PLANS = {
     name: 'Enterprise',
     price: 999,
     features: [
-      'Unlimited public packages',
-      'Admin and auditing features',
-      'Dedicated web catalog',
+      'Unlimited data',
+      'Unlimited users',
+      'Up to five S3 buckets',
       'Priority support',
-      'Custom SSO (LDAP, Active Directory, etc.)',
+      'Custom features',
+      'Education and instruction',
     ],
     plus: 'secondary',
     href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',

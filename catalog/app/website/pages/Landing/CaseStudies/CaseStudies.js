@@ -33,12 +33,16 @@ export default function CaseStudies() {
             </M.Typography>
             <M.Box mt={2} mb={2}>
               <M.Typography variant="body2" color="textSecondary">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-                tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse
-                ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel.
+                We surveyed 100 IT executives on the importance of data versioning,
+                machine learning hubs, data quality, and the role of S3.
               </M.Typography>
             </M.Box>
-            <M.Link href="TBD" color="secondary" underline="always" variant="body1">
+            <M.Link
+              href="https://quilt-web-public.s3.amazonaws.com/docs/The+Future+of+Data+Collaboration+in+S3.pdf"
+              color="secondary"
+              underline="always"
+              variant="body1"
+            >
               <b>Read more</b>
             </M.Link>
           </div>

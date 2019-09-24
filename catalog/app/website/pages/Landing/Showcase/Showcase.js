@@ -83,7 +83,7 @@ export default function Showcase() {
               </M.Button>
               <M.Box display="inline-block" ml={2} />
               <M.Button variant="contained" color="secondary" href="">
-                Explore data
+                Explore open data
               </M.Button>
             </M.Box>
             <M.Box mt={5}>

@@ -74,8 +74,8 @@ export default function Platform() {
         </M.Box>
         <M.Box mt={3} mb={6}>
           <M.Typography variant="body1" color="textSecondary">
-            Quilt is built on an open-source core that you can fork and modify to meet
-            your team&apos;s needs.
+            Quilt is built on an open-source core that you can modify to meet your
+            team&apos;s needs.
           </M.Typography>
         </M.Box>
         <img
