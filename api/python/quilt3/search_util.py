@@ -20,7 +20,8 @@ from .util import QuiltException, get_from_config
 def search_credentials(host, region, service):
     credentials = create_botocore_session().get_credentials()
     if credentials:
-        # use registry-provided credentials
+        # use registry-provided credentials if present, otherwise
+        # standard boto credentials
         creds = credentials.get_frozen_credentials()
         auth = AWSRequestsAuth(aws_access_key=creds.access_key,
                                aws_secret_access_key=creds.secret_key,
@@ -30,13 +31,8 @@ def search_credentials(host, region, service):
                                aws_token=creds.token,
                                )
     else:
-        bc_creds = Session().get_credentials()
-        if bc_creds is None:
-            auth = None
-        else:
-            auth = BotoAWSRequestsAuth(aws_host=host,
-                                    aws_region=region,
-                                    aws_service=service)
+        auth = None
+
     return auth
 
 def _create_es(search_endpoint, aws_region):
