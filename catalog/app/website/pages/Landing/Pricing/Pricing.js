@@ -20,6 +20,7 @@ const PLANS = [
     name: 'open.quiltdata.com',
     price: 0,
     features: ['Unlimited public packages'],
+    cta: 'Explore',
     href: 'https://open.quiltdata.com',
     variant: 'tertiary',
   },
@@ -27,6 +28,7 @@ const PLANS = [
     name: 'AWS Marketplace',
     price: 600,
     features: ['Unlimited data', 'Unlimited users', 'One S3 bucket'],
+    cta: 'Buy Now',
     href: 'https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536',
     variant: 'primary',
     featured: true,
@@ -42,6 +44,7 @@ const PLANS = [
       'Custom features',
       'Education and instruction',
     ],
+    cta: 'Contact',
     href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',
     variant: 'secondary',
   },
@@ -197,10 +200,10 @@ export default function Pricing() {
               <M.Button
                 variant="contained"
                 className={classes.btn}
-                color={p.variant}
+                color={p.variant !== 'tertiary' ? p.variant : undefined}
                 href={p.href}
               >
-                Buy
+                {p.cta}
               </M.Button>
             </div>
           ))}
