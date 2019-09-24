@@ -27,8 +27,12 @@ const usePanelStyles = M.makeStyles((t) => ({
     fontSize: '1.75rem',
     fontWeight: t.typography.fontWeightBold,
     height: 150,
-    lineHeight: '2rem',
+    lineHeight: 2 / 1.75,
     textAlign: 'center',
+    [t.breakpoints.only('sm')]: {
+      fontSize: '1.25rem',
+      lineHeight: 2 / 1.25,
+    },
   },
   extra: {
     bottom: 30,
@@ -102,10 +106,11 @@ export default function Contribute() {
   const classes = useStyles()
   return (
     <M.Container maxWidth="lg" className={classes.root}>
-      <M.Box pt={12} pb={9}>
+      <M.Box pt={12} pb={6}>
         <M.Typography variant="h1" color="textPrimary" align="center">
           Contribute to Quilt
         </M.Typography>
+        <M.Box mt={1} />
         <M.Typography variant="body1" color="textSecondary" align="center">
           There are three ways that you can contribute to Quilt
         </M.Typography>
