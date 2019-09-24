@@ -304,6 +304,8 @@ function Meta({ meta }) {
         component="pre"
         bgcolor={M.colors.lightBlue[50]}
         borderColor={M.colors.lightBlue[400]}
+        borderRadius="borderRadius"
+        p={1}
         mb={0}
         mt={1}
         style={{ opacity: 0.7 }}
