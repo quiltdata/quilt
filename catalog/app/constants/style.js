@@ -28,6 +28,7 @@ const websitePalette = {
     dark: '#2d306d',
   },
   tertiary: {
+    contrastText: colors.common.white,
     main: '#6a93ff',
   },
   text: {
