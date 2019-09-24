@@ -11,9 +11,9 @@ from .formats import FormatRegistry
 from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
-                   get_package_registry, parse_file_url, parse_s3_url, read_yaml,
-                   validate_url, validate_package_name, write_yaml)
+                   CONFIG_TEMPLATE, configure_from_url, find_bucket_config, fix_url,
+                   get_from_config, get_package_registry, parse_file_url, parse_s3_url,
+                   read_yaml, validate_url, validate_package_name, write_yaml)
 
 
 def copy(src, dest):
@@ -434,7 +434,7 @@ def config(*catalog_url, **config_values):
         # If catalog_url is empty, reset to the default config.
 
         if catalog_url:
-            configure_from_url(catalog_url)
+            config_template = configure_from_url(catalog_url)
         else:
             config_template = read_yaml(CONFIG_TEMPLATE)
             write_yaml(config_template, CONFIG_PATH, keep_backup=True)

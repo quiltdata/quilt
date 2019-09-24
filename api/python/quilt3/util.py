@@ -328,6 +328,7 @@ def configure_from_url(catalog_url):
     for key, value in new_config.items():
         config_template[key] = value
     write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+    return config_template
 
 def load_config():
     # For user-facing config, use api.config()
