@@ -2,6 +2,7 @@ import { push } from 'connected-react-router/esm/immutable'
 import * as React from 'react'
 import * as redux from 'react-redux'
 import * as M from '@material-ui/core'
+import { fade } from '@material-ui/core/styles'
 
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
@@ -62,6 +63,19 @@ const useStyles = M.makeStyles((t) => ({
     left: t.spacing(3),
     pointerEvents: 'none',
     position: 'absolute',
+  },
+  hintContainer: {
+    maxWidth: 750,
+    position: 'relative',
+    width: '100%',
+  },
+  hint: {
+    ...t.typography.body2,
+    color: fade(t.palette.common.white, 0.6),
+    lineHeight: 1,
+    position: 'absolute',
+    right: 30,
+    top: 12,
   },
   stats: {
     display: 'flex',
@@ -143,8 +157,15 @@ export default function Search() {
             }
             classes={{ root: classes.inputRoot, input: classes.inputInput }}
             placeholder="Search"
-            // TODO: bucket select dropdown
           />
+          <div className={classes.hintContainer}>
+            <a
+              className={classes.hint}
+              href="https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html#_simple_query_string_syntax"
+            >
+              Search syntax
+            </a>
+          </div>
           <div className={classes.stats}>
             <div className={classes.stat}>
               <div className={classes.statValue}>10.2 Billion</div>
