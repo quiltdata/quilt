@@ -1,11 +1,11 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import * as Intercom from 'components/Intercom'
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
 import Overlay2 from 'website/components/Backgrounds/Overlay2'
-
 import Screenshots from 'website/components/Screenshots'
 
 const useStyles = M.makeStyles((t) => ({
@@ -52,7 +52,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
-
+  const intercom = Intercom.use()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -78,11 +78,19 @@ export default function Showcase() {
               </M.Typography>
             </M.Box>
             <M.Box mt={5}>
-              <M.Button variant="contained" color="primary" href="">
+              <M.Button
+                variant="contained"
+                color="primary"
+                onClick={() => intercom('show')}
+              >
                 Book demo
               </M.Button>
               <M.Box display="inline-block" ml={2} />
-              <M.Button variant="contained" color="secondary" href="">
+              <M.Button
+                variant="contained"
+                color="secondary"
+                href="https://open.quiltdata.com/#buckets"
+              >
                 Explore open data
               </M.Button>
             </M.Box>
