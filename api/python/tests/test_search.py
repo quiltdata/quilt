@@ -80,6 +80,7 @@ class SearchTestCase(QuiltTestCase):
         self.requests_mock.add(responses.GET,
                                f"{SEARCH_URL}?index=%2A&action=search&query=%2A",
                                json=mock_search,
-                               status=200)
+                               status=200,
+                               match_querystring=True)
         results = search("*")
         assert len(results) == 1
