@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_requests_auth.aws_auth import AWSRequestsAuth
+from botocore.session import Session
 from elasticsearch import Elasticsearch, RequestsHttpConnection
 import requests
 
@@ -29,9 +30,13 @@ def search_credentials(host, region, service):
                                aws_token=creds.token,
                                )
     else:
-        auth = BotoAWSRequestsAuth(aws_host=host,
-                                   aws_region=region,
-                                   aws_service=service)
+        bc_creds = Session().get_credentials()
+        if bc_creds is None:
+            auth = None
+        else:
+            auth = BotoAWSRequestsAuth(aws_host=host,
+                                    aws_region=region,
+                                    aws_service=service)
     return auth
 
 def _create_es(search_endpoint, aws_region):
