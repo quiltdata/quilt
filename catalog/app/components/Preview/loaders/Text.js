@@ -79,5 +79,5 @@ const fetcher = utils.previewFetcher(
   },
 )
 
-export const load = (handle, callback) =>
-  fetcher(handle, callback, { query: { max_bytes: MAX_BYTES } })
+export const load = (handle, callback, extra) =>
+  fetcher(handle, callback, { query: { max_bytes: MAX_BYTES }, ...extra })
