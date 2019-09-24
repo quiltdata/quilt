@@ -8,6 +8,7 @@ import { fade } from '@material-ui/core/styles'
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import scrollIntoView from 'utils/scrollIntoView'
 import usePrevious from 'utils/usePrevious'
 
 const PER_PAGE = 9
@@ -162,7 +163,12 @@ export default function Buckets() {
   const clearFilter = React.useCallback(() => setFilter(''), [])
 
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
+    <M.Container
+      maxWidth="lg"
+      className={classes.root}
+      id="buckets"
+      ref={scrollIntoView()}
+    >
       <M.TextField
         className={classes.filter}
         value={filter}
