@@ -59,6 +59,10 @@ export const useES = ({ sign = false }) => {
             response.on('end', () => {
               if (timedOut) return
               clearTimeout(timeoutId)
+              if (response.statusCode === 429) {
+                reject(new Error('TooManyRequests'))
+                return
+              }
               if (response.statusCode !== 200) {
                 reject(new Error(`ES Error: ${body}`))
                 return
