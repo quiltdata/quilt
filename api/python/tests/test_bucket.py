@@ -291,35 +291,6 @@ class TestBucket(QuiltTestCase):
         assert not config_mock.called
         bucket_config_mock.assert_called_once_with('test-bucket', 'https://bar.foo/config.json')
 
-    # further testing in test_search.py
-    @patch('quilt3.bucket.search')
-    @patch('quilt3.bucket.get_from_config')
-    def test_search_bucket(self, config_mock, search_mock):
-        config_mock.return_value = 'https://foo.bar'
-        content = {
-            'federations': ['/federation.json'],
-        }
-        federations = {
-            "buckets": [
-                {
-                    "name": "quilt-testing-fake",
-                    "searchEndpoint": "https://es-fake.endpoint",
-                    "region": "us-meow"
-                },
-            ]
-        }
-        self.requests_mock.add(responses.GET, 'https://foo.bar/config.json', json=content, status=200)
-        self.requests_mock.add(responses.GET, 'https://foo.bar/federation.json', json=federations, status=200)
-        b = Bucket('s3://quilt-testing-fake')
-        b.search('blah', limit=1)
-
-        config_mock.assert_called_once_with('navigator_url')
-        search_mock.assert_called_once_with('blah',
-                                            'https://es-fake.endpoint',
-                                            limit=1,
-                                            aws_region='us-meow',
-                                            bucket='quilt-testing-fake')
-
     @patch('quilt3.bucket.put_bytes')
     def test_bucket_put_ext(self, put_bytes):
         # This just ensures the bucket is calling serialize() correctly.
