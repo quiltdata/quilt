@@ -3,6 +3,7 @@ Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_p
 and creates summaries of object and package access events.
 """
 
+from datetime import datetime, timedelta
 import os
 import textwrap
 import time
@@ -10,6 +11,8 @@ import time
 import boto3
 
 ATHENA_DATABASE = os.environ['ATHENA_DATABASE']
+# Bucket where CloudTrail logs are located.
+CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 # Bucket where query results will be stored.
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
 # A temporary directory where Athena query results will be written.
@@ -17,23 +20,94 @@ QUERY_TEMP_DIR = os.environ['QUERY_TEMP_DIR']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
+DAYS_TO_UPDATE = 7
+
 
 def sql_escape(s):
     return s.replace("'", "''")
 
 
+DROP_CLOUDTRAIL = """DROP TABLE IF EXISTS cloudtrail"""
 DROP_OBJECT_ACCESS_LOG = """DROP TABLE IF EXISTS object_access_log"""
 DROP_PACKAGE_HASHES = """DROP TABLE IF EXISTS package_hashes"""
 
-CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
-    CREATE TABLE object_access_log
-    WITH (
-        format = 'Parquet',
-        parquet_compression = 'SNAPPY',
-        external_location = 's3://{sql_escape(QUERY_RESULT_BUCKET)}/{sql_escape(QUERY_TEMP_DIR)}/object_access_log/'
+CREATE_CLOUDTRAIL = textwrap.dedent(f"""\
+    CREATE EXTERNAL TABLE cloudtrail (
+        eventVersion STRING,
+        userIdentity STRUCT<
+            type: STRING,
+            principalId: STRING,
+            arn: STRING,
+            accountId: STRING,
+            invokedBy: STRING,
+            accessKeyId: STRING,
+            userName: STRING,
+            sessionContext: STRUCT<
+                attributes: STRUCT<
+                    mfaAuthenticated: STRING,
+                    creationDate: STRING>,
+                sessionIssuer: STRUCT<
+                    type: STRING,
+                    principalId: STRING,
+                    arn: STRING,
+                    accountId: STRING,
+                    userName: STRING>>>,
+        eventTime STRING,
+        eventSource STRING,
+        eventName STRING,
+        awsRegion STRING,
+        sourceIpAddress STRING,
+        userAgent STRING,
+        errorCode STRING,
+        errorMessage STRING,
+        requestParameters STRING,
+        responseElements STRING,
+        additionalEventData STRING,
+        requestId STRING,
+        eventId STRING,
+        resources ARRAY<STRUCT<
+            arn: STRING,
+            accountId: STRING,
+            type: STRING>>,
+        eventType STRING,
+        apiVersion STRING,
+        readOnly STRING,
+        recipientAccountId STRING,
+        serviceEventDetails STRING,
+        sharedEventID STRING,
+        vpcEndpointId STRING
     )
-    AS
-    SELECT eventname, date_format(from_iso8601_timestamp(eventtime), '%Y-%m-%d') AS date, bucket, key
+    PARTITIONED BY (account STRING, region STRING, year STRING, month STRING, day STRING)
+    ROW FORMAT SERDE 'com.amazon.emr.hive.serde.CloudTrailSerde'
+    STORED AS INPUTFORMAT 'com.amazon.emr.cloudtrail.CloudTrailInputFormat'
+    OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/'
+    TBLPROPERTIES ('classification'='cloudtrail')
+""")
+
+ADD_CLOUDTRAIL_PARTITION = textwrap.dedent(f"""\
+    ALTER TABLE cloudtrail
+    ADD PARTITION (account = '{{account}}', region = '{{region}}', year = '{{year:04d}}', month = '{{month:02d}}', day = '{{day:02d}}')
+    LOCATION 's3://{sql_escape(CLOUDTRAIL_BUCKET)}/AWSLogs/{{account}}/CloudTrail/{{region}}/{{year:04d}}/{{month:02d}}/{{day:02d}}/'
+""")
+
+CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
+    CREATE EXTERNAL TABLE object_access_log (
+        eventname STRING,
+        bucket  STRING,
+        key STRING
+    )
+    PARTITIONED BY (date STRING)
+    ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+    STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
+    OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+    LOCATION 's3://{sql_escape(QUERY_RESULT_BUCKET)}/ObjectAccessLog/'
+    TBLPROPERTIES ('parquet.compression'='SNAPPY')
+""")
+
+INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
+    INSERT INTO object_access_log
+    SELECT eventname, bucket, key, date_format(from_iso8601_timestamp(eventtime), '%Y-%m-%d') AS date
     FROM (
         SELECT
             eventname,
@@ -167,10 +241,10 @@ def wait_for_query(execution_id):
         time.sleep(5)
 
 
-def delete_temp_dir():
+def delete_dir(bucket, prefix):
     params = dict(
-        Bucket=QUERY_RESULT_BUCKET,
-        Prefix=QUERY_TEMP_DIR,
+        Bucket=bucket,
+        Prefix=prefix,
         MaxKeys=1000,  # The max we're allowed to delete at once.
     )
     paginator = s3.get_paginator('list_objects_v2')
@@ -190,19 +264,53 @@ def delete_temp_dir():
         errors = delete_response.get('Errors')
         if errors:
             print(errors)
-            raise Exception("Failed to delete the temporary directory")
+            raise Exception(f"Failed to delete dir: bucket={bucket!r}, prefix={prefix!r}")
 
 
 def handler(event, context):
-    delete_temp_dir()
+    today = datetime.utcnow().date()
+    dates = [today - timedelta(days=d) for d in range(DAYS_TO_UPDATE)]
 
-    # Drop old Athen tables from previous runs.
+    # Delete the temporary directory where Athena query results are written to.
+    delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
+
+    # Delete the last N days of processed logs, since we're going to re-generate them.
+    for date in dates:
+        prefix = f'ObjectAccessLog/date={date}'
+        delete_dir(QUERY_RESULT_BUCKET, prefix)
+
+    # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
+    # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
+    partition_queries = []
+    for account_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix='AWSLogs/', Delimiter='/').get('CommonPrefixes') or []:
+        account = account_response['Prefix'].split('/')[1]
+        for region_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
+            region = region_response['Prefix'].split('/')[3]
+            for date in dates:
+                query = ADD_CLOUDTRAIL_PARTITION.format(
+                    account=account,
+                    region=region,
+                    year=date.year,
+                    month=date.month,
+                    day=date.day
+                )
+                partition_queries.append(query)
+
+    # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
-    for query_id in [run_query(DROP_OBJECT_ACCESS_LOG), run_query(DROP_PACKAGE_HASHES)]:
+    for query_id in [run_query(DROP_CLOUDTRAIL), run_query(DROP_OBJECT_ACCESS_LOG), run_query(DROP_PACKAGE_HASHES)]:
         wait_for_query(query_id)
 
-    for query_id in [run_query(CREATE_OBJECT_ACCESS_LOG), run_query(CREATE_PACKAGE_HASHES)]:
+    # Create new Athena tables.
+    for query_id in [run_query(CREATE_CLOUDTRAIL), run_query(CREATE_OBJECT_ACCESS_LOG), run_query(CREATE_PACKAGE_HASHES)]:
         wait_for_query(query_id)
+
+    # Create CloudTrail partitions, after the CloudTrail table is created.
+    for query_id in [run_query(q) for q in partition_queries]:
+        wait_for_query(query_id)
+
+    # Scan CloudTrail and insert new data into "object_access_log".
+    wait_for_query(run_query(INSERT_INTO_OBJECT_ACCESS_LOG))
 
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),
