@@ -89,9 +89,6 @@ export default function Showcase() {
             <M.Box mt={5}>
               <ChevronLink href="#">Stay informed about Quilt</ChevronLink>
             </M.Box>
-            <M.Box mt={2}>
-              <ChevronLink href="#">Request a demo</ChevronLink>
-            </M.Box>
           </div>
         </div>
         <Screenshots className={classes.carousel} />
