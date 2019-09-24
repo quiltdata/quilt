@@ -1,5 +1,6 @@
 import cx from 'classnames'
 import * as React from 'react'
+import GHButton from 'react-github-btn'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
@@ -16,6 +17,7 @@ const usePanelStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     marginBottom: t.spacing(3),
     overflow: 'hidden',
+    position: 'relative',
     width: '100%',
   },
   text: {
@@ -27,6 +29,10 @@ const usePanelStyles = M.makeStyles((t) => ({
     height: 150,
     lineHeight: '2rem',
     textAlign: 'center',
+  },
+  extra: {
+    bottom: 30,
+    position: 'absolute',
   },
   line: {
     height: 10,
@@ -43,11 +49,12 @@ const usePanelStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Panel({ color, children }) {
+function Panel({ color, extra, children }) {
   const classes = usePanelStyles()
   return (
     <div className={classes.root}>
       <div className={classes.text}>{children}</div>
+      {!!extra && <div className={classes.extra}>{extra}</div>}
       <div className={cx(classes.line, classes[color])} />
     </div>
   )
@@ -63,6 +70,9 @@ const Link = ({ children, ...props }) => (
 )
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
@@ -91,7 +101,7 @@ const useStyles = M.makeStyles((t) => ({
 export default function Contribute() {
   const classes = useStyles()
   return (
-    <M.Container maxWidth="lg">
+    <M.Container maxWidth="lg" className={classes.root}>
       <M.Box pt={12} pb={9}>
         <M.Typography variant="h1" color="textPrimary" align="center">
           Contribute to Quilt
@@ -106,7 +116,16 @@ export default function Contribute() {
           <Link href="https://forms.gle/oNoiRYDxnkZEnppq7">Apply now</Link>
         </div>
         <div className={classes.col}>
-          <Panel color="primary">Write code</Panel>
+          <Panel
+            color="primary"
+            extra={
+              <GHButton href="https://github.com/quiltdata/quilt" data-show-count>
+                Star
+              </GHButton>
+            }
+          >
+            Write code
+          </Panel>
           <Link href="https://github.com/quiltdata/quilt">View on GitHub</Link>
         </div>
         <div className={classes.col}>
