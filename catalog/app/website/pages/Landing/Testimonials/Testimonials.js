@@ -6,13 +6,20 @@ import { autoPlay, virtualize } from 'react-swipeable-views-utils'
 import * as M from '@material-ui/core'
 
 import DotPagination from 'website/components/DotPagination'
+import baxley from './people/baxley.jpeg'
+import brown from './people/brown.jpeg'
+import goldman from './people/goldman.jpeg'
+import jackowski from './people/jackowski.jpeg'
+import karr from './people/karr.jpeg'
+import knaap from './people/knaap.jpeg'
+import mrukwa from './people/mrukwa.jpeg'
+import prawiro from './people/prawiro.jpeg'
 
 const Swipeable = autoPlay(virtualize(SwipeableViews))
 
-// TODO: avatars
 const testimonials = [
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: jackowski,
     name: 'Krzysztof Jackowski',
     title: 'Deputy Mobile Engineering Manager, Netguru',
     contents: (
@@ -31,7 +38,7 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: brown,
     name: 'Jackson Brown',
     title: 'Research Engineer, Allen Institute for Cell Science',
     contents: (
@@ -43,7 +50,7 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: knaap,
     name: 'Eli Knaap',
     title: 'Center for Geospatial Sciences',
     contents: (
@@ -56,9 +63,9 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
-    name: 'Grzegorz M.',
-    title: 'Quality Assurance Specialist, Netguru',
+    avatar: mrukwa,
+    name: 'Grzegorz Mrukwa',
+    title: 'Senior Machine Learning Engineer, Netguru',
     contents: (
       <>
         <p>
@@ -87,9 +94,9 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: baxley,
     name: 'Bob Baxley',
-    title: 'Chief Engineer, Bastille Labs',
+    title: 'CTO, Bastille Labs',
     contents: (
       <>
         <p>
@@ -109,7 +116,7 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: karr,
     name: 'Jonathan Karr',
     title: 'Fellow, Icahn Institute for Data Science at Mount Sinai',
     contents: (
@@ -122,7 +129,7 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: goldman,
     name: 'Casey Goldman',
     title: 'CEO, Dataland',
     contents: (
@@ -141,7 +148,7 @@ const testimonials = [
     ),
   },
   {
-    avatar: 'https://quiltdata.com/26046837a973ada6a3b29b5e947015e6.jpg',
+    avatar: prawiro,
     name: 'Guenevere Prawiroatmodjo',
     title: 'Data Scientist, Perfect Day',
     contents: (
