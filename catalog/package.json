@@ -94,6 +94,7 @@
     "ramda": "^0.26.1",
     "react": "^16.9.0",
     "react-dom": "^16.9.0",
+    "react-github-btn": "^1.0.6",
     "react-google-login": "^5.0.5",
     "react-helmet": "^6.0.0-beta",
     "react-intl": "^2.9.0",
