@@ -182,7 +182,7 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     paddingRight: t.spacing(2),
     position: 'relative',
-    textAlign: 'center',
+    textAlign: 'left',
     width: '100%',
   },
   avatar: {
