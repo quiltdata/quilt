@@ -30,7 +30,7 @@ def search_credentials(host, region, service):
                                )
     else:
         auth = BotoAWSRequestsAuth(aws_host=host,
-                                   aws_region=aws_region,
+                                   aws_region=region,
                                    aws_service=service)
     return auth
 
