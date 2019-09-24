@@ -29,10 +29,9 @@ def search_credentials(host, region, service):
                                aws_token=creds.token,
                                )
     else:
-        assert False
-        auth = BotoAWSRequestsAuth(aws_host=es_url.hostname,
+        auth = BotoAWSRequestsAuth(aws_host=host,
                                    aws_region=aws_region,
-                                   aws_service='es')
+                                   aws_service=service)
     return auth
 
 def _create_es(search_endpoint, aws_region):
