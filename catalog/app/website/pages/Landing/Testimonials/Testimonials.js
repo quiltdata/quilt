@@ -70,25 +70,18 @@ const testimonials = [
       <>
         <p>
           Quilt simplified our flow in data maintenance and versioning. It became
-          extremely easy to keep track of changes in a dataset and refer in a reproducible
-          manner to a specific revision without worrying if someone overwrites the data.
+          extremely easy to keep track of changes in a data set and refer in a
+          reproducible manner to a specific revision without worrying if someone
+          overwrites the data.
         </p>
         <p>
-          We have Quilt integrated into our flow, so the dataset updates interfere with
+          We have Quilt integrated into our flow, so the data set updates interfere with
           model building no more.
         </p>
         <p>
           At this moment we use Quilt for versioning models (especially that we generate
           models in a bunch of formats each time) and Jupyter Notebooks (for which Git
           isn&apos;t the best option).
-        </p>
-        <p>
-          What we love most about Quilt is the caching feature. We reduced data transfer
-          costs while keeping low complexity of scripts. Overall grade is 5/5 since that
-          tool was missing heavily in the flow we had for Machine Learning. At this moment
-          we use it also for versioning models (especially that we generate models in a
-          bunch of formats each time) and Jupyter Notebooks (for which Git isn&apos;t the
-          best option)
         </p>
       </>
     ),
@@ -109,7 +102,7 @@ const testimonials = [
         </p>
         <p>
           We also love the Quilt web interface, which makes it much easier for the entire
-          organization to discover data sets. Before Quilt, our only mechanism to dataset
+          organization to discover data sets. Before Quilt, our only mechanism to data set
           discovery was listing S3 buckets.
         </p>
       </>
@@ -153,7 +146,7 @@ const testimonials = [
     title: 'Data Scientist, Perfect Day',
     contents: (
       <p>
-        Quilt is a great way for our team to find, inspect, and share their datasets via
+        Quilt is a great way for our team to find, inspect, and share their data sets via
         the web.
       </p>
     ),
