@@ -70,10 +70,17 @@ def search_api(query, index, limit=10):
     match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
     region = match.groups()[0]
     auth = search_credentials(api_gateway_host, region, 'execute-api')
-    response = requests.get(
-        f"{api_gateway}/search",
-        params=dict(index=index, action='search', query=query),
-        auth=auth)
+    if auth:
+        response = requests.get(
+            f"{api_gateway}/search",
+            params=dict(index=index, action='search', query=query),
+            auth=auth)
+    else:
+        response = requests.get(
+            f"{api_gateway}/search",
+            params=dict(index=index, action='search', query=query),
+            auth=auth)
+
     if not response.ok:
         raise QuiltException(response.text)
 
