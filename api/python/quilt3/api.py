@@ -1,6 +1,5 @@
 import datetime
 import pathlib
-import re
 from urllib.parse import urlparse, unquote
 
 import pytz

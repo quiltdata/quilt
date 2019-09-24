@@ -57,8 +57,7 @@ class SearchTestCase(QuiltTestCase):
     def test_all_bucket_search(self):
         navigator_url = get_from_config('navigator_url')
         api_gateway_url = get_from_config('apiGatewayEndpoint')
-        CONFIG_URL = navigator_url + '/config.json'
-        SEARCH_URL = api_gateway_url + '/search'
+        search_url = api_gateway_url + '/search'
         mock_search = {
             'hits': {
                 'hits': [{
@@ -75,10 +74,8 @@ class SearchTestCase(QuiltTestCase):
             }
         }
 
-        print(f"{SEARCH_URL}?index=%2A&action=search&query=%2A")
-        
         self.requests_mock.add(responses.GET,
-                               f"{SEARCH_URL}?index=%2A&action=search&query=%2A",
+                               f"{search_url}?index=%2A&action=search&query=%2A",
                                json=mock_search,
                                status=200,
                                match_querystring=True)
