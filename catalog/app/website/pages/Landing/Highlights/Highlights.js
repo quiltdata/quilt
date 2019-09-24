@@ -21,6 +21,7 @@ const Grid = styled(M.Box)(({ theme: t }) => ({
   display: 'grid',
   gridTemplateColumns: 'repeat(3, 210px)',
   justifyContent: 'space-between',
+  maxWidth: 1000,
 
   [t.breakpoints.only('sm')]: {
     gridTemplateColumns: 'repeat(2, 210px)',
@@ -57,18 +58,8 @@ export default () => (
         <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary" align="center">
-            Make informed decisions as a team
+            Product Highlights
           </M.Typography>
-          <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
-            <M.Typography variant="body1" color="textSecondary">
-              Bring your team together around a visual data repository that is accessible
-              to everyone on the team&mdash;
-              <em>from business users, to analysts, to developers</em>.
-            </M.Typography>
-            <M.Typography variant="body1" color="textSecondary">
-              Share, understand, discover, model, and decide with Quilt.
-            </M.Typography>
-          </M.Box>
         </M.Box>
       </M.Box>
       <Grid mx="auto">
