@@ -95,7 +95,7 @@ export default function Showcase() {
               </M.Button>
             </M.Box>
             <M.Box mt={5}>
-              <ChevronLink href="#">Stay informed about Quilt</ChevronLink>
+              <ChevronLink href="#get-notified">Stay informed about Quilt</ChevronLink>
             </M.Box>
           </div>
         </div>

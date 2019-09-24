@@ -4,6 +4,7 @@ import GHButton from 'react-github-btn'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
+import scrollIntoView from 'utils/scrollIntoView'
 
 import art from './art.png'
 import art2x from './art@2x.png'
@@ -105,7 +106,12 @@ const useStyles = M.makeStyles((t) => ({
 export default function Contribute() {
   const classes = useStyles()
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
+    <M.Container
+      maxWidth="lg"
+      className={classes.root}
+      id="contribute"
+      ref={scrollIntoView()}
+    >
       <M.Box pt={12} pb={6}>
         <M.Typography variant="h1" color="textPrimary" align="center">
           Contribute to Quilt
@@ -141,7 +147,12 @@ export default function Contribute() {
       <M.Box display="flex" pt={10} pb={13} flexDirection={{ xs: 'column', sm: 'row' }}>
         <img src={img2x(art, art2x)} className={classes.art} alt="" />
         <M.Box ml={{ sm: 14 }} mt={15}>
-          <M.Typography variant="h2" color="textPrimary">
+          <M.Typography
+            variant="h2"
+            color="textPrimary"
+            id="get-notified"
+            ref={scrollIntoView()}
+          >
             Get notified
           </M.Typography>
           <M.Box pt={4} />
