@@ -1,8 +1,10 @@
 import cx from 'classnames'
 import * as React from 'react'
+import GHButton from 'react-github-btn'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
+import scrollIntoView from 'utils/scrollIntoView'
 
 import art from './art.png'
 import art2x from './art@2x.png'
@@ -16,6 +18,7 @@ const usePanelStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
     marginBottom: t.spacing(3),
     overflow: 'hidden',
+    position: 'relative',
     width: '100%',
   },
   text: {
@@ -25,8 +28,16 @@ const usePanelStyles = M.makeStyles((t) => ({
     fontSize: '1.75rem',
     fontWeight: t.typography.fontWeightBold,
     height: 150,
-    lineHeight: '2rem',
+    lineHeight: 2 / 1.75,
     textAlign: 'center',
+    [t.breakpoints.only('sm')]: {
+      fontSize: '1.25rem',
+      lineHeight: 2 / 1.25,
+    },
+  },
+  extra: {
+    bottom: 30,
+    position: 'absolute',
   },
   line: {
     height: 10,
@@ -43,11 +54,12 @@ const usePanelStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Panel({ color, children }) {
+function Panel({ color, extra, children }) {
   const classes = usePanelStyles()
   return (
     <div className={classes.root}>
       <div className={classes.text}>{children}</div>
+      {!!extra && <div className={classes.extra}>{extra}</div>}
       <div className={cx(classes.line, classes[color])} />
     </div>
   )
@@ -63,6 +75,9 @@ const Link = ({ children, ...props }) => (
 )
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: '1fr 1fr 1fr',
@@ -91,11 +106,17 @@ const useStyles = M.makeStyles((t) => ({
 export default function Contribute() {
   const classes = useStyles()
   return (
-    <M.Container maxWidth="lg">
-      <M.Box pt={12} pb={9}>
+    <M.Container
+      maxWidth="lg"
+      className={classes.root}
+      id="contribute"
+      ref={scrollIntoView()}
+    >
+      <M.Box pt={12} pb={6}>
         <M.Typography variant="h1" color="textPrimary" align="center">
           Contribute to Quilt
         </M.Typography>
+        <M.Box mt={1} />
         <M.Typography variant="body1" color="textSecondary" align="center">
           There are three ways that you can contribute to Quilt
         </M.Typography>
@@ -106,18 +127,32 @@ export default function Contribute() {
           <Link href="https://forms.gle/oNoiRYDxnkZEnppq7">Apply now</Link>
         </div>
         <div className={classes.col}>
-          <Panel color="primary">Write code</Panel>
+          <Panel
+            color="primary"
+            extra={
+              <GHButton href="https://github.com/quiltdata/quilt" data-show-count>
+                Star
+              </GHButton>
+            }
+          >
+            Write code
+          </Panel>
           <Link href="https://github.com/quiltdata/quilt">View on GitHub</Link>
         </div>
         <div className={classes.col}>
-          <Panel color="secondary">Get private Quilt</Panel>
+          <Panel color="secondary">Run a private Quilt</Panel>
           <Link href="https://quiltdata.com">Learn more</Link>
         </div>
       </div>
       <M.Box display="flex" pt={10} pb={13} flexDirection={{ xs: 'column', sm: 'row' }}>
         <img src={img2x(art, art2x)} className={classes.art} alt="" />
         <M.Box ml={{ sm: 14 }} mt={15}>
-          <M.Typography variant="h2" color="textPrimary">
+          <M.Typography
+            variant="h2"
+            color="textPrimary"
+            id="get-notified"
+            ref={scrollIntoView()}
+          >
             Get notified
           </M.Typography>
           <M.Box pt={4} />

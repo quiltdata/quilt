@@ -21,6 +21,7 @@ const Grid = styled(M.Box)(({ theme: t }) => ({
   display: 'grid',
   gridTemplateColumns: 'repeat(3, 210px)',
   justifyContent: 'space-between',
+  maxWidth: 1000,
 
   [t.breakpoints.only('sm')]: {
     gridTemplateColumns: 'repeat(2, 210px)',
@@ -57,18 +58,8 @@ export default () => (
         <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary" align="center">
-            Make informed decisions as a team
+            Product Highlights
           </M.Typography>
-          <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }}>
-            <M.Typography variant="body1" color="textSecondary">
-              Bring your team together around a visual data repository that is accessible
-              to everyone on the team&mdash;
-              <em>from business users, to analysts, to developers</em>.
-            </M.Typography>
-            <M.Typography variant="body1" color="textSecondary">
-              Share, understand, discover, model, and decide with Quilt.
-            </M.Typography>
-          </M.Box>
         </M.Box>
       </M.Box>
       <Grid mx="auto">
@@ -76,7 +67,7 @@ export default () => (
           img={{ srcs: [catalog, catalog2x], offset: 60, width: 310 }}
           heading="Share unlimited data"
         >
-          <p>Work with huge files that don&apos; fit on GitHub.</p>
+          <p>Work with huge files that don&apos;t fit on GitHub.</p>
           <p>
             Turn informal projects into beautiful data sets that contain Jupyter
             notebooks, models, images, visualizations, and markdown.
@@ -90,7 +81,7 @@ export default () => (
           img={{ srcs: [search, search2x], offset: 42, width: 307 }}
           heading="Understand your data"
         >
-          <p>Visualize your data with more than 25 pre-made charts.</p>
+          <p>Visualize your data with more than 25 visualizations.</p>
           <p>Automatically summarize the contents of S3 buckets.</p>
           <p>
             Preview large files without downloading them (Parquet, VCF, Excel, gzips, and
@@ -106,10 +97,7 @@ export default () => (
             question at hand.
           </p>
           <p>Discover new connections between data sets.</p>
-          <p>
-            Enrich model training and analysis with petabytes of public data on
-            open.quiltdata.com.
-          </p>
+          <p>Enrich analysis with petabytes of public data on open.quiltdata.com.</p>
         </Highlight>
         <Highlight
           img={{ srcs: [python, python2x], offset: 84, width: 334 }}
@@ -123,9 +111,6 @@ export default () => (
             Run experiments faster by capturing notebooks and all of their data in the
             form of reusable, modifiable data packages.
           </p>
-          <p>
-            Enrich model training with petabytes of public data on open.quiltdata.com.
-          </p>
         </Highlight>
         <Highlight
           img={{ srcs: [preview, preview2x], offset: 87, width: 315 }}
@@ -138,7 +123,7 @@ export default () => (
           </p>
           <p>
             Data analysts can stop making decks and stop emailing files. Instead, invite
-            stakeholders to view data, charts, and notebooks in Quilt&mdash; and be done.
+            stakeholders to view data, charts, and notebooks directly in Quilt.
           </p>
           <p>
             Get access to more of your company&apos;s data. Grant access to stakeholders

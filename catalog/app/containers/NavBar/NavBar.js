@@ -94,9 +94,7 @@ const UserDropdown = () => {
   )
 }
 
-const Hamburger = ({ authenticated, waiting, error }) => {
-  const user = reduxHook.useMappedState(selectUser)
-  const { urls } = NamedRoutes.use()
+const useHam = () => {
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -110,7 +108,7 @@ const Hamburger = ({ authenticated, waiting, error }) => {
     setAnchor(null)
   }, [setAnchor])
 
-  return (
+  const render = (children) => (
     <>
       <M.IconButton onClick={open} aria-label="Menu" edge="end">
         <M.Icon>menu</M.Icon>
@@ -125,51 +123,76 @@ const Hamburger = ({ authenticated, waiting, error }) => {
             style: { minWidth: 120 },
           }}
         >
-          {/* eslint-disable-next-line no-nested-ternary */}
-          {authenticated ? (
-            [
-              <M.MenuItem key="user" component="div">
-                {userDisplay(user)}
-              </M.MenuItem>,
-              user.isAdmin && (
-                <Item key="admin" to={urls.admin()} onClick={close}>
-                  <M.Box component="span" pr={2} />
-                  <M.Icon fontSize="small">security</M.Icon>
-                  &nbsp;Users and roles
-                </Item>
-              ),
-              <Item key="signout" to={urls.signOut()} onClick={close}>
-                <M.Box component="span" pr={2} />
-                Sign Out
-              </Item>,
-            ]
-          ) : waiting ? (
-            <Item onClick={close}>
-              <M.CircularProgress />
-            </Item>
-          ) : (
-            <Item to={urls.signIn()} onClick={close}>
-              {error && (
-                <>
-                  <M.Icon>error_outline</M.Icon>{' '}
-                </>
-              )}
-              Sign In
-            </Item>
-          )}
-          <M.Divider />
-          <Links>
-            {R.map(({ label, ...rest }) => (
-              <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
-                {label}
-              </Item>
-            ))}
-          </Links>
+          {children}
         </M.Menu>
       </M.MuiThemeProvider>
     </>
   )
+
+  return { open, close, render }
 }
+
+const AuthHamburger = ({ authenticated, waiting, error }) => {
+  const user = reduxHook.useMappedState(selectUser)
+  const { urls } = NamedRoutes.use()
+  const ham = useHam()
+
+  return ham.render([
+    ...// eslint-disable-next-line no-nested-ternary
+    (authenticated
+      ? [
+          <M.MenuItem key="user" component="div">
+            {userDisplay(user)}
+          </M.MenuItem>,
+          user.isAdmin && (
+            <Item key="admin" to={urls.admin()} onClick={ham.close}>
+              <M.Box component="span" pr={2} />
+              <M.Icon fontSize="small">security</M.Icon>
+              &nbsp;Users and roles
+            </Item>
+          ),
+          <Item key="signout" to={urls.signOut()} onClick={ham.close}>
+            <M.Box component="span" pr={2} />
+            Sign Out
+          </Item>,
+        ]
+      : waiting
+      ? [
+          <Item onClick={ham.close} key="progress">
+            <M.CircularProgress />
+          </Item>,
+        ]
+      : [
+          <Item to={urls.signIn()} onClick={ham.close} key="sign-in">
+            {error && (
+              <>
+                <M.Icon>error_outline</M.Icon>{' '}
+              </>
+            )}
+            Sign In
+          </Item>,
+        ]),
+    <M.Divider key="divider" />,
+    <Links key="links">
+      {R.map(({ label, ...rest }) => (
+        <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
+          {label}
+        </Item>
+      ))}
+    </Links>,
+  ])
+}
+
+const LinksHamburger = () =>
+  useHam().render(
+    <Links>
+      {R.map(({ label, ...rest }) => (
+        <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
+          {label}
+        </Item>
+      ))}
+    </Links>,
+  )
 
 const SignIn = composeComponent(
   'NavBar.SignIn',
@@ -259,6 +282,7 @@ const Links = ({ children }) => {
 }
 
 export const NavBar = () => {
+  const cfg = Config.use()
   const bucket = BucketConfig.useCurrentBucket()
   const { paths } = NamedRoutes.use()
   const notSignIn = !useRoute(paths.signIn, { exact: true }).match
@@ -273,7 +297,7 @@ export const NavBar = () => {
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <Container>
-      <Controls bucket={bucket} />
+      {cfg.enableMarketingPages ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
           <Links>
@@ -286,14 +310,20 @@ export const NavBar = () => {
         </M.Box>
       )}
 
-      {!useHamburger &&
+      {!cfg.enableMarketingPages &&
+        !useHamburger &&
         (authenticated ? (
           <UserDropdown />
         ) : (
           notSignIn && <SignIn error={error} waiting={waiting} />
         ))}
 
-      {useHamburger && <Hamburger {...{ authenticated, error, waiting }} />}
+      {useHamburger &&
+        (cfg.enableMarketingPages ? (
+          <LinksHamburger {...{ authenticated, error, waiting }} />
+        ) : (
+          <AuthHamburger {...{ authenticated, error, waiting }} />
+        ))}
     </Container>
   )
 }

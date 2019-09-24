@@ -1,9 +1,10 @@
 import * as React from 'react'
 
 import Layout from 'website/components/Layout'
+import Contribute from 'website/components/Contribute'
+import Videos from 'website/components/Videos'
 
 import Buckets from './Buckets'
-import Contribute from './Contribute'
 import Search from './Search'
 import Showcase from './Showcase'
 import QuiltIsDifferent from './QuiltIsDifferent'
@@ -14,6 +15,7 @@ export default function OpenLanding() {
       <Search />
       <Showcase />
       <Buckets />
+      <Videos />
       <QuiltIsDifferent />
       <Contribute />
     </Layout>
