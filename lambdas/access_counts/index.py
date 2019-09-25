@@ -20,7 +20,8 @@ QUERY_TEMP_DIR = os.environ['QUERY_TEMP_DIR']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
-DAYS_TO_UPDATE = 7
+
+LAST_UPDATE_KEY = 'ObjectAccessLog.last_updated_ts'
 
 
 def sql_escape(s):
@@ -107,18 +108,20 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
 
 INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     INSERT INTO object_access_log
-    SELECT eventname, bucket, key, date_format(from_iso8601_timestamp(eventtime), '%Y-%m-%d') AS date
+    SELECT eventname, bucket, key, date_format(eventtime, '%Y-%m-%d') AS date
     FROM (
         SELECT
             eventname,
-            eventtime,
+            from_iso8601_timestamp(eventtime) AS eventtime,
             json_extract_scalar(requestparameters, '$.bucketName') AS bucket,
             json_extract_scalar(requestparameters, '$.key') AS key
         FROM cloudtrail
         WHERE useragent != 'athena.amazonaws.com' AND useragent NOT LIKE '%quilt3-lambdas-es-indexer%'
     )
     -- Filter out non-S3 events, or S3 events like ListBucket that have no object
-    WHERE bucket IS NOT NULL AND key IS NOT NULL
+    -- Select the correct time range
+    WHERE bucket IS NOT NULL AND key IS NOT NULL AND
+          eventtime >= from_unixtime({{start_ts:f}}) AND eventtime < from_unixtime({{end_ts:f}})
 """)
 
 CREATE_PACKAGE_HASHES = textwrap.dedent(f"""\
@@ -268,16 +271,20 @@ def delete_dir(bucket, prefix):
 
 
 def handler(event, context):
-    today = datetime.utcnow().date()
-    dates = [today - timedelta(days=d) for d in range(DAYS_TO_UPDATE)]
+    # End of the CloutTrail time range we're going to look at. Subtract 5min because CloudTrail takes some time to log the events.
+    end_ts = datetime.utcnow() - timedelta(minutes=5)
+
+    # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
+    try:
+        start_ts = datetime.utcfromtimestamp(float(s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()))
+    except s3.exceptions.NoSuchKey as ex:
+        start_ts = end_ts - timedelta(days=365)
+
+    start_date = start_ts.date()
+    end_date = end_ts.date()
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
-
-    # Delete the last N days of processed logs, since we're going to re-generate them.
-    for date in dates:
-        prefix = f'ObjectAccessLog/date={date}'
-        delete_dir(QUERY_RESULT_BUCKET, prefix)
 
     # Create a CloudTrail table, but only with partitions for the last N days, to avoid scanning all of the data.
     # A bucket can have data for multiple accounts and multiple regions, so those need to be handled first.
@@ -286,7 +293,8 @@ def handler(event, context):
         account = account_response['Prefix'].split('/')[1]
         for region_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
             region = region_response['Prefix'].split('/')[3]
-            for date in dates:
+            date = start_date
+            while date <= end_date:
                 query = ADD_CLOUDTRAIL_PARTITION.format(
                     account=account,
                     region=region,
@@ -295,6 +303,7 @@ def handler(event, context):
                     day=date.day
                 )
                 partition_queries.append(query)
+                date += timedelta(days=1)
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
@@ -310,7 +319,12 @@ def handler(event, context):
         wait_for_query(query_id)
 
     # Scan CloudTrail and insert new data into "object_access_log".
-    wait_for_query(run_query(INSERT_INTO_OBJECT_ACCESS_LOG))
+    insert_query = INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())
+    wait_for_query(run_query(insert_query))
+
+    # Save the end timestamp.
+    s3.put_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
+
 
     queries = [
         ('Objects', OBJECT_ACCESS_COUNTS),
