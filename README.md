@@ -61,3 +61,4 @@ Quilt addresses five key use cases:
 * [ ] K8s deployment for Azure, GCP
 * [ ] Shim lambdas (consider serverless.com)
 * [ ] Shim ElasticSearch (consider SOLR)
+* [ ] Shim IAM via RBAC
