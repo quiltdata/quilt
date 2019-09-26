@@ -21,7 +21,7 @@ QUERY_TEMP_DIR = os.environ['QUERY_TEMP_DIR']
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
 
-LAST_UPDATE_KEY = 'ObjectAccessLog.last_updated_ts'
+LAST_UPDATE_KEY = 'ObjectAccessLog.last_updated_ts.txt'
 
 
 def sql_escape(s):
@@ -104,6 +104,10 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
     LOCATION 's3://{sql_escape(QUERY_RESULT_BUCKET)}/ObjectAccessLog/'
     TBLPROPERTIES ('parquet.compression'='SNAPPY')
+""")
+
+REPAIR_OBJECT_ACCESS_LOG = textwrap.dedent("""
+    MSCK REPAIR TABLE object_access_log
 """)
 
 INSERT_INTO_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
@@ -209,7 +213,7 @@ athena = boto3.client('athena')
 s3 = boto3.client('s3')
 
 
-def run_query(query_string):
+def start_query(query_string):
     output = 's3://%s/%s/' % (QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
 
     response = athena.start_query_execution(
@@ -224,24 +228,50 @@ def run_query(query_string):
     return execution_id
 
 
-def wait_for_query(execution_id):
-    while True:
-        response = athena.get_query_execution(QueryExecutionId=execution_id)
-        print("Query status:", response)
-        state = response['QueryExecution']['Status']['State']
+def query_finished(execution_id):
+    response = athena.get_query_execution(QueryExecutionId=execution_id)
+    print("Query status:", response)
+    state = response['QueryExecution']['Status']['State']
 
-        if state == 'RUNNING':
-            pass
-        elif state == 'SUCCEEDED':
-            break
-        elif state == 'FAILED':
-            raise Exception("Query failed! QueryExecutionId=%r" % execution_id)
-        elif state == 'CANCELLED':
-            raise Exception("Query cancelled! QueryExecutionId=%r" % execution_id)
-        else:
-            assert False, "Unexpected state: %s" % state
+    if state == 'RUNNING':
+        return False
+    elif state == 'SUCCEEDED':
+        return True
+    elif state == 'FAILED':
+        raise Exception("Query failed! QueryExecutionId=%r" % execution_id)
+    elif state == 'CANCELLED':
+        raise Exception("Query cancelled! QueryExecutionId=%r" % execution_id)
+    else:
+        assert False, "Unexpected state: %s" % state
+
+
+# Athena limitation for DDL queries.
+MAX_CONCURRENT_QUERIES = 20
+
+def run_multiple_queries(query_list):
+    results = [None] * len(query_list)
+
+    remaining_queries = list(enumerate(query_list))
+    pending_execution_ids = set()
+
+    while remaining_queries or pending_execution_ids:
+        # Remove completed queries. Make a copy of the set before iterating over it.
+        for execution_id in list(pending_execution_ids):
+            if query_finished(execution_id):
+                pending_execution_ids.remove(execution_id)
+
+        # Start new queries.
+        while remaining_queries and len(pending_execution_ids) < MAX_CONCURRENT_QUERIES:
+            idx, query = remaining_queries.pop()
+            execution_id = start_query(query)
+            results[idx] = execution_id
+            pending_execution_ids.add(execution_id)
 
         time.sleep(5)
+
+    assert all(results)
+
+    return results
 
 
 def delete_dir(bucket, prefix):
@@ -271,8 +301,8 @@ def delete_dir(bucket, prefix):
 
 
 def handler(event, context):
-    # End of the CloutTrail time range we're going to look at. Subtract 5min because CloudTrail takes some time to log the events.
-    end_ts = datetime.utcnow() - timedelta(minutes=5)
+    # End of the CloudTrail time range we're going to look at. Subtract 15min because events can be delayed by that much.
+    end_ts = datetime.utcnow() - timedelta(minutes=15)
 
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
     try:
@@ -307,20 +337,18 @@ def handler(event, context):
 
     # Drop old Athena tables from previous runs.
     # (They're in the DB owned by the stack, so safe to do.)
-    for query_id in [run_query(DROP_CLOUDTRAIL), run_query(DROP_OBJECT_ACCESS_LOG), run_query(DROP_PACKAGE_HASHES)]:
-        wait_for_query(query_id)
+    run_multiple_queries([DROP_CLOUDTRAIL, DROP_OBJECT_ACCESS_LOG, DROP_PACKAGE_HASHES])
 
     # Create new Athena tables.
-    for query_id in [run_query(CREATE_CLOUDTRAIL), run_query(CREATE_OBJECT_ACCESS_LOG), run_query(CREATE_PACKAGE_HASHES)]:
-        wait_for_query(query_id)
+    run_multiple_queries([CREATE_CLOUDTRAIL, CREATE_OBJECT_ACCESS_LOG, CREATE_PACKAGE_HASHES])
 
+    # Load object access log partitions, after the object access log table is created.
     # Create CloudTrail partitions, after the CloudTrail table is created.
-    for query_id in [run_query(q) for q in partition_queries]:
-        wait_for_query(query_id)
+    run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG] + partition_queries)
 
     # Scan CloudTrail and insert new data into "object_access_log".
     insert_query = INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())
-    wait_for_query(run_query(insert_query))
+    run_multiple_queries([insert_query])
 
     # Save the end timestamp.
     s3.put_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY, Body=str(end_ts.timestamp()), ContentType='text/plain')
@@ -334,10 +362,9 @@ def handler(event, context):
         ('Exts', EXTS_ACCESS_COUNTS)
     ]
 
-    execution_ids = [(filename, run_query(query)) for filename, query in queries]
+    execution_ids = run_multiple_queries([query for _, query in queries])
 
-    for filename, execution_id in execution_ids:
-        wait_for_query(execution_id)
+    for (filename, _), execution_id in zip(queries, execution_ids):
         src_key = f'{QUERY_TEMP_DIR}/{execution_id}.csv'
         dest_key = f'{ACCESS_COUNTS_OUTPUT_DIR}/{filename}.csv'
 
