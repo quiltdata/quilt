@@ -61,13 +61,14 @@ Installing Quilt will modify the following Bucket characteristics:
     * Properties > Events (will add one notification)
     
 1. If you are not using AWS Marketplace, you require **a license key**.
-Email [contact@quiltdata.io](mailto:contact@quiltdata.io), with the subodomain that you wish to access Quilt on
+Email [contact@quiltdata.io](mailto:contact@quiltdata.io), with the subdomain that you wish to access Quilt on
 (e.g. https://quilt.example.com) to obtain a license key.
 
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
+
 
 ### AWS Service Catalog
 
@@ -108,13 +109,13 @@ text box for further details. Service Catalog users require a license key. See
 
     ![](./imgs/stack-details.png)
 
-1. Serivce Catalog users, skip this step. On the Options screen that follows, go to the Advanced > Termination Protection and click Enable.
+1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
 
     ![](./imgs/term_protect.png)
 
     This protects the stack from accidental deletion. Click Next.
 
-1. Serivce Catalog users, skip this step. Check the box asking you to acknowledge that CloudFormation may create IAM roles, then click Create.
+1. Service Catalog users, skip this step. Check the box asking you to acknowledge that CloudFormation may create IAM roles, then click Create.
 
     ![](./imgs/finish.png)
 
@@ -183,13 +184,13 @@ To customize which file types are indexed, add a `.quilt/config.json` file to yo
     ]
 }
 ```
-It is highly recommended that you continue to index all of the default files, so that users can get the most out of search. center/elasticsearch-scale-up/).
+It is highly recommended that you continue to index all of the default files, so that users can get the most out of search.
 
 #### Search limitations
 
 * Queries containing the tilde (~), forward slash (/), back slash, and angle bracket ({, }, (, ), [, ]) must be quoted. For example search for `'~foo'`, not `~foo`.
 * Files over 10 MB in size may cause search to fail.
-* Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-
+* Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-center/elasticsearch-scale-up/).
 
 #### Publicly accessible search
 
