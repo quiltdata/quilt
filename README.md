@@ -12,10 +12,8 @@
 
 # Quilt is a versioned data portal for AWS
 
-* [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open
-data portal that runs on Quilt
-* [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos,
-and information on how you can run a private Quilt instance
+* [open.quiltdata.com](https://open.quiltdata.com/) is a petabyte-scale open data portal that runs on Quilt
+* [quiltdata.com](https://quiltdata.com) includes case studies, use cases, videos, and information on how you can run a private Quilt instance
 
 
 ## Who is Quilt for?
@@ -39,26 +37,17 @@ private use on [quiltdata.com](https://quiltdata.com).
 ## Use cases
 
 Quilt addresses five key use cases:
-* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to
-create an IAM role).
-* **Understand** data better through inline documentation
-(Jupyter notebooks, markdown) and visualizations (Vega, 
-Vega Lite)
-* **Discover** related data by indexing objects in 
-ElasticSearch
-* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable
-versions for objects and data sets (a.k.a. "Quilt Packages")
-* **Decide** by broadening data access within the organization
-and supporting the documentation of decision
-processes through audit-able versioning and inline
-documentation
+* **Share** data at scale. Quilt wraps AWS S3 to add simple URLs, web preview for large files, and sharing via email address (no need to create an IAM role).
+* **Understand** data better through inline documentation (Jupyter notebooks, markdown) and visualizations (Vega, Vega Lite)
+* **Discover** related data by indexing objects in ElasticSearch
+* **Model** data by providing a home for large data and models that don't fit in git, and by providing immutable versions for objects and data sets (a.k.a. "Quilt Packages")
+* **Decide** by broadening data access within the organization and supporting the documentation of decision processes through audit-able versioning and inline documentation
 
 ## Roadmap
 
 ### I - Performance and core services
 * [ ] Address performance issues with push (e.g. re-hash)
-* [ ] Refactor `bucket/.quilt` for improved listing
-and delete performance
+* [ ] Refactor `bucket/.quilt` for improved listing and delete performance
 
 ### II - CI/CD for data
 * [ ] Ability to fork/merge packages (via manifests in git)

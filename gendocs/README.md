@@ -3,7 +3,7 @@
 
 Pydoc-markdown ended up being the easiest to modify, and unlike sphinx/napoleon,
 wasn't a mixture of google docstrings plus RST, which ended up being pretty
-ungainly to wok with.  Instead, it's a mixture of google docstrings and mardown,
+ungainly to work with.  Instead, it's a mixture of google docstrings and markdown,
 which works a bit better.  Also, though the API of pydoc-markdown is less
 formalized, implementing changes is also less convoluted than for sphinx.
 
