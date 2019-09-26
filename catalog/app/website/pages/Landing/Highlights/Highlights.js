@@ -58,7 +58,17 @@ export default () => (
         <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary" align="center">
-            Product Highlights
+            Make informed decisions as a team
+          </M.Typography>
+        </M.Box>
+        <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }} maxWidth={800}>
+          <M.Typography variant="body1" color="textSecondary" gutterBottom>
+            Bring your team together around a visual data repository that is accessible to
+            everyone on the team&mdash;
+            <em>from business users, to analysts, to developers</em>.
+          </M.Typography>
+          <M.Typography variant="body1" color="textSecondary">
+            Share, understand, discover, model, and decide with Quilt.
           </M.Typography>
         </M.Box>
       </M.Box>
