@@ -184,13 +184,13 @@ To customize which file types are indexed, add a `.quilt/config.json` file to yo
     ]
 }
 ```
-It is highly recommended that you continue to index all of the default files, so that users can get the most out of search. center/elasticsearch-scale-up/).
+It is highly recommended that you continue to index all of the default files, so that users can get the most out of search.
 
 #### Search limitations
 
 * Queries containing the tilde (~), forward slash (/), back slash, and angle bracket ({, }, (, ), [, ]) must be quoted. For example search for `'~foo'`, not `~foo`.
 * Files over 10 MB in size may cause search to fail.
-* Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-
+* Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-center/elasticsearch-scale-up/).
 
 #### Publicly accessible search
 
