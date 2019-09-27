@@ -3,7 +3,7 @@ Lambda function that runs Athena queries over CloudTrail logs and .quilt/named_p
 and creates summaries of object and package access events.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 import textwrap
 import time
@@ -252,6 +252,7 @@ def run_multiple_queries(query_list):
     results = [None] * len(query_list)
 
     remaining_queries = list(enumerate(query_list))
+    remaining_queries.reverse()  # Just to make unit tests more sane: we use pop() later, so keep the order the same.
     pending_execution_ids = set()
 
     while remaining_queries or pending_execution_ids:
@@ -300,18 +301,24 @@ def delete_dir(bucket, prefix):
             raise Exception(f"Failed to delete dir: bucket={bucket!r}, prefix={prefix!r}")
 
 
+def now():
+    """Only exists for unit testing, cause patching datetime.utcnow() is pretty much impossible."""
+    return datetime.now()
+
+
 def handler(event, context):
     # End of the CloudTrail time range we're going to look at. Subtract 15min because events can be delayed by that much.
-    end_ts = datetime.utcnow() - timedelta(minutes=15)
+    end_ts = now() - timedelta(minutes=15)
 
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
     try:
-        start_ts = datetime.utcfromtimestamp(float(s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()))
+        start_ts = datetime.fromtimestamp(float(s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()))
     except s3.exceptions.NoSuchKey as ex:
         start_ts = end_ts - timedelta(days=365)
 
-    start_date = start_ts.date()
-    end_date = end_ts.date()
+    # Make sure to use UTC dates for CloudTrail partitioning.
+    start_date = start_ts.astimezone(timezone.utc).date()
+    end_date = end_ts.astimezone(timezone.utc).date()
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
@@ -326,8 +333,8 @@ def handler(event, context):
             date = start_date
             while date <= end_date:
                 query = ADD_CLOUDTRAIL_PARTITION.format(
-                    account=account,
-                    region=region,
+                    account=sql_escape(account),
+                    region=sql_escape(region),
                     year=date.year,
                     month=date.month,
                     day=date.day
