@@ -77,7 +77,7 @@ export default function Showcase() {
           </M.Box>
           <M.Box mt={2}>
             <ChevronLink href="https://open.quiltdata.com/b/quilt-example/tree/akarve/previews/storms.parquet">
-              Preview file formats (Parquet, Excel, VCF, and more)
+              Preview files (Parquet, Excel, VCF, etc.)
             </ChevronLink>
           </M.Box>
           <M.Box mt={2}>
@@ -86,8 +86,8 @@ export default function Showcase() {
             </ChevronLink>
           </M.Box>
           <M.Box mt={4}>
-            <M.Button variant="contained" color="secondary" href="#demo-video">
-              Learn more
+            <M.Button variant="contained" color="primary" href="#demo-video">
+              Sign Up
             </M.Button>
           </M.Box>
         </div>
