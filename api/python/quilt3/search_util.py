@@ -3,13 +3,10 @@ search_util.py
 
 Contains search-related glue code
 """
-import json
 import re
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
-from aws_requests_auth.boto_utils import BotoAWSRequestsAuth
 from aws_requests_auth.aws_auth import AWSRequestsAuth
-from botocore.session import Session
 
 import requests
 
@@ -52,9 +49,10 @@ def search_api(query, index, limit=10):
     match = re.match(r".*\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$", api_gateway_host)
     region = match.groups()[0]
     auth = search_credentials(api_gateway_host, region, 'execute-api')
+    # Encode the parameters manually because AWS Auth requires spaces to be encoded as '%20' rather than '+'.
+    encoded_params = urlencode(dict(index=index, action='search', query=query), quote_via=quote)
     response = requests.get(
-        f"{api_gateway}/search",
-        params=dict(index=index, action='search', query=query),
+        f"{api_gateway}/search?{encoded_params}",
         auth=auth
     )
 
@@ -62,4 +60,3 @@ def search_api(query, index, limit=10):
         raise QuiltException(response.text)
 
     return response.json()
-
