@@ -71,7 +71,24 @@ export default function Showcase() {
             </M.Typography>
           </M.Box>
           <M.Box mt={4}>
-            <ChevronLink href="#demo-video">Learn more</ChevronLink>
+            <ChevronLink href="https://open.quiltdata.com/b/quilt-example/tree/robnewman/us_county_smoking_vs_poverty/">
+              Explore visualizations and notebooks
+            </ChevronLink>
+          </M.Box>
+          <M.Box mt={2}>
+            <ChevronLink href="https://open.quiltdata.com/b/quilt-example/tree/akarve/previews/storms.parquet">
+              Preview files (Parquet, Excel, VCF, etc.)
+            </ChevronLink>
+          </M.Box>
+          <M.Box mt={2}>
+            <ChevronLink href="https://open.quiltdata.com/b/quilt-example/tree/akarve/previews/terrain/">
+              Browse directories of images
+            </ChevronLink>
+          </M.Box>
+          <M.Box mt={4}>
+            <M.Button variant="contained" color="primary" href="#demo-video">
+              Sign Up
+            </M.Button>
           </M.Box>
         </div>
         <Screenshots className={classes.carousel} />

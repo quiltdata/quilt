@@ -29,6 +29,27 @@ export default function CaseStudies() {
         <div className={classes.studies}>
           <div className={classes.study}>
             <M.Typography variant="h4" color="textPrimary">
+              Distributing terabytes of versioned images to researchers
+            </M.Typography>
+            <M.Box mt={2} mb={2}>
+              <M.Typography variant="body2" color="textSecondary">
+                Dedicated to understanding and predicting the behavior of cells, the Allen
+                Institute for Cell Science believes in scientific transparency,
+                accessibility, and reproducibility. Learn how the Allen Institute partners
+                with Quilt to distribute terabytes of cell images worldwide.
+              </M.Typography>
+            </M.Box>
+            <M.Link
+              href="https://aws.amazon.com/partners/success/allen-cell-quilt-data/"
+              color="secondary"
+              underline="always"
+              variant="body1"
+            >
+              <b>Read more</b>
+            </M.Link>
+          </div>
+          <div className={classes.study}>
+            <M.Typography variant="h4" color="textPrimary">
               The future of data collaboration in S3
             </M.Typography>
             <M.Box mt={2} mb={2}>
