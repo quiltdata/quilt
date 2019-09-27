@@ -89,7 +89,7 @@ export default function Showcase() {
               <M.Button
                 variant="contained"
                 color="secondary"
-                href="https://open.quiltdata.com/#buckets"
+                href="https://open.quiltdata.com/"
               >
                 Explore open data
               </M.Button>
