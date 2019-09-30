@@ -239,7 +239,7 @@ class PackageEntry(object):
 
 class LazySerializedPackageEntry(object):
 
-    def __init__(self, obj, meta, desired_extension=None):
+    def __init__(self, obj, meta, desired_extension=None, verbose=False):
         self.obj = obj
         self._meta = meta or {}
         self.desired_extension = desired_extension
@@ -248,11 +248,33 @@ class LazySerializedPackageEntry(object):
         self.hash = None
         self.size = None
 
+        format_handlers = FormatRegistry.search(type(obj), ext=desired_extension)
+        if desired_extension:
+            format_handlers = [f for f in format_handlers if desired_extension in f.handled_extensions]
+
+        if len(format_handlers) == 0:
+            if desired_extension:
+                raise QuiltException(f'Quilt does not know how to serialize a {type(obj)} as a {desired_extension} file. '
+                                     f'If you think this should be supported, please open an issue or PR at '
+                                     f'https://github.com/quiltdata/quilt')
+            else:
+                raise QuiltException(
+                    f'Quilt does not know how to serialize a {type(obj)}. '
+                    f'If you think this should be supported, please open an issue or PR at '
+                    f'https://github.com/quiltdata/quilt')
+
+        format_handler = format_handlers[0]
+        if verbose:
+            print("Using format_handler", format_handler)
+
+        self.serialize_fn = format_handler.serialize
+
+    @classmethod
+    def object_is_serializable(cls, obj):
+        format_handlers = FormatRegistry.search(type(obj))
+        return len(format_handlers) > 0
 
 
-
-
-        # TODO: Find serializer and raise error if required serialized doesn't exist
 
     def __eq__(self, other):
         return (
@@ -1019,7 +1041,7 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None):
+    def set(self, logical_key, entry=None, meta=None, verbose=False):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -1041,7 +1063,7 @@ class Package(object):
 
         validate_key(logical_key)
 
-        if not entry:
+        if entry is None: # Entry can now be an object where the truthiness is ambiguous
             current_working_dir = pathlib.Path.cwd()
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
@@ -1050,7 +1072,7 @@ class Package(object):
             url = fix_url(str(entry))
             size, orig_meta, version = get_size_and_meta(url)
 
-            # Deterimine if a new version needs to be appended.
+            # Determine if a new version needs to be appended.
             parsed_url = urlparse(url)
             if parsed_url.scheme == 's3':
                 bucket, key, current_version = parse_s3_url(parsed_url)
@@ -1059,6 +1081,14 @@ class Package(object):
             entry = PackageEntry([url], size, None, orig_meta)
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
+
+        elif LazySerializedPackageEntry.object_is_serializable(entry):
+            desired_file_ext = pathlib.Path(logical_key).suffix
+            if desired_file_ext.startswith("."):
+                desired_file_ext = desired_file_ext[1:]
+            if desired_file_ext == "":
+                desired_file_ext = None
+            entry = LazySerializedPackageEntry(entry, meta=meta, desired_extension=desired_file_ext, verbose=verbose)
 
 
         else:
