@@ -358,15 +358,12 @@ class UnserializedPackageEntry(object):
 
     def to_package_entry(self):
         """
-        Serialize self.obj to disk
+        Serialize self.obj to disk and create PackageEntry
 
         returns:
             a PackageEntry
             a tempfile that will need to be cleaned up
         """
-        # 1. Serialize the object to bytes
-        # 2. Write the bytes to a named temporary file
-        # 3. Create a fresh PackageEntry from the file
         serialized_object_bytes, new_meta = self.serialize_fn(self.obj,
                                                               self.meta,
                                                               self.desired_extension,
@@ -375,8 +372,6 @@ class UnserializedPackageEntry(object):
         tmpfile_url = f'file://{tmpfile.name}'
         put_bytes(serialized_object_bytes, tmpfile_url, meta=self.meta)
         size, _, _ = get_size_and_meta(tmpfile_url)
-        print("Tempfile URL", tmpfile_url)
-        print("Tempfile size", size)
         return PackageEntry([tmpfile_url], size, hash_obj=None, meta=self.meta), tmpfile
 
 
@@ -1088,16 +1083,13 @@ class Package(object):
             entry = entry._clone()
 
         elif UnserializedPackageEntry.object_is_serializable(entry):
-            ext = pathlib.Path(logical_key).suffix[1:]
-            if ext == "":
-                ext = None
+            ext = pathlib.Path(logical_key).suffix
+            ext = None if ext == "" else ext[1:] # No desired ext if no suffix, otherwise turn ".txt" -> "txt"
             entry = UnserializedPackageEntry(entry, meta=meta, desired_extension=ext, **format_opts)
 
 
         else:
-            raise TypeError(
-                f"Expected a string for entry, but got an instance of {type(entry)}."
-            )
+            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
 
         if meta is not None:
             entry.set_meta(meta)
