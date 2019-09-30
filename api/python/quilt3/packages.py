@@ -64,7 +64,7 @@ class PackageEntry(object):
     def __init__(self, physical_keys, size, hash_obj, meta):
         """
         Creates an entry.
-*
+
         Args:
             physical_keys: a nonempty list of URIs (either `s3://` or `file://`)
             size(number): size of object in bytes
@@ -104,6 +104,9 @@ class PackageEntry(object):
         return copy.deepcopy(ret)
 
     def _clone(self):
+        """
+        Returns clone of this PackageEntry.
+        """
         return self.__class__(copy.deepcopy(self.physical_keys), self.size, \
                               copy.deepcopy(self.hash), copy.deepcopy(self._meta))
 
@@ -239,9 +242,19 @@ class PackageEntry(object):
 
 
 class UnserializedPackageEntry(object):
+    """
+    This class is a mechanism for allowing users to add an in-memory object to a package without incurring serialization
+    cost until push/build.
+
+    It holds the in-memory object, normal PackageEntry metadata, and information about how the object will be serialized
+
+    Tries to be API compatible with PackageEntry as much as possible to avoid breaking user code in hard to debug way
+    (as now items in a package could be a PackageEntry or an UnserializedPackageEntry).
+    """
 
     @classmethod
     def object_is_serializable(cls, obj):
+        """ Determine if quilt is capable of serializing this type of object """
         format_handlers = FormatRegistry.search(type(obj))
         return len(format_handlers) > 0
 
@@ -250,18 +263,17 @@ class UnserializedPackageEntry(object):
         self.obj = obj
         self._meta = meta or {}
         self.desired_extension = desired_extension
-        print(format_opts)
         self.format_opts = format_opts
 
-        format_handlers = FormatRegistry.search(type(obj), ext=desired_extension)
+        format_handlers = FormatRegistry.search(type(obj), ext=desired_extension) # Doesn't filter by extension, just sorts
         if desired_extension:
             format_handlers = [f for f in format_handlers if desired_extension in f.handled_extensions]
 
         if len(format_handlers) == 0:
+
             error_message = f'Quilt does not know how to serialize a {type(obj)}'
-            if desired_extension is not None:
-                error_message += f' as a {desired_extension} file'
-            error_message += f'. If you think this should be supported, please open an issue or PR at ' \
+            error_message += "." if desired_extension is None else f' as a {desired_extension} file. '
+            error_message += f'If you think this should be supported, please open an issue or PR at ' \
                              f'https://github.com/quiltdata/quilt'
             raise QuiltException(error_message)
 
@@ -291,7 +303,7 @@ class UnserializedPackageEntry(object):
             'meta': self._meta,
             'desired_extension': self.desired_extension,
         }
-        return copy.deepcopy(ret) # TODO: Consider performance implications for large object?
+        return copy.deepcopy(ret) # TODO: Performance implications for large object?
 
     def _clone(self):
         return self.__class__(copy.deepcopy(self.obj),
@@ -346,7 +358,11 @@ class UnserializedPackageEntry(object):
 
     def to_package_entry(self):
         """
-        Serialize to disk, return a PackageEntry
+        Serialize self.obj to disk
+
+        returns:
+            a PackageEntry
+            a tempfile that will need to be cleaned up
         """
         # 1. Serialize the object to bytes
         # 2. Write the bytes to a named temporary file
@@ -430,7 +446,7 @@ class Package(object):
             def check_entry_is_remote(logical_key, entry):
                 if isinstance(entry, PackageEntry):
                     return urlparse(fix_url(_to_singleton(entry.physical_keys))).scheme != 'file'
-                return False
+                return False # UnserializedPackageEntry can't be remote
 
             if parent:
                 has_remote_entries = any(self.map(check_entry_is_remote))
@@ -912,7 +928,7 @@ class Package(object):
     def _fix_sha256(self):
         for _, entry in self.walk():
             if isinstance(entry, UnserializedPackageEntry):
-                raise QuiltException("Cannot calculate hash of LazySerializedPackageEntry")
+                raise QuiltException("Cannot calculate hash of an UnserializedPackageEntry")
 
         entries = [entry for key, entry in self.walk() if entry.hash is None]
         if not entries:
@@ -965,7 +981,7 @@ class Package(object):
         """
         for _, entry in self.walk():
             if isinstance(entry, UnserializedPackageEntry):
-                raise NotImplementedError("package.build() is not supported for LazySerializedPackageEntry")
+                raise NotImplementedError("package.build() is not supported for UnserializedPackageEntry")
 
         self._set_commit_message(message)
 
@@ -1021,7 +1037,7 @@ class Package(object):
         """
         for _, entry in self.walk():
             if isinstance(entry, UnserializedPackageEntry):
-                raise QuiltException("Package contains LazySerializedPackageEntry. Manifest cannot be generated until "
+                raise QuiltException("Package contains UnserializedPackageEntry. Manifest cannot be generated until "
                                      "this is serialized using package.push()")
 
         yield self._meta
@@ -1052,7 +1068,7 @@ class Package(object):
 
         validate_key(logical_key)
 
-        if entry is None: # Entry can now be an object where the truthiness is ambiguous
+        if entry is None: # Entry can be an object where the truthiness is ambiguous
             current_working_dir = pathlib.Path.cwd()
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
@@ -1072,12 +1088,10 @@ class Package(object):
             entry = entry._clone()
 
         elif UnserializedPackageEntry.object_is_serializable(entry):
-            desired_file_ext = pathlib.Path(logical_key).suffix
-            if desired_file_ext.startswith("."):
-                desired_file_ext = desired_file_ext[1:]
-            if desired_file_ext == "":
-                desired_file_ext = None
-            entry = UnserializedPackageEntry(entry, meta=meta, desired_extension=desired_file_ext, **format_opts)
+            ext = pathlib.Path(logical_key).suffix[1:]
+            if ext == "":
+                ext = None
+            entry = UnserializedPackageEntry(entry, meta=meta, desired_extension=ext, **format_opts)
 
 
         else:
@@ -1237,10 +1251,11 @@ class Package(object):
 
     def write_unserialized_package_entries(self):
         """
-        Serializes any UnserializedPackageEntries in the Package to tempfiles.
-        After this step, all package entries are PackageEntrie
+        Serializes any UnserializedPackageEntries in the Package to tempfiles and sets logical_key=PackageEntry.
+        After this step, all package entries are PackageEntries
 
-        Returns list of tempfiles that need to be cleaned up later
+        Returns:
+            List of tempfiles that need to be cleaned up later
         """
         temp_files = []  # Keep track of what we need to clean up at the end of _materialize
         for logical_key, entry in self.walk():
