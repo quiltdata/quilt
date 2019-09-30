@@ -15,13 +15,16 @@ ATHENA_DATABASE = os.environ['ATHENA_DATABASE']
 CLOUDTRAIL_BUCKET = os.environ['CLOUDTRAIL_BUCKET']
 # Bucket where query results will be stored.
 QUERY_RESULT_BUCKET = os.environ['QUERY_RESULT_BUCKET']
-# A temporary directory where Athena query results will be written.
-QUERY_TEMP_DIR = os.environ['QUERY_TEMP_DIR']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
+# A temporary directory where Athena query results will be written.
+QUERY_TEMP_DIR = 'AthenaQueryResults'
+
+# Pre-processed CloudTrail logs, persistent across different runs of the lambda.
 OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 
+# Timestamp for the dir above.
 LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
 

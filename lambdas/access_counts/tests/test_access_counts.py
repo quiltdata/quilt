@@ -17,7 +17,6 @@ class TestAccessCounts(TestCase):
             'ATHENA_DATABASE': 'athena-db',
             'CLOUDTRAIL_BUCKET': 'cloudtrail-bucket',
             'QUERY_RESULT_BUCKET': 'results-bucket',
-            'QUERY_TEMP_DIR': 'AthenaQueryResults',
             'ACCESS_COUNTS_OUTPUT_DIR': 'AccessCounts',
         })
         self.env_patcher.start()
