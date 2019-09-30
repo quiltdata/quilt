@@ -65,6 +65,13 @@ class TestAccessCounts(TestCase):
             }
         )
 
+    def _run_queries(self, queries):
+        for idx, query in enumerate(queries):
+            self._start_query(query, str(idx))
+
+        for _ in queries:
+            self._end_query()
+
     def test_access_counts(self):
         import index
 
@@ -121,34 +128,17 @@ class TestAccessCounts(TestCase):
             }
         )
 
-        for idx, table in enumerate(['cloudtrail', 'object_access_log', 'package_hashes']):
-            self._start_query(f'DROP TABLE IF EXISTS {table}', str(idx))
+        self._run_queries([index.DROP_CLOUDTRAIL, index.DROP_OBJECT_ACCESS_LOG, index.DROP_PACKAGE_HASHES])
 
-        for _ in range(3):
-            self._end_query()
+        self._run_queries([index.CREATE_CLOUDTRAIL, index.CREATE_OBJECT_ACCESS_LOG, index.CREATE_PACKAGE_HASHES])
 
-        for idx, query in enumerate([index.CREATE_CLOUDTRAIL, index.CREATE_OBJECT_ACCESS_LOG, index.CREATE_PACKAGE_HASHES]):
-            self._start_query(query, str(idx))
-
-        for _ in range(3):
-            self._end_query()
-
-        for idx, query in enumerate([
+        self._run_queries([
             index.REPAIR_OBJECT_ACCESS_LOG,
             index.ADD_CLOUDTRAIL_PARTITION.format(account='123456', region='ng-north-1', year=2009, month=2, day=12),
             index.ADD_CLOUDTRAIL_PARTITION.format(account='123456', region='ng-north-1', year=2009, month=2, day=13),
-        ]):
-            self._start_query(query, str(idx))
+        ])
 
-        for _ in range(3):
-            self._end_query()
-
-        self._start_query(
-            index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp()),
-            'blah'
-        )
-
-        self._end_query('blah')
+        self._run_queries([index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())])
 
         self.s3_stubber.add_response(
             method='put_object',
@@ -161,12 +151,8 @@ class TestAccessCounts(TestCase):
             service_response={}
         )
 
-        for idx, query in enumerate([index.OBJECT_ACCESS_COUNTS, index.PACKAGE_ACCESS_COUNTS, index.PACKAGE_VERSION_ACCESS_COUNTS,
-                                     index.BUCKET_ACCESS_COUNTS, index.EXTS_ACCESS_COUNTS]):
-            self._start_query(query, str(idx))
-
-        for _ in range(5):
-            self._end_query()
+        self._run_queries([index.OBJECT_ACCESS_COUNTS, index.PACKAGE_ACCESS_COUNTS, index.PACKAGE_VERSION_ACCESS_COUNTS,
+                           index.BUCKET_ACCESS_COUNTS, index.EXTS_ACCESS_COUNTS])
 
         for idx, name in enumerate(['Objects', 'Packages', 'PackageVersions', 'Bucket', 'Exts']):
             self.s3_stubber.add_response(
