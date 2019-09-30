@@ -63,7 +63,7 @@ class PackageEntry(object):
     def __init__(self, physical_keys, size, hash_obj, meta):
         """
         Creates an entry.
-
+*
         Args:
             physical_keys: a nonempty list of URIs (either `s3://` or `file://`)
             size(number): size of object in bytes
@@ -103,9 +103,6 @@ class PackageEntry(object):
         return copy.deepcopy(ret)
 
     def _clone(self):
-        """
-        Returns clone of this PackageEntry.
-        """
         return self.__class__(copy.deepcopy(self.physical_keys), self.size, \
                               copy.deepcopy(self.hash), copy.deepcopy(self._meta))
 
@@ -227,6 +224,175 @@ class PackageEntry(object):
         Shorthand for self.deserialize()
         """
         return self.deserialize(func=func, **kwargs)
+
+
+
+
+
+
+
+
+
+
+
+
+
+class LazySerializedPackageEntry(object):
+
+    def __init__(self, obj, meta, desired_extension=None):
+        self.obj = obj
+        self._meta = meta or {}
+        self.desired_extension = desired_extension
+
+        self.serialized = False
+        self.hash = None
+        self.size = None
+
+
+
+
+
+        # TODO: Find serializer and raise error if required serialized doesn't exist
+
+    def __eq__(self, other):
+        return (
+            isinstance(self, type(other)) # LSPE is never equal to PackageEntry
+            and self.obj == other.obj # Is it an okay idea to delegate equality to the obj type?
+            and self.hash == other.hash # Is an LSPE that has been serialized and had the hash generated equal to one that has not?
+            and self.size == other.size # Same point as above re:serialized vs unserialized equality
+            and self._meta == other._meta
+        )
+
+    def __repr__(self):
+        return f"LazySerializedPackageEntry('{self.obj}', serialized={self.serialized})"
+
+    def as_dict(self):
+        """
+        Returns dict representation of entry.
+        """
+        ret = {
+            'obj': str(self.obj),
+            'meta': self._meta,
+            'desired_extension': self.desired_extension,
+            'serialized': self.serialized,
+            'size': self.size,
+            'hash': self.hash,
+
+        }
+        return copy.deepcopy(ret) # Performance implications for large object?
+
+    def _clone(self):
+        return self.__class__(copy.deepcopy(self.obj),
+                              copy.deepcopy(self._meta),
+                              self.desired_extension)
+
+    @property
+    def meta(self):
+        return self._meta.get('user_meta', dict())
+
+    def set_meta(self, meta):
+        """
+        Sets the user_meta for this PackageEntry.
+        """
+        self._meta['user_meta'] = meta
+
+    def _verify_hash(self, read_bytes):
+        raise NotImplementedError("A LazySerializedPackageEntry cannot have a hash. The object must be serialized to "
+                                  "get the hash, at which point it becomes a PackageEntry")
+
+
+    # Why do we have this function?
+    def set(self, obj=None, meta=None, desired_extension=None):
+        raise NotImplementedError("Function has not been fully implemented yet as I do not understand the usecase")
+        # if obj is not None:
+        #     self.obj = obj
+        #     self.serialized = False
+        #     self.size = None
+        #     self.hash = None
+        # elif meta is not None:
+        #     self.set_meta(meta)
+        # else:
+        #     raise PackageException('Must specify either path or meta')
+
+    # Why do we have this function?
+    def get(self):
+        raise NotImplementedError("Function has not been fully implemented yet as I do not understand the usecase")
+        # return _to_singleton(self.physical_keys)
+
+    def deserialize(self, *args):
+        """ Accept *args to maintain API consistency with PackageEntry """
+        return self.obj
+
+    def fetch(self, dest=None):
+        raise NotImplementedError() # TODO: Write this function
+        # physical_key = _to_singleton(self.physical_keys)
+        #
+        # if dest is None:
+        #     name = pathlib.PurePosixPath(unquote(urlparse(physical_key).path)).name
+        #     dest = (pathlib.Path().resolve() / name).as_uri()
+        # else:
+        #     dest = fix_url(dest)
+        #
+        # copy_file(physical_key, dest, self._meta)
+        #
+        # # return a package reroot package physical keys after the copy operation succeeds
+        # # see GH#388 for context
+        # entry = self._clone()
+        # entry.physical_keys = [dest]
+        # return entry
+
+
+    def __call__(self, *args):
+        return self.deserialize(*args)
+
+    def to_package_entry(self):
+        """
+        Serialize to disk, return a PackageEntry
+        """
+
+        pass
+
+    def calculate_hash(self):
+        pass
+
+    def delete_local_file(self):
+        pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class Package(object):
@@ -655,7 +821,7 @@ class Package(object):
         if logical_key:
             obj = self[logical_key]
             if not isinstance(obj, PackageEntry):
-                raise ValueError("Key does point to a PackageEntry")
+                raise ValueError("Key does not point to a PackageEntry")
             return obj.get()
         else:
             # a package has a logical root directory if all of its children are rooted at the
@@ -733,6 +899,10 @@ class Package(object):
         return self
 
     def _fix_sha256(self):
+        for _, entry in self.walk():
+            if isinstance(entry, LazySerializedPackageEntry):
+                raise QuiltException("Cannot calculate hash of LazySerializedPackageEntry")
+
         entries = [entry for key, entry in self.walk() if entry.hash is None]
         if not entries:
             return
@@ -782,6 +952,10 @@ class Package(object):
         Returns:
             The top hash as a string.
         """
+        for _, entry in self.walk():
+            if isinstance(entry, LazySerializedPackageEntry):
+                raise NotImplementedError("package.build() is not supported for LazySerializedPackageEntry")
+
         self._set_commit_message(message)
 
         if registry is None:
@@ -832,8 +1006,13 @@ class Package(object):
     @property
     def manifest(self):
         """
-        Provides a generator of the dicts that make up the serialied package.
+        Provides a generator of the dicts that make up the serialized package.
         """
+        for _, entry in self.walk():
+            if isinstance(entry, LazySerializedPackageEntry):
+                raise QuiltException("Package contains LazySerializedPackageEntry. Manifest cannot be generated until "
+                                     "this is serialized using package.push()")
+
         yield self._meta
         for dir_key, meta in self._walk_dir_meta():
             yield {'logical_key': dir_key, 'meta': meta}
@@ -880,6 +1059,8 @@ class Package(object):
             entry = PackageEntry([url], size, None, orig_meta)
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
+
+
         else:
             raise TypeError(
                 f"Expected a string for entry, but got an instance of {type(entry)}."
@@ -1026,14 +1207,24 @@ class Package(object):
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
-        self._fix_sha256()
+
         pkg = self._materialize(dest)
+        self._fix_sha256() # AFAIK, there's no reason to calculate hash before pushing
         pkg.build(name, registry=registry, message=message)
         return pkg
 
+
+
+
     def _materialize(self, dest_url):
         """
-        Copies objects to path, then creates a new package that points to those objects.
+
+        First, serializes any LazySerializedPackageEntries in the Package.
+        After this step, all package entries are PackageEntries
+
+        Then copies all Package entries to the destination
+
+        Then creates a new package that points to those objects.
 
         Copies each object in this package to path according to logical key structure,
         and returns a package with physical_keys that point to the new copies.
@@ -1049,9 +1240,19 @@ class Package(object):
             fail to put bytes
             fail to put package to registry
         """
+
+        # This is when LazySerializedPackagedEntry is actually serialized and converted to a PackageEntry
+        temp_files = [] # Keep track of what we need to clean up at the end of _materialize
+        for logical_key, entry in self.walk():
+            if isinstance(entry, LazySerializedPackageEntry):
+                serialized_package_entry = entry.to_package_entry()
+                temp_files.append(_to_singleton(serialized_package_entry.physical_key))
+                self.set(logical_key, entry=serialized_package_entry)
+
+
         pkg = self.__class__()
         pkg._meta = self._meta
-        # Since all that is modified is physical keys, pkg will have the same top hash
+        # Due to LazySerializedPackageEntry changes, we will not have access to the tophash at this time
         file_list = []
         for logical_key, entry in self.walk():
             # Copy the datafiles in the package.
@@ -1067,7 +1268,15 @@ class Package(object):
             new_entry = entry._clone()
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
+
+        for temp_file in temp_files:
+            os.remove(temp_file)
+
         return pkg
+
+
+
+
 
     def diff(self, other_pkg):
         """
