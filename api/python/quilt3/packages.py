@@ -6,6 +6,7 @@ import json
 import pathlib
 import os
 import time
+import tempfile
 from urllib.parse import quote, urlparse, unquote
 import warnings
 
@@ -237,37 +238,7 @@ class PackageEntry(object):
 
 
 
-class LazySerializedPackageEntry(object):
-
-    def __init__(self, obj, meta, desired_extension=None, verbose=False):
-        self.obj = obj
-        self._meta = meta or {}
-        self.desired_extension = desired_extension
-
-        self.serialized = False
-        self.hash = None
-        self.size = None
-
-        format_handlers = FormatRegistry.search(type(obj), ext=desired_extension)
-        if desired_extension:
-            format_handlers = [f for f in format_handlers if desired_extension in f.handled_extensions]
-
-        if len(format_handlers) == 0:
-            if desired_extension:
-                raise QuiltException(f'Quilt does not know how to serialize a {type(obj)} as a {desired_extension} file. '
-                                     f'If you think this should be supported, please open an issue or PR at '
-                                     f'https://github.com/quiltdata/quilt')
-            else:
-                raise QuiltException(
-                    f'Quilt does not know how to serialize a {type(obj)}. '
-                    f'If you think this should be supported, please open an issue or PR at '
-                    f'https://github.com/quiltdata/quilt')
-
-        format_handler = format_handlers[0]
-        if verbose:
-            print("Using format_handler", format_handler)
-
-        self.serialize_fn = format_handler.serialize
+class UnserializedPackageEntry(object):
 
     @classmethod
     def object_is_serializable(cls, obj):
@@ -275,18 +246,41 @@ class LazySerializedPackageEntry(object):
         return len(format_handlers) > 0
 
 
+    def __init__(self, obj, meta, desired_extension=None, **format_opts):
+        self.obj = obj
+        self._meta = meta or {}
+        self.desired_extension = desired_extension
+        print(format_opts)
+        self.format_opts = format_opts
+
+        format_handlers = FormatRegistry.search(type(obj), ext=desired_extension)
+        if desired_extension:
+            format_handlers = [f for f in format_handlers if desired_extension in f.handled_extensions]
+
+        if len(format_handlers) == 0:
+            error_message = f'Quilt does not know how to serialize a {type(obj)}'
+            if desired_extension is not None:
+                error_message += f' as a {desired_extension} file'
+            error_message += f'. If you think this should be supported, please open an issue or PR at ' \
+                             f'https://github.com/quiltdata/quilt'
+            raise QuiltException(error_message)
+
+        self.serialize_fn = format_handlers[0].serialize
+
+
+
+
 
     def __eq__(self, other):
         return (
-            isinstance(self, type(other)) # LSPE is never equal to PackageEntry
+            isinstance(self, type(other))
             and self.obj == other.obj # Is it an okay idea to delegate equality to the obj type?
-            and self.hash == other.hash # Is an LSPE that has been serialized and had the hash generated equal to one that has not?
-            and self.size == other.size # Same point as above re:serialized vs unserialized equality
             and self._meta == other._meta
+            and self.desired_extension == other.desired_extension
         )
 
     def __repr__(self):
-        return f"LazySerializedPackageEntry('{self.obj}', serialized={self.serialized})"
+        return f"UnserializedPackageEntry('{self.obj}')"
 
     def as_dict(self):
         """
@@ -296,12 +290,8 @@ class LazySerializedPackageEntry(object):
             'obj': str(self.obj),
             'meta': self._meta,
             'desired_extension': self.desired_extension,
-            'serialized': self.serialized,
-            'size': self.size,
-            'hash': self.hash,
-
         }
-        return copy.deepcopy(ret) # Performance implications for large object?
+        return copy.deepcopy(ret) # TODO: Consider performance implications for large object?
 
     def _clone(self):
         return self.__class__(copy.deepcopy(self.obj),
@@ -318,50 +308,37 @@ class LazySerializedPackageEntry(object):
         """
         self._meta['user_meta'] = meta
 
+    # Exists to allow API compatibility with PackageEntry
     def _verify_hash(self, read_bytes):
-        raise NotImplementedError("A LazySerializedPackageEntry cannot have a hash. The object must be serialized to "
-                                  "get the hash, at which point it becomes a PackageEntry")
+        """ Function exists for API compatibility with PackageEntry """
+        raise NotImplementedError("An UnserializedPackageEntry cannot have a hash. Consider using to_package_entry() to "
+                                  "serialize the object to disk and create a PackageEntry")
 
 
-    # Why do we have this function?
     def set(self, obj=None, meta=None, desired_extension=None):
-        raise NotImplementedError("Function has not been fully implemented yet as I do not understand the usecase")
-        # if obj is not None:
-        #     self.obj = obj
-        #     self.serialized = False
-        #     self.size = None
-        #     self.hash = None
-        # elif meta is not None:
-        #     self.set_meta(meta)
-        # else:
-        #     raise PackageException('Must specify either path or meta')
+        if obj is not None:
+            self.obj = obj
+        elif meta is not None:
+            self.set_meta(meta)
+        elif desired_extension is not None:
+            self.desired_extension = desired_extension
+        else:
+            raise PackageException('Must specify either obj, meta or desired_extension')
 
-    # Why do we have this function?
+
     def get(self):
-        raise NotImplementedError("Function has not been fully implemented yet as I do not understand the usecase")
-        # return _to_singleton(self.physical_keys)
+        """ Function exists for API compatibility with PackageEntry """
+        raise NotImplementedError("UnserializedPackageEntry does not have a physical key associated with it. Consider "
+                                  "using to_package_entry() to serialize the object to disk and create a PackageEntry")
 
     def deserialize(self, *args):
         """ Accept *args to maintain API consistency with PackageEntry """
         return self.obj
 
     def fetch(self, dest=None):
-        raise NotImplementedError() # TODO: Write this function
-        # physical_key = _to_singleton(self.physical_keys)
-        #
-        # if dest is None:
-        #     name = pathlib.PurePosixPath(unquote(urlparse(physical_key).path)).name
-        #     dest = (pathlib.Path().resolve() / name).as_uri()
-        # else:
-        #     dest = fix_url(dest)
-        #
-        # copy_file(physical_key, dest, self._meta)
-        #
-        # # return a package reroot package physical keys after the copy operation succeeds
-        # # see GH#388 for context
-        # entry = self._clone()
-        # entry.physical_keys = [dest]
-        # return entry
+        raise NotImplementedError("UnserializedPackageEntry does not have a physical key associated with it. Consider "
+                                  "using to_package_entry() to serialize the object to disk and create a PackageEntry")
+
 
 
     def __call__(self, *args):
@@ -371,14 +348,27 @@ class LazySerializedPackageEntry(object):
         """
         Serialize to disk, return a PackageEntry
         """
+        # 1. Serialize the object to bytes
+        # 2. Write the bytes to a named temporary file
+        # 3. Create a fresh PackageEntry from the file
+        serialized_object_bytes, new_meta = self.serialize_fn(self.obj,
+                                                              self.meta,
+                                                              self.desired_extension,
+                                                              **self.format_opts)
+        tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=f'.{self.desired_extension}')
+        tmpfile_url = f'file://{tmpfile.name}'
+        put_bytes(serialized_object_bytes, tmpfile_url, meta=self.meta)
+        size, _, _ = get_size_and_meta(tmpfile_url)
+        print("Tempfile URL", tmpfile_url)
+        print("Tempfile size", size)
+        return PackageEntry([tmpfile_url], size, hash_obj=None, meta=self.meta), tmpfile
 
-        pass
 
-    def calculate_hash(self):
-        pass
 
-    def delete_local_file(self):
-        pass
+
+
+
+
 
 
 
@@ -437,14 +427,13 @@ class Package(object):
             if not keys:
                 return result
 
+            def check_entry_is_remote(logical_key, entry):
+                if isinstance(entry, PackageEntry):
+                    return urlparse(fix_url(_to_singleton(entry.physical_keys))).scheme != 'file'
+                return False
+
             if parent:
-                has_remote_entries = any(
-                    self.map(
-                        lambda lk, entry: urlparse(
-                            fix_url(_to_singleton(entry.physical_keys))
-                        ).scheme != 'file'
-                    )
-                )
+                has_remote_entries = any(self.map(check_entry_is_remote))
                 pkg_type = 'remote' if has_remote_entries else 'local'
                 result = f'({pkg_type} Package)\n'
 
@@ -687,7 +676,7 @@ class Package(object):
         with keys in alphabetical order.
         """
         for name, child in sorted(self._children.items()):
-            if isinstance(child, PackageEntry):
+            if isinstance(child, (PackageEntry, UnserializedPackageEntry)):
                 yield name, child
             else:
                 for key, value in child.walk():
@@ -922,7 +911,7 @@ class Package(object):
 
     def _fix_sha256(self):
         for _, entry in self.walk():
-            if isinstance(entry, LazySerializedPackageEntry):
+            if isinstance(entry, UnserializedPackageEntry):
                 raise QuiltException("Cannot calculate hash of LazySerializedPackageEntry")
 
         entries = [entry for key, entry in self.walk() if entry.hash is None]
@@ -975,7 +964,7 @@ class Package(object):
             The top hash as a string.
         """
         for _, entry in self.walk():
-            if isinstance(entry, LazySerializedPackageEntry):
+            if isinstance(entry, UnserializedPackageEntry):
                 raise NotImplementedError("package.build() is not supported for LazySerializedPackageEntry")
 
         self._set_commit_message(message)
@@ -1031,7 +1020,7 @@ class Package(object):
         Provides a generator of the dicts that make up the serialized package.
         """
         for _, entry in self.walk():
-            if isinstance(entry, LazySerializedPackageEntry):
+            if isinstance(entry, UnserializedPackageEntry):
                 raise QuiltException("Package contains LazySerializedPackageEntry. Manifest cannot be generated until "
                                      "this is serialized using package.push()")
 
@@ -1041,7 +1030,7 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None, verbose=False):
+    def set(self, logical_key, entry=None, meta=None, **format_opts):
         """
         Returns self with the object at logical_key set to entry.
 
@@ -1082,13 +1071,13 @@ class Package(object):
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
 
-        elif LazySerializedPackageEntry.object_is_serializable(entry):
+        elif UnserializedPackageEntry.object_is_serializable(entry):
             desired_file_ext = pathlib.Path(logical_key).suffix
             if desired_file_ext.startswith("."):
                 desired_file_ext = desired_file_ext[1:]
             if desired_file_ext == "":
                 desired_file_ext = None
-            entry = LazySerializedPackageEntry(entry, meta=meta, desired_extension=desired_file_ext, verbose=verbose)
+            entry = UnserializedPackageEntry(entry, meta=meta, desired_extension=desired_file_ext, **format_opts)
 
 
         else:
@@ -1237,21 +1226,41 @@ class Package(object):
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
-
+        tmpfiles_to_be_deleted = self.write_unserialized_package_entries()
+        self._fix_sha256()
         pkg = self._materialize(dest)
-        self._fix_sha256() # AFAIK, there's no reason to calculate hash before pushing
         pkg.build(name, registry=registry, message=message)
+
+        self.delete_package_entry_tempfiles(tmpfiles_to_be_deleted)
         return pkg
+
+
+    def write_unserialized_package_entries(self):
+        """
+        Serializes any UnserializedPackageEntries in the Package to tempfiles.
+        After this step, all package entries are PackageEntrie
+
+        Returns list of tempfiles that need to be cleaned up later
+        """
+        temp_files = []  # Keep track of what we need to clean up at the end of _materialize
+        for logical_key, entry in self.walk():
+            if isinstance(entry, UnserializedPackageEntry):
+                serialized_package_entry, tmpfile = entry.to_package_entry()
+                print(serialized_package_entry)
+                temp_files.append(tmpfile)
+                self.set(logical_key, entry=serialized_package_entry)
+        return temp_files
+
+
+    def delete_package_entry_tempfiles(self, tmpfiles_to_be_deleted):
+        for tmpfile in tmpfiles_to_be_deleted:
+            os.unlink(tmpfile.name)
 
 
 
 
     def _materialize(self, dest_url):
         """
-
-        First, serializes any LazySerializedPackageEntries in the Package.
-        After this step, all package entries are PackageEntries
-
         Then copies all Package entries to the destination
 
         Then creates a new package that points to those objects.
@@ -1271,15 +1280,6 @@ class Package(object):
             fail to put package to registry
         """
 
-        # This is when LazySerializedPackagedEntry is actually serialized and converted to a PackageEntry
-        temp_files = [] # Keep track of what we need to clean up at the end of _materialize
-        for logical_key, entry in self.walk():
-            if isinstance(entry, LazySerializedPackageEntry):
-                serialized_package_entry = entry.to_package_entry()
-                temp_files.append(_to_singleton(serialized_package_entry.physical_key))
-                self.set(logical_key, entry=serialized_package_entry)
-
-
         pkg = self.__class__()
         pkg._meta = self._meta
         # Due to LazySerializedPackageEntry changes, we will not have access to the tophash at this time
@@ -1298,9 +1298,6 @@ class Package(object):
             new_entry = entry._clone()
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
-
-        for temp_file in temp_files:
-            os.remove(temp_file)
 
         return pkg
 
