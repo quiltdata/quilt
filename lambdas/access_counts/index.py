@@ -20,8 +20,9 @@ QUERY_TEMP_DIR = os.environ['QUERY_TEMP_DIR']
 # Directory where the summary files will be stored.
 ACCESS_COUNTS_OUTPUT_DIR = os.environ['ACCESS_COUNTS_OUTPUT_DIR']
 
+OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 
-LAST_UPDATE_KEY = 'ObjectAccessLog.last_updated_ts.txt'
+LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
 
 def sql_escape(s):
@@ -102,7 +103,7 @@ CREATE_OBJECT_ACCESS_LOG = textwrap.dedent(f"""\
     ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
     STORED AS INPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat'
     OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-    LOCATION 's3://{sql_escape(QUERY_RESULT_BUCKET)}/ObjectAccessLog/'
+    LOCATION 's3://{sql_escape(QUERY_RESULT_BUCKET)}/{sql_escape(OBJECT_ACCESS_LOG_DIR)}/'
     TBLPROPERTIES ('parquet.compression'='SNAPPY')
 """)
 
@@ -315,6 +316,8 @@ def handler(event, context):
         start_ts = datetime.fromtimestamp(float(s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()))
     except s3.exceptions.NoSuchKey as ex:
         start_ts = end_ts - timedelta(days=365)
+        # We start from scratch, so make sure we don't have any old data.
+        delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
 
     # Make sure to use UTC dates for CloudTrail partitioning.
     start_date = start_ts.astimezone(timezone.utc).date()
@@ -352,6 +355,10 @@ def handler(event, context):
     # Load object access log partitions, after the object access log table is created.
     # Create CloudTrail partitions, after the CloudTrail table is created.
     run_multiple_queries([REPAIR_OBJECT_ACCESS_LOG] + partition_queries)
+
+    # Delete the old timestamp: if the INSERT query or put_object fail, make sure we regenerate everything next time,
+    # instead of ending up with duplicate logs.
+    s3.delete_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)
 
     # Scan CloudTrail and insert new data into "object_access_log".
     insert_query = INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())

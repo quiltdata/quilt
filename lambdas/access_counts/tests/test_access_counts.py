@@ -138,6 +138,15 @@ class TestAccessCounts(TestCase):
             index.ADD_CLOUDTRAIL_PARTITION.format(account='123456', region='ng-north-1', year=2009, month=2, day=13),
         ])
 
+        self.s3_stubber.add_response(
+            method='delete_object',
+            expected_params={
+                'Bucket': 'results-bucket',
+                'Key': 'ObjectAccessLog.last_updated_ts.txt',
+            },
+            service_response={}
+        )
+
         self._run_queries([index.INSERT_INTO_OBJECT_ACCESS_LOG.format(start_ts=start_ts.timestamp(), end_ts=end_ts.timestamp())])
 
         self.s3_stubber.add_response(
