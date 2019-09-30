@@ -1233,35 +1233,43 @@ class Package(object):
                 )
 
         tmpfiles_to_be_deleted = self.write_unserialized_package_entries()
-        self._fix_sha256()
-        pkg = self._materialize(dest)
-        pkg.build(name, registry=registry, message=message)
 
-        self.delete_package_entry_tempfiles(tmpfiles_to_be_deleted)
-        return pkg
+        try:
+            self._fix_sha256()
+            pkg = self._materialize(dest)
+            pkg.build(name, registry=registry, message=message)
+            self.delete_tempfiles(tmpfiles_to_be_deleted)
+            return pkg
+        except Exception as e:
+            # Make sure we aren't leaving tempfiles lying around in the case of failure
+            self.delete_tempfiles(tmpfiles_to_be_deleted)
+            raise e
+
 
 
     def write_unserialized_package_entries(self):
         """
         Serializes any UnserializedPackageEntries in the Package to tempfiles and sets logical_key=PackageEntry.
-        After this step, all package entries are PackageEntries
+        After this step, all entries in the package are PackageEntries
 
         Returns:
-            List of tempfiles that need to be cleaned up later
+            List of tempfiles that need to be cleaned up
         """
-        temp_files = []  # Keep track of what we need to clean up at the end of _materialize
+        temp_files = []
         for logical_key, entry in self.walk():
             if isinstance(entry, UnserializedPackageEntry):
-                serialized_package_entry, tmpfile = entry.to_package_entry()
-                print(serialized_package_entry)
+                package_entry, tmpfile = entry.to_package_entry()
+                self.set(logical_key, entry=package_entry)
                 temp_files.append(tmpfile)
-                self.set(logical_key, entry=serialized_package_entry)
         return temp_files
 
 
-    def delete_package_entry_tempfiles(self, tmpfiles_to_be_deleted):
+    def delete_tempfiles(self, tmpfiles_to_be_deleted):
         for tmpfile in tmpfiles_to_be_deleted:
-            os.unlink(tmpfile.name)
+            try:
+                os.remove(tmpfile.name)
+            except Exception as e:
+                print("Non-fatal error while trying to delete temporary file", tmpfile.name, str(e))
 
 
 
@@ -1289,7 +1297,6 @@ class Package(object):
 
         pkg = self.__class__()
         pkg._meta = self._meta
-        # Due to LazySerializedPackageEntry changes, we will not have access to the tophash at this time
         file_list = []
         for logical_key, entry in self.walk():
             # Copy the datafiles in the package.
