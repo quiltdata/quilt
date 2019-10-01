@@ -230,17 +230,6 @@ class PackageEntry(object):
         return self.deserialize(func=func, **kwargs)
 
 
-
-
-
-
-
-
-
-
-
-
-
 class UnserializedPackageEntry(object):
     """
     This class is a mechanism for allowing users to add an in-memory object to a package without incurring serialization
@@ -373,50 +362,6 @@ class UnserializedPackageEntry(object):
         put_bytes(serialized_object_bytes, tmpfile_url, meta=self.meta)
         size, _, _ = get_size_and_meta(tmpfile_url)
         return PackageEntry([tmpfile_url], size, hash_obj=None, meta=self.meta), tmpfile
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 class Package(object):
     """ In-memory representation of a package """

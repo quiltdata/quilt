@@ -6,7 +6,6 @@ build
 dist
 node_modules
 tmp_*
-.ignore/
 
 **/.DS_Store
 
