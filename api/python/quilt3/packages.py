@@ -55,6 +55,11 @@ def _to_singleton(physical_keys):
     return physical_keys[0]
 
 
+def object_is_serializable(obj):
+    """ Determine if quilt is capable of serializing this type of object """
+    format_handlers = FormatRegistry.search(type(obj))
+    return len(format_handlers) > 0
+
 class PackageEntry(object):
     """
     Represents an entry at a logical key inside a package.
@@ -840,13 +845,13 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None):
+    def set(self, logical_key, entry=None, meta=None, write_dir=None, **serialization_format_opts):
         """
         Returns self with the object at logical_key set to entry.
 
         Args:
             logical_key(string): logical key to update
-            entry(PackageEntry OR string): new entry to place at logical_key in the package.
+            entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
             meta(dict): user level metadata dict to attach to entry
@@ -862,7 +867,7 @@ class Package(object):
 
         validate_key(logical_key)
 
-        if not entry:
+        if entry is None:
             current_working_dir = pathlib.Path.cwd()
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
@@ -878,8 +883,38 @@ class Package(object):
                 if not current_version and version:
                     url = make_s3_url(bucket, key, version)
             entry = PackageEntry([url], size, None, orig_meta)
+
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
+
+        elif object_is_serializable(entry):
+            write_dir = write_dir or os.getcwd()
+            write_location = pathlib.Path(write_dir) / logical_key
+            write_url = fix_url(write_location)
+            print(write_url)
+            ext = pathlib.Path(write_location).suffix
+            ext = None if ext == "" else ext[1:]  # No desired ext if no suffix, otherwise turn ".txt" -> "txt"
+            assert ext is not None, "The write location must have an extension indicating file type"
+
+            format_handlers = FormatRegistry.search(type(entry), ext=ext)
+            if ext:
+                format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
+
+            if len(format_handlers) == 0:
+                error_message =  f'Quilt does not know how to serialize a {type(entry)}'
+                error_message += "." if ext is None else f' as a {ext} file. '
+                error_message += f'If you think this should be supported, please open an issue or PR at ' \
+                                 f'https://github.com/quiltdata/quilt'
+                raise QuiltException(error_message)
+
+            serialized_object_bytes, new_meta = format_handlers[0].serialize(entry,
+                                                                             meta,
+                                                                             ext,
+                                                                             **serialization_format_opts)
+            put_bytes(serialized_object_bytes, write_url, meta=self.meta)
+            size, _, _ = get_size_and_meta(write_url)
+            entry = PackageEntry([write_url], size, hash_obj=None, meta=self.meta)
+
         else:
             raise TypeError(
                 f"Expected a string for entry, but got an instance of {type(entry)}."
