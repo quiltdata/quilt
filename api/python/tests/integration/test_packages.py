@@ -43,6 +43,7 @@ def mock_make_api_call(self, operation_name, kwarg):
     raise NotImplementedError(operation_name)
 
 
+
 class PackageTest(QuiltTestCase):
     def setUp(self):
         super().setUp()
@@ -51,19 +52,12 @@ class PackageTest(QuiltTestCase):
     def tearDown(self):
         super().tearDown()
         if len(self.file_sweeper_path_list) > 0:
-            print("File sweeper running. No files should need to be removed unless a test failed.")
-            print("Files to ensure are deleted:")
-            for fpath in self.file_sweeper_path_list:
-                print("\t", fpath)
             for fpath in self.file_sweeper_path_list:
                 if os.path.exists(fpath):
                     try:
                         os.remove(fpath)
-                        print("Removed", fpath)
                     except Exception as e:
                         print("Error when removing file", fpath, str(e))
-                else:
-                    print("File does not exist", fpath)
 
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
