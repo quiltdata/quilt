@@ -12,7 +12,7 @@ if __name__ == '__main__':
 
     pkg = quilt3.Package()
 
-    pkg.set("myLSPEdataframe1.parquet", gen_large_dataframe(100_000, 100))
+    pkg.set("myLSPEdataframe1.parquet", gen_large_dataframe(100_000, 100), serialization_location="")
     pkg.set("myLSPEdataframe2.parquet", gen_large_dataframe(100_000, 100))
     pkg.set("myLSPEdataframe3.parquet", gen_large_dataframe(100_000, 100))
     pkg.set("myLSPEdataframe4.parquet", gen_large_dataframe(100_000, 100))
