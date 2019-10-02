@@ -427,6 +427,18 @@ class Package(object):
             raise TypeError('Invalid logical_key: %r' % logical_key)
         return path
 
+    @classmethod
+    def delete_local_file(cls, physical_key):
+        key_is_local = urlparse(fix_url(physical_key)).scheme == 'file'
+        if not key_is_local:
+            raise QuiltException("physical_key does not point to a local file")
+        physical_key_path = pathlib.Path(parse_file_url(urlparse(physical_key)))
+        if os.path.isdir(physical_key_path):
+            raise QuiltException("physical_key points to directory, not a file")
+        if not physical_key_path.exists():
+            raise QuiltException("physical_key points to a local file that does not exist")
+        os.remove(physical_key_path)
+
     def __contains__(self, logical_key):
         """
         Checks whether the package contains a specified logical_key.
@@ -731,6 +743,8 @@ class Package(object):
                     )
 
             return hypothesized_root_path
+
+    # def get_as_pathlib(self):
 
     def set_meta(self, meta):
         """

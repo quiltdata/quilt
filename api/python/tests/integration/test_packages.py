@@ -591,6 +591,20 @@ class PackageTest(QuiltTestCase):
             assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
                                                    "was serialized"
 
+        # Confirm that delete of temporary files is trivial
+        Package.delete_local_file(pkg.get("mydataframe1.parquet"))
+        Package.delete_local_file(pkg.get("mydataframe2.csv"))
+        Package.delete_local_file(pkg.get("mydataframe3.tsv"))
+        Package.delete_local_file(pkg.get("mydataframe4.parquet"))
+        Package.delete_local_file(pkg.get("mydataframe5.csv"))
+        Package.delete_local_file(pkg.get("mydataframe6.tsv"))
+
+        for lk, entry in pkg.walk():
+            file_path = parse_file_url(urlparse(entry.physical_keys[0]))
+            assert not (pathlib.Path(file_path)).exists(), "The serialization files should have been deleted exist"
+
+            self.file_sweeper_path_list.append(file_path)
+
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
