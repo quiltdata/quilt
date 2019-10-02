@@ -857,7 +857,7 @@ class Package(object):
             entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
-                If entry is an object and we know how to serialize it, it we immediately be serialized and written to
+                If entry is an object and we know how to serialize it, it will immediately be serialized and written to
                 disk, either to serialization_location or to a location determined by the tempfile library
             meta(dict): user level metadata dict to attach to entry
             serialization_format_opts(dict): [when entry is an object]. Options to help Quilt understand how the object
@@ -953,7 +953,6 @@ class Package(object):
             raise QuiltException("Cannot overwrite directory with PackageEntry")
         pkg._children[path[-1]] = entry
 
-        self._fix_sha256()
         return self
 
     def _ensure_subpackage(self, path, ensure_no_entry=False):
