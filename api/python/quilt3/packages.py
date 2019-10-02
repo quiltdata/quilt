@@ -120,7 +120,6 @@ class PackageEntry(object):
     def meta(self):
         return self._meta.get('user_meta', dict())
 
-
     def set_meta(self, meta):
         """
         Sets the user_meta for this PackageEntry.
