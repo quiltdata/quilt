@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from collections import deque
 import copy
 import hashlib
@@ -9,7 +8,6 @@ import os
 import time
 import tempfile
 from urllib.parse import quote, urlparse, unquote
-import uuid
 import warnings
 
 import jsonlines
@@ -64,8 +62,7 @@ def object_is_serializable(obj):
     except QuiltException as e:
         return False
 
-
-class PackageEntry:
+class PackageEntry(object):
     """
     Represents an entry at a logical key inside a package.
     """
@@ -266,7 +263,7 @@ class Package(object):
                         ).scheme != 'file'
                     )
                 )
-                type = 'remote' if has_remote_entries else 'local'
+                pkg_type = 'remote' if has_remote_entries else 'local'
                 result = f'({pkg_type} Package)\n'
 
             for key in keys:
@@ -1088,7 +1085,6 @@ class Package(object):
         pkg = self._materialize(dest)
         pkg.build(name, registry=registry, message=message)
         return pkg
-
 
     def _materialize(self, dest_url):
         """
