@@ -3,7 +3,9 @@ from io import BytesIO
 import os
 import pathlib
 from pathlib import Path
+import pandas as pd
 import shutil
+from urllib.parse import urlparse
 
 import jsonlines
 from unittest.mock import patch, call, ANY
@@ -41,7 +43,30 @@ def mock_make_api_call(self, operation_name, kwarg):
     raise NotImplementedError(operation_name)
 
 
+
+
+
+
 class PackageTest(QuiltTestCase):
+    def setUp(self):
+        super().setUp()
+        self.file_sweeper_path_list = []
+
+    def tearDown(self):
+        super().tearDown()
+        print("File sweeper running. No files should need to be removed unless a test failed.")
+        print("Files to ensure are deleted:")
+        for fpath in self.file_sweeper_path_list:
+            print("\t", fpath)
+        for fpath in self.file_sweeper_path_list:
+            if os.path.exists(fpath):
+                try:
+                    os.remove(fpath)
+                    print("Removed", fpath)
+                except Exception as e:
+                    print("Error when removing file", fpath, str(e))
+            else:
+                print("File does not exist", fpath)
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -520,6 +545,8 @@ class PackageTest(QuiltTestCase):
         assert 'Quilt/Foo:latest' in pkgs_repr
         assert 'Quilt/Bar:latest' in pkgs_repr
 
+
+
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
         pkg = (
@@ -541,6 +568,57 @@ class PackageTest(QuiltTestCase):
         # Test shortcut codepath
         pkg = Package().set('bar.txt')
         assert test_file.resolve().as_uri() == pkg['bar.txt'].physical_keys[0]
+
+    def test_package_set_object(self):
+        """
+        1. Test that package.set('KEY', obj) does not raise Exception
+        2. Test that is created UnserializaedPackageEntry
+        3. Test that converting to serialized PackageEntries:
+            (a) serializes the file to disk
+            (b) replaces all UPE in the package
+        4. Test that the serialized package entry can be correct deserialized
+        :return:
+        """
+        pkg = Package()
+        nasty_string = 'a,"\tb'
+        # nasty_string = 67
+        num_col = [11, 22, 33]
+        str_col = ['a', 'b', nasty_string]
+        df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'})
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'})
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'})
+
+        for lk, entry in pkg.walk():
+            assert isinstance(entry, quilt3.packages.UnserializedPackageEntry)
+
+        tempfile_paths = pkg._serialize_unserialized_package_entries()
+        self.file_sweeper_path_list.extend(tempfile_paths)
+
+        for tempfile_path in tempfile_paths:
+            assert (pathlib.Path(tempfile_path)).exists(), "The temporary files should exist"
+
+        for lk, entry in pkg.walk():
+            assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
+                                                                    "converted to PackageEntries"
+            assert pathlib.Path(parse_file_url(urlparse(entry.physical_keys[0]))).exists(), "The physical key for each PackageEntry must exist"
+
+        pkg._fix_sha256()
+        for lk, entry in pkg.walk():
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
+                                                   "was serialized"
+
+        pkg.delete_temporary_files(tempfile_paths)
+        for lk, entry in pkg.walk():
+            assert not pathlib.Path(parse_file_url(urlparse(entry.physical_keys[0]))).exists(), "The serialized files should have been deleted"
+
+
+
+
+
+
+
+
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
@@ -592,7 +670,7 @@ class PackageTest(QuiltTestCase):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
         with pytest.raises(TypeError):
-            pkg.set('asdf/jkl', 123)
+            pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
         pkg = Package()
