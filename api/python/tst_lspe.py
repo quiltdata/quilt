@@ -18,7 +18,11 @@ if __name__ == '__main__':
     pkg.set("myLSPEdataframe4.parquet", gen_large_dataframe(100_000, 100))
     pkg.set("myLSPEdataframe5.parquet", gen_large_dataframe(100_000, 100))
 
+    pkg.build("armand/test", serialization_dir="./dir1/dir2")
+    print(pkg)
+    for l in pkg.manifest:
+        print(l)
 
-    pkg.push("armand/test",
-             "s3://armand-staging-t4",
-             message="Test")
+    # pkg.push("armand/test",
+    #          "s3://armand-staging-t4",
+    #          message="Test")

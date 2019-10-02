@@ -420,9 +420,11 @@ class UnserializedPackageEntry(PackageEntryInterface):
                                                               self.desired_extension,
                                                               **self.serialization_format_opts)
         if serialization_dir:
-            write_abs_path = pathlib.Path(serialization_dir).expanduser().absolute() / uuid.uuid1()
+            serialization_dir = pathlib.Path(serialization_dir).expanduser().absolute()
+            serialization_dir.mkdir(exist_ok=True, parents=True)
+            write_abs_path = serialization_dir / str(uuid.uuid1())
             if self.desired_extension:
-                write_abs_path += f'.{self.desired_extension}'
+                write_abs_path = write_abs_path.with_suffix(f'.{self.desired_extension}')
         else:
             suffix = f'.{self.desired_extension}' if self.desired_extension else None
             tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
@@ -977,7 +979,7 @@ class Package(object):
 
         self._meta.update({'message': msg})
 
-    def build(self, name=None, registry=None, message=None):
+    def build(self, name=None, registry=None, message=None, serialization_dir=None):
         """
         Serializes this package to a registry.
 
@@ -999,7 +1001,7 @@ class Package(object):
         validate_package_name(name)
         name = quote(name)
 
-        _ = self._serialize_unserialized_package_entries() # NOTE: Unlike push(), build() will not clean up files
+        _ = self._serialize_unserialized_package_entries(serialization_dir=serialization_dir) # NOTE: Unlike push(), build() will not clean up files
 
         self._fix_sha256()
         manifest = io.BytesIO()
@@ -1268,9 +1270,7 @@ class Package(object):
             self.delete_temporary_files(tmpfile_paths_to_be_deleted)
             raise e
 
-
-
-    def _serialize_unserialized_package_entries(self, cleanup_on_error=True):
+    def _serialize_unserialized_package_entries(self, serialization_dir=None, cleanup_on_error=True):
         """
         Serializes any UnserializedPackageEntries in the Package to tempfiles and sets logical_key=PackageEntry.
         After this step, all entries in the package are PackageEntries. In-place update
@@ -1282,7 +1282,7 @@ class Package(object):
         try:
             for logical_key, entry in self.walk():
                 if isinstance(entry, UnserializedPackageEntry):
-                    package_entry = entry.to_package_entry()
+                    package_entry = entry.to_package_entry(serialization_dir)
                     self.set(logical_key, entry=package_entry)
                     file_path =  parse_file_url(urlparse(package_entry.physical_keys[0]))
                     written_file_paths.append(file_path)

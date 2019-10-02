@@ -19,6 +19,7 @@ from ..utils import QuiltTestCase
 
 
 DATA_DIR = Path(__file__).parent / 'data'
+SERIALIZATION_DIR = Path(__file__).parent / 'serialization_dir'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
 
@@ -58,6 +59,8 @@ class PackageTest(QuiltTestCase):
                         os.remove(fpath)
                     except Exception as e:
                         print("Error when removing file", fpath, str(e))
+        if os.path.isdir(SERIALIZATION_DIR):
+            shutil.rmtree(SERIALIZATION_DIR)
 
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
@@ -555,15 +558,7 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert test_file.resolve().as_uri() == pkg['bar.txt'].physical_keys[0]
 
-    def test_package_set_object(self):
-        """
-        1. Test that package.set('KEY', obj) does not raise Exception
-        2. Test that is created UnserializaedPackageEntry
-        3. Test that converting to serialized PackageEntries:
-            (a) serializes the file to disk
-            (b) replaces all UPE in the package
-        4. Test that the serialized package entry can be correct deserialized
-        """
+    def test_set_package_entry_as_object(self):
         pkg = Package()
         nasty_string = 'a,"\tb'
         num_col = [11, 22, 33]
@@ -597,6 +592,32 @@ class PackageTest(QuiltTestCase):
         for lk, entry in pkg.walk():
             path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
             assert not pathlib.Path(path_to_file).exists(), "The serialized files should have been deleted"
+
+    def test_set_package_entry_as_object_and_build(self):
+        pkg = Package()
+        nasty_string = 'a,"\tb'
+        num_col = [11, 22, 33]
+        str_col = ['a', 'b', nasty_string]
+        df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'})
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'})
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'})
+
+        pkg.build("armand/test", serialization_dir=SERIALIZATION_DIR)
+
+        for l in pkg.manifest:
+            print(l)
+
+        for lk, entry in pkg.walk():
+            assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
+                                                                    "converted to PackageEntries"
+            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
+            assert pathlib.Path(path_to_file).exists(), "The physical key for each PackageEntry must exist"
+
+        pkg._fix_sha256()
+        for lk, entry in pkg.walk():
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
+                                                   "was serialized"
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
