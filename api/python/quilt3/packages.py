@@ -57,11 +57,11 @@ def _to_singleton(physical_keys):
 
     return physical_keys[0]
 
+
 class PackageEntryInterface(ABC):
     @abstractmethod
     def __eq__(self, other):
         pass
-
 
     @abstractmethod
     def __repr__(self):
@@ -108,7 +108,6 @@ class PackageEntryInterface(ABC):
     @abstractmethod
     def __call__(self):
         pass
-
 
 
 class PackageEntry(PackageEntryInterface):
@@ -305,8 +304,6 @@ class UnserializedPackageEntry(PackageEntryInterface):
         except QuiltException as e:
             return False
 
-
-
     def __init__(self, obj, meta, desired_extension=None, serialization_format_opts=None):
         self.obj = obj
         self._meta = meta or {}
@@ -331,12 +328,6 @@ class UnserializedPackageEntry(PackageEntryInterface):
 
         self.serialize_fn = format_handlers[0].serialize
 
-
-
-
-
-
-
     def __eq__(self, other):
         return (
             self.obj == other.obj # Is it an okay idea to delegate equality to the obj type?
@@ -358,7 +349,7 @@ class UnserializedPackageEntry(PackageEntryInterface):
             'desired_extension': self.desired_extension,
             'serialization_format_opts': self.serialization_format_opts
         }
-        return copy.deepcopy(ret) # TODO: Performance implications for large object?
+        return copy.deepcopy(ret) # TODO(armand): Performance implications for large object?
 
     def _clone(self):
         return self.__class__(copy.deepcopy(self.obj),
@@ -382,7 +373,6 @@ class UnserializedPackageEntry(PackageEntryInterface):
                 "object and create a PackageEntry"
         )
 
-
     def set(self, obj=None, meta=None, desired_extension=None, serialization_format_opts=None):
         if obj is not None:
             self.obj = obj
@@ -395,7 +385,6 @@ class UnserializedPackageEntry(PackageEntryInterface):
         else:
             raise PackageException(
                     'Must specify at least one of obj, meta, desired_extension or serialization_format_opts')
-
 
     def get(self):
         """
@@ -412,8 +401,6 @@ class UnserializedPackageEntry(PackageEntryInterface):
     def fetch(self, dest=None):
         raise NotImplementedError("UnserializedPackageEntry does not have a physical key associated with it. Consider "
                                   "using to_package_entry() to serialize the object to disk and create a PackageEntry")
-
-
 
     def __call__(self, *args):
         return self.deserialize(*args)
@@ -436,15 +423,12 @@ class UnserializedPackageEntry(PackageEntryInterface):
             write_abs_path = pathlib.Path(serialization_dir).expanduser().absolute() / uuid.uuid1()
             if self.desired_extension:
                 write_abs_path += f'.{self.desired_extension}'
-
         else:
             suffix = f'.{self.desired_extension}' if self.desired_extension else None
             tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
             write_abs_path = tmpfile.name
 
         write_url = fix_url(f'file://{write_abs_path}')
-
-
         put_bytes(serialized_object_bytes, write_url, meta=new_meta)
         size, _, _ = get_size_and_meta(write_url)
         return PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
@@ -718,7 +702,7 @@ class Package(object):
         with keys in alphabetical order.
         """
         for name, child in sorted(self._children.items()):
-            if isinstance(child, (PackageEntry, UnserializedPackageEntry)):
+            if isinstance(child, PackageEntryInterface):
                 yield name, child
             else:
                 for key, value in child.walk():
@@ -954,7 +938,7 @@ class Package(object):
     def _fix_sha256(self):
         for _, entry in self.walk():
             if isinstance(entry, UnserializedPackageEntry):
-                # Exit early if this operation can't succeed
+                # Exit ASAP if this operation can't succeed
                 raise QuiltException("Cannot calculate hash of an UnserializedPackageEntry")
 
         entries = [entry for key, entry in self.walk() if entry.hash is None]
@@ -1006,7 +990,6 @@ class Package(object):
         Returns:
             The top hash as a string.
         """
-
         self._set_commit_message(message)
 
         if registry is None:
@@ -1100,7 +1083,7 @@ class Package(object):
 
         validate_key(logical_key)
 
-        if entry is None: # Entry can be an object where the truthiness is ambiguous
+        if entry is None:
             current_working_dir = pathlib.Path.cwd()
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
@@ -1309,10 +1292,6 @@ class Package(object):
                 self.delete_temporary_files(written_file_paths)
             raise e
 
-
-
-
-
     def delete_temporary_files(self, file_paths_to_be_deleted):
         for file_path in file_paths_to_be_deleted:
             try:
@@ -1320,14 +1299,9 @@ class Package(object):
             except Exception as e:
                 print("Non-fatal error while trying to delete temporary file", file_path, str(e))
 
-
-
-
     def _materialize(self, dest_url):
         """
-        Then copies all Package entries to the destination
-
-        Then creates a new package that points to those objects.
+        Copies all Package entries to the destination, then creates a new package that points to those objects.
 
         Copies each object in this package to path according to logical key structure,
         and returns a package with physical_keys that point to the new copies.
@@ -1343,7 +1317,6 @@ class Package(object):
             fail to put bytes
             fail to put package to registry
         """
-
         pkg = self.__class__()
         pkg._meta = self._meta
         file_list = []
@@ -1361,12 +1334,7 @@ class Package(object):
             new_entry = entry._clone()
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
-
         return pkg
-
-
-
-
 
     def diff(self, other_pkg):
         """

@@ -43,10 +43,6 @@ def mock_make_api_call(self, operation_name, kwarg):
     raise NotImplementedError(operation_name)
 
 
-
-
-
-
 class PackageTest(QuiltTestCase):
     def setUp(self):
         super().setUp()
@@ -54,19 +50,21 @@ class PackageTest(QuiltTestCase):
 
     def tearDown(self):
         super().tearDown()
-        print("File sweeper running. No files should need to be removed unless a test failed.")
-        print("Files to ensure are deleted:")
-        for fpath in self.file_sweeper_path_list:
-            print("\t", fpath)
-        for fpath in self.file_sweeper_path_list:
-            if os.path.exists(fpath):
-                try:
-                    os.remove(fpath)
-                    print("Removed", fpath)
-                except Exception as e:
-                    print("Error when removing file", fpath, str(e))
-            else:
-                print("File does not exist", fpath)
+        if len(self.file_sweeper_path_list) > 0:
+            print("File sweeper running. No files should need to be removed unless a test failed.")
+            print("Files to ensure are deleted:")
+            for fpath in self.file_sweeper_path_list:
+                print("\t", fpath)
+            for fpath in self.file_sweeper_path_list:
+                if os.path.exists(fpath):
+                    try:
+                        os.remove(fpath)
+                        print("Removed", fpath)
+                    except Exception as e:
+                        print("Error when removing file", fpath, str(e))
+                else:
+                    print("File does not exist", fpath)
+
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -380,7 +378,6 @@ class PackageTest(QuiltTestCase):
         with patch('time.time', return_value=1234567890):
             new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
-
     def test_package_deserialize(self):
         """ Verify loading data from a local file. """
         pkg = (
@@ -470,7 +467,6 @@ class PackageTest(QuiltTestCase):
         assert pathlib.Path('foo').resolve().as_uri() == pkg['foo'].physical_keys[0]
         assert pathlib.Path('bar').resolve().as_uri() == pkg['bar'].physical_keys[0]
 
-
     def test_s3_set_dir(self):
         """ Verify building a package from an S3 directory. """
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
@@ -501,7 +497,6 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
-
     def test_package_entry_meta(self):
         pkg = (
             Package()
@@ -520,7 +515,6 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].set_meta({'value': 'other value'})
         assert pkg['foo'].meta == {'value': 'other value'}
         assert pkg['foo']._meta == {'target': 'unicode', 'user_meta': {'value': 'other value'}}
-
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
@@ -544,8 +538,6 @@ class PackageTest(QuiltTestCase):
         assert 'Quilt/Test:latest' in pkgs_repr
         assert 'Quilt/Foo:latest' in pkgs_repr
         assert 'Quilt/Bar:latest' in pkgs_repr
-
-
 
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
@@ -577,11 +569,9 @@ class PackageTest(QuiltTestCase):
             (a) serializes the file to disk
             (b) replaces all UPE in the package
         4. Test that the serialized package entry can be correct deserialized
-        :return:
         """
         pkg = Package()
         nasty_string = 'a,"\tb'
-        # nasty_string = 67
         num_col = [11, 22, 33]
         str_col = ['a', 'b', nasty_string]
         df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
@@ -601,7 +591,8 @@ class PackageTest(QuiltTestCase):
         for lk, entry in pkg.walk():
             assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
                                                                     "converted to PackageEntries"
-            assert pathlib.Path(parse_file_url(urlparse(entry.physical_keys[0]))).exists(), "The physical key for each PackageEntry must exist"
+            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
+            assert pathlib.Path(path_to_file).exists(), "The physical key for each PackageEntry must exist"
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
@@ -610,15 +601,8 @@ class PackageTest(QuiltTestCase):
 
         pkg.delete_temporary_files(tempfile_paths)
         for lk, entry in pkg.walk():
-            assert not pathlib.Path(parse_file_url(urlparse(entry.physical_keys[0]))).exists(), "The serialized files should have been deleted"
-
-
-
-
-
-
-
-
+            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
+            assert not pathlib.Path(path_to_file).exists(), "The serialized files should have been deleted"
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
