@@ -603,10 +603,7 @@ class PackageTest(QuiltTestCase):
         pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'})
         pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'})
 
-        pkg.build("armand/test", serialization_dir=SERIALIZATION_DIR)
-
-        for l in pkg.manifest:
-            print(l)
+        pkg.build("quilt/test", serialization_dir=SERIALIZATION_DIR)
 
         for lk, entry in pkg.walk():
             assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
