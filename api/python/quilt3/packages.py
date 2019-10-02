@@ -1106,6 +1106,7 @@ class Package(object):
         """
         pkg = self.__class__()
         pkg._meta = self._meta
+        # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
         for logical_key, entry in self.walk():
             # Copy the datafiles in the package.

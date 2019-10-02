@@ -373,6 +373,7 @@ class PackageTest(QuiltTestCase):
         with patch('time.time', return_value=1234567890):
             new_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
+
     def test_package_deserialize(self):
         """ Verify loading data from a local file. """
         pkg = (
@@ -462,6 +463,7 @@ class PackageTest(QuiltTestCase):
         assert pathlib.Path('foo').resolve().as_uri() == pkg['foo'].physical_keys[0]
         assert pathlib.Path('bar').resolve().as_uri() == pkg['bar'].physical_keys[0]
 
+
     def test_s3_set_dir(self):
         """ Verify building a package from an S3 directory. """
         with patch('quilt3.packages.list_object_versions') as list_object_versions_mock:
@@ -492,6 +494,7 @@ class PackageTest(QuiltTestCase):
 
             list_object_versions_mock.assert_called_with('bucket', 'foo/')
 
+
     def test_package_entry_meta(self):
         pkg = (
             Package()
@@ -510,6 +513,7 @@ class PackageTest(QuiltTestCase):
         pkg['foo'].set_meta({'value': 'other value'})
         assert pkg['foo'].meta == {'value': 'other value'}
         assert pkg['foo']._meta == {'target': 'unicode', 'user_meta': {'value': 'other value'}}
+
 
     def test_list_local_packages(self):
         """Verify that list returns packages in the appdirs directory."""
@@ -564,9 +568,12 @@ class PackageTest(QuiltTestCase):
         df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
 
         # Test with serialization_dir set
-        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'}, serialization_location=SERIALIZATION_DIR/"df1.parquet")
-        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'}, serialization_location=SERIALIZATION_DIR/"df2.csv")
-        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'}, serialization_location=SERIALIZATION_DIR/"df3.tsv")
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'},
+                serialization_location=SERIALIZATION_DIR/"df1.parquet")
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'},
+                serialization_location=SERIALIZATION_DIR/"df2.csv")
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'},
+                serialization_location=SERIALIZATION_DIR/"df3.tsv")
 
         # Test without serialization_dir set
         pkg.set("mydataframe4.parquet", df, meta={'user_meta': 'blah4'})
