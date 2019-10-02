@@ -59,8 +59,6 @@ class PackageTest(QuiltTestCase):
                         os.remove(fpath)
                     except Exception as e:
                         print("Error when removing file", fpath, str(e))
-        if os.path.isdir(SERIALIZATION_DIR):
-            shutil.rmtree(SERIALIZATION_DIR)
 
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
@@ -564,57 +562,28 @@ class PackageTest(QuiltTestCase):
         num_col = [11, 22, 33]
         str_col = ['a', 'b', nasty_string]
         df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
-        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'})
-        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'})
-        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'})
+
+        # Test with serialization_dir set
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'}, serialization_location=SERIALIZATION_DIR/"df1.parquet")
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'}, serialization_location=SERIALIZATION_DIR/"df2.csv")
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'}, serialization_location=SERIALIZATION_DIR/"df3.tsv")
+
+        # Test without serialization_dir set
+        pkg.set("mydataframe4.parquet", df, meta={'user_meta': 'blah4'})
+        pkg.set("mydataframe5.csv", df, meta={'user_meta': 'blah5'})
+        pkg.set("mydataframe6.tsv", df, meta={'user_meta': 'blah6'})
 
         for lk, entry in pkg.walk():
-            assert isinstance(entry, quilt3.packages.UnserializedPackageEntry)
+            file_path = parse_file_url(urlparse(entry.physical_keys[0]))
+            assert (pathlib.Path(file_path)).exists(), "The serialization files should exist"
 
-        tempfile_paths = pkg._serialize_unserialized_package_entries()
-        self.file_sweeper_path_list.extend(tempfile_paths)
-
-        for tempfile_path in tempfile_paths:
-            assert (pathlib.Path(tempfile_path)).exists(), "The temporary files should exist"
-
-        for lk, entry in pkg.walk():
-            assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
-                                                                    "converted to PackageEntries"
-            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert pathlib.Path(path_to_file).exists(), "The physical key for each PackageEntry must exist"
+            self.file_sweeper_path_list.append(file_path)
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
             assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
                                                    "was serialized"
 
-        pkg.delete_temporary_files(tempfile_paths)
-        for lk, entry in pkg.walk():
-            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert not pathlib.Path(path_to_file).exists(), "The serialized files should have been deleted"
-
-    def test_set_package_entry_as_object_and_build(self):
-        pkg = Package()
-        nasty_string = 'a,"\tb'
-        num_col = [11, 22, 33]
-        str_col = ['a', 'b', nasty_string]
-        df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
-        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'})
-        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'})
-        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'})
-
-        pkg.build("quilt/test", serialization_dir=SERIALIZATION_DIR)
-
-        for lk, entry in pkg.walk():
-            assert isinstance(entry, quilt3.packages.PackageEntry), "All UnserializedPackageEntries should have been " \
-                                                                    "converted to PackageEntries"
-            path_to_file = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert pathlib.Path(path_to_file).exists(), "The physical key for each PackageEntry must exist"
-
-        pkg._fix_sha256()
-        for lk, entry in pkg.walk():
-            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
-                                                   "was serialized"
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
