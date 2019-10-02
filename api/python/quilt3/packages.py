@@ -912,19 +912,17 @@ class Package(object):
 
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
-                if ext is None:
-                    error_message_fragment = "."
-                else:
+                error_message_fragment = "."
+                if ext is not None:
                     error_message_fragment = f' as a {ext} file.'
                 error_message += error_message_fragment + " "
                 error_message += f'If you think this should be supported, please open an issue or PR at ' \
-                    f'https://github.com/quiltdata/quilt'
+                                 f'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
+
             if serialization_format_opts is None:
                 serialization_format_opts = {}
-            serialized_object_bytes, new_meta = format_handlers[0].serialize(entry,
-                                                                             meta=None,
-                                                                             ext=ext,
+            serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
                                                                              **serialization_format_opts)
             if serialization_location:
                 serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
