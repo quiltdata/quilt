@@ -429,6 +429,10 @@ class Package(object):
 
     @classmethod
     def delete_local_file(cls, physical_key):
+        """
+        Convenience method to delete a local file using the output of `Package.get()`, a file:// URL
+        e.g. `Package.delete_local_file(pkg.get('KEY'))
+        """
         key_is_local = urlparse(fix_url(physical_key)).scheme == 'file'
         if not key_is_local:
             raise QuiltException("physical_key does not point to a local file")
