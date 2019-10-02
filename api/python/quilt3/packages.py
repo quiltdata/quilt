@@ -120,6 +120,7 @@ class PackageEntry(object):
     def meta(self):
         return self._meta.get('user_meta', dict())
 
+
     def set_meta(self, meta):
         """
         Sets the user_meta for this PackageEntry.
@@ -227,6 +228,7 @@ class PackageEntry(object):
         entry = self._clone()
         entry.physical_keys = [dest]
         return entry
+
 
     def __call__(self, func=None, **kwargs):
         """
