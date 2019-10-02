@@ -919,6 +919,8 @@ class Package(object):
                 error_message += f'If you think this should be supported, please open an issue or PR at ' \
                     f'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
+            if serialization_format_opts is None:
+                serialization_format_opts = {}
             serialized_object_bytes, new_meta = format_handlers[0].serialize(entry,
                                                                              meta=None,
                                                                              ext=ext,
