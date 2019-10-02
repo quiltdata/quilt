@@ -260,13 +260,13 @@ class Package(object):
 
             if parent:
                 has_remote_entries = any(
-                        self.map(
-                                lambda lk, entry: urlparse(
-                                        fix_url(_to_singleton(entry.physical_keys))
-                                ).scheme != 'file'
-                        )
+                    self.map(
+                        lambda lk, entry: urlparse(
+                            fix_url(_to_singleton(entry.physical_keys))
+                        ).scheme != 'file'
+                    )
                 )
-                pkg_type = 'remote' if has_remote_entries else 'local'
+                type = 'remote' if has_remote_entries else 'local'
                 result = f'({pkg_type} Package)\n'
 
             for key in keys:
@@ -508,7 +508,7 @@ class Package(object):
         with keys in alphabetical order.
         """
         for name, child in sorted(self._children.items()):
-            if isinstance(child, PackageEntryInterface):
+            if isinstance(child, PackageEntry):
                 yield name, child
             else:
                 for key, value in child.walk():
@@ -742,7 +742,6 @@ class Package(object):
         return self
 
     def _fix_sha256(self):
-
         entries = [entry for key, entry in self.walk() if entry.hash is None]
         if not entries:
             return
@@ -800,8 +799,6 @@ class Package(object):
         registry = registry.rstrip('/')
         validate_package_name(name)
         name = quote(name)
-
-        _ = self._serialize_unserialized_package_entries(serialization_dir=serialization_dir) # NOTE: Unlike push(), build() will not clean up files
 
         self._fix_sha256()
         manifest = io.BytesIO()
@@ -948,8 +945,6 @@ class Package(object):
         if meta is not None:
             entry.set_meta(meta)
 
-
-
         path = self._split_key(logical_key)
 
         pkg = self._ensure_subpackage(path[:-1], ensure_no_entry=True)
@@ -958,7 +953,6 @@ class Package(object):
         pkg._children[path[-1]] = entry
 
         self._fix_sha256()
-
         return self
 
     def _ensure_subpackage(self, path, ensure_no_entry=False):
@@ -1090,18 +1084,11 @@ class Package(object):
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
-        tmpfile_paths_to_be_deleted = self._serialize_unserialized_package_entries()
+        self._fix_sha256()
+        pkg = self._materialize(dest)
+        pkg.build(name, registry=registry, message=message)
+        return pkg
 
-        try:
-            self._fix_sha256()
-            pkg = self._materialize(dest)
-            pkg.build(name, registry=registry, message=message)
-            self.delete_temporary_files(tmpfile_paths_to_be_deleted)
-            return pkg
-        except Exception as e:
-            # Make sure we aren't leaving temporary files lying around in the case of failure
-            self.delete_temporary_files(tmpfile_paths_to_be_deleted)
-            raise e
 
     def _materialize(self, dest_url):
         """
