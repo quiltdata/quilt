@@ -188,6 +188,14 @@ class FormatRegistry:
         return ext_fmts
 
     @classmethod
+    def object_is_serializable(cls, obj):
+        try:
+            format_handlers = cls.search(type(obj))
+            return True
+        except QuiltException as e:
+            return False
+
+    @classmethod
     def serialize(cls, obj, meta=None, ext=None, **format_opts):
         """Match an object to a format, and serialize it to that format.
 
