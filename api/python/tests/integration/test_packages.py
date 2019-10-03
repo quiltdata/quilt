@@ -601,7 +601,7 @@ class PackageTest(QuiltTestCase):
 
         for lk, entry in pkg.walk():
             file_path = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert not (pathlib.Path(file_path)).exists(), "The serialization files should have been deleted exist"
+            assert not (pathlib.Path(file_path)).exists(), "The serialization files should have been deleted"
 
             self.file_sweeper_path_list.append(file_path)
 

@@ -20,7 +20,7 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key
+    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
 
 
@@ -55,12 +55,7 @@ def _to_singleton(physical_keys):
 
     return physical_keys[0]
 
-def object_is_serializable(obj):
-    try:
-        format_handlers = FormatRegistry.search(type(obj))
-        return True
-    except QuiltException as e:
-        return False
+
 
 class PackageEntry(object):
     """
@@ -915,16 +910,25 @@ class Package(object):
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
 
-        elif object_is_serializable(entry):
+        elif FormatRegistry.object_is_serializable(entry):
             # Use file extension from serialization_location, fall back to file extension from logical_key
-            ext = None
-            if len(pathlib.Path(logical_key).suffix) > 0:
-                ext = pathlib.Path(logical_key).suffix[1:]
-            if serialization_location:
-                if len(pathlib.Path(serialization_location).suffix) > 0:
-                    ext = pathlib.Path(serialization_location).suffix[1:]
+            # If neither has a file extension, Quilt picks the serialization format.
+            logical_key_ext = extract_file_extension(logical_key)
+            serialize_loc_ext = extract_file_extension(logical_key)
 
-            format_handlers = FormatRegistry.search(type(entry), ext=ext)
+            if logical_key_ext is not None and serialize_loc_ext is None:
+                assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
+                                                             f"different file extensions: {logical_key_ext} vs " \
+                                                             f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+
+            if serialize_loc_ext is not None:
+                ext = serialize_loc_ext
+            elif logical_key_ext is not None:
+                ext = logical_key_ext
+            else:
+                ext = None
+
+            format_handlers = FormatRegistry.search(type(entry))
             if ext:
                 format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
 
