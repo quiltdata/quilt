@@ -1,18 +1,22 @@
-# Run a Private Quilt Instance in Your AWS Account
+# Run Quilt in Your AWS Account
 
-Quilt is a versioned data portal for AWS. A Quilt _instance_ is a private hub that runs in your virtual private cloud (VPC).
+Quilt is a versioned data portal for AWS.
+A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 Each instance consists of a password-protected web catalog on your domain,
 backend services, a secure server to manage user identities, and a Python API.
 
-Follow this link to schedule a meeting with a Quilt engineer to help guide you through the installation process: [https://www.meetingbird.com/m/quilt-install](https://www.meetingbird.com/m/quilt-install)
-
-Or, join our [Quilt Users Slack Channel](https://slack.quiltdata.com/) to ask questions and connect with other users.
-
 ## Installation Instructions
 
-We encourage new Quilt users to contact us before deploying Quilt. We will make sure that you have the most up-to-date version of Quilt and help you configure Quilt for your Cloud environment.
+We encourage users to contact us before deploying Quilt.
+We will make sure that you have the latest version of Quilt,
+and walk you through the CloudFormation deployment.
 
-New users can [book an appointment](https://www.meetingbird.com/m/quilt-install), [connect on Slack](https://slack.quiltdata.com/) or [email us](mailto://contact@quiltdata.io).
+We recommend that all users do one or more of the following:
+* [Schedule a Quilt engineer](https://www.meetingbird.com/m/quilt-install)
+to guide you through the installation
+* [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
+connect with other users
+* [Email Quilt](mailto://contact@quiltdata.io)
 
 ## Before you install Quilt
 
@@ -67,6 +71,11 @@ Installing Quilt will modify the following Bucket characteristics:
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 
 1. An active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
+
+### AWS Marketplace
+
+You can install Quilt via AWS Marketplace. As indicated above, we recommend that you [contact us first](#installation-instructions).
+
 
 ### AWS Service Catalog
 
