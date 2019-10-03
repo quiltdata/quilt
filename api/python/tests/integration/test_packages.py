@@ -738,81 +738,39 @@ class PackageTest(QuiltTestCase):
         assert 'Quilt/Test' not in quilt3.list_packages()
 
 
-    def test_local_package_delete_overlapping(self):
-        """
-        Verify local package delete works when multiple packages reference the
-        same tophash.
-        """
-        top_hash = Package().build("Quilt/Test1").top_hash
-        top_hash = Package().build("Quilt/Test2").top_hash
-
-        assert 'Quilt/Test1' in quilt3.list_packages()
-        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-        quilt3.delete_package('Quilt/Test1')
-
-        assert 'Quilt/Test1' not in quilt3.list_packages()
-        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-        quilt3.delete_package('Quilt/Test2')
-        assert 'Quilt/Test2' not in quilt3.list_packages()
-        assert top_hash not in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
-        def list_packages_mock(*args, **kwargs): return ['Quilt/Test']
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': '.quilt/named_packages/Quilt/Test/0',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/Quilt/Test/latest',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': '.quilt/named_packages/Quilt/Test/',
+            }
+        )
 
-        def _tophashes_with_packages_mock(*args, **kwargs): return {'101': {'Quilt/Test'}}
+        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+            self.s3_stubber.add_response(
+                method='delete_object',
+                service_response={},
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': f'.quilt/named_packages/{path}',
+                }
+            )
 
-        def list_objects_mock(*args): return [
-            {'Key': '.quilt/named_packages/Quilt/Test/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test/latest'}
-        ]
-
-        def get_bytes_mock(*args): return b'101', None
-
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
-
-            delete_mock.assert_any_call('test-bucket', '.quilt/packages/101')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test/0')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test/latest')
-
-
-    def test_remote_package_delete_overlapping(self):
-        """
-        Verify remote package delete works when multiple packages reference the
-        same tophash.
-        """
-        def list_packages_mock(*args, **kwargs): return ['Quilt/Test1', 'Quilt/Test2']
-
-        def _tophashes_with_packages_mock(*args, **kwargs): return {'101': {'Quilt/Test1', 'Quilt/Test2'}}
-
-        def list_objects_mock(*args): return [
-            {'Key': '.quilt/named_packages/Quilt/Test1/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test1/latest'},
-            {'Key': '.quilt/named_packages/Quilt/Test2/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test2/latest'}
-        ]
-
-        def get_bytes_mock(*args): return b'101', None
-
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test1', registry='s3://test-bucket')
-
-            # the reference count for the tophash 101 is still one, so it should still exist
-            assert call('test-bucket', '.quilt/packages/101') not in delete_mock.call_args_list
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/0')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/latest')
+        quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
 
 
     def test_push_restrictions(self):
