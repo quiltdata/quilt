@@ -28,8 +28,9 @@ const PLANS = [
     name: 'AWS Marketplace',
     price: 600,
     features: ['Unlimited data', 'Unlimited users', 'One S3 bucket'],
-    cta: 'Buy Now',
-    href: 'https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536',
+    cta: 'Try Now',
+    href:
+      'https://docs.quiltdata.com/references/technical-reference#installation-instructions',
     variant: 'primary',
     featured: true,
   },
