@@ -1179,7 +1179,7 @@ class Package(object):
         Performs a user-specified operation on each entry in the package.
 
         Args:
-            f: function
+            f(x, y): function
                 The function to be applied to each package entry.
                 It should take two inputs, a logical key and a PackageEntry.
             include_directories: bool
@@ -1201,8 +1201,9 @@ class Package(object):
         removing results that evaluate to False from the output.
 
         Args:
-            f: function
+            f(x, y): function
                 The function to be applied to each package entry.
+                It should take two inputs, a logical key and a PackageEntry.
                 This function should return a boolean.
             include_directories: bool
                 Whether or not to include directory entries in the map.
