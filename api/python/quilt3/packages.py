@@ -6,8 +6,9 @@ import json
 import pathlib
 import os
 import time
-import tempfile
+from multiprocessing import Pool
 from urllib.parse import quote, urlparse, unquote
+import uuid
 import warnings
 
 import jsonlines
@@ -20,8 +21,12 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension
+    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
+from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
+
+
+
 
 
 def hash_file(readable_file):
@@ -56,6 +61,13 @@ def _to_singleton(physical_keys):
     return physical_keys[0]
 
 
+
+def del_if_temp(physical_key):
+    """ Delete a file if the physical key points to a local file in Quilt's APP_DIR_TEMPFILE_DIR folder """
+    if file_is_local(physical_key):
+        key_parent_dir = pathlib.Path(parse_file_url(urlparse(physical_key))).parent
+        if key_parent_dir == APP_DIR_TEMPFILE_DIR:
+            Package.delete_local_file(physical_key)
 
 class PackageEntry(object):
     """
@@ -869,16 +881,16 @@ class Package(object):
             entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
-                If entry is an object and we know how to serialize it, it will immediately be serialized and written to
-                disk, either to serialization_location or to a location determined by the tempfile library
+                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
+                to disk, either to serialization_location or to a location managed by quilt.
             meta(dict): user level metadata dict to attach to entry
-            serialization_format_opts(dict): [when entry is an object]. Options to help Quilt understand how the object
-                should be serialized. Useful for underspecified file formats like csv when content contains confusing
-                characters. Will be passed as kwargs to the FormatHandler.serialize() function. See docstrings for
-                individual FormatHandlers too for full list of options -
+            serialization_format_opts(dict): [only used when entry is an object]. Options to help Quilt understand how
+                the object should be serialized. Useful for underspecified file formats like csv when content contains
+                confusing characters. Will be passed as kwargs to the FormatHandler.serialize() function. See docstrings
+                for individual FormatHandlers too for full list of options -
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
-            serialization_location(string): [when entry is an object]. Where the serialized object should be written,
-                e.g. "./mydataframe.parquet"
+            serialization_location(string): [onlu used when entry is an object]. Where the serialized object should be
+                written, e.g. "./mydataframe.parquet"
 
         Returns:
             self
@@ -946,16 +958,17 @@ class Package(object):
                 serialization_format_opts = {}
             serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
                                                                              **serialization_format_opts)
-            if serialization_location:
-                serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
-                serialization_path.parent.mkdir(exist_ok=True, parents=True)
-            else:
-                suffix = f'.{ext}' if ext else None
-                tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                serialization_path = tmpfile.name
+            if serialization_location is None:
+                serialization_location = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
+                if ext:
+                    serialization_location = serialization_location.with_suffix(f'.{ext}')
+
+            serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
+            serialization_path.parent.mkdir(exist_ok=True, parents=True)
 
             write_url = fix_url(f'file://{serialization_path}')
             put_bytes(serialized_object_bytes, write_url, meta=new_meta)
+
             size, _, _ = get_size_and_meta(write_url)
             entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
 
@@ -1105,6 +1118,7 @@ class Package(object):
 
         self._fix_sha256()
         pkg = self._materialize(dest)
+        self._delete_temporary_files()  # Now that data is on s3, delete tmp files created by pkg.set('KEY', obj)
         pkg.build(name, registry=registry, message=message)
         return pkg
 
@@ -1145,6 +1159,12 @@ class Package(object):
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
         return pkg
+
+    def _delete_temporary_files(self):
+        physical_keys = [entry.get() for _, entry in self.walk()]
+        p = Pool(10)
+        p.map(del_if_temp, physical_keys)
+
 
     def diff(self, other_pkg):
         """

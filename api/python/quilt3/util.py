@@ -18,6 +18,7 @@ APP_NAME = "Quilt"
 APP_AUTHOR = "QuiltData"
 BASE_DIR = user_data_dir(APP_NAME, APP_AUTHOR)
 BASE_PATH = pathlib.Path(BASE_DIR)
+TEMPFILE_DIR_PATH = BASE_PATH / "tempfiles"
 CONFIG_PATH = BASE_PATH / 'config.yml'
 OPEN_DATA_URL = "https://open.quiltdata.com"
 
@@ -154,6 +155,8 @@ def parse_file_url(file_url):
         path = '\\\\%s%s' % (file_url.netloc, path)
     return path
 
+def file_is_local(file_url_or_path):
+    return urlparse(fix_url(file_url_or_path)).scheme == 'file'
 
 def read_yaml(yaml_stream):
     yaml = ruamel.yaml.YAML()
