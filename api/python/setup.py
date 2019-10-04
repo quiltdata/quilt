@@ -4,14 +4,14 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 
 def readme():
     readme_short = """
     Quilt is a data management tool designed for data discoverability, data dependency
     management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
 
-    The `quilt` PyPi package allows you to build, push, and pull data packages in Quilt using Python.
+    The `quilt3` PyPi package allows you to build, push, and pull data packages in Quilt using Python.
     Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_ for more information.
 
     """
