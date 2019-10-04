@@ -14,7 +14,7 @@ from botocore.credentials import CredentialProvider, CredentialResolver, Refresh
 import pkg_resources
 import requests
 
-from .util import BASE_PATH, get_from_config, QuiltException
+from .util import BASE_PATH, get_from_config, QuiltException, OPEN_DATA_URL
 
 
 AUTH_PATH = BASE_PATH / 'auth.json'
@@ -163,11 +163,16 @@ def _open_url(url):
     except Exception as ex:     # pylint:disable=W0703
         print("Failed to launch the browser: %s" % ex)
 
-def login():
+def login(force_open_quiltdata_com_login=False):
     """
     Authenticate.
 
     Launches a web browser and asks the user for a token.
+
+    By default, login for open.quiltdata.com is a no-op because it is a unique registry with many public buckets that do not need credentials to read from.
+
+    Args:
+        force_open_quiltdata_com_login: [Only used by Quilt employees] Force login to open.quiltdata.com for admin work.
     """
     registry_url = get_registry_url()
     if registry_url is None:
@@ -176,6 +181,11 @@ def login():
             f"currently set to None. Please first specify your home catalog by running "
             f"\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
+
+    if registry_url ==  OPEN_DATA_URL and not force_open_quiltdata_com_login:
+        print("Skipping login. open.quiltdata.com is a Quilt stack for many public, open datasets. As the buckets "
+              "are public, you do not need to login to use features or read data.")
+        return
 
     login_url = "%s/login" % get_registry_url()
 
