@@ -14,8 +14,10 @@ and walk you through the CloudFormation deployment.
 We recommend that all users do one or more of the following:
 * [Schedule a Quilt engineer](https://www.meetingbird.com/m/quilt-install)
 to guide you through the installation
+
 * [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
 connect with other users
+
 * [Email Quilt](mailto://contact@quiltdata.io)
 
 ## Before you install Quilt
