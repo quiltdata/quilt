@@ -182,7 +182,10 @@ def login(force_open_quiltdata_com_login=False):
             f"\"quilt3.config('$URL')\", replacing '$URL' with your catalog homepage."
         )
 
-    if registry_url ==  OPEN_DATA_URL and not force_open_quiltdata_com_login:
+    def get_openquiltdata_registry_url():
+        return NotImplemented("Implement correct registry url retrieval if we use this")
+
+    if registry_url.startswith(get_openquiltdata_registry_url()) and not force_open_quiltdata_com_login:
         print("Skipping login. open.quiltdata.com is a Quilt stack for many public, open datasets. As the buckets "
               "are public, you do not need to login to use features or read data.")
         return
