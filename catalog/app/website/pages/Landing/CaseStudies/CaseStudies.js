@@ -11,10 +11,18 @@ const useStyles = M.makeStyles((t) => ({
   studies: {
     display: 'flex',
     justifyContent: 'space-around',
-    paddingTop: t.spacing(7),
+    [t.breakpoints.down('sm')]: {
+      alignItems: 'center',
+      flexDirection: 'column',
+    },
   },
   study: {
+    marginTop: t.spacing(7),
     maxWidth: 500,
+    width: `calc(50% - ${t.spacing(6)}px)`,
+    [t.breakpoints.down('sm')]: {
+      width: '100%',
+    },
   },
 }))
 
