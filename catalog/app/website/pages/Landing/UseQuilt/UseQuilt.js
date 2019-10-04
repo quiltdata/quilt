@@ -211,10 +211,11 @@ export default function UseQuilt() {
   const classes = useStyles()
   const [index, setIndex] = React.useState(0)
   const onChangeIndex = React.useCallback(R.unary(setIndex), [])
+
   return (
     <M.Container maxWidth="lg" style={{ position: 'relative', zIndex: 1 }}>
-      <M.Box display="flex" flexDirection="column" alignItems="center">
-        <Bar color="primary" />
+      <M.Box display="flex" flexDirection="column" alignItems={{ sm: 'center' }}>
+        <Bar color="secondary" />
         <M.Box mt={5}>
           <M.Typography variant="h1" color="textPrimary">
             Get your data to the cloud
@@ -232,6 +233,22 @@ export default function UseQuilt() {
             CloudTrail.) These services form the Quilt backend that powers the Quilt web
             catalog and <code>quilt3</code> Python client. Every file in Quilt is a
             versioned S3 object secured by IAM.
+          </M.Typography>
+        </M.Box>
+      </M.Box>
+
+      <M.Box display="flex" flexDirection="column" alignItems={{ sm: 'center' }} mt={8}>
+        <Bar color="primary" />
+        <M.Box mt={5} maxWidth={520} textAlign={{ sm: 'center' }}>
+          <M.Typography variant="h1" color="textPrimary">
+            Get everyone on the same page&hellip; instantly
+          </M.Typography>
+        </M.Box>
+        <M.Box mt={4} mb={5} maxWidth={620}>
+          <M.Typography variant="body1" color="textSecondary">
+            Quilt is a unified source of information for everyone who needs to make
+            decisions based on data. Stop emailing files, making decks and scrambling to
+            put together reports. Empower your team self-service with Quilt.
           </M.Typography>
         </M.Box>
       </M.Box>
