@@ -11,7 +11,7 @@ def readme():
     Quilt is a data management tool designed for data discoverability, data dependency
     management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
 
-    The `quilt3` PyPi package allows you to build, push, and pull data packages in Quilt using Python.
+    The `quilt3` PyPi package allows you to build, push, and install data packages in Quilt using Python.
     Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_ for more information.
 
     """
