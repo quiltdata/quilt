@@ -87,7 +87,7 @@ export default function Showcase() {
           </M.Box>
           <M.Box mt={4}>
             <M.Button variant="contained" color="primary" href="#demo-video">
-              Sign Up
+              See Demo
             </M.Button>
           </M.Box>
         </div>
