@@ -194,12 +194,9 @@ def list_packages(registry=None):
     Returns:
         A sequence of strings containing the names of the packages
     """
-    if registry is None:
-        registry = get_from_config('default_local_registry')
-    else:
-        registry = fix_url(registry)
+    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
 
-    named_packages = registry.rstrip('/') + '/.quilt/named_packages'
+    named_packages = registry_base_path.rstrip('/') + '/named_packages/'
     for path, _ in list_url(named_packages):
         parts = path.split('/')
         if len(parts) == 3 and parts[2] == 'latest':
