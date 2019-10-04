@@ -26,9 +26,6 @@ from .util import (
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 
 
-
-
-
 def hash_file(readable_file):
     """ Returns SHA256 hash of readable file-like object """
     buf = readable_file.read(4096)
@@ -889,7 +886,7 @@ class Package(object):
                 confusing characters. Will be passed as kwargs to the FormatHandler.serialize() function. See docstrings
                 for individual FormatHandlers too for full list of options -
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
-            serialization_location(string): [onlu used when entry is an object]. Where the serialized object should be
+            serialization_location(string): [only used when entry is an object]. Where the serialized object should be
                 written, e.g. "./mydataframe.parquet"
 
         Returns:
@@ -968,7 +965,6 @@ class Package(object):
 
             write_url = fix_url(f'file://{serialization_path}')
             put_bytes(serialized_object_bytes, write_url, meta=new_meta)
-
             size, _, _ = get_size_and_meta(write_url)
             entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
 
@@ -1118,7 +1114,7 @@ class Package(object):
 
         self._fix_sha256()
         pkg = self._materialize(dest)
-        self._delete_temporary_files()  # Now that data is on s3, delete tmp files created by pkg.set('KEY', obj)
+        self._delete_temporary_files()  # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
         pkg.build(name, registry=registry, message=message)
         return pkg
 
@@ -1164,7 +1160,6 @@ class Package(object):
         physical_keys = [entry.get() for _, entry in self.walk()]
         p = Pool(10)
         p.map(del_if_temp, physical_keys)
-
 
     def diff(self, other_pkg):
         """
