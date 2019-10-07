@@ -175,7 +175,7 @@
     "prettier": "^1.18.2",
     "raf": "^3.4.1",
     "raw-loader": "^3.1.0",
-    "react-app-polyfill": "^1.0.3",
+    "react-app-polyfill": "^1.0.4",
     "react-test-renderer": "^16.10.2",
     "redux-logger": "^3.0.6",
     "rimraf": "^2.7.1",
