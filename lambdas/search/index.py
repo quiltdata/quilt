@@ -13,7 +13,16 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
 MAX_QUERY_DURATION = '15s'
-
+IMG_EXTS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+  '.bmp',
+  '.tiff',
+  '.tif',
+]
 
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
@@ -49,6 +58,16 @@ def lambda_handler(request):
             }
         }
         size = 0
+        _source = []
+    elif action == 'images':
+        body = {
+            'query': {
+                'terms': {
+                    "ext": IMG_EXTS
+                }
+            }
+        }
+        size = 10
         _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})
