@@ -20,6 +20,8 @@ from .packages import Package
 
 from .bucket import Bucket
 
+from .data_checker import check_packages
+
 from . import admin
 
 from .imports import start_data_package_loader
