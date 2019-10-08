@@ -13,6 +13,7 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 
 INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
 MAX_QUERY_DURATION = '15s'
+MAX_DOCUMENTS_PER_SHARD = 10000
 IMG_EXTS = [
   '.jpg',
   '.jpeg',
@@ -22,6 +23,19 @@ IMG_EXTS = [
   '.bmp',
   '.tiff',
   '.tif',
+]
+
+OTHER_EXTS = [
+  '.parquet',
+  '.csv',
+  '.tsv',
+  '.txt',
+  '.vcf',
+  '.xls',
+  '.xlsx',
+  '.ipynb',
+  '.md',
+  '.json',
 ]
 
 @api(cors_origins=get_default_origins())
@@ -69,6 +83,16 @@ def lambda_handler(request):
         }
         size = 10
         _source = []
+    elif action == 'other':
+        body = {
+            'query': {
+                'terms': {
+                    "ext": OTHER_EXTS
+                }
+            }
+        }
+        size = 10
+        _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})
 
@@ -95,6 +119,7 @@ def lambda_handler(request):
         body,
         _source=_source,
         size=size,
+        terminate_after=MAX_DOCUMENTS_PER_SHARD,
         timeout=MAX_QUERY_DURATION
     )
 
