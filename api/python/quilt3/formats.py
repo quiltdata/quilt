@@ -961,7 +961,7 @@ class ParquetFormatHandler(BaseFormatHandler):
     handled_extensions = ['parquet']
     opts = ('compression',)
     defaults = {
-        'compression': 'snappy_columns',
+        'compression': 'snappy',
     }
 
     def handles_type(self, typ):
@@ -984,25 +984,11 @@ class ParquetFormatHandler(BaseFormatHandler):
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
-        kwargs = {}
         table = pa.Table.from_pandas(obj)
-
-        for name, value in opts_with_defaults.items():
-            if name == 'compression':
-                if isinstance(value, str) and value.endswith('_columns'):
-                    # shorthand for columnar compression on all columns, using prefix value.
-                    compression = value.split('_')[0]
-                    kwargs['compression'] = {
-                        col.name.encode('utf-8'): compression for col in table.columns
-                    }
-                else:
-                    kwargs['compression'] = value
-
         buf = io.BytesIO()
-        parquet.write_table(table, buf, **kwargs)
+        parquet.write_table(table, buf, **opts_with_defaults)
 
         return buf.getvalue(), self._update_meta(meta, additions=opts_with_defaults)
-
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
         import pyarrow as pa
