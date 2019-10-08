@@ -53,6 +53,7 @@ setup(
         'appdirs>=1.4.0',
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
+        'click>=7.0',
         'jsonlines==1.2.0',
         'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
