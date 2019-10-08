@@ -166,7 +166,7 @@ export default function Pricing() {
           display="flex"
           flexDirection="column"
           alignItems="center"
-          pt={10}
+          pt={20}
           position="relative"
         >
           <Bar color="secondary" />
