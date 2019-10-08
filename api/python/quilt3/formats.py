@@ -313,9 +313,9 @@ class FormatRegistry:
         return cls.for_format(name)
 
     @classmethod
-    def show_all_supported_formats(cls):
+    def all_supported_formats(cls):
         """
-        Prints out the list of supported object -> serialization formats:
+        Returns a map of supported object types -> serialization formats, e.g.:
 
                             Python Object Type     Serialization Formats
          <class 'pandas.core.frame.DataFrame'>  [ssv, csv, tsv, parquet]
@@ -341,13 +341,11 @@ class FormatRegistry:
                 if t not in type_map.keys():
                     type_map[t] = set()
                 type_map[t].update(handler.handled_extensions)
-        typs = []
-        ser_formats = []
+        type_to_format_maps = []
         for t, v in type_map.items():
-            typs.append(str(t))
-            ser_formats.append(list(v))
-        df = pd.DataFrame({"Python Object Type": typs, "Serialization Formats": ser_formats})
-        print(df.to_string(index=False))
+            type_to_format_maps.append({"Python Object Type": t, "Serialization Formats": list(v)})
+        df = pd.DataFrame(type_to_format_maps)
+        return df
 
 
 class BaseFormatHandler(ABC):

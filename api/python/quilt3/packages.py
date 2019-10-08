@@ -880,7 +880,7 @@ class Package(object):
                 If entry is None, the logical key string will be substituted as the entry value.
                 If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
                 to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
-                can serialize is available by calling `quilt3.formats.FormatRegistry.show_all_supported_formats()`
+                can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
             meta(dict): user level metadata dict to attach to entry
             serialization_format_opts(dict): Optional. If passed in, only used if entry is an object. Options to help
                 Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
