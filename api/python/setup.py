@@ -4,14 +4,14 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 
 def readme():
     readme_short = """
     Quilt is a data management tool designed for data discoverability, data dependency
     management, and data version control using `data packages <https://blog.quiltdata.com/data-packages-for-fast-reproducible-python-analysis-c74b78015c7f>`_.
 
-    The `quilt` PyPi package allows you to build, push, and pull data packages in Quilt using Python.
+    The `quilt3` PyPi package allows you to build, push, and install data packages in Quilt using Python.
     Visit the `documentation quickstart <https://docs.quiltdata.com/quickstart>`_ for more information.
 
     """
@@ -57,7 +57,7 @@ setup(
         'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
         'pandas>=0.19.2',
-        'pyarrow>=0.9.0,<0.14',             # as of 7/5/19: linux/circleci bugs on 0.14
+        'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
         'requests>=2.12.4',
         'ruamel.yaml<=0.15.70',
         'tqdm>=4.26.0',

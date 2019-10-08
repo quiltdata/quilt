@@ -1,7 +1,6 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
-import * as Intercom from 'components/Intercom'
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
@@ -52,7 +51,6 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
-  const intercom = Intercom.use()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -81,7 +79,7 @@ export default function Showcase() {
               <M.Button
                 variant="contained"
                 color="primary"
-                onClick={() => intercom('show')}
+                href="https://www.meetingbird.com/m/S19vxyVOH"
               >
                 Book demo
               </M.Button>

@@ -35,7 +35,7 @@ export const useRelevantBucketConfigs = () => {
     () =>
       R.pipe(
         R.filter((b) => b.relevance == null || b.relevance >= 0),
-        R.sort(R.descend(R.prop('relevance'))),
+        R.sortWith([R.descend(R.prop('relevance')), R.ascend(R.prop('name'))]),
       )(bs),
     [bs],
   )

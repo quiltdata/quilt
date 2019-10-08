@@ -96,6 +96,23 @@ def fix_url(url):
     return fixed_url
 
 
+def extract_file_extension(file_path_or_url):
+    """
+    Extract the file extension if it exists.
+
+    Args:
+        file_path_or_url: The path to the file. Type can can be anything that pathlib.Path understands.
+
+    Returns:
+        File extension without the period, i.e. ("txt" not ".txt"). None if the path does not have an extension.
+    """
+    p = pathlib.Path(file_path_or_url)
+    if len(p.suffix) > 0:
+        return p.suffix[1:]
+    else:
+        return None
+
+
 EXAMPLE = "Example: 's3://my-bucket/path/'."
 def parse_s3_url(s3_url):
     """

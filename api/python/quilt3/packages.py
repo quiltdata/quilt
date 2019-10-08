@@ -6,6 +6,7 @@ import json
 import pathlib
 import os
 import time
+import tempfile
 from urllib.parse import quote, urlparse, unquote
 import warnings
 
@@ -19,7 +20,7 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key
+    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension
 )
 
 
@@ -53,6 +54,7 @@ def _to_singleton(physical_keys):
         raise NotImplementedError("Multiple physical keys not supported")
 
     return physical_keys[0]
+
 
 
 class PackageEntry(object):
@@ -420,6 +422,22 @@ class Package(object):
             raise TypeError('Invalid logical_key: %r' % logical_key)
         return path
 
+    @classmethod
+    def delete_local_file(cls, physical_key):
+        """
+        Convenience method to delete a local file using the output of `Package.get()`, a file:// URL
+        e.g. `Package.delete_local_file(pkg.get('KEY'))
+        """
+        key_is_local = urlparse(fix_url(physical_key)).scheme == 'file'
+        if not key_is_local:
+            raise QuiltException("physical_key does not point to a local file")
+        physical_key_path = pathlib.Path(parse_file_url(urlparse(physical_key)))
+        if os.path.isdir(physical_key_path):
+            raise QuiltException("physical_key points to directory, not a file")
+        if not physical_key_path.exists():
+            raise QuiltException("physical_key points to a local file that does not exist")
+        os.remove(physical_key_path)
+
     def __contains__(self, logical_key):
         """
         Checks whether the package contains a specified logical_key.
@@ -655,7 +673,7 @@ class Package(object):
         if logical_key:
             obj = self[logical_key]
             if not isinstance(obj, PackageEntry):
-                raise ValueError("Key does point to a PackageEntry")
+                raise ValueError("Key does not point to a PackageEntry")
             return obj.get()
         else:
             # a package has a logical root directory if all of its children are rooted at the
@@ -724,6 +742,8 @@ class Package(object):
                     )
 
             return hypothesized_root_path
+
+    # def get_as_pathlib(self):
 
     def set_meta(self, meta):
         """
@@ -832,7 +852,7 @@ class Package(object):
     @property
     def manifest(self):
         """
-        Provides a generator of the dicts that make up the serialied package.
+        Provides a generator of the dicts that make up the serialized package.
         """
         yield self._meta
         for dir_key, meta in self._walk_dir_meta():
@@ -840,16 +860,25 @@ class Package(object):
         for logical_key, entry in self.walk():
             yield {'logical_key': logical_key, **entry.as_dict()}
 
-    def set(self, logical_key, entry=None, meta=None):
+    def set(self, logical_key, entry=None, meta=None, serialization_location=None, serialization_format_opts=None):
         """
         Returns self with the object at logical_key set to entry.
 
         Args:
             logical_key(string): logical key to update
-            entry(PackageEntry OR string): new entry to place at logical_key in the package.
+            entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
+                If entry is an object and we know how to serialize it, it will immediately be serialized and written to
+                disk, either to serialization_location or to a location determined by the tempfile library
             meta(dict): user level metadata dict to attach to entry
+            serialization_format_opts(dict): [when entry is an object]. Options to help Quilt understand how the object
+                should be serialized. Useful for underspecified file formats like csv when content contains confusing
+                characters. Will be passed as kwargs to the FormatHandler.serialize() function. See docstrings for
+                individual FormatHandlers too for full list of options -
+                https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
+            serialization_location(string): [when entry is an object]. Where the serialized object should be written,
+                e.g. "./mydataframe.parquet"
 
         Returns:
             self
@@ -862,7 +891,7 @@ class Package(object):
 
         validate_key(logical_key)
 
-        if not entry:
+        if entry is None:
             current_working_dir = pathlib.Path.cwd()
             logical_key_abs_path = pathlib.Path(logical_key).absolute()
             entry = logical_key_abs_path.relative_to(current_working_dir)
@@ -871,7 +900,7 @@ class Package(object):
             url = fix_url(str(entry))
             size, orig_meta, version = get_size_and_meta(url)
 
-            # Deterimine if a new version needs to be appended.
+            # Determine if a new version needs to be appended.
             parsed_url = urlparse(url)
             if parsed_url.scheme == 's3':
                 bucket, key, current_version = parse_s3_url(parsed_url)
@@ -880,10 +909,58 @@ class Package(object):
             entry = PackageEntry([url], size, None, orig_meta)
         elif isinstance(entry, PackageEntry):
             entry = entry._clone()
+
+        elif FormatRegistry.object_is_serializable(entry):
+            # Use file extension from serialization_location, fall back to file extension from logical_key
+            # If neither has a file extension, Quilt picks the serialization format.
+            logical_key_ext = extract_file_extension(logical_key)
+            serialize_loc_ext = extract_file_extension(logical_key)
+
+            if logical_key_ext is not None and serialize_loc_ext is None:
+                assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
+                                                             f"different file extensions: {logical_key_ext} vs " \
+                                                             f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+
+            if serialize_loc_ext is not None:
+                ext = serialize_loc_ext
+            elif logical_key_ext is not None:
+                ext = logical_key_ext
+            else:
+                ext = None
+
+            format_handlers = FormatRegistry.search(type(entry))
+            if ext:
+                format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
+
+            if len(format_handlers) == 0:
+                error_message = f'Quilt does not know how to serialize a {type(entry)}'
+                error_message_fragment = "."
+                if ext is not None:
+                    error_message_fragment = f' as a {ext} file.'
+                error_message += error_message_fragment + " "
+                error_message += f'If you think this should be supported, please open an issue or PR at ' \
+                                 f'https://github.com/quiltdata/quilt'
+                raise QuiltException(error_message)
+
+            if serialization_format_opts is None:
+                serialization_format_opts = {}
+            serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
+                                                                             **serialization_format_opts)
+            if serialization_location:
+                serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
+                serialization_path.parent.mkdir(exist_ok=True, parents=True)
+            else:
+                suffix = f'.{ext}' if ext else None
+                tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+                serialization_path = tmpfile.name
+
+            write_url = fix_url(f'file://{serialization_path}')
+            put_bytes(serialized_object_bytes, write_url, meta=new_meta)
+            size, _, _ = get_size_and_meta(write_url)
+            entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
+
         else:
-            raise TypeError(
-                f"Expected a string for entry, but got an instance of {type(entry)}."
-            )
+            raise TypeError(f"Expected a string for entry, but got an instance of {type(entry)}.")
 
         if meta is not None:
             entry.set_meta(meta)
@@ -1033,7 +1110,7 @@ class Package(object):
 
     def _materialize(self, dest_url):
         """
-        Copies objects to path, then creates a new package that points to those objects.
+        Copies all Package entries to the destination, then creates a new package that points to those objects.
 
         Copies each object in this package to path according to logical key structure,
         and returns a package with physical_keys that point to the new copies.
@@ -1102,7 +1179,7 @@ class Package(object):
         Performs a user-specified operation on each entry in the package.
 
         Args:
-            f: function
+            f(x, y): function
                 The function to be applied to each package entry.
                 It should take two inputs, a logical key and a PackageEntry.
             include_directories: bool
@@ -1124,8 +1201,9 @@ class Package(object):
         removing results that evaluate to False from the output.
 
         Args:
-            f: function
+            f(x, y): function
                 The function to be applied to each package entry.
+                It should take two inputs, a logical key and a PackageEntry.
                 This function should return a boolean.
             include_directories: bool
                 Whether or not to include directory entries in the map.
