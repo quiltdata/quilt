@@ -311,43 +311,43 @@ class FormatRegistry:
     def for_meta(cls, meta):
         name = cls._get_name_from_meta(meta)
         return cls.for_format(name)
-    #
-    # @classmethod
-    # def show_all_supported_formats(cls):
-    #     """
-    #     Prints out the list of supported object -> serialization formats:
-    #
-    #                         Python Object Type     Serialization Formats
-    #      <class 'pandas.core.frame.DataFrame'>  [ssv, csv, tsv, parquet]
-    #                    <class 'numpy.ndarray'>                [npy, npz]
-    #                              <class 'str'>      [md, json, rst, txt]
-    #                             <class 'dict'>                    [json]
-    #                         <class 'NoneType'>                    [json]
-    #                            <class 'tuple'>                    [json]
-    #                              <class 'int'>                    [json]
-    #                             <class 'list'>                    [json]
-    #                            <class 'float'>                    [json]
-    #                            <class 'bytes'>                     [bin]
-    #     """
-    #     import numpy as np
-    #     import pandas as pd
-    #
-    #     _ = cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
-    #     _ = cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
-    #
-    #     type_map = {}
-    #     for handler in cls.registered_handlers:
-    #         for t in handler.handled_types:
-    #             if t not in type_map.keys():
-    #                 type_map[t] = set()
-    #             type_map[t].update(handler.handled_extensions)
-    #     typs = []
-    #     ser_formats = []
-    #     for t, v in type_map.items():
-    #         typs.append(str(t))
-    #         ser_formats.append(list(v))
-    #     df = pd.DataFrame({"Python Object Type": typs, "Serialization Formats": ser_formats})
-    #     print(df.to_string(index=False))
+
+    @classmethod
+    def show_all_supported_formats(cls):
+        """
+        Prints out the list of supported object -> serialization formats:
+
+                            Python Object Type     Serialization Formats
+         <class 'pandas.core.frame.DataFrame'>  [ssv, csv, tsv, parquet]
+                       <class 'numpy.ndarray'>                [npy, npz]
+                                 <class 'str'>      [md, json, rst, txt]
+                                <class 'dict'>                    [json]
+                            <class 'NoneType'>                    [json]
+                               <class 'tuple'>                    [json]
+                                 <class 'int'>                    [json]
+                                <class 'list'>                    [json]
+                               <class 'float'>                    [json]
+                               <class 'bytes'>                     [bin]
+        """
+        import numpy as np
+        import pandas as pd
+
+        _ = cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
+        _ = cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
+
+        type_map = {}
+        for handler in cls.registered_handlers:
+            for t in handler.handled_types:
+                if t not in type_map.keys():
+                    type_map[t] = set()
+                type_map[t].update(handler.handled_extensions)
+        typs = []
+        ser_formats = []
+        for t, v in type_map.items():
+            typs.append(str(t))
+            ser_formats.append(list(v))
+        df = pd.DataFrame({"Python Object Type": typs, "Serialization Formats": ser_formats})
+        print(df.to_string(index=False))
 
 
 class BaseFormatHandler(ABC):
