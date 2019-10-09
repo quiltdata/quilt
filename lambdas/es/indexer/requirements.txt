@@ -14,8 +14,8 @@ jsonschema==3.0.2
 jupyter-core==4.5.0
 nbformat==4.4.0
 numpy==1.17.2
-pandas==0.24.2
-pyarrow==0.13.0
+pandas==0.25.1
+pyarrow==0.14.1
 pyrsistent==0.15.4
 python-dateutil==2.8.0
 pytz==2019.2
