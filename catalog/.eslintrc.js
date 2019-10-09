@@ -57,6 +57,7 @@ module.exports = {
     'react/destructuring-assignment': 0,
     'react/forbid-prop-types': 0,
     'react/jsx-closing-tag-location': 0,
+    'react/jsx-curly-brace-presence': 0,
     'react/jsx-first-prop-new-line': [2, 'multiline'],
     'react/jsx-filename-extension': 0,
     'react/jsx-no-target-blank': 0,
