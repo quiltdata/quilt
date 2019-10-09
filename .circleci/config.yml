@@ -154,7 +154,7 @@ jobs:
           name: Pytest
           command: |
             . venv/bin/activate
-            cd api/python
+            cd api/python/tests
             python integration/runner_data_tests.py quilt/open_fruit
 
   build:
