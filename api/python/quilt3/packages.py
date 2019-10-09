@@ -1160,8 +1160,8 @@ class Package(object):
 
     def _delete_temporary_files(self):
         physical_keys = [entry.get() for _, entry in self.walk()]
-        p = Pool(10)
-        p.map(del_if_temp, physical_keys)
+        with Pool(10) as p:
+            p.map(del_if_temp, physical_keys)
 
     def diff(self, other_pkg):
         """
