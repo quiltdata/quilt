@@ -1,7 +1,7 @@
 import pathlib
 from urllib.parse import urlparse, unquote
 
-from .data_transfer import copy_file, get_bytes, delete_object, put_bytes, list_objects, list_url
+from .data_transfer import copy_file, get_bytes, delete_url, put_bytes, list_objects, list_url
 from .formats import FormatRegistry
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
@@ -128,58 +128,23 @@ def delete_package(name, registry=None):
         registry (str): The registry the package will be removed from
     """
     validate_package_name(name)
-
-    if name not in list_packages(registry):
-        raise QuiltException("No such package exists in the given directory.")
+    usr, pkg = name.split('/')
 
     registry_base_path = get_package_registry(fix_url(registry) if registry else None)
-    registry_url = urlparse(registry_base_path)
-    pkg_namespace, pkg_subname = name.split("/")
 
-    tophashes_with_packages = _tophashes_with_packages(registry)
+    named_packages = registry_base_path.rstrip('/') + '/named_packages/'
+    package_path = named_packages + name + '/'
 
-    if registry_url.scheme == 'file':
+    paths = list(list_url(package_path))
+    if not paths:
+        raise QuiltException("No such package exists in the given directory.")
 
-        registry_dir = pathlib.Path(parse_file_url(registry_url))
-        pkg_namespace_dir = registry_dir / 'named_packages' / pkg_namespace
-        pkg_dir = pkg_namespace_dir / pkg_subname
-        packages_path = registry_dir / 'packages'
+    for path, _ in paths:
+        delete_url(package_path + path)
 
-        for tophash_file in pkg_dir.iterdir():
-            # skip latest, which always duplicates a tophashed file
-            timestamp = tophash_file.name
-            tophash = tophash_file.read_text()
-
-            if timestamp != 'latest' and len(tophashes_with_packages[tophash]) == 1:
-                (packages_path / tophash).unlink()
-
-            tophash_file.unlink()
-
-        pkg_dir.rmdir()
-
-        if not list(pkg_namespace_dir.iterdir()):
-            pkg_namespace_dir.rmdir()
-
-    elif registry_url.scheme == 's3':
-        bucket, path, _ = parse_s3_url(registry_url)
-        pkg_namespace_dir = path + '/named_packages/' + pkg_namespace
-        pkg_dir = pkg_namespace_dir + '/' + pkg_subname + '/'
-        packages_path = path + '/packages/'
-
-        for tophash_obj_repr in list_objects(bucket, pkg_dir):
-            tophash_file = tophash_obj_repr['Key']
-            timestamp = tophash_file.split("/")[-1]
-            tophash_path = 's3://' + bucket + '/' + tophash_file
-            tophash, _ = get_bytes(tophash_path)
-            tophash = tophash.decode('utf-8')
-
-            if timestamp != 'latest' and len(tophashes_with_packages[tophash]) == 1:
-                delete_object(bucket, packages_path + tophash)
-
-            delete_object(bucket, tophash_file)
-
-    else:
-        raise NotImplementedError
+    # Will ignore non-empty dirs.
+    delete_url(package_path)
+    delete_url(named_packages + usr + '/')
 
 
 def list_packages(registry=None):
