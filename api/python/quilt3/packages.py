@@ -924,7 +924,7 @@ class Package(object):
             # Use file extension from serialization_location, fall back to file extension from logical_key
             # If neither has a file extension, Quilt picks the serialization format.
             logical_key_ext = extract_file_extension(logical_key)
-            serialize_loc_ext = extract_file_extension(logical_key)
+            serialize_loc_ext = extract_file_extension(serialization_location)
 
             if logical_key_ext is not None and serialize_loc_ext is None:
                 assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
