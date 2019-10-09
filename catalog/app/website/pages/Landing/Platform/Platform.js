@@ -4,10 +4,11 @@ import * as M from '@material-ui/core'
 import img2x from 'utils/img2x'
 import Bar from 'website/components/Bar'
 
-import partner from './partner.png'
-import partner2x from './partner@2x.png'
 import art from './art.png'
 import art2x from './art@2x.png'
+import backlight from './backlight.png'
+import partner from './partner.png'
+import partner2x from './partner@2x.png'
 
 const useStyles = M.makeStyles((t) => ({
   root: {
@@ -25,6 +26,7 @@ const useStyles = M.makeStyles((t) => ({
     paddingTop: t.spacing(5),
     position: 'relative',
     maxWidth: 400,
+    zIndex: 1,
     [t.breakpoints.down('sm')]: {
       alignItems: 'center',
       display: 'flex',
@@ -36,6 +38,7 @@ const useStyles = M.makeStyles((t) => ({
     width: 237,
   },
   art: {
+    position: 'relative',
     [t.breakpoints.down('sm')]: {
       marginBottom: t.spacing(1),
       marginTop: t.spacing(4),
@@ -51,6 +54,19 @@ const useStyles = M.makeStyles((t) => ({
     },
     [t.breakpoints.up('lg')]: {
       marginRight: -100,
+    },
+    '& img': {
+      position: 'relative',
+      width: '100%',
+    },
+    '&::before': {
+      background: `center / contain no-repeat url(${backlight})`,
+      content: '""',
+      left: '-48%',
+      paddingTop: `${(1432 / 862) * 100}%`,
+      position: 'absolute',
+      top: '-43%',
+      width: `${(1605 / 862) * 100}%`,
     },
   },
 }))
@@ -84,7 +100,9 @@ export default function Platform() {
           alt="AWS Advanced Technology Partner"
         />
       </div>
-      <img className={classes.art} src={img2x(art, art2x)} alt="" />
+      <div className={classes.art}>
+        <img src={img2x(art, art2x)} alt="" />
+      </div>
     </M.Container>
   )
 }

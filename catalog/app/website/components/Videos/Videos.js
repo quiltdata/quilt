@@ -36,6 +36,7 @@ const useStyles = M.makeStyles((t) => ({
     paddingBottom: t.spacing(5),
     paddingTop: t.spacing(12),
     position: 'relative',
+    zIndex: 1,
   },
   adornment: {
     alignItems: 'center',
