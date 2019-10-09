@@ -924,9 +924,12 @@ class Package(object):
             # Use file extension from serialization_location, fall back to file extension from logical_key
             # If neither has a file extension, Quilt picks the serialization format.
             logical_key_ext = extract_file_extension(logical_key)
-            serialize_loc_ext = extract_file_extension(logical_key)
 
-            if logical_key_ext is not None and serialize_loc_ext is None:
+            serialize_loc_ext = None
+            if serialization_location is not None:
+                serialize_loc_ext = extract_file_extension(serialization_location)
+
+            if logical_key_ext is not None and serialize_loc_ext is not None:
                 assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
                                                              f"different file extensions: {logical_key_ext} vs " \
                                                              f"{serialize_loc_ext}. Quilt doesn't know which to use!"
@@ -944,11 +947,9 @@ class Package(object):
 
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
-                error_message_fragment = "."
                 if ext is not None:
-                    error_message_fragment = f' as a {ext} file.'
-                error_message += error_message_fragment + " "
-                error_message += f'If you think this should be supported, please open an issue or PR at ' \
+                    error_message += f' as a {ext} file.'
+                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
                                  f'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
@@ -1159,8 +1160,8 @@ class Package(object):
 
     def _delete_temporary_files(self):
         physical_keys = [entry.get() for _, entry in self.walk()]
-        p = Pool(10)
-        p.map(del_if_temp, physical_keys)
+        with Pool(10) as p:
+            p.map(del_if_temp, physical_keys)
 
     def diff(self, other_pkg):
         """
