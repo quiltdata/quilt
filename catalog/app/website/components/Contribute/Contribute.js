@@ -8,6 +8,7 @@ import scrollIntoView from 'utils/scrollIntoView'
 
 import art from './art.png'
 import art2x from './art@2x.png'
+import backlight from './backlight.png'
 
 const usePanelStyles = M.makeStyles((t) => ({
   root: {
@@ -95,10 +96,36 @@ const useStyles = M.makeStyles((t) => ({
     flexDirection: 'column',
   },
   art: {
+    flexShrink: 0,
+    position: 'relative',
+    height: 410,
     width: 380,
     [t.breakpoints.down('xs')]: {
       maxWidth: 380,
       width: '100%',
+    },
+    '& img': {
+      position: 'relative',
+      width: '100%',
+    },
+    '&::before': {
+      background: `center / cover url(${backlight})`,
+      content: '""',
+      height: `${(501 / 410) * 100}%`,
+      position: 'absolute',
+      right: '-22%',
+      top: '-11%',
+      width: `${(719 / 380) * 100}%`,
+    },
+  },
+  getNotified: {
+    maxWidth: 660,
+    position: 'relative',
+    [t.breakpoints.up('sm')]: {
+      marginLeft: t.spacing(7),
+    },
+    [t.breakpoints.down('xs')]: {
+      marginTop: t.spacing(8),
     },
   },
 }))
@@ -144,9 +171,18 @@ export default function Contribute() {
           <Link href="https://quiltdata.com">Learn more</Link>
         </div>
       </div>
-      <M.Box display="flex" pt={10} pb={13} flexDirection={{ xs: 'column', sm: 'row' }}>
-        <img src={img2x(art, art2x)} className={classes.art} alt="" />
-        <M.Box ml={{ sm: 14 }} mt={15}>
+      <M.Box
+        display="flex"
+        pt={10}
+        pb={13}
+        flexDirection={{ xs: 'column', sm: 'row' }}
+        alignItems="center"
+        justifyContent="space-between"
+      >
+        <div className={classes.art}>
+          <img src={img2x(art, art2x)} alt="" />
+        </div>
+        <div className={classes.getNotified}>
           <M.Typography
             variant="h2"
             color="textPrimary"
@@ -171,7 +207,7 @@ export default function Contribute() {
             </M.Link>{' '}
             to discuss new features, ask questions, and stay in the loop.
           </M.Typography>
-        </M.Box>
+        </div>
       </M.Box>
     </M.Container>
   )
