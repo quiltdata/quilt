@@ -581,29 +581,40 @@ class PackageTest(QuiltTestCase):
         pkg.set("mydataframe6.tsv", df, meta={'user_meta': 'blah6'})
 
         for lk, entry in pkg.walk():
-            file_path = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert (pathlib.Path(file_path)).exists(), "The serialization files should exist"
+            file_path = parse_file_url(urlparse(entry.get()))
+            assert pathlib.Path(file_path).exists(), "The serialization files should exist"
 
-            self.file_sweeper_path_list.append(file_path)
+            self.file_sweeper_path_list.append(file_path)  # Make sure files get deleted even if test fails
 
         pkg._fix_sha256()
         for lk, entry in pkg.walk():
             assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
                                                    "was serialized"
 
-        # Confirm that delete of temporary files is trivial
+        # Test that push cleans up the temporary files, if and only if the serialization_location was not set
+        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
+            patch('quilt3.Package._materialize') as materialize_mock, \
+            patch('quilt3.Package.build') as build_mock:
+            materialize_mock.return_value = pkg
+
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
+
+        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert pathlib.Path(file_path).exists(), "These files should not have been deleted during push()"
+
+        for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
+
+        # Test file cleanup utility
         Package.delete_local_file(pkg.get("mydataframe1.parquet"))
         Package.delete_local_file(pkg.get("mydataframe2.csv"))
         Package.delete_local_file(pkg.get("mydataframe3.tsv"))
-        Package.delete_local_file(pkg.get("mydataframe4.parquet"))
-        Package.delete_local_file(pkg.get("mydataframe5.csv"))
-        Package.delete_local_file(pkg.get("mydataframe6.tsv"))
 
-        for lk, entry in pkg.walk():
-            file_path = parse_file_url(urlparse(entry.physical_keys[0]))
-            assert not (pathlib.Path(file_path)).exists(), "The serialization files should have been deleted"
-
-            self.file_sweeper_path_list.append(file_path)
+        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert not pathlib.Path(file_path).exists(), "File should have been deleted by Package.delete_local_file"
 
 
     def test_tophash_changes(self):
