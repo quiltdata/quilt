@@ -1,14 +1,43 @@
+import * as R from 'ramda'
 import * as React from 'react'
 
 import * as Config from 'utils/Config'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import * as Cache from 'utils/ResourceCache'
 import { useRoute } from 'utils/router'
 
-export const useBucketConfigs = () => {
-  const { federations } = Config.use()
+const fetchBuckets = async ({ registryUrl }) => {
+  const res = await fetch(`${registryUrl}/api/buckets`)
+  const text = await res.text()
+  if (!res.ok) {
+    throw new Error(`Unable to fetch buckets (${res.status}):\n${text}`)
+  }
+  const json = JSON.parse(text)
+  return json.buckets.map((b) => ({
+    ...R.omit(['icon_url', 'overview_url', 'relevance_score'], b),
+    iconUrl: b.icon_url,
+    overviewUrl: b.overview_url,
+    relevance: b.relevance_score,
+  }))
+}
+
+const BucketsResource = Cache.createResource({
+  name: 'BucketConfig.buckets',
+  fetch: fetchBuckets,
+})
+
+export const useBucketConfigs = ({ suspend = true } = {}) =>
+  Cache.useData(BucketsResource, { registryUrl: Config.use().registryUrl }, { suspend })
+
+export const useRelevantBucketConfigs = () => {
+  const bs = useBucketConfigs()
   return React.useMemo(
-    () => federations.reduce((acc, f) => ({ ...acc, [f.name]: f }), {}),
-    [federations],
+    () =>
+      R.pipe(
+        R.filter((b) => b.relevance == null || b.relevance >= 0),
+        R.sortWith([R.descend(R.prop('relevance')), R.ascend(R.prop('name'))]),
+      )(bs),
+    [bs],
   )
 }
 
@@ -20,6 +49,6 @@ export const useCurrentBucket = () => {
 
 export const useCurrentBucketConfig = () => {
   const bucket = useCurrentBucket()
-  const buckets = useBucketConfigs()
-  return bucket && (buckets[bucket] || { name: bucket })
+  const bucketConfigs = useBucketConfigs()
+  return bucket && bucketConfigs.find((i) => i.name === bucket)
 }

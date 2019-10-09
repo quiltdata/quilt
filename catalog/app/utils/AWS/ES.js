@@ -8,41 +8,35 @@ import { mkSearch } from 'utils/NamedRoutes'
 import * as Signer from './Signer'
 
 const REQUEST_TIMEOUT = 120000
-const DEFAULT_SEARCH_SIZE = 1000
 
 const getRegion = R.pipe(
   R.prop('hostname'),
-  R.match(/\.([a-z]{2}-[a-z]+-\d)\.es\.amazonaws\.com$/),
+  R.match(/\.([a-z]{2}-[a-z]+-\d)\.amazonaws\.com$/),
   R.nth(1),
   R.defaultTo('us-east-1'),
 )
 
 const noop = () => {}
 
-export const useES = ({ endpoint: ep, bucket }) => {
-  const { shouldSign } = useConfig()
+export const useES = ({ sign = false }) => {
+  const { apiGatewayEndpoint: ep } = useConfig()
   const requestSigner = Signer.useRequestSigner()
-  const signRequest = shouldSign(bucket) ? requestSigner : noop
+  const signRequest = sign ? requestSigner : noop
 
   const endpoint = React.useMemo(() => new AWS.Endpoint(ep), [ep])
   const region = React.useMemo(() => getRegion(endpoint), [ep])
 
   const search = React.useCallback(
-    ({ _source, size = DEFAULT_SEARCH_SIZE, ...source }) => {
+    ({ index = '*', action, query }) => {
       const request = new AWS.HttpRequest(endpoint, region)
       delete request.headers['X-Amz-User-Agent']
 
-      const path = `${bucket}/_search${mkSearch({
-        size,
-        _source: _source && _source.join(','),
-        source: JSON.stringify(source),
-        source_content_type: 'application/json',
-      })}`
+      const path = `/search${mkSearch({ index, action, query })}`
 
       request.method = 'GET'
       request.path += path
       request.headers.Host = endpoint.hostname
-      signRequest(request, 'es')
+      signRequest(request, 'execute-api')
 
       delete request.headers.Host
 
@@ -65,6 +59,10 @@ export const useES = ({ endpoint: ep, bucket }) => {
             response.on('end', () => {
               if (timedOut) return
               clearTimeout(timeoutId)
+              if (response.statusCode === 429) {
+                reject(new Error('TooManyRequests'))
+                return
+              }
               if (response.statusCode !== 200) {
                 reject(new Error(`ES Error: ${body}`))
                 return
@@ -80,7 +78,7 @@ export const useES = ({ endpoint: ep, bucket }) => {
         )
       })
     },
-    [endpoint, region, bucket],
+    [endpoint, region, signRequest],
   )
 
   return search

@@ -7,6 +7,8 @@ workflows:
       - test-3.6
       - test-lambdas-indexer
       - test-lambdas-preview
+      - test-lambdas-s3select
+      - test-lambdas-search
       - test-lambdas-shared
   build_and_deploy:
     jobs:
@@ -78,6 +80,46 @@ jobs:
           command: |
             . venv/bin/activate
             cd lambdas/preview && pytest --cov=./
+
+  test-lambdas-s3select:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install lambdas/s3select
+            pip install -r lambdas/s3select/requirements.txt
+            pip install -r lambdas/s3select/test-requirements.txt
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/s3select && pytest --cov=./
+
+  test-lambdas-search:
+    docker:
+      - image: circleci/python:3.6-jessie
+    steps:
+      - checkout
+      - run:
+          name: Setup
+          command: |
+            virtualenv venv
+            . venv/bin/activate
+            pip install lambdas/shared/
+            pip install lambdas/search/
+            pip install -r lambdas/search/requirements.txt
+            pip install -r lambdas/search/test-requirements.txt
+      - run:
+          name: Pytest
+          command: |
+            . venv/bin/activate
+            cd lambdas/search && pytest --cov=./
 
   test-lambdas-shared:
     docker:

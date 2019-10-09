@@ -9,11 +9,11 @@ import humanize
 from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
 from .formats import FormatRegistry
 from .packages import Package
-from .search_util import search as util_search
+from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, find_bucket_config, fix_url, get_from_config,
-                   get_package_registry, parse_file_url, parse_s3_url, read_yaml,
-                   validate_url, validate_package_name, write_yaml)
+                   CONFIG_TEMPLATE, configure_from_url, find_bucket_config, fix_url,
+                   get_from_config, get_package_registry, parse_file_url, parse_s3_url,
+                   read_yaml, validate_url, validate_package_name, write_yaml)
 
 
 def copy(src, dest):
@@ -431,37 +431,13 @@ def config(*catalog_url, **config_values):
     if catalog_url:
         catalog_url = catalog_url[0]
 
-        config_template = read_yaml(CONFIG_TEMPLATE)
-
         # If catalog_url is empty, reset to the default config.
 
         if catalog_url:
-            # Clean up and validate catalog url
-            catalog_url = catalog_url.rstrip('/')
-            validate_url(catalog_url)
-
-            # Get the new config
-            config_url = catalog_url + '/config.json'
-
-            response = requests.get(config_url)
-            if not response.ok:
-                message = "An HTTP Error ({code}) occurred: {reason}"
-                raise QuiltException(
-                    message.format(code=response.status_code, reason=response.reason),
-                    response=response
-                    )
-            # QuiltConfig may perform some validation and value scrubbing.
-            new_config = QuiltConfig('', response.json())
-
-            # 'navigator_url' needs to be renamed, the term is outdated.
-            if not new_config.get('navigator_url'):
-                new_config['navigator_url'] = catalog_url
-
-            # Use our template + their configured values, keeping our comments.
-            for key, value in new_config.items():
-                config_template[key] = value
-
-        write_yaml(config_template, CONFIG_PATH, keep_backup=True)
+            config_template = configure_from_url(catalog_url)
+        else:
+            config_template = read_yaml(CONFIG_TEMPLATE)
+            write_yaml(config_template, CONFIG_PATH, keep_backup=True)
         return QuiltConfig(CONFIG_PATH, config_template)
 
     # Use local configuration (or defaults)
@@ -495,7 +471,6 @@ def search(query, limit=10):
         The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
     Returns:
-        either the request object (in case of an error) or
         a list of objects with the following structure:
         ```
         [{
@@ -510,11 +485,6 @@ def search(query, limit=10):
         }...]
         ```
     """
-    default_bucket = get_from_config('defaultBucket')
-    navigator_url = get_from_config('navigator_url')
-    config_url = navigator_url + '/config.json'
-    default_config = find_bucket_config(default_bucket, config_url)
-    search_endpoint = default_config['searchEndpoint']
-    region = default_config['region']
+    raw_results = search_api(query, '*', limit)
+    return raw_results['hits']['hits']
 
-    return util_search(query, search_endpoint, limit=limit, aws_region=region)

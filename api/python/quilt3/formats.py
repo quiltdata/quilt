@@ -188,6 +188,14 @@ class FormatRegistry:
         return ext_fmts
 
     @classmethod
+    def object_is_serializable(cls, obj):
+        try:
+            format_handlers = cls.search(type(obj))
+            return True
+        except QuiltException as e:
+            return False
+
+    @classmethod
     def serialize(cls, obj, meta=None, ext=None, **format_opts):
         """Match an object to a format, and serialize it to that format.
 
@@ -303,6 +311,41 @@ class FormatRegistry:
     def for_meta(cls, meta):
         name = cls._get_name_from_meta(meta)
         return cls.for_format(name)
+
+    @classmethod
+    def all_supported_formats(cls):
+        """
+        Returns a map of supported object types -> serialization formats, e.g.:
+
+                            Python Object Type     Serialization Formats
+         <class 'pandas.core.frame.DataFrame'>  [ssv, csv, tsv, parquet]
+                       <class 'numpy.ndarray'>                [npy, npz]
+                                 <class 'str'>      [md, json, rst, txt]
+                                <class 'dict'>                    [json]
+                            <class 'NoneType'>                    [json]
+                               <class 'tuple'>                    [json]
+                                 <class 'int'>                    [json]
+                                <class 'list'>                    [json]
+                               <class 'float'>                    [json]
+                               <class 'bytes'>                     [bin]
+        """
+        import numpy as np
+        import pandas as pd
+
+        _ = cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
+        _ = cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
+
+        type_map = {}
+        for handler in cls.registered_handlers:
+            for t in handler.handled_types:
+                if t not in type_map.keys():
+                    type_map[t] = set()
+                type_map[t].update(handler.handled_extensions)
+        type_to_format_maps = []
+        for t, v in type_map.items():
+            type_to_format_maps.append({"Python Object Type": t, "Serialization Formats": list(v)})
+        df = pd.DataFrame(type_to_format_maps)
+        return df
 
 
 class BaseFormatHandler(ABC):
@@ -918,7 +961,7 @@ class ParquetFormatHandler(BaseFormatHandler):
     handled_extensions = ['parquet']
     opts = ('compression',)
     defaults = {
-        'compression': 'snappy_columns',
+        'compression': 'snappy',
     }
 
     def handles_type(self, typ):
@@ -941,25 +984,11 @@ class ParquetFormatHandler(BaseFormatHandler):
         opts = self.get_opts(meta, format_opts)
         opts_with_defaults = copy.deepcopy(self.defaults)
         opts_with_defaults.update(opts)
-        kwargs = {}
         table = pa.Table.from_pandas(obj)
-
-        for name, value in opts_with_defaults.items():
-            if name == 'compression':
-                if isinstance(value, str) and value.endswith('_columns'):
-                    # shorthand for columnar compression on all columns, using prefix value.
-                    compression = value.split('_')[0]
-                    kwargs['compression'] = {
-                        col.name.encode('utf-8'): compression for col in table.columns
-                    }
-                else:
-                    kwargs['compression'] = value
-
         buf = io.BytesIO()
-        parquet.write_table(table, buf, **kwargs)
+        parquet.write_table(table, buf, **opts_with_defaults)
 
         return buf.getvalue(), self._update_meta(meta, additions=opts_with_defaults)
-
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
         import pyarrow as pa

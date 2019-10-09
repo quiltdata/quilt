@@ -47,11 +47,14 @@ const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
 const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
 const HomePage = mkLazy(() => import('containers/HomePage'))
+const Search = mkLazy(() => import('containers/Search'))
 
 const MLanding = mkLazy(() => import('website/pages/Landing'))
 const MAbout = mkLazy(() => import('website/pages/About'))
 const MPersonas = mkLazy(() => import('website/pages/Personas'))
 const MProduct = mkLazy(() => import('website/pages/Product'))
+
+const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
 
 export default () => {
   const cfg = Config.useConfig()
@@ -62,18 +65,25 @@ export default () => {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
 
+  const Landing = React.useMemo(
+    () =>
+      protect(
+        // eslint-disable-next-line no-nested-ternary
+        cfg.openLanding ? OpenLanding : cfg.enableMarketingPages ? MLanding : HomePage,
+      ),
+    [protect, cfg.openLanding, cfg.enableMarketingPages],
+  )
+
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route
-          path={paths.home}
-          component={protect(cfg.enableMarketingPages ? MLanding : HomePage)}
-          exact
-        />
+        <Route path={paths.home} component={Landing} exact />
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
+
+        {!!cfg.globalSearch && <Route path={paths.search} component={Search} exact />}
 
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />
@@ -85,29 +95,46 @@ export default () => {
           <Route path={paths.product} component={MProduct} exact />
         )}
 
-        <Route path={paths.activate} component={Activate} exact />
-
-        <Route path={paths.signIn} component={AuthSignIn} exact />
-        <Route path="/login" component={redirectTo(urls.signIn())} exact />
-        <Route path={paths.signOut} component={AuthSignOut} exact />
-        {(cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-          <Route path={paths.signUp} component={AuthSignUp} exact />
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.activate} component={Activate} exact />
         )}
-        {cfg.ssoAuth === true && (
+
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.signIn} component={AuthSignIn} exact />
+        )}
+        {!cfg.enableMarketingPages && (
+          <Route path="/login" component={redirectTo(urls.signIn())} exact />
+        )}
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.signOut} component={AuthSignOut} exact />
+        )}
+        {!cfg.enableMarketingPages &&
+          (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+            <Route path={paths.signUp} component={AuthSignUp} exact />
+          )}
+        {!cfg.enableMarketingPages && cfg.ssoAuth === true && (
           <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
         )}
-        {!!cfg.passwordAuth && (
+        {!cfg.enableMarketingPages && !!cfg.passwordAuth && (
           <Route path={paths.passReset} component={AuthPassReset} exact />
         )}
-        {!!cfg.passwordAuth && (
+        {!cfg.enableMarketingPages && !!cfg.passwordAuth && (
           <Route path={paths.passChange} component={AuthPassChange} exact />
         )}
-        <Route path={paths.code} component={protect(AuthCode)} exact />
-        <Route path={paths.activationError} component={AuthActivationError} exact />
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.code} component={protect(AuthCode)} exact />
+        )}
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.activationError} component={AuthActivationError} exact />
+        )}
 
-        <Route path={paths.admin} component={requireAdmin(Admin)} exact />
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.admin} component={requireAdmin(Admin)} exact />
+        )}
 
-        <Route path={paths.bucketRoot} component={protect(Bucket)} />
+        {!cfg.enableMarketingPages && (
+          <Route path={paths.bucketRoot} component={protect(Bucket)} />
+        )}
 
         <Route component={protect(ThrowNotFound)} />
       </Switch>

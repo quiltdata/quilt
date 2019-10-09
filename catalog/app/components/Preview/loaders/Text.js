@@ -8,6 +8,8 @@ import AsyncResult from 'utils/AsyncResult'
 import { PreviewData } from '../types'
 import * as utils from './utils'
 
+const MAX_BYTES = 10 * 1024
+
 const LANGS = {
   accesslog: /\.log$/,
   bash: /\.(ba|z)?sh$/,
@@ -66,7 +68,7 @@ const getLang = R.pipe(
 
 const hl = (lang) => (contents) => hljs.highlight(lang, contents).value
 
-export const load = utils.previewFetcher(
+const fetcher = utils.previewFetcher(
   'txt',
   ({ info: { data } }, { handle, forceLang }) => {
     const head = data.head.join('\n')
@@ -76,3 +78,6 @@ export const load = utils.previewFetcher(
     return AsyncResult.Ok(PreviewData.Text({ head, tail, lang, highlighted }))
   },
 )
+
+export const load = (handle, callback, extra) =>
+  fetcher(handle, callback, { query: { max_bytes: MAX_BYTES }, ...extra })

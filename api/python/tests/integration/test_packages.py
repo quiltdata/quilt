@@ -3,7 +3,9 @@ from io import BytesIO
 import os
 import pathlib
 from pathlib import Path
+import pandas as pd
 import shutil
+from urllib.parse import urlparse
 
 import jsonlines
 from unittest.mock import patch, call, ANY
@@ -17,6 +19,7 @@ from ..utils import QuiltTestCase
 
 
 DATA_DIR = Path(__file__).parent / 'data'
+SERIALIZATION_DIR = Path(__file__).parent / 'serialization_dir'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
 
@@ -41,7 +44,22 @@ def mock_make_api_call(self, operation_name, kwarg):
     raise NotImplementedError(operation_name)
 
 
+
 class PackageTest(QuiltTestCase):
+    def setUp(self):
+        super().setUp()
+        self.file_sweeper_path_list = []
+
+    def tearDown(self):
+        super().tearDown()
+        if len(self.file_sweeper_path_list) > 0:
+            for fpath in self.file_sweeper_path_list:
+                if os.path.exists(fpath):
+                    try:
+                        os.remove(fpath)
+                    except Exception as e:
+                        print("Error when removing file", fpath, str(e))
+
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -542,6 +560,63 @@ class PackageTest(QuiltTestCase):
         pkg = Package().set('bar.txt')
         assert test_file.resolve().as_uri() == pkg['bar.txt'].physical_keys[0]
 
+    def test_set_package_entry_as_object(self):
+        pkg = Package()
+        nasty_string = 'a,"\tb'
+        num_col = [11, 22, 33]
+        str_col = ['a', 'b', nasty_string]
+        df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
+
+        # Test with serialization_dir set
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'},
+                serialization_location=SERIALIZATION_DIR/"df1.parquet")
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'},
+                serialization_location=SERIALIZATION_DIR/"df2.csv")
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'},
+                serialization_location=SERIALIZATION_DIR/"df3.tsv")
+
+        # Test without serialization_dir set
+        pkg.set("mydataframe4.parquet", df, meta={'user_meta': 'blah4'})
+        pkg.set("mydataframe5.csv", df, meta={'user_meta': 'blah5'})
+        pkg.set("mydataframe6.tsv", df, meta={'user_meta': 'blah6'})
+
+        for lk, entry in pkg.walk():
+            file_path = parse_file_url(urlparse(entry.get()))
+            assert pathlib.Path(file_path).exists(), "The serialization files should exist"
+
+            self.file_sweeper_path_list.append(file_path)  # Make sure files get deleted even if test fails
+
+        pkg._fix_sha256()
+        for lk, entry in pkg.walk():
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
+                                                   "was serialized"
+
+        # Test that push cleans up the temporary files, if and only if the serialization_location was not set
+        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
+            patch('quilt3.Package._materialize') as materialize_mock, \
+            patch('quilt3.Package.build') as build_mock:
+            materialize_mock.return_value = pkg
+
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
+
+        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert pathlib.Path(file_path).exists(), "These files should not have been deleted during push()"
+
+        for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
+
+        # Test file cleanup utility
+        Package.delete_local_file(pkg.get("mydataframe1.parquet"))
+        Package.delete_local_file(pkg.get("mydataframe2.csv"))
+        Package.delete_local_file(pkg.get("mydataframe3.tsv"))
+
+        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert not pathlib.Path(file_path).exists(), "File should have been deleted by Package.delete_local_file"
+
+
     def test_tophash_changes(self):
         test_file = Path('test.txt')
         test_file.write_text('asdf', 'utf-8')
@@ -592,7 +667,7 @@ class PackageTest(QuiltTestCase):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
         with pytest.raises(TypeError):
-            pkg.set('asdf/jkl', 123)
+            pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
         pkg = Package()

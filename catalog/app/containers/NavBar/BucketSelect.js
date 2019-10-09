@@ -114,7 +114,7 @@ export default withForwardedRef()(
     RT.withSuspense(() => <Placeholder />),
     ({ autoFocus = false, cancel, forwardedRef, ...props }) => {
       const currentBucket = BucketConfig.useCurrentBucket()
-      const bucketConfigs = BucketConfig.useBucketConfigs()
+      const bucketConfigs = BucketConfig.useRelevantBucketConfigs()
       const classes = useStyles()
       const dispatch = reduxHook.useDispatch()
       const { urls } = NamedRoutes.use()
@@ -130,7 +130,9 @@ export default withForwardedRef()(
         },
       }))
 
-      const buckets = Object.keys(bucketConfigs)
+      const buckets = React.useMemo(() => bucketConfigs.map((b) => b.name), [
+        bucketConfigs,
+      ])
 
       const nextSuggestion = React.useCallback(() => {
         setValue(getBucketCycled(buckets, value, 1) || '')
@@ -228,29 +230,27 @@ export default withForwardedRef()(
                 <M.Fade {...TransitionProps} timeout={350}>
                   <M.Paper className={classes.paper}>
                     <M.MenuList>
-                      {buckets.map((s) => {
-                        const b = bucketConfigs[s]
-                        return (
-                          <M.MenuItem
-                            className={classes.item}
-                            key={s}
-                            onClick={() => handleSuggestion(s)}
-                            selected={s === value}
-                          >
-                            <img src={b.icon} alt={b.title} className={classes.icon} />
-                            <M.Box pr={2} />
-                            <M.ListItemText
-                              primary={b.title}
-                              secondary={b.description}
-                              secondaryTypographyProps={{
-                                noWrap: true,
-                                className: classes.description,
-                              }}
-                              title={b.description}
-                            />
-                          </M.MenuItem>
-                        )
-                      })}
+                      {bucketConfigs.map((b) => (
+                        <M.MenuItem
+                          className={classes.item}
+                          key={b.name}
+                          onClick={() => handleSuggestion(b.name)}
+                          selected={b.name === value}
+                        >
+                          {/* TODO: show text avatar or smth when iconUrl is empty */}
+                          <img src={b.iconUrl} alt={b.title} className={classes.icon} />
+                          <M.Box pr={2} />
+                          <M.ListItemText
+                            primary={b.title}
+                            secondary={b.description}
+                            secondaryTypographyProps={{
+                              noWrap: true,
+                              className: classes.description,
+                            }}
+                            title={b.description}
+                          />
+                        </M.MenuItem>
+                      ))}
                     </M.MenuList>
                   </M.Paper>
                 </M.Fade>

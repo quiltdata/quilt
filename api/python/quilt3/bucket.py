@@ -11,7 +11,7 @@ from .data_transfer import (copy_file, delete_object, get_bytes,
                             get_size_and_meta, list_object_versions,
                             list_objects, put_bytes, select)
 from .formats import FormatRegistry
-from .search_util import get_search_schema, search
+from .search_util import search_api
 from .util import QuiltException, find_bucket_config, fix_url, get_from_config, parse_s3_url
 
 
@@ -51,6 +51,8 @@ class Bucket(object):
             navigator_url.rstrip('/') # remove trailing / if present
             config_url = navigator_url + '/config.json'
 
+        # Look for search endpoint in stack config
+        # Only fall back on bucket config for old stacks
         bucket_config = find_bucket_config(self._bucket, config_url)
         if 'searchEndpoint' in bucket_config:
             self._search_endpoint = bucket_config['searchEndpoint']
@@ -59,15 +61,6 @@ class Bucket(object):
             self._search_endpoint = bucket_config['search_endpoint']
         # TODO: we can maybe get this from searchEndpoint or apiGatewayEndpoint
         self._region = bucket_config.get('region', 'us-east-1')
-
-    def get_user_meta_schema(self):
-        """
-        Returns the current search mappings for user metadata from the search endpoint.
-        """
-        if not self._search_endpoint or not self._region:
-            self.config()
-        schema = get_search_schema(self._search_endpoint, self._region)
-        return schema['user_meta']
 
     def search(self, query, limit=10):
         """
@@ -84,7 +77,6 @@ class Bucket(object):
             The syntax for field match is `user_meta.$field_name:"exact_match"`.
 
         Returns:
-            either the request object (in case of an error) or
             a list of objects with the following structure:
             ```
             [{
@@ -99,12 +91,7 @@ class Bucket(object):
             }...]
             ```
         """
-        if not self._search_endpoint:
-            self.config()
-        if self._region:
-            return search(
-                query, self._search_endpoint, limit=limit, aws_region=self._region, bucket=self._bucket)
-        return search(query, self._search_endpoint, limit=limit, bucket=self._bucket)
+        return search_api(query, index=self._bucket, limit=limit)
 
     def deserialize(self, key):
         """

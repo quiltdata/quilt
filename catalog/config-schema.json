@@ -11,7 +11,11 @@
     },
     "apiGatewayEndpoint": {
       "type": "string",
-      "description": "Endpoint to use for previews. Should be auto-populated by your stack."
+      "description": "Endpoint to use for previews and other things. Should be auto-populated by your stack."
+    },
+    "binaryApiGatewayEndpoint": {
+      "type": "string",
+      "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
     "defaultBucket": {
       "type": "string",
@@ -21,10 +25,9 @@
       "type": "boolean",
       "description": "Enable marketing pages."
     },
-    "federations": {
-      "type": "array",
-      "description": "List of links to federations you want your catalog to be aware of.",
-      "items": { "$ref": "#/definitions/Url" }
+    "globalSearch": {
+      "type": "boolean",
+      "description": "Enable global (aka universal) search."
     },
     "googleClientId": {
       "type": "string",
@@ -41,6 +44,10 @@
     "mixpanelToken": {
       "type": "string",
       "description": "Token for Mixpanel analytics service"
+    },
+    "openLanding": {
+      "type": "boolean",
+      "description": "Whether to display open data landing page."
     },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
@@ -79,6 +86,7 @@
   "required": [
     "alwaysRequiresAuth",
     "apiGatewayEndpoint",
+    "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
     "passwordAuth",

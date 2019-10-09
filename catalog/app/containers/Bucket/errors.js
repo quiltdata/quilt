@@ -5,14 +5,13 @@ import { Route, Link } from 'react-router-dom'
 import { createStructuredSelector } from 'reselect'
 import Button from '@material-ui/core/Button'
 
+import Message from 'components/Message'
 import * as Auth from 'containers/Auth'
 import { docs } from 'constants/urls'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import StyledLink from 'utils/StyledLink'
 import { BaseError } from 'utils/error'
 import * as RT from 'utils/reactTools'
-
-import Message from './Message'
 
 export class BucketError extends BaseError {}
 
@@ -54,12 +53,12 @@ const defaultHandlers = [
     R.is(CORSError),
     () => (
       <Message headline="Error">
-        Seems like this bucket is not configured for Quilt 3.
+        Seems like this bucket is not configured for Quilt.
         <br />
         <StyledLink
           href={`${docs}/references/technical-reference#deploy-a-private-quilt-instance-on-aws`}
         >
-          Learn how to configure the bucket for Quilt 3
+          Learn how to configure the bucket for Quilt
         </StyledLink>
         .
       </Message>
@@ -81,7 +80,7 @@ const defaultHandlers = [
           <StyledLink
             href={`${docs}/walkthrough/working-with-the-catalog#access-control`}
           >
-            Learn about access control in Quilt 3
+            Learn about access control in Quilt
           </StyledLink>
           .
         </Message>

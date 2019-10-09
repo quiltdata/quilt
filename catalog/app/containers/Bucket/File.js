@@ -25,6 +25,7 @@ import {
 } from '@material-ui/core'
 import { makeStyles, styled } from '@material-ui/styles'
 
+import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
 import ButtonIcon from 'components/ButtonIcon'
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
@@ -39,7 +40,6 @@ import * as RT from 'utils/reactTools'
 import { getBreadCrumbs, up } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
-import BreadCrumbs, { Crumb } from './BreadCrumbs'
 import Code from './Code'
 import FilePreview from './FilePreview'
 import Section from './Section'
@@ -117,7 +117,7 @@ const VersionInfo = RT.composeComponent(
                           <span>
                             <FormattedRelative value={v.lastModified} />
                             {' | '}
-                            {readableBytes(v.size)}
+                            {v.size != null ? readableBytes(v.size) : 'DELETED'}
                             {v.isLatest && ' | latest'}
                           </span>
                         }
@@ -129,13 +129,15 @@ const VersionInfo = RT.composeComponent(
                           </span>
                         }
                       />
-                      <ListItemSecondaryAction>
-                        {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                          <IconButton href={url}>
-                            <Icon>arrow_downward</Icon>
-                          </IconButton>
-                        ))}
-                      </ListItemSecondaryAction>
+                      {!v.deleteMarker && (
+                        <ListItemSecondaryAction>
+                          {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                            <IconButton href={url}>
+                              <Icon>arrow_downward</Icon>
+                            </IconButton>
+                          ))}
+                        </ListItemSecondaryAction>
+                      )}
                     </ListItem>
                   ))}
                 </List>
@@ -322,7 +324,7 @@ export default ({
   `
 
   return (
-    <React.Fragment>
+    <Box pt={2} pb={4}>
       <BreadCrumbs variant="subtitle1" items={getCrumbs({ bucket, path, urls })} />
       <div className={classes.topBar}>
         <Typography variant="h6" className={classes.nameAndVersion}>
@@ -347,6 +349,6 @@ export default ({
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>
       <Annotations bucket={bucket} path={path} version={version} />
-    </React.Fragment>
+    </Box>
   )
 }

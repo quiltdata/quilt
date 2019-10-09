@@ -74,6 +74,18 @@ class TestIndex():
         assert 'Unexpected line_count=' in body['title'], 'Expected 400 explanation'
         assert 'invalid literal' in body['detail'], 'Expected 400 explanation'
 
+    def test_bad_max_bytes(self):
+        """send a known bad max_bytes parameter"""
+        garbage = 'gfgfgf'
+        event = self._make_event({
+            'url': self.FILE_URL,
+            'input': 'txt',
+            'max_bytes': garbage}, {'origin': MOCK_ORIGIN})
+        resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 400, f'Expected 400 on event with line_count of {garbage}'
+        body = json.loads(resp['body'])
+        assert 'Unexpected max_bytes=' in body['title'], 'Expected 400 explanation'
+
     @responses.activate
     def test_csv(self):
         """test returning HTML previews of CSV (via pandas)"""
@@ -329,6 +341,24 @@ class TestIndex():
         assert headlist[97] == 'Line 98', 'unexpected last line in head'
         taillist = body['info']['data']['tail']
         assert not taillist, 'expected empty tail'
+
+    @patch(__name__ + '.index.CHUNK', 4)
+    @responses.activate
+    def test_max_bytes(self):
+        """test max bytes"""
+        txt = BASE_DIR / 'short.txt'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=txt.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'txt', 'max_bytes': '3'})
+        resp = index.lambda_handler(event, None)
+        body = json.loads(resp['body'])
+        assert resp['statusCode'] == 200, 'preview lambda failed on short.txt'
+        headlist = body['info']['data']['head']
+        assert len(headlist) == 1, 'unexpected number of lines head'
+        assert headlist[0] == 'Line', 'unexpected first line in head'
 
     @responses.activate
     def test_vcf(self):

@@ -1,7 +1,6 @@
 import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 
-import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { resolveKey } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
@@ -140,19 +139,15 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-export const bucketStats = async ({ es, maxExts }) => {
-  const r = await es({
-    query: { match_all: {} },
-    size: 0,
-    aggs: {
-      totalBytes: { sum: { field: 'size' } },
-      exts: {
-        terms: { field: 'ext' },
-        aggs: { size: { sum: { field: 'size' } } },
-      },
-      updated: { max: { field: 'updated' } },
-    },
+export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
+  const { bucket: statsBucket, path: statsPath } = overviewUrl.match(S3_REGEXP).groups
+  const statsKey = `${unescape(statsPath)}/stats.json`
+  const r = await s3req({
+    statsBucket,
+    operation: 'getObject',
+    params: { Bucket: statsBucket, Key: statsKey },
   })
+  const stats = JSON.parse(r.Body.toString('utf-8'))
 
   const exts = R.pipe(
     R.map((i) => ({
@@ -162,13 +157,13 @@ export const bucketStats = async ({ es, maxExts }) => {
     })),
     R.sort(R.descend(R.prop('bytes'))),
     R.slice(0, maxExts),
-  )(r.aggregations.exts.buckets)
+  )(stats.aggregations.exts.buckets)
 
   return {
-    totalObjects: r.hits.total,
-    totalVersions: r.hits.total,
-    totalBytes: r.aggregations.totalBytes.value,
-    updated: parseDate(r.aggregations.updated.value_as_string),
+    totalObjects: stats.hits.total,
+    totalVersions: stats.hits.total,
+    totalBytes: stats.aggregations.totalBytes.value,
+    updated: parseDate(stats.aggregations.updated.value_as_string),
     exts,
   }
 }
@@ -191,9 +186,7 @@ const extractLatestVersion = (hits) => {
   )
 }
 
-const MAX_IMGS = 100
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
-const MAX_OTHER = 10
 const OTHER_EXTS = [
   '.parquet',
   '.csv',
@@ -208,146 +201,69 @@ const OTHER_EXTS = [
 ]
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 
-export const bucketSummary = ({ es, bucket }) =>
-  es({
-    query: { match_all: {} },
-    aggs: {
-      readmes: {
-        terms: {
-          field: 'key',
-          include: README_KEYS,
-        },
-        aggs: {
-          latestVersion: {
-            top_hits: {
-              sort: [{ last_modified: { order: 'desc' } }],
-              _source: ['version_id'],
-              size: 1,
+const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
+
+export const bucketSummary = async ({ s3req, overviewUrl, bucket }) => {
+  const { bucket: summaryBucket, path: summaryPath } = overviewUrl.match(S3_REGEXP).groups
+  const summaryKey = `${unescape(summaryPath)}/summary.json`
+  return s3req({
+    summaryBucket,
+    operation: 'getObject',
+    params: { Bucket: summaryBucket, Key: summaryKey },
+  })
+    .then((r) => JSON.parse(r.Body.toString('utf-8')))
+    .then(
+      R.applySpec({
+        readmes: R.pipe(
+          R.path(['aggregations', 'readmes', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+          })),
+          R.filter((h) => h.version !== DELETED),
+          R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
+        ),
+        images: R.pipe(
+          R.path(['aggregations', 'images', 'keys', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+          })),
+          R.filter((h) => h.version !== DELETED),
+        ),
+        other: R.pipe(
+          R.path(['aggregations', 'other', 'keys', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+            lastModified: parseDate(b.lastModified),
+            // eslint-disable-next-line no-underscore-dangle
+            ext: b.latestVersion.hits.hits[0]._source.ext,
+          })),
+          R.filter((h) => h.version !== DELETED),
+          R.sortWith([
+            R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+            R.descend(R.prop('lastModified')),
+          ]),
+        ),
+        summarize: ({
+          aggregations: {
+            summarize: {
+              latestVersion: { hits },
             },
           },
+        }) => {
+          if (!hits.total) return null
+          const version = extractLatestVersion(hits)
+          if (version === DELETED) return null
+          return { bucket, key: SUMMARIZE_KEY, version }
         },
-      },
-      images: {
-        filter: {
-          terms: { ext: IMG_EXTS },
-        },
-        aggs: {
-          keys: {
-            terms: {
-              field: 'key',
-              size: MAX_IMGS,
-              order: { 'lastModified.value': 'desc' },
-            },
-            aggs: {
-              latestVersion: {
-                top_hits: {
-                  sort: [{ last_modified: { order: 'desc' } }],
-                  _source: ['version_id'],
-                  size: 1,
-                },
-              },
-              lastModified: { max: { field: 'last_modified' } },
-            },
-          },
-        },
-      },
-      other: {
-        filter: {
-          bool: {
-            filter: [{ terms: { ext: OTHER_EXTS } }],
-            must_not: [
-              { terms: { key: [...README_KEYS, SUMMARIZE_KEY] } },
-              { wildcard: { key: `*/${SUMMARIZE_KEY}` } },
-            ],
-          },
-        },
-        aggs: {
-          keys: {
-            terms: {
-              field: 'key',
-              size: MAX_OTHER,
-              order: { 'lastModified.value': 'desc' },
-            },
-            aggs: {
-              latestVersion: {
-                top_hits: {
-                  sort: [{ last_modified: { order: 'desc' } }],
-                  _source: ['version_id', 'ext'],
-                  size: 1,
-                },
-              },
-              lastModified: { max: { field: 'last_modified' } },
-            },
-          },
-        },
-      },
-      summarize: {
-        filter: {
-          term: { key: SUMMARIZE_KEY },
-        },
-        aggs: {
-          latestVersion: {
-            top_hits: {
-              sort: [{ last_modified: { order: 'desc' } }],
-              _source: ['version_id'],
-              size: 1,
-            },
-          },
-        },
-      },
-    },
-    size: 0,
-  }).then(
-    R.applySpec({
-      readmes: R.pipe(
-        R.path(['aggregations', 'readmes', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-        })),
-        R.filter((h) => h.version !== DELETED),
-        R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
-      ),
-      images: R.pipe(
-        R.path(['aggregations', 'images', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-        })),
-        R.filter((h) => h.version !== DELETED),
-      ),
-      other: R.pipe(
-        R.path(['aggregations', 'other', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-          lastModified: parseDate(b.lastModified),
-          // eslint-disable-next-line no-underscore-dangle
-          ext: b.latestVersion.hits.hits[0]._source.ext,
-        })),
-        R.filter((h) => h.version !== DELETED),
-        R.sortWith([
-          R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
-          R.descend(R.prop('lastModified')),
-        ]),
-      ),
-      summarize: ({
-        aggregations: {
-          summarize: {
-            latestVersion: { hits },
-          },
-        },
-      }) => {
-        if (!hits.total) return null
-        const version = extractLatestVersion(hits)
-        if (version === DELETED) return null
-        return { bucket, key: SUMMARIZE_KEY, version }
-      },
-    }),
-  )
+      }),
+    )
+}
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
@@ -356,14 +272,16 @@ export const objectVersions = ({ s3req, bucket, path }) =>
     params: { Bucket: bucket, Prefix: path },
   }).then(
     R.pipe(
-      R.prop('Versions'),
+      ({ Versions, DeleteMarkers }) => Versions.concat(DeleteMarkers),
       R.filter((v) => v.Key === path),
       R.map((v) => ({
         isLatest: v.IsLatest || false,
         lastModified: v.LastModified,
         size: v.Size,
         id: v.VersionId,
+        deleteMarker: v.Size == null,
       })),
+      R.sort(R.descend(R.prop('lastModified'))),
     ),
   )
 
@@ -737,66 +655,6 @@ export const fetchPackageTree = withErrorHandling(
     return { id: revision, hash, keys, truncated }
   },
 )
-
-const takeR = (l, r) => r
-
-const mkMerger = (cases) => (key, l, r) => (cases[key] || takeR)(l, r)
-
-const merger = mkMerger({
-  score: R.max,
-  versions: R.pipe(
-    R.concat,
-    R.sortBy((v) => -v.score),
-  ),
-})
-
-const mergeHits = R.pipe(
-  R.reduce(
-    (acc, { _score: score, _source: src }) =>
-      R.mergeDeepWithKey(merger, acc, {
-        [src.key]: {
-          path: src.key,
-          score,
-          versions: [
-            {
-              id: src.version_id,
-              score,
-              updated: parseDate(src.updated),
-              lastModified: parseDate(src.last_modified),
-              size: src.size,
-              meta: src.user_meta,
-            },
-          ],
-        },
-      }),
-    {},
-  ),
-  R.values,
-  R.sortBy((h) => -h.score),
-)
-
-export const search = async ({ es, query }) => {
-  try {
-    const result = await es({
-      query: {
-        multi_match: {
-          query,
-          fields: ['content', 'comment', 'key_text', 'meta_text'],
-          type: 'cross_fields',
-        },
-      },
-      _source: ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta'],
-    })
-    const hits = mergeHits(result.hits.hits)
-    const total = Math.min(result.hits.total, result.hits.hits.length)
-    return { total, hits }
-  } catch (e) {
-    // TODO: handle errors
-    // eslint-disable-next-line no-console
-    console.log('search error', e)
-    throw e
-  }
-}
 
 const sqlEscape = (arg) => arg.replace(/'/g, "''")
 

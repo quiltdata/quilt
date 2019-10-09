@@ -28,6 +28,7 @@ const websitePalette = {
     dark: '#2d306d',
   },
   tertiary: {
+    contrastText: colors.common.white,
     main: '#6a93ff',
   },
   text: {
@@ -49,16 +50,19 @@ const websiteTypography = {
   ...baseTypography,
   h1: {
     fontSize: '3rem',
-    lineHeight: '4rem',
+    lineHeight: '3.5rem',
   },
   h2: {
     fontSize: '2.25rem',
+    lineHeight: 44 / 36,
   },
   h3: {
     fontSize: '1.75rem',
+    lineHeight: 32 / 28,
   },
   h4: {
     fontSize: '1.25rem',
+    lineHeight: 1.4,
   },
   h5: {
     fontSize: '1rem',

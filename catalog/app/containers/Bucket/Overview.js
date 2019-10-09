@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -24,7 +25,6 @@ import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 import useMemoEq from 'utils/useMemoEq'
 
-import Message from './Message'
 import { displayError } from './errors'
 import * as requests from './requests'
 
@@ -576,12 +576,11 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ bucket, description, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+function Head({ s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   return (
-    <Data fetch={requests.bucketStats} params={{ es, maxExts: MAX_EXTS }}>
+    <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -629,11 +628,6 @@ function Head({ bucket, description, searchEndpoint }) {
                 label="Objects"
               />
               <StatDisplay
-                value={AsyncResult.prop('totalVersions', res)}
-                format={readableQuantity}
-                label="Versions"
-              />
-              <StatDisplay
                 value={AsyncResult.prop('totalBytes', res)}
                 format={readableBytes}
               />
@@ -674,9 +668,7 @@ function Head({ bucket, description, searchEndpoint }) {
             {AsyncResult.Err.is(res) && (
               <div className={classes.lock}>
                 <M.Typography variant="h5" align="center">
-                  This bucket contains billions of objects.
-                  <br />
-                  Indexing in progress.
+                  Indexing in progress
                   <br />
                   <br />
                   <M.CircularProgress color="inherit" size={64} />
@@ -765,7 +757,7 @@ function ContentSkel({ lines = 15, ...props }) {
 
 const CrumbLink = M.styled(Link)({ wordBreak: 'break-word' })
 
-function FilePreview({ handle, bucket, headingOverride, fallback }) {
+function FilePreview({ handle, headingOverride, fallback }) {
   const { urls } = NamedRoutes.use()
 
   const crumbs = React.useMemo(() => {
@@ -779,7 +771,7 @@ function FilePreview({ handle, bucket, headingOverride, fallback }) {
       children: R.last(all).label,
     }
     return { dirs, file }
-  }, [handle, bucket, urls])
+  }, [handle, urls])
 
   const handleCopy = React.useCallback((e) => {
     if (typeof document === 'undefined') return
@@ -984,17 +976,15 @@ function Summarize({ summarize, other, children }) {
 
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
-function Files({ bucket, searchEndpoint }) {
-  const es = AWS.ES.use({ endpoint: searchEndpoint, bucket })
+function Files({ s3req, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
+    <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
       {(res) => (
         <>
           <FilePreview
             key="readme:configured"
             headingOverride={false}
             handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
-            bucket={bucket}
             fallback={() =>
               AsyncResult.case(
                 {
@@ -1023,11 +1013,7 @@ function Files({ bucket, searchEndpoint }) {
                 AsyncResult.case({
                   Ok: ({ readmes }) =>
                     readmes.map((h) => (
-                      <FilePreview
-                        key={`readme:${h.bucket}/${h.key}`}
-                        handle={h}
-                        bucket={bucket}
-                      />
+                      <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
                     )),
                   _: () => <FilePreviewSkel key="readme:skeleton" />,
                 }),
@@ -1057,11 +1043,7 @@ function Files({ bucket, searchEndpoint }) {
                   >
                     {AsyncResult.case({
                       Ok: R.map((h) => (
-                        <FilePreview
-                          key={`${h.bucket}/${h.key}`}
-                          handle={h}
-                          bucket={bucket}
-                        />
+                        <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
                       )),
                       _: () => <FilePreviewSkel />,
                     })}
@@ -1083,21 +1065,26 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
-  const { searchEndpoint, description } = BucketConfig.useCurrentBucketConfig()
+  const cfg = BucketConfig.useCurrentBucketConfig()
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
       {AsyncResult.case({
         Ok: () =>
-          searchEndpoint ? (
+          cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description, searchEndpoint }} />
-              <Files {...{ bucket, searchEndpoint }} />
+              <Head
+                {...{
+                  s3req,
+                  overviewUrl: cfg.overviewUrl,
+                  bucket,
+                  description: cfg.description,
+                }}
+              />
+              <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
-            <Message headline="Error">
-              ElasticSearch is not configured for this bucket
-            </Message>
+            <Message headline="Error">Overview unavailable for this bucket</Message>
           ),
         Err: displayError(),
         _: () => <Placeholder />,

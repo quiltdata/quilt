@@ -84,8 +84,13 @@ def lambda_handler(request):
     compression = request.args.get('compression')
     separator = request.args.get('sep') or ','
     exclude_output = request.args.get('exclude_output') == 'true'
-    max_bytes = request.args.get('max_bytes', CATALOG_LIMIT_BYTES)
-
+    try:
+        max_bytes = int(request.args.get('max_bytes', CATALOG_LIMIT_BYTES))
+    except ValueError as error:
+        return make_json_response(400, {
+            'title': f'Unexpected max_bytes= value',
+            'detail': str(error)
+        })
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
