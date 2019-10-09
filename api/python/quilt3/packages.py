@@ -926,7 +926,7 @@ class Package(object):
             logical_key_ext = extract_file_extension(logical_key)
             serialize_loc_ext = extract_file_extension(serialization_location)
 
-            if logical_key_ext is not None and serialize_loc_ext is None:
+            if logical_key_ext is not None and serialize_loc_ext is not None:
                 assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
                                                              f"different file extensions: {logical_key_ext} vs " \
                                                              f"{serialize_loc_ext}. Quilt doesn't know which to use!"
@@ -944,11 +944,9 @@ class Package(object):
 
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
-                error_message_fragment = "."
                 if ext is not None:
-                    error_message_fragment = f' as a {ext} file.'
-                error_message += error_message_fragment + " "
-                error_message += f'If you think this should be supported, please open an issue or PR at ' \
+                    error_message += f' as a {ext} file.'
+                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
                                  f'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
