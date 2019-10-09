@@ -2,9 +2,9 @@ import * as React from 'react'
 import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
-// import Backlight from 'website/components/Backgrounds/Backlight3'
 import Bar from 'website/components/Bar'
 
+import backlight from './backlight.png'
 import search from './highlights-search.png'
 import search2x from './highlights-search@2x.png'
 import versioning from './highlights-versioning.png'
@@ -128,10 +128,23 @@ const HIGHLIGHTS = [
 ]
 
 const useStyles = M.makeStyles((t) => ({
+  root: {
+    position: 'relative',
+    '&::before': {
+      background: `center / contain url(${backlight})`,
+      content: '""',
+      height: 1029,
+      position: 'absolute',
+      right: '34%',
+      top: '45%',
+      width: 1304,
+    },
+  },
   highlights: {
     display: 'flex',
     flexWrap: 'wrap',
     justifyContent: 'center',
+    position: 'relative',
     [t.breakpoints.down('md')]: {
       width: `calc(100% + ${t.spacing(4)}px)`,
       marginLeft: -t.spacing(2),
@@ -202,54 +215,54 @@ const useStyles = M.makeStyles((t) => ({
 export default function Highlights() {
   const classes = useStyles()
   return (
-    <>
-      {/*
-      <M.Box position="relative">
-        <Backlight top={-750} />
-      </M.Box>
-      */}
-      <M.Container maxWidth="lg" style={{ position: 'relative' }}>
-        <M.Box display="flex" flexDirection="column" alignItems="center" pt={20} pb={2}>
-          <Bar color="secondary" />
-          <M.Box mt={5}>
-            <M.Typography variant="h1" color="textPrimary" align="center">
-              Make informed decisions as a team
-            </M.Typography>
-          </M.Box>
-          <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }} maxWidth={800}>
-            <M.Typography variant="body1" color="textSecondary" gutterBottom>
-              Bring your team together around a visual data repository that is accessible
-              to everyone on the team&mdash;
-              <em>from business users, to analysts, to developers</em>.
-            </M.Typography>
-            <M.Typography variant="body1" color="textSecondary">
-              Share, understand, discover, model, and decide with Quilt.
-            </M.Typography>
-          </M.Box>
+    <M.Container maxWidth="lg" className={classes.root}>
+      <M.Box
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        pt={20}
+        pb={2}
+        position="relative"
+      >
+        <Bar color="secondary" />
+        <M.Box mt={5}>
+          <M.Typography variant="h1" color="textPrimary" align="center">
+            Make informed decisions as a team
+          </M.Typography>
         </M.Box>
+        <M.Box mt={5} textAlign={{ xs: 'center', md: 'unset' }} maxWidth={800}>
+          <M.Typography variant="body1" color="textSecondary" gutterBottom>
+            Bring your team together around a visual data repository that is accessible to
+            everyone on the team&mdash;
+            <em>from business users, to analysts, to developers</em>.
+          </M.Typography>
+          <M.Typography variant="body1" color="textSecondary">
+            Share, understand, discover, model, and decide with Quilt.
+          </M.Typography>
+        </M.Box>
+      </M.Box>
 
-        <div className={classes.highlights}>
-          {HIGHLIGHTS.map((h, i) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <div key={i} className={classes.highlight}>
-              <div className={classes.bg}>
-                <img
-                  alt=""
-                  src={img2x(...h.img.srcs)}
-                  className={classes.img}
-                  style={{
-                    width: h.img.width,
-                    objectPosition: `center ${h.img.offsetY}px`,
-                    left: h.img.offsetX,
-                  }}
-                />
-                <div className={classes.heading}>{h.heading}</div>
-                <div className={classes.contents}>{h.contents}</div>
-              </div>
+      <div className={classes.highlights}>
+        {HIGHLIGHTS.map((h, i) => (
+          // eslint-disable-next-line react/no-array-index-key
+          <div key={i} className={classes.highlight}>
+            <div className={classes.bg}>
+              <img
+                alt=""
+                src={img2x(...h.img.srcs)}
+                className={classes.img}
+                style={{
+                  width: h.img.width,
+                  objectPosition: `center ${h.img.offsetY}px`,
+                  left: h.img.offsetX,
+                }}
+              />
+              <div className={classes.heading}>{h.heading}</div>
+              <div className={classes.contents}>{h.contents}</div>
             </div>
-          ))}
-        </div>
-      </M.Container>
-    </>
+          </div>
+        ))}
+      </div>
+    </M.Container>
   )
 }
