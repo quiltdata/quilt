@@ -1,19 +1,13 @@
-import datetime
 import pathlib
 from urllib.parse import urlparse, unquote
 
-import pytz
-import requests
-import humanize
-
-from .data_transfer import copy_file, get_bytes, put_bytes, delete_object, list_objects
+from .data_transfer import copy_file, get_bytes, delete_object, put_bytes, list_objects, list_url
 from .formats import FormatRegistry
-from .packages import Package
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
-                   CONFIG_TEMPLATE, configure_from_url, find_bucket_config, fix_url,
+                   CONFIG_TEMPLATE, configure_from_url, fix_url,
                    get_from_config, get_package_registry, parse_file_url, parse_s3_url,
-                   read_yaml, validate_url, validate_package_name, write_yaml)
+                   read_yaml, validate_package_name, write_yaml)
 
 
 def copy(src, dest):
@@ -189,210 +183,24 @@ def delete_package(name, registry=None):
 
 
 def list_packages(registry=None):
-    """ Lists Packages in the registry.
+    """Lists Packages in the registry.
 
-    Returns a list of all named packages in a registry.
+    Returns a sequence of all named packages in a registry.
     If the registry is None, default to the local registry.
 
     Args:
         registry(string): location of registry to load package from.
 
     Returns:
-        A list of strings containing the names of the packages
+        A sequence of strings containing the names of the packages
     """
-    class PackageList:
-        """Display wrapper for list_packages"""
+    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
 
-        def __init__(self, pkg_info):
-            # pkg_info is a list of pkg versions, but pkg_names needs to be a list of packages,
-            # so uniquify to packages by passing it into a set; but a set is not a valid iterator,
-            # so we must turn it back into a list afterwards.
-            self.pkg_names = list(set(
-                info['pkg_name'].replace(':latest', '') for info in pkg_info
-            ))
-            self._repr = self.create_str(pkg_info)
-
-        def __repr__(self):
-            return self._repr
-
-        def __iter__(self):
-            return iter(self.pkg_names)
-
-        def __len__(self):
-            return len(self.pkg_names)
-
-        def __contains__(self, item):
-            return item in self.pkg_names
-
-        @staticmethod
-        def _fmt_str(string, strlen):
-            """Formats strings to a certain width"""
-            if len(string) > strlen - 1:
-                return string[:strlen - 1] + '…'
-            else:
-                return string.ljust(strlen)
-
-        def create_str(self, pkg_info):
-            """Generates a human-readable string representation of a registry"""
-            if pkg_info:
-                pkg_name_display_width = max(max([len(info['pkg_name']) for info in pkg_info]), 27)
-            else:
-                pkg_name_display_width = 27
-
-            out = (f"{self._fmt_str('PACKAGE', pkg_name_display_width)}\t"
-                   f"{self._fmt_str('TOP HASH', 12)}\t"
-                   f"{self._fmt_str('CREATED', 12)}\t"
-                   f"{self._fmt_str('SIZE', 12)}\t"
-                   f"\n")
-            for pkg_dict in pkg_info:
-                tdelta = datetime.datetime.now(pytz.utc) -\
-                    datetime.datetime.fromtimestamp(int(pkg_dict['ctime']), pytz.utc)
-                tdelta_str = humanize.naturaltime(tdelta)
-                size_str = humanize.naturalsize(pkg_dict['size'])
-
-                out += (f"{self._fmt_str(pkg_dict['pkg_name'], pkg_name_display_width)}\t"
-                        f"{self._fmt_str(pkg_dict['top_hash'][:12], 15)}\t"
-                        f"{self._fmt_str(tdelta_str, 15)}\t"
-                        f"{self._fmt_str(size_str, 15).rstrip(' ')}\t\n")
-            return out
-
-    if registry is None:
-        registry = get_from_config('default_local_registry')
-
-    registry = fix_url(registry)
-    named_packages_urlparse = urlparse(registry.rstrip('/') + '/.quilt/named_packages')
-    registry_scheme = named_packages_urlparse.scheme
-
-    pkg_info = []
-
-    if registry_scheme == 'file':
-        named_packages_dir = pathlib.Path(parse_file_url(named_packages_urlparse))
-
-        for named_path in named_packages_dir.glob('*/*'):
-            pkg_name = named_path.relative_to(named_packages_dir).as_posix()
-
-            pkg_hashes = []
-            pkg_sizes = []
-            pkg_ctimes = []
-            pkg_display_names = []
-
-            with open(named_path / 'latest', 'r') as latest_hash_file:
-                latest_hash = latest_hash_file.read()
-
-            for pkg_hash_path in named_path.rglob('*/'):
-                if pkg_hash_path.name == 'latest':
-                    continue
-
-                with open(pkg_hash_path, 'r') as pkg_hash_file:
-                    pkg_hash = pkg_hash_file.read()
-                    pkg_hashes.append(pkg_hash)
-
-                if pkg_hash == latest_hash:
-                    pkg_display_name = f'{pkg_name}:latest'
-                else:
-                    pkg_display_name = pkg_name
-
-                pkg = Package.browse(pkg_name, registry=registry, top_hash=pkg_hash)
-                pkg_sizes.append(sum(pkg.map(lambda _, entry: entry.size)))
-                pkg_display_names.append(pkg_display_name)
-                pkg_ctimes.append(pkg_hash_path.stat().st_ctime)
-
-            for pkg_display_name, top_hash, ctime, size in zip(
-                    pkg_display_names, pkg_hashes, pkg_ctimes, pkg_sizes
-            ):
-                pkg_info.append(
-                    {'pkg_name': pkg_display_name, 'top_hash': top_hash,
-                     'ctime': ctime, 'size': size}
-                )
-    elif registry_scheme == 's3':
-        bucket_name, bucket_registry_path, _ = parse_s3_url(named_packages_urlparse)
-        bucket_registry_path = bucket_registry_path + '/'
-
-        pkg_namespaces, _ = list_objects(bucket_name, bucket_registry_path, recursive=False)
-        pkg_namespaces = [result['Prefix'] for result in pkg_namespaces]
-
-        # go through package namespaces to get packages
-        for pkg_namespace in pkg_namespaces:
-            raw_pkg_names, _ = list_objects(
-                bucket_name,
-                pkg_namespace,
-                recursive=False
-            )
-            raw_pkg_names = [pkg_name['Prefix'] for pkg_name in raw_pkg_names]
-
-            # go through packages to get package hash files
-            for raw_pkg_name in raw_pkg_names:
-                pkg_hashes = []
-                pkg_sizes = []
-                pkg_ctimes = []
-                pkg_display_names = []
-
-                _, pkg_hashfiles = list_objects(
-                    bucket_name,
-                    raw_pkg_name,
-                    recursive=False
-                )
-
-                # Trim registry prefix from path
-                pkg_name = raw_pkg_name[len(bucket_registry_path):].strip('/')
-
-                latest_hashfile = next(hf for hf in pkg_hashfiles if '/latest' in hf['Key'])['Key']
-                latest_hashfile_fullpath = f's3://{bucket_name}/{latest_hashfile}'
-                latest_hash, _ = get_bytes(latest_hashfile_fullpath)
-                latest_hash = latest_hash.decode()
-
-                # go through package hashfiles to get manifest files
-                pkg_hash_paths = []
-                for pkg_hashfile in pkg_hashfiles:
-                    pkg_hashfile_key = pkg_hashfile['Key']
-
-                    if pkg_hashfile_key.split('/')[-1] == 'latest':
-                        continue
-
-                    pkg_hash, _ = get_bytes(f's3://{bucket_name}/{pkg_hashfile_key}')
-                    pkg_hash = pkg_hash.decode()
-
-                    pkg_last_modified = pkg_hashfile['LastModified'].timestamp()
-                    pkg_hash_paths.append(pkg_hashfile_key)
-                    pkg_ctimes.append(pkg_last_modified)
-
-                # go through manifest files to get package info
-                for pkg_hash_path in pkg_hash_paths:
-                    pkg_display_name = pkg_name
-
-                    pkg_hash, _ = get_bytes('s3://' + bucket_name + '/' + pkg_hash_path)
-                    pkg_hash = pkg_hash.decode()
-
-                    if pkg_hash == latest_hash:
-                        pkg_display_name = pkg_display_name + ':latest'
-
-                    pkg_hashes.append(pkg_hash)
-                    pkg_display_names.append(pkg_display_name)
-
-                    pkg = Package.browse(
-                        pkg_name, top_hash=pkg_hash, registry='s3://' + bucket_name
-                    )
-                    pkg_sizes.append(sum(pkg.map(lambda _, entry: entry.size)))
-
-                for display_name, top_hash, ctime, size in zip(
-                        pkg_display_names, pkg_hashes, pkg_ctimes, pkg_sizes
-                ):
-                    pkg_info.append(
-                        {'pkg_name': display_name, 'top_hash': top_hash, 'ctime': ctime,
-                         'size': size}
-                    )
-
-    else:
-        raise NotImplementedError
-
-    def sorter(pkg_info):
-        pkg_name, pkg_cdate = pkg_info['pkg_name'], pkg_info['ctime']
-        is_latest = ':latest' in pkg_name
-        pkg_realname = pkg_name.replace(':latest', '')
-        return (pkg_realname, not is_latest, -pkg_cdate)
-
-    pkg_info = sorted(pkg_info, key=sorter)
-    return PackageList(pkg_info)
+    named_packages = registry_base_path.rstrip('/') + '/named_packages/'
+    for path, _ in list_url(named_packages):
+        parts = path.split('/')
+        if len(parts) == 3 and parts[2] == 'latest':
+            yield f'{parts[0]}/{parts[1]}'
 
 
 def config(*catalog_url, **config_values):

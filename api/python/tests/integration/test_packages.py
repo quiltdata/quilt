@@ -524,19 +524,13 @@ class PackageTest(QuiltTestCase):
         Package().build("Quilt/Test")
 
         # Verify packages are returned.
-        pkgs = quilt3.list_packages()
+        pkgs = list(quilt3.list_packages())
         assert len(pkgs) == 3
         assert "Quilt/Foo" in pkgs
         assert "Quilt/Bar" in pkgs
 
         # Verify specifying a local path explicitly works as expected.
         assert list(pkgs) == list(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
-
-        # Verify package repr is as expected.
-        pkgs_repr = str(pkgs)
-        assert 'Quilt/Test:latest' in pkgs_repr
-        assert 'Quilt/Foo:latest' in pkgs_repr
-        assert 'Quilt/Bar:latest' in pkgs_repr
 
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
@@ -706,47 +700,34 @@ class PackageTest(QuiltTestCase):
 
     def test_list_remote_packages(self):
         """Verify that listing remote packages works as expected."""
-        def pseudo_list_objects(bucket, prefix, recursive):
-            if prefix == '.quilt/named_packages/':
-                return ([{'Prefix': '.quilt/named_packages/foo/'}], [])
-            elif prefix == '.quilt/named_packages/foo/':
-                return ([{'Prefix': '.quilt/named_packages/foo/bar/'}], [])
-            elif prefix == '.quilt/named_packages/foo/bar/':
-                import datetime
-                return (
-                    [], [
-                        {'Key': '.quilt/named_packages/foo/bar/1549931300',
-                         'LastModified': datetime.datetime.now() - datetime.timedelta(seconds=30)},
-                        {'Key': '.quilt/named_packages/foo/bar/1549931634',
-                         'LastModified': datetime.datetime.now()},
-                        {'Key': '.quilt/named_packages/foo/bar/latest',
-                         'LastModified': datetime.datetime.now()}]
-                )
-            else:
-                raise ValueError
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/1549931300',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/1549931634',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/latest',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'my_test_bucket',
+                'Prefix': '.quilt/named_packages/',
+            }
+        )
 
-        def pseudo_get_bytes(src):
-            if src.endswith('foo/bar/latest') or src.endswith('foo/bar/1549931634'):
-                return (b'100', None)
-            elif src.endswith('foo/bar/1549931300'):
-                return (b'90', None)
-            else:
-                raise ValueError
+        pkgs = list(quilt3.list_packages('s3://my_test_bucket/'))
 
-        with patch('quilt3.api.list_objects', side_effect=pseudo_list_objects), \
-            patch('quilt3.api.get_bytes', side_effect=pseudo_get_bytes), \
-            patch('quilt3.Package.browse', return_value=Package()):
-            pkgs = quilt3.list_packages('s3://my_test_bucket/')
-
-            assert len(pkgs) == 1
-            assert list(pkgs) == ['foo/bar']
-
-            expected = (
-                'PACKAGE                    \tTOP HASH    \tCREATED     \tSIZE        \t\n'
-                'foo/bar:latest             \t100            \tnow            \t0 Bytes\t\n'
-                'foo/bar                    \t90             \t30 seconds ago \t0 Bytes\t\n'
-            )
-            assert str(pkgs) == expected
+        assert len(pkgs) == 1
+        assert list(pkgs) == ['foo/bar']
 
 
     def test_validate_package_name(self):

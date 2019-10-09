@@ -517,8 +517,6 @@ def list_url(src):
     if src_url.scheme == 'file':
         src_path = parse_file_url(src_url)
         src_file = pathlib.Path(src_path)
-        if not src_file.is_dir():
-            raise ValueError("Not a directory: %r" % src_url)
 
         for f in src_file.rglob('*'):
             try:
@@ -531,7 +529,7 @@ def list_url(src):
     elif src_url.scheme == 's3':
         src_bucket, src_path, src_version_id = parse_s3_url(src_url)
         if src_version_id is not None:
-            raise ValueError("Directories cannot have version IDs: %r" % src_url)
+            raise ValueError(f"Directories cannot have version IDs: {src_url!r}")
         if src_path and not src_path.endswith('/'):
             src_path += '/'
         s3_client = create_s3_client()
