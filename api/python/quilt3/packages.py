@@ -962,7 +962,7 @@ class Package(object):
                 if ext:
                     serialization_path = serialization_path.with_suffix(f'.{ext}')
             else:
-                serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
+                serialization_path = pathlib.Path(serialization_location).expanduser().resolve()
 
             serialization_path.parent.mkdir(exist_ok=True, parents=True)
             serialization_path.write_bytes(serialized_object_bytes)
