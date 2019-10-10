@@ -162,10 +162,39 @@ def list_packages(registry=None):
     registry_base_path = get_package_registry(fix_url(registry) if registry else None)
 
     named_packages = registry_base_path.rstrip('/') + '/named_packages/'
+    prev_pkg = None
     for path, _ in list_url(named_packages):
         parts = path.split('/')
-        if len(parts) == 3 and parts[2] == 'latest':
-            yield f'{parts[0]}/{parts[1]}'
+        if len(parts) == 3:
+            pkg = f'{parts[0]}/{parts[1]}'
+            # A package can have multiple versions, but we should only return the name once.
+            if pkg != prev_pkg:
+                prev_pkg = pkg
+                yield pkg
+
+
+def list_package_versions(name, registry=None):
+    """Lists versions of a given package.
+
+    Returns a sequence of (version, hash) of a package in a registry.
+    If the registry is None, default to the local registry.
+
+    Args:
+        registry(string): location of registry to load package from.
+
+    Returns:
+        A sequence of tuples containing the named version and hash.
+    """
+    validate_package_name(name)
+
+    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
+
+    package = registry_base_path.rstrip('/') + '/named_packages/' + name + '/'
+    for path, _ in list_url(package):
+        parts = path.split('/')
+        if len(parts) == 1:
+            pkg_hash, _ = get_bytes(package + parts[0])
+            yield parts[0], pkg_hash.decode().strip()
 
 
 def config(*catalog_url, **config_values):
