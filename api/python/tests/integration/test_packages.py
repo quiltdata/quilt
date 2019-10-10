@@ -601,15 +601,6 @@ class PackageTest(QuiltTestCase):
             file_path = parse_file_url(urlparse(pkg.get(lk)))
             assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
 
-        # Test file cleanup utility
-        Package.delete_local_file(pkg.get("mydataframe1.parquet"))
-        Package.delete_local_file(pkg.get("mydataframe2.csv"))
-        Package.delete_local_file(pkg.get("mydataframe3.tsv"))
-
-        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
-            file_path = parse_file_url(urlparse(pkg.get(lk)))
-            assert not pathlib.Path(file_path).exists(), "File should have been deleted by Package.delete_local_file"
-
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
