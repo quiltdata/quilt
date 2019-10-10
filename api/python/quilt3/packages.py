@@ -62,9 +62,9 @@ def _to_singleton(physical_keys):
 def del_if_temp(physical_key):
     """ Delete a file if the physical key points to a local file in Quilt's APP_DIR_TEMPFILE_DIR folder """
     if file_is_local(physical_key):
-        key_parent_dir = pathlib.Path(parse_file_url(urlparse(physical_key))).parent
-        if key_parent_dir == APP_DIR_TEMPFILE_DIR:
-            Package.delete_local_file(physical_key)
+        path = pathlib.Path(parse_file_url(urlparse(physical_key)))
+        if path.parent == APP_DIR_TEMPFILE_DIR:
+            path.unlink()
 
 class PackageEntry(object):
     """
@@ -430,22 +430,6 @@ class Package(object):
         else:
             raise TypeError('Invalid logical_key: %r' % logical_key)
         return path
-
-    @classmethod
-    def delete_local_file(cls, physical_key):
-        """
-        Convenience method to delete a local file using the output of `Package.get()`, a file:// URL
-        e.g. `Package.delete_local_file(pkg.get('KEY'))
-        """
-        key_is_local = urlparse(fix_url(physical_key)).scheme == 'file'
-        if not key_is_local:
-            raise QuiltException("physical_key does not point to a local file")
-        physical_key_path = pathlib.Path(parse_file_url(urlparse(physical_key)))
-        if os.path.isdir(physical_key_path):
-            raise QuiltException("physical_key points to directory, not a file")
-        if not physical_key_path.exists():
-            raise QuiltException("physical_key points to a local file that does not exist")
-        os.remove(physical_key_path)
 
     def __contains__(self, logical_key):
         """
