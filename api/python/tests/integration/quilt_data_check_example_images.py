@@ -11,7 +11,7 @@ LABEL_SET = ['🍎', '🍊']
 class CheckPackageOfImages(data_checker.TestCase):
     @data_checker.TestCase.test_package()
     def quilt_data_check_ImageSize(self):
-        "Validate that every object has size > 1 KB and is labeled horse or zebra"
+        "Validate that every object has size > 1 KB and is labeled apple or orange"
         images = self.quilt_package['images_cropped']
         for lkey, entry in images.walk():
             pkey = entry.physical_keys[0]
