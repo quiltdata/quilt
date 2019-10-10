@@ -5,6 +5,7 @@ import { makeStyles } from '@material-ui/styles'
 const useGlobalStyles = makeStyles({
   '@global': {
     'html, body': {
+      background: '#19163b',
       cursor: 'auto',
       textRendering: 'optimizeLegibility',
       height: '100%',
