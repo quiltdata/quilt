@@ -4,6 +4,7 @@ import * as M from '@material-ui/core'
 
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
+import { useTracker } from 'utils/tracking'
 
 import Bar from 'website/components/Bar'
 import Backlight from 'website/components/Backgrounds/Backlight4'
@@ -18,6 +19,7 @@ import bgTer2x from './bg-tertiary@2x.png'
 const PLANS = [
   {
     name: 'open.quiltdata.com',
+    trackingName: 'open',
     price: 0,
     features: ['Unlimited public packages'],
     cta: 'Explore',
@@ -26,6 +28,7 @@ const PLANS = [
   },
   {
     name: 'AWS Marketplace',
+    trackingName: 'marketplace',
     price: 600,
     features: ['Unlimited data', 'Unlimited users', 'One S3 bucket'],
     cta: 'Try Now',
@@ -36,6 +39,7 @@ const PLANS = [
   },
   {
     name: 'Enterprise',
+    trackingName: 'contact',
     price: 999,
     features: [
       'Unlimited data',
@@ -153,6 +157,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Pricing() {
   const classes = useStyles()
+  const t = useTracker()
   return (
     <M.Box position="relative">
       <Backlight top={-320} />
@@ -203,6 +208,10 @@ export default function Pricing() {
                 className={classes.btn}
                 color={p.variant !== 'tertiary' ? p.variant : undefined}
                 href={p.href}
+                onClick={t.trackLink('WEB', {
+                  type: 'action',
+                  location: `/#${p.trackingName}`,
+                })}
               >
                 {p.cta}
               </M.Button>
