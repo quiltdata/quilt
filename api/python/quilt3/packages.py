@@ -958,16 +958,17 @@ class Package(object):
             serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
                                                                              **serialization_format_opts)
             if serialization_location is None:
-                serialization_location = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
+                serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
                 if ext:
-                    serialization_location = serialization_location.with_suffix(f'.{ext}')
+                    serialization_path = serialization_path.with_suffix(f'.{ext}')
+            else:
+                serialization_path = pathlib.Path(serialization_location).expanduser().resolve()
 
-            serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
             serialization_path.parent.mkdir(exist_ok=True, parents=True)
+            serialization_path.write_bytes(serialized_object_bytes)
 
-            write_url = fix_url(f'file://{serialization_path}')
-            put_bytes(serialized_object_bytes, write_url, meta=new_meta)
-            size, _, _ = get_size_and_meta(write_url)
+            size = serialization_path.stat().st_size
+            write_url = serialization_path.as_uri()
             entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
 
         else:
