@@ -67,11 +67,11 @@ class TestCase(unittest.TestCase):
 
 def check_packages(pkg_names, registry=None):
     runner = unittest.TextTestRunner()
-    passing = 1
+    failure_encountered = 0
     for pkg_name in pkg_names:
         print(f'Testing {pkg_name}')
         loader = TestLoader(Package.browse(pkg_name, registry=registry), pkg_name)
         result = runner.run(loader.discover())
         if not result.wasSuccessful():
-            passing = 0
-    return passing
+            failure_encountered = 1
+    return failure_encountered
