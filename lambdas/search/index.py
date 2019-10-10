@@ -14,6 +14,8 @@ from t4_lambda_shared.utils import get_default_origins, make_json_response
 INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
 MAX_QUERY_DURATION = '15s'
 MAX_DOCUMENTS_PER_SHARD = 10000
+NUM_PREVIEW_IMAGES = 100
+NUM_PREVIEW_FILES = 100
 IMG_EXTS = [
   '.jpg',
   '.jpeg',
@@ -81,7 +83,7 @@ def lambda_handler(request):
                 }
             }
         }
-        size = 10
+        size = NUM_PREVIEW_IMAGES
         _source = []
     elif action == 'other':
         body = {
@@ -91,7 +93,7 @@ def lambda_handler(request):
                 }
             }
         }
-        size = 10
+        size = NUM_PREVIEW_FILES
         _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})
