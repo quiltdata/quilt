@@ -1101,7 +1101,19 @@ class Package(object):
 
         self._fix_sha256()
         pkg = self._materialize(dest)
+
+        def physical_key_is_temp_file(pk):
+            if not file_is_local(pk):
+                return False
+            return pathlib.Path(parse_file_url(urlparse(pk))).parent == APP_DIR_TEMPFILE_DIR
+        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_keys[0])]
+
         self._delete_temporary_files()  # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
+
+        # Update old package to point to the materialized location of the file since the tempfile no longest exists
+        for lk in temp_file_logical_keys:
+            self.set(lk, pkg[lk])
+
         pkg.build(name, registry=registry, message=message)
         return pkg
 
