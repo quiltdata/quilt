@@ -174,6 +174,17 @@ def list_packages(registry=None):
 
 
 def list_package_versions(name, registry=None):
+    """Lists versions of a given package.
+
+    Returns a sequence of (version, hash) of a package in a registry.
+    If the registry is None, default to the local registry.
+
+    Args:
+        registry(string): location of registry to load package from.
+
+    Returns:
+        A sequence of tuples containing the named version and hash.
+    """
     validate_package_name(name)
 
     registry_base_path = get_package_registry(fix_url(registry) if registry else None)
@@ -182,7 +193,8 @@ def list_package_versions(name, registry=None):
     for path, _ in list_url(package):
         parts = path.split('/')
         if len(parts) == 1:
-            yield parts[0]
+            pkg_hash, _ = get_bytes(package + parts[0])
+            yield parts[0], pkg_hash.decode().strip()
 
 
 def config(*catalog_url, **config_values):
