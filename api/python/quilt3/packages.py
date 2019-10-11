@@ -58,13 +58,11 @@ def _to_singleton(physical_keys):
     return physical_keys[0]
 
 
+def _delete_local_physical_key(pk):
+    assert file_is_local(pk), "This function only works on files that live on a local disk"
+    pathlib.Path(parse_file_url(urlparse(pk))).unlink()
 
-def del_if_temp(physical_key):
-    """ Delete a file if the physical key points to a local file in Quilt's APP_DIR_TEMPFILE_DIR folder """
-    if file_is_local(physical_key):
-        path = pathlib.Path(parse_file_url(urlparse(physical_key)))
-        if path.parent == APP_DIR_TEMPFILE_DIR:
-            path.unlink()
+
 
 class PackageEntry(object):
     """
@@ -1106,9 +1104,13 @@ class Package(object):
             if not file_is_local(pk):
                 return False
             return pathlib.Path(parse_file_url(urlparse(pk))).parent == APP_DIR_TEMPFILE_DIR
-        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_keys[0])]
 
-        self._delete_temporary_files()  # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
+        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_keys[0])]
+        temp_file_physical_keys = [self.get(lk) for lk in temp_file_logical_keys]
+
+        # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
+        with Pool(10) as p:
+            p.map(_delete_local_physical_key, temp_file_physical_keys)
 
         # Update old package to point to the materialized location of the file since the tempfile no longest exists
         for lk in temp_file_logical_keys:
@@ -1155,10 +1157,7 @@ class Package(object):
             pkg.set(logical_key, new_entry)
         return pkg
 
-    def _delete_temporary_files(self):
-        physical_keys = [entry.get() for _, entry in self.walk()]
-        with Pool(10) as p:
-            p.map(del_if_temp, physical_keys)
+
 
     def diff(self, other_pkg):
         """
