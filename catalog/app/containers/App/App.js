@@ -46,15 +46,14 @@ const AuthSignOut = mkLazy(() => import('containers/Auth/SignOut'))
 const AuthSignUp = mkLazy(() => import('containers/Auth/SignUp'))
 const AuthSSOSignUp = mkLazy(() => import('containers/Auth/SSOSignUp'))
 const Bucket = mkLazy(() => import('containers/Bucket'))
-const HomePage = mkLazy(() => import('containers/HomePage'))
 const Search = mkLazy(() => import('containers/Search'))
 
-const MLanding = mkLazy(() => import('website/pages/Landing'))
+const Landing = mkLazy(() => import('website/pages/Landing'))
+const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
+
 const MAbout = mkLazy(() => import('website/pages/About'))
 const MPersonas = mkLazy(() => import('website/pages/Personas'))
 const MProduct = mkLazy(() => import('website/pages/Product'))
-
-const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
 
 export default () => {
   const cfg = Config.useConfig()
@@ -65,19 +64,16 @@ export default () => {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
 
-  const Landing = React.useMemo(
-    () =>
-      protect(
-        // eslint-disable-next-line no-nested-ternary
-        cfg.openLanding ? OpenLanding : cfg.enableMarketingPages ? MLanding : HomePage,
-      ),
-    [protect, cfg.openLanding, cfg.enableMarketingPages],
-  )
+  const Home = React.useMemo(() => protect(cfg.openLanding ? OpenLanding : Landing), [
+    protect,
+    cfg.openLanding,
+    cfg.enableMarketingPages,
+  ])
 
   return (
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
-        <Route path={paths.home} component={Landing} exact />
+        <Route path={paths.home} component={Home} exact />
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />
