@@ -1,15 +1,14 @@
-import cx from 'classnames'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 
 import Pagination from 'components/Pagination2'
 import * as BucketConfig from 'utils/BucketConfig'
-import * as NamedRoutes from 'utils/NamedRoutes'
 import scrollIntoView from 'utils/scrollIntoView'
 import usePrevious from 'utils/usePrevious'
+
+import BucketGrid from 'website/components/BucketGrid'
 
 const PER_PAGE = 9
 
@@ -25,75 +24,6 @@ const useStyles = M.makeStyles((t) => ({
     [t.breakpoints.up('sm')]: {
       maxWidth: 360,
     },
-  },
-  grid: {
-    display: 'grid',
-    gridColumnGap: t.spacing(4),
-    gridRowGap: t.spacing(4),
-    gridTemplateColumns: '1fr 1fr 1fr',
-    gridTemplateRows: 'auto auto auto',
-    [t.breakpoints.down('sm')]: {
-      gridTemplateColumns: '1fr 1fr',
-      gridTemplateRows: 'repeat(5, auto)',
-    },
-    [t.breakpoints.down('xs')]: {
-      gridTemplateColumns: 'auto',
-      gridTemplateRows: 'repeat(9, auto)',
-    },
-  },
-  bucket: {
-    background: 'linear-gradient(to top, #1f2151, #2f306e)',
-    borderRadius: t.spacing(2),
-    boxShadow: [[0, 16, 40, 'rgba(0, 0, 0, 0.2)']],
-    display: 'flex',
-    flexDirection: 'column',
-    padding: t.spacing(4),
-  },
-  bucketTitle: {
-    ...t.typography.h6,
-    color: t.palette.tertiary.main,
-  },
-  bucketName: {
-    ...t.typography.body1,
-    color: t.palette.text.hint,
-    lineHeight: t.typography.pxToRem(24),
-  },
-  bucketDesc: {
-    ...t.typography.body2,
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: 3,
-    color: t.palette.text.secondary,
-    display: '-webkit-box',
-    lineHeight: t.typography.pxToRem(24),
-    marginBottom: t.spacing(4),
-    marginTop: t.spacing(3),
-    maxHeight: t.typography.pxToRem(24 * 3),
-    overflow: 'hidden',
-    overflowWrap: 'break-word',
-    textOverflow: 'ellipsis',
-  },
-  bucketTags: {
-    marginRight: t.spacing(-1),
-  },
-  bucketTag: {
-    ...t.typography.body2,
-    background: fade(t.palette.secondary.main, 0.3),
-    border: 'none',
-    borderRadius: 2,
-    color: t.palette.text.primary,
-    cursor: 'pointer',
-    display: 'inline-block',
-    lineHeight: t.typography.pxToRem(28),
-    marginRight: t.spacing(1),
-    marginTop: t.spacing(1),
-    outline: 'none',
-    paddingBottom: 0,
-    paddingLeft: t.spacing(1),
-    paddingRight: t.spacing(1),
-    paddingTop: 0,
-  },
-  bucketTagMatching: {
-    background: t.palette.secondary.main,
   },
   pgBtn: {
     background: fade(t.palette.secondary.main, 0),
@@ -118,12 +48,13 @@ const useStyles = M.makeStyles((t) => ({
 export default function Buckets() {
   const classes = useStyles()
   const buckets = BucketConfig.useRelevantBucketConfigs()
-  const { urls } = NamedRoutes.use()
   const [filter, setFilter] = React.useState('')
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
   const terms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
+
+  const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
   const filtered = React.useMemo(() => {
     if (!terms.length) return buckets
@@ -196,37 +127,11 @@ export default function Buckets() {
       />
       <div ref={scrollRef} />
       {paginated.length ? (
-        <div className={classes.grid}>
-          {paginated.map((b) => (
-            <div key={b.name} className={classes.bucket}>
-              <Link className={classes.bucketTitle} to={urls.bucketRoot(b.name)}>
-                {b.title}
-              </Link>
-              <Link className={classes.bucketName} to={urls.bucketRoot(b.name)}>
-                s3://{b.name}
-              </Link>
-              {!!b.description && <p className={classes.bucketDesc}>{b.description}</p>}
-              <M.Box flexGrow={1} />
-              {!!b.tags && !!b.tags.length && (
-                <div className={classes.bucketTags}>
-                  {b.tags.map((t) => (
-                    <button
-                      key={t}
-                      className={cx(
-                        classes.bucketTag,
-                        filter.includes(t) && classes.bucketTagMatching,
-                      )}
-                      type="button"
-                      onClick={() => setFilter(t)}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+        <BucketGrid
+          buckets={paginated}
+          onTagClick={setFilter}
+          tagIsMatching={tagIsMatching}
+        />
       ) : (
         <M.Typography color="textPrimary" variant="h4">
           No buckets mathcing <b>&quot;{filter}&quot;</b>
