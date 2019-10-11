@@ -17,6 +17,10 @@
       "type": "string",
       "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
+    "bucketsOnLanding": {
+      "type": "boolean",
+      "description": "Whether to show stack's buckets on the landing page"
+    },
     "defaultBucket": {
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
