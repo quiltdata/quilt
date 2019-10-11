@@ -274,15 +274,18 @@ def search(query, limit=10):
         a list of objects with the following structure:
         ```
         [{
-            "key": <key of the object>,
-            "version_id": <version_id of object version>,
-            "operation": <"Create" or "Delete">,
-            "meta": <metadata attached to object>,
-            "size": <size of object in bytes>,
-            "text": <indexed text of object>,
-            "source": <source document for object (what is actually stored in ElasticSeach)>,
-            "time": <timestamp for operation>,
-        }...]
+            "_id": <document unique id>
+            "_index": <source index>,
+            "_score": <relevance score>
+            "_source":
+                "key": <key of the object>,
+                "size": <size of object in bytes>,
+                "user_meta": <user metadata from meta= via quilt3>,
+                "last_modified": <timestamp from ElasticSearch>,
+                "updated": <object timestamp from S3>,
+                "version_id": <version_id of object version>
+            "_type": <document type>
+        }, ...]
         ```
     """
     raw_results = search_api(query, '*', limit)
