@@ -47,6 +47,21 @@ __Arguments__
 * __registry (str)__:  The registry the package will be removed from
 
 
+## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
+Lists versions of a given package.
+
+Returns a sequence of (version, hash) of a package in a registry.
+If the registry is None, default to the local registry.
+
+__Arguments__
+
+* __registry(string)__:  location of registry to load package from.
+
+__Returns__
+
+A sequence of tuples containing the named version and hash.
+
+
 ## list\_packages(registry=None)  {#list\_packages}
 Lists Packages in the registry.
 
