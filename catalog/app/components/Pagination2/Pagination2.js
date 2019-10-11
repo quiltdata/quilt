@@ -29,6 +29,8 @@ const displayRange = (total, current) => {
 const useStyles = M.makeStyles((t) => ({
   button: {
     background: t.palette.common.white,
+    height: 40,
+    lineHeight: 1,
     paddingLeft: t.spacing(1.5),
     paddingRight: t.spacing(1.5),
   },
