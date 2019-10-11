@@ -1,3 +1,4 @@
 pytest==5.0.1
+Pillow==6.1.0
 responses
 pylint
