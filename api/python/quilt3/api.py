@@ -267,10 +267,8 @@ def search(query, limit=10):
         limit (number): maximum number of results to return. Defaults to 10
 
     Query Syntax:
-        By default, a normal plaintext search will be executed over the query string.
-        You can use field-match syntax to filter on exact matches for fields in
-            your metadata.
-        The syntax for field match is `user_meta.$field_name:"exact_match"`.
+        [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+
 
     Returns:
         a list of objects with the following structure:

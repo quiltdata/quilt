@@ -76,3 +76,33 @@ __Returns__
 
 A sequence of strings containing the names of the packages
 
+
+## search(query, limit=10)  {#search}
+
+Execute a search against the configured search endpoint.
+
+__Arguments__
+
+* __query (str)__:  query string to search
+* __limit (number)__:  maximum number of results to return. Defaults to 10
+
+Query Syntax:
+    [simple query string query](https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html)
+
+
+__Returns__
+
+a list of objects with the following structure:
+```
+[{
+`"key"`: <key of the object>,
+`"version_id"`: <version_id of object version>,
+`"operation"`: <"Create" or "Delete">,
+`"meta"`: <metadata attached to object>,
+`"size"`: <size of object in bytes>,
+`"text"`: <indexed text of object>,
+`"source"`: <source document for object (what is actually stored in ElasticSeach)>,
+`"time"`: <timestamp for operation>,
+}...]
+```
+
