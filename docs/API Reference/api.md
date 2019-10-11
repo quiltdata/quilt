@@ -50,7 +50,7 @@ __Arguments__
 ## list\_packages(registry=None)  {#list\_packages}
 Lists Packages in the registry.
 
-Returns a list of all named packages in a registry.
+Returns a sequence of all named packages in a registry.
 If the registry is None, default to the local registry.
 
 __Arguments__
@@ -59,5 +59,5 @@ __Arguments__
 
 __Returns__
 
-A list of strings containing the names of the packages
+A sequence of strings containing the names of the packages
 
