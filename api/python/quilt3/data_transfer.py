@@ -591,6 +591,7 @@ def copy_file_list(file_list):
         processed_file_list.append((src_url, dest_url, size, override_meta))
 
     s3_client = create_s3_client()
+    print("Entering _copy_file_list_internal")
     return _copy_file_list_internal(s3_client, processed_file_list)
 
 

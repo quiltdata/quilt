@@ -1146,7 +1146,7 @@ class Package(object):
             physical_key = _to_singleton(entry.physical_keys)
             new_physical_key = dest_url + "/" + quote(logical_key)
             file_list.append((physical_key, new_physical_key, entry.size, entry.meta))
-
+        print("entering copy_file_list")
         results = copy_file_list(file_list)
 
         for (logical_key, entry), versioned_key in zip(self.walk(), results):
