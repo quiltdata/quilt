@@ -446,7 +446,7 @@ def _copy_file_list_internal(file_list):
 
 
     from multiprocessing import Pool
-    with Pool(20) as p:
+    with Pool(40) as p:
         results = p.map(worker, file_list)
     # for idx, args in enumerate(file_list):
     #     run_task(worker, idx, *args)
