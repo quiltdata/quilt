@@ -59,5 +59,7 @@ if __name__ == '__main__':
     # Refactored push with val2017 takes 24 seconds (40 pool workers, single s3_client creation per process)
 
     # Assuming similar improvements, coco should go from
-    # 6:27 to hash and 72:15 to push
+    # 6:27 to hash and 72:15 (4335seconds) to push
     # to :10 to hash and 14:00 to push
+
+    # Actual: 11secs to hash, 741sec to push (12:21)

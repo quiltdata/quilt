@@ -1116,7 +1116,7 @@ class Package(object):
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
-        thash = Timer("hasing").start()
+        thash = Timer("hashing").start()
         self._fix_sha256()
         thash.stop()
         tmaterialize = Timer("_materialize").start()
