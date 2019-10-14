@@ -402,8 +402,8 @@ def _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta):
 
 
 def worker(args):
-    assert len(args) == 5
-    idx, src_url, dest_url, size, override_meta = args
+    assert len(args) == 4
+    src_url, dest_url, size, override_meta = args
 
 
 
