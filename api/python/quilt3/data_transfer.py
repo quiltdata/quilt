@@ -474,9 +474,9 @@ def _copy_file_list_internal(file_list):
 
 
 
-    assert all(results)
+    assert all(flattened_results)
 
-    return results
+    return flattened_results
 
 
 # def _copy_file_list_internal(s3_client, file_list):
