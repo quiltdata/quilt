@@ -41,6 +41,9 @@ def perf_test():
 if __name__ == '__main__':
     perf_test()
 
-    # Original hash with val2017 takes 11 seconds to hash
-    # Lock free took 4 seconds
+    # Original hash with val2017 takes 11 seconds to hash (7e965f38f035bba7046f86cc663be0ca30246b31)
+    # Lock free took 4 seconds (7e965f38f035bba7046f86cc663be0ca30246b31)
+
+    # Original hash with train2017 takes 282 seconds to hash (7e965f38f035bba7046f86cc663be0ca30246b31)
+    # Lock free took 96 seconds (7e965f38f035bba7046f86cc663be0ca30246b31)
 

@@ -766,8 +766,11 @@ def calculate_sha256(src_list, sizes):
             raise NotImplementedError
         return hash_obj.hexdigest()
 
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(_process_url, zip(src_list, sizes))
+    from multiprocessing import Pool
+    with Pool(10) as p:
+        results = p.map(_process_url, zip(src_list, sizes))
+    # with ThreadPoolExecutor() as executor:
+    #     results = executor.map(_process_url, zip(src_list, sizes))
 
     return results
 
