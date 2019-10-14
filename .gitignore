@@ -39,3 +39,5 @@ registry/dpmd
 
 # Doc Build
 _build
+
+.ignore/
