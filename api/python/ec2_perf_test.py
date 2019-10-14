@@ -34,3 +34,6 @@ def perf_test():
     pkg._fix_sha256()
     t.stop()
 
+if __name__ == '__main__':
+    perf_test()
+
