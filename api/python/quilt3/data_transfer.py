@@ -777,7 +777,7 @@ def calculate_sha256(src_list, sizes):
 
     print(type(trial_results), type(validation_results))
     print(len(trial_results), len(validation_results))
-    print(trial_results[0]), validation_results[0])
+    print(trial_results[0], validation_results[0])
     print(trial_results == validation_results)
     assert trial_results == validation_results
     return results
