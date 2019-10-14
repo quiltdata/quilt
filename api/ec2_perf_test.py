@@ -26,7 +26,7 @@ class Timer:
 
 def setup():
     pkg = Package()
-    data_dir = "/home/ubuntu/coco/data/val2017/"
+    data_dir = "/home/ubuntu/coco/data/train2017/"
     t = Timer(f"pkg.set_dir({data_dir})").start()
     pkg.set_dir("data", data_dir)
     t.stop()
