@@ -38,7 +38,7 @@ const mkLazy = (load) => loadable(load, { fallback: () => <Placeholder /> })
 
 const Admin = mkLazy(() => import('containers/Admin'))
 const AuthActivationError = mkLazy(() => import('containers/Auth/ActivationError'))
-const AuthCode = mkLazy(() => import('containers/Auth/Code'))
+const AuthCode = requireAuth()(mkLazy(() => import('containers/Auth/Code')))
 const AuthPassChange = mkLazy(() => import('containers/Auth/PassChange'))
 const AuthPassReset = mkLazy(() => import('containers/Auth/PassReset'))
 const AuthSignIn = mkLazy(() => import('containers/Auth/SignIn'))
@@ -122,7 +122,7 @@ export default () => {
           <Route path={paths.passChange} component={AuthPassChange} exact />
         )}
         {!cfg.enableMarketingPages && (
-          <Route path={paths.code} component={protect(AuthCode)} exact />
+          <Route path={paths.code} component={AuthCode} exact />
         )}
         {!cfg.enableMarketingPages && (
           <Route path={paths.activationError} component={AuthActivationError} exact />
