@@ -409,6 +409,7 @@ def worker(list_of_arg_tuples):
     for args in list_of_arg_tuples:
         assert len(args) == 4
 
+    returns = []
     for args in list_of_arg_tuples:
         src_url, dest_url, size, override_meta = args
 
@@ -424,7 +425,8 @@ def worker(list_of_arg_tuples):
                 dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
                 if dest_version_id:
                     raise ValueError("Cannot set VersionId on destination")
-                return _upload_or_copy_file(s3_client, size, src_path, dest_bucket, dest_path, override_meta)
+                file_s3_path = _upload_or_copy_file(s3_client, size, src_path, dest_bucket, dest_path, override_meta)
+                returns.append(file_s3_path)
             else:
                 raise NotImplementedError
         elif src_url.scheme == 's3':
@@ -443,6 +445,7 @@ def worker(list_of_arg_tuples):
             #     raise NotImplementedError
         else:
             raise NotImplementedError
+    return returns
 
 def _copy_file_list_internal(file_list):
     """
@@ -462,7 +465,10 @@ def _copy_file_list_internal(file_list):
 
 
     with Pool(pool_worker_count) as p:
-        results = p.map(worker, batched_file_lists)
+        result_sets = p.map(worker, batched_file_lists)
+    flattened_results = []
+    for result_set in result_sets:
+        flattened_results.extend(result_set)
     # for idx, args in enumerate(file_list):
     #     run_task(worker, idx, *args)
 
