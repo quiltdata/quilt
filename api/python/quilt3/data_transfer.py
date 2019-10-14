@@ -772,6 +772,12 @@ def calculate_sha256(src_list, sizes):
     with ThreadPoolExecutor() as executor:
         validate_results = executor.map(_process_url, zip(src_list, sizes))
 
+    trial_results = sorted(results)
+    validation_results = sorted(validate_results)
+
+    print(type(trial_results), type(validation_results))
+    print(len(trial_results), len(validation_results))
+    print(trial_results == validation_results)
     assert sorted(results) == sorted(validate_results)
     return results
 
