@@ -769,9 +769,10 @@ def calculate_sha256(src_list, sizes):
     from multiprocessing import Pool
     with Pool(10) as p:
         results = p.map(_process_url, zip(src_list, sizes))
-    # with ThreadPoolExecutor() as executor:
-    #     results = executor.map(_process_url, zip(src_list, sizes))
+    with ThreadPoolExecutor() as executor:
+        validate_results = executor.map(_process_url, zip(src_list, sizes))
 
+    assert sorted(results) == sorted(validate_results)
     return results
 
 

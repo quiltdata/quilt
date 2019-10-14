@@ -26,7 +26,8 @@ class Timer:
 
 def setup():
     pkg = Package()
-    data_dir = "/home/ubuntu/coco/data/train2017/"
+    # data_dir = "/home/ubuntu/coco/data/train2017/"
+    data_dir = "/home/ubuntu/coco/data/val2017/"
     t = Timer(f"pkg.set_dir({data_dir})").start()
     pkg.set_dir("data", data_dir)
     t.stop()
@@ -46,4 +47,5 @@ if __name__ == '__main__':
 
     # Original hash with train2017 takes 282 seconds to hash (7e965f38f035bba7046f86cc663be0ca30246b31)
     # Lock free took 96 seconds (7e965f38f035bba7046f86cc663be0ca30246b31)
+    # Lock free, multiprocess took 7 seconds (445145cb434e1a9eb69ed025001d871445842342)
 
