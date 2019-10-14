@@ -729,7 +729,9 @@ def calculate_sha256(src_list, sizes):
     lock = Lock()
 
     with tqdm(desc="Hashing", total=total_size, unit='B', unit_scale=True) as progress:
-        def _process_url(src, size):
+        def _process_url(args):
+            assert len(args) == 2, f"Args must be a tuple (src, size), not: {args}"
+            src, size = args
             src_url = urlparse(src)
             hash_obj = hashlib.sha256()
             if src_url.scheme == 'file':
@@ -771,7 +773,7 @@ def calculate_sha256(src_list, sizes):
             return hash_obj.hexdigest()
 
         with ThreadPoolExecutor() as executor:
-            results = executor.map(_process_url, src_list, sizes)
+            results = executor.map(_process_url, zip(src_list, sizes))
 
     return results
 
