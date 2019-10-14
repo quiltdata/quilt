@@ -19,11 +19,6 @@ A new Bucket
 Updates this bucket's search endpoint based on a federation config.
 
 
-## Bucket.get\_user\_meta\_schema(self)  {#Bucket.get\_user\_meta\_schema}
-
-Returns the current search mappings for user metadata from the search endpoint.
-
-
 ## Bucket.search(self, query, limit=10)  {#Bucket.search}
 
 Execute a search against the configured search endpoint.
@@ -41,7 +36,6 @@ Query Syntax:
 
 __Returns__
 
-either the request object (in case of an error) or
 a list of objects with the following structure:
 ```
 [{

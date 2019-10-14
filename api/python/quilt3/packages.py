@@ -6,8 +6,9 @@ import json
 import pathlib
 import os
 import time
-import tempfile
+from multiprocessing import Pool
 from urllib.parse import quote, urlparse, unquote
+import uuid
 import warnings
 
 import jsonlines
@@ -20,8 +21,9 @@ from .exceptions import PackageException
 from .formats import FormatRegistry
 from .util import (
     QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension
+    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
 )
+from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
 
 
 def hash_file(readable_file):
@@ -54,6 +56,11 @@ def _to_singleton(physical_keys):
         raise NotImplementedError("Multiple physical keys not supported")
 
     return physical_keys[0]
+
+
+def _delete_local_physical_key(pk):
+    assert file_is_local(pk), "This function only works on files that live on a local disk"
+    pathlib.Path(parse_file_url(urlparse(pk))).unlink()
 
 
 
@@ -421,22 +428,6 @@ class Package(object):
         else:
             raise TypeError('Invalid logical_key: %r' % logical_key)
         return path
-
-    @classmethod
-    def delete_local_file(cls, physical_key):
-        """
-        Convenience method to delete a local file using the output of `Package.get()`, a file:// URL
-        e.g. `Package.delete_local_file(pkg.get('KEY'))
-        """
-        key_is_local = urlparse(fix_url(physical_key)).scheme == 'file'
-        if not key_is_local:
-            raise QuiltException("physical_key does not point to a local file")
-        physical_key_path = pathlib.Path(parse_file_url(urlparse(physical_key)))
-        if os.path.isdir(physical_key_path):
-            raise QuiltException("physical_key points to directory, not a file")
-        if not physical_key_path.exists():
-            raise QuiltException("physical_key points to a local file that does not exist")
-        os.remove(physical_key_path)
 
     def __contains__(self, logical_key):
         """
@@ -869,16 +860,17 @@ class Package(object):
             entry(PackageEntry OR string OR object): new entry to place at logical_key in the package.
                 If entry is a string, it is treated as a URL, and an entry is created based on it.
                 If entry is None, the logical key string will be substituted as the entry value.
-                If entry is an object and we know how to serialize it, it will immediately be serialized and written to
-                disk, either to serialization_location or to a location determined by the tempfile library
+                If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
+                to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
+                can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
             meta(dict): user level metadata dict to attach to entry
-            serialization_format_opts(dict): [when entry is an object]. Options to help Quilt understand how the object
-                should be serialized. Useful for underspecified file formats like csv when content contains confusing
-                characters. Will be passed as kwargs to the FormatHandler.serialize() function. See docstrings for
-                individual FormatHandlers too for full list of options -
+            serialization_format_opts(dict): Optional. If passed in, only used if entry is an object. Options to help
+                Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
+                when content contains confusing characters. Will be passed as kwargs to the FormatHandler.serialize()
+                function. See docstrings for individual FormatHandlers for full list of options -
                 https://github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
-            serialization_location(string): [when entry is an object]. Where the serialized object should be written,
-                e.g. "./mydataframe.parquet"
+            serialization_location(string): Optional. If passed in, only used if entry is an object. Where the
+                serialized object should be written, e.g. "./mydataframe.parquet"
 
         Returns:
             self
@@ -914,9 +906,12 @@ class Package(object):
             # Use file extension from serialization_location, fall back to file extension from logical_key
             # If neither has a file extension, Quilt picks the serialization format.
             logical_key_ext = extract_file_extension(logical_key)
-            serialize_loc_ext = extract_file_extension(logical_key)
 
-            if logical_key_ext is not None and serialize_loc_ext is None:
+            serialize_loc_ext = None
+            if serialization_location is not None:
+                serialize_loc_ext = extract_file_extension(serialization_location)
+
+            if logical_key_ext is not None and serialize_loc_ext is not None:
                 assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
                                                              f"different file extensions: {logical_key_ext} vs " \
                                                              f"{serialize_loc_ext}. Quilt doesn't know which to use!"
@@ -934,11 +929,9 @@ class Package(object):
 
             if len(format_handlers) == 0:
                 error_message = f'Quilt does not know how to serialize a {type(entry)}'
-                error_message_fragment = "."
                 if ext is not None:
-                    error_message_fragment = f' as a {ext} file.'
-                error_message += error_message_fragment + " "
-                error_message += f'If you think this should be supported, please open an issue or PR at ' \
+                    error_message += f' as a {ext} file.'
+                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
                                  f'https://github.com/quiltdata/quilt'
                 raise QuiltException(error_message)
 
@@ -946,17 +939,18 @@ class Package(object):
                 serialization_format_opts = {}
             serialized_object_bytes, new_meta = format_handlers[0].serialize(entry, meta=None, ext=ext,
                                                                              **serialization_format_opts)
-            if serialization_location:
-                serialization_path = pathlib.Path(serialization_location).expanduser().absolute()
-                serialization_path.parent.mkdir(exist_ok=True, parents=True)
+            if serialization_location is None:
+                serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
+                if ext:
+                    serialization_path = serialization_path.with_suffix(f'.{ext}')
             else:
-                suffix = f'.{ext}' if ext else None
-                tmpfile = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
-                serialization_path = tmpfile.name
+                serialization_path = pathlib.Path(serialization_location).expanduser().resolve()
 
-            write_url = fix_url(f'file://{serialization_path}')
-            put_bytes(serialized_object_bytes, write_url, meta=new_meta)
-            size, _, _ = get_size_and_meta(write_url)
+            serialization_path.parent.mkdir(exist_ok=True, parents=True)
+            serialization_path.write_bytes(serialized_object_bytes)
+
+            size = serialization_path.stat().st_size
+            write_url = serialization_path.as_uri()
             entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
 
         else:
@@ -1105,6 +1099,23 @@ class Package(object):
 
         self._fix_sha256()
         pkg = self._materialize(dest)
+
+        def physical_key_is_temp_file(pk):
+            if not file_is_local(pk):
+                return False
+            return pathlib.Path(parse_file_url(urlparse(pk))).parent == APP_DIR_TEMPFILE_DIR
+
+        temp_file_logical_keys = [lk for lk, entry in self.walk() if physical_key_is_temp_file(entry.physical_keys[0])]
+        temp_file_physical_keys = [self.get(lk) for lk in temp_file_logical_keys]
+
+        # Now that data has been pushed, delete tmp files created by pkg.set('KEY', obj)
+        with Pool(10) as p:
+            p.map(_delete_local_physical_key, temp_file_physical_keys)
+
+        # Update old package to point to the materialized location of the file since the tempfile no longest exists
+        for lk in temp_file_logical_keys:
+            self.set(lk, pkg[lk])
+
         pkg.build(name, registry=registry, message=message)
         return pkg
 
@@ -1145,6 +1156,8 @@ class Package(object):
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
         return pkg
+
+
 
     def diff(self, other_pkg):
         """

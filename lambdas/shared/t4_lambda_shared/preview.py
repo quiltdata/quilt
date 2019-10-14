@@ -60,7 +60,6 @@ def extract_parquet(file_, as_html=True):
     # TODO: generalize to datasets, multipart files
     # As written, only works for single files, and metadata
     # is slanted towards the first row_group
-
     # local import reduces amortized latency, saves memory
     import pyarrow.parquet as pq
 
@@ -75,9 +74,10 @@ def extract_parquet(file_, as_html=True):
         for k in meta.metadata
     } if meta.metadata is not None else {}
     info['num_row_groups'] = meta.num_row_groups
+
     info['schema'] = {
         name: {
-            'logical_type': meta.schema.column(i).logical_type,
+            'logical_type': meta.schema.column(i).logical_type.type,
             'max_definition_level': meta.schema.column(i).max_definition_level,
             'max_repetition_level': meta.schema.column(i).max_repetition_level,
             'path': meta.schema.column(i).path,
@@ -116,6 +116,7 @@ def extract_parquet(file_, as_html=True):
             if done:
                 break
         body = b"".join(buffer).decode()
+
 
     return body, info
 

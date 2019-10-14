@@ -13,7 +13,9 @@ generate:
     # line above this comment.  Specified explicitly for this example.
     - quilt3.config
     - quilt3.delete_package
+    - quilt3.list_package_versions
     - quilt3.list_packages
+    - quilt3.search
 # Uncomment the following two lines in include these classes directly in api.md
 #    - Bucket+
 #    - Package+

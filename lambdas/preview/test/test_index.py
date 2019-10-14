@@ -125,10 +125,10 @@ class TestIndex():
         body_html = body['html']
         assert '700 rows' in body_html, 'unexpected row count'
         assert '16 columns' in body_html, 'unexpected column count'
-        assert body_html.count('Germany') == 14, 'unexpected data contents'
+        assert body_html.count('Germany') == 13, 'unexpected data contents'
         assert body_html.count('Enterprise') == 7, 'unexpected data contents'
-        assert body_html.count('Midmarket') == 16, 'unexpected data contents'
-        assert body_html.count('Canada') == 14, 'unexpected data contents'
+        assert body_html.count('Midmarket') == 13, 'unexpected data contents'
+        assert body_html.count('Canada') == 9, 'unexpected data contents'
 
     @responses.activate
     def test_ipynb(self):
