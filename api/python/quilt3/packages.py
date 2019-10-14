@@ -13,6 +13,25 @@ import warnings
 
 import jsonlines
 
+def humanize_float(num): return "{0:,.2f}".format(num)
+
+class Timer:
+    def __init__(self, name):
+        self.name = name
+        self.t1 = None
+        self.t2 = None
+
+    def start(self):
+        print(f'Timer "{self.name}" starting!')
+        self.t1 = time.time()
+
+        return self
+
+    def stop(self):
+        self.t2 = time.time()
+        print(f'Timer "{self.name}" took {humanize_float(self.t2-self.t1)} seconds')
+
+
 from .data_transfer import (
     calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_meta,
     list_object_versions, put_bytes
@@ -1097,8 +1116,12 @@ class Package(object):
                     f"in the {registry!r} package registry specified by 'registry'."
                 )
 
+        thash = Timer("hasing").start()
         self._fix_sha256()
+        thash.stop()
+        tmaterialize = Timer("_materialize").start()
         pkg = self._materialize(dest)
+        tmaterialize.stop()
 
         def physical_key_is_temp_file(pk):
             if not file_is_local(pk):
