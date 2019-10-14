@@ -12,7 +12,9 @@ class Timer:
         self.t2 = None
 
     def start(self):
+        print(f'Timer "{self.name}" starting!')
         self.t1 = time.time()
+
         return self
 
     def stop(self):
