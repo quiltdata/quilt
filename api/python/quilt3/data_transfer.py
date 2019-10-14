@@ -359,8 +359,8 @@ def _copy_remote_file(size, src_bucket, src_key, src_version,
             upload_part(i, start, end)
 
 
-def _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta):
-    s3_client = create_s3_client()
+def _upload_or_copy_file(s3_client, size, src_path, dest_bucket, dest_path, override_meta):
+
 
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
@@ -401,41 +401,48 @@ def _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta):
 
 
 
-def worker(args):
-    assert len(args) == 4
-    src_url, dest_url, size, override_meta = args
+def worker(list_of_arg_tuples):
+    # A single set of arguments is: src_url, dest_url, size, override_meta = args
+    # We pass in batches to reduce s3_client related overhead
+    s3_client = create_s3_client()
+
+    for args in list_of_arg_tuples:
+        assert len(args) == 4
+
+    for args in list_of_arg_tuples:
+        src_url, dest_url, size, override_meta = args
 
 
 
-    if src_url.scheme == 'file':
-        src_path = parse_file_url(src_url)
-        if dest_url.scheme == 'file':
+        if src_url.scheme == 'file':
+            src_path = parse_file_url(src_url)
+            if dest_url.scheme == 'file':
+                raise NotImplementedError()
+                # dest_path = parse_file_url(dest_url)
+                # _copy_local_file(src_path, dest_path, override_meta)
+            elif dest_url.scheme == 's3':
+                dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+                if dest_version_id:
+                    raise ValueError("Cannot set VersionId on destination")
+                return _upload_or_copy_file(s3_client, size, src_path, dest_bucket, dest_path, override_meta)
+            else:
+                raise NotImplementedError
+        elif src_url.scheme == 's3':
             raise NotImplementedError()
-            # dest_path = parse_file_url(dest_url)
-            # _copy_local_file(src_path, dest_path, override_meta)
-        elif dest_url.scheme == 's3':
-            dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-            if dest_version_id:
-                raise ValueError("Cannot set VersionId on destination")
-            return _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta)
+            # src_bucket, src_path, src_version_id = parse_s3_url(src_url)
+            # if dest_url.scheme == 'file':
+            #     dest_path = parse_file_url(dest_url)
+            #     _download_file(src_bucket, src_path, src_version_id, dest_path, override_meta)
+            # elif dest_url.scheme == 's3':
+            #     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+            #     if dest_version_id:
+            #         raise ValueError("Cannot set VersionId on destination")
+            #     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
+            #                       dest_bucket, dest_path, override_meta)
+            # else:
+            #     raise NotImplementedError
         else:
             raise NotImplementedError
-    elif src_url.scheme == 's3':
-        raise NotImplementedError()
-        # src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-        # if dest_url.scheme == 'file':
-        #     dest_path = parse_file_url(dest_url)
-        #     _download_file(src_bucket, src_path, src_version_id, dest_path, override_meta)
-        # elif dest_url.scheme == 's3':
-        #     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-        #     if dest_version_id:
-        #         raise ValueError("Cannot set VersionId on destination")
-        #     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
-        #                       dest_bucket, dest_path, override_meta)
-        # else:
-        #     raise NotImplementedError
-    else:
-        raise NotImplementedError
 
 def _copy_file_list_internal(file_list):
     """
@@ -444,10 +451,18 @@ def _copy_file_list_internal(file_list):
     """
 
 
-
+    pool_worker_count = 40
     from multiprocessing import Pool
-    with Pool(40) as p:
-        results = p.map(worker, file_list)
+    batched_file_lists = []
+    for i in range(pool_worker_count):
+        batched_file_lists.append([])
+    for i, file_tuple in enumerate(file_list):
+        worker_id = i % pool_worker_count
+        batched_file_lists[worker_id].append(file_tuple)
+
+
+    with Pool(pool_worker_count) as p:
+        results = p.map(worker, batched_file_lists)
     # for idx, args in enumerate(file_list):
     #     run_task(worker, idx, *args)
 

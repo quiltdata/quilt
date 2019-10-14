@@ -54,4 +54,5 @@ if __name__ == '__main__':
     # Lock free, multiprocess took 7 seconds (445145cb434e1a9eb69ed025001d871445842342)
 
     # Original push with val2017 takes 130 seconds
-    # Refactored push with val 2017 takes 58 seconds
+    # Refactored push with val 2017 takes 58 seconds (20 pool workers)
+    # Refactored push with val 2017 takes 36 seconds (40 pool workers)
