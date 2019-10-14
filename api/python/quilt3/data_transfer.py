@@ -401,7 +401,41 @@ def _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta):
 
 
 
+def worker(args):
+    assert len(args) == 5
+    idx, src_url, dest_url, size, override_meta = args
 
+
+
+    if src_url.scheme == 'file':
+        src_path = parse_file_url(src_url)
+        if dest_url.scheme == 'file':
+            raise NotImplementedError()
+            # dest_path = parse_file_url(dest_url)
+            # _copy_local_file(src_path, dest_path, override_meta)
+        elif dest_url.scheme == 's3':
+            dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+            if dest_version_id:
+                raise ValueError("Cannot set VersionId on destination")
+            return _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta)
+        else:
+            raise NotImplementedError
+    elif src_url.scheme == 's3':
+        raise NotImplementedError()
+        # src_bucket, src_path, src_version_id = parse_s3_url(src_url)
+        # if dest_url.scheme == 'file':
+        #     dest_path = parse_file_url(dest_url)
+        #     _download_file(src_bucket, src_path, src_version_id, dest_path, override_meta)
+        # elif dest_url.scheme == 's3':
+        #     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+        #     if dest_version_id:
+        #         raise ValueError("Cannot set VersionId on destination")
+        #     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
+        #                       dest_bucket, dest_path, override_meta)
+        # else:
+        #     raise NotImplementedError
+    else:
+        raise NotImplementedError
 
 def _copy_file_list_internal(file_list):
     """
@@ -409,41 +443,7 @@ def _copy_file_list_internal(file_list):
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
 
-    def worker(args):
-        assert len(args) == 5
-        idx, src_url, dest_url, size, override_meta = args
 
-
-
-        if src_url.scheme == 'file':
-            src_path = parse_file_url(src_url)
-            if dest_url.scheme == 'file':
-                raise NotImplementedError()
-                # dest_path = parse_file_url(dest_url)
-                # _copy_local_file(src_path, dest_path, override_meta)
-            elif dest_url.scheme == 's3':
-                dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                if dest_version_id:
-                    raise ValueError("Cannot set VersionId on destination")
-                return _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta)
-            else:
-                raise NotImplementedError
-        elif src_url.scheme == 's3':
-            raise NotImplementedError()
-            # src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-            # if dest_url.scheme == 'file':
-            #     dest_path = parse_file_url(dest_url)
-            #     _download_file(src_bucket, src_path, src_version_id, dest_path, override_meta)
-            # elif dest_url.scheme == 's3':
-            #     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-            #     if dest_version_id:
-            #         raise ValueError("Cannot set VersionId on destination")
-            #     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
-            #                       dest_bucket, dest_path, override_meta)
-            # else:
-            #     raise NotImplementedError
-        else:
-            raise NotImplementedError
 
     from multiprocessing import Pool
     with Pool(20) as p:
