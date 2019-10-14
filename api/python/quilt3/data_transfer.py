@@ -79,12 +79,28 @@ def _parse_file_metadata(path):
     return meta
 
 
-def _copy_local_file(ctx, size, src_path, dest_path, override_meta):
+# def _copy_local_file(ctx, size, src_path, dest_path, override_meta):
+#     pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
+#
+#     # TODO(dima): More detailed progress.
+#     shutil.copyfile(src_path, dest_path)
+#     ctx.progress(size)
+#     shutil.copymode(src_path, dest_path)
+#
+#     if override_meta is None:
+#         meta = _parse_file_metadata(src_path)
+#     else:
+#         meta = override_meta
+#
+#     xattr.setxattr(dest_path, HELIUM_XATTR, json.dumps(meta).encode('utf-8'))
+#
+#     ctx.done(pathlib.Path(dest_path).as_uri())
+
+def _copy_local_file(src_path, dest_path, override_meta):
     pathlib.Path(dest_path).parent.mkdir(parents=True, exist_ok=True)
 
     # TODO(dima): More detailed progress.
     shutil.copyfile(src_path, dest_path)
-    ctx.progress(size)
     shutil.copymode(src_path, dest_path)
 
     if override_meta is None:
@@ -94,19 +110,17 @@ def _copy_local_file(ctx, size, src_path, dest_path, override_meta):
 
     xattr.setxattr(dest_path, HELIUM_XATTR, json.dumps(meta).encode('utf-8'))
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
 
-
-def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
+def _upload_file(size, src_path, dest_bucket, dest_key, override_meta):
+    s3_client = create_s3_client()
     if override_meta is None:
         meta = _parse_file_metadata(src_path)
     else:
         meta = override_meta
 
-    s3_client = ctx.s3_client
 
     if size < s3_transfer_config.multipart_threshold:
-        with OSUtils().open_file_chunk_reader(src_path, 0, size, [ctx.progress]) as fd:
+        with OSUtils().open_file_chunk_reader(src_path, 0, size, []) as fd:
             resp = s3_client.put_object(
                 Body=fd,
                 Bucket=dest_bucket,
@@ -115,7 +129,7 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
             )
 
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+        out_key = dest_key
     else:
         resp = s3_client.create_multipart_upload(
             Bucket=dest_bucket,
@@ -126,14 +140,14 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
 
         chunk_offsets = list(range(0, size, s3_transfer_config.multipart_chunksize))
 
-        lock = Lock()
-        remaining = len(chunk_offsets)
-        parts = [None] * remaining
+        parts = []
 
-        def upload_part(i, start, end):
-            nonlocal remaining
+
+        for i, start in enumerate(chunk_offsets):
+            end = min(start + s3_transfer_config.multipart_chunksize, size)
+
             part_id = i + 1
-            with OSUtils().open_file_chunk_reader(src_path, start, end-start, [ctx.progress]) as fd:
+            with OSUtils().open_file_chunk_reader(src_path, start, end-start, []) as fd:
                 part = s3_client.upload_part(
                     Body=fd,
                     Bucket=dest_bucket,
@@ -141,32 +155,91 @@ def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
                     UploadId=upload_id,
                     PartNumber=part_id
                 )
-            with lock:
-                parts[i] = {"PartNumber": part_id, "ETag": part["ETag"]}
-                remaining -= 1
-                done = remaining == 0
+            parts.append({"PartNumber": part_id, "ETag": part["ETag"]})
 
-            if done:
-                resp = s3_client.complete_multipart_upload(
-                    Bucket=dest_bucket,
-                    Key=dest_key,
-                    UploadId=upload_id,
-                    MultipartUpload={"Parts": parts}
-                )
-                version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
-
-        for i, start in enumerate(chunk_offsets):
-            end = min(start + s3_transfer_config.multipart_chunksize, size)
-            ctx.run(upload_part, i, start, end)
+        resp = s3_client.complete_multipart_upload(
+            Bucket=dest_bucket,
+            Key=dest_key,
+            UploadId=upload_id,
+            MultipartUpload={"Parts": parts}
+        )
+        out_key = resp['Key']
+        version_id = resp.get('VersionId')  # Absent in unversioned buckets.
 
 
-def _download_file(ctx, src_bucket, src_key, src_version, dest_path, override_meta):
+    return f"s3://{dest_bucket}/{out_key}?versionId={version_id}"
+
+
+# def _upload_file(ctx, size, src_path, dest_bucket, dest_key, override_meta):
+#     if override_meta is None:
+#         meta = _parse_file_metadata(src_path)
+#     else:
+#         meta = override_meta
+#
+#     s3_client = ctx.s3_client
+#
+#     if size < s3_transfer_config.multipart_threshold:
+#         with OSUtils().open_file_chunk_reader(src_path, 0, size, [ctx.progress]) as fd:
+#             resp = s3_client.put_object(
+#                 Body=fd,
+#                 Bucket=dest_bucket,
+#                 Key=dest_key,
+#                 Metadata={HELIUM_METADATA: json.dumps(meta)},
+#             )
+#
+#         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
+#         ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+#     else:
+#         resp = s3_client.create_multipart_upload(
+#             Bucket=dest_bucket,
+#             Key=dest_key,
+#             Metadata={HELIUM_METADATA: json.dumps(meta)},
+#         )
+#         upload_id = resp['UploadId']
+#
+#         chunk_offsets = list(range(0, size, s3_transfer_config.multipart_chunksize))
+#
+#         lock = Lock()
+#         remaining = len(chunk_offsets)
+#         parts = [None] * remaining
+#
+#         def upload_part(i, start, end):
+#             nonlocal remaining
+#             part_id = i + 1
+#             with OSUtils().open_file_chunk_reader(src_path, start, end-start, [ctx.progress]) as fd:
+#                 part = s3_client.upload_part(
+#                     Body=fd,
+#                     Bucket=dest_bucket,
+#                     Key=dest_key,
+#                     UploadId=upload_id,
+#                     PartNumber=part_id
+#                 )
+#             with lock:
+#                 parts[i] = {"PartNumber": part_id, "ETag": part["ETag"]}
+#                 remaining -= 1
+#                 done = remaining == 0
+#
+#             if done:
+#                 resp = s3_client.complete_multipart_upload(
+#                     Bucket=dest_bucket,
+#                     Key=dest_key,
+#                     UploadId=upload_id,
+#                     MultipartUpload={"Parts": parts}
+#                 )
+#                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
+#                 ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
+#
+#         for i, start in enumerate(chunk_offsets):
+#             end = min(start + s3_transfer_config.multipart_chunksize, size)
+#             ctx.run(upload_part, i, start, end)
+
+
+def _download_file(src_bucket, src_key, src_version, dest_path, override_meta):
     dest_file = pathlib.Path(dest_path)
     if dest_file.is_reserved():
         raise ValueError("Cannot download to %r: reserved file name" % dest_path)
 
-    s3_client = ctx.s3_client
+    s3_client = create_s3_client()
 
     dest_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -187,7 +260,7 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path, override_me
             if not chunk:
                 break
             fd.write(chunk)
-            ctx.progress(len(chunk))
+            # ctx.progress(len(chunk))
 
     try:
         xattr.setxattr(dest_path, HELIUM_XATTR, json.dumps(meta).encode('utf-8'))
@@ -200,10 +273,9 @@ def _download_file(ctx, src_bucket, src_key, src_version, dest_path, override_me
             f"file attributes in this directory, or has them disabled."
         )
 
-    ctx.done(pathlib.Path(dest_path).as_uri())
 
 
-def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
+def _copy_remote_file(size, src_bucket, src_key, src_version,
                       dest_bucket, dest_key, override_meta, extra_args=None):
     src_params = dict(
         Bucket=src_bucket,
@@ -214,7 +286,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             VersionId=src_version
         )
 
-    s3_client = ctx.s3_client
+    s3_client = create_s3_client()
 
     if size < s3_transfer_config.multipart_threshold:
         params = dict(
@@ -236,9 +308,7 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
             params.update(extra_args)
 
         resp = s3_client.copy_object(**params)
-        ctx.progress(size)
         version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-        ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
     else:
         if override_meta is None:
             resp = s3_client.head_object(Bucket=src_bucket, Key=src_key)
@@ -274,7 +344,6 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                 remaining -= 1
                 done = remaining == 0
 
-            ctx.progress(end - start)
 
             if done:
                 resp = s3_client.complete_multipart_upload(
@@ -284,15 +353,14 @@ def _copy_remote_file(ctx, size, src_bucket, src_key, src_version,
                     MultipartUpload={"Parts": parts}
                 )
                 version_id = resp.get('VersionId')  # Absent in unversioned buckets.
-                ctx.done(make_s3_url(dest_bucket, dest_key, version_id))
 
         for i, start in enumerate(chunk_offsets):
             end = min(start + s3_transfer_config.multipart_chunksize, size)
-            ctx.run(upload_part, i, start, end)
+            upload_part(i, start, end)
 
 
-def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_meta):
-    s3_client = ctx.s3_client
+def _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta):
+    s3_client = create_s3_client()
 
     # Optimization: check if the remote file already exists and has the right ETag,
     # and skip the upload.
@@ -314,8 +382,7 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_m
                     if override_meta is None or override_meta == dest_meta:
                         # Nothing more to do. We should not attempt to copy the object because
                         # that would cause the "copy object to itself" error.
-                        ctx.progress(size)
-                        ctx.done(make_s3_url(dest_bucket, dest_path, dest_version_id))
+                        pass
                     else:
                         # NOTE(dima): There is technically a race condition here: if the S3 file
                         # got modified after the `head_object` call AND we have no version ID,
@@ -324,100 +391,150 @@ def _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_m
                         # CopySourceIfMatch to make the request fail.
                         extra_args = dict(CopySourceIfMatch=src_etag)
                         _copy_remote_file(
-                            ctx, size, dest_bucket, dest_path, dest_version_id,
+                            size, dest_bucket, dest_path, dest_version_id,
                             dest_bucket, dest_path, override_meta, extra_args
                         )
-                    return  # Optimization succeeded.
+                    return f"s3://{dest_bucket}/{dest_path}?versionId={dest_version_id}"
 
     # If the optimization didn't happen, do the normal upload.
-    _upload_file(ctx, size, src_path, dest_bucket, dest_path, override_meta)
+    return _upload_file(size, src_path, dest_bucket, dest_path, override_meta)
 
 
-class WorkerContext(object):
-    def __init__(self, s3_client, progress, done, run):
-        self.s3_client = s3_client
-        self.progress = progress
-        self.done = done
-        self.run = run
 
 
-def _copy_file_list_internal(s3_client, file_list):
+
+def _copy_file_list_internal(file_list):
     """
     Takes a list of tuples (src, dest, size, override_meta) and copies the data in parallel.
     Returns versioned URLs for S3 destinations and regular file URLs for files.
     """
-    total_size = sum(size for _, _, size, _ in file_list)
 
-    lock = Lock()
-    futures = []
-    results = [None] * len(file_list)
+    def worker(args):
+        assert len(args) == 5
+        idx, src_url, dest_url, size, override_meta = args
 
-    with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
-         ThreadPoolExecutor(s3_threads) as executor:
 
-        def progress_callback(bytes_transferred):
-            with lock:
-                progress.update(bytes_transferred)
 
-        def run_task(func, *args):
-            future = executor.submit(func, *args)
-            with lock:
-                futures.append(future)
-
-        def worker(idx, src_url, dest_url, size, override_meta):
-            def done_callback(value):
-                assert value is not None
-                with lock:
-                    assert results[idx] is None
-                    results[idx] = value
-
-            ctx = WorkerContext(s3_client=s3_client, progress=progress_callback, done=done_callback, run=run_task)
-
-            if src_url.scheme == 'file':
-                src_path = parse_file_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _copy_local_file(ctx, size, src_path, dest_path, override_meta)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
-                        raise ValueError("Cannot set VersionId on destination")
-                    _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_meta)
-                else:
-                    raise NotImplementedError
-            elif src_url.scheme == 's3':
-                src_bucket, src_path, src_version_id = parse_s3_url(src_url)
-                if dest_url.scheme == 'file':
-                    dest_path = parse_file_url(dest_url)
-                    _download_file(ctx, src_bucket, src_path, src_version_id, dest_path, override_meta)
-                elif dest_url.scheme == 's3':
-                    dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
-                    if dest_version_id:
-                        raise ValueError("Cannot set VersionId on destination")
-                    _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
-                                      dest_bucket, dest_path, override_meta)
-                else:
-                    raise NotImplementedError
+        if src_url.scheme == 'file':
+            src_path = parse_file_url(src_url)
+            if dest_url.scheme == 'file':
+                raise NotImplementedError()
+                # dest_path = parse_file_url(dest_url)
+                # _copy_local_file(src_path, dest_path, override_meta)
+            elif dest_url.scheme == 's3':
+                dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+                if dest_version_id:
+                    raise ValueError("Cannot set VersionId on destination")
+                return _upload_or_copy_file(size, src_path, dest_bucket, dest_path, override_meta)
             else:
                 raise NotImplementedError
+        elif src_url.scheme == 's3':
+            raise NotImplementedError()
+            # src_bucket, src_path, src_version_id = parse_s3_url(src_url)
+            # if dest_url.scheme == 'file':
+            #     dest_path = parse_file_url(dest_url)
+            #     _download_file(src_bucket, src_path, src_version_id, dest_path, override_meta)
+            # elif dest_url.scheme == 's3':
+            #     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+            #     if dest_version_id:
+            #         raise ValueError("Cannot set VersionId on destination")
+            #     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
+            #                       dest_bucket, dest_path, override_meta)
+            # else:
+            #     raise NotImplementedError
+        else:
+            raise NotImplementedError
 
-        for idx, args in enumerate(file_list):
-            run_task(worker, idx, *args)
+    from multiprocessing import Pool
+    with Pool(20) as p:
+        results = p.map(worker, file_list)
+    # for idx, args in enumerate(file_list):
+    #     run_task(worker, idx, *args)
 
-        # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
-        # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
-        # So, manually wait for all tasks to complete.
-        # This will also raise any exception that happened in a worker thread.
-        while True:
-            with lock:
-                if not futures:
-                    break
-                future = futures.pop()
-            future.result()
+
 
     assert all(results)
 
     return results
+
+
+# def _copy_file_list_internal(s3_client, file_list):
+#     """
+#     Takes a list of tuples (src, dest, size, override_meta) and copies the data in parallel.
+#     Returns versioned URLs for S3 destinations and regular file URLs for files.
+#     """
+#     total_size = sum(size for _, _, size, _ in file_list)
+#
+#     lock = Lock()
+#     futures = []
+#     results = [None] * len(file_list)
+#
+#     with tqdm(desc="Copying", total=total_size, unit='B', unit_scale=True) as progress, \
+#          ThreadPoolExecutor(s3_threads) as executor:
+#
+#         def progress_callback(bytes_transferred):
+#             with lock:
+#                 progress.update(bytes_transferred)
+#
+#         def run_task(func, *args):
+#             future = executor.submit(func, *args)
+#             with lock:
+#                 futures.append(future)
+#
+#         def worker(idx, src_url, dest_url, size, override_meta):
+#             def done_callback(value):
+#                 assert value is not None
+#                 with lock:
+#                     assert results[idx] is None
+#                     results[idx] = value
+#
+#             ctx = WorkerContext(s3_client=s3_client, progress=progress_callback, done=done_callback, run=run_task)
+#
+#             if src_url.scheme == 'file':
+#                 src_path = parse_file_url(src_url)
+#                 if dest_url.scheme == 'file':
+#                     dest_path = parse_file_url(dest_url)
+#                     _copy_local_file(ctx, size, src_path, dest_path, override_meta)
+#                 elif dest_url.scheme == 's3':
+#                     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+#                     if dest_version_id:
+#                         raise ValueError("Cannot set VersionId on destination")
+#                     _upload_or_copy_file(ctx, size, src_path, dest_bucket, dest_path, override_meta)
+#                 else:
+#                     raise NotImplementedError
+#             elif src_url.scheme == 's3':
+#                 src_bucket, src_path, src_version_id = parse_s3_url(src_url)
+#                 if dest_url.scheme == 'file':
+#                     dest_path = parse_file_url(dest_url)
+#                     _download_file(ctx, src_bucket, src_path, src_version_id, dest_path, override_meta)
+#                 elif dest_url.scheme == 's3':
+#                     dest_bucket, dest_path, dest_version_id = parse_s3_url(dest_url)
+#                     if dest_version_id:
+#                         raise ValueError("Cannot set VersionId on destination")
+#                     _copy_remote_file(ctx, size, src_bucket, src_path, src_version_id,
+#                                       dest_bucket, dest_path, override_meta)
+#                 else:
+#                     raise NotImplementedError
+#             else:
+#                 raise NotImplementedError
+#
+#         for idx, args in enumerate(file_list):
+#             run_task(worker, idx, *args)
+#
+#         # ThreadPoolExecutor does not appear to have a way to just wait for everything to complete.
+#         # Shutting it down will cause it to wait - but will prevent any new tasks from starting.
+#         # So, manually wait for all tasks to complete.
+#         # This will also raise any exception that happened in a worker thread.
+#         while True:
+#             with lock:
+#                 if not futures:
+#                     break
+#                 future = futures.pop()
+#             future.result()
+#
+#     assert all(results)
+#
+#     return results
 
 
 def _calculate_etag(file_path):
@@ -590,9 +707,8 @@ def copy_file_list(file_list):
 
         processed_file_list.append((src_url, dest_url, size, override_meta))
 
-    s3_client = create_s3_client()
     print("Entering _copy_file_list_internal")
-    return _copy_file_list_internal(s3_client, processed_file_list)
+    return _copy_file_list_internal(processed_file_list)
 
 
 def copy_file(src, dest, override_meta=None, size=None):
@@ -639,7 +755,7 @@ def copy_file(src, dest, override_meta=None, size=None):
         url_list.append((src_url, dest_url, size, override_meta))
 
     s3_client = create_s3_client()
-    _copy_file_list_internal(s3_client, url_list)
+    _copy_file_list_internal(url_list)
 
 
 def put_bytes(data, dest, meta=None):

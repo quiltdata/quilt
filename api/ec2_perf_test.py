@@ -53,3 +53,5 @@ if __name__ == '__main__':
     # Lock free took 96 seconds (7e965f38f035bba7046f86cc663be0ca30246b31)
     # Lock free, multiprocess took 7 seconds (445145cb434e1a9eb69ed025001d871445842342)
 
+    # Original push with val2017 takes 130 seconds
+    #
