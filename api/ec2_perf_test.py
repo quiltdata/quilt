@@ -2,6 +2,7 @@
 
 import quilt3
 from quilt3 import Package
+import uuid
 
 import time
 
@@ -37,6 +38,7 @@ def perf_test():
     pkg = setup()
     t = Timer("hash files").start()
     pkg._fix_sha256()
+    pkg._materialize(dest_url=f"s3://quilt-ml-data/tst/{uuid.uuid4()}/")
     t.stop()
 
 if __name__ == '__main__':
