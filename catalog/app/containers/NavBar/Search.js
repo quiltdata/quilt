@@ -164,7 +164,7 @@ function GlobalSearch({ onFocus, onBlur, iconized, ...props }) {
   const { location: l, match } = useRoute(paths.search)
   const { q: query = '', buckets } = match ? parse(l.search) : {}
   const makeUrl = React.useCallback((q) => urls.search({ q, buckets }), [urls, buckets])
-  return !cfg.globalSearch ? null : (
+  return cfg.disableNavigator ? null : (
     <State {...{ query, makeUrl, onFocus, onBlur }}>
       {(state) => <SearchBox {...{ iconized, ...state, ...props }} />}
     </State>

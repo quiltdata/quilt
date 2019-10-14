@@ -21,7 +21,7 @@ export default function Landing() {
   return (
     <Layout>
       <Dots />
-      {!!cfg.bucketsOnLanding && <Buckets />}
+      {cfg.mode === 'PRODUCT' && <Buckets />}
       <Showcase />
       <Videos />
       <Platform />

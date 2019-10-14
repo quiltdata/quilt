@@ -211,7 +211,7 @@ const SignIn = composeComponent(
       return <M.CircularProgress color="inherit" />
     }
     return (
-      <React.Fragment>
+      <>
         {error && (
           <M.Icon
             title={`${error.message}\n${JSON.stringify(error)}`}
@@ -223,7 +223,7 @@ const SignIn = composeComponent(
         <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
           Sign In
         </M.Button>
-      </React.Fragment>
+      </>
     )
   },
 )
@@ -273,8 +273,8 @@ const Links = ({ children }) => {
   return children(
     [
       { href: URLS.docs, label: 'Docs' },
-      !!cfg.enableMarketingPages && { to: `${urls.home()}#pricing`, label: 'Pricing' },
-      { href: URLS.jobs, label: 'Jobs' },
+      cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
+      cfg.mode !== 'PRODUCT' && { href: URLS.jobs, label: 'Jobs' },
       { href: URLS.blog, label: 'Blog' },
       !!cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
     ].filter(Boolean),
@@ -297,7 +297,7 @@ export const NavBar = () => {
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
   return (
     <Container>
-      {cfg.enableMarketingPages ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
+      {cfg.disableNavigator ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
           <Links>
@@ -310,7 +310,7 @@ export const NavBar = () => {
         </M.Box>
       )}
 
-      {!cfg.enableMarketingPages &&
+      {!cfg.disableNavigator &&
         !useHamburger &&
         (authenticated ? (
           <UserDropdown />
@@ -319,7 +319,7 @@ export const NavBar = () => {
         ))}
 
       {useHamburger &&
-        (cfg.enableMarketingPages ? (
+        (cfg.disableNavigator ? (
           <LinksHamburger {...{ authenticated, error, waiting }} />
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />

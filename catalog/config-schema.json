@@ -17,21 +17,9 @@
       "type": "string",
       "description": "Endpoint to use for thumbnails. Should be auto-populated by your stack."
     },
-    "bucketsOnLanding": {
-      "type": "boolean",
-      "description": "Whether to show stack's buckets on the landing page"
-    },
     "defaultBucket": {
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
-    },
-    "enableMarketingPages": {
-      "type": "boolean",
-      "description": "Enable marketing pages."
-    },
-    "globalSearch": {
-      "type": "boolean",
-      "description": "Enable global (aka universal) search."
     },
     "googleClientId": {
       "type": "string",
@@ -41,6 +29,11 @@
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
     },
+    "mode": {
+      "type": "string",
+      "pattern": "^((MARKETING)|(OPEN)|(PRODUCT))$",
+      "description": "App mode: MARKETING | OPEN | PRODUCT."
+    },
     "legacyPackagesRedirect": {
       "type": "string",
       "description": "Requests to /package/$owner/[$package/] will be redirected there (must not end in slash)."
@@ -48,10 +41,6 @@
     "mixpanelToken": {
       "type": "string",
       "description": "Token for Mixpanel analytics service"
-    },
-    "openLanding": {
-      "type": "boolean",
-      "description": "Whether to display open data landing page."
     },
     "passwordAuth": {
       "$ref": "#/definitions/AuthMethodConfig",
@@ -93,6 +82,7 @@
     "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
+    "mode",
     "passwordAuth",
     "registryUrl",
     "s3Proxy",

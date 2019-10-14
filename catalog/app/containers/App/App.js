@@ -55,7 +55,7 @@ const MAbout = mkLazy(() => import('website/pages/About'))
 const MPersonas = mkLazy(() => import('website/pages/Personas'))
 const MProduct = mkLazy(() => import('website/pages/Product'))
 
-export default () => {
+export default function App() {
   const cfg = Config.useConfig()
   const protect = React.useMemo(
     () => (cfg.alwaysRequiresAuth ? requireAuth() : R.identity),
@@ -64,10 +64,9 @@ export default () => {
   const { paths, urls } = NamedRoutes.use()
   const l = useLocation()
 
-  const Home = React.useMemo(() => protect(cfg.openLanding ? OpenLanding : Landing), [
+  const Home = React.useMemo(() => protect(cfg.mode === 'OPEN' ? OpenLanding : Landing), [
     protect,
-    cfg.openLanding,
-    cfg.enableMarketingPages,
+    cfg.mode,
   ])
 
   return (
@@ -79,7 +78,7 @@ export default () => {
           <Route path={paths.legacyPackages} component={LegacyPackages} />
         )}
 
-        {!!cfg.globalSearch && <Route path={paths.search} component={Search} exact />}
+        {!cfg.disableNavigator && <Route path={paths.search} component={Search} exact />}
 
         {cfg.enableMarketingPages && (
           <Route path={paths.about} component={MAbout} exact />
@@ -91,44 +90,43 @@ export default () => {
           <Route path={paths.product} component={MProduct} exact />
         )}
 
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.activate} component={Activate} exact />
         )}
 
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.signIn} component={AuthSignIn} exact />
         )}
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path="/login" component={redirectTo(urls.signIn())} exact />
         )}
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.signOut} component={AuthSignOut} exact />
         )}
-        {!cfg.enableMarketingPages &&
-          (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
-            <Route path={paths.signUp} component={AuthSignUp} exact />
-          )}
-        {!cfg.enableMarketingPages && cfg.ssoAuth === true && (
+        {!cfg.disableNavigator && (cfg.passwordAuth === true || cfg.ssoAuth === true) && (
+          <Route path={paths.signUp} component={AuthSignUp} exact />
+        )}
+        {!cfg.disableNavigator && cfg.ssoAuth === true && (
           <Route path={paths.ssoSignUp} component={AuthSSOSignUp} exact />
         )}
-        {!cfg.enableMarketingPages && !!cfg.passwordAuth && (
+        {!cfg.disableNavigator && !!cfg.passwordAuth && (
           <Route path={paths.passReset} component={AuthPassReset} exact />
         )}
-        {!cfg.enableMarketingPages && !!cfg.passwordAuth && (
+        {!cfg.disableNavigator && !!cfg.passwordAuth && (
           <Route path={paths.passChange} component={AuthPassChange} exact />
         )}
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.code} component={protect(AuthCode)} exact />
         )}
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.activationError} component={AuthActivationError} exact />
         )}
 
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.admin} component={requireAdmin(Admin)} exact />
         )}
 
-        {!cfg.enableMarketingPages && (
+        {!cfg.disableNavigator && (
           <Route path={paths.bucketRoot} component={protect(Bucket)} />
         )}
 

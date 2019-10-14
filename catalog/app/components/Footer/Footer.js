@@ -106,7 +106,7 @@ export default () => {
             <NavLink href={URLS.docs} target="_blank">
               Docs
             </NavLink>
-            {!!cfg.enableMarketingPages && (
+            {cfg.mode === 'MARKETING' && (
               <>
                 <NavSpacer />
                 <NavLink to={`${urls.home()}#pricing`}>Pricing</NavLink>
@@ -116,11 +116,15 @@ export default () => {
             <NavLink href={URLS.blog} target="_blank">
               Blog
             </NavLink>
-            <NavSpacer />
-            <NavLink href={URLS.jobs} target="_blank">
-              Jobs
-            </NavLink>
-            {!!cfg.enableMarketingPages && (
+            {cfg.mode !== 'PRODUCT' && (
+              <>
+                <NavSpacer />
+                <NavLink href={URLS.jobs} target="_blank">
+                  Jobs
+                </NavLink>
+              </>
+            )}
+            {cfg.enableMarketingPages && (
               <>
                 <NavSpacer />
                 <NavLink to={urls.about()}>About</NavLink>
