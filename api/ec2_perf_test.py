@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import quilt3
 from quilt3 import Package
 
