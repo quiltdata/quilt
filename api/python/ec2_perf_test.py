@@ -39,3 +39,5 @@ def perf_test():
 if __name__ == '__main__':
     perf_test()
 
+    # Original hash with val2017 takes 11 seconds to hash
+
