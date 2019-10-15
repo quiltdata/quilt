@@ -16,28 +16,29 @@ MAX_QUERY_DURATION = '15s'
 MAX_DOCUMENTS_PER_SHARD = 10000
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 100
+NUM_README_FILES = 10
 IMG_EXTS = [
-  '.jpg',
-  '.jpeg',
-  '.png',
-  '.gif',
-  '.webp',
-  '.bmp',
-  '.tiff',
-  '.tif',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.bmp',
+    '.tiff',
+    '.tif',
 ]
 
 OTHER_EXTS = [
-  '.parquet',
-  '.csv',
-  '.tsv',
-  '.txt',
-  '.vcf',
-  '.xls',
-  '.xlsx',
-  '.ipynb',
-  '.md',
-  '.json',
+    '.parquet',
+    '.csv',
+    '.tsv',
+    '.txt',
+    '.vcf',
+    '.xls',
+    '.xlsx',
+    '.ipynb',
+    '.md',
+    '.json',
 ]
 
 @api(cors_origins=get_default_origins())
@@ -63,14 +64,14 @@ def lambda_handler(request):
         size = 1000
     elif action == 'stats':
         body = {
-            "query": { "match_all": {} },
+            "query": {"match_all": {}},
             "aggs": {
-                "totalBytes": { "sum": { "field": 'size' } },
+                "totalBytes": {"sum": {"field": 'size'}},
                 "exts": {
-                    "terms": { "field": 'ext' },
-                    "aggs": { "size": { "sum": { "field": 'size' } } },
+                    "terms": {"field": 'ext'},
+                    "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
-                "updated": { "max": { "field": 'updated' } },
+                "updated": {"max": {"field": 'updated'}},
             }
         }
         size = 0
@@ -94,6 +95,16 @@ def lambda_handler(request):
             }
         }
         size = NUM_PREVIEW_FILES
+        _source = []
+    elif action == 'readmes':
+        body = {
+            'query': {
+                'terms': {
+                    "key_text": ["readme"]
+                }
+            }
+        }
+        size = NUM_README_FILES
         _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})
