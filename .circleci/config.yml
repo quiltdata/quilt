@@ -155,7 +155,7 @@ jobs:
           command: |
             . venv/bin/activate
             cd api/python/tests
-            python integration/runner_data_tests.py quilt/open_fruit
+            AWS_ACCESS_KEY_ID=$AWS_ACCESS AWS_SECRET_ACCESS_KEY=$AWS_SEC_KEY AWS_DEFAULT_REGION=$AWS_REGION python integration/runner_data_tests.py quilt/open_fruit
 
   build:
     docker:
