@@ -69,6 +69,7 @@ setup(
     extras_require={
         'tests': [
             'codecov',
+            'Pillow',
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',
