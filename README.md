@@ -47,15 +47,16 @@ Quilt addresses five key use cases:
 
 ### I - Performance and core services
 * [ ] Address performance issues with push (e.g. re-hash)
-* [ ] Refactor `bucket/.quilt` for improved listing and delete performance
+* [ ] Refactor `s3://bucket/.quilt` for improved listing and delete performance
+* [ ] Metadata services for filtering packages
 
 ### II - CI/CD for data
-* [ ] Ability to fork/merge packages (via manifests in git)
-* [ ] Automated data quality monitoring
+* [ ] Ability to fork/merge packages
+* [ ] Data quality monitoring
 
 ### III - Storage agnostic (support Azure, GCP buckets)
-* [ ] evaluate min.io and ceph.io
-* [ ] evaluate feasibility of local storage (e.g. NAS)
+* [ ] Evaluate min.io and ceph.io
+* [ ] Evaluate feasibility of local storage (e.g. NAS)
 
 ### IV - Cloud agnostic
 * [ ] K8s deployment for Azure, GCP
