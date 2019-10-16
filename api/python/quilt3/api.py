@@ -1,13 +1,12 @@
 import pathlib
 from urllib.parse import urlparse, unquote
 
-from .data_transfer import copy_file, get_bytes, delete_url, put_bytes, list_objects, list_url
+from .data_transfer import copy_file, get_bytes, delete_url, put_bytes, list_url
 from .formats import FormatRegistry
 from .search_util import search_api
 from .util import (QuiltConfig, QuiltException, CONFIG_PATH,
                    CONFIG_TEMPLATE, configure_from_url, fix_url,
-                   get_from_config, get_package_registry, parse_file_url, parse_s3_url,
-                   read_yaml, validate_package_name, write_yaml)
+                   get_package_registry, read_yaml, validate_package_name, write_yaml)
 
 
 def copy(src, dest):
@@ -62,61 +61,6 @@ def get(src):
     ext = pathlib.PurePosixPath(unquote(urlparse(clean_src).path)).suffix
 
     return FormatRegistry.deserialize(data, meta, ext=ext), meta.get('user_meta')
-
-
-def _tophashes_with_packages(registry=None):
-    """Return a dictionary of tophashes and their corresponding packages
-
-    Parameters:
-        registry (str): URI of the registry to enumerate
-
-    Returns:
-        dict: a dictionary of tophash keys and package name entries
-    """
-    registry_base_path = get_package_registry(fix_url(registry) if registry else None)
-    registry_url = urlparse(registry_base_path)
-    out = {}
-
-    if registry_url.scheme == 'file':
-        registry_dir = pathlib.Path(parse_file_url(registry_url))
-
-        for pkg_namespace_path in (registry_dir / 'named_packages').iterdir():
-            pkg_namespace = pkg_namespace_path.name
-
-            for pkg_subname_path in pkg_namespace_path.iterdir():
-                pkg_subname = pkg_subname_path.name
-                pkg_name = pkg_namespace + '/' + pkg_subname
-
-                package_timestamps = [ts.name for ts in pkg_subname_path.iterdir()
-                                      if ts.name != 'latest']
-
-                for timestamp in package_timestamps:
-                    tophash = (pkg_namespace_path / pkg_subname / timestamp).read_text()
-                    if tophash in out:
-                        out[tophash].update({pkg_name})
-                    else:
-                        out[tophash] = {pkg_name}
-
-    elif registry_url.scheme == 's3':
-        bucket, path, _ = parse_s3_url(registry_url)
-
-        pkg_namespace_path = path + '/named_packages/'
-
-        for pkg_entry in list_objects(bucket, pkg_namespace_path):
-            pkg_entry_path = pkg_entry['Key']
-            tophash, _ = get_bytes('s3://' + bucket + '/' + pkg_entry_path)
-            tophash = tophash.decode('utf-8')
-            pkg_name = "/".join(pkg_entry_path.split("/")[-3:-1])
-
-            if tophash in out:
-                out[tophash].update({pkg_name})
-            else:
-                out[tophash] = {pkg_name}
-
-    else:
-        raise NotImplementedError
-
-    return out
 
 
 def delete_package(name, registry=None):
