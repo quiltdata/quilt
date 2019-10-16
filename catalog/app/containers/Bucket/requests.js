@@ -139,15 +139,29 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
-  const { bucket: statsBucket, path: statsPath } = overviewUrl.match(S3_REGEXP).groups
-  const statsKey = `${unescape(statsPath)}/stats.json`
-  const r = await s3req({
-    statsBucket,
+const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
+
+const getOverviewBucket = (url) => url.match(S3_REGEXP).groups.bucket
+const getOverviewPath = (url) => url.match(S3_REGEXP).groups.path
+
+const bucketStatsFromS3 = ({ s3req, overviewUrl }) =>
+  s3req({
+    bucket: getOverviewBucket(overviewUrl),
     operation: 'getObject',
-    params: { Bucket: statsBucket, Key: statsKey },
-  })
-  const stats = JSON.parse(r.Body.toString('utf-8'))
+    params: {
+      Bucket: getOverviewBucket(overviewUrl),
+      Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
+    },
+  }).then((r) => JSON.parse(r.Body.toString('utf-8')))
+
+const bucketStatsFromSearch = ({ es, bucket }) => {
+  es({ action: 'stats', index: bucket })
+}
+
+export const bucketStats = async ({ es, s3req, bucket, overviewUrl, maxExts }) => {
+  const stats = await (overviewUrl
+    ? bucketStatsFromS3({ s3req, overviewUrl })
+    : bucketStatsFromSearch({ es, bucket }))
 
   const exts = R.pipe(
     R.map((i) => ({
@@ -201,69 +215,74 @@ const OTHER_EXTS = [
 ]
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 
-const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
-
-export const bucketSummary = async ({ s3req, overviewUrl, bucket }) => {
-  const { bucket: summaryBucket, path: summaryPath } = overviewUrl.match(S3_REGEXP).groups
-  const summaryKey = `${unescape(summaryPath)}/summary.json`
-  return s3req({
-    summaryBucket,
+const bucketSummaryFromS3 = ({ s3req, overviewUrl }) =>
+  s3req({
+    bucket: getOverviewBucket(overviewUrl),
     operation: 'getObject',
-    params: { Bucket: summaryBucket, Key: summaryKey },
-  })
-    .then((r) => JSON.parse(r.Body.toString('utf-8')))
-    .then(
-      R.applySpec({
-        readmes: R.pipe(
-          R.path(['aggregations', 'readmes', 'buckets']),
-          R.map((b) => ({
-            bucket,
-            key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
-          })),
-          R.filter((h) => h.version !== DELETED),
-          R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
-        ),
-        images: R.pipe(
-          R.path(['aggregations', 'images', 'keys', 'buckets']),
-          R.map((b) => ({
-            bucket,
-            key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
-          })),
-          R.filter((h) => h.version !== DELETED),
-        ),
-        other: R.pipe(
-          R.path(['aggregations', 'other', 'keys', 'buckets']),
-          R.map((b) => ({
-            bucket,
-            key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
-            lastModified: parseDate(b.lastModified),
-            // eslint-disable-next-line no-underscore-dangle
-            ext: b.latestVersion.hits.hits[0]._source.ext,
-          })),
-          R.filter((h) => h.version !== DELETED),
-          R.sortWith([
-            R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
-            R.descend(R.prop('lastModified')),
-          ]),
-        ),
-        summarize: ({
-          aggregations: {
-            summarize: {
-              latestVersion: { hits },
-            },
+    params: {
+      Bucket: getOverviewBucket(overviewUrl),
+      Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+    },
+  }).then((r) => JSON.parse(r.Body.toString('utf-8')))
+
+const bucketSummaryFromSearch = ({ es, bucket }) =>
+  es({ action: 'summary', index: bucket })
+
+export const bucketSummary = ({ s3req, es, overviewUrl, bucket }) =>
+  (overviewUrl
+    ? bucketSummaryFromS3({ s3req, overviewUrl })
+    : bucketSummaryFromSearch({ es, bucket })
+  ).then(
+    R.applySpec({
+      readmes: R.pipe(
+        R.path(['aggregations', 'readmes', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
+      ),
+      images: R.pipe(
+        R.path(['aggregations', 'images', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+        })),
+        R.filter((h) => h.version !== DELETED),
+      ),
+      other: R.pipe(
+        R.path(['aggregations', 'other', 'keys', 'buckets']),
+        R.map((b) => ({
+          bucket,
+          key: b.key,
+          version: extractLatestVersion(b.latestVersion.hits),
+          lastModified: parseDate(b.lastModified),
+          // eslint-disable-next-line no-underscore-dangle
+          ext: b.latestVersion.hits.hits[0]._source.ext,
+        })),
+        R.filter((h) => h.version !== DELETED),
+        R.sortWith([
+          R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+          R.descend(R.prop('lastModified')),
+        ]),
+      ),
+      summarize: ({
+        aggregations: {
+          summarize: {
+            latestVersion: { hits },
           },
-        }) => {
-          if (!hits.total) return null
-          const version = extractLatestVersion(hits)
-          if (version === DELETED) return null
-          return { bucket, key: SUMMARIZE_KEY, version }
         },
-      }),
-    )
-}
+      }) => {
+        if (!hits.total) return null
+        const version = extractLatestVersion(hits)
+        if (version === DELETED) return null
+        return { bucket, key: SUMMARIZE_KEY, version }
+      },
+    }),
+  )
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({

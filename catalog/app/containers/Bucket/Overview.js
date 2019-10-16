@@ -577,12 +577,15 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ s3req, overviewUrl, bucket, description }) {
+function Head({ es, s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   const isRODA = overviewUrl.includes('/quilt-open-data-bucket/')
   return (
-    <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
+    <Data
+      fetch={requests.bucketStats}
+      params={{ es, s3req, bucket, overviewUrl, maxExts: MAX_EXTS }}
+    >
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -987,9 +990,9 @@ function Summarize({ summarize, other, children }) {
 
 const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
 
-function Files({ s3req, overviewUrl, bucket }) {
+function Files({ es, s3req, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
+    <Data fetch={requests.bucketSummary} params={{ es, s3req, overviewUrl, bucket }}>
       {(res) => (
         <>
           <FilePreview
@@ -1076,6 +1079,8 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
+  const { shouldSign } = Config.useConfig()
+  const es = AWS.ES.use({ sign: shouldSign(bucket) })
   const cfg = BucketConfig.useCurrentBucketConfig()
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
@@ -1085,13 +1090,14 @@ export default function Overview({
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
               <Head
                 {...{
+                  es,
                   s3req,
                   overviewUrl: cfg.overviewUrl,
                   bucket,
                   description: cfg.description,
                 }}
               />
-              <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
+              <Files {...{ es, s3req, overviewUrl: cfg.overviewUrl, bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy
