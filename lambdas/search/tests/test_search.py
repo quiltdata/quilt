@@ -43,6 +43,7 @@ class TestS3Select(TestCase):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
             size=1000,
+            terminate_after=10000,
             _source = ','.join(['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']),
         ))
 
@@ -85,6 +86,7 @@ class TestS3Select(TestCase):
     def test_stats(self):
         url = 'https://www.example.com:443/bucket/_search?' + urlencode(dict(
             timeout='15s',
+            terminate_after=10000,
             size=0,
             _source = '',
         ))
