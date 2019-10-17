@@ -37,7 +37,7 @@ __Returns__
 `QuiltConfig`: (an ordered Mapping)
 
 
-## delete\_package(name, registry=None)  {#delete\_package}
+## delete\_package(name, registry=None, top\_hash=None)  {#delete\_package}
 
 Delete a package. Deletes only the manifest entries and not the underlying files.
 
@@ -45,6 +45,7 @@ __Arguments__
 
 * __name (str)__:  Name of the package
 * __registry (str)__:  The registry the package will be removed from
+* __top_hash (str)__:  Optional. A package hash to delete, instead of the whole package.
 
 
 ## list\_package\_versions(name, registry=None)  {#list\_package\_versions}
