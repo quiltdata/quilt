@@ -271,7 +271,7 @@ class QuiltConfig(OrderedDict):
 
     # TODO: Make an _html_repr_ for nicer Notebook display
     def __repr__(self):
-        return "Configured to {}".format(self['navigator_url'])
+        return "<{} at {!r} {}>".format(type(self).__name__, str(self.filepath), json.dumps(self, indent=4))
 
 
 def find_bucket_config(bucket_name, catalog_config_url):
