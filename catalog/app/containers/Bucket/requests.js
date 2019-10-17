@@ -291,11 +291,19 @@ const bucketSummaryFromSearch = ({ es, bucket }) =>
     summarize: es({ action: 'summarize', index: bucket }),
     other: es({ action: 'other', index: bucket }),
   }).then(
-    R.map((r) => {
-      console.log('res', r)
-      // TODO: extract results
-      return r
-    }),
+    R.pipe(
+      R.map((r) => {
+        console.log('res', r)
+        // TODO: extract results properly
+        return r.hits.map((h) => ({
+          bucket,
+          key: h.fields.key[0],
+          // eslint-disable-next-line no-underscore-dangle
+          version: h.inner_hits.latest.hits[0]._source.version_id,
+        }))
+      }),
+      R.evolve({ summarize: R.nth(0) }),
+    ),
   )
 
 export const bucketSummary = ({ s3req, es, overviewUrl, bucket }) =>
