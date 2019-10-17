@@ -44,6 +44,13 @@ const catchErrors = (pairs = []) =>
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(catchErrors(pairs))
 
+const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
+
+const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
+
+const promiseProps = (obj) =>
+  Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
+
 export const bucketListing = ({ s3req, bucket, path = '' }) =>
   s3req({
     bucket,
@@ -215,7 +222,7 @@ const OTHER_EXTS = [
 ]
 const SUMMARIZE_KEY = 'quilt_summarize.json'
 
-const bucketSummaryFromS3 = ({ s3req, overviewUrl }) =>
+const bucketSummaryFromS3 = ({ s3req, overviewUrl, bucket }) =>
   s3req({
     bucket: getOverviewBucket(overviewUrl),
     operation: 'getObject',
@@ -223,66 +230,78 @@ const bucketSummaryFromS3 = ({ s3req, overviewUrl }) =>
       Bucket: getOverviewBucket(overviewUrl),
       Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
     },
-  }).then((r) => JSON.parse(r.Body.toString('utf-8')))
+  })
+    .then((r) => JSON.parse(r.Body.toString('utf-8')))
+    .then(
+      R.applySpec({
+        readmes: R.pipe(
+          R.path(['aggregations', 'readmes', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+          })),
+          R.filter((h) => h.version !== DELETED),
+          R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
+        ),
+        images: R.pipe(
+          R.path(['aggregations', 'images', 'keys', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+          })),
+          R.filter((h) => h.version !== DELETED),
+        ),
+        other: R.pipe(
+          R.path(['aggregations', 'other', 'keys', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            version: extractLatestVersion(b.latestVersion.hits),
+            lastModified: parseDate(b.lastModified),
+            // eslint-disable-next-line no-underscore-dangle
+            ext: b.latestVersion.hits.hits[0]._source.ext,
+          })),
+          R.filter((h) => h.version !== DELETED),
+          R.sortWith([
+            R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+            R.descend(R.prop('lastModified')),
+          ]),
+        ),
+        summarize: ({
+          aggregations: {
+            summarize: {
+              latestVersion: { hits },
+            },
+          },
+        }) => {
+          if (!hits.total) return null
+          const version = extractLatestVersion(hits)
+          if (version === DELETED) return null
+          return { bucket, key: SUMMARIZE_KEY, version }
+        },
+      }),
+    )
 
 const bucketSummaryFromSearch = ({ es, bucket }) =>
-  es({ action: 'summary', index: bucket })
-
-export const bucketSummary = ({ s3req, es, overviewUrl, bucket }) =>
-  (overviewUrl
-    ? bucketSummaryFromS3({ s3req, overviewUrl })
-    : bucketSummaryFromSearch({ es, bucket })
-  ).then(
-    R.applySpec({
-      readmes: R.pipe(
-        R.path(['aggregations', 'readmes', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-        })),
-        R.filter((h) => h.version !== DELETED),
-        R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
-      ),
-      images: R.pipe(
-        R.path(['aggregations', 'images', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-        })),
-        R.filter((h) => h.version !== DELETED),
-      ),
-      other: R.pipe(
-        R.path(['aggregations', 'other', 'keys', 'buckets']),
-        R.map((b) => ({
-          bucket,
-          key: b.key,
-          version: extractLatestVersion(b.latestVersion.hits),
-          lastModified: parseDate(b.lastModified),
-          // eslint-disable-next-line no-underscore-dangle
-          ext: b.latestVersion.hits.hits[0]._source.ext,
-        })),
-        R.filter((h) => h.version !== DELETED),
-        R.sortWith([
-          R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
-          R.descend(R.prop('lastModified')),
-        ]),
-      ),
-      summarize: ({
-        aggregations: {
-          summarize: {
-            latestVersion: { hits },
-          },
-        },
-      }) => {
-        if (!hits.total) return null
-        const version = extractLatestVersion(hits)
-        if (version === DELETED) return null
-        return { bucket, key: SUMMARIZE_KEY, version }
-      },
+  promiseProps({
+    images: es({ action: 'images', index: bucket }),
+    readmes: es({ action: 'readmes', index: bucket }),
+    summarize: es({ action: 'summarize', index: bucket }),
+    other: es({ action: 'other', index: bucket }),
+  }).then(
+    R.map((r) => {
+      console.log('res', r)
+      // TODO: extract results
+      return r
     }),
   )
+
+export const bucketSummary = ({ s3req, es, overviewUrl, bucket }) =>
+  overviewUrl
+    ? bucketSummaryFromS3({ s3req, overviewUrl, bucket })
+    : bucketSummaryFromSearch({ es, bucket })
 
 export const objectVersions = ({ s3req, bucket, path }) =>
   s3req({
@@ -465,10 +484,6 @@ const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
     revisions: Contents.length - 1,
     revisionsTruncated: IsTruncated,
   }))
-
-const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
-
-const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 
 export const listPackages = withErrorHandling(
   async ({ s3req, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {
