@@ -79,8 +79,14 @@ def lambda_handler(request):
     elif action == 'images':
         body = {
             'query': {'terms': {'ext': IMG_EXTS}},
-            'sort': [{'last_modified': {'order': 'desc'}}],
-            'collapse': {'field': 'key'},
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                },
+            },
         }
         size = NUM_PREVIEW_IMAGES
         _source = ['key', 'version_id']
@@ -95,24 +101,42 @@ def lambda_handler(request):
                     ],
                 },
             },
-            'sort': [{'last_modified': {'order': 'desc'}}],
-            'collapse': {'field': 'key'},
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                },
+            },
         }
         size = NUM_PREVIEW_FILES
         _source = ['key', 'version_id']
     elif action == 'readmes':
         body = {
             'query': {'terms': {'key': README_KEYS}},
-            'sort': [{'last_modified': {'order': 'desc'}}],
-            'collapse': {'field': 'key'},
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                },
+            },
         }
         size = len(README_KEYS)
         _source = ['key', 'version_id']
     elif action == 'summarize':
         body = {
             'query': {'term': {'key': SUMMARIZE_KEY}},
-            'sort': [{'last_modified': {'order': 'desc'}}],
-            'collapse': {'field': 'key'},
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                },
+            },
         }
         size = 1
         _source = ['key', 'version_id']
