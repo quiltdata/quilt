@@ -132,11 +132,11 @@ const useHam = () => {
   return { open, close, render }
 }
 
-const AuthHamburger = ({ authenticated, waiting, error }) => {
+function AuthHamburger({ authenticated, waiting, error }) {
   const user = reduxHook.useMappedState(selectUser)
   const { urls } = NamedRoutes.use()
   const ham = useHam()
-
+  const links = useLinks()
   return ham.render([
     ...// eslint-disable-next-line no-nested-ternary
     (authenticated
@@ -173,26 +173,24 @@ const AuthHamburger = ({ authenticated, waiting, error }) => {
           </Item>,
         ]),
     <M.Divider key="divider" />,
-    <Links key="links">
-      {R.map(({ label, ...rest }) => (
-        <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
-          {label}
-        </Item>
-      ))}
-    </Links>,
+    ...links.map(({ label, ...rest }) => (
+      <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
+        {label}
+      </Item>
+    )),
   ])
 }
 
-const LinksHamburger = () =>
-  useHam().render(
-    <Links>
-      {R.map(({ label, ...rest }) => (
-        <Item key={`${label}:${rest.to || rest.href}`} {...rest}>
-          {label}
-        </Item>
-      ))}
-    </Links>,
+function LinksHamburger() {
+  const ham = useHam()
+  return ham.render(
+    useLinks().map(({ label, ...rest }) => (
+      <Item key={`${label}:${rest.to || rest.href}`} {...rest} onClick={ham.close}>
+        {label}
+      </Item>
+    )),
   )
+}
 
 const SignIn = composeComponent(
   'NavBar.SignIn',
@@ -211,7 +209,7 @@ const SignIn = composeComponent(
       return <M.CircularProgress color="inherit" />
     }
     return (
-      <React.Fragment>
+      <>
         {error && (
           <M.Icon
             title={`${error.message}\n${JSON.stringify(error)}`}
@@ -223,7 +221,7 @@ const SignIn = composeComponent(
         <M.Button component={Link} to={urls.signIn()} variant="contained" color="primary">
           Sign In
         </M.Button>
-      </React.Fragment>
+      </>
     )
   },
 )
@@ -257,28 +255,27 @@ export const Container = ({ children }) => {
   )
 }
 
-const NavLink = (props) => (
+const NavLink = React.forwardRef((props, ref) => (
   <M.Box
     component={props.to ? HashLink : 'a'}
     mr={2}
     color="text.secondary"
     fontSize="body2.fontSize"
     {...props}
+    ref={ref}
   />
-)
+))
 
-const Links = ({ children }) => {
+function useLinks() {
   const { urls } = NamedRoutes.use()
   const cfg = Config.useConfig()
-  return children(
-    [
-      { href: URLS.docs, label: 'Docs' },
-      !!cfg.enableMarketingPages && { to: `${urls.home()}#pricing`, label: 'Pricing' },
-      { href: URLS.jobs, label: 'Jobs' },
-      { href: URLS.blog, label: 'Blog' },
-      !!cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
-    ].filter(Boolean),
-  )
+  return [
+    { href: URLS.docs, label: 'Docs' },
+    cfg.mode === 'MARKETING' && { to: `${urls.home()}#pricing`, label: 'Pricing' },
+    cfg.mode !== 'PRODUCT' && { href: URLS.jobs, label: 'Jobs' },
+    { href: URLS.blog, label: 'Blog' },
+    cfg.enableMarketingPages && { to: urls.about(), label: 'About' },
+  ].filter(Boolean)
 }
 
 export const NavBar = () => {
@@ -295,22 +292,21 @@ export const NavBar = () => {
   const { error, waiting, authenticated } = reduxHook.useMappedState(selector)
   const t = M.useTheme()
   const useHamburger = M.useMediaQuery(t.breakpoints.down('sm'))
+  const links = useLinks()
   return (
     <Container>
-      {cfg.enableMarketingPages ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
+      {cfg.disableNavigator ? <M.Box flexGrow={1} /> : <Controls bucket={bucket} />}
       {!useHamburger && (
         <M.Box component="nav" display="flex" alignItems="center" ml={3}>
-          <Links>
-            {R.map(({ label, ...rest }) => (
-              <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
-                {label}
-              </NavLink>
-            ))}
-          </Links>
+          {links.map(({ label, ...rest }) => (
+            <NavLink key={`${label}:${rest.to || rest.href}`} {...rest}>
+              {label}
+            </NavLink>
+          ))}
         </M.Box>
       )}
 
-      {!cfg.enableMarketingPages &&
+      {!cfg.disableNavigator &&
         !useHamburger &&
         (authenticated ? (
           <UserDropdown />
@@ -319,7 +315,7 @@ export const NavBar = () => {
         ))}
 
       {useHamburger &&
-        (cfg.enableMarketingPages ? (
+        (cfg.disableNavigator ? (
           <LinksHamburger {...{ authenticated, error, waiting }} />
         ) : (
           <AuthHamburger {...{ authenticated, error, waiting }} />

@@ -5,7 +5,9 @@ import { mod } from 'react-swipeable-views-core'
 import { autoPlay, virtualize } from 'react-swipeable-views-utils'
 import * as M from '@material-ui/core'
 
+import Dots from 'website/components/Backgrounds/Dots'
 import DotPagination from 'website/components/DotPagination'
+
 import baxley from './people/baxley.jpeg'
 import brown from './people/brown.jpeg'
 import goldman from './people/goldman.jpeg'
@@ -158,22 +160,23 @@ const maxSlides = testimonials.length * SLIDE_COUNT_FACTOR
 
 const useStyles = M.makeStyles((t) => ({
   root: {
+    position: 'relative',
+  },
+  container: {
     // max height values are computed manually based on the actual heights of the slides,
     // so it's important to keep them up-to-date when editing the quotes to keep the
     // slider from pushing the contents below when playing through the slides
-    minHeight: 830, // for md+
+    minHeight: 720, // for sm+
     paddingTop: t.spacing(15),
-    [t.breakpoints.down('sm')]: {
-      minHeight: 940,
-    },
+    position: 'relative',
     [t.breakpoints.down('xs')]: {
-      minHeight: 1120,
+      minHeight: 960,
     },
   },
   overflow: {
     overflowX: 'hidden',
   },
-  container: {
+  slideContainer: {
     width: `calc(100% + ${t.spacing(2)}px)`,
   },
   slide: {
@@ -198,6 +201,8 @@ const useStyles = M.makeStyles((t) => ({
   title: {
     ...t.typography.body1,
     color: t.palette.secondary.main,
+    lineHeight: 1.5,
+    textAlign: 'center',
   },
   contents: {
     paddingTop: t.spacing(1),
@@ -259,27 +264,30 @@ export default function Testimonials() {
   }, [])
 
   return (
-    <M.Container maxWidth="lg" className={classes.root}>
-      <div className={classes.overflow}>
-        <Swipeable
-          disableLazyLoading
-          enableMouseEvents
-          animateHeight
-          index={index}
-          interval={7000}
-          onChangeIndex={onChangeIndex}
-          slideRenderer={slideRenderer}
-          slideCount={maxSlides}
-          className={classes.container}
+    <div className={classes.root}>
+      <Dots />
+      <M.Container maxWidth="lg" className={classes.container}>
+        <div className={classes.overflow}>
+          <Swipeable
+            disableLazyLoading
+            enableMouseEvents
+            animateHeight
+            index={index}
+            interval={7000}
+            onChangeIndex={onChangeIndex}
+            slideRenderer={slideRenderer}
+            slideCount={maxSlides}
+            className={classes.slideContainer}
+          />
+        </div>
+        <DotPagination
+          mt={4}
+          mb={8}
+          total={testimonials.length}
+          current={actualIndex}
+          onChange={goToNearestIndex}
         />
-      </div>
-      <DotPagination
-        mt={4}
-        mb={8}
-        total={testimonials.length}
-        current={actualIndex}
-        onChange={goToNearestIndex}
-      />
-    </M.Container>
+      </M.Container>
+    </div>
   )
 }
