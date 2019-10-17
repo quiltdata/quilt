@@ -70,6 +70,7 @@ def delete_package(name, registry=None, top_hash=None):
     Parameters:
         name (str): Name of the package
         registry (str): The registry the package will be removed from
+        top_hash (str): Optional. A package hash to delete, instead of the whole package.
     """
     validate_package_name(name)
     usr, pkg = name.split('/')
