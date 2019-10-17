@@ -82,8 +82,12 @@ export default function Buckets() {
         <BucketGrid buckets={paginated} ref={scrollRef} />
         <div className={classes.controls}>
           <M.Box mt={4}>
-            <M.Button variant="contained" color="secondary" href="TODO">
-              See Example Buckets
+            <M.Button
+              variant="contained"
+              color="secondary"
+              href="https://open.quiltdata.com/"
+            >
+              Browse Example Buckets
             </M.Button>
           </M.Box>
           {pages > 1 && (
