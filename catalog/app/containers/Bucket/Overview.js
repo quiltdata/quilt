@@ -32,6 +32,7 @@ import bg from './Overview-bg.jpg'
 
 const RODA_LINK = 'https://registry.opendata.aws'
 const EXAMPLE_BUCKET = 'quilt-example'
+const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
 const COLOR_MAP = [
@@ -580,7 +581,7 @@ const useHeadStyles = M.makeStyles((t) => ({
 function Head({ s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
-  const isRODA = overviewUrl.includes('/quilt-open-data-bucket/')
+  const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   return (
     <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
       {(res) => (
@@ -985,8 +986,6 @@ function Summarize({ summarize, other, children }) {
   )
 }
 
-const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
-
 function Files({ s3req, overviewUrl, bucket }) {
   return (
     <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
@@ -995,7 +994,8 @@ function Files({ s3req, overviewUrl, bucket }) {
           <FilePreview
             key="readme:configured"
             headingOverride={false}
-            handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
+            // TODO: use overviewUrl
+            handle={{ bucket: RODA_BUCKET, key: `${bucket}/README.md` }}
             fallback={() =>
               AsyncResult.case(
                 {

@@ -140,6 +140,14 @@ export const bucketExists = ({ s3req, bucket }) =>
   )
 
 export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
+  if (!overviewUrl)
+    return {
+      totalObjects: 0,
+      totalVersions: 0,
+      totalBytes: 0,
+      updated: null,
+      exts: [],
+    }
   const { bucket: statsBucket, path: statsPath } = overviewUrl.match(S3_REGEXP).groups
   const statsKey = `${unescape(statsPath)}/stats.json`
   const r = await s3req({
@@ -204,6 +212,13 @@ const SUMMARIZE_KEY = 'quilt_summarize.json'
 const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
 
 export const bucketSummary = async ({ s3req, overviewUrl, bucket }) => {
+  if (!overviewUrl)
+    return {
+      readmes: [],
+      images: [],
+      other: [],
+      summarize: null,
+    }
   const { bucket: summaryBucket, path: summaryPath } = overviewUrl.match(S3_REGEXP).groups
   const summaryKey = `${unescape(summaryPath)}/summary.json`
   return s3req({
