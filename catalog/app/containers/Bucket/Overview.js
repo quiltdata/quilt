@@ -30,6 +30,7 @@ import * as requests from './requests'
 
 import bg from './Overview-bg.jpg'
 
+const RODA_LINK = 'https://registry.opendata.aws'
 const EXAMPLE_BUCKET = 'quilt-example'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
@@ -579,6 +580,7 @@ const useHeadStyles = M.makeStyles((t) => ({
 function Head({ s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
+  const isRODA = overviewUrl.includes('/quilt-open-data-bucket/')
   return (
     <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
       {(res) => (
@@ -596,6 +598,7 @@ function Head({ s3req, overviewUrl, bucket, description }) {
               right={{ md: 32 }}
               bottom={{ md: 31 }}
               color="grey.300"
+              textAlign={{ md: 'right' }}
             >
               {AsyncResult.case(
                 {
@@ -619,6 +622,14 @@ function Head({ s3req, overviewUrl, bucket, description }) {
                   ),
                 },
                 res,
+              )}
+              {isRODA && (
+                <M.Typography variant="body2">
+                  From the{' '}
+                  <M.Link href={RODA_LINK} color="inherit" underline="always">
+                    Registry of Open Data on AWS
+                  </M.Link>
+                </M.Typography>
               )}
             </M.Box>
             <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
