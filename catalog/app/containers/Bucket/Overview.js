@@ -957,32 +957,20 @@ const MAX_PREVIEWS = 10
 
 function Summarize({ summarize, other, children }) {
   const s3req = AWS.S3.useRequest()
+  const otherCapped = React.useMemo(
+    () => AsyncResult.mapCase({ Ok: R.take(MAX_PREVIEWS) }, other),
+    [other],
+  )
   return AsyncResult.case(
     {
       _: children,
       Ok: (handle) =>
         handle ? (
           <Data fetch={requests.summarize} params={{ s3req, handle }}>
-            {AsyncResult.case({
-              _: children,
-              Ok: (summary) =>
-                AsyncResult.case(
-                  {
-                    _: children,
-                    Ok: (otherHandles) => {
-                      const handles =
-                        summary.length >= MAX_PREVIEWS
-                          ? summary
-                          : summary.concat(otherHandles).slice(0, MAX_PREVIEWS)
-                      return children(AsyncResult.Ok(handles))
-                    },
-                  },
-                  other,
-                ),
-            })}
+            {children}
           </Data>
         ) : (
-          children(other)
+          children(otherCapped)
         ),
     },
     summarize,
