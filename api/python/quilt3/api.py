@@ -1,5 +1,5 @@
 import pathlib
-from urllib.parse import urlparse, unquote
+from urllib.parse import quote, urlparse, unquote
 
 from .data_transfer import copy_file, get_bytes, delete_url, put_bytes, list_url
 from .formats import FormatRegistry
@@ -63,13 +63,14 @@ def get(src):
     return FormatRegistry.deserialize(data, meta, ext=ext), meta.get('user_meta')
 
 
-def delete_package(name, registry=None):
+def delete_package(name, registry=None, top_hash=None):
     """
     Delete a package. Deletes only the manifest entries and not the underlying files.
 
     Parameters:
         name (str): Name of the package
         registry (str): The registry the package will be removed from
+        top_hash (str): Optional. A package hash to delete, instead of the whole package.
     """
     validate_package_name(name)
     usr, pkg = name.split('/')
@@ -83,8 +84,29 @@ def delete_package(name, registry=None):
     if not paths:
         raise QuiltException("No such package exists in the given directory.")
 
-    for path, _ in paths:
-        delete_url(package_path + path)
+    if top_hash is not None:
+        deleted = []
+        remaining = []
+        for path, _ in paths:
+            parts = path.split('/')
+            if len(parts) == 1:
+                pkg_hash, _ = get_bytes(package_path + quote(parts[0]))
+                if pkg_hash.decode().strip() == top_hash:
+                    deleted.append(parts[0])
+                else:
+                    remaining.append(parts[0])
+        if not deleted:
+            raise QuiltException("No such package version exists in the given directory.")
+        for path in deleted:
+            delete_url(package_path + quote(path))
+        if 'latest' in deleted and remaining:
+            # Create a new "latest". Technically, we need to compare numerically,
+            # but string comparisons will be fine till year 2286.
+            new_latest = max(remaining)
+            copy_file(package_path + quote(new_latest), package_path + 'latest')
+    else:
+        for path, _ in paths:
+            delete_url(package_path + quote(path))
 
     # Will ignore non-empty dirs.
     delete_url(package_path)
