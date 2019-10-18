@@ -104,10 +104,8 @@ class DocumentQueue:
             "last_modified": last_modified.isoformat(),
             "meta_text": derived_meta["meta_text"],
             "size": size,
-            "system_meta": derived_meta["system_meta"],
             "target": derived_meta["target"],
             "updated": datetime.utcnow().isoformat(),
-            "user_meta": derived_meta["user_meta"],
             "version_id": version_id
         }
 
