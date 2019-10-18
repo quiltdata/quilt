@@ -8,8 +8,7 @@ import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
-import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
-import ButtonIcon from 'components/ButtonIcon'
+import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Sparkline from 'components/Sparkline'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
@@ -41,7 +40,7 @@ const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
     ...linkStyle,
     alignItems: 'center',
-    display: 'flex',
+    display: 'inline-flex',
   },
   mono: {
     fontFamily: typography.monospace.fontFamily,
@@ -162,7 +161,7 @@ const AnnotationsBox = M.styled('div')(({ theme: t }) => ({
   fontFamily: t.typography.monospace.fontFamily,
   fontSize: t.typography.body2.fontSize,
   overflow: 'auto',
-  padding: t.spacing.unit,
+  padding: t.spacing(1),
   whiteSpace: 'pre',
   width: '100%',
 }))
@@ -253,30 +252,32 @@ function Analytics({ analyticsBucket, bucket, path }) {
   )
 }
 
-const useStyles = M.makeStyles(({ spacing: { unit }, palette }) => ({
+const useStyles = M.makeStyles((t) => ({
+  crumbs: {
+    ...t.typography.body1,
+    maxWidth: '100%',
+    overflowWrap: 'break-word',
+  },
+  name: {
+    ...t.typography.body1,
+    maxWidth: 'calc(100% - 40px)',
+    overflowWrap: 'break-word',
+  },
   topBar: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     display: 'flex',
-    marginBottom: 2 * unit,
-  },
-  nameAndVersion: {
-    display: 'flex',
-  },
-  basename: {
-    maxWidth: 500,
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
+    marginBottom: t.spacing(2),
   },
   at: {
-    color: palette.text.secondary,
-    marginLeft: unit,
-    marginRight: unit,
+    color: t.palette.text.secondary,
   },
   spacer: {
     flexGrow: 1,
   },
   button: {
-    marginLeft: unit,
+    flexShrink: 0,
+    marginBottom: -3,
+    marginTop: -3,
   },
 }))
 
@@ -299,20 +300,26 @@ export default function File({
 
   return (
     <M.Box pt={2} pb={4}>
-      <BreadCrumbs variant="subtitle1" items={getCrumbs({ bucket, path, urls })} />
+      <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+        {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+      </div>
       <div className={classes.topBar}>
-        <M.Typography variant="h6" className={classes.nameAndVersion}>
-          <span className={classes.basename} title={basename(path)}>
-            {basename(path)}
-          </span>
-          <span className={classes.at}> @ </span>
+        <div className={classes.name}>
+          {basename(path)} <span className={classes.at}>@</span>
+          &nbsp;
           <VersionInfo bucket={bucket} path={path} version={version} />
-        </M.Typography>
+        </div>
         <div className={classes.spacer} />
         {withSignedUrl({ bucket, key: path, version }, (url) => (
-          <M.Button variant="outlined" href={url} className={classes.button} download>
-            <ButtonIcon position="left">arrow_downward</ButtonIcon> Download
-          </M.Button>
+          <M.IconButton
+            className={classes.button}
+            href={url}
+            edge="end"
+            size="small"
+            download
+          >
+            <M.Icon>arrow_downward</M.Icon>
+          </M.IconButton>
         ))}
       </div>
       <Section icon="code" heading="Code">
