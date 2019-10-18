@@ -48,3 +48,15 @@ export default function BreadCrumbs({ className, variant = 'h6', items }) {
     </M.Typography>
   )
 }
+
+export function copyWithoutSpaces(e) {
+  if (typeof document === 'undefined') return
+  e.clipboardData.setData(
+    'text/plain',
+    document
+      .getSelection()
+      .toString()
+      .replace(/\s*\/\s*/g, '/'),
+  )
+  e.preventDefault()
+}
