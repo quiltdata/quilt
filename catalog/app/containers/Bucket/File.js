@@ -2,28 +2,11 @@ import { basename } from 'path'
 
 import * as dateFns from 'date-fns'
 import dedent from 'dedent'
-import PT from 'prop-types'
 import * as R from 'ramda'
 import * as React from 'react'
 import { FormattedRelative } from 'react-intl'
 import { Link } from 'react-router-dom'
-import * as RC from 'recompose'
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Icon,
-  IconButton,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  ListItemText,
-  Popover,
-  Typography,
-  colors,
-} from '@material-ui/core'
-import { makeStyles, styled } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
 import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
 import ButtonIcon from 'components/ButtonIcon'
@@ -36,7 +19,6 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
-import * as RT from 'utils/reactTools'
 import { getBreadCrumbs, up } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
@@ -50,12 +32,12 @@ const getCrumbs = ({ bucket, path, urls }) =>
   R.chain(
     ({ label, path: segPath }) => [
       Crumb.Segment({ label, to: urls.bucketDir(bucket, segPath) }),
-      Crumb.Sep(<React.Fragment>&nbsp;/ </React.Fragment>),
+      Crumb.Sep(<>&nbsp;/ </>),
     ],
     [{ label: bucket, path: '' }, ...getBreadCrumbs(up(path))],
   )
 
-const useVersionInfoStyles = makeStyles(({ typography }) => ({
+const useVersionInfoStyles = M.makeStyles(({ typography }) => ({
   version: {
     ...linkStyle,
     alignItems: 'center',
@@ -69,121 +51,113 @@ const useVersionInfoStyles = makeStyles(({ typography }) => ({
   },
 }))
 
-const VersionInfo = RT.composeComponent(
-  'Bucket.File.VersionInfo',
-  RC.setPropTypes({
-    bucket: PT.string.isRequired,
-    path: PT.string.isRequired,
-    version: PT.string,
-  }),
-  ({ bucket, path, version }) => {
-    const s3req = AWS.S3.useRequest()
-    const { urls } = NamedRoutes.use()
+function VersionInfo({ bucket, path, version }) {
+  const s3req = AWS.S3.useRequest()
+  const { urls } = NamedRoutes.use()
 
-    const [anchor, setAnchor] = React.useState()
-    const [opened, setOpened] = React.useState(false)
-    const open = React.useCallback(() => setOpened(true), [])
-    const close = React.useCallback(() => setOpened(false), [])
+  const [anchor, setAnchor] = React.useState()
+  const [opened, setOpened] = React.useState(false)
+  const open = React.useCallback(() => setOpened(true), [])
+  const close = React.useCallback(() => setOpened(false), [])
 
-    const classes = useVersionInfoStyles()
+  const classes = useVersionInfoStyles()
 
-    return (
-      <React.Fragment>
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
-        <span className={classes.version} onClick={open} ref={setAnchor}>
-          {version ? (
-            <span className={classes.mono}>{version.substring(0, 12)}</span>
-          ) : (
-            'latest'
-          )}{' '}
-          <Icon>expand_more</Icon>
-        </span>
-        <Data fetch={requests.objectVersions} params={{ s3req, bucket, path }}>
-          {R.pipe(
-            AsyncResult.case({
-              Ok: (versions) => (
-                <List className={classes.list}>
-                  {versions.map((v) => (
-                    <ListItem
-                      key={v.id}
-                      button
-                      onClick={close}
-                      selected={version ? v.id === version : v.isLatest}
-                      component={Link}
-                      to={urls.bucketFile(bucket, path, v.id)}
-                    >
-                      <ListItemText
-                        primary={
-                          <span>
-                            <FormattedRelative value={v.lastModified} />
-                            {' | '}
-                            {v.size != null ? readableBytes(v.size) : 'DELETED'}
-                            {v.isLatest && ' | latest'}
-                          </span>
-                        }
-                        secondary={
-                          <span>
-                            {v.lastModified.toLocaleString()}
-                            <br />
-                            <span className={classes.mono}>{v.id}</span>
-                          </span>
-                        }
-                      />
-                      {!v.deleteMarker && (
-                        <ListItemSecondaryAction>
-                          {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
-                            <IconButton href={url}>
-                              <Icon>arrow_downward</Icon>
-                            </IconButton>
-                          ))}
-                        </ListItemSecondaryAction>
-                      )}
-                    </ListItem>
-                  ))}
-                </List>
-              ),
-              Err: () => (
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <Icon>error</Icon>
-                    </ListItemIcon>
-                    <Typography variant="body1">Error fetching versions</Typography>
-                  </ListItem>
-                </List>
-              ),
-              _: () => (
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <CircularProgress size={24} />
-                    </ListItemIcon>
-                    <Typography variant="body1">Fetching versions</Typography>
-                  </ListItem>
-                </List>
-              ),
-            }),
-            (children) => (
-              <Popover
-                open={opened && !!anchor}
-                anchorEl={anchor}
-                onClose={close}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'center' }}
-              >
-                {children}
-              </Popover>
+  return (
+    <>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+      <span className={classes.version} onClick={open} ref={setAnchor}>
+        {version ? (
+          <span className={classes.mono}>{version.substring(0, 12)}</span>
+        ) : (
+          'latest'
+        )}{' '}
+        <M.Icon>expand_more</M.Icon>
+      </span>
+      <Data fetch={requests.objectVersions} params={{ s3req, bucket, path }}>
+        {R.pipe(
+          AsyncResult.case({
+            Ok: (versions) => (
+              <M.List className={classes.list}>
+                {versions.map((v) => (
+                  <M.ListItem
+                    key={v.id}
+                    button
+                    onClick={close}
+                    selected={version ? v.id === version : v.isLatest}
+                    component={Link}
+                    to={urls.bucketFile(bucket, path, v.id)}
+                  >
+                    <M.ListItemText
+                      primary={
+                        <span>
+                          <FormattedRelative value={v.lastModified} />
+                          {' | '}
+                          {v.size != null ? readableBytes(v.size) : 'DELETED'}
+                          {v.isLatest && ' | latest'}
+                        </span>
+                      }
+                      secondary={
+                        <span>
+                          {v.lastModified.toLocaleString()}
+                          <br />
+                          <span className={classes.mono}>{v.id}</span>
+                        </span>
+                      }
+                    />
+                    {!v.deleteMarker && (
+                      <M.ListItemSecondaryAction>
+                        {withSignedUrl({ bucket, key: path, version: v.id }, (url) => (
+                          <M.IconButton href={url}>
+                            <M.Icon>arrow_downward</M.Icon>
+                          </M.IconButton>
+                        ))}
+                      </M.ListItemSecondaryAction>
+                    )}
+                  </M.ListItem>
+                ))}
+              </M.List>
             ),
-          )}
-        </Data>
-      </React.Fragment>
-    )
-  },
-)
+            Err: () => (
+              <M.List>
+                <M.ListItem>
+                  <M.ListItemIcon>
+                    <M.Icon>error</M.Icon>
+                  </M.ListItemIcon>
+                  <M.Typography variant="body1">Error fetching versions</M.Typography>
+                </M.ListItem>
+              </M.List>
+            ),
+            _: () => (
+              <M.List>
+                <M.ListItem>
+                  <M.ListItemIcon>
+                    <M.CircularProgress size={24} />
+                  </M.ListItemIcon>
+                  <M.Typography variant="body1">Fetching versions</M.Typography>
+                </M.ListItem>
+              </M.List>
+            ),
+          }),
+          (children) => (
+            <M.Popover
+              open={opened && !!anchor}
+              anchorEl={anchor}
+              onClose={close}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+              transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+            >
+              {children}
+            </M.Popover>
+          ),
+        )}
+      </Data>
+    </>
+  )
+}
 
-const AnnotationsBox = styled('div')(({ theme: t }) => ({
-  background: colors.lightBlue[50],
-  border: [[1, 'solid', colors.lightBlue[400]]],
+const AnnotationsBox = M.styled('div')(({ theme: t }) => ({
+  background: M.colors.lightBlue[50],
+  border: [[1, 'solid', M.colors.lightBlue[400]]],
   borderRadius: t.shape.borderRadius,
   fontFamily: t.typography.monospace.fontFamily,
   fontSize: t.typography.body2.fontSize,
@@ -193,7 +167,7 @@ const AnnotationsBox = styled('div')(({ theme: t }) => ({
   width: '100%',
 }))
 
-const Annotations = ({ bucket, path, version }) => {
+function Annotations({ bucket, path, version }) {
   const s3req = AWS.S3.useRequest()
   return (
     <Data fetch={requests.objectMeta} params={{ s3req, bucket, path, version }}>
@@ -211,7 +185,75 @@ const Annotations = ({ bucket, path, version }) => {
   )
 }
 
-const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
+function Analytics({ analyticsBucket, bucket, path }) {
+  const [cursor, setCursor] = React.useState(null)
+  const s3req = AWS.S3.useRequest()
+  const today = React.useMemo(() => new Date(), [])
+  const formatDate = (date) =>
+    dateFns.format(
+      date,
+      today.getFullYear() === date.getFullYear() ? `D MMM` : `D MMM YYYY`,
+    )
+
+  return (
+    <Data
+      fetch={requests.objectAccessCounts}
+      params={{ s3req, analyticsBucket, bucket, path, today }}
+    >
+      {(res) => (
+        <Section
+          icon="bar_charts"
+          heading="Analytics"
+          defaultExpanded={AsyncResult.Ok.is(res)}
+        >
+          {AsyncResult.case(
+            {
+              Ok: ({ counts, total }) => (
+                <M.Box
+                  display="flex"
+                  width="100%"
+                  justifyContent="space-between"
+                  alignItems="center"
+                >
+                  <M.Box>
+                    <M.Typography variant="h5">Downloads</M.Typography>
+                    <M.Typography variant="h4" component="div">
+                      {readableQuantity(cursor === null ? total : counts[cursor].value)}
+                    </M.Typography>
+                    <M.Typography variant="overline" component="span">
+                      {cursor === null
+                        ? `${counts.length} days`
+                        : formatDate(counts[cursor].date)}
+                    </M.Typography>
+                  </M.Box>
+                  <M.Box width="calc(100% - 7rem)">
+                    <Sparkline
+                      data={R.pluck('value', counts)}
+                      onCursor={setCursor}
+                      width={1000}
+                      height={60}
+                      stroke={SVG.Paint.Server(
+                        <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
+                          <stop offset="0" stopColor={M.colors.blueGrey[800]} />
+                          <stop offset="100%" stopColor={M.colors.blueGrey[100]} />
+                        </linearGradient>,
+                      )}
+                    />
+                  </M.Box>
+                </M.Box>
+              ),
+              Err: () => <M.Typography>No analytics available</M.Typography>,
+              _: () => <M.CircularProgress />,
+            },
+            res,
+          )}
+        </Section>
+      )}
+    </Data>
+  )
+}
+
+const useStyles = M.makeStyles(({ spacing: { unit }, palette }) => ({
   topBar: {
     alignItems: 'center',
     display: 'flex',
@@ -238,80 +280,12 @@ const useStyles = makeStyles(({ spacing: { unit }, palette }) => ({
   },
 }))
 
-const Analytics = ({ analyticsBucket, bucket, path }) => {
-  const [cursor, setCursor] = React.useState(null)
-  const s3req = AWS.S3.useRequest()
-  const today = React.useMemo(() => new Date(), [])
-  const formatDate = (date) =>
-    dateFns.format(
-      date,
-      today.getFullYear() === date.getFullYear() ? `D MMM` : `D MMM YYYY`,
-    )
-
-  return (
-    <Data
-      fetch={requests.objectAccessCounts}
-      params={{ s3req, analyticsBucket, bucket, path, today }}
-    >
-      {(res) => (
-        <Section
-          icon="bar_charts"
-          heading="Analytics"
-          defaultExpanded={AsyncResult.Ok.is(res)}
-        >
-          {AsyncResult.case(
-            {
-              Ok: ({ counts, total }) => (
-                <Box
-                  display="flex"
-                  width="100%"
-                  justifyContent="space-between"
-                  alignItems="center"
-                >
-                  <Box>
-                    <Typography variant="h5">Downloads</Typography>
-                    <Typography variant="h4" component="div">
-                      {readableQuantity(cursor === null ? total : counts[cursor].value)}
-                    </Typography>
-                    <Typography variant="overline" component="span">
-                      {cursor === null
-                        ? `${counts.length} days`
-                        : formatDate(counts[cursor].date)}
-                    </Typography>
-                  </Box>
-                  <Box width="calc(100% - 7rem)">
-                    <Sparkline
-                      data={R.pluck('value', counts)}
-                      onCursor={setCursor}
-                      width={1000}
-                      height={60}
-                      stroke={SVG.Paint.Server(
-                        <linearGradient x2="0" y2="100%" gradientUnits="userSpaceOnUse">
-                          <stop offset="0" stopColor={colors.blueGrey[800]} />
-                          <stop offset="100%" stopColor={colors.blueGrey[100]} />
-                        </linearGradient>,
-                      )}
-                    />
-                  </Box>
-                </Box>
-              ),
-              Err: () => <Typography>No analytics available</Typography>,
-              _: () => <CircularProgress />,
-            },
-            res,
-          )}
-        </Section>
-      )}
-    </Data>
-  )
-}
-
-export default ({
+export default function File({
   match: {
     params: { bucket, path },
   },
   location,
-}) => {
+}) {
   const { version } = parseSearch(location.search)
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
@@ -324,21 +298,21 @@ export default ({
   `
 
   return (
-    <Box pt={2} pb={4}>
+    <M.Box pt={2} pb={4}>
       <BreadCrumbs variant="subtitle1" items={getCrumbs({ bucket, path, urls })} />
       <div className={classes.topBar}>
-        <Typography variant="h6" className={classes.nameAndVersion}>
+        <M.Typography variant="h6" className={classes.nameAndVersion}>
           <span className={classes.basename} title={basename(path)}>
             {basename(path)}
           </span>
           <span className={classes.at}> @ </span>
           <VersionInfo bucket={bucket} path={path} version={version} />
-        </Typography>
+        </M.Typography>
         <div className={classes.spacer} />
         {withSignedUrl({ bucket, key: path, version }, (url) => (
-          <Button variant="outlined" href={url} className={classes.button} download>
+          <M.Button variant="outlined" href={url} className={classes.button} download>
             <ButtonIcon position="left">arrow_downward</ButtonIcon> Download
-          </Button>
+          </M.Button>
         ))}
       </div>
       <Section icon="code" heading="Code">
@@ -349,6 +323,6 @@ export default ({
         <FilePreview handle={{ bucket, key: path, version }} />
       </Section>
       <Annotations bucket={bucket} path={path} version={version} />
-    </Box>
+    </M.Box>
   )
 }
