@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
@@ -785,20 +786,8 @@ function FilePreview({ handle, headingOverride, fallback }) {
     return { dirs, file }
   }, [handle, urls])
 
-  const handleCopy = React.useCallback((e) => {
-    if (typeof document === 'undefined') return
-    e.clipboardData.setData(
-      'text/plain',
-      document
-        .getSelection()
-        .toString()
-        .replace(/\s*\/\s*/g, '/'),
-    )
-    e.preventDefault()
-  }, [])
-
   const renderCrumbs = () => (
-    <span onCopy={handleCopy}>
+    <span onCopy={copyWithoutSpaces}>
       {crumbs.dirs.map((c) => (
         <React.Fragment key={`crumb:${c.to}`}>
           <CrumbLink {...c} />
