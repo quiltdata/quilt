@@ -27,6 +27,9 @@ OBJECT_ACCESS_LOG_DIR = 'ObjectAccessLog'
 # Timestamp for the dir above.
 LAST_UPDATE_KEY = f'{OBJECT_ACCESS_LOG_DIR}.last_updated_ts.txt'
 
+# Athena does not allow us to write more than 100 partitions at once.
+MAX_OPEN_PARTITIONS = 100
+
 
 def sql_escape(s):
     return s.replace("'", "''")
@@ -321,6 +324,11 @@ def handler(event, context):
         start_ts = end_ts - timedelta(days=365)
         # We start from scratch, so make sure we don't have any old data.
         delete_dir(QUERY_RESULT_BUCKET, OBJECT_ACCESS_LOG_DIR)
+
+    # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
+    # Moreover, we don't want the lambda to time out, so just process 100 days and let the next invocation handle the rest.
+    if (end_ts - start_ts).days >= MAX_OPEN_PARTITIONS:
+        end_ts = start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1)
 
     # Make sure to use UTC dates for CloudTrail partitioning.
     start_date = start_ts.astimezone(timezone.utc).date()
