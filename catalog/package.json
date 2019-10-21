@@ -109,7 +109,7 @@
     "redux-devtools-extension": "^2.13.8",
     "redux-form": "^8.2.6",
     "redux-immutable": "^4.0.0",
-    "redux-react-hook": "^3.3.2",
+    "redux-react-hook": "^3.4.0",
     "redux-saga": "^1.1.1",
     "remarkable": "^1.7.4",
     "reselect": "^4.0.0",
