@@ -249,8 +249,10 @@ function SparklineSkel({ height, width, lines, window = 30, animate = false, chi
 }
 
 const ANALYTICS_WINDOW_OPTIONS = [
-  { value: 30, label: 'Last 30 days' },
-  { value: 365, label: 'Last 365 days' },
+  { value: 31, label: 'Last 1 month' },
+  { value: 91, label: 'Last 3 months' },
+  { value: 182, label: 'Last 6 months' },
+  { value: 365, label: 'Last 12 months' },
 ]
 
 function DownloadsRange({ value, onChange }) {
