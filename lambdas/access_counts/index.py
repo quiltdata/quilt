@@ -310,7 +310,7 @@ def delete_dir(bucket, prefix):
 
 def now():
     """Only exists for unit testing, cause patching datetime.utcnow() is pretty much impossible."""
-    return datetime.now()
+    return datetime.now(timezone.utc)
 
 
 def handler(event, context):
@@ -319,7 +319,8 @@ def handler(event, context):
 
     # Start of the CloudTrail time range: the end timestamp from the previous run, or a year ago if it's the first run.
     try:
-        start_ts = datetime.fromtimestamp(float(s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()))
+        timestamp_str = s3.get_object(Bucket=QUERY_RESULT_BUCKET, Key=LAST_UPDATE_KEY)['Body'].read()
+        start_ts = datetime.fromtimestamp(float(timestamp_str), timezone.utc)
     except s3.exceptions.NoSuchKey as ex:
         start_ts = end_ts - timedelta(days=365)
         # We start from scratch, so make sure we don't have any old data.
@@ -327,12 +328,7 @@ def handler(event, context):
 
     # We can't write more than 100 days worth of data at a time due to Athena's partitioning limitations.
     # Moreover, we don't want the lambda to time out, so just process 100 days and let the next invocation handle the rest.
-    if (end_ts - start_ts).days >= MAX_OPEN_PARTITIONS:
-        end_ts = start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1)
-
-    # Make sure to use UTC dates for CloudTrail partitioning.
-    start_date = start_ts.astimezone(timezone.utc).date()
-    end_date = end_ts.astimezone(timezone.utc).date()
+    end_ts = min(end_ts, start_ts + timedelta(days=MAX_OPEN_PARTITIONS-1))
 
     # Delete the temporary directory where Athena query results are written to.
     delete_dir(QUERY_RESULT_BUCKET, QUERY_TEMP_DIR)
@@ -344,8 +340,8 @@ def handler(event, context):
         account = account_response['Prefix'].split('/')[1]
         for region_response in s3.list_objects_v2(Bucket=CLOUDTRAIL_BUCKET, Prefix=f'AWSLogs/{account}/CloudTrail/', Delimiter='/').get('CommonPrefixes') or []:
             region = region_response['Prefix'].split('/')[3]
-            date = start_date
-            while date <= end_date:
+            date = start_ts.date()
+            while date <= end_ts.date():
                 query = ADD_CLOUDTRAIL_PARTITION.format(
                     account=sql_escape(account),
                     region=sql_escape(region),

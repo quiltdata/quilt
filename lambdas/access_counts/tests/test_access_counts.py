@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO
 import os
 from unittest import TestCase
@@ -74,7 +74,7 @@ class TestAccessCounts(TestCase):
     def test_access_counts(self):
         import index
 
-        now = datetime.fromtimestamp(1234567890)
+        now = datetime.fromtimestamp(1234567890, timezone.utc)
         end_ts = now - timedelta(minutes=15)
         start_ts = now - timedelta(days=1)
 
