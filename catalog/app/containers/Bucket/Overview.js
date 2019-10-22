@@ -6,6 +6,7 @@ import * as M from '@material-ui/core'
 import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
+import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
@@ -248,8 +249,10 @@ function SparklineSkel({ height, width, lines, window = 30, animate = false, chi
 }
 
 const ANALYTICS_WINDOW_OPTIONS = [
-  { value: 30, label: 'Last 30 days' },
-  { value: 365, label: 'Last 365 days' },
+  { value: 31, label: 'Last 1 month' },
+  { value: 91, label: 'Last 3 months' },
+  { value: 182, label: 'Last 6 months' },
+  { value: 365, label: 'Last 12 months' },
 ]
 
 function DownloadsRange({ value, onChange }) {
@@ -788,20 +791,8 @@ function FilePreview({ handle, headingOverride, fallback }) {
     return { dirs, file }
   }, [handle, urls])
 
-  const handleCopy = React.useCallback((e) => {
-    if (typeof document === 'undefined') return
-    e.clipboardData.setData(
-      'text/plain',
-      document
-        .getSelection()
-        .toString()
-        .replace(/\s*\/\s*/g, '/'),
-    )
-    e.preventDefault()
-  }, [])
-
   const renderCrumbs = () => (
-    <span onCopy={handleCopy}>
+    <span onCopy={copyWithoutSpaces}>
       {crumbs.dirs.map((c) => (
         <React.Fragment key={`crumb:${c.to}`}>
           <CrumbLink {...c} />

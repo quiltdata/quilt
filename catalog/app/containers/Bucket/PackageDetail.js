@@ -233,7 +233,7 @@ const Revision = ({ bucket, name, id, hash, stats, message, counts }) => {
       </M.Hidden>
       <M.Box
         pl={2}
-        pr={{ xs: Math.ceil(sparklineW / 8 + 1), sm: 25 }}
+        pr={{ xs: Math.ceil(sparklineW / 8 + 1), sm: 30 }}
         height={{ xs: 64, sm: 48 }}
         display="flex"
         alignItems="center"

@@ -3,9 +3,9 @@ import { basename } from 'path'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Box, CircularProgress } from '@material-ui/core'
+import * as M from '@material-ui/core'
 
-import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
+import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import Message from 'components/Message'
 import { docs } from 'constants/urls'
 import AsyncResult from 'utils/AsyncResult'
@@ -25,7 +25,7 @@ import * as requests from './requests'
 const HELP_LINK = `${docs}/walkthrough/working-with-a-bucket`
 
 const getCrumbs = R.compose(
-  R.intersperse(Crumb.Sep(' / ')),
+  R.intersperse(Crumb.Sep(<>&nbsp;/ </>)),
   ({ bucket, path, urls }) =>
     [{ label: bucket, path: '' }, ...getBreadCrumbs(path)].map(
       ({ label, path: segPath }) =>
@@ -67,11 +67,20 @@ const formatListing = ({ urls }, r) => {
   return R.uniqBy(ListingItem.case({ Dir: R.prop('name'), File: R.prop('name') }), items)
 }
 
-export default ({
+const useStyles = M.makeStyles((t) => ({
+  crumbs: {
+    ...t.typography.body1,
+    maxWidth: '100%',
+    overflowWrap: 'break-word',
+  },
+}))
+
+export default function Dir({
   match: {
     params: { bucket, path = '' },
   },
-}) => {
+}) {
+  const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3req = AWS.S3.useRequest()
   const code = dedent`
@@ -81,11 +90,13 @@ export default ({
   `
 
   return (
-    <Box pt={2} pb={4}>
-      <Box display="flex" alignItems="flex-start" mb={2}>
-        <BreadCrumbs items={getCrumbs({ bucket, path, urls })} />
-        <Box flexGrow={1} />
-      </Box>
+    <M.Box pt={2} pb={4}>
+      <M.Box display="flex" alignItems="flex-start" mb={2}>
+        <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+          {renderCrumbs(getCrumbs({ bucket, path, urls }))}
+        </div>
+        <M.Box flexGrow={1} />
+      </M.Box>
 
       <Section icon="code" heading="Code" gutterBottom>
         <Code>{code}</Code>
@@ -97,10 +108,10 @@ export default ({
           Ok: (res) => {
             const items = formatListing({ urls }, res)
             return items.length ? (
-              <React.Fragment>
+              <>
                 <Listing items={items} truncated={res.truncated} />
                 <Summary files={res.files} />
-              </React.Fragment>
+              </>
             ) : (
               <Message headline="No files">
                 <Link href={HELP_LINK}>Learn how to upload files</Link>.
@@ -110,22 +121,22 @@ export default ({
           Pending: AsyncResult.case({
             Ok: (res) =>
               res ? (
-                <React.Fragment>
+                <>
                   <Listing
                     items={formatListing({ urls }, res)}
                     truncated={res.truncated}
                     locked
                   />
                   <Summary files={res.files} />
-                </React.Fragment>
+                </>
               ) : (
-                <CircularProgress />
+                <M.CircularProgress />
               ),
             _: () => null,
           }),
           Init: () => null,
         })}
       </Data>
-    </Box>
+    </M.Box>
   )
 }

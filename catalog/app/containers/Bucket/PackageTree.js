@@ -3,16 +3,16 @@ import { basename } from 'path'
 import dedent from 'dedent'
 import * as R from 'ramda'
 import * as React from 'react'
-import { Box, Button, CircularProgress } from '@material-ui/core'
-import { makeStyles } from '@material-ui/styles'
+import * as M from '@material-ui/core'
 
-import BreadCrumbs, { Crumb } from 'components/BreadCrumbs'
+import { Crumb, copyWithoutSpaces, render as renderCrumbs } from 'components/BreadCrumbs'
 import { ThrowNotFound } from 'containers/NotFoundPage'
 import AsyncResult from 'utils/AsyncResult'
 import * as AWS from 'utils/AWS'
 import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
+import Link from 'utils/StyledLink'
 import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up } from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
@@ -102,61 +102,35 @@ const withComputedTree = (params, fn) =>
     fn,
   )
 
-const Crumbs = ({ bucket, name, revision, path }) => {
-  const { urls } = NamedRoutes.use()
-  const crumbs = React.useMemo(
-    () => [
-      Crumb.Segment({
-        label: name,
-        to: urls.bucketPackageDetail(bucket, name),
-      }),
-      Crumb.Sep('@'),
-      Crumb.Segment({
-        label: revision,
-        to: urls.bucketPackageTree(bucket, name, revision),
-      }),
-      Crumb.Sep(': '),
-      ...R.intersperse(
-        Crumb.Sep(' / '),
-        getBreadCrumbs(path).map(({ label, path: segPath }) =>
-          Crumb.Segment({
-            label,
-            to:
-              path === segPath
-                ? undefined
-                : urls.bucketPackageTree(bucket, name, revision, segPath),
-          }),
-        ),
-      ),
-    ],
-    [bucket, name, revision, path, urls],
-  )
-  return <BreadCrumbs items={crumbs} />
-}
-
-const useStyles = makeStyles(({ spacing: { unit } }) => ({
+const useStyles = M.makeStyles((t) => ({
   topBar: {
-    alignItems: 'center',
+    alignItems: 'flex-end',
     display: 'flex',
-    flexWrap: 'wrap',
-    marginBottom: 2 * unit,
-    marginTop: unit,
+    marginBottom: t.spacing(2),
+  },
+  crumbs: {
+    ...t.typography.body1,
+    maxWidth: 'calc(100% - 40px)',
+    overflowWrap: 'break-word',
+  },
+  name: {
+    wordBreak: 'break-all',
   },
   spacer: {
     flexGrow: 1,
   },
   button: {
-    color: 'inherit !important',
-    marginLeft: unit,
-    textDecoration: 'none !important',
+    flexShrink: 0,
+    marginBottom: -3,
+    marginTop: -3,
   },
 }))
 
-export default ({
+export default function PackageTree({
   match: {
     params: { bucket, name, revision, path = '' },
   },
-}) => {
+}) {
   const classes = useStyles()
   const s3req = AWS.S3.useRequest()
   const { urls } = NamedRoutes.use()
@@ -169,29 +143,56 @@ export default ({
     p = quilt3.Package.browse("${name}", registry="s3://${bucket}")
   `
 
+  const crumbs = React.useMemo(
+    () =>
+      R.intersperse(
+        Crumb.Sep(<>&nbsp;/ </>),
+        getBreadCrumbs(path).map(({ label, path: segPath }) =>
+          Crumb.Segment({
+            label,
+            to:
+              path === segPath
+                ? undefined
+                : urls.bucketPackageTree(bucket, name, revision, segPath),
+          }),
+        ),
+      ),
+    [bucket, name, revision, path, urls],
+  )
+
   return (
-    <Box pt={1} pb={4}>
+    <M.Box pt={2} pb={4}>
       <Data
         fetch={requests.fetchPackageTree}
         params={{ s3req, sign: getSignedS3URL, endpoint, bucket, name, revision }}
       >
         {withComputedTree({ bucket, name, revision, path }, (result) => (
-          <React.Fragment>
+          <>
+            <M.Typography variant="body1">
+              <Link to={urls.bucketPackageDetail(bucket, name)} className={classes.name}>
+                {name}
+              </Link>
+              {' @ '}
+              <Link to={urls.bucketPackageTree(bucket, name, revision)}>{revision}</Link>:
+            </M.Typography>
             <div className={classes.topBar}>
-              <Crumbs {...{ bucket, name, revision, path }} />
+              <div className={classes.crumbs} onCopy={copyWithoutSpaces}>
+                {renderCrumbs(crumbs)}
+              </div>
               <div className={classes.spacer} />
               {AsyncResult.case(
                 {
                   Ok: TreeDisplay.case({
                     File: ({ key, version }) => (
-                      <Button
-                        variant="outlined"
-                        href={getSignedS3URL({ bucket, key, version })}
+                      <M.IconButton
                         className={classes.button}
+                        href={getSignedS3URL({ bucket, key, version })}
+                        edge="end"
+                        size="small"
                         download
                       >
-                        Download file
-                      </Button>
+                        <M.Icon>arrow_downward</M.Icon>
+                      </M.IconButton>
                     ),
                     _: () => null,
                   }),
@@ -214,25 +215,25 @@ export default ({
                     </Section>
                   ),
                   Dir: ({ truncated, ...dir }) => (
-                    <Box mt={2}>
+                    <M.Box mt={2}>
                       <Listing
                         items={formatListing({ urls }, dir)}
                         truncated={truncated}
                       />
                       {/* TODO: use proper versions */}
                       <Summary files={dir.files} />
-                    </Box>
+                    </M.Box>
                   ),
                   NotFound: ThrowNotFound,
                 }),
                 Err: displayError(),
-                _: () => <CircularProgress />,
+                _: () => <M.CircularProgress />,
               },
               result,
             )}
-          </React.Fragment>
+          </>
         ))}
       </Data>
-    </Box>
+    </M.Box>
   )
 }
