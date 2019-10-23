@@ -85,12 +85,14 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
+                    '_source': ['key', 'version_id'],
                 },
             },
         }
         size = NUM_PREVIEW_IMAGES
-        _source = ['key', 'version_id']
-    elif action == 'other':
+        _source = []
+    #TODO: deprecate 'other'
+    elif action == 'sample' or action == 'other':
         body = {
             'query': {
                 'bool': {
@@ -107,39 +109,12 @@ def lambda_handler(request):
                     'name': 'latest',
                     'size': 1,
                     'sort': [{'last_modified': 'desc'}],
+                    '_source': ['key', 'version_id'],
                 },
             },
         }
         size = NUM_PREVIEW_FILES
-        _source = ['key', 'version_id']
-    elif action == 'readmes':
-        body = {
-            'query': {'terms': {'key': README_KEYS}},
-            'collapse': {
-                'field': 'key',
-                'inner_hits': {
-                    'name': 'latest',
-                    'size': 1,
-                    'sort': [{'last_modified': 'desc'}],
-                },
-            },
-        }
-        size = len(README_KEYS)
-        _source = ['key', 'version_id']
-    elif action == 'summarize':
-        body = {
-            'query': {'term': {'key': SUMMARIZE_KEY}},
-            'collapse': {
-                'field': 'key',
-                'inner_hits': {
-                    'name': 'latest',
-                    'size': 1,
-                    'sort': [{'last_modified': 'desc'}],
-                },
-            },
-        }
-        size = 1
-        _source = ['key', 'version_id']
+        _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})
 
