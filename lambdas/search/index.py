@@ -26,7 +26,7 @@ IMG_EXTS = [
     '.tiff',
     '.tif',
 ]
-OTHER_EXTS = [
+SAMPLE_EXTS = [
     '.parquet',
     '.csv',
     '.tsv',
@@ -91,12 +91,11 @@ def lambda_handler(request):
         }
         size = NUM_PREVIEW_IMAGES
         _source = []
-    #TODO: deprecate 'other'
-    elif action == 'sample' or action == 'other':
+    elif action == 'sample':
         body = {
             'query': {
                 'bool': {
-                    'must': [{'terms': {'ext': OTHER_EXTS}}],
+                    'must': [{'terms': {'ext': SAMPLE_EXTS}}],
                     'must_not': [
                         {'terms': {'key': README_KEYS + [SUMMARIZE_KEY]}},
                         {'wildcard': {'key': '*/' + SUMMARIZE_KEY}},
