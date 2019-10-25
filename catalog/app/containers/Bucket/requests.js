@@ -267,8 +267,7 @@ export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack })
   }
   if (inStack) {
     try {
-      // TODO: better action name
-      return await es({ action: 'other', index: bucket }).then(
+      return await es({ action: 'sample', index: bucket }).then(
         R.pipe(
           R.path(['hits', 'hits']),
           R.map((h) => {
