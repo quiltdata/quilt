@@ -1,6 +1,8 @@
 import * as dateFns from 'date-fns'
+import sampleSize from 'lodash/fp/sampleSize'
 import * as R from 'ramda'
 
+import { SUPPORTED_EXTENSIONS as IMG_EXTS } from 'components/Thumbnail'
 import { resolveKey } from 'utils/s3paths'
 import * as Resource from 'utils/Resource'
 
@@ -43,6 +45,13 @@ const catchErrors = (pairs = []) =>
 
 const withErrorHandling = (fn, pairs) => (...args) =>
   fn(...args).catch(catchErrors(pairs))
+
+const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
+
+const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
+
+const promiseProps = (obj) =>
+  Promise.all(Object.values(obj)).then(R.zipObj(Object.keys(obj)))
 
 export const bucketListing = ({ s3req, bucket, path = '' }) =>
   s3req({
@@ -139,23 +148,29 @@ export const bucketExists = ({ s3req, bucket }) =>
     ]),
   )
 
-export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
-  if (!overviewUrl)
-    return {
-      totalObjects: 0,
-      totalVersions: 0,
-      totalBytes: 0,
-      updated: null,
-      exts: [],
-    }
-  const { bucket: statsBucket, path: statsPath } = overviewUrl.match(S3_REGEXP).groups
-  const statsKey = `${unescape(statsPath)}/stats.json`
-  const r = await s3req({
-    statsBucket,
+const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
+
+const getOverviewBucket = (url) => url.match(S3_REGEXP).groups.bucket
+const getOverviewPath = (url) => url.match(S3_REGEXP).groups.path
+
+const bucketStatsFromS3 = ({ s3req, overviewUrl }) =>
+  s3req({
+    bucket: getOverviewBucket(overviewUrl),
     operation: 'getObject',
-    params: { Bucket: statsBucket, Key: statsKey },
-  })
-  const stats = JSON.parse(r.Body.toString('utf-8'))
+    params: {
+      Bucket: getOverviewBucket(overviewUrl),
+      Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
+    },
+  }).then((r) => JSON.parse(r.Body.toString('utf-8')))
+
+const bucketStatsFromSearch = ({ es, bucket }) => {
+  es({ action: 'stats', index: bucket })
+}
+
+export const bucketStats = async ({ es, s3req, bucket, overviewUrl, maxExts }) => {
+  const stats = await (overviewUrl
+    ? bucketStatsFromS3({ s3req, overviewUrl })
+    : bucketStatsFromSearch({ es, bucket }))
 
   const exts = R.pipe(
     R.map((i) => ({
@@ -176,26 +191,8 @@ export const bucketStats = async ({ s3req, overviewUrl, maxExts }) => {
   }
 }
 
-const parseVersion = R.when(R.equals('null'), () => undefined)
-
-const DELETED = Symbol('DELETED')
-
-const extractLatestVersion = (hits) => {
-  const totalVersions = hits.total
-  // eslint-disable-next-line no-underscore-dangle
-  const latestVersion = parseVersion(hits.hits[0]._source.version_id)
-  return (
-    latestVersion ||
-    (totalVersions === 1
-      ? // single version and it's null -> versioning disabled
-        undefined
-      : // latest version is null -> object deleted
-        DELETED)
-  )
-}
-
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
-const OTHER_EXTS = [
+const SAMPLE_EXTS = [
   '.parquet',
   '.csv',
   '.tsv',
@@ -207,77 +204,214 @@ const OTHER_EXTS = [
   '.md',
   '.json',
 ]
+const SAMPLE_SIZE = 10
 const SUMMARIZE_KEY = 'quilt_summarize.json'
+const MAX_IMGS = 100
 
-const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
-
-export const bucketSummary = async ({ s3req, overviewUrl, bucket }) => {
-  if (!overviewUrl)
-    return {
-      readmes: [],
-      images: [],
-      other: [],
-      summarize: null,
-    }
-  const { bucket: summaryBucket, path: summaryPath } = overviewUrl.match(S3_REGEXP).groups
-  const summaryKey = `${unescape(summaryPath)}/summary.json`
-  return s3req({
-    summaryBucket,
-    operation: 'getObject',
-    params: { Bucket: summaryBucket, Key: summaryKey },
+const headObject = ({ s3req, bucket, key }) =>
+  s3req({
+    bucket,
+    operation: 'headObject',
+    params: { Bucket: bucket, Key: key },
   })
-    .then((r) => JSON.parse(r.Body.toString('utf-8')))
-    .then(
-      R.applySpec({
-        readmes: R.pipe(
-          R.path(['aggregations', 'readmes', 'buckets']),
-          R.map((b) => ({
-            bucket,
-            key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
-          })),
-          R.filter((h) => h.version !== DELETED),
-          R.sort(R.ascend((h) => README_KEYS.indexOf(h.key))),
-        ),
-        images: R.pipe(
-          R.path(['aggregations', 'images', 'keys', 'buckets']),
-          R.map((b) => ({
-            bucket,
-            key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
-          })),
-          R.filter((h) => h.version !== DELETED),
-        ),
-        other: R.pipe(
+    .then((h) => (h.DeleteMarker ? null : { bucket, key, version: h.VersionId }))
+    .catch((e) => {
+      if (e.code === 'NotFound') return null
+      throw e
+    })
+
+export const bucketSummary = async ({ s3req, es, bucket, overviewUrl, inStack }) => {
+  const handle = await headObject({ s3req, bucket, key: SUMMARIZE_KEY })
+  if (handle) {
+    try {
+      return await summarize({ s3req, handle })
+    } catch (e) {
+      const display = `${handle.bucket}/${handle.key}`
+      console.log(`Unable to fetch configured summary from '${display}':`)
+      console.error(e)
+    }
+  }
+  if (overviewUrl) {
+    try {
+      return await s3req({
+        bucket: getOverviewBucket(overviewUrl),
+        operation: 'getObject',
+        params: {
+          Bucket: getOverviewBucket(overviewUrl),
+          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+        },
+      }).then(
+        R.pipe(
+          (r) => JSON.parse(r.Body.toString('utf-8')),
           R.path(['aggregations', 'other', 'keys', 'buckets']),
           R.map((b) => ({
             bucket,
             key: b.key,
-            version: extractLatestVersion(b.latestVersion.hits),
+            // eslint-disable-next-line no-underscore-dangle
+            version: b.latestVersion.hits.hits[0]._source.version_id,
             lastModified: parseDate(b.lastModified),
             // eslint-disable-next-line no-underscore-dangle
             ext: b.latestVersion.hits.hits[0]._source.ext,
           })),
-          R.filter((h) => h.version !== DELETED),
           R.sortWith([
-            R.ascend((h) => OTHER_EXTS.indexOf(h.ext)),
+            R.ascend((h) => SAMPLE_EXTS.indexOf(h.ext)),
             R.descend(R.prop('lastModified')),
           ]),
+          R.take(SAMPLE_SIZE),
         ),
-        summarize: ({
-          aggregations: {
-            summarize: {
-              latestVersion: { hits },
-            },
-          },
-        }) => {
-          if (!hits.total) return null
-          const version = extractLatestVersion(hits)
-          if (version === DELETED) return null
-          return { bucket, key: SUMMARIZE_KEY, version }
-        },
-      }),
+      )
+    } catch (e) {
+      console.log(`Unable to fetch pre-rendered summary from '${overviewUrl}':`)
+      console.error(e)
+    }
+  }
+  if (inStack) {
+    try {
+      return await es({ action: 'sample', index: bucket }).then(
+        R.pipe(
+          R.path(['hits', 'hits']),
+          R.map((h) => {
+            // eslint-disable-next-line no-underscore-dangle
+            const s = (h.inner_hits.latest.hits.hits[0] || {})._source
+            return (
+              s && {
+                bucket,
+                key: s.key,
+                version: s.version_id,
+              }
+            )
+          }),
+          R.filter(Boolean),
+          R.take(SAMPLE_SIZE),
+        ),
+      )
+    } catch (e) {
+      console.log('Unable to fetch live summary:')
+      console.error(e)
+    }
+  }
+  try {
+    return await s3req({
+      operation: 'listObjectsV2',
+      params: { Bucket: bucket },
+    }).then(
+      R.pipe(
+        R.path(['Contents']),
+        R.filter(
+          R.propSatisfies(
+            R.allPass([
+              R.complement(R.startsWith('.quilt/')),
+              R.complement(R.startsWith('/')),
+              R.complement(R.endsWith(SUMMARIZE_KEY)),
+              // eslint-disable-next-line no-underscore-dangle
+              R.complement(R.includes(R.__, README_KEYS)),
+              R.anyPass(SAMPLE_EXTS.map(R.unary(R.endsWith))),
+            ]),
+            'Key',
+          ),
+        ),
+        sampleSize(SAMPLE_SIZE),
+        R.map(({ Key: key }) => ({ key, bucket })),
+      ),
     )
+  } catch (e) {
+    console.log('Unable to fetch summary from S3 listing:')
+    console.error(e)
+  }
+  return []
+}
+
+export const bucketReadmes = ({ s3req, bucket, overviewUrl }) =>
+  promiseProps({
+    forced:
+      overviewUrl &&
+      headObject({
+        s3req,
+        bucket: getOverviewBucket(overviewUrl),
+        key: `${unescape(getOverviewPath(overviewUrl))}/README.md`,
+      }),
+    discovered: Promise.all(
+      README_KEYS.map((key) => headObject({ s3req, bucket, key })),
+    ).then(R.filter(Boolean)),
+  })
+
+export const bucketImgs = async ({ es, s3req, bucket, overviewUrl, inStack }) => {
+  if (overviewUrl) {
+    try {
+      return await s3req({
+        bucket: getOverviewBucket(overviewUrl),
+        operation: 'getObject',
+        params: {
+          Bucket: getOverviewBucket(overviewUrl),
+          Key: `${unescape(getOverviewPath(overviewUrl))}/summary.json`,
+        },
+      }).then(
+        R.pipe(
+          (r) => JSON.parse(r.Body.toString('utf-8')),
+          R.path(['aggregations', 'images', 'keys', 'buckets']),
+          R.map((b) => ({
+            bucket,
+            key: b.key,
+            // eslint-disable-next-line no-underscore-dangle
+            version: b.latestVersion.hits.hits[0]._source.version_id,
+          })),
+        ),
+      )
+    } catch (e) {
+      console.log(`Unable to fetch images sample from '${overviewUrl}':`)
+      console.error(e)
+    }
+  }
+  if (inStack) {
+    try {
+      return await es({ action: 'images', index: bucket }).then(
+        R.pipe(
+          R.path(['hits', 'hits']),
+          R.map((h) => {
+            // eslint-disable-next-line no-underscore-dangle
+            const s = (h.inner_hits.latest.hits.hits[0] || {})._source
+            return (
+              s && {
+                bucket,
+                key: s.key,
+                version: s.version_id,
+              }
+            )
+          }),
+          R.filter(Boolean),
+          R.take(MAX_IMGS),
+        ),
+      )
+    } catch (e) {
+      console.log('Unable to fetch live images sample:')
+      console.error(e)
+    }
+  }
+  try {
+    return await s3req({
+      operation: 'listObjectsV2',
+      params: { Bucket: bucket },
+    }).then(
+      R.pipe(
+        R.path(['Contents']),
+        R.filter(
+          R.propSatisfies(
+            R.allPass([
+              R.complement(R.startsWith('/')),
+              R.anyPass(IMG_EXTS.map(R.unary(R.endsWith))),
+            ]),
+            'Key',
+          ),
+        ),
+        sampleSize(MAX_IMGS),
+        R.map(({ Key: key }) => ({ key, bucket })),
+      ),
+    )
+  } catch (e) {
+    console.log('Unable to fetch images sample from S3 listing:')
+    console.error(e)
+  }
+  return []
 }
 
 export const objectVersions = ({ s3req, bucket, path }) =>
@@ -461,10 +595,6 @@ const fetchPackageRevisions = ({ s3req, bucket, prefix }) =>
     revisions: Contents.length - 1,
     revisionsTruncated: IsTruncated,
   }))
-
-const mapAllP = R.curry((fn, list) => Promise.all(list.map(fn)))
-
-const mergeAllP = (...ps) => Promise.all(ps).then(R.mergeAll)
 
 export const listPackages = withErrorHandling(
   async ({ s3req, analyticsBucket, bucket, today, analyticsWindow = 30 }) => {

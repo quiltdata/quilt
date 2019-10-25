@@ -7,7 +7,6 @@ import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
-import Message from 'components/Message'
 import * as Pagination from 'components/Pagination'
 import Placeholder from 'components/Placeholder'
 import * as Preview from 'components/Preview'
@@ -581,12 +580,15 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ s3req, overviewUrl, bucket, description }) {
+function Head({ es, s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   return (
-    <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
+    <Data
+      fetch={requests.bucketStats}
+      params={{ es, s3req, bucket, overviewUrl, maxExts: MAX_EXTS }}
+    >
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -941,122 +943,70 @@ const FilePreviewSkel = () => (
   </Section>
 )
 
-const MAX_PREVIEWS = 10
-
-function Summarize({ summarize, other, children }) {
-  const s3req = AWS.S3.useRequest()
-  return AsyncResult.case(
-    {
-      _: children,
-      Ok: (handle) =>
-        handle ? (
-          <Data fetch={requests.summarize} params={{ s3req, handle }}>
-            {AsyncResult.case({
-              _: children,
-              Ok: (summary) =>
-                AsyncResult.case(
-                  {
-                    _: children,
-                    Ok: (otherHandles) => {
-                      const handles =
-                        summary.length >= MAX_PREVIEWS
-                          ? summary
-                          : summary.concat(otherHandles).slice(0, MAX_PREVIEWS)
-                      return children(AsyncResult.Ok(handles))
-                    },
-                  },
-                  other,
-                ),
-            })}
-          </Data>
-        ) : (
-          children(other)
-        ),
-    },
-    summarize,
+function Readmes({ s3req, overviewUrl, bucket }) {
+  return (
+    <Data fetch={requests.bucketReadmes} params={{ s3req, overviewUrl, bucket }}>
+      {AsyncResult.case({
+        Ok: (rs) =>
+          rs.discovered.length > 0 || rs.forced ? (
+            <>
+              {!!rs.forced && (
+                <FilePreview
+                  key="readme:forced"
+                  headingOverride={false}
+                  handle={rs.forced}
+                />
+              )}
+              {rs.discovered.map((h) => (
+                <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
+              ))}
+            </>
+          ) : (
+            <GettingStarted bucket={bucket} />
+          ),
+        _: () => <FilePreviewSkel key="readme:skeleton" />,
+      })}
+    </Data>
   )
 }
 
-function Files({ s3req, overviewUrl, bucket }) {
+function Imgs({ es, s3req, overviewUrl, inStack, bucket }) {
   return (
-    <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
-      {(res) => (
-        <>
-          <FilePreview
-            key="readme:configured"
-            headingOverride={false}
-            // TODO: use overviewUrl
-            handle={{ bucket: RODA_BUCKET, key: `${bucket}/README.md` }}
-            fallback={() =>
-              AsyncResult.case(
-                {
-                  Ok: ({ readmes }) =>
-                    !readmes.length && <GettingStarted bucket={bucket} />,
-                  // only show error if there's nothing more to show
-                  Err: displayError([
-                    [
-                      R.T,
-                      () => (
-                        // TODO: proper copy
-                        <Message headline="Error">Unable to load bucket summary</Message>
-                      ),
-                    ],
-                  ]),
-                  _: () => null,
-                },
-                res,
-              )
-            }
-          />
-          {AsyncResult.case(
-            {
-              Err: () => null,
-              _: R.juxt([
-                AsyncResult.case({
-                  Ok: ({ readmes }) =>
-                    readmes.map((h) => (
-                      <FilePreview key={`readme:${h.bucket}/${h.key}`} handle={h} />
-                    )),
-                  _: () => <FilePreviewSkel key="readme:skeleton" />,
-                }),
-                AsyncResult.case({
-                  Ok: ({ images }) => {
-                    if (!images.length) return null
-                    return <Thumbnails key="thumbs" images={images} />
-                  },
-                  _: () => (
-                    <Section key="thumbs:skel" heading={<HeadingSkel />}>
-                      <ImageGrid>
-                        {R.times(
-                          (i) => (
-                            // eslint-disable-next-line react/no-array-index-key
-                            <Skeleton key={i} height={200} />
-                          ),
-                          9,
-                        )}
-                      </ImageGrid>
-                    </Section>
-                  ),
-                }),
-                () => (
-                  <Summarize
-                    key="summarize"
-                    {...AsyncResult.props(['summarize', 'other'], res)}
-                  >
-                    {AsyncResult.case({
-                      Ok: R.map((h) => (
-                        <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />
-                      )),
-                      _: () => <FilePreviewSkel />,
-                    })}
-                  </Summarize>
+    <Data
+      fetch={requests.bucketImgs}
+      params={{ es, s3req, overviewUrl, inStack, bucket }}
+    >
+      {AsyncResult.case({
+        Ok: (images) => (images.length ? <Thumbnails images={images} /> : null),
+        _: () => (
+          <Section key="thumbs:skel" heading={<HeadingSkel />}>
+            <ImageGrid>
+              {R.times(
+                (i) => (
+                  // eslint-disable-next-line react/no-array-index-key
+                  <Skeleton key={i} height={200} />
                 ),
-              ]),
-            },
-            res,
-          )}
-        </>
-      )}
+                9,
+              )}
+            </ImageGrid>
+          </Section>
+        ),
+      })}
+    </Data>
+  )
+}
+
+function Summary({ es, s3req, bucket, inStack, overviewUrl }) {
+  return (
+    <Data
+      fetch={requests.bucketSummary}
+      params={{ es, s3req, bucket, inStack, overviewUrl }}
+    >
+      {AsyncResult.case({
+        Ok: R.map((h) => <FilePreview key={`${h.bucket}/${h.key}`} handle={h} />),
+        Pending: () => <FilePreviewSkel />,
+        _: () => null,
+      })}
     </Data>
   )
 }
@@ -1067,27 +1017,34 @@ export default function Overview({
   },
 }) {
   const s3req = AWS.S3.useRequest()
+  const { shouldSign } = Config.useConfig()
+  const es = AWS.ES.use({ sign: shouldSign(bucket) })
   const cfg = BucketConfig.useCurrentBucketConfig()
+  const inStack = !!cfg
+  const overviewUrl = cfg && cfg.overviewUrl
+  const description = cfg && cfg.description
   return (
     <Data fetch={requests.bucketExists} params={{ s3req, bucket }}>
       {AsyncResult.case({
-        Ok: () =>
-          cfg ? (
-            <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head
-                {...{
-                  s3req,
-                  overviewUrl: cfg.overviewUrl,
-                  bucket,
-                  description: cfg.description,
-                }}
-              />
-              <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
-            </M.Box>
-          ) : (
-            // TODO: revise content / copy
-            <Message headline="Error">Overview unavailable for this bucket</Message>
-          ),
+        Ok: () => (
+          <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
+            {cfg ? (
+              <Head {...{ es, s3req, bucket, overviewUrl, description }} />
+            ) : (
+              <M.Box
+                pt={2}
+                pb={{ xs: 2, sm: 0 }}
+                px={{ xs: 2, sm: 0 }}
+                textAlign={{ xs: 'center', sm: 'left' }}
+              >
+                <M.Typography variant="h5">{bucket}</M.Typography>
+              </M.Box>
+            )}
+            <Readmes {...{ s3req, bucket, overviewUrl }} />
+            <Imgs {...{ es, s3req, bucket, inStack, overviewUrl }} />
+            <Summary {...{ es, s3req, bucket, inStack, overviewUrl }} />
+          </M.Box>
+        ),
         Err: displayError(),
         _: () => <Placeholder />,
       })}
