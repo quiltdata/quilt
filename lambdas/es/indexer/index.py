@@ -53,36 +53,12 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
 
     content = ""
     if ext in CONTENT_INDEX_EXTS:
-        try:
-            if ext == ".ipynb":
-                content = trim_to_bytes(
-                    # we have no choice but to fetch the entire notebook, because we
-                    # are going to parse it
-                    # warning: huge notebooks could spike memory here
-                    get_notebook_cells(
-                        bucket,
-                        key,
-                        size,
-                        compression,
-                        etag=etag,
-                        s3_client=s3_client,
-                        version_id=version_id
-                    ),
-                    ELASTIC_LIMIT_BYTES
-                )
-            elif ext == ".parquet":
-                obj = retry_s3(
-                    "get",
-                    bucket,
-                    key,
-                    size,
-                    etag=etag,
-                    s3_client=s3_client,
-                    version_id=version_id
-                )
-                content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
-            else:
-                content = get_plain_text(
+        if ext == ".ipynb":
+            content = trim_to_bytes(
+                # we have no choice but to fetch the entire notebook, because we
+                # are going to parse it
+                # warning: huge notebooks could spike memory here
+                get_notebook_cells(
                     bucket,
                     key,
                     size,
@@ -90,9 +66,30 @@ def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
                     etag=etag,
                     s3_client=s3_client,
                     version_id=version_id
-                )
-        except Exception as exc:#pylint: disable=broad-except
-            print("Content extraction failed", exc, bucket, key, etag, version_id)
+                ),
+                ELASTIC_LIMIT_BYTES
+            )
+        elif ext == ".parquet":
+            obj = retry_s3(
+                "get",
+                bucket,
+                key,
+                size,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
+            content = extract_parquet(get_bytes(obj["Body"], compression), as_html=False)[0]
+        else:
+            content = get_plain_text(
+                bucket,
+                key,
+                size,
+                compression,
+                etag=etag,
+                s3_client=s3_client,
+                version_id=version_id
+            )
 
     return content
 
@@ -265,15 +262,20 @@ def handler(event, context):
                     )
                     continue
 
-                text = get_contents(
-                    bucket,
-                    key,
-                    ext,
-                    etag=etag,
-                    version_id=version_id,
-                    s3_client=s3_client,
-                    size=size
-                )
+                try:
+                    text = get_contents(
+                        bucket,
+                        key,
+                        ext,
+                        etag=etag,
+                        version_id=version_id,
+                        s3_client=s3_client,
+                        size=size
+                    )
+                except Exception as exc:#pylint: disable=broad-except
+                    content_exception = exc
+                    print("Content extraction failed", exc, bucket, key, etag, version_id)
+
                 # decode Quilt-specific metadata
                 if meta and "helium" in meta:
                     try:
@@ -307,6 +309,8 @@ def handler(event, context):
                 import traceback
                 traceback.print_tb(exc.__traceback__)
                 raise exc
+            if content_exception:
+                raise content_exception
         # flush the queue
         batch_processor.send_all()
 
