@@ -7,6 +7,7 @@ Lambda functions can have up to 3GB of RAM and only 512MB of disk.
 import io
 from urllib.parse import urlparse
 
+import pandas
 import requests
 
 from t4_lambda_shared.decorator import api, validate
@@ -65,6 +66,9 @@ SCHEMA = {
     'additionalProperties': False
 }
 
+# global option for pandas
+pandas.set_option('min_rows', 50)
+
 @api(cors_origins=get_default_origins())
 @validate(SCHEMA)
 def lambda_handler(request):
@@ -80,8 +84,13 @@ def lambda_handler(request):
     compression = request.args.get('compression')
     separator = request.args.get('sep') or ','
     exclude_output = request.args.get('exclude_output') == 'true'
-    max_bytes = request.args.get('max_bytes', CATALOG_LIMIT_BYTES)
-
+    try:
+        max_bytes = int(request.args.get('max_bytes', CATALOG_LIMIT_BYTES))
+    except ValueError as error:
+        return make_json_response(400, {
+            'title': f'Unexpected max_bytes= value',
+            'detail': str(error)
+        })
 
     parsed_url = urlparse(url, allow_fragments=False)
     if not (parsed_url.scheme == 'https' and
@@ -96,10 +105,13 @@ def lambda_handler(request):
         line_count = _str_to_line_count(request.args.get('line_count', str(CATALOG_LIMIT_LINES)))
     except ValueError as error:
         # format https://jsonapi.org/format/1.1/#error-objects
-        return make_json_response(400, {
-            'title': f'Unexpected line_count= value',
-            'detail': str(error)
-        })
+        return make_json_response(
+            400,
+            {
+                'title': 'Unexpected line_count= value',
+                'detail': str(error)
+            }
+        )
 
     # stream=True saves memory almost equal to file size
     resp = requests.get(url, stream=True)
@@ -139,7 +151,6 @@ def lambda_handler(request):
         ret_val = {
             'error': resp.reason
         }
-
     return make_json_response(200, ret_val)
 
 def extract_csv(head, separator):
@@ -151,8 +162,6 @@ def extract_csv(head, separator):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
-    # doing this locally because it might be slow
-    import pandas
     import re
     # this shouldn't balloon memory because head is limited in size by get_preview_lines
     try:
@@ -190,9 +199,6 @@ def extract_excel(file_):
         html - html version of *first sheet only* in workbook
         info - metadata
     """
-    # doing this locally because it might be slow
-    import pandas
-
     first_sheet = pandas.read_excel(file_, sheet_name=0)
     html = first_sheet._repr_html_() # pylint: disable=protected-access
     return html, {}

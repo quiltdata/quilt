@@ -21,14 +21,6 @@
       "type": "string",
       "description": "Default bucket users will see upon navigating to the catalog."
     },
-    "enableMarketingPages": {
-      "type": "boolean",
-      "description": "Enable marketing pages."
-    },
-    "globalSearch": {
-      "type": "boolean",
-      "description": "Enable global (aka universal) search."
-    },
     "googleClientId": {
       "type": "string",
       "description": "Client ID for Google Sign-In"
@@ -36,6 +28,11 @@
     "intercomAppId": {
       "type": "string",
       "description": "Connects orange chat icon to our Intercom. If absent, icon does not show."
+    },
+    "mode": {
+      "type": "string",
+      "pattern": "^((MARKETING)|(OPEN)|(PRODUCT))$",
+      "description": "App mode: MARKETING | OPEN | PRODUCT."
     },
     "legacyPackagesRedirect": {
       "type": "string",
@@ -85,6 +82,7 @@
     "binaryApiGatewayEndpoint",
     "defaultBucket",
     "mixpanelToken",
+    "mode",
     "passwordAuth",
     "registryUrl",
     "s3Proxy",

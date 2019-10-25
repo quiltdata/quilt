@@ -34,7 +34,7 @@ def _save_auth(cfg):
         json.dump(cfg, fd)
 
 def _load_credentials():
-    if AUTH_PATH.exists():
+    if CREDENTIALS_PATH.exists():
         with open(CREDENTIALS_PATH) as fd:
             return json.load(fd)
     return {}

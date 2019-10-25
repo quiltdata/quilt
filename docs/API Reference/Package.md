@@ -4,7 +4,7 @@ In-memory representation of a package
 
 ## manifest
 
-Provides a generator of the dicts that make up the serialied package.
+Provides a generator of the dicts that make up the serialized package.
 
 
 ## top_hash
@@ -203,17 +203,27 @@ fail to create file
 fail to finish write
 
 
-## Package.set(self, logical\_key, entry=None, meta=None)  {#Package.set}
+## Package.set(self, logical\_key, entry=None, meta=None, serialization\_location=None, serialization\_format\_opts=None)  {#Package.set}
 
 Returns self with the object at logical_key set to entry.
 
 __Arguments__
 
 * __logical_key(string)__:  logical key to update
-* __entry(PackageEntry OR string)__:  new entry to place at logical_key in the package.
+* __entry(PackageEntry OR string OR object)__:  new entry to place at logical_key in the package.
     If entry is a string, it is treated as a URL, and an entry is created based on it.
     If entry is None, the logical key string will be substituted as the entry value.
+    If entry is an object and quilt knows how to serialize it, it will immediately be serialized and written
+    to disk, either to serialization_location or to a location managed by quilt. List of types that Quilt
+    can serialize is available by calling `quilt3.formats.FormatRegistry.all_supported_formats()`
 * __meta(dict)__:  user level metadata dict to attach to entry
+* __serialization_format_opts(dict)__:  Optional. If passed in, only used if entry is an object. Options to help
+    Quilt understand how the object should be serialized. Useful for underspecified file formats like csv
+    when content contains confusing characters. Will be passed as kwargs to the FormatHandler.serialize()
+    function. See docstrings for individual FormatHandlers for full list of options -
+* __https__: //github.com/quiltdata/quilt/blob/master/api/python/quilt3/formats.py
+* __serialization_location(string)__:  Optional. If passed in, only used if entry is an object. Where the
+    serialized object should be written, e.g. "./mydataframe.parquet"
 
 __Returns__
 
@@ -275,7 +285,7 @@ Performs a user-specified operation on each entry in the package.
 
 __Arguments__
 
-* __f__:  function
+* __f(x, y)__:  function
     The function to be applied to each package entry.
     It should take two inputs, a logical key and a PackageEntry.
 * __include_directories__:  bool
@@ -292,8 +302,9 @@ removing results that evaluate to False from the output.
 
 __Arguments__
 
-* __f__:  function
+* __f(x, y)__:  function
     The function to be applied to each package entry.
+    It should take two inputs, a logical key and a PackageEntry.
     This function should return a boolean.
 * __include_directories__:  bool
     Whether or not to include directory entries in the map.

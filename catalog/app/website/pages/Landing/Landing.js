@@ -1,21 +1,36 @@
 import * as React from 'react'
 
-import Layout from 'website/components/Layout'
+import * as Config from 'utils/Config'
 
-import Hero from './Hero'
+import Dots from 'website/components/Backgrounds/Dots'
+import Layout from 'website/components/Layout'
+import Contribute from 'website/components/Contribute'
+import Videos from 'website/components/Videos'
+
+import Buckets from './Buckets'
+import CaseStudies from './CaseStudies'
 import Highlights from './Highlights'
-import MoreAboutQuilt from './MoreAboutQuilt'
+import Platform from './Platform'
 import Pricing from './Pricing'
+import Showcase from './Showcase'
 import Testimonials from './Testimonials'
 import UseQuilt from './UseQuilt'
 
-export default () => (
-  <Layout>
-    <Hero />
-    <Highlights />
-    <UseQuilt />
-    <Testimonials />
-    <Pricing />
-    <MoreAboutQuilt />
-  </Layout>
-)
+export default function Landing() {
+  const cfg = Config.useConfig()
+  return (
+    <Layout>
+      <Dots />
+      {cfg.mode === 'PRODUCT' && <Buckets />}
+      <Showcase />
+      <Videos />
+      <Platform />
+      <CaseStudies />
+      <Testimonials />
+      <UseQuilt />
+      <Highlights />
+      <Pricing />
+      <Contribute />
+    </Layout>
+  )
+}

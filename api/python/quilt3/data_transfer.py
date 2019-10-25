@@ -447,14 +447,8 @@ def _calculate_etag(file_path):
 def delete_object(bucket, key):
     s3_client = create_s3_client()
 
-    if key.endswith('/'):
-        paginator = s3_client.get_paginator('list_objects_v2')
-        for response in paginator.paginate(Bucket=bucket, Prefix=key):
-            for obj in response.get('Contents', []):
-                s3_client.delete_object(Bucket=bucket, Key=obj['Key'])
-    else:
-        s3_client.head_object(Bucket=bucket, Key=key)  # Make sure it exists
-        s3_client.delete_object(Bucket=bucket, Key=key)  # Actually delete it
+    s3_client.head_object(Bucket=bucket, Key=key)  # Make sure it exists
+    s3_client.delete_object(Bucket=bucket, Key=key)  # Actually delete it
 
 
 def list_object_versions(bucket, prefix, recursive=True):
@@ -512,13 +506,15 @@ def list_objects(bucket, prefix, recursive=True):
         return prefixes, objects
 
 
+def _looks_like_dir(s):
+    return not s or s.endswith('/')
+
+
 def list_url(src):
     src_url = urlparse(src)
     if src_url.scheme == 'file':
         src_path = parse_file_url(src_url)
         src_file = pathlib.Path(src_path)
-        if not src_file.is_dir():
-            raise ValueError("Not a directory: %r" % src_url)
 
         for f in src_file.rglob('*'):
             try:
@@ -531,8 +527,8 @@ def list_url(src):
     elif src_url.scheme == 's3':
         src_bucket, src_path, src_version_id = parse_s3_url(src_url)
         if src_version_id is not None:
-            raise ValueError("Directories cannot have version IDs: %r" % src_url)
-        if src_path and not src_path.endswith('/'):
+            raise ValueError(f"Directories cannot have version IDs: {src_url!r}")
+        if not _looks_like_dir(src_path):
             src_path += '/'
         s3_client = create_s3_client()
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -546,8 +542,34 @@ def list_url(src):
         raise NotImplementedError
 
 
-def _looks_like_dir(s):
-    return not s or s.endswith('/')
+def delete_url(src):
+    """Deletes the given URL.
+    Follows S3 semantics even for local files:
+    - If the URL does not exist, it's a no-op.
+    - If it's a non-empty directory, it's also a no-op.
+    """
+    src_url = urlparse(src)
+    if src_url.scheme == 'file':
+        src_path = parse_file_url(src_url)
+        src_file = pathlib.Path(src_path)
+
+        if _looks_like_dir(src_path):
+            try:
+                src_file.rmdir()
+            except OSError:
+                # Ignore non-empty directories, for consistency with S3
+                pass
+        else:
+            try:
+                src_file.unlink()
+            except FileExistsError:
+                pass
+    elif src_url.scheme == 's3':
+        src_bucket, src_path, src_version_id = parse_s3_url(src_url)
+        s3_client = create_s3_client()
+        s3_client.delete_object(Bucket=src_bucket, Key=src_path)
+    else:
+        raise NotImplementedError
 
 
 def copy_file_list(file_list):

@@ -11,15 +11,104 @@ from elasticsearch import Elasticsearch, RequestsHttpConnection
 from t4_lambda_shared.decorator import api
 from t4_lambda_shared.utils import get_default_origins, make_json_response
 
-
+INDEX_OVERRIDES = os.getenv('INDEX_OVERRIDES', '')
 MAX_QUERY_DURATION = '15s'
+MAX_DOCUMENTS_PER_SHARD = 10000
+NUM_PREVIEW_IMAGES = 100
+NUM_PREVIEW_FILES = 100
+NUM_README_FILES = 10
+IMG_EXTS = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.webp',
+    '.bmp',
+    '.tiff',
+    '.tif',
+]
 
+OTHER_EXTS = [
+    '.parquet',
+    '.csv',
+    '.tsv',
+    '.txt',
+    '.vcf',
+    '.xls',
+    '.xlsx',
+    '.ipynb',
+    '.md',
+    '.json',
+]
 
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
     """
     Proxy the request to the elastic search.
     """
+    action = request.args.get('action')
+    indexes = request.args.get('index')
+
+    if action == 'search':
+        query = request.args.get('query', '')
+        body = {
+            "query": {
+                "simple_query_string" : {
+                    "query": query,
+                    "fields": ['content', 'comment', 'key_text', 'meta_text']
+                }
+            }
+        }
+        # TODO: should be user settable; we should proably forbid `content` (can be huge)
+        _source = ['key', 'version_id', 'updated', 'last_modified', 'size', 'user_meta']
+        size = 1000
+    elif action == 'stats':
+        body = {
+            "query": {"match_all": {}},
+            "aggs": {
+                "totalBytes": {"sum": {"field": 'size'}},
+                "exts": {
+                    "terms": {"field": 'ext'},
+                    "aggs": {"size": {"sum": {"field": 'size'}}},
+                },
+                "updated": {"max": {"field": 'updated'}},
+            }
+        }
+        size = 0
+        _source = []
+    elif action == 'images':
+        body = {
+            'query': {
+                'terms': {
+                    "ext": IMG_EXTS
+                }
+            }
+        }
+        size = NUM_PREVIEW_IMAGES
+        _source = []
+    elif action == 'other':
+        body = {
+            'query': {
+                'terms': {
+                    "ext": OTHER_EXTS
+                }
+            }
+        }
+        size = NUM_PREVIEW_FILES
+        _source = []
+    elif action == 'readmes':
+        body = {
+            'query': {
+                'terms': {
+                    "key_text": ["readme"]
+                }
+            }
+        }
+        size = NUM_README_FILES
+        _source = []
+    else:
+        return make_json_response(400, {"title": "Invalid action"})
+
     es_host = os.environ['ES_HOST']
     region = os.environ['AWS_REGION']
 
@@ -37,11 +126,14 @@ def lambda_handler(request):
         connection_class=RequestsHttpConnection
     )
 
-    index = request.pathParameters['proxy']
-    body = request.args.get('source')
-    _source = request.args.get('_source')
-    size = request.args.get('size', '1000')
-
-    result = es_client.search(index, body, _source=_source, size=size, timeout=MAX_QUERY_DURATION)
+    to_search = f"{indexes},{INDEX_OVERRIDES}" if INDEX_OVERRIDES else indexes
+    result = es_client.search(
+        to_search,
+        body,
+        _source=_source,
+        size=size,
+        terminate_after=MAX_DOCUMENTS_PER_SHARD,
+        timeout=MAX_QUERY_DURATION
+    )
 
     return make_json_response(200, result)

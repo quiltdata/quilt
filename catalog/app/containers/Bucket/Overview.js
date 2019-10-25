@@ -30,7 +30,9 @@ import * as requests from './requests'
 
 import bg from './Overview-bg.jpg'
 
+const RODA_LINK = 'https://registry.opendata.aws'
 const EXAMPLE_BUCKET = 'quilt-example'
+const RODA_BUCKET = 'quilt-open-data-bucket'
 const MAX_EXTS = 7
 // must have length >= MAX_EXTS
 const COLOR_MAP = [
@@ -576,13 +578,12 @@ const useHeadStyles = M.makeStyles((t) => ({
   },
 }))
 
-function Head({ bucket, description }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
+function Head({ s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
   const [cursor, setCursor] = React.useState(null)
+  const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   return (
-    <Data fetch={requests.bucketStats} params={{ es, bucket, maxExts: MAX_EXTS }}>
+    <Data fetch={requests.bucketStats} params={{ s3req, overviewUrl, maxExts: MAX_EXTS }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -598,6 +599,7 @@ function Head({ bucket, description }) {
               right={{ md: 32 }}
               bottom={{ md: 31 }}
               color="grey.300"
+              textAlign={{ md: 'right' }}
             >
               {AsyncResult.case(
                 {
@@ -622,17 +624,20 @@ function Head({ bucket, description }) {
                 },
                 res,
               )}
+              {isRODA && (
+                <M.Typography variant="body2">
+                  From the{' '}
+                  <M.Link href={RODA_LINK} color="inherit" underline="always">
+                    Registry of Open Data on AWS
+                  </M.Link>
+                </M.Typography>
+              )}
             </M.Box>
             <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
               <StatDisplay
                 value={AsyncResult.prop('totalObjects', res)}
                 format={readableQuantity}
                 label="Objects"
-              />
-              <StatDisplay
-                value={AsyncResult.prop('totalVersions', res)}
-                format={readableQuantity}
-                label="Versions"
               />
               <StatDisplay
                 value={AsyncResult.prop('totalBytes', res)}
@@ -675,9 +680,7 @@ function Head({ bucket, description }) {
             {AsyncResult.Err.is(res) && (
               <div className={classes.lock}>
                 <M.Typography variant="h5" align="center">
-                  This bucket contains billions of objects.
-                  <br />
-                  Indexing in progress.
+                  Indexing in progress
                   <br />
                   <br />
                   <M.CircularProgress color="inherit" size={64} />
@@ -983,19 +986,16 @@ function Summarize({ summarize, other, children }) {
   )
 }
 
-const README_BUCKET = 'quilt-open-data-bucket' // TODO: unhardcode
-
-function Files({ bucket }) {
-  const cfg = Config.useConfig()
-  const es = AWS.ES.use({ sign: cfg.shouldSign(bucket) })
+function Files({ s3req, overviewUrl, bucket }) {
   return (
-    <Data fetch={requests.bucketSummary} params={{ es, bucket }}>
+    <Data fetch={requests.bucketSummary} params={{ s3req, overviewUrl, bucket }}>
       {(res) => (
         <>
           <FilePreview
             key="readme:configured"
             headingOverride={false}
-            handle={{ bucket: README_BUCKET, key: `${bucket}/README.md` }}
+            // TODO: use overviewUrl
+            handle={{ bucket: RODA_BUCKET, key: `${bucket}/README.md` }}
             fallback={() =>
               AsyncResult.case(
                 {
@@ -1083,8 +1083,15 @@ export default function Overview({
         Ok: () =>
           cfg ? (
             <M.Box pb={{ xs: 0, sm: 4 }} mx={{ xs: -2, sm: 0 }}>
-              <Head {...{ bucket, description: cfg.description }} />
-              <Files {...{ bucket }} />
+              <Head
+                {...{
+                  s3req,
+                  overviewUrl: cfg.overviewUrl,
+                  bucket,
+                  description: cfg.description,
+                }}
+              />
+              <Files {...{ s3req, overviewUrl: cfg.overviewUrl, bucket }} />
             </M.Box>
           ) : (
             // TODO: revise content / copy

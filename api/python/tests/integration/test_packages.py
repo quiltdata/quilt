@@ -3,7 +3,9 @@ from io import BytesIO
 import os
 import pathlib
 from pathlib import Path
+import pandas as pd
 import shutil
+from urllib.parse import urlparse
 
 import jsonlines
 from unittest.mock import patch, call, ANY
@@ -17,6 +19,7 @@ from ..utils import QuiltTestCase
 
 
 DATA_DIR = Path(__file__).parent / 'data'
+SERIALIZATION_DIR = Path(__file__).parent / 'serialization_dir'
 LOCAL_MANIFEST = DATA_DIR / 'local_manifest.jsonl'
 REMOTE_MANIFEST = DATA_DIR / 'quilt_manifest.jsonl'
 
@@ -41,7 +44,22 @@ def mock_make_api_call(self, operation_name, kwarg):
     raise NotImplementedError(operation_name)
 
 
+
 class PackageTest(QuiltTestCase):
+    def setUp(self):
+        super().setUp()
+        self.file_sweeper_path_list = []
+
+    def tearDown(self):
+        super().tearDown()
+        if len(self.file_sweeper_path_list) > 0:
+            for fpath in self.file_sweeper_path_list:
+                if os.path.exists(fpath):
+                    try:
+                        os.remove(fpath)
+                    except Exception as e:
+                        print("Error when removing file", fpath, str(e))
+
     def test_build(self):
         """Verify that build dumps the manifest to appdirs directory."""
         new_pkg = Package()
@@ -506,19 +524,13 @@ class PackageTest(QuiltTestCase):
         Package().build("Quilt/Test")
 
         # Verify packages are returned.
-        pkgs = quilt3.list_packages()
+        pkgs = list(quilt3.list_packages())
         assert len(pkgs) == 3
         assert "Quilt/Foo" in pkgs
         assert "Quilt/Bar" in pkgs
 
         # Verify specifying a local path explicitly works as expected.
         assert list(pkgs) == list(quilt3.list_packages(LOCAL_REGISTRY.as_posix()))
-
-        # Verify package repr is as expected.
-        pkgs_repr = str(pkgs)
-        assert 'Quilt/Test:latest' in pkgs_repr
-        assert 'Quilt/Foo:latest' in pkgs_repr
-        assert 'Quilt/Bar:latest' in pkgs_repr
 
     def test_set_package_entry(self):
         """ Set the physical key for a PackageEntry"""
@@ -541,6 +553,54 @@ class PackageTest(QuiltTestCase):
         # Test shortcut codepath
         pkg = Package().set('bar.txt')
         assert test_file.resolve().as_uri() == pkg['bar.txt'].physical_keys[0]
+
+    def test_set_package_entry_as_object(self):
+        pkg = Package()
+        nasty_string = 'a,"\tb'
+        num_col = [11, 22, 33]
+        str_col = ['a', 'b', nasty_string]
+        df = pd.DataFrame({'col_num': num_col, 'col_str': str_col})
+
+        # Test with serialization_dir set
+        pkg.set("mydataframe1.parquet", df, meta={'user_meta': 'blah'},
+                serialization_location=SERIALIZATION_DIR/"df1.parquet")
+        pkg.set("mydataframe2.csv", df, meta={'user_meta': 'blah2'},
+                serialization_location=SERIALIZATION_DIR/"df2.csv")
+        pkg.set("mydataframe3.tsv", df, meta={'user_meta': 'blah3'},
+                serialization_location=SERIALIZATION_DIR/"df3.tsv")
+
+        # Test without serialization_dir set
+        pkg.set("mydataframe4.parquet", df, meta={'user_meta': 'blah4'})
+        pkg.set("mydataframe5.csv", df, meta={'user_meta': 'blah5'})
+        pkg.set("mydataframe6.tsv", df, meta={'user_meta': 'blah6'})
+
+        for lk, entry in pkg.walk():
+            file_path = parse_file_url(urlparse(entry.get()))
+            assert pathlib.Path(file_path).exists(), "The serialization files should exist"
+
+            self.file_sweeper_path_list.append(file_path)  # Make sure files get deleted even if test fails
+
+        pkg._fix_sha256()
+        for lk, entry in pkg.walk():
+            assert df.equals(entry.deserialize()), "The deserialized PackageEntry should be equal to the object that " \
+                                                   "was serialized"
+
+        # Test that push cleans up the temporary files, if and only if the serialization_location was not set
+        with patch('botocore.client.BaseClient._make_api_call', new=mock_make_api_call), \
+            patch('quilt3.Package._materialize') as materialize_mock, \
+            patch('quilt3.Package.build') as build_mock:
+            materialize_mock.return_value = pkg
+
+            pkg.push('Quilt/test_pkg_name', 's3://test-bucket')
+
+        for lk in ["mydataframe1.parquet", "mydataframe2.csv", "mydataframe3.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert pathlib.Path(file_path).exists(), "These files should not have been deleted during push()"
+
+        for lk in ["mydataframe4.parquet", "mydataframe5.csv", "mydataframe6.tsv"]:
+            file_path = parse_file_url(urlparse(pkg.get(lk)))
+            assert not pathlib.Path(file_path).exists(), "These temp files should have been deleted during push()"
+
 
     def test_tophash_changes(self):
         test_file = Path('test.txt')
@@ -592,7 +652,7 @@ class PackageTest(QuiltTestCase):
         """Verify an exception when setting a key with a path object."""
         pkg = Package()
         with pytest.raises(TypeError):
-            pkg.set('asdf/jkl', 123)
+            pkg.set('asdf/jkl', Package())
 
     def test_brackets(self):
         pkg = Package()
@@ -631,47 +691,34 @@ class PackageTest(QuiltTestCase):
 
     def test_list_remote_packages(self):
         """Verify that listing remote packages works as expected."""
-        def pseudo_list_objects(bucket, prefix, recursive):
-            if prefix == '.quilt/named_packages/':
-                return ([{'Prefix': '.quilt/named_packages/foo/'}], [])
-            elif prefix == '.quilt/named_packages/foo/':
-                return ([{'Prefix': '.quilt/named_packages/foo/bar/'}], [])
-            elif prefix == '.quilt/named_packages/foo/bar/':
-                import datetime
-                return (
-                    [], [
-                        {'Key': '.quilt/named_packages/foo/bar/1549931300',
-                         'LastModified': datetime.datetime.now() - datetime.timedelta(seconds=30)},
-                        {'Key': '.quilt/named_packages/foo/bar/1549931634',
-                         'LastModified': datetime.datetime.now()},
-                        {'Key': '.quilt/named_packages/foo/bar/latest',
-                         'LastModified': datetime.datetime.now()}]
-                )
-            else:
-                raise ValueError
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/1549931300',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/1549931634',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/foo/bar/latest',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'my_test_bucket',
+                'Prefix': '.quilt/named_packages/',
+            }
+        )
 
-        def pseudo_get_bytes(src):
-            if src.endswith('foo/bar/latest') or src.endswith('foo/bar/1549931634'):
-                return (b'100', None)
-            elif src.endswith('foo/bar/1549931300'):
-                return (b'90', None)
-            else:
-                raise ValueError
+        pkgs = list(quilt3.list_packages('s3://my_test_bucket/'))
 
-        with patch('quilt3.api.list_objects', side_effect=pseudo_list_objects), \
-            patch('quilt3.api.get_bytes', side_effect=pseudo_get_bytes), \
-            patch('quilt3.Package.browse', return_value=Package()):
-            pkgs = quilt3.list_packages('s3://my_test_bucket/')
-
-            assert len(pkgs) == 1
-            assert list(pkgs) == ['foo/bar']
-
-            expected = (
-                'PACKAGE                    \tTOP HASH    \tCREATED     \tSIZE        \t\n'
-                'foo/bar:latest             \t100            \tnow            \t0 Bytes\t\n'
-                'foo/bar                    \t90             \t30 seconds ago \t0 Bytes\t\n'
-            )
-            assert str(pkgs) == expected
+        assert len(pkgs) == 1
+        assert list(pkgs) == ['foo/bar']
 
 
     def test_validate_package_name(self):
@@ -757,81 +804,39 @@ class PackageTest(QuiltTestCase):
         assert 'Quilt/Test' not in quilt3.list_packages()
 
 
-    def test_local_package_delete_overlapping(self):
-        """
-        Verify local package delete works when multiple packages reference the
-        same tophash.
-        """
-        top_hash = Package().build("Quilt/Test1").top_hash
-        top_hash = Package().build("Quilt/Test2").top_hash
-
-        assert 'Quilt/Test1' in quilt3.list_packages()
-        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-        quilt3.delete_package('Quilt/Test1')
-
-        assert 'Quilt/Test1' not in quilt3.list_packages()
-        assert top_hash in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-        quilt3.delete_package('Quilt/Test2')
-        assert 'Quilt/Test2' not in quilt3.list_packages()
-        assert top_hash not in [p.name for p in (LOCAL_REGISTRY / '.quilt/packages').iterdir()]
-
-
     def test_remote_package_delete(self):
         """Verify remote package delete works."""
-        def list_packages_mock(*args, **kwargs): return ['Quilt/Test']
+        self.s3_stubber.add_response(
+            method='list_objects_v2',
+            service_response={
+                'Contents': [
+                    {
+                        'Key': '.quilt/named_packages/Quilt/Test/0',
+                        'Size': 64,
+                    },
+                    {
+                        'Key': '.quilt/named_packages/Quilt/Test/latest',
+                        'Size': 64,
+                    }
+                ]
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Prefix': '.quilt/named_packages/Quilt/Test/',
+            }
+        )
 
-        def _tophashes_with_packages_mock(*args, **kwargs): return {'101': {'Quilt/Test'}}
+        for path in ['Quilt/Test/0', 'Quilt/Test/latest', 'Quilt/Test/', 'Quilt/']:
+            self.s3_stubber.add_response(
+                method='delete_object',
+                service_response={},
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': f'.quilt/named_packages/{path}',
+                }
+            )
 
-        def list_objects_mock(*args): return [
-            {'Key': '.quilt/named_packages/Quilt/Test/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test/latest'}
-        ]
-
-        def get_bytes_mock(*args): return b'101', None
-
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
-
-            delete_mock.assert_any_call('test-bucket', '.quilt/packages/101')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test/0')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test/latest')
-
-
-    def test_remote_package_delete_overlapping(self):
-        """
-        Verify remote package delete works when multiple packages reference the
-        same tophash.
-        """
-        def list_packages_mock(*args, **kwargs): return ['Quilt/Test1', 'Quilt/Test2']
-
-        def _tophashes_with_packages_mock(*args, **kwargs): return {'101': {'Quilt/Test1', 'Quilt/Test2'}}
-
-        def list_objects_mock(*args): return [
-            {'Key': '.quilt/named_packages/Quilt/Test1/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test1/latest'},
-            {'Key': '.quilt/named_packages/Quilt/Test2/0'},
-            {'Key': '.quilt/named_packages/Quilt/Test2/latest'}
-        ]
-
-        def get_bytes_mock(*args): return b'101', None
-
-        with patch('quilt3.api.list_packages', new=list_packages_mock), \
-                patch('quilt3.api._tophashes_with_packages', new=_tophashes_with_packages_mock), \
-                patch('quilt3.api.list_objects', new=list_objects_mock), \
-                patch('quilt3.api.get_bytes', new=get_bytes_mock), \
-                patch('quilt3.api.delete_object') as delete_mock:
-            quilt3.delete_package('Quilt/Test1', registry='s3://test-bucket')
-
-            # the reference count for the tophash 101 is still one, so it should still exist
-            assert call('test-bucket', '.quilt/packages/101') not in delete_mock.call_args_list
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/0')
-            delete_mock.assert_any_call('test-bucket', '.quilt/named_packages/Quilt/Test1/latest')
+        quilt3.delete_package('Quilt/Test', registry='s3://test-bucket')
 
 
     def test_push_restrictions(self):

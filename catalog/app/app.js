@@ -39,7 +39,7 @@ import fontLoader from 'utils/fontLoader'
 import { nest, composeComponent } from 'utils/reactTools'
 import RouterProvider, { LOCATION_CHANGE, selectLocation } from 'utils/router'
 import mkStorage from 'utils/storage'
-import Tracking from 'utils/tracking'
+import * as Tracking from 'utils/tracking'
 // Load the icons
 /* eslint-disable import/no-unresolved, import/extensions */
 import '!file-loader?name=[name].[ext]!./favicon.ico'
@@ -127,7 +127,7 @@ const render = (messages) => {
         },
       ],
       [
-        Tracking,
+        Tracking.Provider,
         {
           locationSelector: selectLocation,
           userSelector: Auth.selectors.username,

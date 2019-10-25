@@ -80,18 +80,38 @@ function Results({ buckets, query, page, scrollRef, makePageUrl }) {
         </Delay>
       </Alt>
     ),
-    Err: () => (
-      <Alt>
-        <Message headline="Server Error">
-          Something went wrong.
-          <br />
-          <br />
-          <M.Button onClick={data.fetch} color="primary" variant="contained">
-            Retry
-          </M.Button>
-        </Message>
-      </Alt>
-    ),
+    Err: R.cond([
+      [
+        R.propEq('message', 'TooManyRequests'),
+        () => (
+          <Alt>
+            <Message headline="Too many requests">
+              Processing a lot of requests. Please try your search again in a few minutes.
+              <br />
+              <br />
+              <M.Button onClick={data.fetch} color="primary" variant="contained">
+                Retry
+              </M.Button>
+            </Message>
+          </Alt>
+        ),
+      ],
+      [
+        R.T,
+        () => (
+          <Alt>
+            <Message headline="Server Error">
+              Something went wrong.
+              <br />
+              <br />
+              <M.Button onClick={data.fetch} color="primary" variant="contained">
+                Retry
+              </M.Button>
+            </Message>
+          </Alt>
+        ),
+      ],
+    ]),
     Ok: ({ total, hits }) =>
       total ? (
         <Hits {...{ hits, page, scrollRef, makePageUrl }} />
@@ -202,7 +222,7 @@ function BucketSelectDropdown({ buckets, onChange }) {
   const classes = useBucketSelectDropdownStyles()
   const state = useEditableValue(buckets, onChange)
 
-  const options = BucketConfig.useBucketConfigs()
+  const options = BucketConfig.useRelevantBucketConfigs()
 
   const t = M.useTheme()
   const xs = M.useMediaQuery(t.breakpoints.down('xs'))

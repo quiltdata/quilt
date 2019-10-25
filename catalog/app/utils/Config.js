@@ -16,6 +16,7 @@ const ajv = new Ajv({ allErrors: true, removeAdditional: true })
 ajv.addSchema(configSchema, 'Config')
 
 export class ConfigError extends BaseError {
+  // eslint-disable-next-line react/static-property-placement
   static displayName = 'ConfigError'
 }
 
@@ -71,6 +72,8 @@ const transformConfig = (cfg) => ({
   passwordAuth: AUTH_MAP[cfg.passwordAuth],
   ssoAuth: AUTH_MAP[cfg.ssoAuth],
   ssoProviders: cfg.ssoProviders.length ? cfg.ssoProviders.split(' ') : [],
+  enableMarketingPages: cfg.mode !== 'OPEN',
+  disableNavigator: cfg.mode === 'MARKETING',
 })
 
 const ConfigResource = Cache.createResource({

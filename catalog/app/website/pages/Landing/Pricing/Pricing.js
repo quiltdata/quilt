@@ -1,210 +1,224 @@
+import cx from 'classnames'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { makeStyles } from '@material-ui/styles'
 
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
-import styledBy from 'utils/styledBy'
+import { useTracker } from 'utils/tracking'
 
 import Bar from 'website/components/Bar'
 import Backlight from 'website/components/Backgrounds/Backlight4'
-import Plus from 'website/components/Plus'
 
-import pricingFree from './pricing-free.png'
-import pricingFree2x from './pricing-free@2x.png'
-import pricingHosted from './pricing-hosted.png'
-import pricingHosted2x from './pricing-hosted@2x.png'
-import pricingVpc from './pricing-vpc.png'
-import pricingVpc2x from './pricing-vpc@2x.png'
+import bgPri from './bg-primary.png'
+import bgPri2x from './bg-primary@2x.png'
+import bgSec from './bg-secondary.png'
+import bgSec2x from './bg-secondary@2x.png'
+import bgTer from './bg-tertiary.png'
+import bgTer2x from './bg-tertiary@2x.png'
 
-const PLANS = {
-  free: {
-    bg: [pricingFree, pricingFree2x],
-    name: 'Free',
+const PLANS = [
+  {
+    name: 'open.quiltdata.com',
+    trackingName: 'open',
     price: 0,
     features: ['Unlimited public packages'],
-    plus: 'tertiary',
+    cta: 'Explore',
+    href: 'https://open.quiltdata.com',
+    variant: 'tertiary',
   },
-  hosted: {
-    bg: [pricingHosted, pricingHosted2x],
+  {
     name: 'AWS Marketplace',
-    price: 550,
-    features: [
-      'Unlimited public packages',
-      '1TB and up of private packages',
-      'Admin and auditing features',
-      'Dedicated web catalog',
-    ],
-    plus: 'primary',
+    trackingName: 'marketplace',
+    price: 600,
+    features: ['Unlimited data', 'Unlimited users', 'One S3 bucket'],
+    cta: 'Try Now',
+    href:
+      'https://docs.quiltdata.com/references/technical-reference#installation-instructions',
+    variant: 'primary',
+    featured: true,
   },
-  vpc: {
-    bg: [pricingVpc, pricingVpc2x],
+  {
     name: 'Enterprise',
+    trackingName: 'contact',
     price: 999,
     features: [
-      'Unlimited public packages',
-      'Admin and auditing features',
-      'Dedicated web catalog',
+      'Unlimited data',
+      'Unlimited users',
+      'Up to five S3 buckets',
       'Priority support',
-      'Custom SSO (LDAP, Active Directory, etc.)',
+      'Custom features',
+      'Education and instruction',
     ],
-    plus: 'secondary',
+    cta: 'Contact',
+    href: 'mailto:sales@quiltdata.io?subject=Quilt Enterprise',
+    variant: 'secondary',
   },
-}
+]
 
-const usePlanStyles = makeStyles((t) => ({
-  root: {
-    alignItems: 'center',
+const useStyles = M.makeStyles((t) => ({
+  root: {},
+  plans: {
+    alignItems: 'stretch',
     display: 'flex',
-    flexDirection: 'column',
+    justifyContent: 'center',
+    marginTop: t.spacing(13),
+    paddingBottom: t.spacing(10),
+    position: 'relative',
     [t.breakpoints.down('sm')]: {
-      maxWidth: 410,
-      width: '100%',
-      '& + &': {
-        marginTop: t.spacing(8),
-      },
-    },
-    [t.breakpoints.up('md')]: {
-      marginLeft: styledBy('featured', { true: -100 }),
-      marginRight: styledBy('featured', { true: -100 }),
-      maxWidth: styledBy('featured', { false: 410, true: 480 }),
-      position: styledBy('featured', { true: 'relative' }),
-      width: styledBy('featured', { false: '35%', true: '40%' }),
-      zIndex: styledBy('featured', { true: 1 }),
+      alignItems: 'center',
+      flexDirection: 'column',
+      marginTop: t.spacing(1),
     },
   },
-  bgBox: {
+  plan: {
     alignItems: 'center',
-    backgroundPosition: 'center',
+    backgroundPosition: 'top center',
     backgroundSize: 'cover',
     borderRadius: 19,
-    boxShadow: styledBy('featured', {
-      true: [
-        '0px 12px 24px 0 rgba(25, 22, 59, 0.12)',
-        '0px 16px 40px 0 rgba(25, 22, 59, 0.18)',
-        '0px 24px 88px 0 rgba(25, 22, 59, 0.42)',
-      ],
-      false: [
-        '0px 12px 24px 0 rgba(25, 22, 59, 0.08)',
-        '0px 16px 40px 0 rgba(25, 22, 59, 0.12)',
-        '0px 24px 88px 0 rgba(25, 22, 59, 0.28)',
-      ],
-    }),
+    boxShadow: '0px 24px 12px 0 rgba(26, 28, 67, 0.8)',
     display: 'flex',
     flexDirection: 'column',
-    height: 360,
-    width: '100%',
+    maxWidth: 400,
+    width: '40%',
     zIndex: 0,
+    [t.breakpoints.down('sm')]: {
+      marginTop: t.spacing(6),
+      width: '100%',
+    },
+  },
+  featured: {
+    [t.breakpoints.up('md')]: {
+      marginBottom: 52,
+      marginLeft: -32,
+      marginRight: -32,
+      marginTop: -52,
+      maxWidth: 428,
+      position: 'relative',
+      zIndex: 1,
+    },
+    [t.breakpoints.up('lg')]: {
+      marginLeft: -44,
+      marginRight: -44,
+    },
+  },
+  primary: {
+    backgroundImage: `url(${img2x(bgPri, bgPri2x)})`,
+  },
+  secondary: {
+    backgroundImage: `url(${img2x(bgSec, bgSec2x)})`,
+  },
+  tertiary: {
+    backgroundImage: `url(${img2x(bgTer, bgTer2x)})`,
   },
   name: {
+    ...t.typography.h3,
+    color: t.palette.text.primary,
     lineHeight: '3rem',
-    marginTop: 190,
+    marginTop: t.spacing(5),
   },
   price: {
+    ...t.typography.h1,
+    color: t.palette.text.primary,
     fontWeight: t.typography.fontWeightMedium,
     lineHeight: 1.5,
   },
   perMonth: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
     fontStyle: 'italic',
   },
   featureBox: {
     alignItems: 'center',
-    background: 'linear-gradient(to top, #212455, #2a2b64)',
-    boxShadow: [
-      '0px 12px 24px 0 rgba(25, 22, 59, 0.16)',
-      '0px 16px 40px 0 rgba(25, 22, 59, 0.24)',
-      '0px 24px 88px 0 rgba(25, 22, 59, 0.56)',
-    ],
-    borderRadius: [[0, 0, 19, 19]],
     display: 'flex',
     flexDirection: 'column',
-    height: styledBy('featured', { false: 330, true: 430 }),
+    height: 160,
     justifyContent: 'center',
-    marginBottom: -36,
-    paddingBottom: 36,
-    width: 'calc(100% - 32px)',
+    marginTop: t.spacing(10),
   },
   feature: {
+    ...t.typography.caption,
+    color: t.palette.text.secondary,
     fontStyle: 'italic',
-    lineHeight: 4,
+    lineHeight: 2,
+  },
+  btn: {
+    marginBottom: t.spacing(4),
+    marginTop: t.spacing(2),
+    width: 160,
+    '$tertiary &': {
+      color: t.palette.tertiary.contrastText,
+      backgroundImage: [
+        'linear-gradient(225deg, #bde7d6, #4088da)',
+        'linear-gradient(to top, #000000, rgba(255, 255, 255, 0.7))',
+      ],
+    },
   },
 }))
 
-const Plan = ({ bg, name, price, features, plus, featured = false }) => {
-  const classes = usePlanStyles({ featured })
+export default function Pricing() {
+  const classes = useStyles()
+  const t = useTracker()
   return (
-    <div className={classes.root}>
-      <div className={classes.bgBox} style={{ backgroundImage: `url(${img2x(...bg)})` }}>
-        <M.Typography variant="h3" color="textPrimary" className={classes.name}>
-          {name}
-        </M.Typography>
-        <M.Typography variant="h1" color="textPrimary" className={classes.price}>
-          {price}
-        </M.Typography>
-        <M.Typography
-          variant="caption"
-          color="textSecondary"
-          className={classes.perMonth}
+    <M.Box position="relative">
+      <Backlight top={-320} />
+      <M.Container maxWidth="lg">
+        <M.Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          pt={20}
+          position="relative"
         >
-          $ per month
-        </M.Typography>
-      </div>
-      <div className={classes.featureBox}>
-        {features.map((f) => (
-          <M.Typography
-            className={classes.feature}
-            variant="caption"
-            color="textSecondary"
-            key={f}
-          >
-            {f}
-          </M.Typography>
-        ))}
-      </div>
-      <Plus
-        variant={plus}
-        href="https://aws.amazon.com/marketplace/pp/B07QF1VXFQ?qid=1568410363536"
-      />
-    </div>
+          <Bar color="secondary" />
+          <M.Box mt={5}>
+            <M.Typography
+              variant="h1"
+              color="textPrimary"
+              id="pricing"
+              ref={scrollIntoView()}
+            >
+              Pricing
+            </M.Typography>
+          </M.Box>
+        </M.Box>
+        <div className={classes.plans}>
+          {PLANS.map((p) => (
+            <div
+              key={p.name}
+              className={cx(
+                classes.plan,
+                classes[p.variant],
+                p.featured && classes.featured,
+              )}
+            >
+              <div className={classes.name}>{p.name}</div>
+              <div className={classes.price}>{p.price}</div>
+              <div className={classes.perMonth}>$ per month</div>
+
+              <div className={classes.featureBox}>
+                {p.features.map((f) => (
+                  <div className={classes.feature} key={f}>
+                    {f}
+                  </div>
+                ))}
+              </div>
+
+              <M.Button
+                variant="contained"
+                className={classes.btn}
+                color={p.variant !== 'tertiary' ? p.variant : undefined}
+                href={p.href}
+                onClick={t.trackLink('WEB', {
+                  type: 'action',
+                  location: `/#${p.trackingName}`,
+                })}
+              >
+                {p.cta}
+              </M.Button>
+            </div>
+          ))}
+        </div>
+      </M.Container>
+    </M.Box>
   )
 }
-
-export default () => (
-  <M.Box position="relative">
-    <Backlight top={-320} />
-    <M.Container maxWidth="lg">
-      <M.Box
-        display="flex"
-        flexDirection="column"
-        alignItems="center"
-        pt={10}
-        position="relative"
-      >
-        <Bar color="secondary" />
-        <M.Box mt={5}>
-          <M.Typography
-            variant="h1"
-            color="textPrimary"
-            id="pricing"
-            ref={scrollIntoView()}
-          >
-            Pricing
-          </M.Typography>
-        </M.Box>
-      </M.Box>
-      <M.Box
-        mt={10}
-        pb={10}
-        display="flex"
-        justifyContent="space-between"
-        position="relative"
-        flexDirection={{ xs: 'column', md: 'row' }}
-        alignItems="center"
-      >
-        <Plan {...PLANS.free} />
-        <Plan {...PLANS.hosted} featured />
-        <Plan {...PLANS.vpc} />
-      </M.Box>
-    </M.Container>
-  </M.Box>
-)

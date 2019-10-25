@@ -1,13 +1,24 @@
-## Deploy a private Quilt instance on AWS
+# Run Quilt in Your AWS Account
 
-Quilt is a data collaboration platform. A Quilt _instance_ is a private hub that
-runs in your virtual private cloud (VPC).
+Quilt is a versioned data portal for AWS.
+A Quilt _instance_ is a private portal that runs in your virtual private cloud (VPC).
 Each instance consists of a password-protected web catalog on your domain,
 backend services, a secure server to manage user identities, and a Python API.
 
-The following instructions use AWS CloudFormation to deploy a private Quilt instance
-in your AWS account.
+## Installation Instructions
 
+We encourage users to contact us before deploying Quilt.
+We will make sure that you have the latest version of Quilt,
+and walk you through the CloudFormation deployment.
+
+We recommend that all users do one or more of the following:
+* [Schedule a Quilt engineer](https://www.meetingbird.com/m/quilt-install)
+to guide you through the installation
+
+* [Join Quilt on Slack](https://slack.quiltdata.com/) to ask questions and
+connect with other users
+
+* [Email Quilt](mailto://contact@quiltdata.io)
 
 ## Before you install Quilt
 
@@ -38,15 +49,11 @@ The following service role is equivalent to `AdministratorAccess`:
 1. The **ability to create DNS entries**, such as CNAME records,
 for your company's domain.
 
-1. **An SSL certificate in the us-east-1 region** to secure the domain where
-your users will access your Quilt instance. For example,
+1. **An SSL certificate in the same region as your Quilt instance** to secure the domain where your users will access your Quilt instance. For example,
 to make your Quilt catalog available at `https://quilt.mycompany.com`,
 you require a certificate for `*.mycompany.com` in the [AWS Certificate Manager](https://aws.amazon.com/certificate-manager/).
 You may either [create a new certificate](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-request-public.html), or
 [import an existing certificate](https://docs.aws.amazon.com/acm/latest/userguide/import-certificate.html).
-
-1. **An SSL certificate in the same region as your Quilt instance**, for
-the elastic load balancer of the Quilt server. See the above for details.
 
 1. For maximum security, Quilt requires **a region that supports [AWS Fargate](https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/)**. As of this writing, all U.S. regions support Fargate.
 
@@ -59,21 +66,24 @@ Installing Quilt will modify the following Bucket characteristics:
     * Properties > Versioning (will be enabled)
     * Properties > Object-level logging (will be enabled)
     * Properties > Events (will add one notification)
-    
-1. If you are not using AWS Marketplace, you require **a license key**.
-Email [contact@quiltdata.io](mailto:contact@quiltdata.io), with the subodomain that you wish to access Quilt on
-(e.g. https://quilt.example.com) to obtain a license key.
 
 1. A **subdomain that is as yet not mapped in DNS** where users will access Quilt on the web. For example `quilt.mycompany.com`.
 
 1. Available **CloudTrail Trails** in the region where you wish to host your stack
 ([learn more](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/WhatIsCloudTrail-Limits.html)).
 
+1. An active subscription to Quilt Business on AWS Marketplace. Click `Continue to Subscribe` on the [Quilt Business Listing](https://aws.amazon.com/marketplace/pp/B07QF1VXFQ) to subscribe then return to this page for installation instructions. **The CloudFormation template and instructions on AWS Marketplace are infrequently updated and may be missing critical bugfixes.**
+
+### AWS Marketplace
+
+You can install Quilt via AWS Marketplace. As indicated above, we recommend that you [contact us first](#installation-instructions).
+
+
 ### AWS Service Catalog
 
 1. Email [contact@quiltdata.io](mailto:contact@quiltdata.io)
 with your AWS account ID to request access to Quilt through the 
-AWS Service Catalog.
+AWS Service Catalog and to obtain a license key.
 
 1. Click the service catalog link that you received from Quilt. Arrive at the Service Catalog.
 Click IMPORT, lower right.
@@ -108,13 +118,13 @@ text box for further details. Service Catalog users require a license key. See
 
     ![](./imgs/stack-details.png)
 
-1. Serivce Catalog users, skip this step. On the Options screen that follows, go to the Advanced > Termination Protection and click Enable.
+1. Service Catalog users, skip this step. Under Stack creation options, enable termination protection.
 
     ![](./imgs/term_protect.png)
 
     This protects the stack from accidental deletion. Click Next.
 
-1. Serivce Catalog users, skip this step. Check the box asking you to acknowledge that CloudFormation may create IAM roles, then click Create.
+1. Service Catalog users, skip this step. Check the box asking you to acknowledge that CloudFormation may create IAM roles, then click Create.
 
     ![](./imgs/finish.png)
 
@@ -135,94 +145,17 @@ your CloudFormation stack.
 
     | CNAME | Value |
     |------|-------|
-    | _QuiltWebHost Key_  | _CloudfrontDomain_ | 
+    | _QuiltWebHost Key_  | _LoadBalancerDNSName_ | 
     | _RegistryHostName Key_  | _LoadBalancerDNSName_ |
     | _S3ProxyHost Key_  | _LoadBalancerDNSName_ | 
 
 1. Quilt is now up and running. You can click on the _QuiltWebHost_ value
 in Outputs and log in with your administrator password to invite users.
 
-____________________
-
-## Known limitations
-
-* Supports a single bucket
-* Search is only enabled for *new objects* added to the bucket after Quilt is installed.
-
 ## Advanced configuration
 
 The default Quilt settings are adequate for most use cases. The following section
 covers advanced customization options.
-
-### Bucket search
-
-#### Custom file indexing
-
-This section describes how to configure which files are searchable in the catalog.
-
-By default, Quilt uses the following configuraiton:
-
-```json
-{
-    "to_index": [
-        ".ipynb",
-        ".md",
-        ".rmd"
-    ]
-}
-```
-
-To customize which file types are indexed, add a `.quilt/config.json` file to your S3 bucket. `.quilt/config.json` is referenced every time a new object lands in the parent bucket. For example, if you wished to index all `.txt` files (in addition the Quilt defaults), you'd upload the following to `.quilt/config.json`:
-```json
-{
-    "to_index": [
-        ".ipynb",
-        ".md",
-        ".rmd",
-        ".txt"
-    ]
-}
-```
-It is highly recommended that you continue to index all of the default files, so that users can get the most out of search. center/elasticsearch-scale-up/).
-
-#### Search limitations
-
-* Queries containing the tilde (~), forward slash (/), back slash, and angle bracket ({, }, (, ), [, ]) must be quoted. For example search for `'~foo'`, not `~foo`.
-* Files over 10 MB in size may cause search to fail.
-* Indexing large or numerous files may require you to [scale up your search domain](https://aws.amazon.com/premiumsupport/knowledge-
-
-#### Publicly accessible search
-
-By default, Quilt bucket search is only available to authorized Quilt users and is scoped to a single S3 bucket. Search users can see extensive metadata on the objects in your Quilt bucket. Therefore _be cautious when modifying search permissions_.
-
-This section describes how to make your search endpoint available to anyone with valid AWS credentials.
-
-Go to your AWS Console. Under the `Services` dropdown at the top of the screen, choose `Elasticsearch Service`. Select the domain corresponding to your Quilt stack.
-
-Note the value of the `Domain ARN` for your search domain.
-
-In the row of buttons at the top of the pane, select `Modify Access Policy`. Add two statements to the Statement array:
-
-```json
-{
-  "Effect": "Allow",
-    "Principal": {
-      "AWS": "*"
-    },
-    "Action": "es:ESHttpGet",
-    "Resource": "$YOUR_SEARCH_DOMAIN_ARN/*"
-},
-{
-  "Effect": "Allow",
-  "Principal": {
-    "AWS": "*"
-  },
-  "Action": "es:ESHttpPost",
-  "Resource": "$YOUR_SEARCH_DOMAIN_ARN/drive/_doc/_search*"
-}
-```
-
-Select `Submit` and your search domain should now be open to the public.
 
 ### Use Google to sign into Quilt
 
