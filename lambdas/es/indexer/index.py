@@ -192,6 +192,8 @@ def handler(event, context):
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
+    # An exception that we'll want to re-raise after the batch sends
+    content_exception = None
     for message in event["Records"]:
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
@@ -309,10 +311,13 @@ def handler(event, context):
                 import traceback
                 traceback.print_tb(exc.__traceback__)
                 raise exc
-            if content_exception:
-                raise content_exception
         # flush the queue
         batch_processor.send_all()
+        # note: if there are multiple content exceptions in the batch, this will
+        # only raise the most recent one
+        if content_exception:
+            raise content_exception
+ 
 
 def retry_s3(
         operation,
