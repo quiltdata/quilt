@@ -3,7 +3,6 @@ import * as dateFns from 'date-fns'
 import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
-import { fade } from '@material-ui/core/styles'
 import useComponentSize from '@rehooks/component-size'
 
 import { copyWithoutSpaces } from 'components/BreadCrumbs'
@@ -23,7 +22,6 @@ import * as SVG from 'utils/SVG'
 import Link from 'utils/StyledLink'
 import { getBreadCrumbs } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
-import useMemoEq from 'utils/useMemoEq'
 
 import { displayError } from './errors'
 import * as requests from './requests'
@@ -43,6 +41,13 @@ const COLOR_MAP = [
   M.colors.amber[300],
   M.colors.deepOrange[300],
   M.colors.pink[300],
+  M.colors.purple[300],
+  M.colors.indigo[300],
+  M.colors.cyan[300],
+  M.colors.green[300],
+  M.colors.lime[300],
+  M.colors.yellow[300],
+  M.colors.brown[300],
 ]
 
 const useObjectsByExtStyles = M.makeStyles((t) => ({
@@ -70,7 +75,6 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
       textAlign: 'center',
     },
   },
-  selected: {},
   ext: {
     color: t.palette.text.secondary,
     gridColumn: 1,
@@ -79,9 +83,6 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
     letterSpacing: t.typography.subtitle2.letterSpacing,
     lineHeight: t.typography.pxToRem(20),
     textAlign: 'right',
-    '&$selected': {
-      color: t.palette.text.primary,
-    },
   },
   count: {
     color: t.palette.text.secondary,
@@ -90,9 +91,6 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
     fontWeight: t.typography.fontWeightMedium,
     letterSpacing: t.typography.subtitle2.letterSpacing,
     lineHeight: t.typography.pxToRem(20),
-    '&$selected': {
-      color: t.palette.text.primary,
-    },
   },
   bar: {
     background: t.palette.action.hover,
@@ -116,16 +114,21 @@ const useObjectsByExtStyles = M.makeStyles((t) => ({
       left: `calc(100% + ${t.spacing(1)}px)`,
       right: 'auto',
     },
-    '&$flip$selected': {
-      color: t.palette.text.primary,
-    },
   },
   skeleton: {
     gridColumn: '1 / span 3',
   },
+  unavail: {
+    ...t.typography.body2,
+    alignItems: 'center',
+    display: 'flex',
+    gridColumn: '1 / span 3',
+    gridRow: `2 / span ${MAX_EXTS}`,
+    justifyContent: 'center',
+  },
 }))
 
-function ObjectsByExt({ data, cursor, ...props }) {
+function ObjectsByExt({ data, ...props }) {
   const classes = useObjectsByExtStyles()
   return (
     <M.Box className={classes.root} {...props}>
@@ -133,55 +136,57 @@ function ObjectsByExt({ data, cursor, ...props }) {
       {AsyncResult.case(
         {
           Ok: (exts) => {
-            const maxBytes = exts.reduce((max, e) => Math.max(max, e.bytes), 0)
-            return exts.map(({ ext, bytes, objects }, i) => {
-              const selected = !!cursor && cursor.i === i
+            const capped = exts.slice(0, MAX_EXTS)
+            const maxBytes = capped.reduce((max, e) => Math.max(max, e.bytes), 0)
+            return capped.map(({ ext, bytes, objects }, i) => {
               const color = COLOR_MAP[i]
               return (
                 <React.Fragment key={`ext:${ext}`}>
-                  <div
-                    className={cx(classes.ext, {
-                      [classes.selected]: selected,
-                    })}
-                    style={{ gridRow: i + 2 }}
-                  >
+                  <div className={classes.ext} style={{ gridRow: i + 2 }}>
                     {ext || 'other'}
                   </div>
                   <div className={classes.bar} style={{ gridRow: i + 2 }}>
                     <div
                       className={classes.gauge}
                       style={{
-                        background: cursor == null || selected ? color : fade(color, 0.4),
+                        background: color,
                         width: `${(bytes / maxBytes) * 100}%`,
                       }}
                     >
                       <div
                         className={cx(classes.size, {
                           [classes.flip]: bytes / maxBytes < 0.3,
-                          [classes.selected]: selected,
                         })}
                       >
                         {readableBytes(bytes)}
                       </div>
                     </div>
                   </div>
-                  <div
-                    className={cx(classes.count, {
-                      [classes.selected]: selected,
-                    })}
-                    style={{ gridRow: i + 2 }}
-                  >
+                  <div className={classes.count} style={{ gridRow: i + 2 }}>
                     {readableQuantity(objects)}
                   </div>
                 </React.Fragment>
               )
             })
           },
-          _: () =>
-            R.times(
-              (i) => <Skeleton key={`skeleton:${i}`} className={classes.skeleton} />,
-              MAX_EXTS,
-            ),
+          _: (r) => (
+            <>
+              {R.times(
+                (i) => (
+                  <Skeleton
+                    key={`skeleton:${i}`}
+                    className={classes.skeleton}
+                    style={{ gridRow: i + 2 }}
+                    animate={!AsyncResult.Err.is(r)}
+                  />
+                ),
+                MAX_EXTS,
+              )}
+              {AsyncResult.Err.is(r) && (
+                <div className={classes.unavail}>Data unavailable</div>
+              )}
+            </>
+          ),
         },
         data,
       )}
@@ -254,7 +259,7 @@ const ANALYTICS_WINDOW_OPTIONS = [
   { value: 365, label: 'Last 12 months' },
 ]
 
-function DownloadsRange({ value, onChange }) {
+function DownloadsRange({ value, onChange, bucket, rawData }) {
   const [anchor, setAnchor] = React.useState(null)
 
   const open = React.useCallback(
@@ -295,10 +300,26 @@ function DownloadsRange({ value, onChange }) {
             {o.label}
           </M.MenuItem>
         ))}
+        <M.Divider />
+        <M.MenuItem
+          onClick={close}
+          component="a"
+          href={rawData}
+          download={`${bucket}.downloads.json`}
+          disabled={!rawData}
+        >
+          Download to file
+        </M.MenuItem>
       </M.Menu>
     </>
   )
 }
+
+// use the same height as the bar chart: 20px per bar with 2px margin
+const CHART_H = 22 * MAX_EXTS - 2
+
+const mkStrokes = R.times((i) => SVG.Paint.Color(COLOR_MAP[i % COLOR_MAP.length]))
+
 const useDownloadsStyles = M.makeStyles((t) => ({
   root: {
     display: 'grid',
@@ -345,6 +366,12 @@ const useDownloadsStyles = M.makeStyles((t) => ({
   },
   chart: {
     gridArea: 'chart',
+    position: 'relative',
+  },
+  dateStats: {
+    ...t.typography.body1,
+    position: 'absolute',
+    top: 0,
   },
   unavail: {
     ...t.typography.body2,
@@ -358,120 +385,124 @@ const useDownloadsStyles = M.makeStyles((t) => ({
   },
 }))
 
-const Memo = ({ args, process, children }) => children(useMemoEq(args, R.apply(process)))
-
-const withMemo = (process, next) => (...args) => (
-  <Memo {...{ args, process }}>{next}</Memo>
-)
-
-function Downloads({ exts, bucket, cursor, onCursor, ...props }) {
+function Downloads({ bucket, ...props }) {
   const { analyticsBucket } = Config.useConfig()
   const s3req = AWS.S3.useRequest()
   const today = React.useMemo(() => new Date(), [])
   const classes = useDownloadsStyles()
   const ref = React.useRef(null)
   const { width } = useComponentSize(ref)
-  const strokes = COLOR_MAP.map(SVG.Paint.Color)
   const [window, setWindow] = React.useState(ANALYTICS_WINDOW_OPTIONS[0].value)
+  const [cursor, setCursor] = React.useState(null)
+  const cursorStats = (exts) => {
+    if (!cursor) return null
+    const { ext, total, counts } = exts[cursor.i]
+    const { date, sum, value } = counts[cursor.j]
+    return { ext, total, date, sum, value }
+  }
+
+  const mkRawData = AsyncResult.case({
+    Ok: (data) => `data:application/json,${JSON.stringify(data)}`,
+    _: () => null,
+  })
+
+  if (!analyticsBucket) {
+    return (
+      <SparklineSkel height={CHART_H} lines={MAX_EXTS} width={width}>
+        <div className={classes.unavail}>Requires CloudTrail</div>
+      </SparklineSkel>
+    )
+  }
+
   return (
-    <M.Box className={classes.root} {...props} ref={ref}>
-      <div className={classes.period}>
-        <DownloadsRange value={window} onChange={setWindow} />
-      </div>
-      <Data
-        fetch={requests.bucketAccessCounts}
-        params={{ s3req, analyticsBucket, bucket, today, window }}
-      >
-        {withMemo(
-          // TODO: it wont update if exts change
-          AsyncResult.case({
-            _: R.identity,
-            Ok: (counts) =>
-              AsyncResult.mapCase(
-                {
-                  Ok: R.pipe(
-                    R.map((e) => counts[e.ext] || []),
-                    R.applySpec({
-                      dates: R.map(R.pluck('date')),
-                      values: R.map(R.pluck('value')),
-                    }),
-                  ),
+    <Data
+      fetch={requests.bucketAccessCounts}
+      params={{ s3req, analyticsBucket, bucket, today, window }}
+    >
+      {(data) => (
+        <M.Box className={classes.root} {...props} ref={ref}>
+          <div className={classes.period}>
+            <DownloadsRange
+              value={window}
+              onChange={setWindow}
+              bucket={bucket}
+              rawData={mkRawData(data)}
+            />
+          </div>
+          <div className={classes.heading}>
+            {AsyncResult.case(
+              {
+                Ok: (exts) => {
+                  const stats = cursorStats(exts)
+                  if (!stats) return 'Downloads'
+                  return (
+                    <>
+                      Downloads ({stats.ext ? `.${stats.ext}` : 'other'}):{' '}
+                      {readableQuantity(stats.total)}
+                    </>
+                  )
                 },
-                exts,
-              ),
-          }),
-          (data) => (
-            <>
-              <div className={classes.heading}>
-                {AsyncResult.case(
-                  {
-                    Ok: ({ dates, values }) => {
-                      if (!cursor) return 'Downloads'
-                      const date = dates[cursor.i][cursor.j]
-                      const value = values[cursor.i][cursor.j]
-                      return (
-                        <>
-                          {dateFns.format(date, 'MMMM Do')}: {readableQuantity(value)}
-                        </>
-                      )
-                    },
-                    _: () => 'Downloads',
-                  },
-                  data,
-                )}
-              </div>
-              <div className={classes.chart}>
-                {AsyncResult.case(
-                  {
-                    Ok: ({ values }) => {
-                      // use the same height as the bar chart: 20px per bar with 2px margin
-                      const chartH = 22 * Math.max(3, values.length) - 2
-                      if (values.every(R.isEmpty))
-                        return (
-                          <SparklineSkel
-                            height={chartH}
-                            lines={values.length}
-                            width={width}
-                          >
-                            <div className={classes.unavail}>Requires CloudTrail</div>
-                          </SparklineSkel>
-                        )
-                      return (
-                        <MultiSparkline
-                          data={values}
-                          cursor={cursor}
-                          onCursor={onCursor}
-                          height={chartH}
-                          width={width}
-                          lineThickness={2}
-                          cursorLineThickness={3}
-                          cursorCircleR={4}
-                          lineStrokes={strokes}
-                          extendL
-                          extendR
-                          cursorCircleFill={SVG.Paint.Color('#fff')}
-                          padding={6}
-                          pt={12}
-                        />
-                      )
-                    },
-                    _: () => (
-                      <SparklineSkel
-                        height={22 * MAX_EXTS - 2}
-                        lines={MAX_EXTS}
+                _: () => 'Downloads',
+              },
+              data,
+            )}
+          </div>
+          <div className={classes.chart}>
+            {AsyncResult.case(
+              {
+                Ok: (exts) => {
+                  if (!exts.length) {
+                    return (
+                      <SparklineSkel height={CHART_H} lines={MAX_EXTS} width={width}>
+                        <div className={classes.unavail}>No Data</div>
+                      </SparklineSkel>
+                    )
+                  }
+
+                  const stats = cursorStats(exts)
+                  return (
+                    <>
+                      <MultiSparkline
+                        data={exts.map((e) => e.counts.map((i) => Math.log(i.sum + 1)))}
+                        cursor={cursor}
+                        onCursor={setCursor}
+                        height={CHART_H}
                         width={width}
-                        animate
+                        lineThickness={2}
+                        cursorLineThickness={3}
+                        cursorCircleR={4}
+                        lineStrokes={mkStrokes(exts.length)}
+                        extendL
+                        extendR
+                        cursorCircleFill={SVG.Paint.Color('#fff')}
+                        padding={6}
+                        pt={12}
                       />
-                    ),
-                  },
-                  data,
-                )}
-              </div>
-            </>
-          ),
-        )}
-      </Data>
-    </M.Box>
+                      {!!stats && (
+                        <div className={classes.dateStats}>
+                          {dateFns.format(stats.date, 'D MMM')}:{' '}
+                          {readableQuantity(stats.sum)} (+
+                          {readableQuantity(stats.value)})
+                        </div>
+                      )}
+                    </>
+                  )
+                },
+                _: () => (
+                  <SparklineSkel
+                    height={22 * MAX_EXTS - 2}
+                    lines={MAX_EXTS}
+                    width={width}
+                    animate
+                  />
+                ),
+              },
+              data,
+            )}
+          </div>
+        </M.Box>
+      )}
+    </Data>
   )
 }
 
@@ -523,13 +554,24 @@ const useStatDisplayStyles = M.makeStyles((t) => ({
   },
 }))
 
-function StatDisplay({ value, label, format = R.identity }) {
+function StatDisplay({ value, label, format, fallback }) {
   const classes = useStatDisplayStyles()
-  return AsyncResult.case(
-    {
+  return R.pipe(
+    AsyncResult.case({
+      Ok: R.pipe(
+        format || R.identity,
+        AsyncResult.Ok,
+      ),
+      Err: R.pipe(
+        fallback || R.identity,
+        AsyncResult.Ok,
+      ),
+      _: R.identity,
+    }),
+    AsyncResult.case({
       Ok: (v) => (
         <span className={classes.root}>
-          <span className={classes.value}>{format(v)}</span>
+          <span className={classes.value}>{v}</span>
           {!!label && <span className={classes.label}>{label}</span>}
         </span>
       ),
@@ -538,9 +580,8 @@ function StatDisplay({ value, label, format = R.identity }) {
           <Skeleton className={classes.skeleton} bgcolor="grey.400" />
         </div>
       ),
-    },
-    value,
-  )
+    }),
+  )(value)
 }
 
 const useHeadStyles = M.makeStyles((t) => ({
@@ -566,29 +607,13 @@ const useHeadStyles = M.makeStyles((t) => ({
       padding: t.spacing(4),
     },
   },
-  lock: {
-    alignItems: 'center',
-    background: fade(t.palette.grey[500], 0.7),
-    bottom: 0,
-    color: t.palette.common.white,
-    display: 'flex',
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0,
-  },
 }))
 
 function Head({ es, s3req, overviewUrl, bucket, description }) {
   const classes = useHeadStyles()
-  const [cursor, setCursor] = React.useState(null)
   const isRODA = !!overviewUrl && overviewUrl.includes(`/${RODA_BUCKET}/`)
   return (
-    <Data
-      fetch={requests.bucketStats}
-      params={{ es, s3req, bucket, overviewUrl, maxExts: MAX_EXTS }}
-    >
+    <Data fetch={requests.bucketStats} params={{ es, s3req, bucket, overviewUrl }}>
       {(res) => (
         <M.Paper className={classes.root}>
           <M.Box className={classes.top}>
@@ -598,55 +623,34 @@ function Head({ es, s3req, overviewUrl, bucket, description }) {
                 <M.Typography variant="body1">{description}</M.Typography>
               </M.Box>
             )}
-            <M.Box
-              mt={1}
-              position={{ md: 'absolute' }}
-              right={{ md: 32 }}
-              bottom={{ md: 31 }}
-              color="grey.300"
-              textAlign={{ md: 'right' }}
-            >
-              {AsyncResult.case(
-                {
-                  Ok: (r) => (
-                    <M.Typography variant="body2">
-                      Updated{' '}
-                      {r.updated
-                        ? dateFns.distanceInWordsToNow(r.updated, { addSuffix: true })
-                        : 'never'}
-                    </M.Typography>
-                  ),
-                  _: () => (
-                    <M.Box display="flex" alignItems="center" height={20}>
-                      <Skeleton
-                        height={14}
-                        width={120}
-                        borderRadius="borderRadius"
-                        bgcolor="grey.400"
-                      />
-                    </M.Box>
-                  ),
-                },
-                res,
-              )}
-              {isRODA && (
+            {isRODA && (
+              <M.Box
+                mt={1}
+                position={{ md: 'absolute' }}
+                right={{ md: 32 }}
+                bottom={{ md: 31 }}
+                color="grey.300"
+                textAlign={{ md: 'right' }}
+              >
                 <M.Typography variant="body2">
                   From the{' '}
                   <M.Link href={RODA_LINK} color="inherit" underline="always">
                     Registry of Open Data on AWS
                   </M.Link>
                 </M.Typography>
-              )}
-            </M.Box>
+              </M.Box>
+            )}
             <M.Box mt={{ xs: 2, sm: 3 }} display="flex" alignItems="baseline">
               <StatDisplay
                 value={AsyncResult.prop('totalObjects', res)}
                 format={readableQuantity}
                 label="Objects"
+                fallback={() => '?'}
               />
               <StatDisplay
                 value={AsyncResult.prop('totalBytes', res)}
                 format={readableBytes}
+                fallback={() => '? B'}
               />
             </M.Box>
           </M.Box>
@@ -654,13 +658,13 @@ function Head({ es, s3req, overviewUrl, bucket, description }) {
             p={{ xs: 2, sm: 4 }}
             display="flex"
             flexDirection={{ xs: 'column', md: 'row' }}
+            alignItems={{ md: 'flex-start' }}
             position="relative"
           >
             <ObjectsByExt
               data={AsyncResult.prop('exts', res)}
               width="100%"
               flexShrink={1}
-              cursor={cursor}
             />
             <M.Box
               display="flex"
@@ -674,24 +678,7 @@ function Head({ es, s3req, overviewUrl, bucket, description }) {
                 <M.Divider />
               </M.Hidden>
             </M.Box>
-            <Downloads
-              bucket={bucket}
-              exts={AsyncResult.prop('exts', res)}
-              width="100%"
-              flexShrink={1}
-              cursor={cursor}
-              onCursor={setCursor}
-            />
-            {AsyncResult.Err.is(res) && (
-              <div className={classes.lock}>
-                <M.Typography variant="h5" align="center">
-                  Indexing in progress
-                  <br />
-                  <br />
-                  <M.CircularProgress color="inherit" size={64} />
-                </M.Typography>
-              </div>
-            )}
+            <Downloads bucket={bucket} width="100%" flexShrink={1} />
           </M.Box>
         </M.Paper>
       )}
