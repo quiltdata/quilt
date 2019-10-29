@@ -16,7 +16,6 @@ MAX_QUERY_DURATION = '15s'
 MAX_DOCUMENTS_PER_SHARD = 10000
 NUM_PREVIEW_IMAGES = 100
 NUM_PREVIEW_FILES = 100
-NUM_README_FILES = 10
 IMG_EXTS = [
     '.jpg',
     '.jpeg',
@@ -27,8 +26,7 @@ IMG_EXTS = [
     '.tiff',
     '.tif',
 ]
-
-OTHER_EXTS = [
+SAMPLE_EXTS = [
     '.parquet',
     '.csv',
     '.tsv',
@@ -40,6 +38,8 @@ OTHER_EXTS = [
     '.md',
     '.json',
 ]
+README_KEYS = ['README.md', 'README.txt', 'README.ipynb']
+SUMMARIZE_KEY = 'quilt_summarize.json'
 
 @api(cors_origins=get_default_origins())
 def lambda_handler(request):
@@ -78,33 +78,41 @@ def lambda_handler(request):
         _source = []
     elif action == 'images':
         body = {
-            'query': {
-                'terms': {
-                    "ext": IMG_EXTS
-                }
-            }
+            'query': {'terms': {'ext': IMG_EXTS}},
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                    '_source': ['key', 'version_id'],
+                },
+            },
         }
         size = NUM_PREVIEW_IMAGES
         _source = []
-    elif action == 'other':
+    elif action == 'sample':
         body = {
             'query': {
-                'terms': {
-                    "ext": OTHER_EXTS
-                }
-            }
+                'bool': {
+                    'must': [{'terms': {'ext': SAMPLE_EXTS}}],
+                    'must_not': [
+                        {'terms': {'key': README_KEYS + [SUMMARIZE_KEY]}},
+                        {'wildcard': {'key': '*/' + SUMMARIZE_KEY}},
+                    ],
+                },
+            },
+            'collapse': {
+                'field': 'key',
+                'inner_hits': {
+                    'name': 'latest',
+                    'size': 1,
+                    'sort': [{'last_modified': 'desc'}],
+                    '_source': ['key', 'version_id'],
+                },
+            },
         }
         size = NUM_PREVIEW_FILES
-        _source = []
-    elif action == 'readmes':
-        body = {
-            'query': {
-                'terms': {
-                    "key_text": ["readme"]
-                }
-            }
-        }
-        size = NUM_README_FILES
         _source = []
     else:
         return make_json_response(400, {"title": "Invalid action"})

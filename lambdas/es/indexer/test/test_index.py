@@ -160,10 +160,8 @@ class TestIndex(TestCase):
                 'last_modified': now.isoformat(),
                 'meta_text': 'blah  {"x": "y"} {"foo": "bar"}',
                 'size': 100,
-                'system_meta': {'x': 'y'},
                 'target': '',
                 'updated': ANY,
-                'user_meta': {'foo': 'bar'},
                 'version_id': None
             }]
 

@@ -3,6 +3,7 @@ import * as R from 'ramda'
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import { copyWithoutSpaces } from 'components/BreadCrumbs'
 import * as Preview from 'components/Preview'
 import { Section, Heading } from 'components/ResponsiveSection'
 import AsyncResult from 'utils/AsyncResult'
@@ -36,20 +37,8 @@ function Crumbs({ handle, showBucket = false }) {
     return { bucket, dirs, file }
   }, [handle, urls, showBucket])
 
-  const handleCopy = React.useCallback((e) => {
-    if (typeof document === 'undefined') return
-    e.clipboardData.setData(
-      'text/plain',
-      document
-        .getSelection()
-        .toString()
-        .replace(/\s*\/\s*/g, '/'),
-    )
-    e.preventDefault()
-  }, [])
-
   return (
-    <span onCopy={handleCopy}>
+    <span onCopy={copyWithoutSpaces}>
       {crumbs.bucket && (
         <>
           <CrumbLink {...crumbs.bucket} />
