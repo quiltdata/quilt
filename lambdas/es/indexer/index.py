@@ -192,6 +192,8 @@ def handler(event, context):
     # message is a proper SQS message, which either contains a single event
     # (from the bucket notification system) or batch-many events as determined
     # by enterprise/**/bulk_loader.py
+    # An exception that we'll want to re-raise after the batch sends
+    content_exception = None
     for message in event["Records"]:
         body = json.loads(message["body"])
         body_message = json.loads(body["Message"])
@@ -247,7 +249,6 @@ def handler(event, context):
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
                 meta = head["Metadata"]
-                text = ""
 
                 if event_name == OBJECT_DELETE:
                     batch_processor.append(
@@ -262,15 +263,23 @@ def handler(event, context):
                     )
                     continue
 
-                text = get_contents(
-                    bucket,
-                    key,
-                    ext,
-                    etag=etag,
-                    version_id=version_id,
-                    s3_client=s3_client,
-                    size=size
-                )
+                try:
+                    text = get_contents(
+                        bucket,
+                        key,
+                        ext,
+                        etag=etag,
+                        version_id=version_id,
+                        s3_client=s3_client,
+                        size=size
+                    )
+                # we still want an entry for this document in elastic so that, e.g.,
+                # the file counts from elastic are correct. re-raise below.
+                except Exception as exc:#pylint: disable=broad-except
+                    text = ""
+                    content_exception = exc
+                    print("Content extraction failed", exc, bucket, key, etag, version_id)
+
                 # decode Quilt-specific metadata
                 if meta and "helium" in meta:
                     try:
@@ -306,6 +315,11 @@ def handler(event, context):
                 raise exc
         # flush the queue
         batch_processor.send_all()
+        # note: if there are multiple content exceptions in the batch, this will
+        # only raise the most recent one;
+        # re-raise so that get_contents() failures end up in the DLQ
+        if content_exception:
+            raise content_exception
 
 def retry_s3(
         operation,
