@@ -1033,7 +1033,7 @@ export default function Overview({
           </M.Box>
         ),
         Err: displayError(),
-        _: () => <Placeholder />,
+        _: () => <Placeholder color="text.secondary" />,
       })}
     </Data>
   )

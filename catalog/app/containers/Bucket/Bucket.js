@@ -13,7 +13,8 @@ import { useCurrentBucketConfig } from 'utils/BucketConfig'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import * as RT from 'utils/reactTools'
 
-const mkLazy = (load) => RT.loadable(load, { fallback: () => <Placeholder /> })
+const mkLazy = (load) =>
+  RT.loadable(load, { fallback: () => <Placeholder color="text.secondary" /> })
 
 const Dir = mkLazy(() => import('./Dir'))
 const File = mkLazy(() => import('./File'))
