@@ -26,8 +26,6 @@ class MockContext():
 
 
 BASE_DIR = Path(__file__).parent / 'data'
-
-
 class TestIndex(TestCase):
     def setUp(self):
         self.requests_mock = responses.RequestsMock(assert_all_requests_are_fired=False)
@@ -75,9 +73,22 @@ class TestIndex(TestCase):
 
         index.handler(event, None)
 
-    def test_index(self):
+    def test_index_file(self):
+        """test indexing a single file"""
+        self._test_index_file(no_content=False)
+
+    @patch(__name__ + '.index.get_contents')
+    def test_index_exception(self, get_mock):
+        """test indexing a single file that throws an exception"""
+        class ContentException(Exception):
+            pass
+        get_mock.side_effect = ContentException("Unable to get contents")
+        with pytest.raises(ContentException):
+            self._test_index_file(no_content=True)
+
+    def _test_index_file(self, no_content):
         """
-        Index a single text file.
+        Reusable helper function to test indexing a single text file.
         """
         event = {
             "Records": [{
@@ -126,21 +137,25 @@ class TestIndex(TestCase):
             }
         )
 
-        self.s3_stubber.add_response(
-            method='get_object',
-            service_response={
-                'Metadata': metadata,
-                'ContentLength': 100,
-                'LastModified': now,
-                'Body': BytesIO(b'Hello World!'),
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': 'hello world.txt',
-                'IfMatch': '123456',
-                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
-            }
-        )
+        # test the case where get_contents throws an exception
+        # in which case we don't want to mock this call because it will remain
+        # in the stubber queue for no reason
+        if not no_content:
+            self.s3_stubber.add_response(
+                method='get_object',
+                service_response={
+                    'Metadata': metadata,
+                    'ContentLength': 100,
+                    'LastModified': now,
+                    'Body': BytesIO(b'Hello World!'),
+                },
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': 'hello world.txt',
+                    'IfMatch': '123456',
+                    'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+                }
+            )
 
         def es_callback(request):
             actions = [json.loads(line) for line in request.body.splitlines()]
@@ -152,7 +167,7 @@ class TestIndex(TestCase):
                 },
             }, {
                 'comment': 'blah',
-                'content': 'Hello World!',
+                'content': '' if no_content else 'Hello World!',
                 'etag': '123456',
                 'event': 's3:ObjectCreated:Put',
                 'ext': '.txt',
@@ -182,6 +197,7 @@ class TestIndex(TestCase):
         )
 
         index.handler(event, MockContext())
+
 
     def test_unsupported_contents(self):
         contents = index.get_contents('test-bucket', 'foo.exe', '.exe', etag='etag', version_id=None, s3_client=self.s3_client, size=123)

@@ -170,7 +170,7 @@ class DocumentQueue:
                             print("unhandled indexer error:", error)
                     # Always retry, regardless of whether we know to handle and clean the request
                     # or not. This can catch temporary 403 on index write blocks and other
-                    # transcient issues.
+                    # transient issues.
                     send_again.append(doc)
                 else:
                     # If index not in error, then retry the whole batch. Unclear what would cause
