@@ -249,7 +249,6 @@ def handler(event, context):
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
                 meta = head["Metadata"]
-                text = ""
 
                 if event_name == OBJECT_DELETE:
                     batch_processor.append(
@@ -274,7 +273,10 @@ def handler(event, context):
                         s3_client=s3_client,
                         size=size
                     )
+                # we still want an entry for this document in elastic so that, e.g.,
+                # the file counts from elastic are correct. re-raise below.
                 except Exception as exc:#pylint: disable=broad-except
+                    text = ""
                     content_exception = exc
                     print("Content extraction failed", exc, bucket, key, etag, version_id)
 
@@ -314,10 +316,10 @@ def handler(event, context):
         # flush the queue
         batch_processor.send_all()
         # note: if there are multiple content exceptions in the batch, this will
-        # only raise the most recent one
+        # only raise the most recent one;
+        # re-raise so that get_contents() failures end up in the DLQ
         if content_exception:
             raise content_exception
- 
 
 def retry_s3(
         operation,
