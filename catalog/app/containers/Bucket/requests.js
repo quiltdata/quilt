@@ -98,9 +98,15 @@ export const bucketAccessCounts = async ({
   today,
   window,
 }) => {
-  if (!analyticsBucket) return {}
+  if (!analyticsBucket) throw new Error('bucketAccessCounts: "analyticsBucket" required')
+
+  const dates = R.unfold(
+    (daysLeft) => daysLeft >= 0 && [dateFns.subDays(today, daysLeft), daysLeft - 1],
+    window,
+  )
+
   try {
-    const records = await s3Select({
+    return await s3Select({
       s3req,
       Bucket: analyticsBucket,
       Key: `${ACCESS_COUNTS_PREFIX}/Exts.csv`,
@@ -110,27 +116,33 @@ export const bucketAccessCounts = async ({
         AND bucket = '${sqlEscape(bucket)}'
       `,
       InputSerialization: { CSV: { FileHeaderInfo: 'Use' } },
-    })
-
-    return records.reduce((acc, r) => {
-      const recordedCounts = JSON.parse(r.counts)
-
-      const counts = R.times((i) => {
-        const date = dateFns.subDays(today, window - i - 1)
-        return {
-          date,
-          value: recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0,
-        }
-      }, window)
-
-      return { ...acc, [r.ext]: counts }
-    }, {})
+    }).then(
+      R.pipe(
+        R.map((r) => {
+          const recordedCounts = JSON.parse(r.counts)
+          const { counts, total } = dates.reduce(
+            (acc, date) => {
+              const value = recordedCounts[dateFns.format(date, 'YYYY-MM-DD')] || 0
+              const sum = acc.total + value
+              return {
+                total: sum,
+                counts: acc.counts.concat({ date, value, sum }),
+              }
+            },
+            { total: 0, counts: [] },
+          )
+          return { ext: r.ext, total, counts }
+        }),
+        R.filter((i) => i.total),
+        R.sort(R.descend(R.prop('total'))),
+      ),
+    )
   } catch (e) {
     // eslint-disable-next-line no-console
-    console.log('fetchBucketAccessCounts: error caught')
+    console.log('Unable to fetch bucket access counts:')
     // eslint-disable-next-line no-console
     console.error(e)
-    return {}
+    return []
   }
 }
 
@@ -153,42 +165,48 @@ const S3_REGEXP = /s3:\/\/(?<bucket>[^/]+)\/(?<path>.*)/
 const getOverviewBucket = (url) => url.match(S3_REGEXP).groups.bucket
 const getOverviewPath = (url) => url.match(S3_REGEXP).groups.path
 
-const bucketStatsFromS3 = ({ s3req, overviewUrl }) =>
-  s3req({
-    bucket: getOverviewBucket(overviewUrl),
-    operation: 'getObject',
-    params: {
-      Bucket: getOverviewBucket(overviewUrl),
-      Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
-    },
-  }).then((r) => JSON.parse(r.Body.toString('utf-8')))
-
-const bucketStatsFromSearch = ({ es, bucket }) => {
-  es({ action: 'stats', index: bucket })
-}
-
-export const bucketStats = async ({ es, s3req, bucket, overviewUrl, maxExts }) => {
-  const stats = await (overviewUrl
-    ? bucketStatsFromS3({ s3req, overviewUrl })
-    : bucketStatsFromSearch({ es, bucket }))
-
-  const exts = R.pipe(
+const processStats = R.applySpec({
+  exts: R.pipe(
+    R.path(['aggregations', 'exts', 'buckets']),
     R.map((i) => ({
       ext: i.key,
       objects: i.doc_count,
       bytes: i.size.value,
     })),
     R.sort(R.descend(R.prop('bytes'))),
-    R.slice(0, maxExts),
-  )(stats.aggregations.exts.buckets)
+  ),
+  totalObjects: R.path(['hits', 'total']),
+  totalVersions: R.path(['hits', 'total']),
+  totalBytes: R.path(['aggregations', 'totalBytes', 'value']),
+})
 
-  return {
-    totalObjects: stats.hits.total,
-    totalVersions: stats.hits.total,
-    totalBytes: stats.aggregations.totalBytes.value,
-    updated: parseDate(stats.aggregations.updated.value_as_string),
-    exts,
+export const bucketStats = async ({ es, s3req, bucket, overviewUrl }) => {
+  if (overviewUrl) {
+    try {
+      return await s3req({
+        bucket: getOverviewBucket(overviewUrl),
+        operation: 'getObject',
+        params: {
+          Bucket: getOverviewBucket(overviewUrl),
+          Key: `${unescape(getOverviewPath(overviewUrl))}/stats.json`,
+        },
+      })
+        .then((r) => JSON.parse(r.Body.toString('utf-8')))
+        .then(processStats)
+    } catch (e) {
+      console.log(`Unable to fetch pre-rendered stats from '${overviewUrl}':`)
+      console.error(e)
+    }
   }
+
+  try {
+    return await es({ action: 'stats', index: bucket }).then(processStats)
+  } catch (e) {
+    console.log('Unable to fetch live stats:')
+    console.error(e)
+  }
+
+  throw new Error('Stats unavailable')
 }
 
 const README_KEYS = ['README.md', 'README.txt', 'README.ipynb']

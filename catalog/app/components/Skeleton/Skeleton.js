@@ -14,7 +14,7 @@ const useStyles = M.makeStyles((t) => ({
       backgroundPosition: `calc(${shimmerSize} + 100%) 0`,
     },
   },
-  root: {
+  animate: {
     animation: '$wave 3s infinite',
     backgroundImage: `linear-gradient(
       90deg,
@@ -27,11 +27,14 @@ const useStyles = M.makeStyles((t) => ({
   },
 }))
 
-export default React.forwardRef(function Skeleton({ className, ...props }, ref) {
+export default React.forwardRef(function Skeleton(
+  { className, animate = true, ...props },
+  ref,
+) {
   const classes = useStyles()
   return (
     <M.Box
-      className={cx(className, classes.root)}
+      className={cx(className, animate && classes.animate)}
       bgcolor="action.hover"
       {...props}
       ref={ref}
