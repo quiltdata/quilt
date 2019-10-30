@@ -50,6 +50,7 @@ const Search = mkLazy(() => import('containers/Search'))
 
 const Landing = mkLazy(() => import('website/pages/Landing'))
 const OpenLanding = mkLazy(() => import('website/pages/OpenLanding'))
+const Install = mkLazy(() => import('website/pages/Install'))
 
 const MAbout = mkLazy(() => import('website/pages/About'))
 const MPersonas = mkLazy(() => import('website/pages/Personas'))
@@ -73,6 +74,8 @@ export default function App() {
     <CatchNotFound id={`${l.pathname}${l.search}${l.hash}`}>
       <Switch>
         <Route path={paths.home} component={Home} exact />
+
+        <Route path={paths.install} component={Install} exact />
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />
