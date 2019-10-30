@@ -309,7 +309,7 @@ class PackageTest(QuiltTestCase):
 
     def test_load_into_quilt(self):
         """ Verify loading local manifest and data into S3. """
-        top_hash = '5333a204bbc6e21607c2bc842f4a77d2e21aa6147cf2bf493dbf6282188d01ca'
+        top_hash1 = 'abbf5f171cf20bfb2313ecd8684546958cd72ac4f3ec635e4510d9c771168226'
 
         self.s3_stubber.add_response(
             method='put_object',
@@ -319,7 +319,20 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': 'Quilt/package/foo',
+                'Key': 'Quilt/package/foo1',
+                'Metadata': {'helium': '{}'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v1'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'my_test_bucket',
+                'Key': 'Quilt/package/foo2',
                 'Metadata': {'helium': '{}'}
             }
         )
@@ -332,7 +345,7 @@ class PackageTest(QuiltTestCase):
             expected_params={
                 'Body': ANY,
                 'Bucket': 'my_test_bucket',
-                'Key': '.quilt/packages/' + top_hash,
+                'Key': '.quilt/packages/' + top_hash1,
                 'Metadata': {'helium': 'null'}
             }
         )
@@ -343,7 +356,7 @@ class PackageTest(QuiltTestCase):
                 'VersionId': 'v3'
             },
             expected_params={
-                'Body': top_hash.encode(),
+                'Body': top_hash1.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/1234567890',
                 'Metadata': {'helium': 'null'}
@@ -356,7 +369,7 @@ class PackageTest(QuiltTestCase):
                 'VersionId': 'v4'
             },
             expected_params={
-                'Body': top_hash.encode(),
+                'Body': top_hash1.encode(),
                 'Bucket': 'my_test_bucket',
                 'Key': '.quilt/named_packages/Quilt/package/latest',
                 'Metadata': {'helium': 'null'}
@@ -364,14 +377,80 @@ class PackageTest(QuiltTestCase):
         )
 
         new_pkg = Package()
-        # Create a dummy file to add to the package.
-        contents = 'blah'
-        test_file = Path('bar')
-        test_file.write_text(contents)
-        new_pkg = new_pkg.set('foo', test_file)
+        # Create two dummy files to add to the package.
+        test_file1 = Path('bar1')
+        test_file1.write_text('blah')
+        new_pkg.set('foo1', test_file1)
+        test_file2 = Path('bar2')
+        test_file2.write_text('omg')
+        new_pkg.set('foo2', test_file1)
 
-        with patch('time.time', return_value=1234567890):
-            new_pkg.push('Quilt/package', 's3://my_test_bucket/')
+        with patch('time.time', return_value=1234567890), \
+             patch('quilt3.data_transfer.s3_threads', 1):
+            remote_pkg = new_pkg.push('Quilt/package', 's3://my_test_bucket/')
+
+        # Modify one file, and check that only that file gets uploaded.
+        top_hash2 = 'd4efbb1734a53726d97086824d153e6cb5e9d8bc31d15ead0dbc019022cfe539'
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'my_test_bucket',
+                'Key': 'Quilt/package/foo2',
+                'Metadata': {'helium': '{}'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v2'
+            },
+            expected_params={
+                'Body': ANY,
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/packages/' + top_hash2,
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v3'
+            },
+            expected_params={
+                'Body': top_hash2.encode(),
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/named_packages/Quilt/package/1234567891',
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        self.s3_stubber.add_response(
+            method='put_object',
+            service_response={
+                'VersionId': 'v4'
+            },
+            expected_params={
+                'Body': top_hash2.encode(),
+                'Bucket': 'my_test_bucket',
+                'Key': '.quilt/named_packages/Quilt/package/latest',
+                'Metadata': {'helium': 'null'}
+            }
+        )
+
+        test_file3 = Path('bar3')
+        test_file3.write_text('!!!')
+        remote_pkg.set('foo2', test_file3)
+
+        with patch('time.time', return_value=1234567891), \
+             patch('quilt3.data_transfer.s3_threads', 1):
+            remote_pkg.push('Quilt/package', 's3://my_test_bucket/')
 
 
     def test_package_deserialize(self):

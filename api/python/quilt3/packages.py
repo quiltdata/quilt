@@ -1141,22 +1141,28 @@ class Package(object):
         pkg._meta = self._meta
         # Since all that is modified is physical keys, pkg will have the same top hash
         file_list = []
+        entries = []
         for logical_key, entry in self.walk():
             # Copy the datafiles in the package.
             physical_key = _to_singleton(entry.physical_keys)
+            unversioned_physical_key = physical_key.split('?', 1)[0]
             new_physical_key = dest_url + "/" + quote(logical_key)
-            file_list.append((physical_key, new_physical_key, entry.size, entry.meta))
+            new_entry = entry._clone()
+            if unversioned_physical_key == new_physical_key:
+                # No need to copy - re-use the original physical key.
+                pkg.set(logical_key, new_entry)
+            else:
+                entries.append((logical_key, new_entry))
+                file_list.append((physical_key, new_physical_key, entry.size, None))
 
         results = copy_file_list(file_list)
 
-        for (logical_key, entry), versioned_key in zip(self.walk(), results):
+        for (logical_key, new_entry), versioned_key in zip(entries, results):
             # Create a new package entry pointing to the new remote key.
             assert versioned_key is not None
-            new_entry = entry._clone()
             new_entry.physical_keys = [versioned_key]
             pkg.set(logical_key, new_entry)
         return pkg
-
 
 
     def diff(self, other_pkg):
