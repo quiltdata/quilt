@@ -37,6 +37,7 @@ const IntercomProvider = ({
 
   const api = React.useCallback((...args) => window.Intercom(...args), [])
   if (!('dummy' in api)) api.dummy = false
+  if (!('isAvailable' in api)) api.isAvailable = () => !!window.Intercom
 
   React.useEffect(() => {
     api('boot', settings)
@@ -77,6 +78,7 @@ const DummyProvider = ({ children }) => {
     console.log("Trying to call Intercom, but it's unavailable", args)
   }, [])
   if (!('dummy' in api)) api.dummy = true
+  if (!('isAvailable' in api)) api.isAvailable = () => false
 
   return children(api)
 }
