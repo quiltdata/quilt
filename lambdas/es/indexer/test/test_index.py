@@ -206,6 +206,33 @@ class TestIndex(TestCase):
         contents = index.get_contents('test-bucket', 'foo.exe.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert contents == ""
 
+    def test_get_plain_text(self):
+        self.s3_stubber.add_response(
+            method='get_object',
+            service_response={
+                'Metadata': {},
+                'ContentLength': 123,
+                'Body': BytesIO(b'Hello World!\nThere is more to know.'),
+            },
+            expected_params={
+                'Bucket': 'test-bucket',
+                'Key': 'foo.txt',
+                'IfMatch': 'etag',
+                'Range': f'bytes=0-{index.ELASTIC_LIMIT_BYTES}',
+            }
+        )
+
+        contents = index.get_plain_text(
+            'test-bucket',
+            'foo.txt',
+            compression=None,
+            etag='etag',
+            version_id=None,
+            s3_client=self.s3_client,
+            size=123
+        )
+        assert contents == "Hello World!\nThere is more to know."
+
     def test_text_contents(self):
         self.s3_stubber.add_response(
             method='get_object',
