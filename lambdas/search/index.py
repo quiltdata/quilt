@@ -71,7 +71,6 @@ def lambda_handler(request):
                     "terms": {"field": 'ext'},
                     "aggs": {"size": {"sum": {"field": 'size'}}},
                 },
-                "updated": {"max": {"field": 'updated'}},
             }
         }
         size = 0
