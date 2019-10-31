@@ -1,10 +1,12 @@
 import os
 import sys
 
+from pathlib import Path
+
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.1.5"
+VERSION = Path(Path(__file__).parent, "quilt3", "VERSION").read_text()
 
 def readme():
     readme_short = """

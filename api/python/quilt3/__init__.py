@@ -4,11 +4,16 @@
 import warnings
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 
+from pathlib import Path
+
+__version__ = Path(Path(__file__).parent, "VERSION").read_text()
+
 from .api import (
     copy,
     list_packages,
     list_package_versions,
     config,
+    disable_telemetry,
     delete_package,
     search
 )
