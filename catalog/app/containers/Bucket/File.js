@@ -18,7 +18,7 @@ import * as NamedRoutes from 'utils/NamedRoutes'
 import * as SVG from 'utils/SVG'
 import { linkStyle } from 'utils/StyledLink'
 import parseSearch from 'utils/parseSearch'
-import { getBreadCrumbs, up } from 'utils/s3paths'
+import { getBreadCrumbs, up, decode } from 'utils/s3paths'
 import { readableBytes, readableQuantity } from 'utils/string'
 
 import Code from './Code'
@@ -283,7 +283,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function File({
   match: {
-    params: { bucket, path },
+    params: { bucket, path: encodedPath },
   },
   location,
 }) {
@@ -291,6 +291,8 @@ export default function File({
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const { analyticsBucket } = Config.useConfig()
+
+  const path = decode(encodedPath)
 
   const code = dedent`
     import quilt3
