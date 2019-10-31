@@ -70,7 +70,7 @@ function InstallContents() {
           <code>your-company.com</code>).
         </li>
         <li>
-          <kbd>pip install quilt-admin</kbd>
+          <kbd>pip install quilt-stack-installer</kbd>
         </li>
         <li>
           Visit <M.Link href={MP_LINK}>Quilt Business</M.Link> on AWS Marketplace and
@@ -81,11 +81,11 @@ function InstallContents() {
           </div>
         </li>
         <li>
-          <kbd>quilt-admin install</kbd>
+          <kbd>quilt-stack-installer install</kbd>
         </li>
       </ol>
       <p className={classes.p}>
-        The <code>quilt-admin</code> utility will walk you through the installation. An
+        The <code>quilt-stack-installer</code> utility will walk you through the installation. An
         installation typically takes 30 minutes to complete. Once the installation is
         complete, your 30-day free trial of Quilt begins.
       </p>
