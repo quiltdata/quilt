@@ -61,18 +61,18 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                A versioned data portal for AWS
+                Turn any S3 bucket into a data set hub
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
-                Share, understand, discover, and model data at scale.
+                Quilt gives you a Python API, web catalog, and backend stack to manage
+                data sets in S3.
               </M.Typography>
             </M.Box>
             <M.Box mt={2}>
               <M.Typography variant="body1" color="textSecondary">
-                Quilt is a web catalog and Python client powered by AWS services in your
-                private cloud.
+                Share, understand, discover, and model data at scale.
               </M.Typography>
             </M.Box>
             <M.Box mt={5}>
