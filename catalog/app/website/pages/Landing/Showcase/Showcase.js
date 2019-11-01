@@ -61,13 +61,13 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Transform S3 buckets into dataset hubs
+                Turn any S3 bucket into a data set hub
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
               <M.Typography variant="body1" color="textSecondary">
                 Quilt gives you a Python API, web catalog, and backend stack to manage
-                your data sets in S3.
+                data sets in S3.
               </M.Typography>
             </M.Box>
             <M.Box mt={2}>
