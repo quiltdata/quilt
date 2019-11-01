@@ -76,7 +76,7 @@ export default function Buckets() {
       <Backlight style={{ opacity: 0.5 }} />
       <M.Container maxWidth="lg" className={classes.container}>
         <M.Typography variant="h1" color="textPrimary">
-          Eplore your buckets
+          Explore your buckets
         </M.Typography>
         <M.Box mt={4} />
         <BucketGrid buckets={paginated} ref={scrollRef} />
