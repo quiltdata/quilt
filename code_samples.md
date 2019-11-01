@@ -11,6 +11,21 @@ API names are rough and will need to be improved.
 ## Usecase: Download
 - I am training a ML model and I want to make a large amount of data accessible to my training model. Currently my code is written to read that data from files in a directory, probably on EFS or FSx. While not an immediate concern to me, I would like to be able to reproduce this model in the future.
 
+>How important is location to this workflow? One motivation for download is that the code expects local files (e.g., in a particular folder). A second motivation is for faster access (especially if files are accessed repeatedly). 
+>
+>If we can get away without requiring that local files match logical key structures we can keep multiple versions without maintaining extra copies.
+
+
+```
+$ quilt install bucket/dataset:tag
+Installing Package bucket/dataset:tag
+
+$ quilt ls
+bucket/dataset:tag    18b6a77a6ab31d304f03e01561fbc755b44746b376bcd85e6d226948876470b3
+
+$ runmytraining.sh bucket/dataset:tag
+```
+
 ### Command Line
 ```
 $ quilt install bucket/dataset:tag --location ./dataset
@@ -25,7 +40,7 @@ $ quilt hash ./dataset
 ```
 
 ### Python
-```
+```python
 $ pkg = Package("bucket/dataset:tag")
 $ pkg.download("./dataset")
 $ pkg.verify_directory_matches_manifest("./dataset")
@@ -34,6 +49,11 @@ $ pkg.hash
 18b6a77a6ab31d304f03e01561fbc755b44746b376bcd85e6d226948876470b3
 ```
 
+```python
+$ pkg = Package("bucket/dataset:tag")
+$ pkg.install()
+$ mymodel.train(pkg)
+```
 
 ## Usecase: Create and Publish
 - I want to move the state of the art forward by giving researchers access to new data. I want it to be easy for researchers to learn about the new data (docs, schema, etc), explore the new data (work with subsets of the data interactively - may or may not be programmatic) and process the new data (run code on large parts/the entire dataset using the scalable tooling of their choice). I cannot anticipate all questions on the data so I want to have a communication channel associated with the dataset for consumers to ask questions. I may wish to improve this dataset in the future by creating a new version. I may or may not (but probably do) care about seeing the state of the art move forward - this may be through a competition (using a standard platform like kaggle, [eval ai](https://evalai.cloudcv.org/), etc) or it may be less formal, such as blog posts or community postings.
@@ -85,6 +105,8 @@ PackageBuilder(
   ]
 )
 ```
+>When it's possible to reduce the number of core concepts and operations, we'll make life easier for us (as code maintainers) and for our users.
+> Here, `build` seems simpler and more concise than `build_manifest`. Build (e.g. in Docker) takes a specification (e.g., a Dockerfile) and produces a core object (e.g., a container image). I could imagine a `PackageBuilder` containing a list of directories, or glob rules or other combinations of ways to choose a set of files. Build would then produce a fully formed package with complete tuples: LK, PK, Hash, Meta.
 
 #### Try to use this PackageBuilder as a Package. Reject unless user explicitly indicates they want to avoid best practices
 Another potential exception would be if there is no README file.
@@ -117,12 +139,16 @@ PackageBuilder(
 Exception: The manifest has not been pushed to a remote repository. Use push_manifest() to first push the manifest to s3 or use allow_local_manifest=True if this is intentional
 ```
 
+>I was confused by this example. I would expect a package to be reproducible regardless of whether or not it lives in S3. More precisely, the package should contain enough information to verify that a dataset matches a defined state. The underlying files might no longer be available, but any consumer of the package should be able to verify if the contents match the expected hashes.
+
 #### Push the manifest to s3 - now the user has a Package.
 ```
 
 > pkg = pkg_builder.push_manifest(tag="v0")
 Pushing manifest to s3://bucket/.quilt/PACKAGE=dataset/HASH_PREFIX=82/82111d74b46893c539e816a1119891362049b7a744dd1e188b58751a8ec58b73.jsonl
 Linking data/package:v0 to manifest 82111d74b
+
+>>Why do we need a package builder to `push`? If `push` is a core operation of packages, we should be able to push a package without a PackageBuilder. If we can push packages, we shouldn't need push as a method of PackageBuilder.
 
 > pkg
 Package(
@@ -238,6 +264,7 @@ Wall time: 123 s
 > %time pkg.cache("other/huge_file.json")
 CPU times: user 123 s, sys: 253 µs, total: 123 s
 Wall time: 123 s
+_I normally expect caching to transparent_
 
 > %time large_file_contents = pkg.get("other/huge_file.json")
 CPU times: user 1 s, sys: 253 µs, total: 1 s
@@ -245,7 +272,7 @@ Wall time: 1 s
 
 > pkg.clear_cache()  # We need the user to tell us we can clear the cache
 ```
-
+>Looks great!
 
 ## Usecase: Add new data to dataset
 - I have just acquired more data (for example, from a data labelling service) and I want to add that new data to our primary dataset so we can train on it using existing pipelines. Most likely I have acquired a new batch of data, but it is also possible that I am constantly adding new data points one at a time. I want to create a new 'version' of the dataset each time I acquire new data, but I only want to train every X hours/days/weeks. It is important that I am able to rollback my dataset to a previous point in time in case the results of training indicates a problem with the new data.
