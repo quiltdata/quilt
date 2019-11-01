@@ -61,7 +61,7 @@ export default function Showcase() {
             <Bar color="primary" />
             <M.Box mt={5}>
               <M.Typography variant="h1" color="textPrimary">
-                Turn any S3 bucket into a data set hub
+                Turn any S3 bucket into versioned data sets
               </M.Typography>
             </M.Box>
             <M.Box mt={4}>
