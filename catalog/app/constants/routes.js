@@ -1,4 +1,5 @@
 import { mkSearch } from 'utils/NamedRoutes'
+import { encode } from 'utils/s3paths'
 
 const PACKAGE_PATTERN = '[a-z0-9-_]+/[a-z0-9-_]+'
 
@@ -80,11 +81,12 @@ export const bucketSearch = {
 }
 export const bucketFile = {
   path: '/b/:bucket/tree/:path+',
-  url: (bucket, path, version) => `/b/${bucket}/tree/${path}${mkSearch({ version })}`,
+  url: (bucket, path, version) =>
+    `/b/${bucket}/tree/${encode(path)}${mkSearch({ version })}`,
 }
 export const bucketDir = {
   path: '/b/:bucket/tree/:path(.+/)?',
-  url: (bucket, path = '') => `/b/${bucket}/tree/${path}`,
+  url: (bucket, path = '') => `/b/${bucket}/tree/${encode(path)}`,
 }
 export const bucketPackageList = {
   path: '/b/:bucket/packages/',
@@ -98,7 +100,7 @@ export const bucketPackageDetail = {
 export const bucketPackageTree = {
   path: `/b/:bucket/packages/:name(${PACKAGE_PATTERN})/tree/:revision/:path(.*)?`,
   url: (bucket, name, revision, path = '') =>
-    `/b/${bucket}/packages/${name}/tree/${revision}/${path}`,
+    `/b/${bucket}/packages/${name}/tree/${revision}/${encode(path)}`,
 }
 
 // legacy stuff

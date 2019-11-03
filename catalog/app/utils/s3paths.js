@@ -1,6 +1,8 @@
 import { dirname, basename, resolve } from 'path'
 import { parse as parseUrl } from 'url'
 
+import * as R from 'ramda'
+
 /**
  * Handle for an S3 object.
  *
@@ -131,7 +133,7 @@ export const parseS3Url = (url) => {
   const u = parseUrl(url, true)
   return {
     bucket: u.hostname,
-    key: (u.pathname || '/').substring(1),
+    key: decode((u.pathname || '/').substring(1)),
     version: u.query.versionId,
   }
 }
@@ -173,3 +175,15 @@ export const handleFromUrl = (url, referrer) => {
  */
 export const getBreadCrumbs = (path) =>
   path ? [...getBreadCrumbs(up(path)), { label: basename(path), path }] : []
+
+export const encode = R.pipe(
+  R.split('/'),
+  R.map(encodeURIComponent),
+  R.join('/'),
+)
+
+export const decode = R.pipe(
+  R.split('/'),
+  R.map(decodeURIComponent),
+  R.join('/'),
+)
