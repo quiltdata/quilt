@@ -34,6 +34,45 @@ $ pkg.hash
 18b6a77a6ab31d304f03e01561fbc755b44746b376bcd85e6d226948876470b3
 ```
 
+### PyTorch
+```python
+from quilt3 import Package
+
+class MyCustomDataset:
+    def __init__(self, quilt_package_name, tag=None, hash=None):
+        self.pkg = Package(quilt_package_name, tag=tag, hash=hash)
+        self.img_entries = [entry for entry in self.pkg 
+                            if entry.logical_key.startswith("train/")]
+
+        self.annotations = self.pkg.get_entry("annotations/train.json")
+    
+    def __len__(self):
+        return len(self.img_entries)
+
+    def __getitem__(self, idx):
+        entry = self.img_entries[idx]
+    
+        # In existing codebases, annotations are often stored in a single file
+        img_id = [img for img in self.annotations["images"] 
+                  if img["path"] == entry.logical_key.lstrip("train/")]
+              
+        assert len(img_id) == 1
+        img_id = img_id[0]["image_id"]
+    
+        img_annotations = [ann for ann in self.annotations["annotations"] 
+                           if ann["image_id"] == image_id]
+                       
+        # With Quilt Packages, each entry has metadata associated with it, which 
+        # can be used to simplify the above code
+        img_annotations = entry.metadata["annotations"]
+
+    
+        return {
+            "image": entry.get_bytes(),  # Quilt takes care of the caching so you don't need to think about it.
+            "annotations": img_annotations
+        }
+  
+```
 
 ## Usecase: Create and Publish
 - I want to move the state of the art forward by giving researchers access to new data. I want it to be easy for researchers to learn about the new data (docs, schema, etc), explore the new data (work with subsets of the data interactively - may or may not be programmatic) and process the new data (run code on large parts/the entire dataset using the scalable tooling of their choice). I cannot anticipate all questions on the data so I want to have a communication channel associated with the dataset for consumers to ask questions. I may wish to improve this dataset in the future by creating a new version. I may or may not (but probably do) care about seeing the state of the art move forward - this may be through a competition (using a standard platform like kaggle, [eval ai](https://evalai.cloudcv.org/), etc) or it may be less formal, such as blog posts or community postings.
