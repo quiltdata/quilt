@@ -1,9 +1,16 @@
-FROM amazonlinux:2.0.20191016.0
+FROM ubuntu:18.04
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
-RUN amazon-linux-extras install nginx1.12
+ENV LC_ALL=C.UTF-8
+ENV LANG=C.UTF-8
 
-COPY nginx.conf /etc/nginx/nginx.conf
+RUN apt-get update && apt-get install -y \
+    nginx \
+    gettext \
+    curl
+
+COPY nginx-s3-proxy.conf /etc/nginx/sites-available/default
 COPY run-nginx.sh /root/run-nginx.sh
 
-CMD /root/run-nginx.sh
+# Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
+CMD exec /root/run-nginx.sh
