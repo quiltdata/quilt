@@ -36,9 +36,10 @@ $ pkg.hash
 
 ### PyTorch
 ```python
+from torch.utils.data import Dataset
 from quilt3 import Package
 
-class MyCustomDataset:
+class MyCustomDataset(Dataset):
     def __init__(self, quilt_package_name, tag=None, hash=None):
         self.pkg = Package(quilt_package_name, tag=tag, hash=hash)
         self.img_entries = [entry for entry in self.pkg 
@@ -60,7 +61,7 @@ class MyCustomDataset:
         img_id = img_id[0]["image_id"]
     
         img_annotations = [ann for ann in self.annotations["annotations"] 
-                           if ann["image_id"] == image_id]
+                           if ann["image_id"] == img_id]
                        
         # With Quilt Packages, each entry has metadata associated with it, which 
         # can be used to simplify the above code
