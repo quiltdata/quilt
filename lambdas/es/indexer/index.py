@@ -4,6 +4,7 @@ note: we truncate outbound documents to DOC_SIZE_LIMIT characters
 (to bound memory pressure and request size to elastic)
 """
 
+import datetime
 import json
 import pathlib
 from urllib.parse import unquote, unquote_plus
@@ -26,7 +27,8 @@ from document_queue import (
     DocumentQueue,
     CONTENT_INDEX_EXTS,
     MAX_RETRY,
-    OBJECT_DELETE
+    OBJECT_DELETE,
+    OBJECT_PUT
 )
 
 # 10 MB, see https://amzn.to/2xJpngN
@@ -212,14 +214,31 @@ def handler(event, context):
         for event_ in events:
             try:
                 event_name = event_["eventName"]
+                # only process these two event types
+                if event_name not in [OBJECT_DELETE, OBJECT_PUT]:
+                    continue
                 bucket = unquote(event_["s3"]["bucket"]["name"])
                 # In the grand tradition of IE6, S3 events turn spaces into '+'
                 key = unquote_plus(event_["s3"]["object"]["key"])
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
                 etag = unquote(event_["s3"]["object"]["eTag"])
-
                 ext = pathlib.PurePosixPath(key).suffix.lower()
+
+                # Handle delete  first and then continue so that
+                # head_object and get_object (below) don't fail
+                if event_name == OBJECT_DELETE:
+                    batch_processor.append(
+                        event_name,
+                        bucket=bucket,
+                        ext=ext,
+                        etag=etag,
+                        key=key,
+                        last_modified=datetime.datetime.now(),
+                        text="",
+                        version_id=version_id
+                    )
+                    continue
 
                 try:
                     head = retry_s3(
@@ -249,19 +268,6 @@ def handler(event, context):
                 size = head["ContentLength"]
                 last_modified = head["LastModified"]
                 meta = head["Metadata"]
-
-                if event_name == OBJECT_DELETE:
-                    batch_processor.append(
-                        event_name,
-                        bucket=bucket,
-                        ext=ext,
-                        etag=etag,
-                        key=key,
-                        last_modified=last_modified,
-                        text=text,
-                        version_id=version_id
-                    )
-                    continue
 
                 try:
                     text = get_contents(
@@ -308,11 +314,6 @@ def handler(event, context):
                     import traceback
                     traceback.print_tb(boto_exc.__traceback__)
                     raise boto_exc
-            except Exception as exc:# pylint: disable=broad-except
-                print("Fatal exception for record", event_, exc)
-                import traceback
-                traceback.print_tb(exc.__traceback__)
-                raise exc
         # flush the queue
         batch_processor.send_all()
         # note: if there are multiple content exceptions in the batch, this will
