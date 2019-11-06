@@ -1,7 +1,7 @@
 """
 Tests for the ES indexer
 """
-from datetime import datetime
+import datetime
 from gzip import compress
 from io import BytesIO
 import json
@@ -24,6 +24,13 @@ class MockContext():
     def get_remaining_time_in_millis(self):
         return 30000
 
+
+def now_like_boto3():
+    """ensure timezone UTC for consistency with boto3:
+    Example:
+        'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
+    """
+    return datetime.datetime.now(tz=datetime.timezone.utc)
 
 BASE_DIR = Path(__file__).parent / 'data'
 class TestIndex(TestCase):
@@ -120,7 +127,7 @@ class TestIndex(TestCase):
             }]
         }
 
-        now = datetime.now()
+        now = now_like_boto3()
 
         metadata = {
             'helium': json.dumps({
