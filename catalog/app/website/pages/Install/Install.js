@@ -8,8 +8,9 @@ import mp from './mp.png'
 
 const MP_LINK =
   'https://aws.amazon.com/marketplace/pp/Quilt-Data-Quilt-Business/B07QF1VXFQ'
-const PREREQ_LINK = '' // TODO
-const MAILTO = 'mailto:contact@quiltdata.com' // TODO
+const PREREQ_LINK =
+  'https://docs.quiltdata.com/references/technical-reference#before-you-install-quilt'
+const MAILTO = 'mailto:contact@quiltdata.com'
 
 const useStyles = M.makeStyles((t) => ({
   container: {
@@ -74,8 +75,8 @@ function InstallContents() {
         </li>
         <li>
           Visit <M.Link href={MP_LINK}>Quilt Business</M.Link> on AWS Marketplace and
-          click Continue to Subsribe. You must complete this step in order for your
-          installation to function properly. This step creates a license key for you.
+          click Continue to Subscribe. You must complete this step in order for your
+          installation to function properly.
           <div className={classes.marketplace}>
             <img src={mp} alt="" />
           </div>
@@ -85,9 +86,9 @@ function InstallContents() {
         </li>
       </ol>
       <p className={classes.p}>
-        The <code>quilt-stack-installer</code> utility will walk you through the installation. An
-        installation typically takes 30 minutes to complete. Once the installation is
-        complete, your 30-day free trial of Quilt begins.
+        The <code>quilt-stack-installer</code> utility will walk you through the
+        installation. An installation typically takes 30 minutes to complete. Once the
+        installation is complete, your 30-day free trial of Quilt begins.
       </p>
       <p className={classes.p}>
         If you have any issues, we&apos;re here to help{' '}
