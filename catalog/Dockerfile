@@ -1,18 +1,8 @@
-FROM ubuntu:18.04
+FROM nginx:1.17.5
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-
-RUN apt-get update && apt-get install -y \
-    nginx \
-    gettext \
-    curl
-
-EXPOSE 3000
-
 # Set up nginx
-COPY nginx-web.conf /etc/nginx/sites-available/default
+COPY nginx-web.conf /etc/nginx/conf.d/default.conf
 
 # Copy pre-built catalog assets to nginx
 RUN rm -rf /usr/share/nginx/html
