@@ -39,6 +39,12 @@ TEST_EVENT = "s3:TestEvent"
 #  a custom user agent enables said filtration
 USER_AGENT_EXTRA = " quilt3-lambdas-es-indexer"
 
+def now_like_boto3():
+    """ensure timezone UTC for consistency with boto3:
+    Example of what boto3 returns on head_object:
+        'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
+    """
+    return datetime.datetime.now(tz=datetime.timezone.utc)
 
 def should_retry_exception(exception):
     """don't retry certain 40X errors"""
@@ -234,7 +240,7 @@ def handler(event, context):
                         ext=ext,
                         etag=etag,
                         key=key,
-                        last_modified=datetime.datetime.now(),
+                        last_modified=now_like_boto3(),
                         text="",
                         version_id=version_id
                     )

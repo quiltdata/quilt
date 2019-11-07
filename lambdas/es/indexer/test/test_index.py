@@ -25,13 +25,6 @@ class MockContext():
         return 30000
 
 
-def now_like_boto3():
-    """ensure timezone UTC for consistency with boto3:
-    Example:
-        'LastModified': datetime.datetime(2019, 11, 6, 3, 1, 16, tzinfo=tzutc()),
-    """
-    return datetime.datetime.now(tz=datetime.timezone.utc)
-
 BASE_DIR = Path(__file__).parent / 'data'
 class TestIndex(TestCase):
     def setUp(self):
@@ -145,7 +138,7 @@ class TestIndex(TestCase):
             }]
         }
 
-        now = now_like_boto3()
+        now = index.now_like_boto3()
 
         metadata = {
             'helium': json.dumps({
