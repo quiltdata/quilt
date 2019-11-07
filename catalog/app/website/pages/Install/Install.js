@@ -61,7 +61,7 @@ function InstallContents() {
       </M.Box>
       <p className={classes.p}>
         The following instructions will guide you through the process of installing Quilt
-        on your own VPS on AWS. If you have any questions, {contactLink('contact us')}.
+        on your own VPC on AWS. If you have any questions, {contactLink('contact us')}.
       </p>
       <ol className={classes.list}>
         <li>
