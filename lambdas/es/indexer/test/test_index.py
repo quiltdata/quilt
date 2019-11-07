@@ -1,7 +1,7 @@
 """
 Tests for the ES indexer
 """
-from datetime import datetime
+import datetime
 from gzip import compress
 from io import BytesIO
 import json
@@ -57,6 +57,26 @@ class TestIndex(TestCase):
 
         self.requests_mock.stop()
 
+    def test_delete_event(self):
+        """
+        Check that the indexer doesn't blow up on delete events.
+        """
+        # don't mock head or get; they should never be called for deleted objects
+        self._test_index_event("ObjectRemoved:Delete", mock_head=False, mock_object=False)
+
+    def test_delete_marker_event(self):
+        """
+        Common event in versioned; buckets, should no-op
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_event(
+            "ObjectRemoved:DeleteMarkerCreated",
+            # we should never call Elastic in this case
+            mock_elastic=False,
+            mock_head=False,
+            mock_object=False
+        )
+
     def test_test_event(self):
         """
         Check that the indexer doesn't do anything when it gets S3 test notification.
@@ -75,7 +95,7 @@ class TestIndex(TestCase):
 
     def test_index_file(self):
         """test indexing a single file"""
-        self._test_index_file(no_content=False)
+        self._test_index_event("ObjectCreated:Put")
 
     @patch(__name__ + '.index.get_contents')
     def test_index_exception(self, get_mock):
@@ -84,9 +104,16 @@ class TestIndex(TestCase):
             pass
         get_mock.side_effect = ContentException("Unable to get contents")
         with pytest.raises(ContentException):
-            self._test_index_file(no_content=True)
+            # get_mock already mocks get_object, so don't mock it in _test_index_event
+            self._test_index_event("ObjectCreated:Put", mock_object=False)
 
-    def _test_index_file(self, no_content):
+    def _test_index_event(
+        self,
+        event_name,
+        mock_elastic=True,
+        mock_head=True,
+        mock_object=True
+    ):
         """
         Reusable helper function to test indexing a single text file.
         """
@@ -95,7 +122,7 @@ class TestIndex(TestCase):
                 "body": json.dumps({
                     "Message": json.dumps({
                         "Records": [{
-                            "eventName": "s3:ObjectCreated:Put",
+                            "eventName": event_name,
                             "s3": {
                                 "bucket": {
                                     "name": "test-bucket"
@@ -111,7 +138,7 @@ class TestIndex(TestCase):
             }]
         }
 
-        now = datetime.now()
+        now = index.now_like_boto3()
 
         metadata = {
             'helium': json.dumps({
@@ -123,24 +150,22 @@ class TestIndex(TestCase):
             })
         }
 
-        self.s3_stubber.add_response(
-            method='head_object',
-            service_response={
-                'Metadata': metadata,
-                'ContentLength': 100,
-                'LastModified': now,
-            },
-            expected_params={
-                'Bucket': 'test-bucket',
-                'Key': 'hello world.txt',
-                'IfMatch': '123456',
-            }
-        )
+        if mock_head:
+            self.s3_stubber.add_response(
+                method='head_object',
+                service_response={
+                    'Metadata': metadata,
+                    'ContentLength': 100,
+                    'LastModified': now,
+                },
+                expected_params={
+                    'Bucket': 'test-bucket',
+                    'Key': 'hello world.txt',
+                    'IfMatch': '123456',
+                }
+            )
 
-        # test the case where get_contents throws an exception
-        # in which case we don't want to mock this call because it will remain
-        # in the stubber queue for no reason
-        if not no_content:
+        if mock_object:
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
@@ -158,43 +183,54 @@ class TestIndex(TestCase):
             )
 
         def es_callback(request):
+            response_key = 'delete' if event_name == index.OBJECT_DELETE else 'index'
             actions = [json.loads(line) for line in request.body.splitlines()]
-            assert actions == [{
-                'index': {
-                    '_index': 'test-bucket',
-                    '_type': '_doc',
-                    '_id': 'hello world.txt:None'
+            expected = [
+                {
+                    response_key: {
+                        '_index': 'test-bucket',
+                        '_type': '_doc',
+                        '_id': 'hello world.txt:None'
+                    }
                 },
-            }, {
-                'comment': 'blah',
-                'content': '' if no_content else 'Hello World!',
-                'etag': '123456',
-                'event': 's3:ObjectCreated:Put',
-                'ext': '.txt',
-                'key': 'hello world.txt',
-                'last_modified': now.isoformat(),
-                'meta_text': 'blah  {"x": "y"} {"foo": "bar"}',
-                'size': 100,
-                'target': '',
-                'updated': ANY,
-                'version_id': None
-            }]
+                {
+                    'comment': 'blah',
+                    'content': '' if not mock_object else 'Hello World!',
+                    'etag': '123456',
+                    'event': event_name,
+                    'ext': '.txt',
+                    'key': 'hello world.txt',
+                    'last_modified': now.isoformat(),
+                    'meta_text': 'blah  {"x": "y"} {"foo": "bar"}',
+                    'size': 100,
+                    'target': '',
+                    'updated': ANY,
+                    'version_id': None
+                }
+            ]
+
+            if response_key == 'delete':
+                # delete events do not include request body
+                expected.pop()
+
+            assert actions == expected, "Unexpected request to ElasticSearch"
 
             response = {
                 'items': [{
-                    'index': {
+                    response_key: {
                         'status': 200
                     }
                 }]
             }
             return (200, {}, json.dumps(response))
 
-        self.requests_mock.add_callback(
-            responses.POST,
-            'https://example.com:443/_bulk',
-            callback=es_callback,
-            content_type='application/json'
-        )
+        if mock_elastic:
+            self.requests_mock.add_callback(
+                responses.POST,
+                'https://example.com:443/_bulk',
+                callback=es_callback,
+                content_type='application/json'
+            )
 
         index.handler(event, MockContext())
 
@@ -343,7 +379,7 @@ class TestIndex(TestCase):
         for f in files:
             print(f"Testing {f}")
             parquet = f.read_bytes()
-            
+
             self.s3_stubber.add_response(
                 method='get_object',
                 service_response={
@@ -356,14 +392,4 @@ class TestIndex(TestCase):
                     'Key': 'foo.parquet',
                     'IfMatch': 'etag',
                 }
-            )
-
-            contents = index.get_contents(
-                'test-bucket',
-                'foo.parquet',
-                '.parquet',
-                etag='etag',
-                version_id=None,
-                s3_client=self.s3_client,
-                size=123
             )

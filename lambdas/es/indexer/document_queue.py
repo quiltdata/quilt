@@ -32,6 +32,7 @@ MAX_RETRY = 4 # prevent long-running lambdas due to malformed calls
 # s3:ObjectRemoved:DeleteMarkerCreated, which we may see in versioned buckets
 # see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
 OBJECT_DELETE = "ObjectRemoved:Delete"
+OBJECT_PUT = "ObjectCreated:Put"
 RETRY_429 = 5
 QUEUE_LIMIT_BYTES = 100_000_000# 100MB
 
