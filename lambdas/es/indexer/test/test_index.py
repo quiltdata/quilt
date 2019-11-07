@@ -71,6 +71,18 @@ class TestIndex(TestCase):
         # don't mock head or get; they should never be called for deleted objects
         self._test_index_event("ObjectRemoved:Delete", mock_head=False, mock_object=False)
 
+    def test_delete_marker_event(self):
+        """
+        Common event in versioned; buckets, should no-op
+        """
+        # don't mock head or get; this event should never call them
+        self._test_index_event(
+            "ObjectRemoved:DeleteMarkerCreated",
+            # we should never call Elastic in this case
+            mock_elastic=False,
+            mock_head=False,
+            mock_object=False
+        )
 
     def test_test_event(self):
         """
@@ -102,7 +114,13 @@ class TestIndex(TestCase):
             # get_mock already mocks get_object, so don't mock it in _test_index_event
             self._test_index_event("ObjectCreated:Put", mock_object=False)
 
-    def _test_index_event(self, event_name, mock_head=True, mock_object=True):
+    def _test_index_event(
+        self,
+        event_name,
+        mock_elastic=True,
+        mock_head=True,
+        mock_object=True
+    ):
         """
         Reusable helper function to test indexing a single text file.
         """
@@ -216,12 +234,13 @@ class TestIndex(TestCase):
             }
             return (200, {}, json.dumps(response))
 
-        self.requests_mock.add_callback(
-            responses.POST,
-            'https://example.com:443/_bulk',
-            callback=es_callback,
-            content_type='application/json'
-        )
+        if mock_elastic:
+            self.requests_mock.add_callback(
+                responses.POST,
+                'https://example.com:443/_bulk',
+                callback=es_callback,
+                content_type='application/json'
+            )
 
         index.handler(event, MockContext())
 
