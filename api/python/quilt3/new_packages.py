@@ -163,6 +163,8 @@ class Package:
 
     def ls(self, logical_key_prefix=""): pass
 
+    def dump_manifest(self): pass #TODO(armand): Better name
+
     def __repr__(self): pass
 
     def __iter__(self): pass

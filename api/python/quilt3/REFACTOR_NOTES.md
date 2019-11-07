@@ -12,7 +12,7 @@ Undecided: Is package metadata unchanged?
 
 Logically the manifest is unchanged other than:
 - `physical_key` instead of `physical_keys`
-- The tophash includes metadata information
+- The tophash includes metadata information (unsure if it does currently)
 
 However, physically we need to do some magic with the manifest for performance reasons. There will be:
 - Full Manifest. The standard JSONL file we are familiar with.
