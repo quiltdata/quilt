@@ -156,7 +156,7 @@ class TestIndex(TestCase):
                 'x': 'y'
             })
         }
-        # We don't make HEAD requests for deleted objects; they'd fail anyway
+
         if mock_head:
             self.s3_stubber.add_response(
                 method='head_object',
@@ -171,10 +171,7 @@ class TestIndex(TestCase):
                     'IfMatch': '123456',
                 }
             )
-        # test the case where get_contents throws an exception
-        # OR the case where we won't be fetching contents at all: on delete
-        # in both of the above cases, we don't want to mock this call because it
-        # will remain # in the stubber queue and fail assert_no_pending_responses()
+
         if mock_object:
             self.s3_stubber.add_response(
                 method='get_object',
