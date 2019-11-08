@@ -1,4 +1,8 @@
+from .util import QuiltException
+import data_transfer
+
 LATEST_TAG = "latest"
+VALID_README_EXTENSIONS = ["md", "txt", "rtf", "rst", "ipynb", None]
 
 def get_s3_object(bucket, key):
     return bytes()
@@ -155,15 +159,93 @@ class Package:
     def __getitem__(self, logical_key):
         return self.get_entry(logical_key)
 
+
+    def _find_readme_entry(self):
+        readme_entries = []
+        for entry in self._entries:
+            if entry.logical_key.lower() == "readme":
+                readme_entries.append((entry, None))
+
+            split_on_period = entry.logical_key.split(".")
+            if len(split_on_period) != 2:
+                continue
+
+            filename = split_on_period[0].lower()
+            if filename == "readme":
+                ext = split_on_period[1].lower()
+                if ext in VALID_README_EXTENSIONS :
+                    readme_entries.append((entry, ext))
+
+        if len(readme_entries) == 0:
+            return None
+
+        # If there are multiple readme file types, prioritize according to order of VALID_README_EXTENSIONS
+        for valid_ext in VALID_README_EXTENSIONS:
+            for readme_entry, ext in readme_entries:
+                if ext == valid_ext:
+                    return readme_entry
+
+
+
+
     def readme(self):
-        # Find README files (.txt, .md, .rtf, .rst)
-        # :( if there isn't one.
-        # Return the contents of the README
-        pass
 
-    def ls(self, logical_key_prefix=""): pass
+        readme_entry = self._find_readme_entry()
+        if readme_entry is None:
+            ex_msg = f"This Package is missing a README file. A Quilt recognized README file is a (case-insensitive) " \
+                     f"file named 'README' with any of the following file extensions: {VALID_README_EXTENSIONS}"
+            raise QuiltException(ex_msg)
 
-    def dump_manifest(self): pass #TODO(armand): Better name
+        return readme_entry.get_contents() # TODO(armand): Make sure we can handle all of the VALID_README_EXTENSIONS
+
+
+
+    def ls(self, logical_key_prefix=""):
+        """
+        # TODO(armand): This probably deserves more thought, but maybe it's fine as is until users help us clarify
+                        how this is used
+
+        Given a logical_key prefix, list the contents. Treats '/' in logical keys as directory delimiter and is not
+        recursive. The below example demonstrates what this means:
+
+        If the Package contains the following logical keys:
+
+        alpha/beta/1.txt
+        alpha/beta/2.txt
+        alpha/beta/3.txt
+        alpha/4.txt
+
+        > ls("alpha/")
+        ["alpha/beta/", "alpha/4.txt"]
+
+        > ls("alpha")
+        ["alpha/beta/", "alpha/4.txt"]
+
+        """
+        dir_contents = set()
+        for entry in self._entries:
+            if not entry.logical_key.startswith(logical_key_prefix):
+                continue
+
+            lk_after_prefix = entry.logical_key.lstrip(logical_key_prefix)
+
+            # Handle both "prefix" and "prefix/" as the same
+            if lk_after_prefix.startswith("/"):
+                lk_after_prefix = lk_after_prefix.lstrip("/")
+
+            # Add objects in the dir
+            if "/" not in lk_after_prefix:
+                dir_contents.add(entry.logical_key)
+                continue
+
+            # Add a subdirectory marker
+            subdir_marker = f"{lk_after_prefix.split('/')[0]}/"
+            dir_contents.add(subdir_marker)
+
+        return list(dir_contents)
+
+
+    def dump_manifest(self): pass  # TODO(armand): Better name
 
     def __repr__(self): pass
 
@@ -181,6 +263,8 @@ class Package:
 class PackageEntry:
     SENTINEL = "NOT YET DOWNLOADED"
     def __init__(self, pkg_name, pkg_hash, logical_key, physical_key, size=None, entry_hash=None, metadata=None):
+        # TODO: Do we need to URLEncode physical key? How do we handle an s3 key with a '?' in it that is returned by
+        #       boto3.list_objects_v2() not urlencoded?
         self.pkg_name = pkg_name
         self.pkg_hash = pkg_hash
         self.logical_key = logical_key
@@ -202,7 +286,8 @@ class PackageEntry:
     @property
     def entry_hash(self): return
 
-    def get_bytes(self): pass
+    def get_bytes(self):
+        return data_transfer.get_bytes(self.physical_key)
 
     def get_contents(self):
         """
@@ -262,7 +347,8 @@ class PackageBuilder:
     def __repr__(self): pass
 
 
-
+class QuiltMissingReadmeException(Exception):
+    pass
 
 import torch
 
