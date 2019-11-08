@@ -1,9 +1,8 @@
-FROM amazonlinux:2.0.20191016.0
+FROM nginx:1.17.5
 MAINTAINER Quilt Data, Inc. contact@quiltdata.io
 
-RUN amazon-linux-extras install nginx1.12
-
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx-s3-proxy.conf /etc/nginx/conf.d/default.conf
 COPY run-nginx.sh /root/run-nginx.sh
 
-CMD /root/run-nginx.sh
+# Note: use "exec" because otherwise the shell will catch Ctrl-C and other signals.
+CMD exec /root/run-nginx.sh

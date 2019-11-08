@@ -6,4 +6,4 @@ nameserver=$(awk '{if ($1 == "nameserver") { print $2; exit;}}' < /etc/resolv.co
 # Add it to the NGINX config
 echo "resolver $nameserver;" > /etc/nginx/conf.d/resolver.conf
 
-exec nginx
+exec nginx -g 'daemon off;'
