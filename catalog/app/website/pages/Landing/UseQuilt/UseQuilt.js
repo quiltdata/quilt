@@ -41,7 +41,7 @@ const SECTIONS = [
         one-off requests for data dumps, ETL jobs, or temporary S3 buckets).
       </>,
       <>
-        Create and distribute read-only, immutable data sets that one can mess up, and
+        Create and distribute read-only, immutable data sets that no one can mess up, and
         that allow you to diagnose and recover from errors via automatic data version
         control.
       </>,

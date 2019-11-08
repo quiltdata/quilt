@@ -101,7 +101,6 @@ class TestS3Select(TestCase):
                         "terms": { "field": 'ext' },
                         "aggs": { "size": { "sum": { "field": 'size' } } },
                     },
-                    "updated": { "max": { "field": 'updated' } },
                 }
             }
             return 200, {}, json.dumps({'results': 'blah'})

@@ -68,6 +68,7 @@ Format metadata has the following form:
 
 # Python imports
 from abc import ABC, abstractmethod
+from collections import defaultdict
 import copy
 import csv
 import io
@@ -329,23 +330,25 @@ class FormatRegistry:
                                <class 'float'>                    [json]
                                <class 'bytes'>                     [bin]
         """
-        import numpy as np
-        import pandas as pd
+        try:
+            import numpy as np
+        except ImportError:
+            pass
+        else:
+            cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
 
-        _ = cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
-        _ = cls.search(np.ndarray)  # Force FormatHandlers to register np.ndarray as a supported object type
+        try:
+            import pandas as pd
+        except ImportError:
+            pass
+        else:
+            cls.search(pd.DataFrame)  # Force FormatHandlers to register pd.DataFrame as a supported object type
 
-        type_map = {}
+        type_map = defaultdict(set)
         for handler in cls.registered_handlers:
             for t in handler.handled_types:
-                if t not in type_map.keys():
-                    type_map[t] = set()
                 type_map[t].update(handler.handled_extensions)
-        type_to_format_maps = []
-        for t, v in type_map.items():
-            type_to_format_maps.append({"Python Object Type": t, "Serialization Formats": list(v)})
-        df = pd.DataFrame(type_to_format_maps)
-        return df
+        return dict(type_map)
 
 
 class BaseFormatHandler(ABC):
@@ -930,7 +933,10 @@ class NumpyFormatHandler(BaseFormatHandler):
         return buf.getvalue(), self._update_meta(meta)
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
-        import numpy as np
+        try:
+            import numpy as np
+        except ImportError:
+            raise QuiltException("Please install numpy")
 
         # security
         kwargs = dict(allow_pickle=False)
@@ -991,8 +997,11 @@ class ParquetFormatHandler(BaseFormatHandler):
         return buf.getvalue(), self._update_meta(meta, additions=opts_with_defaults)
 
     def deserialize(self, bytes_obj, meta=None, ext=None, **format_opts):
-        import pyarrow as pa
-        from pyarrow import parquet
+        try:
+            import pyarrow as pa
+            from pyarrow import parquet
+        except ImportError:
+            raise QuiltException("Please install pyarrow")
 
         buf = io.BytesIO(bytes_obj)
         table = parquet.read_table(buf)

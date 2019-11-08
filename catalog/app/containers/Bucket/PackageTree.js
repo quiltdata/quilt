@@ -13,7 +13,7 @@ import * as Config from 'utils/Config'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up } from 'utils/s3paths'
+import { getBreadCrumbs, getPrefix, isDir, parseS3Url, up, decode } from 'utils/s3paths'
 import tagged from 'utils/tagged'
 
 import Code from './Code'
@@ -128,7 +128,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function PackageTree({
   match: {
-    params: { bucket, name, revision, path = '' },
+    params: { bucket, name, revision, path: encodedPath = '' },
   },
 }) {
   const classes = useStyles()
@@ -136,6 +136,8 @@ export default function PackageTree({
   const { urls } = NamedRoutes.use()
   const getSignedS3URL = AWS.Signer.useS3Signer()
   const { apiGatewayEndpoint: endpoint } = Config.useConfig()
+
+  const path = decode(encodedPath)
 
   // TODO: handle revision / hash
   const code = dedent`

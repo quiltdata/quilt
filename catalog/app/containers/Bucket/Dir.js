@@ -13,7 +13,7 @@ import * as AWS from 'utils/AWS'
 import Data from 'utils/Data'
 import * as NamedRoutes from 'utils/NamedRoutes'
 import Link from 'utils/StyledLink'
-import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up } from 'utils/s3paths'
+import { getBreadCrumbs, ensureNoSlash, withoutPrefix, up, decode } from 'utils/s3paths'
 
 import Code from './Code'
 import Listing, { ListingItem } from './Listing'
@@ -77,12 +77,13 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Dir({
   match: {
-    params: { bucket, path = '' },
+    params: { bucket, path: encodedPath = '' },
   },
 }) {
   const classes = useStyles()
   const { urls } = NamedRoutes.use()
   const s3req = AWS.S3.useRequest()
+  const path = decode(encodedPath)
   const code = dedent`
     import quilt3
     b = quilt3.Bucket("s3://${bucket}")

@@ -4,7 +4,7 @@ import sys
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 
-VERSION = "3.1.3"
+VERSION = "3.1.4"
 
 def readme():
     readme_short = """
@@ -54,20 +54,25 @@ setup(
         'aws-requests-auth>=0.4.2',
         'boto3>=1.8.0',
         'jsonlines==1.2.0',
-        'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
         'packaging>=16.8',
-        'pandas>=0.19.2',
-        'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+        'python-dateutil<=2.8.0',           # 2.8.1 conflicts with botocore
         'requests>=2.12.4',
         'ruamel.yaml<=0.15.70',
         'tqdm>=4.26.0',
         'urllib3<1.25,>=1.21.1',            # required by requests
         'xattr>=0.9.6; platform_system!="Windows"',
-        'humanize'
     ],
     extras_require={
+        'pyarrow': [
+            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'pandas>=0.19.2',
+            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
+        ],
         'tests': [
             'codecov',
+            'numpy>=1.14.0',                    # required by pandas, but missing from its dependencies.
+            'pandas>=0.19.2',
+            'pyarrow>=0.14.1',                  # as of 7/5/19: linux/circleci bugs on 0.14.0
             'pytest<5.1.0',  # TODO: Fix pytest.ensuretemp in conftest.py
             'pytest-cov',
             'responses',

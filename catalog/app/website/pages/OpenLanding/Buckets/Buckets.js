@@ -52,7 +52,14 @@ export default function Buckets() {
   const [page, setPage] = React.useState(1)
   const scrollRef = React.useRef(null)
 
-  const terms = React.useMemo(() => filter.split(/\s+/).filter(Boolean), [filter])
+  const terms = React.useMemo(
+    () =>
+      filter
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean),
+    [filter],
+  )
 
   const tagIsMatching = React.useCallback((t) => filter.includes(t), [filter])
 
