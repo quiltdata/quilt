@@ -8,6 +8,11 @@ export const home = {
   url: () => '/',
 }
 
+export const install = {
+  path: '/install',
+  url: () => '/install',
+}
+
 // marketing
 export const about = {
   path: '/about',

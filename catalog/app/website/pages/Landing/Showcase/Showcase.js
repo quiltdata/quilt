@@ -84,12 +84,8 @@ export default function Showcase() {
                 Book demo
               </M.Button>
               <M.Box display="inline-block" ml={2} />
-              <M.Button
-                variant="contained"
-                color="secondary"
-                href="https://open.quiltdata.com/"
-              >
-                Explore open data
+              <M.Button variant="contained" color="secondary" href="/#pricing">
+                Try now
               </M.Button>
             </M.Box>
             <M.Box mt={5}>
