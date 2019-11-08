@@ -60,15 +60,17 @@ function InstallContents() {
         <M.Typography variant="h1">Install a private Quilt instance</M.Typography>
       </M.Box>
       <p className={classes.p}>
-        The following instructions will guide you through the process of installing Quilt
-        on your own VPC on AWS. If you have any questions, {contactLink('contact us')}.
+        The following instructions will guide you through the installation Quilt to your
+        own Virtual Private Cloud on AWS as a CloudFormation stack. Once the
+        CloudFormation stack is running, your 30-day free trial begins. If you have any
+        questions, {contactLink('contact us')}.
       </p>
       <ol className={classes.list}>
         <li>
           Ensure you have <M.Link href={PREREQ_LINK}>the prerequisites</M.Link> ready. Of
           note you will need an AWS account with Administrator access, an S3 bucket, and
           the ability to create DNS entries for your preferred domain (e.g.{' '}
-          <code>your-company.com</code>).
+          <code>quilt.your-company.com</code>).
         </li>
         <li>
           <kbd>pip install quilt-stack-installer</kbd>
