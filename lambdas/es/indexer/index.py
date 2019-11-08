@@ -53,9 +53,9 @@ def should_retry_exception(exception):
 
 def get_contents(bucket, key, ext, *, etag, version_id, s3_client, size):
     """get the byte contents of a file"""
-    if ext == '.gz':
+    if ext.endswith('.gz'):
         compression = 'gz'
-        ext = pathlib.PurePosixPath(key[:-len(ext)]).suffix.lower()
+        ext = ext[:-len('.gz')]
     else:
         compression = None
 
@@ -229,7 +229,12 @@ def handler(event, context):
                 version_id = event_["s3"]["object"].get("versionId")
                 version_id = unquote(version_id) if version_id else None
                 etag = unquote(event_["s3"]["object"]["eTag"])
-                ext = pathlib.PurePosixPath(key).suffix.lower()
+
+                # Get two levels of extensions to handle files like .csv.gz
+                path = pathlib.PurePosixPath(key)
+                ext1 = path.suffix
+                ext2 = path.with_suffix('').suffix
+                ext = (ext2 + ext1).lower()
 
                 # Handle delete  first and then continue so that
                 # head_object and get_object (below) don't fail

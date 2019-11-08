@@ -239,7 +239,7 @@ class TestIndex(TestCase):
         contents = index.get_contents('test-bucket', 'foo.exe', '.exe', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert contents == ""
 
-        contents = index.get_contents('test-bucket', 'foo.exe.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        contents = index.get_contents('test-bucket', 'foo.exe.gz', '.exe.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert contents == ""
 
     def test_get_plain_text(self):
@@ -304,7 +304,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.txt.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        contents = index.get_contents('test-bucket', 'foo.txt.gz', '.txt.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert contents == "Hello World!"
 
     def test_notebook_contents(self):
@@ -344,7 +344,7 @@ class TestIndex(TestCase):
             }
         )
 
-        contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
+        contents = index.get_contents('test-bucket', 'foo.ipynb.gz', '.ipynb.gz', etag='etag', version_id=None, s3_client=self.s3_client, size=123)
         assert "Model results visualization" in contents
 
     def test_parquet_contents(self):

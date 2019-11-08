@@ -202,12 +202,21 @@ EXTS_ACCESS_COUNTS = textwrap.dedent("""\
         ext,
         CAST(histogram(date) AS JSON) AS counts
     FROM (
-        SELECT eventname, bucket, lower(IF(cardinality(parts) > 1, element_at(parts, -1), '')) AS ext, date
+        SELECT
+            eventname,
+            bucket,
+            lower(CASE
+                WHEN cardinality(parts) > 2 THEN concat(element_at(parts, -2), '.', element_at(parts, -1))
+                WHEN cardinality(parts) = 2 THEN element_at(parts, -1)
+                ELSE ''
+                END
+            ) AS ext,
+            date
         FROM (
             SELECT
                 eventname,
                 bucket,
-                split(element_at(split(key, '/'), -1), '.') AS parts,
+                split(substr(element_at(split(key, '/'), -1), 2), '.') AS parts,
                 date
             FROM object_access_log
         )
