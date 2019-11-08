@@ -75,7 +75,7 @@ export default function App() {
       <Switch>
         <Route path={paths.home} component={Home} exact />
 
-        <Route path={paths.install} component={Install} exact />
+        {cfg.mode !== 'OPEN' && <Route path={paths.install} component={Install} exact />}
 
         {!!cfg.legacyPackagesRedirect && (
           <Route path={paths.legacyPackages} component={LegacyPackages} />

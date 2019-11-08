@@ -1,7 +1,9 @@
 import cx from 'classnames'
 import * as React from 'react'
+import { Link } from 'react-router-dom'
 import * as M from '@material-ui/core'
 
+import * as NamedRoutes from 'utils/NamedRoutes'
 import img2x from 'utils/img2x'
 import scrollIntoView from 'utils/scrollIntoView'
 import { useTracker } from 'utils/tracking'
@@ -32,7 +34,7 @@ const PLANS = [
     price: 600,
     features: ['Unlimited data', 'Unlimited users', 'One S3 bucket', '30-day free trial'],
     cta: 'Try Now',
-    href: '/install',
+    to: ({ urls }) => urls.install(),
     variant: 'primary',
     featured: true,
   },
@@ -54,6 +56,18 @@ const PLANS = [
     variant: 'secondary',
   },
 ]
+
+function Btn({ to, trackingName, ...rest }) {
+  const { urls } = NamedRoutes.use()
+  const t = useTracker()
+  const trackingArgs = ['WEB', { type: 'action', location: `/#${trackingName}` }]
+  const track = React.useMemo(
+    () => (to ? () => t.track(...trackingArgs) : t.trackLink(...trackingArgs)),
+    [t, to, trackingName],
+  )
+  const props = to ? { component: Link, to: to({ urls }), ...rest } : rest
+  return <M.Button onClick={track} {...props} />
+}
 
 const useStyles = M.makeStyles((t) => ({
   root: {},
@@ -157,7 +171,6 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Pricing() {
   const classes = useStyles()
-  const t = useTracker()
   return (
     <M.Box position="relative">
       <Backlight top={-320} />
@@ -203,18 +216,16 @@ export default function Pricing() {
                 ))}
               </div>
 
-              <M.Button
+              <Btn
                 variant="contained"
                 className={classes.btn}
                 color={p.variant !== 'tertiary' ? p.variant : undefined}
                 href={p.href}
-                onClick={t.trackLink('WEB', {
-                  type: 'action',
-                  location: `/#${p.trackingName}`,
-                })}
+                to={p.to}
+                trackingName={p.trackingName}
               >
                 {p.cta}
-              </M.Button>
+              </Btn>
             </div>
           ))}
         </div>
