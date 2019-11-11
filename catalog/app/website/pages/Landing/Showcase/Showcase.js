@@ -1,6 +1,9 @@
 import * as React from 'react'
 import * as M from '@material-ui/core'
 
+import HashLink from 'utils/HashLink'
+import * as NamedRoutes from 'utils/NamedRoutes'
+
 import Bar from 'website/components/Bar'
 import ChevronLink from 'website/components/ChevronLink'
 import Overlay1Full from 'website/components/Backgrounds/Overlay1Full'
@@ -51,6 +54,7 @@ const useStyles = M.makeStyles((t) => ({
 
 export default function Showcase() {
   const classes = useStyles()
+  const { urls } = NamedRoutes.use()
   return (
     <div className={classes.root}>
       <Overlay2 />
@@ -84,7 +88,12 @@ export default function Showcase() {
                 Book demo
               </M.Button>
               <M.Box display="inline-block" ml={2} />
-              <M.Button variant="contained" color="secondary" href="/#pricing">
+              <M.Button
+                variant="contained"
+                color="secondary"
+                to={`${urls.home()}#pricing`}
+                component={HashLink}
+              >
                 Try now
               </M.Button>
             </M.Box>
