@@ -10,7 +10,6 @@ import Layout from 'website/components/Layout'
 
 import headAneeshKarve from './team-aneesh-karve.jpg'
 import headBenGolub from './team-ben-golub.png'
-import headMichaelSindelar from './team-michael-sindelar.jpg'
 import headDanWebster from './team-dan-webster.jpeg'
 import headDimaRyazanov from './team-dima-ryazanov.jpg'
 import headEliCollins from './team-eli-collins.jpg'
@@ -132,18 +131,6 @@ const Team = (props) => (
           a Site Reliability Engineer at Google. Dima went on to contribute to the
           developer API at Dropbox, where he also worked on user growth initiatives and
           optimized web performance. In his spare time Dima flies planes.
-        </P>
-      </TeamMember>
-      <TeamMember
-        name="Michael Sindelar, Directory of Engineering"
-        head={headMichaelSindelar}
-      >
-        <P>
-          Michael Sindelar is Director of Engineering. Before joining Quilt Data, Michael
-          developed machine learning data pipelines to predict mobility and traffic
-          patterns in cities at Sidewalk Labs, worked on core marketplace infrastructure
-          at Uber including <A href="https://github.com/uber/zanzibar">Zanzibar</A>, and
-          built systems for user modeling and personalization at Google.
         </P>
       </TeamMember>
     </M.Container>
