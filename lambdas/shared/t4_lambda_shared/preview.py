@@ -71,7 +71,6 @@ def extract_parquet(file_, as_html=True):
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
     info['metadata'] = {
-        # seems silly but sets up a simple json.dumps(info) below
         k.decode(): v.decode()
         for k, v in meta.metadata.items()
     } if meta.metadata is not None else {}
