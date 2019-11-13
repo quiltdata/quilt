@@ -63,15 +63,16 @@ def extract_parquet(file_, as_html=True):
     # local import reduces amortized latency, saves memory
     import pyarrow.parquet as pq
 
-    meta = pq.read_metadata(file_)
+    pf = pq.ParquetFile(file_)
+
+    meta = pf.metadata
 
     info = {}
     info['created_by'] = meta.created_by
     info['format_version'] = meta.format_version
     info['metadata'] = {
-        # seems silly but sets up a simple json.dumps(info) below
-        k.decode():json.loads(meta.metadata[k])
-        for k in meta.metadata
+        k.decode(): v.decode()
+        for k, v in meta.metadata.items()
     } if meta.metadata is not None else {}
     info['num_row_groups'] = meta.num_row_groups
 
@@ -88,9 +89,8 @@ def extract_parquet(file_, as_html=True):
     info['serialized_size'] = meta.serialized_size
     info['shape'] = [meta.num_rows, meta.num_columns]
 
-    file_.seek(0)
     # TODO: make this faster with n_threads > 1?
-    row_group = pq.ParquetFile(file_).read_row_group(0)
+    row_group = pf.read_row_group(0)
     # convert to str since FileMetaData is not JSON.dumps'able (below)
     dataframe = row_group.to_pandas()
     if as_html:
