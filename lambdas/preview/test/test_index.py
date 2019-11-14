@@ -217,7 +217,7 @@ class TestIndex():
             f'Unexpected body["info"] for {parquet}'
 
     @responses.activate
-    def test_parquet(self):
+    def test_parquet_no_pandas(self):
         """test sending parquet bytes, but with a different metadata format"""
         parquet = BASE_DIR / 'parquet_no_pandas.snappy.parquet'
         info_response = BASE_DIR / 'parquet_info_no_pandas_response.json'
@@ -231,7 +231,6 @@ class TestIndex():
         assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
         body = json.loads(resp['body'])
 
-        print(json.dumps(body['info']))
         with open(info_response, 'r') as info_json:
             expected = json.load(info_json)
         assert (body['info'] == expected), \
