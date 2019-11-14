@@ -16,7 +16,8 @@ from .util import (
 import warnings
 from copy import deepcopy
 from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
-
+import hashlib
+from urllib.parse import quote, urlparse, unquote
 import uuid
 
 LATEST_TAG = "latest"
@@ -28,6 +29,19 @@ def get_s3_object(bucket, key):
 def physical_key_is_s3(physical_key):
     return physical_key.startswith("s3://")
 
+
+def hash_file(readable_file):
+    """ Returns SHA256 hash of readable file-like object """
+    buf = readable_file.read(4096)
+    hasher = hashlib.sha256()
+    while buf:
+        hasher.update(buf)
+        buf = readable_file.read(4096)
+
+    return hasher.hexdigest()
+
+def path_from_file_url(file_url):
+    return Path(unquote(urlparse(file_url).path))
 
 
 class QuiltRegistry:
@@ -135,7 +149,8 @@ class Package:
                 logical_key=manifest_entry_json["logical_key"],
                 physical_key=manifest_entry_json["physical_key"],
                 size=manifest_entry_json["size"],
-                entry_hash=manifest_entry_json["hash"]["value"],
+                entry_hash_type=manifest_entry_json["hash"]["type"],
+                entry_hash_value=manifest_entry_json["hash"]["value"],
                 metadata=manifest_entry_json["meta"]
             ))
         self.__shared_init__(pkg_name, tag, pkg_hash, pkg_metadata, entries)
@@ -317,16 +332,16 @@ class MockPackageWithoutInitLogic(Package):
 
 class PackageEntry:
     SENTINEL = "NOT YET DOWNLOADED"
-    def __init__(self, pkg_name, pkg_hash, logical_key, physical_key, size, entry_hash, metadata=None):
+    def __init__(self, pkg_name, pkg_hash, logical_key, physical_key, size, entry_hash_type, entry_hash_value, metadata=None):
         # TODO: Do we need to URLEncode physical key? How do we handle an s3 key with a '?' in it that is returned by
         #       boto3.list_objects_v2() not urlencoded?
-        # TODO: Can size and entry_hash ever be None? I don't think so as PE is always fully built
         self.pkg_name = pkg_name
         self.pkg_hash = pkg_hash
         self.logical_key = logical_key
         self.physical_key = physical_key
         self.size = size
-        self._hash = entry_hash
+        self._hash_type = entry_hash_type
+        self._hash = entry_hash_value
 
         # SENTINEL indicates that there is metadata, but we haven't downloaded it
         self._metadata = metadata if metadata is not None else PackageEntry.SENTINEL
@@ -342,6 +357,10 @@ class PackageEntry:
     @property
     def entry_hash(self):
         return self._hash
+
+    @property
+    def entry_hash_type(self):
+        return self._hash_type
 
     def get_bytes(self):
         return data_transfer.get_bytes(self.physical_key)
@@ -384,6 +403,7 @@ class PackageEntry:
                               deepcopy(self.logical_key),
                               deepcopy(self.physical_key),
                               deepcopy(self.size),
+                              deepcopy(self.entry_hash_type),
                               deepcopy(self.entry_hash),
                               metadata=deepcopy(self.metadata))
 
@@ -435,117 +455,132 @@ class LocalFilePBE(PackageBuilderEntry):
         self.physical_key = physical_key
         self.metadata = metadata or {}
 
-    def build(self):  # TODO(implement)
-        # Get size
-        # Get hash type and value
-        # Return PBE instance
-        pass
+    def build(self):
+        pkey_path = path_from_file_url(self.physical_key)
+        size = pkey_path.stat().st_size
+        hash_type = "SHA256"
+        with pkey_path.open() as f:
+            hash_val = hash_file(f)
 
-    def clone(self):  # TODO(implement)
-        pass
+        return PackageBuilderEntry(self.logical_key, self.physical_key, self.metadata, size, hash_type, hash_val)
+
+    def clone(self):
+        return LocalFilePBE(self.logical_key, self.physical_key, deepcopy(self.metadata))
 
 
 class S3FilePBE(PackageBuilderEntry):
     def __init__(self, logical_key, physical_key, size=None, metadata=None):
-        """
-        We may or may not have size at
-
-        """
         self.logical_key = logical_key
         self.physical_key = physical_key
         self.size = size
         self.metadata = metadata or {}
 
-    def build(self):  # TODO(implement)
-        # Get size
-        # Get hash type and value
-        # Do we want to get a version_id if it is missing and the bucket is versioned?
-        # Return PBE instance
-        pass
+    def build(self):
+        if self.size is None:
+            self.size, _, _ = data_transfer.get_size_and_meta(self.physical_key)
 
-    def clone(self):  # TODO(implement)
-        pass
+        hash_type = "SHA256"
+        hash_val = data_transfer.calculate_sha256([self.physical_key], [self.size])
+
+        # TODO: Do we want to get a version_id if it is missing and the bucket is versioned?
+        return PackageBuilderEntry(self.logical_key, self.physical_key, self.metadata, self.size, hash_type, hash_val)
+
+    def clone(self):
+        return S3FilePBE(self.logical_key, self.physical_key, self.size, deepcopy(self.metadata))
+
 
 
 class PythonObjectPBE(PackageBuilderEntry):
     def __init__(self, logical_key, python_object, metadata=None, serialization_location=None, serialization_format_opts=None):
         self.logical_key = logical_key
         self.obj = python_object
+        self.serialization_location = serialization_location
+        self.serialization_format_opts = serialization_format_opts or {}
         self.metadata = metadata or {}
 
-    def build(self):  # TODO(implement)
-        # Serialize
-        # Get size
-        # Get hash type and value
-        # Return PBE instance
-        """
+    def build(self):
         # Use file extension from serialization_location, fall back to file extension from logical_key
-            # If neither has a file extension, Quilt picks the serialization format.
-            logical_key_ext = extract_file_extension(logical_key)
+        # If neither has a file extension, Quilt picks the serialization format based on type(python_object)
+        logical_key_ext = extract_file_extension(self.logical_key)
 
-            serialize_loc_ext = None
-            if serialization_location is not None:
-                serialize_loc_ext = extract_file_extension(serialization_location)
+        serialize_loc_ext = None
+        if self.serialization_location is not None:
+            serialize_loc_ext = extract_file_extension(self.serialization_location)
 
-            if logical_key_ext is not None and serialize_loc_ext is not None:
-                assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
-                                                             f"different file extensions: {logical_key_ext} vs " \
-                                                             f"{serialize_loc_ext}. Quilt doesn't know which to use!"
+        if logical_key_ext is not None and serialize_loc_ext is not None:
+            assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
+                                                         f"different file extensions: {logical_key_ext} vs " \
+                                                         f"{serialize_loc_ext}. Quilt doesn't know which to use!"
 
-            if serialize_loc_ext is not None:
-                ext = serialize_loc_ext
-            elif logical_key_ext is not None:
-                ext = logical_key_ext
-            else:
-                ext = None
+        if serialize_loc_ext is not None:
+            ext = serialize_loc_ext
+        elif logical_key_ext is not None:
+            ext = logical_key_ext
+        else:
+            ext = None
 
-            format_handlers = FormatRegistry.search(type(python_object))
+        format_handlers = FormatRegistry.search(type(self.obj))
+        if ext:
+            format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
+
+        if len(format_handlers) == 0:
+            error_message = f'Quilt does not know how to serialize a {type(self.obj)}'
+            if ext is not None:
+                error_message += f' as a {ext} file.'
+            error_message += f'. If you think this should be supported, please open an issue or PR at ' \
+                             f'https://github.com/quiltdata/quilt'
+            raise QuiltException(error_message)
+
+        serialized_object_bytes, new_meta = format_handlers[0].serialize(self.obj, meta=None, ext=ext,
+                                                                         **self.serialization_format_opts)
+        if self.serialization_location is None:
+            serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
             if ext:
-                format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
+                serialization_path = serialization_path.with_suffix(f'.{ext}')
+        else:
+            serialization_path = Path(self.serialization_location).expanduser().resolve()
 
-            if len(format_handlers) == 0:
-                error_message = f'Quilt does not know how to serialize a {type(python_object)}'
-                if ext is not None:
-                    error_message += f' as a {ext} file.'
-                error_message += f'. If you think this should be supported, please open an issue or PR at ' \
-                                 f'https://github.com/quiltdata/quilt'
-                raise QuiltException(error_message)
+        serialization_path.parent.mkdir(exist_ok=True, parents=True)
+        serialization_path.write_bytes(serialized_object_bytes)
 
-            if serialization_format_opts is None:
-                serialization_format_opts = {}
-            serialized_object_bytes, new_meta = format_handlers[0].serialize(python_object, meta=None, ext=ext,
-                                                                             **serialization_format_opts)
-            if serialization_location is None:
-                serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
-                if ext:
-                    serialization_path = serialization_path.with_suffix(f'.{ext}')
-            else:
-                serialization_path = Path(serialization_location).expanduser().resolve()
+        size = serialization_path.stat().st_size
+        physical_key = serialization_path.as_uri()
 
-            serialization_path.parent.mkdir(exist_ok=True, parents=True)
-            serialization_path.write_bytes(serialized_object_bytes)
+        hash_type = "SHA256"
+        with serialization_path.open() as f:
+            hash_val = hash_file(f)
 
-            size = serialization_path.stat().st_size
-            write_url = serialization_path.as_uri()
-            entry = PackageEntry([write_url], size, hash_obj=None, meta=new_meta)
-        """
-        pass
+        return PackageBuilderEntry(self.logical_key,
+                                   physical_key,
+                                   self.metadata,
+                                   size,
+                                   hash_type,
+                                   hash_val)
 
-    def clone(self):  # TODO(implement)
-        pass
+
+    def clone(self):
+        return PythonObjectPBE(self.logical_key,
+                               deepcopy(self.obj),  # TODO(armand): Do all relevant objects support deepcopy? Are there memory implications that are worth worrying about?
+                               deepcopy(self.metadata),
+                               deepcopy(self.serialization_location),
+                               deepcopy(self.serialization_format_opts))
+
 
 class PackageEntryPBE(PackageBuilderEntry):
-    def __init__(self, logical_key, package_entry):  # TODO(implement)
-        # PackageEntries have logical keys. Should we let user set a new logical key? New metadata?
-        # Make sure to clone package_entry
-        pass
+    def __init__(self, logical_key: str, package_entry: PackageEntry):
+        self.logical_key = logical_key
+        self.package_entry = package_entry
 
-    def build(self):  # TODO(implement)
-        # Return PBE instance
-        pass
+    def build(self):
+        return PackageBuilderEntry(self.logical_key,
+                                   self.package_entry.physical_key,
+                                   self.package_entry.metadata,
+                                   self.package_entry.size,
+                                   self.package_entry.entry_hash_type,
+                                   self.package_entry.entry_hash)
 
-    def clone(self):  # TODO(implement)
-        pass
+    def clone(self):
+        return PackageEntryPBE(self.logical_key, self.package_entry.clone())
 
 
 
@@ -607,10 +642,11 @@ class PackageBuilder:
 
     def add_object(self, logical_key, python_object, metadata=None, overwrite=False):
         if not overwrite and logical_key in self:
-            raise QuiltAddCollisionException("") # TODO: Add useful error message
+            raise QuiltAddCollisionException("")  # TODO: Add useful error message
 
         if FormatRegistry.object_is_serializable(python_object):
-            pbe = PythonObjectPBE(logical_key, python_object, metadata=metadata, serialization_location=None, serialization_format_opts=None)
+            pbe = PythonObjectPBE(logical_key, python_object, metadata=metadata,
+                                  serialization_location=None, serialization_format_opts=None)
             self[logical_key] = pbe
         else:
             raise TypeError(f"Unable to serialize {type(python_object)}. If you think we should be able to serialize "
@@ -714,7 +750,7 @@ class PackageBuilder:
 
 
     def _set_package_builder_entry(self, logical_key, package_builder_entry):
-        assert isinstance(package_builder_entry, PackageBuilderEntry)  # TODO: Does this work correctly for subclasses?
+        assert isinstance(package_builder_entry, PackageBuilderEntry)
         self[logical_key] = package_builder_entry
 
     def _set_file(self, logical_key, physical_key, metadata):
@@ -740,7 +776,7 @@ class PackageBuilder:
     def remove_entry(self, logical_key, nonexistant_ok=False):
         if logical_key not in self:
             if not nonexistant_ok:
-                raise QuiltDeleteNonexistantEntryException("")  # TODO: Better exceptionn message
+                raise QuiltDeleteNonexistantEntryException("")  # TODO: Better exception message
             return
 
         del self[logical_key]
@@ -769,7 +805,7 @@ class PackageBuilder:
             del self[current_logical_key]
 
 
-    def rename_dir(self, current_logical_key_prefix, new_logical_key_prefix):  # TODO(implement)
+    def rename_dir(self, current_logical_key_prefix, new_logical_key_prefix):
         current_logical_keys = [entry.logical_key
                                 for entry in self.entries
                                 if entry.logical_key.startswith(current_logical_key_prefix)]
