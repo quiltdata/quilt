@@ -217,6 +217,28 @@ class TestIndex():
             f'Unexpected body["info"] for {parquet}'
 
     @responses.activate
+    def test_parquet(self):
+        """test sending parquet bytes, but with a different metadata format"""
+        parquet = BASE_DIR / 'parquet_no_pandas.snappy.parquet'
+        info_response = BASE_DIR / 'parquet_info_no_pandas_response.json'
+        responses.add(
+            responses.GET,
+            self.FILE_URL,
+            body=parquet.read_bytes(),
+            status=200)
+        event = self._make_event({'url': self.FILE_URL, 'input': 'parquet'})
+        resp = index.lambda_handler(event, None)
+        assert resp['statusCode'] == 200, f'Expected 200, got {resp["statusCode"]}'
+        body = json.loads(resp['body'])
+
+        print(json.dumps(body['info']))
+        with open(info_response, 'r') as info_json:
+            expected = json.load(info_json)
+        assert (body['info'] == expected), \
+            f'Unexpected body["info"] for {parquet}'
+
+ 
+    @responses.activate
     def test_tsv(self):
         """test returning HTML previews of TSV (via pandas)"""
         csv = BASE_DIR / 'avengers.tsv'
