@@ -20,7 +20,7 @@ export const usePaint = memoEq(
       }
       // assuming object if not array
       const map = Array.isArray(paint) ? R.addIndex(R.map) : R.mapObjIndexed
-      const ids = map(uuid, paint)
+      const ids = map(() => uuid(), paint)
       return (fn) => map((p, k) => fn(p, ids[k]), paint)
     },
     (map) =>
