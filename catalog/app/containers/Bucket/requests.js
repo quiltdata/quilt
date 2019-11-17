@@ -461,12 +461,7 @@ export const objectMeta = ({ s3req, bucket, path, version }) =>
       Key: path,
       VersionId: version,
     },
-  }).then(
-    R.pipe(
-      R.path(['Metadata', 'helium']),
-      R.when(Boolean, JSON.parse),
-    ),
-  )
+  }).then(R.pipe(R.path(['Metadata', 'helium']), R.when(Boolean, JSON.parse)))
 
 const isValidManifest = R.both(Array.isArray, R.all(R.is(String)))
 
@@ -694,6 +689,26 @@ const fetchRevisionsAccessCounts = async ({
   }
 }
 
+const MAX_DRAIN_REQUESTS = 10
+
+const drainObjectList = async ({ s3req, bucket, prefix }) => {
+  let reqNo = 0
+  let Contents = []
+  let ContinuationToken
+  while (true) {
+    // eslint-disable-next-line no-await-in-loop
+    const r = await s3req({
+      bucket,
+      operation: 'listObjectsV2',
+      params: { Bucket: bucket, Prefix: prefix, ContinuationToken },
+    })
+    Contents = Contents.concat(r.Contents)
+    reqNo += 1
+    if (!r.IsTruncated || reqNo >= MAX_DRAIN_REQUESTS) return { ...r, Contents }
+    ContinuationToken = r.NextContinuationToken
+  }
+}
+
 export const getPackageRevisions = withErrorHandling(
   async ({ s3req, analyticsBucket, bucket, name, today, analyticsWindow = 30 }) => {
     const countsP = analyticsBucket
@@ -706,29 +721,28 @@ export const getPackageRevisions = withErrorHandling(
           window: analyticsWindow,
         })
       : Promise.resolve({})
-    // TODO: handle 1k+ revisions (check if truncated and drain til it's not)
-    const revisions = await s3req({
+    const { revisions, isTruncated } = await drainObjectList({
+      s3req,
       bucket,
-      operation: 'listObjectsV2',
-      params: {
-        Bucket: bucket,
-        Prefix: `${PACKAGES_PREFIX}${name}/`,
-      },
-    }).then((r) =>
-      r.Contents.reduce((acc, { Key: key }) => {
+      prefix: `${PACKAGES_PREFIX}${name}/`,
+    }).then((r) => ({
+      revisions: r.Contents.reduce((acc, { Key: key }) => {
         const id = getRevisionIdFromKey(key)
         if (id === 'latest') return acc
         return [{ id, key }].concat(acc)
       }, []),
-    )
-    return { revisions, counts: await countsP }
+      isTruncated: r.IsTruncated,
+    }))
+    return { revisions, isTruncated, counts: await countsP }
   },
 )
 
 const loadRevisionHash = ({ s3req, bucket, key }) =>
-  s3req({ bucket, operation: 'getObject', params: { Bucket: bucket, Key: key } }).then(
-    (res) => res.Body.toString('utf-8'),
-  )
+  s3req({
+    bucket,
+    operation: 'getObject',
+    params: { Bucket: bucket, Key: key },
+  }).then((res) => res.Body.toString('utf-8'))
 
 export const getRevisionData = async ({ s3req, endpoint, signer, bucket, key }) => {
   const hash = await loadRevisionHash({ s3req, bucket, key })
@@ -775,14 +789,7 @@ const s3Select = ({
         return acc + s
       }, ''),
       R.trim,
-      R.ifElse(
-        R.isEmpty,
-        R.always([]),
-        R.pipe(
-          R.split('\n'),
-          R.map(JSON.parse),
-        ),
-      ),
+      R.ifElse(R.isEmpty, R.always([]), R.pipe(R.split('\n'), R.map(JSON.parse))),
     ),
   )
 
