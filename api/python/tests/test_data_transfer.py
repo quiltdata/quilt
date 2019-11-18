@@ -443,10 +443,16 @@ class DataTransferTest(QuiltTestCase):
 
 
     def test_multipart_copy(self):
-        size = 20 * 1024 * 1024
+        size = 100 * 1024 * 1024 * 1024
+
+        # size / 8MB would give us 12501 chunks - but the maximum allowed is 10000,
+        # so we should end with 16MB chunks instead.
         chunksize = 8 * 1024 * 1024
+        assert size / chunksize > 10000
+        chunksize *= 2
 
         chunks = -(-size // chunksize)
+        assert chunks <= 10000
 
         self.s3_stubber.add_response(
             method='head_object',
