@@ -371,14 +371,25 @@ class DataTransferTest(QuiltTestCase):
 
 
     def test_multipart_upload(self):
-        path = DATA_DIR / 'large_file.npy'
+        name = 'very_large_file.bin'
+        path = pathlib.Path(name)
+
+        size = 30 * 1024 * 1024
+        chunksize = 8 * 1024 * 1024
+
+        chunks = -(-size // chunksize)
+
+        # Create an empty 30MB file; shouldn't take up any actual space on any reasonable filesystem.
+        with open(path, 'wb') as fd:
+            fd.seek(size - 1)
+            fd.write(b'!')
 
         self.s3_stubber.add_client_error(
             method='head_object',
             http_status_code=404,
             expected_params={
                 'Bucket': 'example',
-                'Key': 'large_file.npy',
+                'Key': name,
             }
         )
 
@@ -389,12 +400,12 @@ class DataTransferTest(QuiltTestCase):
             },
             expected_params={
                 'Bucket': 'example',
-                'Key': 'large_file.npy',
+                'Key': name,
                 'Metadata': {'helium': '{}'}
             }
         )
 
-        for part_num in range(1, 6):
+        for part_num in range(1, chunks+1):
             self.s3_stubber.add_response(
                 method='upload_part',
                 service_response={
@@ -402,7 +413,7 @@ class DataTransferTest(QuiltTestCase):
                 },
                 expected_params={
                     'Bucket': 'example',
-                    'Key': 'large_file.npy',
+                    'Key': name,
                     'UploadId': '123',
                     'Body': ANY,
                     'PartNumber': part_num
@@ -414,27 +425,28 @@ class DataTransferTest(QuiltTestCase):
             service_response={},
             expected_params={
                 'Bucket': 'example',
-                'Key': 'large_file.npy',
+                'Key': name,
                 'UploadId': '123',
                 'MultipartUpload': {
                     'Parts': [{
                         'ETag': 'etag%d' % i,
                         'PartNumber': i
-                    } for i in range(1, 6)]
+                    } for i in range(1, chunks+1)]
                 }
             }
         )
 
-        with mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', 4096), \
-             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', 2048), \
-             mock.patch('quilt3.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_threads', 1):
             data_transfer.copy_file_list([
-                (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, None),
+                (path.resolve().as_uri(), f's3://example/{name}', path.stat().st_size, None),
             ])
 
 
     def test_multipart_copy(self):
-        file_size = 5000
+        size = 20 * 1024 * 1024
+        chunksize = 8 * 1024 * 1024
+
+        chunks = -(-size // chunksize)
 
         self.s3_stubber.add_response(
             method='head_object',
@@ -459,7 +471,7 @@ class DataTransferTest(QuiltTestCase):
             }
         )
 
-        for part_num in range(1, 4):
+        for part_num in range(1, chunks+1):
             self.s3_stubber.add_response(
                 method='upload_part_copy',
                 service_response={
@@ -477,8 +489,8 @@ class DataTransferTest(QuiltTestCase):
                         'Key': 'large_file1.npy'
                     },
                     'CopySourceRange': 'bytes=%d-%d' % (
-                        (part_num-1) * 2048,
-                        min(part_num * 2048, file_size) - 1
+                        (part_num-1) * chunksize,
+                        min(part_num * chunksize, size) - 1
                     )
                 }
             )
@@ -494,14 +506,12 @@ class DataTransferTest(QuiltTestCase):
                     'Parts': [{
                         'ETag': 'etag%d' % i,
                         'PartNumber': i
-                    } for i in range(1, 4)]
+                    } for i in range(1, chunks+1)]
                 }
             }
         )
 
-        with mock.patch.object(data_transfer.s3_transfer_config, 'multipart_threshold', 4096), \
-             mock.patch.object(data_transfer.s3_transfer_config, 'multipart_chunksize', 2048), \
-             mock.patch('quilt3.data_transfer.s3_threads', 1):
+        with mock.patch('quilt3.data_transfer.s3_threads', 1):
             data_transfer.copy_file_list([
-                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', file_size, None),
+                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', size, None),
             ])
