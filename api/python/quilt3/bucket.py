@@ -8,9 +8,7 @@ import pathlib
 from urllib.parse import urlparse
 
 from .data_transfer import (copy_file, delete_object, get_bytes,
-                            get_size_and_meta, list_object_versions,
-                            list_objects, put_bytes, select)
-from .formats import FormatRegistry
+                            list_object_versions, list_objects, put_bytes, select)
 from .search_util import search_api
 from .util import QuiltException, find_bucket_config, fix_url, get_from_config, parse_s3_url
 
@@ -93,24 +91,6 @@ class Bucket(object):
         """
         return search_api(query, index=self._bucket, limit=limit)
 
-    def deserialize(self, key):
-        """
-        Deserializes object at key from bucket.
-
-        Args:
-            key(str): key in bucket to get
-
-        Returns:
-            Deserialized object.
-
-        Raises:
-            KeyError: if key does not exist
-            QuiltException: if deserialization fails in a known way
-            * if a deserializer raises an unexpected error
-        """
-        data, meta = get_bytes(self._uri + key)
-        return FormatRegistry.deserialize(data, meta, pathlib.PurePosixPath(key).suffix)
-
     def __call__(self, key):
         """Deserializes object at key from bucket. Syntactic sugar for `bucket.deserialize(key)`.
 
@@ -118,27 +98,6 @@ class Bucket(object):
             key: Key of object to deserialize.
         """
         return self.deserialize(key)
-
-    def put(self, key, obj, meta=None):
-        """
-        Stores `obj` at key in bucket, optionally with user-provided metadata.
-
-        Args:
-            key(str): key in bucket to put object to
-            obj(serializable): serializable object to store at key
-            meta(dict): optional user-provided metadata to store
-        """
-        user_meta = meta or {}
-        dest = self._uri + key
-        ext = pathlib.PurePosixPath(key).suffix
-        all_meta = {
-            'user_meta': user_meta,
-        }
-        
-        data, format_meta = FormatRegistry.serialize(obj, all_meta, ext)
-        all_meta.update(format_meta)
-
-        put_bytes(data, dest, all_meta)
 
     def put_file(self, key, path, meta=None):
         """
@@ -276,41 +235,6 @@ class Bucket(object):
         dest_uri = fix_url(path)
         copy_file(source_uri, dest_uri)
 
-    def get_meta(self, key):
-        """
-        Gets the metadata associated with a `key` in the bucket.
-
-        Args:
-            key(str): key in bucket to get meta for
-
-        Returns:
-            dict of meta
-
-        Raises:
-            * if download fails
-        """
-        src_uri = self._uri + key
-        return get_size_and_meta(src_uri)[1]
-
-    def set_meta(self, key, meta):
-        """
-        Sets user metadata on a `key` in the bucket.
-
-        Args:
-            key(str): key in bucket to set meta for
-            meta(dict): value to set user metadata to
-
-        Returns:
-            None
-
-        Raises:
-            * if put to bucket fails
-        """
-        key_uri = self._uri + key
-        size, existing_meta, _ = get_size_and_meta(key_uri)
-        existing_meta['user_meta'] = meta
-        copy_file(key_uri, key_uri, existing_meta, size)
-
     def select(self, key, query, raw=False):
         """
         Selects data from an S3 object.
@@ -324,6 +248,5 @@ class Bucket(object):
         Returns:
             pandas.DataFrame: results of query
         """
-        meta = self.get_meta(key)
         uri = self._uri + key
-        return select(uri, query, meta=meta, raw=raw)
+        return select(uri, query, raw=raw)

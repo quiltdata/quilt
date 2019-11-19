@@ -43,24 +43,6 @@ class TestAPI(QuiltTestCase):
         with pytest.raises(util.QuiltException, match='Port must be a number'):
             he.config('https://fliff:fluff')
 
-    def test_put_to_directory_failure(self):
-        # Adding pathes with trailing delimeters causes AWS to treat them like virtual directories
-        # and can cause issues when downloading to host machine.
-        test_object = "foo"
-        with pytest.raises(ValueError):
-            he.put(test_object, "s3://test/")
-
-    def test_put_copy_get(self):
-        data = np.array([1, 2, 3])
-        meta = {'foo': 'bar', 'x': 42}
-
-        he.put(data, 'file.json', meta)
-        he.copy('file.json', 'file2.json')
-        data2, meta2 = he.get('file2.json')
-
-        assert np.array_equal(data, data2)
-        assert meta == meta2
-
     def test_empty_list_role(self):
         empty_list_response = { 'results': [] }
         self.requests_mock.add(responses.GET, DEFAULT_URL + '/api/roles',

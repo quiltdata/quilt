@@ -122,12 +122,11 @@ class DataTransferTest(QuiltTestCase):
             data_transfer.select('s3://foo/bar/baz.json.gz', 'select * from S3Object')
             patched.assert_called_once_with(**expected_args)
 
-    def test_get_size_and_meta_no_version(self):
+    def test_get_size_and_version(self):
         response = {
             'ETag': '12345',
             'VersionId': '1.0',
             'ContentLength': 123,
-            'Metadata': {}
         }
         expected_params = {
             'Bucket': 'my_bucket',
@@ -136,7 +135,7 @@ class DataTransferTest(QuiltTestCase):
         self.s3_stubber.add_response('head_object', response, expected_params)
 
         # Verify the verion is present
-        assert data_transfer.get_size_and_meta('s3://my_bucket/my_obj')[2] == '1.0'
+        assert data_transfer.get_size_and_version('s3://my_bucket/my_obj')[1] == '1.0'
 
     def test_list_local_url(self):
         dir_path = DATA_DIR / 'dir'
@@ -164,7 +163,6 @@ class DataTransferTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'foo.csv',
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -184,7 +182,6 @@ class DataTransferTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'example1',
                 'Key': 'foo.csv',
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -198,15 +195,14 @@ class DataTransferTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'example2',
                 'Key': 'foo.txt',
-                'Metadata': {'helium': '{"foo": "bar"}'}
             }
         )
 
         # stubber expects responses in order, so disable multi-threading.
         with mock.patch('quilt3.data_transfer.s3_threads', 1):
             urls = data_transfer.copy_file_list([
-                (path1.as_uri(), 's3://example1/foo.csv', path1.stat().st_size, None),
-                (path2.as_uri(), 's3://example2/foo.txt', path2.stat().st_size, {'foo': 'bar'}),
+                (path1.as_uri(), 's3://example1/foo.csv', path1.stat().st_size),
+                (path2.as_uri(), 's3://example2/foo.txt', path2.stat().st_size),
             ])
 
             assert urls[0] == 's3://example1/foo.csv'
@@ -234,12 +230,11 @@ class DataTransferTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
-                'Metadata': {'helium': '{}'}
             }
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, None),
+            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
         ])
         assert urls[0] == 's3://example/large_file.npy?versionId=v1'
 
@@ -253,7 +248,6 @@ class DataTransferTest(QuiltTestCase):
                 'ContentLength': path.stat().st_size,
                 'ETag': data_transfer._calculate_etag(path),
                 'VersionId': 'v1',
-                'Metadata': {}
             },
             expected_params={
                 'Bucket': 'example',
@@ -262,7 +256,7 @@ class DataTransferTest(QuiltTestCase):
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, None),
+            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
         ])
         assert urls[0] == 's3://example/large_file.npy?versionId=v1'
 
@@ -276,7 +270,6 @@ class DataTransferTest(QuiltTestCase):
                 'ContentLength': path.stat().st_size,
                 'ETag': '"123"',
                 'VersionId': 'v1',
-                'Metadata': {}
             },
             expected_params={
                 'Bucket': 'example',
@@ -293,79 +286,11 @@ class DataTransferTest(QuiltTestCase):
                 'Body': ANY,
                 'Bucket': 'example',
                 'Key': 'large_file.npy',
-                'Metadata': {'helium': '{}'}
             }
         )
 
         urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, None),
-        ])
-        assert urls[0] == 's3://example/large_file.npy?versionId=v2'
-
-
-    def test_upload_large_file_etag_match_metadata_match(self):
-        path = DATA_DIR / 'large_file.npy'
-        etag = data_transfer._calculate_etag(path)
-
-        self.s3_stubber.add_response(
-            method='head_object',
-            service_response={
-                'ContentLength': path.stat().st_size,
-                'ETag': etag,
-                'VersionId': 'v1',
-                'Metadata': {'helium': '{"foo": "bar"}'}
-            },
-            expected_params={
-                'Bucket': 'example',
-                'Key': 'large_file.npy',
-            }
-        )
-
-        urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, {'foo': 'bar'}),
-        ])
-        assert urls[0] == 's3://example/large_file.npy?versionId=v1'
-
-
-    def test_upload_large_file_etag_match_metadata_mismatch(self):
-        path = DATA_DIR / 'large_file.npy'
-        etag = data_transfer._calculate_etag(path)
-
-        self.s3_stubber.add_response(
-            method='head_object',
-            service_response={
-                'ContentLength': path.stat().st_size,
-                'ETag': etag,
-                'VersionId': 'v1',
-                'Metadata': {}
-            },
-            expected_params={
-                'Bucket': 'example',
-                'Key': 'large_file.npy',
-            }
-        )
-
-        self.s3_stubber.add_response(
-            method='copy_object',
-            service_response={
-                'VersionId': 'v2'
-            },
-            expected_params={
-                'CopySource': {
-                    'Bucket': 'example',
-                    'Key': 'large_file.npy',
-                    'VersionId': 'v1'
-                },
-                'CopySourceIfMatch': etag,
-                'Bucket': 'example',
-                'Key': 'large_file.npy',
-                'Metadata': {'helium': '{"foo": "bar"}'},
-                'MetadataDirective': 'REPLACE'
-            }
-        )
-
-        urls = data_transfer.copy_file_list([
-            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size, {'foo': 'bar'}),
+            (path.as_uri(), 's3://example/large_file.npy', path.stat().st_size),
         ])
         assert urls[0] == 's3://example/large_file.npy?versionId=v2'
 
@@ -401,7 +326,6 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example',
                 'Key': name,
-                'Metadata': {'helium': '{}'}
             }
         )
 
@@ -438,7 +362,7 @@ class DataTransferTest(QuiltTestCase):
 
         with mock.patch('quilt3.data_transfer.s3_threads', 1):
             data_transfer.copy_file_list([
-                (path.resolve().as_uri(), f's3://example/{name}', path.stat().st_size, None),
+                (path.resolve().as_uri(), f's3://example/{name}', path.stat().st_size),
             ])
 
 
@@ -455,17 +379,6 @@ class DataTransferTest(QuiltTestCase):
         assert chunks <= 10000
 
         self.s3_stubber.add_response(
-            method='head_object',
-            service_response={
-                'Metadata': {'helium': '{"foo": "bar"}'}
-            },
-            expected_params={
-                'Bucket': 'example1',
-                'Key': 'large_file1.npy',
-            }
-        )
-
-        self.s3_stubber.add_response(
             method='create_multipart_upload',
             service_response={
                 'UploadId': '123'
@@ -473,7 +386,6 @@ class DataTransferTest(QuiltTestCase):
             expected_params={
                 'Bucket': 'example2',
                 'Key': 'large_file2.npy',
-                'Metadata': {'helium': '{"foo": "bar"}'}
             }
         )
 
@@ -519,5 +431,5 @@ class DataTransferTest(QuiltTestCase):
 
         with mock.patch('quilt3.data_transfer.s3_threads', 1):
             data_transfer.copy_file_list([
-                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', size, None),
+                ('s3://example1/large_file1.npy', 's3://example2/large_file2.npy', size),
             ])
