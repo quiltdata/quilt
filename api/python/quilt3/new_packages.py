@@ -1,24 +1,11 @@
-from abc import abstractmethod
-from .util import QuiltException
 from . import data_transfer
-from .exceptions import PackageException
 from pathlib import Path
-from .data_transfer import (
-    calculate_sha256, copy_file, copy_file_list, get_bytes, get_size_and_meta,
-    list_object_versions, put_bytes
-)
-from .exceptions import PackageException
-from .formats import FormatRegistry
-from .util import (
-    QuiltException, fix_url, get_from_config, get_install_location, make_s3_url, parse_file_url,
-    parse_s3_url, validate_package_name, quiltignore_filter, validate_key, extract_file_extension, file_is_local
-)
-import warnings
+
+from .util import QuiltException
 from copy import deepcopy
-from .util import TEMPFILE_DIR_PATH as APP_DIR_TEMPFILE_DIR
-import hashlib
-from urllib.parse import quote, urlparse, unquote
-import uuid
+
+from urllib.parse import quote, urlparse, unquote, ParseResult
+
 
 LATEST_TAG = "latest"
 VALID_README_EXTENSIONS = ["md", "txt", "rtf", "rst", "ipynb", None]
@@ -26,19 +13,10 @@ VALID_README_EXTENSIONS = ["md", "txt", "rtf", "rst", "ipynb", None]
 def get_s3_object(bucket, key):
     return bytes()
 
-def physical_key_is_s3(physical_key):
-    return physical_key.startswith("s3://")
 
 
-def hash_file(readable_file):
-    """ Returns SHA256 hash of readable file-like object """
-    buf = readable_file.read(4096)
-    hasher = hashlib.sha256()
-    while buf:
-        hasher.update(buf)
-        buf = readable_file.read(4096)
 
-    return hasher.hexdigest()
+
 
 def path_from_file_url(file_url):
     return Path(unquote(urlparse(file_url).path))
@@ -155,6 +133,7 @@ class Package:
             ))
         self.__shared_init__(pkg_name, tag, pkg_hash, pkg_metadata, entries)
 
+
     def __shared_init__(self, pkg_name, pkg_tag, pkg_hash, pkg_metadata, pkg_entries):
         # Logic that should be run by both `Package.__init__` and `MockPackageWithoutInitLogic.__init__`
         self.name = pkg_name
@@ -180,7 +159,7 @@ class Package:
         # Confirm that the downloaded data matches the manifest
         pass
 
-    def push(self, tag=None):  # TODO(implement)
+    def push(self, tag=None):  # TODO(dima implement)
         # Generate/get the Fast Manifest, Full Manifest, Metadata Chunks and push them to s3.
         # May eventually want to trigger an Athena Recover Partitions, but we will see.
         pass
@@ -398,435 +377,15 @@ class PackageEntry:
         return True
 
     def clone(self):
-        return self.__class__(deepcopy(self.pkg_name),
-                              deepcopy(self.pkg_hash),
-                              deepcopy(self.logical_key),
-                              deepcopy(self.physical_key),
-                              deepcopy(self.size),
-                              deepcopy(self.entry_hash_type),
-                              deepcopy(self.entry_hash),
+        return self.__class__(self.pkg_name,
+                              self.pkg_hash,
+                              self.logical_key,
+                              self.physical_key,
+                              self.size,
+                              self.entry_hash_type,
+                              self.entry_hash,
                               metadata=deepcopy(self.metadata))
 
-
-
-class PackageBuilderEntry:
-    """ Subclasses should have __init__ be instantaneous and defer any work to build() """
-    def __init__(self, logical_key, physical_key, metadata, size, hash_type, hash_value):
-        assert logical_key is not None
-        assert physical_key is not None
-        assert metadata is not None
-        assert size is not None
-        assert hash_type is not None
-        assert hash_value is not None
-
-        self.logical_key = logical_key
-        self.physical_key = physical_key
-        self.metadata = metadata
-        self.size = size
-        self.hash_type = hash_type
-        self.hash_value = hash_value
-
-    @abstractmethod
-    def build(self):
-        pass
-
-    @abstractmethod
-    def clone(self):
-        pass
-
-    def to_json(self):
-        # TODO: AssertionErrors are customer unfriendly
-
-        return {
-            "logical_key": self.logical_key,
-            "physical_key": self.physical_key,
-            "size": self.size,
-            "hash": {
-                "type": self.hash_type,
-                "value": self.hash_value
-            },
-            "metadata": self.metadata
-        }
-
-
-class LocalFilePBE(PackageBuilderEntry):
-    def __init__(self, logical_key, physical_key, metadata=None):
-        self.logical_key = logical_key
-        self.physical_key = physical_key
-        self.metadata = metadata or {}
-
-    def build(self):
-        pkey_path = path_from_file_url(self.physical_key)
-        size = pkey_path.stat().st_size
-        hash_type = "SHA256"
-        with pkey_path.open() as f:
-            hash_val = hash_file(f)
-
-        return PackageBuilderEntry(self.logical_key, self.physical_key, self.metadata, size, hash_type, hash_val)
-
-    def clone(self):
-        return LocalFilePBE(self.logical_key, self.physical_key, deepcopy(self.metadata))
-
-
-class S3FilePBE(PackageBuilderEntry):
-    def __init__(self, logical_key, physical_key, size=None, metadata=None):
-        self.logical_key = logical_key
-        self.physical_key = physical_key
-        self.size = size
-        self.metadata = metadata or {}
-
-    def build(self):
-        if self.size is None:
-            self.size, _, _ = data_transfer.get_size_and_meta(self.physical_key)
-
-        hash_type = "SHA256"
-        hash_val = data_transfer.calculate_sha256([self.physical_key], [self.size])
-
-        # TODO: Do we want to get a version_id if it is missing and the bucket is versioned?
-        return PackageBuilderEntry(self.logical_key, self.physical_key, self.metadata, self.size, hash_type, hash_val)
-
-    def clone(self):
-        return S3FilePBE(self.logical_key, self.physical_key, self.size, deepcopy(self.metadata))
-
-
-
-class PythonObjectPBE(PackageBuilderEntry):
-    def __init__(self, logical_key, python_object, metadata=None, serialization_location=None, serialization_format_opts=None):
-        self.logical_key = logical_key
-        self.obj = python_object
-        self.serialization_location = serialization_location
-        self.serialization_format_opts = serialization_format_opts or {}
-        self.metadata = metadata or {}
-
-    def build(self):
-        # Use file extension from serialization_location, fall back to file extension from logical_key
-        # If neither has a file extension, Quilt picks the serialization format based on type(python_object)
-        logical_key_ext = extract_file_extension(self.logical_key)
-
-        serialize_loc_ext = None
-        if self.serialization_location is not None:
-            serialize_loc_ext = extract_file_extension(self.serialization_location)
-
-        if logical_key_ext is not None and serialize_loc_ext is not None:
-            assert logical_key_ext == serialize_loc_ext, f"The logical_key and the serialization_location have " \
-                                                         f"different file extensions: {logical_key_ext} vs " \
-                                                         f"{serialize_loc_ext}. Quilt doesn't know which to use!"
-
-        if serialize_loc_ext is not None:
-            ext = serialize_loc_ext
-        elif logical_key_ext is not None:
-            ext = logical_key_ext
-        else:
-            ext = None
-
-        format_handlers = FormatRegistry.search(type(self.obj))
-        if ext:
-            format_handlers = [f for f in format_handlers if ext in f.handled_extensions]
-
-        if len(format_handlers) == 0:
-            error_message = f'Quilt does not know how to serialize a {type(self.obj)}'
-            if ext is not None:
-                error_message += f' as a {ext} file.'
-            error_message += f'. If you think this should be supported, please open an issue or PR at ' \
-                             f'https://github.com/quiltdata/quilt'
-            raise QuiltException(error_message)
-
-        serialized_object_bytes, new_meta = format_handlers[0].serialize(self.obj, meta=None, ext=ext,
-                                                                         **self.serialization_format_opts)
-        if self.serialization_location is None:
-            serialization_path = APP_DIR_TEMPFILE_DIR / str(uuid.uuid4())
-            if ext:
-                serialization_path = serialization_path.with_suffix(f'.{ext}')
-        else:
-            serialization_path = Path(self.serialization_location).expanduser().resolve()
-
-        serialization_path.parent.mkdir(exist_ok=True, parents=True)
-        serialization_path.write_bytes(serialized_object_bytes)
-
-        size = serialization_path.stat().st_size
-        physical_key = serialization_path.as_uri()
-
-        hash_type = "SHA256"
-        with serialization_path.open() as f:
-            hash_val = hash_file(f)
-
-        return PackageBuilderEntry(self.logical_key,
-                                   physical_key,
-                                   self.metadata,
-                                   size,
-                                   hash_type,
-                                   hash_val)
-
-
-    def clone(self):
-        return PythonObjectPBE(self.logical_key,
-                               deepcopy(self.obj),  # TODO(armand): Do all relevant objects support deepcopy? Are there memory implications that are worth worrying about?
-                               deepcopy(self.metadata),
-                               deepcopy(self.serialization_location),
-                               deepcopy(self.serialization_format_opts))
-
-
-class PackageEntryPBE(PackageBuilderEntry):
-    def __init__(self, logical_key: str, package_entry: PackageEntry):
-        self.logical_key = logical_key
-        self.package_entry = package_entry
-
-    def build(self):
-        return PackageBuilderEntry(self.logical_key,
-                                   self.package_entry.physical_key,
-                                   self.package_entry.metadata,
-                                   self.package_entry.size,
-                                   self.package_entry.entry_hash_type,
-                                   self.package_entry.entry_hash)
-
-    def clone(self):
-        return PackageEntryPBE(self.logical_key, self.package_entry.clone())
-
-
-
-class PackageBuilder:
-    def __init__(self, package=None):
-        self.entries = []
-
-        if package is not None:
-            self.add_package(package)
-
-    def __contains__(self, logical_key):
-        matches = [e for e in self.entries if e.logical_key == logical_key]
-        assert len(matches) < 2, "There should never be more that one entry with a given logical_key"
-        return len(matches) == 1
-
-    def __setitem__(self, logical_key, package_builder_entry):
-        if logical_key not in self:
-            self.entries.append(package_builder_entry)
-            return
-
-        for i in range(len(self.entries)):
-            if self.entries[i].logical_key == logical_key:
-                self.entries[i] = package_builder_entry
-                return
-
-    def __delitem__(self, logical_key):
-        del_idx = None
-        for i, entry in enumerate(self.entries):
-            if logical_key == entry.logical_key:
-                del_idx = i
-                break
-
-        if del_idx is not None:
-            del self.entries[del_idx]
-        else:
-            pass
-            # TODO(armand): Should this raise an exception?
-
-
-
-    def add_file(self, logical_key, physical_key=None, metadata=None, overwrite=False):
-
-        if physical_key is None:
-            physical_key = logical_key
-
-        if not overwrite and logical_key in self:
-            raise QuiltAddCollisionException("") # TODO: Add useful error message
-
-
-        if physical_key_is_s3(physical_key):
-            # TODO: Check physical key exists
-            self[logical_key] = S3FilePBE(logical_key, physical_key, metadata=metadata)
-        else:
-            # TODO: Check physical key exists
-            self[logical_key] = LocalFilePBE(logical_key, physical_key, metadata=metadata)
-
-
-
-
-    def add_object(self, logical_key, python_object, metadata=None, overwrite=False):
-        if not overwrite and logical_key in self:
-            raise QuiltAddCollisionException("")  # TODO: Add useful error message
-
-        if FormatRegistry.object_is_serializable(python_object):
-            pbe = PythonObjectPBE(logical_key, python_object, metadata=metadata,
-                                  serialization_location=None, serialization_format_opts=None)
-            self[logical_key] = pbe
-        else:
-            raise TypeError(f"Unable to serialize {type(python_object)}. If you think we should be able to serialize "
-                            f"this type, please open a ticket at github.com/quiltdata/quilt")
-
-
-
-    def add_package_entry(self, logical_key, pkg_entry, overwrite=False):
-        # TODO: Should there be an option to change the metadata?
-
-        if not overwrite and logical_key in self:
-            raise QuiltAddCollisionException("")  # TODO: Add useful error message
-
-        self[logical_key] = PackageEntryPBE(logical_key, pkg_entry.clone())
-
-
-    def _add_dir_s3(self, logical_key_prefix, s3_dir, shared_metadata, overwrite):
-        # TODO(armand): Should we be checking .quiltignore for s3?
-        assert logical_key_prefix is not None and s3_dir is not None, "Both logical_key_prefix and s3_dir must be given"
-        bucket, physical_key_prefix, version = parse_s3_url(s3_dir)
-
-        if version:
-            raise PackageException("Directories cannot have versions")
-
-        if not physical_key_prefix.endswith('/'):
-            physical_key_prefix += '/'
-
-        if not logical_key_prefix.endswith('/'):
-            logical_key_prefix += '/'
-
-        objects, _ = list_object_versions(bucket, physical_key_prefix)  # TODO(armand): confirm works as expected
-
-        for obj in objects:
-            obj_s3_key = obj['Key']
-
-            if not obj['IsLatest']:
-                continue
-
-            # Skip S3 pseudo directory files and Keys that end in /  # TODO(armand): Is this behavior we really need?
-            if obj_s3_key.endswith('/'):
-                if obj['Size'] != 0:  # TODO(armand): I don't understand this check
-                    warnings.warn(f'Logical keys cannot end in "/", skipping: {obj_s3_key}')
-
-
-            physical_key = make_s3_url(bucket, obj_s3_key, obj.get('VersionId'))
-
-            logical_key = logical_key_prefix + obj_s3_key.lstrip(physical_key_prefix)
-            if not overwrite and logical_key in self:
-                raise QuiltAddCollisionException("")  # TODO: Add useful error message
-
-            self[logical_key] = S3FilePBE(logical_key, physical_key, size=obj['Size'], metadata=shared_metadata)
-
-
-    def _add_dir_local(self, logical_key_prefix, local_dir, shared_metadata, overwrite):
-        assert logical_key_prefix is not None and local_dir is not None, "Both logical_key_prefix and " \
-                                                                                "local_dir must be set"
-
-
-        dir_path = Path(parse_file_url(local_dir))
-        if not dir_path.is_dir():
-            raise PackageException("The specified directory doesn't exist")  # TODO: Better exception
-
-        files = dir_path.rglob('*')
-        ignore = dir_path / '.quiltignore'  # TODO: Revisit the .quiltigore logic. Shouldn't the quiltignore to use be based on the cwd?
-        if ignore.exists():
-            files = quiltignore_filter(files, ignore, 'file')
-
-        for f in files:
-            if not f.is_file():
-                continue
-            logical_key = f.relative_to(dir_path).as_posix()
-            if not overwrite and logical_key in self:
-                raise QuiltAddCollisionException("")  # TODO: Add useful error message
-            physical_key = f.as_uri()
-            self[logical_key] = LocalFilePBE(logical_key, physical_key, metadata=shared_metadata)
-
-
-    def add_dir(self, logical_key_prefix, physical_key_dir=None, shared_metadata=None, overwrite=False):
-        if physical_key_dir is None:
-            physical_key_dir = logical_key_prefix
-
-        if physical_key_is_s3(physical_key_dir):
-            self._add_dir_s3(logical_key_prefix, physical_key_dir, shared_metadata, overwrite)
-        else:
-            self._add_dir_local(logical_key_prefix, physical_key_dir, shared_metadata, overwrite)
-
-
-    def add_package(self, pkg, overwrite=False):
-        assert isinstance(pkg, Package)  # TODO: More thoughtful error message
-        for pkg_entry in pkg:
-            self.add_package_entry(pkg_entry.logical_key, pkg_entry, overwrite=overwrite)
-
-
-
-
-
-    def add(self, *args, **kwargs):
-        """ Mapping from args/kwargs to which add_XXX function to call is not clear right now. """
-        raise NotImplementedError("This convenience function will be implemented after we have implemented all of "
-                                  "the add_XXX functions")
-
-
-    def _set_package_builder_entry(self, logical_key, package_builder_entry):
-        assert isinstance(package_builder_entry, PackageBuilderEntry)
-        self[logical_key] = package_builder_entry
-
-    def _set_file(self, logical_key, physical_key, metadata):
-        self.add_file(logical_key, physical_key, metadata=metadata, overwrite=True)
-
-
-    def _set_dir(self, logical_key_prefix, physical_key_dir, shared_metadata):
-        self.add_dir(logical_key_prefix, physical_key_dir, shared_metadata=shared_metadata, overwrite=True)
-
-
-    def _set_package_entry(self, logical_key, package_entry):
-        self.add_package_entry(logical_key, package_entry, overwrite=True)
-
-    def set(self, *args, **kwargs):  # TODO(implement)
-        """
-        TODO: Do we really need both `set` and `add`? They are conceptually different (what default behavior should
-              be in the case of logical_key conflicts), but they might not deserve distinct APIs.
-        """
-        pass
-
-
-
-    def remove_entry(self, logical_key, nonexistant_ok=False):
-        if logical_key not in self:
-            if not nonexistant_ok:
-                raise QuiltDeleteNonexistantEntryException("")  # TODO: Better exception message
-            return
-
-        del self[logical_key]
-
-
-
-    def remove_dir(self, logical_key_prefix):
-        lkeys_to_del = []
-        for pbe in self.entries:
-            if pbe.logical_key.startswith(logical_key_prefix):
-                lkeys_to_del.append(pbe.logical_key)
-
-        for lkey_to_del in lkeys_to_del:
-            self.remove_entry(lkey_to_del)
-
-
-
-
-    def rename_entry(self, current_logical_key, new_logical_key):
-        if current_logical_key not in self:
-            raise QuiltRenameNonexistantEntryException("")  # TODO: more detailed error message
-        else:
-            new_pbe = self[current_logical_key].clone()
-            new_pbe.logical_key = new_logical_key
-            self[new_logical_key] = new_pbe
-            del self[current_logical_key]
-
-
-    def rename_dir(self, current_logical_key_prefix, new_logical_key_prefix):
-        current_logical_keys = [entry.logical_key
-                                for entry in self.entries
-                                if entry.logical_key.startswith(current_logical_key_prefix)]
-        for current_logical_key in current_logical_keys:
-            shared_suffix = current_logical_key.lstrip(current_logical_key_prefix)
-            new_logical_key = new_logical_key_prefix + shared_suffix
-            self.rename_entry(current_logical_key, new_logical_key)
-
-
-
-
-
-    def build(self, package_name, tag=None, allow_local_files=False, allow_no_readme=False):  # TODO(implement)
-        pass
-
-    def push_data(self, prefix):  # TODO(implement)
-        pass
-
-
-    def __repr__(self):  # TODO(implement)
-        pass
 
 
 
@@ -836,8 +395,7 @@ class QuiltRenameNonexistantEntryException(QuiltException):
 class QuiltDeleteNonexistantEntryException(QuiltException):
     pass
 
-class QuiltAddCollisionException(QuiltException):
-    pass
+
 
 class QuiltNoReadmeException(QuiltException):
     pass

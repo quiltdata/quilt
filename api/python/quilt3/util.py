@@ -2,6 +2,7 @@ import re
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence, Set
 import datetime
+import hashlib
 import json
 import os
 import pathlib
@@ -97,6 +98,17 @@ def fix_url(url):
     return fixed_url
 
 
+
+def hash_file(readable_file):
+    """ Returns SHA256 hash of readable file-like object """
+    buf = readable_file.read(4096)
+    hasher = hashlib.sha256()
+    while buf:
+        hasher.update(buf)
+        buf = readable_file.read(4096)
+
+    return hasher.hexdigest()
+
 def extract_file_extension(file_path_or_url):
     """
     Extract the file extension if it exists.
@@ -157,6 +169,13 @@ def parse_file_url(file_url):
 
 def file_is_local(file_url_or_path):
     return urlparse(fix_url(file_url_or_path)).scheme == 'file'
+
+def path_from_file_url(file_url):
+    return pathlib.Path(unquote(urlparse(file_url).path))
+
+def physical_key_is_s3(physical_key):
+    return physical_key.startswith("s3://")
+
 
 def read_yaml(yaml_stream):
     yaml = ruamel.yaml.YAML()
@@ -422,3 +441,7 @@ def validate_key(key):
                 f"Invalid key {key!r}. "
                 f"A package entry key cannot contain a file or folder named '.' or '..' in its path."
             )
+
+
+
+
